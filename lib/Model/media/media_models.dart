@@ -1,1 +1,1 @@
-export '../../features/media/models/media_file_model.dart';
+export 'media_file_model.dart';

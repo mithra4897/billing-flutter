@@ -1,7 +1,7 @@
 import '../../core/api/api_client.dart';
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
-import '../../Model/common/erp_record_model.dart';
+import '../../model/common/erp_record_model.dart';
 
 class ErpModuleService {
   ErpModuleService({ApiClient? apiClient}) : client = apiClient ?? ApiClient();

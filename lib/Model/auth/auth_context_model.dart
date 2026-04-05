@@ -1,8 +1,8 @@
-import '../../masters/models/branch_model.dart';
-import '../../masters/models/business_location_model.dart';
-import '../../masters/models/company_model.dart';
-import '../../masters/models/financial_year_model.dart';
-import '../../masters/models/warehouse_model.dart';
+import '../masters/branch_model.dart';
+import '../masters/business_location_model.dart';
+import '../masters/company_model.dart';
+import '../masters/financial_year_model.dart';
+import '../masters/warehouse_model.dart';
 
 class AuthContextModel {
   const AuthContextModel({

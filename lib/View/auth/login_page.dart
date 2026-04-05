@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../Helper/validators.dart';
-import '../../Model/auth/login_request.dart';
-import '../../Service/auth/auth_service.dart';
+import '../../helper/validators.dart';
+import '../../model/auth/login_request_model.dart';
+import '../../service/auth/auth_service.dart';
 import 'widgets/app_text_field.dart';
 
 class LoginPage extends StatefulWidget {
@@ -39,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     final response = await _authService.login(
-      LoginRequest(
+      LoginRequestModel(
         login: _loginController.text.trim(),
         password: _passwordController.text,
       ),
@@ -53,9 +53,10 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = false;
     });
 
+    final displayName = response.data?.user?.displayName;
     final message = response.success
-        ? (response.data?.user?.displayName.isNotEmpty == true
-              ? 'Welcome ${response.data!.user!.displayName}'
+        ? ((displayName?.isNotEmpty ?? false)
+              ? 'Welcome $displayName'
               : response.message)
         : response.message;
 

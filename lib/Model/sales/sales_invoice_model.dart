@@ -1,18 +1,18 @@
-import '../../accounting/models/voucher_model.dart';
-import 'purchase_invoice_line_model.dart';
+import '../accounting/voucher_model.dart';
+import 'sales_invoice_line_model.dart';
 
-class PurchaseInvoiceModel {
-  const PurchaseInvoiceModel({
+class SalesInvoiceModel {
+  const SalesInvoiceModel({
     required this.id,
     required this.companyId,
     required this.branchId,
     required this.locationId,
     required this.financialYearId,
-    required this.supplierPartyId,
+    required this.customerPartyId,
     required this.invoiceDate,
     this.documentSeriesId,
-    this.purchaseOrderId,
-    this.purchaseReceiptId,
+    this.salesOrderId,
+    this.salesDeliveryId,
     this.invoiceNo,
     this.dueDate,
     this.billingAddressId,
@@ -40,11 +40,11 @@ class PurchaseInvoiceModel {
   final int branchId;
   final int locationId;
   final int financialYearId;
-  final int supplierPartyId;
+  final int customerPartyId;
   final String invoiceDate;
   final int? documentSeriesId;
-  final int? purchaseOrderId;
-  final int? purchaseReceiptId;
+  final int? salesOrderId;
+  final int? salesDeliveryId;
   final String? invoiceNo;
   final String? dueDate;
   final int? billingAddressId;
@@ -62,22 +62,22 @@ class PurchaseInvoiceModel {
   final String? invoiceStatus;
   final String? notes;
   final String? termsConditions;
-  final List<PurchaseInvoiceLineModel> lines;
+  final List<SalesInvoiceLineModel> lines;
   final VoucherModel? voucher;
   final Map<String, dynamic>? raw;
 
-  factory PurchaseInvoiceModel.fromJson(Map<String, dynamic> json) {
-    return PurchaseInvoiceModel(
+  factory SalesInvoiceModel.fromJson(Map<String, dynamic> json) {
+    return SalesInvoiceModel(
       id: _parseInt(json['id']),
       companyId: _parseInt(json['company_id']),
       branchId: _parseInt(json['branch_id']),
       locationId: _parseInt(json['location_id']),
       financialYearId: _parseInt(json['financial_year_id']),
-      supplierPartyId: _parseInt(json['supplier_party_id']),
+      customerPartyId: _parseInt(json['customer_party_id']),
       invoiceDate: json['invoice_date']?.toString() ?? '',
       documentSeriesId: _nullableInt(json['document_series_id']),
-      purchaseOrderId: _nullableInt(json['purchase_order_id']),
-      purchaseReceiptId: _nullableInt(json['purchase_receipt_id']),
+      salesOrderId: _nullableInt(json['sales_order_id']),
+      salesDeliveryId: _nullableInt(json['sales_delivery_id']),
       invoiceNo: json['invoice_no']?.toString(),
       dueDate: json['due_date']?.toString(),
       billingAddressId: _nullableInt(json['billing_address_id']),
@@ -110,12 +110,12 @@ class PurchaseInvoiceModel {
       'location_id': locationId,
       'financial_year_id': financialYearId,
       if (documentSeriesId != null) 'document_series_id': documentSeriesId,
-      if (purchaseOrderId != null) 'purchase_order_id': purchaseOrderId,
-      if (purchaseReceiptId != null) 'purchase_receipt_id': purchaseReceiptId,
+      if (salesOrderId != null) 'sales_order_id': salesOrderId,
+      if (salesDeliveryId != null) 'sales_delivery_id': salesDeliveryId,
       if (invoiceNo != null) 'invoice_no': invoiceNo,
       'invoice_date': invoiceDate,
       if (dueDate != null) 'due_date': dueDate,
-      'supplier_party_id': supplierPartyId,
+      'customer_party_id': customerPartyId,
       if (billingAddressId != null) 'billing_address_id': billingAddressId,
       if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
       if (contactId != null) 'contact_id': contactId,
@@ -134,14 +134,14 @@ class PurchaseInvoiceModel {
     };
   }
 
-  static List<PurchaseInvoiceLineModel> _mapLines(dynamic value) {
+  static List<SalesInvoiceLineModel> _mapLines(dynamic value) {
     if (value is! List) {
-      return <PurchaseInvoiceLineModel>[];
+      return <SalesInvoiceLineModel>[];
     }
 
     return value
         .whereType<Map<String, dynamic>>()
-        .map(PurchaseInvoiceLineModel.fromJson)
+        .map(SalesInvoiceLineModel.fromJson)
         .toList(growable: false);
   }
 

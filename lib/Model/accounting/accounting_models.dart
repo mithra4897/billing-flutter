@@ -1,3 +1,3 @@
-export '../../features/accounting/models/account_model.dart';
-export '../../features/accounting/models/voucher_line_model.dart';
-export '../../features/accounting/models/voucher_model.dart';
+export 'account_model.dart';
+export 'voucher_line_model.dart';
+export 'voucher_model.dart';

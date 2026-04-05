@@ -1,18 +1,18 @@
-import '../../accounting/models/voucher_model.dart';
-import 'sales_invoice_line_model.dart';
+import '../accounting/voucher_model.dart';
+import 'purchase_invoice_line_model.dart';
 
-class SalesInvoiceModel {
-  const SalesInvoiceModel({
+class PurchaseInvoiceModel {
+  const PurchaseInvoiceModel({
     required this.id,
     required this.companyId,
     required this.branchId,
     required this.locationId,
     required this.financialYearId,
-    required this.customerPartyId,
+    required this.supplierPartyId,
     required this.invoiceDate,
     this.documentSeriesId,
-    this.salesOrderId,
-    this.salesDeliveryId,
+    this.purchaseOrderId,
+    this.purchaseReceiptId,
     this.invoiceNo,
     this.dueDate,
     this.billingAddressId,
@@ -40,11 +40,11 @@ class SalesInvoiceModel {
   final int branchId;
   final int locationId;
   final int financialYearId;
-  final int customerPartyId;
+  final int supplierPartyId;
   final String invoiceDate;
   final int? documentSeriesId;
-  final int? salesOrderId;
-  final int? salesDeliveryId;
+  final int? purchaseOrderId;
+  final int? purchaseReceiptId;
   final String? invoiceNo;
   final String? dueDate;
   final int? billingAddressId;
@@ -62,22 +62,22 @@ class SalesInvoiceModel {
   final String? invoiceStatus;
   final String? notes;
   final String? termsConditions;
-  final List<SalesInvoiceLineModel> lines;
+  final List<PurchaseInvoiceLineModel> lines;
   final VoucherModel? voucher;
   final Map<String, dynamic>? raw;
 
-  factory SalesInvoiceModel.fromJson(Map<String, dynamic> json) {
-    return SalesInvoiceModel(
+  factory PurchaseInvoiceModel.fromJson(Map<String, dynamic> json) {
+    return PurchaseInvoiceModel(
       id: _parseInt(json['id']),
       companyId: _parseInt(json['company_id']),
       branchId: _parseInt(json['branch_id']),
       locationId: _parseInt(json['location_id']),
       financialYearId: _parseInt(json['financial_year_id']),
-      customerPartyId: _parseInt(json['customer_party_id']),
+      supplierPartyId: _parseInt(json['supplier_party_id']),
       invoiceDate: json['invoice_date']?.toString() ?? '',
       documentSeriesId: _nullableInt(json['document_series_id']),
-      salesOrderId: _nullableInt(json['sales_order_id']),
-      salesDeliveryId: _nullableInt(json['sales_delivery_id']),
+      purchaseOrderId: _nullableInt(json['purchase_order_id']),
+      purchaseReceiptId: _nullableInt(json['purchase_receipt_id']),
       invoiceNo: json['invoice_no']?.toString(),
       dueDate: json['due_date']?.toString(),
       billingAddressId: _nullableInt(json['billing_address_id']),
@@ -110,12 +110,12 @@ class SalesInvoiceModel {
       'location_id': locationId,
       'financial_year_id': financialYearId,
       if (documentSeriesId != null) 'document_series_id': documentSeriesId,
-      if (salesOrderId != null) 'sales_order_id': salesOrderId,
-      if (salesDeliveryId != null) 'sales_delivery_id': salesDeliveryId,
+      if (purchaseOrderId != null) 'purchase_order_id': purchaseOrderId,
+      if (purchaseReceiptId != null) 'purchase_receipt_id': purchaseReceiptId,
       if (invoiceNo != null) 'invoice_no': invoiceNo,
       'invoice_date': invoiceDate,
       if (dueDate != null) 'due_date': dueDate,
-      'customer_party_id': customerPartyId,
+      'supplier_party_id': supplierPartyId,
       if (billingAddressId != null) 'billing_address_id': billingAddressId,
       if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
       if (contactId != null) 'contact_id': contactId,
@@ -134,14 +134,14 @@ class SalesInvoiceModel {
     };
   }
 
-  static List<SalesInvoiceLineModel> _mapLines(dynamic value) {
+  static List<PurchaseInvoiceLineModel> _mapLines(dynamic value) {
     if (value is! List) {
-      return <SalesInvoiceLineModel>[];
+      return <PurchaseInvoiceLineModel>[];
     }
 
     return value
         .whereType<Map<String, dynamic>>()
-        .map(SalesInvoiceLineModel.fromJson)
+        .map(PurchaseInvoiceLineModel.fromJson)
         .toList(growable: false);
   }
 

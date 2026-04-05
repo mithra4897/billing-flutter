@@ -1,11 +1,12 @@
-import '../../features/accounting/services/accounting_service.dart';
+import '../../core/api/api_endpoints.dart';
+import '../../core/models/api_response.dart';
+import '../../core/models/paginated_response.dart';
+import '../../model/accounting/account_model.dart';
+import '../../model/accounting/voucher_model.dart';
 import '../base/erp_module_service.dart';
 
 class AccountsService extends ErpModuleService {
-  AccountsService({super.apiClient})
-    : _typed = AccountingService(apiClient: apiClient);
-
-  final AccountingService _typed;
+  AccountsService({super.apiClient});
 
   Future accountGroups({Map<String, dynamic>? filters}) =>
       index('/accounting/account-groups', filters: filters);
@@ -19,8 +20,16 @@ class AccountsService extends ErpModuleService {
   Future deleteAccountGroup(int id) =>
       destroy('/accounting/account-groups/$id');
 
-  Future accounts({Map<String, dynamic>? filters}) =>
-      _typed.getAccounts(filters: filters);
+  Future<PaginatedResponse<AccountModel>> accounts({
+    Map<String, dynamic>? filters,
+  }) {
+    return client.getPaginated<AccountModel>(
+      ApiEndpoints.accounts,
+      queryParameters: filters,
+      itemFromJson: AccountModel.fromJson,
+    );
+  }
+
   Future accountsAll({Map<String, dynamic>? filters}) =>
       list('/accounting/accounts/list/all', filters: filters);
   Future account(int id) => show('/accounting/accounts/$id');
@@ -100,11 +109,25 @@ class AccountsService extends ErpModuleService {
   Future budgetVsActual(int id, {Map<String, dynamic>? filters}) =>
       show('/accounting/budgets/$id/vs-actual');
 
-  Future vouchers({Map<String, dynamic>? filters}) =>
-      _typed.getVouchers(filters: filters);
+  Future<PaginatedResponse<VoucherModel>> vouchers({
+    Map<String, dynamic>? filters,
+  }) {
+    return client.getPaginated<VoucherModel>(
+      ApiEndpoints.vouchers,
+      queryParameters: filters,
+      itemFromJson: VoucherModel.fromJson,
+    );
+  }
+
   Future vouchersAll({Map<String, dynamic>? filters}) =>
       list('/accounting/vouchers/list/all', filters: filters);
-  Future voucher(int id) => _typed.getVoucher(id);
+  Future<ApiResponse<VoucherModel>> voucher(int id) {
+    return client.get<VoucherModel>(
+      '${ApiEndpoints.vouchers}/$id',
+      fromData: (json) => VoucherModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
   Future createVoucher(Map<String, dynamic> body) =>
       store('/accounting/vouchers', body);
   Future updateVoucher(int id, Map<String, dynamic> body) =>

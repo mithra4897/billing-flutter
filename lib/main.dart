@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'View/auth/login_page.dart';
+import 'view/auth/login_page.dart';
 
 void main() {
   runApp(const BillingApp());
