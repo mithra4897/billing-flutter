@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../../core/error/api_exception.dart';
 import '../../core/storage/session_storage.dart';
 import '../../model/auth/auth_user_model.dart';
 import '../../model/auth/login_response_model.dart';
@@ -82,6 +83,19 @@ class AppSessionService {
       );
       await _scheduleRefresh();
       return true;
+    } on ApiException catch (error) {
+      if (error.statusCode == 401 || error.statusCode == 403) {
+        await clearSession();
+        return false;
+      }
+
+      if (error.isConnectivityIssue) {
+        _scheduleRetry(const Duration(seconds: 30));
+        return false;
+      }
+
+      await clearSession();
+      return false;
     } catch (_) {
       await clearSession();
       return false;
@@ -99,5 +113,12 @@ class AppSessionService {
 
   Future<void> updateCurrentUser(AuthUserModel user) async {
     await SessionStorage.saveCurrentUser(user.toJson());
+  }
+
+  void _scheduleRetry(Duration delay) {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer(delay, () async {
+      await refreshToken();
+    });
   }
 }

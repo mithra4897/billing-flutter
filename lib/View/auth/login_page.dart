@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/constants/app_ui_constants.dart';
 import '../../app/theme/app_theme_extension.dart';
 import '../../components/app_branding_logo.dart';
+import '../../components/app_error_state_view.dart';
 import '../../components/app_loading_view.dart';
 import '../../core/error/api_exception.dart';
 import '../../core/storage/session_storage.dart';
@@ -35,6 +36,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _rememberMe = false;
   bool _isLoading = false;
   bool _isBootstrapping = true;
+  String? _brandingErrorMessage;
 
   @override
   void initState() {
@@ -62,9 +64,22 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted && response.success && response.data != null) {
         setState(() {
           _branding = response.data;
+          _brandingErrorMessage = null;
         });
       }
-    } catch (_) {}
+    } on ApiException catch (error) {
+      if (mounted && cached == null) {
+        setState(() {
+          _brandingErrorMessage = error.message;
+        });
+      }
+    } catch (_) {
+      if (mounted && cached == null) {
+        setState(() {
+          _brandingErrorMessage = 'Unable to reach the server right now.';
+        });
+      }
+    }
 
     if (mounted) {
       setState(() {
@@ -115,7 +130,11 @@ class _LoginPageState extends State<LoginPage> {
         response.message.isEmpty ? 'Login failed' : response.message,
       );
     } on ApiException catch (error) {
-      _showMessage(error.message);
+      _showMessage(
+        error.isConnectivityIssue
+            ? 'Server is unreachable right now. Please try again.'
+            : error.message,
+      );
     } catch (_) {
       _showMessage('Unable to sign in right now.');
     } finally {
@@ -147,6 +166,16 @@ class _LoginPageState extends State<LoginPage> {
     if (_isBootstrapping) {
       return Scaffold(
         body: AppLoadingView(message: 'Loading ${branding.companyName}...'),
+      );
+    }
+
+    if (_brandingErrorMessage != null && _branding == null) {
+      return Scaffold(
+        body: AppErrorStateView(
+          title: 'Server Unavailable',
+          message: _brandingErrorMessage!,
+          onRetry: _loadBranding,
+        ),
       );
     }
 

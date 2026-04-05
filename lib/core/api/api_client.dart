@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
@@ -12,15 +13,18 @@ class ApiClient {
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
+  static const Duration _requestTimeout = Duration(seconds: 20);
 
   Future<ApiResponse<T>> get<T>(
     String endpoint, {
     Map<String, dynamic>? queryParameters,
     T Function(dynamic json)? fromData,
   }) async {
-    final response = await _client.get(
-      _buildUri(endpoint, queryParameters),
-      headers: await _buildHeaders(),
+    final response = await _guardRequest(
+      () async => _client.get(
+        _buildUri(endpoint, queryParameters),
+        headers: await _buildHeaders(),
+      ),
     );
 
     return _parseResponse(response, fromData: fromData);
@@ -31,9 +35,11 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     required T Function(Map<String, dynamic> json) itemFromJson,
   }) async {
-    final response = await _client.get(
-      _buildUri(endpoint, queryParameters),
-      headers: await _buildHeaders(),
+    final response = await _guardRequest(
+      () async => _client.get(
+        _buildUri(endpoint, queryParameters),
+        headers: await _buildHeaders(),
+      ),
     );
 
     final json = _decodeBody(response.body);
@@ -46,10 +52,12 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic json)? fromData,
   }) async {
-    final response = await _client.post(
-      _buildUri(endpoint),
-      headers: await _buildHeaders(),
-      body: jsonEncode(body ?? <String, dynamic>{}),
+    final response = await _guardRequest(
+      () async => _client.post(
+        _buildUri(endpoint),
+        headers: await _buildHeaders(),
+        body: jsonEncode(body ?? <String, dynamic>{}),
+      ),
     );
 
     return _parseResponse(response, fromData: fromData);
@@ -60,10 +68,12 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic json)? fromData,
   }) async {
-    final response = await _client.put(
-      _buildUri(endpoint),
-      headers: await _buildHeaders(),
-      body: jsonEncode(body ?? <String, dynamic>{}),
+    final response = await _guardRequest(
+      () async => _client.put(
+        _buildUri(endpoint),
+        headers: await _buildHeaders(),
+        body: jsonEncode(body ?? <String, dynamic>{}),
+      ),
     );
 
     return _parseResponse(response, fromData: fromData);
@@ -74,10 +84,12 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic json)? fromData,
   }) async {
-    final response = await _client.patch(
-      _buildUri(endpoint),
-      headers: await _buildHeaders(),
-      body: jsonEncode(body ?? <String, dynamic>{}),
+    final response = await _guardRequest(
+      () async => _client.patch(
+        _buildUri(endpoint),
+        headers: await _buildHeaders(),
+        body: jsonEncode(body ?? <String, dynamic>{}),
+      ),
     );
 
     return _parseResponse(response, fromData: fromData);
@@ -88,10 +100,12 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic json)? fromData,
   }) async {
-    final response = await _client.delete(
-      _buildUri(endpoint),
-      headers: await _buildHeaders(),
-      body: body == null ? null : jsonEncode(body),
+    final response = await _guardRequest(
+      () async => _client.delete(
+        _buildUri(endpoint),
+        headers: await _buildHeaders(),
+        body: body == null ? null : jsonEncode(body),
+      ),
     );
 
     return _parseResponse(response, fromData: fromData);
@@ -113,7 +127,7 @@ class ApiClient {
 
     request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
 
-    final streamed = await request.send();
+    final streamed = await _guardRequest(() => request.send());
     final response = await http.Response.fromStream(streamed);
 
     return _parseResponse(response, fromData: fromData);
@@ -200,5 +214,23 @@ class ApiClient {
       statusCode: statusCode,
       errors: json['errors'],
     );
+  }
+
+  Future<T> _guardRequest<T>(Future<T> Function() request) async {
+    try {
+      return await request().timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const ApiException(
+        'The server is taking too long to respond. Please try again.',
+        isTimeout: true,
+      );
+    } on http.ClientException {
+      throw const ApiException(
+        'Server is unreachable. Please check the connection and try again.',
+        isNetworkError: true,
+      );
+    } on FormatException {
+      throw const ApiException('Invalid response received from server.');
+    }
   }
 }

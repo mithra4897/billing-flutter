@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../components/app_error_state_view.dart';
 import '../../components/app_loading_view.dart';
+import '../../core/error/api_exception.dart';
 import '../../core/storage/session_storage.dart';
 import '../../service/app/app_session_service.dart';
 import '../../service/app/public_branding_service.dart';
@@ -16,6 +18,8 @@ class AppBootstrapPage extends StatefulWidget {
 class _AppBootstrapPageState extends State<AppBootstrapPage> {
   final PublicBrandingService _brandingService = PublicBrandingService();
   final AuthService _authService = AuthService();
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -24,51 +28,91 @@ class _AppBootstrapPageState extends State<AppBootstrapPage> {
   }
 
   Future<void> _bootstrap() async {
-    await _brandingService.fetchBranding();
-    await AppSessionService.instance.bootstrap();
-
-    if (!mounted) {
-      return;
-    }
-
-    final shouldAutoLogin = await SessionStorage.shouldAutoLogin();
-    if (!mounted) {
-      return;
-    }
-    if (!shouldAutoLogin) {
-      Navigator.of(context).pushReplacementNamed('/login');
-      return;
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
     }
 
     try {
-      final me = await _authService.me();
+      await _brandingService.fetchBranding();
+      await AppSessionService.instance.bootstrap();
+
       if (!mounted) {
         return;
       }
-      if (me.success) {
-        if (me.data != null) {
-          await AppSessionService.instance.updateCurrentUser(me.data!);
-        }
-        await AppSessionService.instance.refreshUserAccess();
+
+      final shouldAutoLogin = await SessionStorage.shouldAutoLogin();
+      if (!mounted) {
+        return;
+      }
+      if (!shouldAutoLogin) {
+        Navigator.of(context).pushReplacementNamed('/login');
+        return;
+      }
+
+      try {
+        final me = await _authService.me();
         if (!mounted) {
           return;
         }
-        Navigator.of(context).pushReplacementNamed('/dashboard');
+        if (me.success) {
+          if (me.data != null) {
+            await AppSessionService.instance.updateCurrentUser(me.data!);
+          }
+          await AppSessionService.instance.refreshUserAccess();
+          if (!mounted) {
+            return;
+          }
+          Navigator.of(context).pushReplacementNamed('/dashboard');
+          return;
+        }
+      } on ApiException catch (error) {
+        if (error.isConnectivityIssue) {
+          _showError(error.message);
+          return;
+        }
+      } catch (_) {
+        _showError('Unable to connect to the server right now.');
         return;
       }
-    } catch (_) {}
 
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushReplacementNamed('/login');
+    } on ApiException catch (error) {
+      _showError(error.message);
+    } catch (_) {
+      _showError('Unable to start the application right now.');
+    }
+  }
+
+  void _showError(String message) {
     if (!mounted) {
       return;
     }
 
-    Navigator.of(context).pushReplacementNamed('/login');
+    setState(() {
+      _isLoading = false;
+      _errorMessage = message;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: AppLoadingView(message: 'Starting application...'),
+    return Scaffold(
+      body: _isLoading
+          ? const AppLoadingView(message: 'Starting application...')
+          : _errorMessage != null
+          ? AppErrorStateView(
+              title: 'Server Unavailable',
+              message: _errorMessage!,
+              onRetry: _bootstrap,
+            )
+          : const AppLoadingView(message: 'Starting application...'),
     );
   }
 }
