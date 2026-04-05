@@ -2,15 +2,18 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-class AppConstants {
-  const AppConstants._();
+class AppConfig {
+  const AppConfig._();
 
   static const String appTitle = 'Billing ERP';
-  static String get baseUrl {
+  static const String apiPrefix = '/api/v1';
+
+  static String get baseHost {
     const configuredUrl = String.fromEnvironment(
       'API_BASE_URL',
       defaultValue: '',
     );
+
     if (configuredUrl.isNotEmpty) {
       return configuredUrl;
     }
@@ -26,10 +29,5 @@ class AppConstants {
     return 'http://localhost:8000';
   }
 
-  static const String apiPrefix = '/api/v1';
-  static const String loginEndpoint = '$apiPrefix/auth/login';
-
-  static const String accessTokenKey = 'access_token';
-  static const String tokenTypeKey = 'token_type';
-  static const String expiresInKey = 'expires_in';
+  static String get apiBaseUrl => '$baseHost$apiPrefix';
 }
