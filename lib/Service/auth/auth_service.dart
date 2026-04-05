@@ -26,22 +26,12 @@ class AuthService extends ErpModuleService {
   Future<ApiResponse<LoginResponseModel>> login(
     LoginRequestModel request,
   ) async {
-    final response = await client.post<LoginResponseModel>(
+    return client.post<LoginResponseModel>(
       ApiEndpoints.login,
       body: request.toJson(),
       fromData: (json) =>
           LoginResponseModel.fromJson(json as Map<String, dynamic>),
     );
-
-    if (response.success && response.data != null) {
-      await SessionStorage.saveSession(
-        token: response.data!.accessToken,
-        tokenType: response.data!.tokenType,
-        expiresIn: response.data!.expiresIn,
-      );
-    }
-
-    return response;
   }
 
   Future<ApiResponse<AuthUserModel>> me() {
@@ -61,11 +51,18 @@ class AuthService extends ErpModuleService {
 
   Future<ApiResponse<dynamic>> logout() async {
     final response = await client.post<dynamic>(ApiEndpoints.logout);
-    await SessionStorage.clear();
+    await SessionStorage.clearSessionOnly();
     return response;
   }
 
-  Future<ApiResponse<dynamic>> refresh() => actionDynamic('/auth/refresh');
+  Future<ApiResponse<LoginResponseModel>> refresh() {
+    return client.post<LoginResponseModel>(
+      ApiEndpoints.refresh,
+      fromData: (json) =>
+          LoginResponseModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
   Future<ApiResponse<dynamic>> changePassword(
     ChangePasswordRequestModel body,
   ) => actionDynamic('/auth/change-password', body: body);
