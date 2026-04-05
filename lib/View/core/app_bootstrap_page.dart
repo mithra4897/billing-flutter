@@ -46,6 +46,13 @@ class _AppBootstrapPageState extends State<AppBootstrapPage> {
         return;
       }
       if (me.success) {
+        if (me.data != null) {
+          await AppSessionService.instance.updateCurrentUser(me.data!);
+        }
+        await AppSessionService.instance.refreshUserAccess();
+        if (!mounted) {
+          return;
+        }
         Navigator.of(context).pushReplacementNamed('/dashboard');
         return;
       }

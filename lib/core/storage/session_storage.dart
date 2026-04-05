@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../model/app/public_branding_model.dart';
+import '../../model/auth/auth_context_model.dart';
 
 class SessionStorage {
   const SessionStorage._();
@@ -18,6 +19,8 @@ class SessionStorage {
   static const String currentBranchIdKey = 'current_branch_id';
   static const String currentLocationIdKey = 'current_location_id';
   static const String currentFinancialYearIdKey = 'current_financial_year_id';
+  static const String authContextKey = 'auth_context';
+  static const String permissionCodesKey = 'permission_codes';
 
   static Future<void> saveSession({
     required String token,
@@ -77,6 +80,11 @@ class SessionStorage {
     return decoded is Map<String, dynamic> ? decoded : null;
   }
 
+  static Future<void> saveCurrentUser(Map<String, dynamic> currentUser) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(currentUserKey, jsonEncode(currentUser));
+  }
+
   static Future<void> saveSelectedContext({
     int? companyId,
     int? branchId,
@@ -107,6 +115,35 @@ class SessionStorage {
     );
   }
 
+  static Future<void> saveAuthContext(AuthContextModel context) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(authContextKey, jsonEncode(context.toJson()));
+    await preferences.setStringList(
+      permissionCodesKey,
+      context.permissionCodes,
+    );
+  }
+
+  static Future<AuthContextModel?> getAuthContext() async {
+    final preferences = await SharedPreferences.getInstance();
+    final raw = preferences.getString(authContextKey);
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map<String, dynamic>) {
+      return null;
+    }
+
+    return AuthContextModel.fromJson(decoded);
+  }
+
+  static Future<List<String>> getPermissionCodes() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getStringList(permissionCodesKey) ?? const <String>[];
+  }
+
   static Future<PublicBrandingModel?> getBranding() async {
     final preferences = await SharedPreferences.getInstance();
     final raw = preferences.getString(publicBrandingKey);
@@ -134,6 +171,8 @@ class SessionStorage {
     await preferences.remove(currentBranchIdKey);
     await preferences.remove(currentLocationIdKey);
     await preferences.remove(currentFinancialYearIdKey);
+    await preferences.remove(authContextKey);
+    await preferences.remove(permissionCodesKey);
   }
 
   static Future<void> clear() async {

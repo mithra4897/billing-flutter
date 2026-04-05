@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../core/storage/session_storage.dart';
+import '../../model/auth/auth_user_model.dart';
 import '../../model/auth/login_response_model.dart';
 import '../auth/auth_service.dart';
 
@@ -23,6 +24,7 @@ class AppSessionService {
       currentUser: session.user?.toJson(),
       rememberMe: rememberMe,
     );
+    await refreshUserAccess();
     await _scheduleRefresh();
   }
 
@@ -84,5 +86,18 @@ class AppSessionService {
       await clearSession();
       return false;
     }
+  }
+
+  Future<void> refreshUserAccess() async {
+    try {
+      final contextResponse = await _authService.context();
+      if (contextResponse.success && contextResponse.data != null) {
+        await SessionStorage.saveAuthContext(contextResponse.data!);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> updateCurrentUser(AuthUserModel user) async {
+    await SessionStorage.saveCurrentUser(user.toJson());
   }
 }

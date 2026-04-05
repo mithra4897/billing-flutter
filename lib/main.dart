@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'app/constants/app_config.dart';
+import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
 import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
+import 'view/core/module_placeholder_page.dart';
 import 'view/dashboard/dashboard_page.dart';
 
 void main() {
@@ -41,11 +43,26 @@ class BillingApp extends StatelessWidget {
               builder: (_) => const DashboardPage(),
             );
           case '/login':
-          default:
             return MaterialPageRoute<void>(
               settings: settings,
               builder: (_) =>
                   LoginPage(redirectTo: uri.queryParameters['redirect']),
+            );
+          default:
+            final matchedRoute = AppNavigation.findByPath(uri.path);
+            if (matchedRoute != null) {
+              return MaterialPageRoute<void>(
+                settings: settings,
+                builder: (_) => ModulePlaceholderPage(
+                  path: uri.path,
+                  queryParameters: uri.queryParameters,
+                ),
+              );
+            }
+
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => const LoginPage(),
             );
         }
       },

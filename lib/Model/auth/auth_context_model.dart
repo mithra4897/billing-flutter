@@ -11,6 +11,7 @@ class AuthContextModel {
     required this.locations,
     required this.warehouses,
     required this.financialYears,
+    this.permissionCodes = const [],
     this.raw,
   });
 
@@ -19,6 +20,7 @@ class AuthContextModel {
   final List<BusinessLocationModel> locations;
   final List<WarehouseModel> warehouses;
   final List<FinancialYearModel> financialYears;
+  final List<String> permissionCodes;
   final Map<String, dynamic>? raw;
 
   factory AuthContextModel.fromJson(Map<String, dynamic> json) {
@@ -43,8 +45,24 @@ class AuthContextModel {
         json['financial_years'],
         (item) => FinancialYearModel.fromJson(item),
       ),
+      permissionCodes: _stringList(json['permission_codes']),
       raw: json,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    if (raw != null) {
+      return raw!;
+    }
+
+    return {
+      'companies': const <Map<String, dynamic>>[],
+      'branches': const <Map<String, dynamic>>[],
+      'locations': const <Map<String, dynamic>>[],
+      'warehouses': const <Map<String, dynamic>>[],
+      'financial_years': const <Map<String, dynamic>>[],
+      'permission_codes': permissionCodes,
+    };
   }
 
   static List<T> _mapList<T>(
@@ -59,5 +77,13 @@ class AuthContextModel {
         .whereType<Map<String, dynamic>>()
         .map(mapper)
         .toList(growable: false);
+  }
+
+  static List<String> _stringList(dynamic value) {
+    if (value is! List) {
+      return const <String>[];
+    }
+
+    return value.map((item) => item.toString()).toList(growable: false);
   }
 }
