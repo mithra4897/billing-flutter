@@ -3,7 +3,6 @@ import '../../core/models/paginated_response.dart';
 import '../../model/admin/permission_model.dart';
 import '../../model/admin/role_model.dart';
 import '../../model/admin/user_model.dart';
-import '../../model/common/erp_record_model.dart';
 import '../base/erp_module_service.dart';
 
 class AdminService extends ErpModuleService {
@@ -29,7 +28,7 @@ class AdminService extends ErpModuleService {
     return updateModel('/admin/users/$id', user, fromJson: UserModel.fromJson);
   }
 
-  Future<ApiResponse<UserModel>> toggleUserStatus(int id, ErpRecordModel body) {
+  Future<ApiResponse<UserModel>> toggleUserStatus(int id, UserModel body) {
     return patchModel(
       '/admin/users/$id/toggle-status',
       body,

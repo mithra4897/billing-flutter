@@ -1,6 +1,6 @@
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
-import '../../model/common/erp_record_model.dart';
+import '../../model/common/erp_report_row_model.dart';
 import '../../model/inventory/internal_stock_receipt_model.dart';
 import '../../model/inventory/inventory_adjustment_model.dart';
 import '../../model/inventory/item_alternate_model.dart';
@@ -16,57 +16,94 @@ import '../../model/inventory/stock_movement_model.dart';
 import '../../model/inventory/stock_serial_model.dart';
 import '../../model/inventory/stock_transfer_model.dart';
 import '../../model/inventory/uom_conversion_model.dart';
+import '../../model/masters/brand_model.dart';
+import '../../model/masters/item_category_model.dart';
+import '../../model/masters/item_model.dart';
+import '../../model/masters/tax_code_model.dart';
+import '../../model/masters/uom_model.dart';
 import '../base/erp_module_service.dart';
 
 class InventoryService extends ErpModuleService {
   InventoryService({super.apiClient});
 
-  Future<PaginatedResponse<ErpRecordModel>> itemCategories({
+  Future<PaginatedResponse<ItemCategoryModel>> itemCategories({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/item-categories', filters: filters);
-  Future<ApiResponse<List<ErpRecordModel>>> itemCategoriesDropdown({
+  }) => paginated(
+    '/inventory/item-categories',
+    filters: filters,
+    fromJson: ItemCategoryModel.fromJson,
+  );
+  Future<ApiResponse<List<ItemCategoryModel>>> itemCategoriesDropdown({
     Map<String, dynamic>? filters,
-  }) => list('/inventory/item-categories/dropdown', filters: filters);
-  Future<ApiResponse<ErpRecordModel>> itemCategory(int id) =>
-      show('/inventory/item-categories/$id');
-  Future<ApiResponse<ErpRecordModel>> createItemCategory(ErpRecordModel body) =>
-      store('/inventory/item-categories', body);
-  Future<ApiResponse<ErpRecordModel>> updateItemCategory(
+  }) => collection(
+    '/inventory/item-categories/dropdown',
+    filters: filters,
+    fromJson: ItemCategoryModel.fromJson,
+  );
+  Future<ApiResponse<ItemCategoryModel>> itemCategory(int id) => object(
+    '/inventory/item-categories/$id',
+    fromJson: ItemCategoryModel.fromJson,
+  );
+  Future<ApiResponse<ItemCategoryModel>> createItemCategory(
+    ItemCategoryModel body,
+  ) => createModel(
+    '/inventory/item-categories',
+    body,
+    fromJson: ItemCategoryModel.fromJson,
+  );
+  Future<ApiResponse<ItemCategoryModel>> updateItemCategory(
     int id,
-    ErpRecordModel body,
-  ) => update('/inventory/item-categories/$id', body);
+    ItemCategoryModel body,
+  ) => updateModel(
+    '/inventory/item-categories/$id',
+    body,
+    fromJson: ItemCategoryModel.fromJson,
+  );
   Future<ApiResponse<dynamic>> deleteItemCategory(int id) =>
       destroy('/inventory/item-categories/$id');
 
-  Future<PaginatedResponse<ErpRecordModel>> brands({
+  Future<PaginatedResponse<BrandModel>> brands({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/brands', filters: filters);
-  Future<ApiResponse<List<ErpRecordModel>>> brandsDropdown({
+  }) => paginated(
+    '/inventory/brands',
+    filters: filters,
+    fromJson: BrandModel.fromJson,
+  );
+  Future<ApiResponse<List<BrandModel>>> brandsDropdown({
     Map<String, dynamic>? filters,
-  }) => list('/inventory/brands/dropdown', filters: filters);
-  Future<ApiResponse<ErpRecordModel>> brand(int id) =>
-      show('/inventory/brands/$id');
-  Future<ApiResponse<ErpRecordModel>> createBrand(ErpRecordModel body) =>
-      store('/inventory/brands', body);
-  Future<ApiResponse<ErpRecordModel>> updateBrand(
-    int id,
-    ErpRecordModel body,
-  ) => update('/inventory/brands/$id', body);
+  }) => collection(
+    '/inventory/brands/dropdown',
+    filters: filters,
+    fromJson: BrandModel.fromJson,
+  );
+  Future<ApiResponse<BrandModel>> brand(int id) =>
+      object('/inventory/brands/$id', fromJson: BrandModel.fromJson);
+  Future<ApiResponse<BrandModel>> createBrand(BrandModel body) =>
+      createModel('/inventory/brands', body, fromJson: BrandModel.fromJson);
+  Future<ApiResponse<BrandModel>> updateBrand(int id, BrandModel body) =>
+      updateModel('/inventory/brands/$id', body, fromJson: BrandModel.fromJson);
   Future<ApiResponse<dynamic>> deleteBrand(int id) =>
       destroy('/inventory/brands/$id');
 
-  Future<PaginatedResponse<ErpRecordModel>> uoms({
+  Future<PaginatedResponse<UomModel>> uoms({Map<String, dynamic>? filters}) =>
+      paginated(
+        '/inventory/uoms',
+        filters: filters,
+        fromJson: UomModel.fromJson,
+      );
+  Future<ApiResponse<List<UomModel>>> uomsDropdown({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/uoms', filters: filters);
-  Future<ApiResponse<List<ErpRecordModel>>> uomsDropdown({
-    Map<String, dynamic>? filters,
-  }) => list('/inventory/uoms/dropdown', filters: filters);
-  Future<ApiResponse<ErpRecordModel>> uom(int id) =>
-      show('/inventory/uoms/$id');
-  Future<ApiResponse<ErpRecordModel>> createUom(ErpRecordModel body) =>
-      store('/inventory/uoms', body);
-  Future<ApiResponse<ErpRecordModel>> updateUom(int id, ErpRecordModel body) =>
-      update('/inventory/uoms/$id', body);
+  }) => collection(
+    '/inventory/uoms/dropdown',
+    filters: filters,
+    fromJson: UomModel.fromJson,
+  );
+  Future<ApiResponse<UomModel>> uom(int id) =>
+      object('/inventory/uoms/$id', fromJson: UomModel.fromJson);
+  Future<ApiResponse<UomModel>> createUom(UomModel body) =>
+      createModel('/inventory/uoms', body, fromJson: UomModel.fromJson);
+  Future<ApiResponse<UomModel>> updateUom(int id, UomModel body) =>
+      updateModel('/inventory/uoms/$id', body, fromJson: UomModel.fromJson);
   Future<ApiResponse<dynamic>> deleteUom(int id) =>
       destroy('/inventory/uoms/$id');
 
@@ -113,35 +150,56 @@ class InventoryService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteUomConversion(int id) =>
       destroy('/inventory/uom-conversions/$id');
 
-  Future<PaginatedResponse<ErpRecordModel>> taxCodes({
+  Future<PaginatedResponse<TaxCodeModel>> taxCodes({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/tax-codes', filters: filters);
-  Future<ApiResponse<List<ErpRecordModel>>> taxCodesDropdown({
+  }) => paginated(
+    '/inventory/tax-codes',
+    filters: filters,
+    fromJson: TaxCodeModel.fromJson,
+  );
+  Future<ApiResponse<List<TaxCodeModel>>> taxCodesDropdown({
     Map<String, dynamic>? filters,
-  }) => list('/inventory/tax-codes/dropdown', filters: filters);
-  Future<ApiResponse<ErpRecordModel>> taxCode(int id) =>
-      show('/inventory/tax-codes/$id');
-  Future<ApiResponse<ErpRecordModel>> createTaxCode(ErpRecordModel body) =>
-      store('/inventory/tax-codes', body);
-  Future<ApiResponse<ErpRecordModel>> updateTaxCode(
-    int id,
-    ErpRecordModel body,
-  ) => update('/inventory/tax-codes/$id', body);
+  }) => collection(
+    '/inventory/tax-codes/dropdown',
+    filters: filters,
+    fromJson: TaxCodeModel.fromJson,
+  );
+  Future<ApiResponse<TaxCodeModel>> taxCode(int id) =>
+      object('/inventory/tax-codes/$id', fromJson: TaxCodeModel.fromJson);
+  Future<ApiResponse<TaxCodeModel>> createTaxCode(TaxCodeModel body) =>
+      createModel(
+        '/inventory/tax-codes',
+        body,
+        fromJson: TaxCodeModel.fromJson,
+      );
+  Future<ApiResponse<TaxCodeModel>> updateTaxCode(int id, TaxCodeModel body) =>
+      updateModel(
+        '/inventory/tax-codes/$id',
+        body,
+        fromJson: TaxCodeModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteTaxCode(int id) =>
       destroy('/inventory/tax-codes/$id');
 
-  Future<PaginatedResponse<ErpRecordModel>> items({
+  Future<PaginatedResponse<ItemModel>> items({Map<String, dynamic>? filters}) =>
+      paginated(
+        '/inventory/items',
+        filters: filters,
+        fromJson: ItemModel.fromJson,
+      );
+  Future<ApiResponse<List<ItemModel>>> itemsDropdown({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/items', filters: filters);
-  Future<ApiResponse<List<ErpRecordModel>>> itemsDropdown({
-    Map<String, dynamic>? filters,
-  }) => list('/inventory/items/dropdown', filters: filters);
-  Future<ApiResponse<ErpRecordModel>> item(int id) =>
-      show('/inventory/items/$id');
-  Future<ApiResponse<ErpRecordModel>> createItem(ErpRecordModel body) =>
-      store('/inventory/items', body);
-  Future<ApiResponse<ErpRecordModel>> updateItem(int id, ErpRecordModel body) =>
-      update('/inventory/items/$id', body);
+  }) => collection(
+    '/inventory/items/dropdown',
+    filters: filters,
+    fromJson: ItemModel.fromJson,
+  );
+  Future<ApiResponse<ItemModel>> item(int id) =>
+      object('/inventory/items/$id', fromJson: ItemModel.fromJson);
+  Future<ApiResponse<ItemModel>> createItem(ItemModel body) =>
+      createModel('/inventory/items', body, fromJson: ItemModel.fromJson);
+  Future<ApiResponse<ItemModel>> updateItem(int id, ItemModel body) =>
+      updateModel('/inventory/items/$id', body, fromJson: ItemModel.fromJson);
   Future<ApiResponse<dynamic>> deleteItem(int id) =>
       destroy('/inventory/items/$id');
 
@@ -731,22 +789,46 @@ class InventoryService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deletePhysicalStockCount(int id) =>
       destroy('/inventory/physical-stock-counts/$id');
 
-  Future<PaginatedResponse<ErpRecordModel>> stockSummary({
+  Future<PaginatedResponse<ErpReportRowModel>> stockSummary({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/inquiry/stock-summary', filters: filters);
-  Future<PaginatedResponse<ErpRecordModel>> warehouseWiseStock({
+  }) => paginated(
+    '/inventory/inquiry/stock-summary',
+    filters: filters,
+    fromJson: ErpReportRowModel.fromJson,
+  );
+  Future<PaginatedResponse<ErpReportRowModel>> warehouseWiseStock({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/inquiry/warehouse-wise-stock', filters: filters);
-  Future<PaginatedResponse<ErpRecordModel>> batchWiseStock({
+  }) => paginated(
+    '/inventory/inquiry/warehouse-wise-stock',
+    filters: filters,
+    fromJson: ErpReportRowModel.fromJson,
+  );
+  Future<PaginatedResponse<ErpReportRowModel>> batchWiseStock({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/inquiry/batch-wise-stock', filters: filters);
-  Future<PaginatedResponse<ErpRecordModel>> availableSerials({
+  }) => paginated(
+    '/inventory/inquiry/batch-wise-stock',
+    filters: filters,
+    fromJson: ErpReportRowModel.fromJson,
+  );
+  Future<PaginatedResponse<ErpReportRowModel>> availableSerials({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/inquiry/available-serials', filters: filters);
-  Future<PaginatedResponse<ErpRecordModel>> stockCard({
+  }) => paginated(
+    '/inventory/inquiry/available-serials',
+    filters: filters,
+    fromJson: ErpReportRowModel.fromJson,
+  );
+  Future<PaginatedResponse<ErpReportRowModel>> stockCard({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/inquiry/stock-card', filters: filters);
-  Future<PaginatedResponse<ErpRecordModel>> reorderStatus({
+  }) => paginated(
+    '/inventory/inquiry/stock-card',
+    filters: filters,
+    fromJson: ErpReportRowModel.fromJson,
+  );
+  Future<PaginatedResponse<ErpReportRowModel>> reorderStatus({
     Map<String, dynamic>? filters,
-  }) => index('/inventory/inquiry/reorder-status', filters: filters);
+  }) => paginated(
+    '/inventory/inquiry/reorder-status',
+    filters: filters,
+    fromJson: ErpReportRowModel.fromJson,
+  );
 }

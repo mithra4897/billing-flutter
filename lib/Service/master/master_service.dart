@@ -13,7 +13,6 @@ import '../../model/masters/party_model.dart';
 import '../../model/masters/tax_code_model.dart';
 import '../../model/masters/uom_model.dart';
 import '../../model/masters/warehouse_model.dart';
-import '../../model/common/erp_record_model.dart';
 import '../base/erp_module_service.dart';
 
 class MasterService extends ErpModuleService {
@@ -36,16 +35,28 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> createCompany(ErpRecordModel body) =>
-      store('/masters/companies', body);
-  Future<ApiResponse<ErpRecordModel>> updateCompany(
+  Future<ApiResponse<CompanyModel>> createCompany(CompanyModel body) =>
+      createModel<CompanyModel>(
+        '/masters/companies',
+        body,
+        fromJson: CompanyModel.fromJson,
+      );
+
+  Future<ApiResponse<CompanyModel>> updateCompany(int id, CompanyModel body) =>
+      updateModel<CompanyModel>(
+        '/masters/companies/$id',
+        body,
+        fromJson: CompanyModel.fromJson,
+      );
+
+  Future<ApiResponse<CompanyModel>> changeCompanyStatus(
     int id,
-    ErpRecordModel body,
-  ) => update('/masters/companies/$id', body);
-  Future<ApiResponse<ErpRecordModel>> changeCompanyStatus(
-    int id,
-    ErpRecordModel body,
-  ) => patch('/masters/companies/$id/status', body);
+    CompanyModel body,
+  ) => patchModel<CompanyModel>(
+    '/masters/companies/$id/status',
+    body,
+    fromJson: CompanyModel.fromJson,
+  );
 
   Future<PaginatedResponse<BranchModel>> branches({
     Map<String, dynamic>? filters,
@@ -57,14 +68,24 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> branch(int id) =>
-      show('/masters/branches/$id');
-  Future<ApiResponse<ErpRecordModel>> createBranch(ErpRecordModel body) =>
-      store('/masters/branches', body);
-  Future<ApiResponse<ErpRecordModel>> updateBranch(
-    int id,
-    ErpRecordModel body,
-  ) => update('/masters/branches/$id', body);
+  Future<ApiResponse<BranchModel>> branch(int id) => object<BranchModel>(
+    '/masters/branches/$id',
+    fromJson: BranchModel.fromJson,
+  );
+
+  Future<ApiResponse<BranchModel>> createBranch(BranchModel body) =>
+      createModel<BranchModel>(
+        '/masters/branches',
+        body,
+        fromJson: BranchModel.fromJson,
+      );
+
+  Future<ApiResponse<BranchModel>> updateBranch(int id, BranchModel body) =>
+      updateModel<BranchModel>(
+        '/masters/branches/$id',
+        body,
+        fromJson: BranchModel.fromJson,
+      );
 
   Future<PaginatedResponse<BusinessLocationModel>> businessLocations({
     Map<String, dynamic>? filters,
@@ -76,15 +97,28 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> businessLocation(int id) =>
-      show('/masters/business-locations/$id');
-  Future<ApiResponse<ErpRecordModel>> createBusinessLocation(
-    ErpRecordModel body,
-  ) => store('/masters/business-locations', body);
-  Future<ApiResponse<ErpRecordModel>> updateBusinessLocation(
+  Future<ApiResponse<BusinessLocationModel>> businessLocation(int id) =>
+      object<BusinessLocationModel>(
+        '/masters/business-locations/$id',
+        fromJson: BusinessLocationModel.fromJson,
+      );
+
+  Future<ApiResponse<BusinessLocationModel>> createBusinessLocation(
+    BusinessLocationModel body,
+  ) => createModel<BusinessLocationModel>(
+    '/masters/business-locations',
+    body,
+    fromJson: BusinessLocationModel.fromJson,
+  );
+
+  Future<ApiResponse<BusinessLocationModel>> updateBusinessLocation(
     int id,
-    ErpRecordModel body,
-  ) => update('/masters/business-locations/$id', body);
+    BusinessLocationModel body,
+  ) => updateModel<BusinessLocationModel>(
+    '/masters/business-locations/$id',
+    body,
+    fromJson: BusinessLocationModel.fromJson,
+  );
 
   Future<PaginatedResponse<WarehouseModel>> warehouses({
     Map<String, dynamic>? filters,
@@ -96,14 +130,28 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> warehouse(int id) =>
-      show('/masters/warehouses/$id');
-  Future<ApiResponse<ErpRecordModel>> createWarehouse(ErpRecordModel body) =>
-      store('/masters/warehouses', body);
-  Future<ApiResponse<ErpRecordModel>> updateWarehouse(
+  Future<ApiResponse<WarehouseModel>> warehouse(int id) =>
+      object<WarehouseModel>(
+        '/masters/warehouses/$id',
+        fromJson: WarehouseModel.fromJson,
+      );
+
+  Future<ApiResponse<WarehouseModel>> createWarehouse(WarehouseModel body) =>
+      createModel<WarehouseModel>(
+        '/masters/warehouses',
+        body,
+        fromJson: WarehouseModel.fromJson,
+      );
+
+  Future<ApiResponse<WarehouseModel>> updateWarehouse(
     int id,
-    ErpRecordModel body,
-  ) => update('/masters/warehouses/$id', body);
+    WarehouseModel body,
+  ) => updateModel<WarehouseModel>(
+    '/masters/warehouses/$id',
+    body,
+    fromJson: WarehouseModel.fromJson,
+  );
+
   Future<ApiResponse<dynamic>> deleteWarehouse(int id) =>
       destroy('/masters/warehouses/$id');
 
@@ -117,19 +165,37 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> financialYear(int id) =>
-      show('/masters/financial-years/$id');
-  Future<ApiResponse<ErpRecordModel>> createFinancialYear(
-    ErpRecordModel body,
-  ) => store('/masters/financial-years', body);
-  Future<ApiResponse<ErpRecordModel>> updateFinancialYear(
+  Future<ApiResponse<FinancialYearModel>> financialYear(int id) =>
+      object<FinancialYearModel>(
+        '/masters/financial-years/$id',
+        fromJson: FinancialYearModel.fromJson,
+      );
+
+  Future<ApiResponse<FinancialYearModel>> createFinancialYear(
+    FinancialYearModel body,
+  ) => createModel<FinancialYearModel>(
+    '/masters/financial-years',
+    body,
+    fromJson: FinancialYearModel.fromJson,
+  );
+
+  Future<ApiResponse<FinancialYearModel>> updateFinancialYear(
     int id,
-    ErpRecordModel body,
-  ) => update('/masters/financial-years/$id', body);
-  Future<ApiResponse<ErpRecordModel>> setActiveFinancialYear(
+    FinancialYearModel body,
+  ) => updateModel<FinancialYearModel>(
+    '/masters/financial-years/$id',
+    body,
+    fromJson: FinancialYearModel.fromJson,
+  );
+
+  Future<ApiResponse<FinancialYearModel>> setActiveFinancialYear(
     int id,
-    ErpRecordModel body,
-  ) => patch('/masters/financial-years/$id/set-active', body);
+    FinancialYearModel body,
+  ) => patchModel<FinancialYearModel>(
+    '/masters/financial-years/$id/set-active',
+    body,
+    fromJson: FinancialYearModel.fromJson,
+  );
 
   Future<PaginatedResponse<DocumentSeriesModel>> documentSeries({
     Map<String, dynamic>? filters,
@@ -141,15 +207,28 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> documentSeriesItem(int id) =>
-      show('/masters/document-series/$id');
-  Future<ApiResponse<ErpRecordModel>> createDocumentSeries(
-    ErpRecordModel body,
-  ) => store('/masters/document-series', body);
-  Future<ApiResponse<ErpRecordModel>> updateDocumentSeries(
+  Future<ApiResponse<DocumentSeriesModel>> documentSeriesItem(int id) =>
+      object<DocumentSeriesModel>(
+        '/masters/document-series/$id',
+        fromJson: DocumentSeriesModel.fromJson,
+      );
+
+  Future<ApiResponse<DocumentSeriesModel>> createDocumentSeries(
+    DocumentSeriesModel body,
+  ) => createModel<DocumentSeriesModel>(
+    '/masters/document-series',
+    body,
+    fromJson: DocumentSeriesModel.fromJson,
+  );
+
+  Future<ApiResponse<DocumentSeriesModel>> updateDocumentSeries(
     int id,
-    ErpRecordModel body,
-  ) => update('/masters/document-series/$id', body);
+    DocumentSeriesModel body,
+  ) => updateModel<DocumentSeriesModel>(
+    '/masters/document-series/$id',
+    body,
+    fromJson: DocumentSeriesModel.fromJson,
+  );
 
   Future<PaginatedResponse<UomModel>> uoms({Map<String, dynamic>? filters}) {
     return client.getPaginated<UomModel>(
@@ -159,11 +238,18 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> uom(int id) => show('/masters/uoms/$id');
-  Future<ApiResponse<ErpRecordModel>> createUom(ErpRecordModel body) =>
-      store('/masters/uoms', body);
-  Future<ApiResponse<ErpRecordModel>> updateUom(int id, ErpRecordModel body) =>
-      update('/masters/uoms/$id', body);
+  Future<ApiResponse<UomModel>> uom(int id) =>
+      object<UomModel>('/masters/uoms/$id', fromJson: UomModel.fromJson);
+
+  Future<ApiResponse<UomModel>> createUom(UomModel body) =>
+      createModel<UomModel>('/masters/uoms', body, fromJson: UomModel.fromJson);
+
+  Future<ApiResponse<UomModel>> updateUom(int id, UomModel body) =>
+      updateModel<UomModel>(
+        '/masters/uoms/$id',
+        body,
+        fromJson: UomModel.fromJson,
+      );
 
   Future<PaginatedResponse<TaxCodeModel>> taxCodes({
     Map<String, dynamic>? filters,
@@ -175,14 +261,24 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> taxCode(int id) =>
-      show('/masters/tax-codes/$id');
-  Future<ApiResponse<ErpRecordModel>> createTaxCode(ErpRecordModel body) =>
-      store('/masters/tax-codes', body);
-  Future<ApiResponse<ErpRecordModel>> updateTaxCode(
-    int id,
-    ErpRecordModel body,
-  ) => update('/masters/tax-codes/$id', body);
+  Future<ApiResponse<TaxCodeModel>> taxCode(int id) => object<TaxCodeModel>(
+    '/masters/tax-codes/$id',
+    fromJson: TaxCodeModel.fromJson,
+  );
+
+  Future<ApiResponse<TaxCodeModel>> createTaxCode(TaxCodeModel body) =>
+      createModel<TaxCodeModel>(
+        '/masters/tax-codes',
+        body,
+        fromJson: TaxCodeModel.fromJson,
+      );
+
+  Future<ApiResponse<TaxCodeModel>> updateTaxCode(int id, TaxCodeModel body) =>
+      updateModel<TaxCodeModel>(
+        '/masters/tax-codes/$id',
+        body,
+        fromJson: TaxCodeModel.fromJson,
+      );
 
   Future<PaginatedResponse<ItemCategoryModel>> itemCategories({
     Map<String, dynamic>? filters,
@@ -194,14 +290,28 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> itemCategory(int id) =>
-      show('/masters/item-categories/$id');
-  Future<ApiResponse<ErpRecordModel>> createItemCategory(ErpRecordModel body) =>
-      store('/masters/item-categories', body);
-  Future<ApiResponse<ErpRecordModel>> updateItemCategory(
+  Future<ApiResponse<ItemCategoryModel>> itemCategory(int id) =>
+      object<ItemCategoryModel>(
+        '/masters/item-categories/$id',
+        fromJson: ItemCategoryModel.fromJson,
+      );
+
+  Future<ApiResponse<ItemCategoryModel>> createItemCategory(
+    ItemCategoryModel body,
+  ) => createModel<ItemCategoryModel>(
+    '/masters/item-categories',
+    body,
+    fromJson: ItemCategoryModel.fromJson,
+  );
+
+  Future<ApiResponse<ItemCategoryModel>> updateItemCategory(
     int id,
-    ErpRecordModel body,
-  ) => update('/masters/item-categories/$id', body);
+    ItemCategoryModel body,
+  ) => updateModel<ItemCategoryModel>(
+    '/masters/item-categories/$id',
+    body,
+    fromJson: ItemCategoryModel.fromJson,
+  );
 
   Future<PaginatedResponse<ItemModel>> items({Map<String, dynamic>? filters}) {
     return client.getPaginated<ItemModel>(
@@ -211,16 +321,29 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> item(int id) =>
-      show('/masters/items/$id');
-  Future<ApiResponse<ErpRecordModel>> createItem(ErpRecordModel body) =>
-      store('/masters/items', body);
-  Future<ApiResponse<ErpRecordModel>> updateItem(int id, ErpRecordModel body) =>
-      update('/masters/items/$id', body);
-  Future<ApiResponse<ErpRecordModel>> toggleItemStatus(
-    int id,
-    ErpRecordModel body,
-  ) => patch('/masters/items/$id/toggle-status', body);
+  Future<ApiResponse<ItemModel>> item(int id) =>
+      object<ItemModel>('/masters/items/$id', fromJson: ItemModel.fromJson);
+
+  Future<ApiResponse<ItemModel>> createItem(ItemModel body) =>
+      createModel<ItemModel>(
+        '/masters/items',
+        body,
+        fromJson: ItemModel.fromJson,
+      );
+
+  Future<ApiResponse<ItemModel>> updateItem(int id, ItemModel body) =>
+      updateModel<ItemModel>(
+        '/masters/items/$id',
+        body,
+        fromJson: ItemModel.fromJson,
+      );
+
+  Future<ApiResponse<ItemModel>> toggleItemStatus(int id, ItemModel body) =>
+      patchModel<ItemModel>(
+        '/masters/items/$id/toggle-status',
+        body,
+        fromJson: ItemModel.fromJson,
+      );
 
   Future<PaginatedResponse<PartyModel>> parties({
     Map<String, dynamic>? filters,

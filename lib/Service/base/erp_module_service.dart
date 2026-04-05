@@ -54,48 +54,48 @@ class ErpModuleService {
 
   Future<ApiResponse<T>> createModel<T>(
     String endpoint,
-    JsonModel body, {
+    dynamic body, {
     required T Function(Map<String, dynamic> json) fromJson,
   }) {
     return client.post<T>(
       endpoint,
-      body: body.toJson(),
+      body: _mapBody(body),
       fromData: (json) => fromJson(json as Map<String, dynamic>),
     );
   }
 
   Future<ApiResponse<T>> updateModel<T>(
     String endpoint,
-    JsonModel body, {
+    dynamic body, {
     required T Function(Map<String, dynamic> json) fromJson,
   }) {
     return client.put<T>(
       endpoint,
-      body: body.toJson(),
+      body: _mapBody(body),
       fromData: (json) => fromJson(json as Map<String, dynamic>),
     );
   }
 
   Future<ApiResponse<T>> patchModel<T>(
     String endpoint,
-    JsonModel body, {
+    dynamic body, {
     required T Function(Map<String, dynamic> json) fromJson,
   }) {
     return client.patch<T>(
       endpoint,
-      body: body.toJson(),
+      body: _mapBody(body),
       fromData: (json) => fromJson(json as Map<String, dynamic>),
     );
   }
 
   Future<ApiResponse<T>> actionModel<T>(
     String endpoint, {
-    JsonModel? body,
+    dynamic body,
     required T Function(Map<String, dynamic> json) fromJson,
   }) {
     return client.post<T>(
       endpoint,
-      body: body?.toJson(),
+      body: body == null ? null : _mapBody(body),
       fromData: (json) => fromJson(json as Map<String, dynamic>),
     );
   }
@@ -129,6 +129,15 @@ class ErpModuleService {
   Map<String, dynamic> _mapBody(dynamic body) {
     if (body is JsonModel) {
       return body.toJson();
+    }
+
+    if (body != null) {
+      try {
+        final dynamic json = body.toJson();
+        if (json is Map<String, dynamic>) {
+          return json;
+        }
+      } catch (_) {}
     }
 
     if (body is Map<String, dynamic>) {

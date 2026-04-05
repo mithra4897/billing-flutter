@@ -1,6 +1,6 @@
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
-import '../../model/common/erp_record_model.dart';
+import '../../model/common/erp_report_row_model.dart';
 import '../../model/assets/asset_book_model.dart';
 import '../../model/assets/asset_category_model.dart';
 import '../../model/assets/asset_depreciation_run_model.dart';
@@ -292,25 +292,25 @@ class AssetsService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteDisposal(int id) =>
       destroy('/assets/disposals/$id');
 
-  Future<PaginatedResponse<ErpRecordModel>> reportRegister({
+  Future<PaginatedResponse<ErpReportRowModel>> reportRegister({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpRecordModel>(
+  }) => paginated<ErpReportRowModel>(
     '/assets/reports/register',
     filters: filters,
-    fromJson: ErpRecordModel.fromJson,
+    fromJson: ErpReportRowModel.fromJson,
   );
-  Future<PaginatedResponse<ErpRecordModel>> reportDepreciationSummary({
+  Future<PaginatedResponse<ErpReportRowModel>> reportDepreciationSummary({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpRecordModel>(
+  }) => paginated<ErpReportRowModel>(
     '/assets/reports/depreciation-summary',
     filters: filters,
-    fromJson: ErpRecordModel.fromJson,
+    fromJson: ErpReportRowModel.fromJson,
   );
-  Future<PaginatedResponse<ErpRecordModel>> reportDisposalSummary({
+  Future<PaginatedResponse<ErpReportRowModel>> reportDisposalSummary({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpRecordModel>(
+  }) => paginated<ErpReportRowModel>(
     '/assets/reports/disposal-summary',
     filters: filters,
-    fromJson: ErpRecordModel.fromJson,
+    fromJson: ErpReportRowModel.fromJson,
   );
 }

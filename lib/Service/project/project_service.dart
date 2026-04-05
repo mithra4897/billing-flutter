@@ -1,7 +1,7 @@
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
-import '../../model/common/erp_record_model.dart';
 import '../../model/project/project_billing_model.dart';
+import '../../model/project/project_dashboard_model.dart';
 import '../../model/project/project_expense_model.dart';
 import '../../model/project/project_milestone_model.dart';
 import '../../model/project/project_model.dart';
@@ -46,8 +46,11 @@ class ProjectService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteProject(int id) =>
       destroy('/projects/$id');
 
-  Future<ApiResponse<ErpRecordModel>> projectDashboard(int id) {
-    return show('/projects/$id/dashboard');
+  Future<ApiResponse<ProjectDashboardModel>> projectDashboard(int id) {
+    return object(
+      '/projects/$id/dashboard',
+      fromJson: ProjectDashboardModel.fromJson,
+    );
   }
 
   Future<ApiResponse<ProjectTaskModel>> createTask(
