@@ -1,70 +1,232 @@
+import '../../core/models/api_response.dart';
+import '../../core/models/paginated_response.dart';
+import '../../model/planning/item_planning_policy_model.dart';
+import '../../model/planning/mrp_demand_model.dart';
+import '../../model/planning/mrp_net_requirement_model.dart';
+import '../../model/planning/mrp_recommendation_model.dart';
+import '../../model/planning/mrp_run_model.dart';
+import '../../model/planning/mrp_supply_model.dart';
+import '../../model/planning/planning_calendar_model.dart';
+import '../../model/planning/stock_reservation_model.dart';
 import '../base/erp_module_service.dart';
 
 class PlanningService extends ErpModuleService {
   PlanningService({super.apiClient});
 
-  Future stockReservations({Map<String, dynamic>? filters}) =>
-      index('/planning/stock-reservations', filters: filters);
-  Future stockReservation(int id) => show('/planning/stock-reservations/$id');
-  Future createStockReservation(Map<String, dynamic> body) =>
-      store('/planning/stock-reservations', body);
-  Future updateStockReservation(int id, Map<String, dynamic> body) =>
-      update('/planning/stock-reservations/$id', body);
-  Future releaseStockReservation(int id, Map<String, dynamic> body) =>
-      action('/planning/stock-reservations/$id/release', body: body);
-  Future deleteStockReservation(int id) =>
+  Future<PaginatedResponse<StockReservationModel>> stockReservations({
+    Map<String, dynamic>? filters,
+  }) => paginated<StockReservationModel>(
+    '/planning/stock-reservations',
+    filters: filters,
+    fromJson: StockReservationModel.fromJson,
+  );
+  Future<ApiResponse<StockReservationModel>> stockReservation(int id) =>
+      object<StockReservationModel>(
+        '/planning/stock-reservations/$id',
+        fromJson: StockReservationModel.fromJson,
+      );
+  Future<ApiResponse<StockReservationModel>> createStockReservation(
+    StockReservationModel body,
+  ) => createModel<StockReservationModel>(
+    '/planning/stock-reservations',
+    body,
+    fromJson: StockReservationModel.fromJson,
+  );
+  Future<ApiResponse<StockReservationModel>> updateStockReservation(
+    int id,
+    StockReservationModel body,
+  ) => updateModel<StockReservationModel>(
+    '/planning/stock-reservations/$id',
+    body,
+    fromJson: StockReservationModel.fromJson,
+  );
+  Future<ApiResponse<StockReservationModel>> releaseStockReservation(
+    int id,
+    StockReservationModel body,
+  ) => actionModel<StockReservationModel>(
+    '/planning/stock-reservations/$id/release',
+    body: body,
+    fromJson: StockReservationModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteStockReservation(int id) =>
       destroy('/planning/stock-reservations/$id');
 
-  Future itemPolicies({Map<String, dynamic>? filters}) =>
-      index('/planning/item-policies', filters: filters);
-  Future itemPolicy(int id) => show('/planning/item-policies/$id');
-  Future createItemPolicy(Map<String, dynamic> body) =>
-      store('/planning/item-policies', body);
-  Future updateItemPolicy(int id, Map<String, dynamic> body) =>
-      update('/planning/item-policies/$id', body);
-  Future deleteItemPolicy(int id) => destroy('/planning/item-policies/$id');
+  Future<PaginatedResponse<ItemPlanningPolicyModel>> itemPolicies({
+    Map<String, dynamic>? filters,
+  }) => paginated<ItemPlanningPolicyModel>(
+    '/planning/item-policies',
+    filters: filters,
+    fromJson: ItemPlanningPolicyModel.fromJson,
+  );
+  Future<ApiResponse<ItemPlanningPolicyModel>> itemPolicy(int id) =>
+      object<ItemPlanningPolicyModel>(
+        '/planning/item-policies/$id',
+        fromJson: ItemPlanningPolicyModel.fromJson,
+      );
+  Future<ApiResponse<ItemPlanningPolicyModel>> createItemPolicy(
+    ItemPlanningPolicyModel body,
+  ) => createModel<ItemPlanningPolicyModel>(
+    '/planning/item-policies',
+    body,
+    fromJson: ItemPlanningPolicyModel.fromJson,
+  );
+  Future<ApiResponse<ItemPlanningPolicyModel>> updateItemPolicy(
+    int id,
+    ItemPlanningPolicyModel body,
+  ) => updateModel<ItemPlanningPolicyModel>(
+    '/planning/item-policies/$id',
+    body,
+    fromJson: ItemPlanningPolicyModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteItemPolicy(int id) =>
+      destroy('/planning/item-policies/$id');
 
-  Future calendars({Map<String, dynamic>? filters}) =>
-      index('/planning/calendars', filters: filters);
-  Future calendar(int id) => show('/planning/calendars/$id');
-  Future createCalendar(Map<String, dynamic> body) =>
-      store('/planning/calendars', body);
-  Future updateCalendar(int id, Map<String, dynamic> body) =>
-      update('/planning/calendars/$id', body);
-  Future deleteCalendar(int id) => destroy('/planning/calendars/$id');
+  Future<PaginatedResponse<PlanningCalendarModel>> calendars({
+    Map<String, dynamic>? filters,
+  }) => paginated<PlanningCalendarModel>(
+    '/planning/calendars',
+    filters: filters,
+    fromJson: PlanningCalendarModel.fromJson,
+  );
+  Future<ApiResponse<PlanningCalendarModel>> calendar(int id) =>
+      object<PlanningCalendarModel>(
+        '/planning/calendars/$id',
+        fromJson: PlanningCalendarModel.fromJson,
+      );
+  Future<ApiResponse<PlanningCalendarModel>> createCalendar(
+    PlanningCalendarModel body,
+  ) => createModel<PlanningCalendarModel>(
+    '/planning/calendars',
+    body,
+    fromJson: PlanningCalendarModel.fromJson,
+  );
+  Future<ApiResponse<PlanningCalendarModel>> updateCalendar(
+    int id,
+    PlanningCalendarModel body,
+  ) => updateModel<PlanningCalendarModel>(
+    '/planning/calendars/$id',
+    body,
+    fromJson: PlanningCalendarModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteCalendar(int id) =>
+      destroy('/planning/calendars/$id');
 
-  Future mrpRuns({Map<String, dynamic>? filters}) =>
-      index('/planning/mrp-runs', filters: filters);
-  Future mrpRun(int id) => show('/planning/mrp-runs/$id');
-  Future createMrpRun(Map<String, dynamic> body) =>
-      store('/planning/mrp-runs', body);
-  Future updateMrpRun(int id, Map<String, dynamic> body) =>
-      update('/planning/mrp-runs/$id', body);
-  Future processMrpRun(int id, Map<String, dynamic> body) =>
-      action('/planning/mrp-runs/$id/process', body: body);
-  Future cancelMrpRun(int id, Map<String, dynamic> body) =>
-      action('/planning/mrp-runs/$id/cancel', body: body);
-  Future deleteMrpRun(int id) => destroy('/planning/mrp-runs/$id');
+  Future<PaginatedResponse<MrpRunModel>> mrpRuns({
+    Map<String, dynamic>? filters,
+  }) => paginated<MrpRunModel>(
+    '/planning/mrp-runs',
+    filters: filters,
+    fromJson: MrpRunModel.fromJson,
+  );
+  Future<ApiResponse<MrpRunModel>> mrpRun(int id) => object<MrpRunModel>(
+    '/planning/mrp-runs/$id',
+    fromJson: MrpRunModel.fromJson,
+  );
+  Future<ApiResponse<MrpRunModel>> createMrpRun(MrpRunModel body) =>
+      createModel<MrpRunModel>(
+        '/planning/mrp-runs',
+        body,
+        fromJson: MrpRunModel.fromJson,
+      );
+  Future<ApiResponse<MrpRunModel>> updateMrpRun(int id, MrpRunModel body) =>
+      updateModel<MrpRunModel>(
+        '/planning/mrp-runs/$id',
+        body,
+        fromJson: MrpRunModel.fromJson,
+      );
+  Future<ApiResponse<MrpRunModel>> processMrpRun(int id, MrpRunModel body) =>
+      actionModel<MrpRunModel>(
+        '/planning/mrp-runs/$id/process',
+        body: body,
+        fromJson: MrpRunModel.fromJson,
+      );
+  Future<ApiResponse<MrpRunModel>> cancelMrpRun(int id, MrpRunModel body) =>
+      actionModel<MrpRunModel>(
+        '/planning/mrp-runs/$id/cancel',
+        body: body,
+        fromJson: MrpRunModel.fromJson,
+      );
+  Future<ApiResponse<dynamic>> deleteMrpRun(int id) =>
+      destroy('/planning/mrp-runs/$id');
 
-  Future mrpDemands({Map<String, dynamic>? filters}) =>
-      index('/planning/mrp-demands', filters: filters);
-  Future mrpDemand(int id) => show('/planning/mrp-demands/$id');
-  Future mrpSupplies({Map<String, dynamic>? filters}) =>
-      index('/planning/mrp-supplies', filters: filters);
-  Future mrpSupply(int id) => show('/planning/mrp-supplies/$id');
-  Future mrpNetRequirements({Map<String, dynamic>? filters}) =>
-      index('/planning/mrp-net-requirements', filters: filters);
-  Future mrpNetRequirement(int id) =>
-      show('/planning/mrp-net-requirements/$id');
-  Future mrpRecommendations({Map<String, dynamic>? filters}) =>
-      index('/planning/mrp-recommendations', filters: filters);
-  Future mrpRecommendation(int id) => show('/planning/mrp-recommendations/$id');
-  Future approveMrpRecommendation(int id, Map<String, dynamic> body) =>
-      action('/planning/mrp-recommendations/$id/approve', body: body);
-  Future rejectMrpRecommendation(int id, Map<String, dynamic> body) =>
-      action('/planning/mrp-recommendations/$id/reject', body: body);
-  Future convertMrpRecommendation(int id, Map<String, dynamic> body) =>
-      action('/planning/mrp-recommendations/$id/convert', body: body);
-  Future cancelMrpRecommendation(int id, Map<String, dynamic> body) =>
-      action('/planning/mrp-recommendations/$id/cancel', body: body);
+  Future<PaginatedResponse<MrpDemandModel>> mrpDemands({
+    Map<String, dynamic>? filters,
+  }) => paginated<MrpDemandModel>(
+    '/planning/mrp-demands',
+    filters: filters,
+    fromJson: MrpDemandModel.fromJson,
+  );
+  Future<ApiResponse<MrpDemandModel>> mrpDemand(int id) =>
+      object<MrpDemandModel>(
+        '/planning/mrp-demands/$id',
+        fromJson: MrpDemandModel.fromJson,
+      );
+  Future<PaginatedResponse<MrpSupplyModel>> mrpSupplies({
+    Map<String, dynamic>? filters,
+  }) => paginated<MrpSupplyModel>(
+    '/planning/mrp-supplies',
+    filters: filters,
+    fromJson: MrpSupplyModel.fromJson,
+  );
+  Future<ApiResponse<MrpSupplyModel>> mrpSupply(int id) =>
+      object<MrpSupplyModel>(
+        '/planning/mrp-supplies/$id',
+        fromJson: MrpSupplyModel.fromJson,
+      );
+  Future<PaginatedResponse<MrpNetRequirementModel>> mrpNetRequirements({
+    Map<String, dynamic>? filters,
+  }) => paginated<MrpNetRequirementModel>(
+    '/planning/mrp-net-requirements',
+    filters: filters,
+    fromJson: MrpNetRequirementModel.fromJson,
+  );
+  Future<ApiResponse<MrpNetRequirementModel>> mrpNetRequirement(int id) =>
+      object<MrpNetRequirementModel>(
+        '/planning/mrp-net-requirements/$id',
+        fromJson: MrpNetRequirementModel.fromJson,
+      );
+  Future<PaginatedResponse<MrpRecommendationModel>> mrpRecommendations({
+    Map<String, dynamic>? filters,
+  }) => paginated<MrpRecommendationModel>(
+    '/planning/mrp-recommendations',
+    filters: filters,
+    fromJson: MrpRecommendationModel.fromJson,
+  );
+  Future<ApiResponse<MrpRecommendationModel>> mrpRecommendation(int id) =>
+      object<MrpRecommendationModel>(
+        '/planning/mrp-recommendations/$id',
+        fromJson: MrpRecommendationModel.fromJson,
+      );
+  Future<ApiResponse<MrpRecommendationModel>> approveMrpRecommendation(
+    int id,
+    MrpRecommendationModel body,
+  ) => actionModel<MrpRecommendationModel>(
+    '/planning/mrp-recommendations/$id/approve',
+    body: body,
+    fromJson: MrpRecommendationModel.fromJson,
+  );
+  Future<ApiResponse<MrpRecommendationModel>> rejectMrpRecommendation(
+    int id,
+    MrpRecommendationModel body,
+  ) => actionModel<MrpRecommendationModel>(
+    '/planning/mrp-recommendations/$id/reject',
+    body: body,
+    fromJson: MrpRecommendationModel.fromJson,
+  );
+  Future<ApiResponse<MrpRecommendationModel>> convertMrpRecommendation(
+    int id,
+    MrpRecommendationModel body,
+  ) => actionModel<MrpRecommendationModel>(
+    '/planning/mrp-recommendations/$id/convert',
+    body: body,
+    fromJson: MrpRecommendationModel.fromJson,
+  );
+  Future<ApiResponse<MrpRecommendationModel>> cancelMrpRecommendation(
+    int id,
+    MrpRecommendationModel body,
+  ) => actionModel<MrpRecommendationModel>(
+    '/planning/mrp-recommendations/$id/cancel',
+    body: body,
+    fromJson: MrpRecommendationModel.fromJson,
+  );
 }

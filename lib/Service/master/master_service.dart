@@ -13,6 +13,7 @@ import '../../model/masters/party_model.dart';
 import '../../model/masters/tax_code_model.dart';
 import '../../model/masters/uom_model.dart';
 import '../../model/masters/warehouse_model.dart';
+import '../../model/common/erp_record_model.dart';
 import '../base/erp_module_service.dart';
 
 class MasterService extends ErpModuleService {
@@ -35,12 +36,16 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future createCompany(Map<String, dynamic> body) =>
+  Future<ApiResponse<ErpRecordModel>> createCompany(ErpRecordModel body) =>
       store('/masters/companies', body);
-  Future updateCompany(int id, Map<String, dynamic> body) =>
-      update('/masters/companies/$id', body);
-  Future changeCompanyStatus(int id, Map<String, dynamic> body) =>
-      patch('/masters/companies/$id/status', body);
+  Future<ApiResponse<ErpRecordModel>> updateCompany(
+    int id,
+    ErpRecordModel body,
+  ) => update('/masters/companies/$id', body);
+  Future<ApiResponse<ErpRecordModel>> changeCompanyStatus(
+    int id,
+    ErpRecordModel body,
+  ) => patch('/masters/companies/$id/status', body);
 
   Future<PaginatedResponse<BranchModel>> branches({
     Map<String, dynamic>? filters,
@@ -52,11 +57,14 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future branch(int id) => show('/masters/branches/$id');
-  Future createBranch(Map<String, dynamic> body) =>
+  Future<ApiResponse<ErpRecordModel>> branch(int id) =>
+      show('/masters/branches/$id');
+  Future<ApiResponse<ErpRecordModel>> createBranch(ErpRecordModel body) =>
       store('/masters/branches', body);
-  Future updateBranch(int id, Map<String, dynamic> body) =>
-      update('/masters/branches/$id', body);
+  Future<ApiResponse<ErpRecordModel>> updateBranch(
+    int id,
+    ErpRecordModel body,
+  ) => update('/masters/branches/$id', body);
 
   Future<PaginatedResponse<BusinessLocationModel>> businessLocations({
     Map<String, dynamic>? filters,
@@ -68,11 +76,15 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future businessLocation(int id) => show('/masters/business-locations/$id');
-  Future createBusinessLocation(Map<String, dynamic> body) =>
-      store('/masters/business-locations', body);
-  Future updateBusinessLocation(int id, Map<String, dynamic> body) =>
-      update('/masters/business-locations/$id', body);
+  Future<ApiResponse<ErpRecordModel>> businessLocation(int id) =>
+      show('/masters/business-locations/$id');
+  Future<ApiResponse<ErpRecordModel>> createBusinessLocation(
+    ErpRecordModel body,
+  ) => store('/masters/business-locations', body);
+  Future<ApiResponse<ErpRecordModel>> updateBusinessLocation(
+    int id,
+    ErpRecordModel body,
+  ) => update('/masters/business-locations/$id', body);
 
   Future<PaginatedResponse<WarehouseModel>> warehouses({
     Map<String, dynamic>? filters,
@@ -84,12 +96,16 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future warehouse(int id) => show('/masters/warehouses/$id');
-  Future createWarehouse(Map<String, dynamic> body) =>
+  Future<ApiResponse<ErpRecordModel>> warehouse(int id) =>
+      show('/masters/warehouses/$id');
+  Future<ApiResponse<ErpRecordModel>> createWarehouse(ErpRecordModel body) =>
       store('/masters/warehouses', body);
-  Future updateWarehouse(int id, Map<String, dynamic> body) =>
-      update('/masters/warehouses/$id', body);
-  Future deleteWarehouse(int id) => destroy('/masters/warehouses/$id');
+  Future<ApiResponse<ErpRecordModel>> updateWarehouse(
+    int id,
+    ErpRecordModel body,
+  ) => update('/masters/warehouses/$id', body);
+  Future<ApiResponse<dynamic>> deleteWarehouse(int id) =>
+      destroy('/masters/warehouses/$id');
 
   Future<PaginatedResponse<FinancialYearModel>> financialYears({
     Map<String, dynamic>? filters,
@@ -101,13 +117,19 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future financialYear(int id) => show('/masters/financial-years/$id');
-  Future createFinancialYear(Map<String, dynamic> body) =>
-      store('/masters/financial-years', body);
-  Future updateFinancialYear(int id, Map<String, dynamic> body) =>
-      update('/masters/financial-years/$id', body);
-  Future setActiveFinancialYear(int id, Map<String, dynamic> body) =>
-      patch('/masters/financial-years/$id/set-active', body);
+  Future<ApiResponse<ErpRecordModel>> financialYear(int id) =>
+      show('/masters/financial-years/$id');
+  Future<ApiResponse<ErpRecordModel>> createFinancialYear(
+    ErpRecordModel body,
+  ) => store('/masters/financial-years', body);
+  Future<ApiResponse<ErpRecordModel>> updateFinancialYear(
+    int id,
+    ErpRecordModel body,
+  ) => update('/masters/financial-years/$id', body);
+  Future<ApiResponse<ErpRecordModel>> setActiveFinancialYear(
+    int id,
+    ErpRecordModel body,
+  ) => patch('/masters/financial-years/$id/set-active', body);
 
   Future<PaginatedResponse<DocumentSeriesModel>> documentSeries({
     Map<String, dynamic>? filters,
@@ -119,11 +141,15 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future documentSeriesItem(int id) => show('/masters/document-series/$id');
-  Future createDocumentSeries(Map<String, dynamic> body) =>
-      store('/masters/document-series', body);
-  Future updateDocumentSeries(int id, Map<String, dynamic> body) =>
-      update('/masters/document-series/$id', body);
+  Future<ApiResponse<ErpRecordModel>> documentSeriesItem(int id) =>
+      show('/masters/document-series/$id');
+  Future<ApiResponse<ErpRecordModel>> createDocumentSeries(
+    ErpRecordModel body,
+  ) => store('/masters/document-series', body);
+  Future<ApiResponse<ErpRecordModel>> updateDocumentSeries(
+    int id,
+    ErpRecordModel body,
+  ) => update('/masters/document-series/$id', body);
 
   Future<PaginatedResponse<UomModel>> uoms({Map<String, dynamic>? filters}) {
     return client.getPaginated<UomModel>(
@@ -133,9 +159,10 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future uom(int id) => show('/masters/uoms/$id');
-  Future createUom(Map<String, dynamic> body) => store('/masters/uoms', body);
-  Future updateUom(int id, Map<String, dynamic> body) =>
+  Future<ApiResponse<ErpRecordModel>> uom(int id) => show('/masters/uoms/$id');
+  Future<ApiResponse<ErpRecordModel>> createUom(ErpRecordModel body) =>
+      store('/masters/uoms', body);
+  Future<ApiResponse<ErpRecordModel>> updateUom(int id, ErpRecordModel body) =>
       update('/masters/uoms/$id', body);
 
   Future<PaginatedResponse<TaxCodeModel>> taxCodes({
@@ -148,11 +175,14 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future taxCode(int id) => show('/masters/tax-codes/$id');
-  Future createTaxCode(Map<String, dynamic> body) =>
+  Future<ApiResponse<ErpRecordModel>> taxCode(int id) =>
+      show('/masters/tax-codes/$id');
+  Future<ApiResponse<ErpRecordModel>> createTaxCode(ErpRecordModel body) =>
       store('/masters/tax-codes', body);
-  Future updateTaxCode(int id, Map<String, dynamic> body) =>
-      update('/masters/tax-codes/$id', body);
+  Future<ApiResponse<ErpRecordModel>> updateTaxCode(
+    int id,
+    ErpRecordModel body,
+  ) => update('/masters/tax-codes/$id', body);
 
   Future<PaginatedResponse<ItemCategoryModel>> itemCategories({
     Map<String, dynamic>? filters,
@@ -164,11 +194,14 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future itemCategory(int id) => show('/masters/item-categories/$id');
-  Future createItemCategory(Map<String, dynamic> body) =>
+  Future<ApiResponse<ErpRecordModel>> itemCategory(int id) =>
+      show('/masters/item-categories/$id');
+  Future<ApiResponse<ErpRecordModel>> createItemCategory(ErpRecordModel body) =>
       store('/masters/item-categories', body);
-  Future updateItemCategory(int id, Map<String, dynamic> body) =>
-      update('/masters/item-categories/$id', body);
+  Future<ApiResponse<ErpRecordModel>> updateItemCategory(
+    int id,
+    ErpRecordModel body,
+  ) => update('/masters/item-categories/$id', body);
 
   Future<PaginatedResponse<ItemModel>> items({Map<String, dynamic>? filters}) {
     return client.getPaginated<ItemModel>(
@@ -178,12 +211,16 @@ class MasterService extends ErpModuleService {
     );
   }
 
-  Future item(int id) => show('/masters/items/$id');
-  Future createItem(Map<String, dynamic> body) => store('/masters/items', body);
-  Future updateItem(int id, Map<String, dynamic> body) =>
+  Future<ApiResponse<ErpRecordModel>> item(int id) =>
+      show('/masters/items/$id');
+  Future<ApiResponse<ErpRecordModel>> createItem(ErpRecordModel body) =>
+      store('/masters/items', body);
+  Future<ApiResponse<ErpRecordModel>> updateItem(int id, ErpRecordModel body) =>
       update('/masters/items/$id', body);
-  Future toggleItemStatus(int id, Map<String, dynamic> body) =>
-      patch('/masters/items/$id/toggle-status', body);
+  Future<ApiResponse<ErpRecordModel>> toggleItemStatus(
+    int id,
+    ErpRecordModel body,
+  ) => patch('/masters/items/$id/toggle-status', body);
 
   Future<PaginatedResponse<PartyModel>> parties({
     Map<String, dynamic>? filters,

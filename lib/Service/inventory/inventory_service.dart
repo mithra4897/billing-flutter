@@ -1,269 +1,752 @@
+import '../../core/models/api_response.dart';
+import '../../core/models/paginated_response.dart';
+import '../../model/common/erp_record_model.dart';
+import '../../model/inventory/internal_stock_receipt_model.dart';
+import '../../model/inventory/inventory_adjustment_model.dart';
+import '../../model/inventory/item_alternate_model.dart';
+import '../../model/inventory/item_price_model.dart';
+import '../../model/inventory/item_supplier_map_model.dart';
+import '../../model/inventory/opening_stock_model.dart';
+import '../../model/inventory/physical_stock_count_model.dart';
+import '../../model/inventory/stock_balance_model.dart';
+import '../../model/inventory/stock_batch_model.dart';
+import '../../model/inventory/stock_damage_entry_model.dart';
+import '../../model/inventory/stock_issue_model.dart';
+import '../../model/inventory/stock_movement_model.dart';
+import '../../model/inventory/stock_serial_model.dart';
+import '../../model/inventory/stock_transfer_model.dart';
+import '../../model/inventory/uom_conversion_model.dart';
 import '../base/erp_module_service.dart';
 
 class InventoryService extends ErpModuleService {
   InventoryService({super.apiClient});
 
-  Future itemCategories({Map<String, dynamic>? filters}) =>
-      index('/inventory/item-categories', filters: filters);
-  Future itemCategoriesDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/item-categories/dropdown', filters: filters);
-  Future itemCategory(int id) => show('/inventory/item-categories/$id');
-  Future createItemCategory(Map<String, dynamic> body) =>
+  Future<PaginatedResponse<ErpRecordModel>> itemCategories({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/item-categories', filters: filters);
+  Future<ApiResponse<List<ErpRecordModel>>> itemCategoriesDropdown({
+    Map<String, dynamic>? filters,
+  }) => list('/inventory/item-categories/dropdown', filters: filters);
+  Future<ApiResponse<ErpRecordModel>> itemCategory(int id) =>
+      show('/inventory/item-categories/$id');
+  Future<ApiResponse<ErpRecordModel>> createItemCategory(ErpRecordModel body) =>
       store('/inventory/item-categories', body);
-  Future updateItemCategory(int id, Map<String, dynamic> body) =>
-      update('/inventory/item-categories/$id', body);
-  Future deleteItemCategory(int id) =>
+  Future<ApiResponse<ErpRecordModel>> updateItemCategory(
+    int id,
+    ErpRecordModel body,
+  ) => update('/inventory/item-categories/$id', body);
+  Future<ApiResponse<dynamic>> deleteItemCategory(int id) =>
       destroy('/inventory/item-categories/$id');
 
-  Future brands({Map<String, dynamic>? filters}) =>
-      index('/inventory/brands', filters: filters);
-  Future brandsDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/brands/dropdown', filters: filters);
-  Future brand(int id) => show('/inventory/brands/$id');
-  Future createBrand(Map<String, dynamic> body) =>
+  Future<PaginatedResponse<ErpRecordModel>> brands({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/brands', filters: filters);
+  Future<ApiResponse<List<ErpRecordModel>>> brandsDropdown({
+    Map<String, dynamic>? filters,
+  }) => list('/inventory/brands/dropdown', filters: filters);
+  Future<ApiResponse<ErpRecordModel>> brand(int id) =>
+      show('/inventory/brands/$id');
+  Future<ApiResponse<ErpRecordModel>> createBrand(ErpRecordModel body) =>
       store('/inventory/brands', body);
-  Future updateBrand(int id, Map<String, dynamic> body) =>
-      update('/inventory/brands/$id', body);
-  Future deleteBrand(int id) => destroy('/inventory/brands/$id');
+  Future<ApiResponse<ErpRecordModel>> updateBrand(
+    int id,
+    ErpRecordModel body,
+  ) => update('/inventory/brands/$id', body);
+  Future<ApiResponse<dynamic>> deleteBrand(int id) =>
+      destroy('/inventory/brands/$id');
 
-  Future uoms({Map<String, dynamic>? filters}) =>
-      index('/inventory/uoms', filters: filters);
-  Future uomsDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/uoms/dropdown', filters: filters);
-  Future uom(int id) => show('/inventory/uoms/$id');
-  Future createUom(Map<String, dynamic> body) => store('/inventory/uoms', body);
-  Future updateUom(int id, Map<String, dynamic> body) =>
+  Future<PaginatedResponse<ErpRecordModel>> uoms({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/uoms', filters: filters);
+  Future<ApiResponse<List<ErpRecordModel>>> uomsDropdown({
+    Map<String, dynamic>? filters,
+  }) => list('/inventory/uoms/dropdown', filters: filters);
+  Future<ApiResponse<ErpRecordModel>> uom(int id) =>
+      show('/inventory/uoms/$id');
+  Future<ApiResponse<ErpRecordModel>> createUom(ErpRecordModel body) =>
+      store('/inventory/uoms', body);
+  Future<ApiResponse<ErpRecordModel>> updateUom(int id, ErpRecordModel body) =>
       update('/inventory/uoms/$id', body);
-  Future deleteUom(int id) => destroy('/inventory/uoms/$id');
+  Future<ApiResponse<dynamic>> deleteUom(int id) =>
+      destroy('/inventory/uoms/$id');
 
-  Future uomConversions({Map<String, dynamic>? filters}) =>
-      index('/inventory/uom-conversions', filters: filters);
-  Future uomConversionsAll({Map<String, dynamic>? filters}) =>
-      list('/inventory/uom-conversions/all', filters: filters);
-  Future uomConversionFactor({Map<String, dynamic>? filters}) =>
-      show('/inventory/uom-conversions/factor');
-  Future uomConversion(int id) => show('/inventory/uom-conversions/$id');
-  Future createUomConversion(Map<String, dynamic> body) =>
-      store('/inventory/uom-conversions', body);
-  Future updateUomConversion(int id, Map<String, dynamic> body) =>
-      update('/inventory/uom-conversions/$id', body);
-  Future deleteUomConversion(int id) =>
+  Future<PaginatedResponse<UomConversionModel>> uomConversions({
+    Map<String, dynamic>? filters,
+  }) => paginated<UomConversionModel>(
+    '/inventory/uom-conversions',
+    filters: filters,
+    fromJson: UomConversionModel.fromJson,
+  );
+  Future<ApiResponse<List<UomConversionModel>>> uomConversionsAll({
+    Map<String, dynamic>? filters,
+  }) => collection<UomConversionModel>(
+    '/inventory/uom-conversions/all',
+    filters: filters,
+    fromJson: UomConversionModel.fromJson,
+  );
+  Future<ApiResponse<UomConversionModel>> uomConversionFactor({
+    Map<String, dynamic>? filters,
+  }) => object<UomConversionModel>(
+    '/inventory/uom-conversions/factor',
+    fromJson: UomConversionModel.fromJson,
+  );
+  Future<ApiResponse<UomConversionModel>> uomConversion(int id) =>
+      object<UomConversionModel>(
+        '/inventory/uom-conversions/$id',
+        fromJson: UomConversionModel.fromJson,
+      );
+  Future<ApiResponse<UomConversionModel>> createUomConversion(
+    UomConversionModel body,
+  ) => createModel<UomConversionModel>(
+    '/inventory/uom-conversions',
+    body,
+    fromJson: UomConversionModel.fromJson,
+  );
+  Future<ApiResponse<UomConversionModel>> updateUomConversion(
+    int id,
+    UomConversionModel body,
+  ) => updateModel<UomConversionModel>(
+    '/inventory/uom-conversions/$id',
+    body,
+    fromJson: UomConversionModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteUomConversion(int id) =>
       destroy('/inventory/uom-conversions/$id');
 
-  Future taxCodes({Map<String, dynamic>? filters}) =>
-      index('/inventory/tax-codes', filters: filters);
-  Future taxCodesDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/tax-codes/dropdown', filters: filters);
-  Future taxCode(int id) => show('/inventory/tax-codes/$id');
-  Future createTaxCode(Map<String, dynamic> body) =>
+  Future<PaginatedResponse<ErpRecordModel>> taxCodes({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/tax-codes', filters: filters);
+  Future<ApiResponse<List<ErpRecordModel>>> taxCodesDropdown({
+    Map<String, dynamic>? filters,
+  }) => list('/inventory/tax-codes/dropdown', filters: filters);
+  Future<ApiResponse<ErpRecordModel>> taxCode(int id) =>
+      show('/inventory/tax-codes/$id');
+  Future<ApiResponse<ErpRecordModel>> createTaxCode(ErpRecordModel body) =>
       store('/inventory/tax-codes', body);
-  Future updateTaxCode(int id, Map<String, dynamic> body) =>
-      update('/inventory/tax-codes/$id', body);
-  Future deleteTaxCode(int id) => destroy('/inventory/tax-codes/$id');
+  Future<ApiResponse<ErpRecordModel>> updateTaxCode(
+    int id,
+    ErpRecordModel body,
+  ) => update('/inventory/tax-codes/$id', body);
+  Future<ApiResponse<dynamic>> deleteTaxCode(int id) =>
+      destroy('/inventory/tax-codes/$id');
 
-  Future items({Map<String, dynamic>? filters}) =>
-      index('/inventory/items', filters: filters);
-  Future itemsDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/items/dropdown', filters: filters);
-  Future item(int id) => show('/inventory/items/$id');
-  Future createItem(Map<String, dynamic> body) =>
+  Future<PaginatedResponse<ErpRecordModel>> items({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/items', filters: filters);
+  Future<ApiResponse<List<ErpRecordModel>>> itemsDropdown({
+    Map<String, dynamic>? filters,
+  }) => list('/inventory/items/dropdown', filters: filters);
+  Future<ApiResponse<ErpRecordModel>> item(int id) =>
+      show('/inventory/items/$id');
+  Future<ApiResponse<ErpRecordModel>> createItem(ErpRecordModel body) =>
       store('/inventory/items', body);
-  Future updateItem(int id, Map<String, dynamic> body) =>
+  Future<ApiResponse<ErpRecordModel>> updateItem(int id, ErpRecordModel body) =>
       update('/inventory/items/$id', body);
-  Future deleteItem(int id) => destroy('/inventory/items/$id');
+  Future<ApiResponse<dynamic>> deleteItem(int id) =>
+      destroy('/inventory/items/$id');
 
-  Future itemSupplierMaps({Map<String, dynamic>? filters}) =>
-      index('/inventory/item-supplier-maps', filters: filters);
-  Future itemSupplierMapsDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/item-supplier-maps/dropdown', filters: filters);
-  Future itemSupplierMap(int id) => show('/inventory/item-supplier-maps/$id');
-  Future createItemSupplierMap(Map<String, dynamic> body) =>
-      store('/inventory/item-supplier-maps', body);
-  Future updateItemSupplierMap(int id, Map<String, dynamic> body) =>
-      update('/inventory/item-supplier-maps/$id', body);
-  Future deleteItemSupplierMap(int id) =>
+  Future<PaginatedResponse<ItemSupplierMapModel>> itemSupplierMaps({
+    Map<String, dynamic>? filters,
+  }) => paginated<ItemSupplierMapModel>(
+    '/inventory/item-supplier-maps',
+    filters: filters,
+    fromJson: ItemSupplierMapModel.fromJson,
+  );
+  Future<ApiResponse<List<ItemSupplierMapModel>>> itemSupplierMapsDropdown({
+    Map<String, dynamic>? filters,
+  }) => collection<ItemSupplierMapModel>(
+    '/inventory/item-supplier-maps/dropdown',
+    filters: filters,
+    fromJson: ItemSupplierMapModel.fromJson,
+  );
+  Future<ApiResponse<ItemSupplierMapModel>> itemSupplierMap(int id) =>
+      object<ItemSupplierMapModel>(
+        '/inventory/item-supplier-maps/$id',
+        fromJson: ItemSupplierMapModel.fromJson,
+      );
+  Future<ApiResponse<ItemSupplierMapModel>> createItemSupplierMap(
+    ItemSupplierMapModel body,
+  ) => createModel<ItemSupplierMapModel>(
+    '/inventory/item-supplier-maps',
+    body,
+    fromJson: ItemSupplierMapModel.fromJson,
+  );
+  Future<ApiResponse<ItemSupplierMapModel>> updateItemSupplierMap(
+    int id,
+    ItemSupplierMapModel body,
+  ) => updateModel<ItemSupplierMapModel>(
+    '/inventory/item-supplier-maps/$id',
+    body,
+    fromJson: ItemSupplierMapModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteItemSupplierMap(int id) =>
       destroy('/inventory/item-supplier-maps/$id');
 
-  Future itemAlternates({Map<String, dynamic>? filters}) =>
-      index('/inventory/item-alternates', filters: filters);
-  Future itemAlternatesDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/item-alternates/dropdown', filters: filters);
-  Future itemAlternate(int id) => show('/inventory/item-alternates/$id');
-  Future createItemAlternate(Map<String, dynamic> body) =>
-      store('/inventory/item-alternates', body);
-  Future updateItemAlternate(int id, Map<String, dynamic> body) =>
-      update('/inventory/item-alternates/$id', body);
-  Future deleteItemAlternate(int id) =>
+  Future<PaginatedResponse<ItemAlternateModel>> itemAlternates({
+    Map<String, dynamic>? filters,
+  }) => paginated<ItemAlternateModel>(
+    '/inventory/item-alternates',
+    filters: filters,
+    fromJson: ItemAlternateModel.fromJson,
+  );
+  Future<ApiResponse<List<ItemAlternateModel>>> itemAlternatesDropdown({
+    Map<String, dynamic>? filters,
+  }) => collection<ItemAlternateModel>(
+    '/inventory/item-alternates/dropdown',
+    filters: filters,
+    fromJson: ItemAlternateModel.fromJson,
+  );
+  Future<ApiResponse<ItemAlternateModel>> itemAlternate(int id) =>
+      object<ItemAlternateModel>(
+        '/inventory/item-alternates/$id',
+        fromJson: ItemAlternateModel.fromJson,
+      );
+  Future<ApiResponse<ItemAlternateModel>> createItemAlternate(
+    ItemAlternateModel body,
+  ) => createModel<ItemAlternateModel>(
+    '/inventory/item-alternates',
+    body,
+    fromJson: ItemAlternateModel.fromJson,
+  );
+  Future<ApiResponse<ItemAlternateModel>> updateItemAlternate(
+    int id,
+    ItemAlternateModel body,
+  ) => updateModel<ItemAlternateModel>(
+    '/inventory/item-alternates/$id',
+    body,
+    fromJson: ItemAlternateModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteItemAlternate(int id) =>
       destroy('/inventory/item-alternates/$id');
 
-  Future itemPrices({Map<String, dynamic>? filters}) =>
-      index('/inventory/item-prices', filters: filters);
-  Future itemPricesDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/item-prices/dropdown', filters: filters);
-  Future itemPrice(int id) => show('/inventory/item-prices/$id');
-  Future createItemPrice(Map<String, dynamic> body) =>
-      store('/inventory/item-prices', body);
-  Future updateItemPrice(int id, Map<String, dynamic> body) =>
-      update('/inventory/item-prices/$id', body);
-  Future deleteItemPrice(int id) => destroy('/inventory/item-prices/$id');
+  Future<PaginatedResponse<ItemPriceModel>> itemPrices({
+    Map<String, dynamic>? filters,
+  }) => paginated<ItemPriceModel>(
+    '/inventory/item-prices',
+    filters: filters,
+    fromJson: ItemPriceModel.fromJson,
+  );
+  Future<ApiResponse<List<ItemPriceModel>>> itemPricesDropdown({
+    Map<String, dynamic>? filters,
+  }) => collection<ItemPriceModel>(
+    '/inventory/item-prices/dropdown',
+    filters: filters,
+    fromJson: ItemPriceModel.fromJson,
+  );
+  Future<ApiResponse<ItemPriceModel>> itemPrice(int id) =>
+      object<ItemPriceModel>(
+        '/inventory/item-prices/$id',
+        fromJson: ItemPriceModel.fromJson,
+      );
+  Future<ApiResponse<ItemPriceModel>> createItemPrice(ItemPriceModel body) =>
+      createModel<ItemPriceModel>(
+        '/inventory/item-prices',
+        body,
+        fromJson: ItemPriceModel.fromJson,
+      );
+  Future<ApiResponse<ItemPriceModel>> updateItemPrice(
+    int id,
+    ItemPriceModel body,
+  ) => updateModel<ItemPriceModel>(
+    '/inventory/item-prices/$id',
+    body,
+    fromJson: ItemPriceModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteItemPrice(int id) =>
+      destroy('/inventory/item-prices/$id');
 
-  Future stockBatches({Map<String, dynamic>? filters}) =>
-      index('/inventory/stock-batches', filters: filters);
-  Future stockBatchesDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/stock-batches/dropdown', filters: filters);
-  Future stockBatch(int id) => show('/inventory/stock-batches/$id');
-  Future createStockBatch(Map<String, dynamic> body) =>
-      store('/inventory/stock-batches', body);
-  Future updateStockBatch(int id, Map<String, dynamic> body) =>
-      update('/inventory/stock-batches/$id', body);
-  Future deleteStockBatch(int id) => destroy('/inventory/stock-batches/$id');
+  Future<PaginatedResponse<StockBatchModel>> stockBatches({
+    Map<String, dynamic>? filters,
+  }) => paginated<StockBatchModel>(
+    '/inventory/stock-batches',
+    filters: filters,
+    fromJson: StockBatchModel.fromJson,
+  );
+  Future<ApiResponse<List<StockBatchModel>>> stockBatchesDropdown({
+    Map<String, dynamic>? filters,
+  }) => collection<StockBatchModel>(
+    '/inventory/stock-batches/dropdown',
+    filters: filters,
+    fromJson: StockBatchModel.fromJson,
+  );
+  Future<ApiResponse<StockBatchModel>> stockBatch(int id) =>
+      object<StockBatchModel>(
+        '/inventory/stock-batches/$id',
+        fromJson: StockBatchModel.fromJson,
+      );
+  Future<ApiResponse<StockBatchModel>> createStockBatch(StockBatchModel body) =>
+      createModel<StockBatchModel>(
+        '/inventory/stock-batches',
+        body,
+        fromJson: StockBatchModel.fromJson,
+      );
+  Future<ApiResponse<StockBatchModel>> updateStockBatch(
+    int id,
+    StockBatchModel body,
+  ) => updateModel<StockBatchModel>(
+    '/inventory/stock-batches/$id',
+    body,
+    fromJson: StockBatchModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteStockBatch(int id) =>
+      destroy('/inventory/stock-batches/$id');
 
-  Future stockSerials({Map<String, dynamic>? filters}) =>
-      index('/inventory/stock-serials', filters: filters);
-  Future stockSerialsDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/stock-serials/dropdown', filters: filters);
-  Future stockSerial(int id) => show('/inventory/stock-serials/$id');
-  Future createStockSerial(Map<String, dynamic> body) =>
-      store('/inventory/stock-serials', body);
-  Future updateStockSerial(int id, Map<String, dynamic> body) =>
-      update('/inventory/stock-serials/$id', body);
-  Future deleteStockSerial(int id) => destroy('/inventory/stock-serials/$id');
+  Future<PaginatedResponse<StockSerialModel>> stockSerials({
+    Map<String, dynamic>? filters,
+  }) => paginated<StockSerialModel>(
+    '/inventory/stock-serials',
+    filters: filters,
+    fromJson: StockSerialModel.fromJson,
+  );
+  Future<ApiResponse<List<StockSerialModel>>> stockSerialsDropdown({
+    Map<String, dynamic>? filters,
+  }) => collection<StockSerialModel>(
+    '/inventory/stock-serials/dropdown',
+    filters: filters,
+    fromJson: StockSerialModel.fromJson,
+  );
+  Future<ApiResponse<StockSerialModel>> stockSerial(int id) =>
+      object<StockSerialModel>(
+        '/inventory/stock-serials/$id',
+        fromJson: StockSerialModel.fromJson,
+      );
+  Future<ApiResponse<StockSerialModel>> createStockSerial(
+    StockSerialModel body,
+  ) => createModel<StockSerialModel>(
+    '/inventory/stock-serials',
+    body,
+    fromJson: StockSerialModel.fromJson,
+  );
+  Future<ApiResponse<StockSerialModel>> updateStockSerial(
+    int id,
+    StockSerialModel body,
+  ) => updateModel<StockSerialModel>(
+    '/inventory/stock-serials/$id',
+    body,
+    fromJson: StockSerialModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteStockSerial(int id) =>
+      destroy('/inventory/stock-serials/$id');
 
-  Future stockMovements({Map<String, dynamic>? filters}) =>
-      index('/inventory/stock-movements', filters: filters);
-  Future stockMovementsDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/stock-movements/dropdown', filters: filters);
-  Future stockMovement(int id) => show('/inventory/stock-movements/$id');
-  Future createStockMovement(Map<String, dynamic> body) =>
-      store('/inventory/stock-movements', body);
-  Future updateStockMovement(int id, Map<String, dynamic> body) =>
-      update('/inventory/stock-movements/$id', body);
-  Future deleteStockMovement(int id) =>
+  Future<PaginatedResponse<StockMovementModel>> stockMovements({
+    Map<String, dynamic>? filters,
+  }) => paginated<StockMovementModel>(
+    '/inventory/stock-movements',
+    filters: filters,
+    fromJson: StockMovementModel.fromJson,
+  );
+  Future<ApiResponse<List<StockMovementModel>>> stockMovementsDropdown({
+    Map<String, dynamic>? filters,
+  }) => collection<StockMovementModel>(
+    '/inventory/stock-movements/dropdown',
+    filters: filters,
+    fromJson: StockMovementModel.fromJson,
+  );
+  Future<ApiResponse<StockMovementModel>> stockMovement(int id) =>
+      object<StockMovementModel>(
+        '/inventory/stock-movements/$id',
+        fromJson: StockMovementModel.fromJson,
+      );
+  Future<ApiResponse<StockMovementModel>> createStockMovement(
+    StockMovementModel body,
+  ) => createModel<StockMovementModel>(
+    '/inventory/stock-movements',
+    body,
+    fromJson: StockMovementModel.fromJson,
+  );
+  Future<ApiResponse<StockMovementModel>> updateStockMovement(
+    int id,
+    StockMovementModel body,
+  ) => updateModel<StockMovementModel>(
+    '/inventory/stock-movements/$id',
+    body,
+    fromJson: StockMovementModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteStockMovement(int id) =>
       destroy('/inventory/stock-movements/$id');
 
-  Future stockBalances({Map<String, dynamic>? filters}) =>
-      index('/inventory/stock-balances', filters: filters);
-  Future stockBalancesDropdown({Map<String, dynamic>? filters}) =>
-      list('/inventory/stock-balances/dropdown', filters: filters);
-  Future stockBalance(int id) => show('/inventory/stock-balances/$id');
-  Future createStockBalance(Map<String, dynamic> body) =>
-      store('/inventory/stock-balances', body);
-  Future updateStockBalance(int id, Map<String, dynamic> body) =>
-      update('/inventory/stock-balances/$id', body);
-  Future deleteStockBalance(int id) => destroy('/inventory/stock-balances/$id');
+  Future<PaginatedResponse<StockBalanceModel>> stockBalances({
+    Map<String, dynamic>? filters,
+  }) => paginated<StockBalanceModel>(
+    '/inventory/stock-balances',
+    filters: filters,
+    fromJson: StockBalanceModel.fromJson,
+  );
+  Future<ApiResponse<List<StockBalanceModel>>> stockBalancesDropdown({
+    Map<String, dynamic>? filters,
+  }) => collection<StockBalanceModel>(
+    '/inventory/stock-balances/dropdown',
+    filters: filters,
+    fromJson: StockBalanceModel.fromJson,
+  );
+  Future<ApiResponse<StockBalanceModel>> stockBalance(int id) =>
+      object<StockBalanceModel>(
+        '/inventory/stock-balances/$id',
+        fromJson: StockBalanceModel.fromJson,
+      );
+  Future<ApiResponse<StockBalanceModel>> createStockBalance(
+    StockBalanceModel body,
+  ) => createModel<StockBalanceModel>(
+    '/inventory/stock-balances',
+    body,
+    fromJson: StockBalanceModel.fromJson,
+  );
+  Future<ApiResponse<StockBalanceModel>> updateStockBalance(
+    int id,
+    StockBalanceModel body,
+  ) => updateModel<StockBalanceModel>(
+    '/inventory/stock-balances/$id',
+    body,
+    fromJson: StockBalanceModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteStockBalance(int id) =>
+      destroy('/inventory/stock-balances/$id');
 
-  Future inventoryAdjustments({Map<String, dynamic>? filters}) =>
-      index('/inventory/inventory-adjustments', filters: filters);
-  Future inventoryAdjustment(int id) =>
-      show('/inventory/inventory-adjustments/$id');
-  Future createInventoryAdjustment(Map<String, dynamic> body) =>
-      store('/inventory/inventory-adjustments', body);
-  Future updateInventoryAdjustment(int id, Map<String, dynamic> body) =>
-      update('/inventory/inventory-adjustments/$id', body);
-  Future postInventoryAdjustment(int id, Map<String, dynamic> body) =>
-      action('/inventory/inventory-adjustments/$id/post', body: body);
-  Future cancelInventoryAdjustment(int id, Map<String, dynamic> body) =>
-      action('/inventory/inventory-adjustments/$id/cancel', body: body);
-  Future deleteInventoryAdjustment(int id) =>
+  Future<PaginatedResponse<InventoryAdjustmentModel>> inventoryAdjustments({
+    Map<String, dynamic>? filters,
+  }) => paginated<InventoryAdjustmentModel>(
+    '/inventory/inventory-adjustments',
+    filters: filters,
+    fromJson: InventoryAdjustmentModel.fromJson,
+  );
+  Future<ApiResponse<InventoryAdjustmentModel>> inventoryAdjustment(int id) =>
+      object<InventoryAdjustmentModel>(
+        '/inventory/inventory-adjustments/$id',
+        fromJson: InventoryAdjustmentModel.fromJson,
+      );
+  Future<ApiResponse<InventoryAdjustmentModel>> createInventoryAdjustment(
+    InventoryAdjustmentModel body,
+  ) => createModel<InventoryAdjustmentModel>(
+    '/inventory/inventory-adjustments',
+    body,
+    fromJson: InventoryAdjustmentModel.fromJson,
+  );
+  Future<ApiResponse<InventoryAdjustmentModel>> updateInventoryAdjustment(
+    int id,
+    InventoryAdjustmentModel body,
+  ) => updateModel<InventoryAdjustmentModel>(
+    '/inventory/inventory-adjustments/$id',
+    body,
+    fromJson: InventoryAdjustmentModel.fromJson,
+  );
+  Future<ApiResponse<InventoryAdjustmentModel>> postInventoryAdjustment(
+    int id,
+    InventoryAdjustmentModel body,
+  ) => actionModel<InventoryAdjustmentModel>(
+    '/inventory/inventory-adjustments/$id/post',
+    body: body,
+    fromJson: InventoryAdjustmentModel.fromJson,
+  );
+  Future<ApiResponse<InventoryAdjustmentModel>> cancelInventoryAdjustment(
+    int id,
+    InventoryAdjustmentModel body,
+  ) => actionModel<InventoryAdjustmentModel>(
+    '/inventory/inventory-adjustments/$id/cancel',
+    body: body,
+    fromJson: InventoryAdjustmentModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteInventoryAdjustment(int id) =>
       destroy('/inventory/inventory-adjustments/$id');
 
-  Future openingStocks({Map<String, dynamic>? filters}) =>
-      index('/inventory/opening-stocks', filters: filters);
-  Future openingStock(int id) => show('/inventory/opening-stocks/$id');
-  Future createOpeningStock(Map<String, dynamic> body) =>
-      store('/inventory/opening-stocks', body);
-  Future updateOpeningStock(int id, Map<String, dynamic> body) =>
-      update('/inventory/opening-stocks/$id', body);
-  Future postOpeningStock(int id, Map<String, dynamic> body) =>
-      action('/inventory/opening-stocks/$id/post', body: body);
-  Future cancelOpeningStock(int id, Map<String, dynamic> body) =>
-      action('/inventory/opening-stocks/$id/cancel', body: body);
-  Future deleteOpeningStock(int id) => destroy('/inventory/opening-stocks/$id');
+  Future<PaginatedResponse<OpeningStockModel>> openingStocks({
+    Map<String, dynamic>? filters,
+  }) => paginated<OpeningStockModel>(
+    '/inventory/opening-stocks',
+    filters: filters,
+    fromJson: OpeningStockModel.fromJson,
+  );
+  Future<ApiResponse<OpeningStockModel>> openingStock(int id) =>
+      object<OpeningStockModel>(
+        '/inventory/opening-stocks/$id',
+        fromJson: OpeningStockModel.fromJson,
+      );
+  Future<ApiResponse<OpeningStockModel>> createOpeningStock(
+    OpeningStockModel body,
+  ) => createModel<OpeningStockModel>(
+    '/inventory/opening-stocks',
+    body,
+    fromJson: OpeningStockModel.fromJson,
+  );
+  Future<ApiResponse<OpeningStockModel>> updateOpeningStock(
+    int id,
+    OpeningStockModel body,
+  ) => updateModel<OpeningStockModel>(
+    '/inventory/opening-stocks/$id',
+    body,
+    fromJson: OpeningStockModel.fromJson,
+  );
+  Future<ApiResponse<OpeningStockModel>> postOpeningStock(
+    int id,
+    OpeningStockModel body,
+  ) => actionModel<OpeningStockModel>(
+    '/inventory/opening-stocks/$id/post',
+    body: body,
+    fromJson: OpeningStockModel.fromJson,
+  );
+  Future<ApiResponse<OpeningStockModel>> cancelOpeningStock(
+    int id,
+    OpeningStockModel body,
+  ) => actionModel<OpeningStockModel>(
+    '/inventory/opening-stocks/$id/cancel',
+    body: body,
+    fromJson: OpeningStockModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteOpeningStock(int id) =>
+      destroy('/inventory/opening-stocks/$id');
 
-  Future stockTransfers({Map<String, dynamic>? filters}) =>
-      index('/inventory/stock-transfers', filters: filters);
-  Future stockTransfer(int id) => show('/inventory/stock-transfers/$id');
-  Future createStockTransfer(Map<String, dynamic> body) =>
-      store('/inventory/stock-transfers', body);
-  Future updateStockTransfer(int id, Map<String, dynamic> body) =>
-      update('/inventory/stock-transfers/$id', body);
-  Future postStockTransfer(int id, Map<String, dynamic> body) =>
-      action('/inventory/stock-transfers/$id/post', body: body);
-  Future cancelStockTransfer(int id, Map<String, dynamic> body) =>
-      action('/inventory/stock-transfers/$id/cancel', body: body);
-  Future deleteStockTransfer(int id) =>
+  Future<PaginatedResponse<StockTransferModel>> stockTransfers({
+    Map<String, dynamic>? filters,
+  }) => paginated<StockTransferModel>(
+    '/inventory/stock-transfers',
+    filters: filters,
+    fromJson: StockTransferModel.fromJson,
+  );
+  Future<ApiResponse<StockTransferModel>> stockTransfer(int id) =>
+      object<StockTransferModel>(
+        '/inventory/stock-transfers/$id',
+        fromJson: StockTransferModel.fromJson,
+      );
+  Future<ApiResponse<StockTransferModel>> createStockTransfer(
+    StockTransferModel body,
+  ) => createModel<StockTransferModel>(
+    '/inventory/stock-transfers',
+    body,
+    fromJson: StockTransferModel.fromJson,
+  );
+  Future<ApiResponse<StockTransferModel>> updateStockTransfer(
+    int id,
+    StockTransferModel body,
+  ) => updateModel<StockTransferModel>(
+    '/inventory/stock-transfers/$id',
+    body,
+    fromJson: StockTransferModel.fromJson,
+  );
+  Future<ApiResponse<StockTransferModel>> postStockTransfer(
+    int id,
+    StockTransferModel body,
+  ) => actionModel<StockTransferModel>(
+    '/inventory/stock-transfers/$id/post',
+    body: body,
+    fromJson: StockTransferModel.fromJson,
+  );
+  Future<ApiResponse<StockTransferModel>> cancelStockTransfer(
+    int id,
+    StockTransferModel body,
+  ) => actionModel<StockTransferModel>(
+    '/inventory/stock-transfers/$id/cancel',
+    body: body,
+    fromJson: StockTransferModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteStockTransfer(int id) =>
       destroy('/inventory/stock-transfers/$id');
 
-  Future stockIssues({Map<String, dynamic>? filters}) =>
-      index('/inventory/stock-issues', filters: filters);
-  Future stockIssue(int id) => show('/inventory/stock-issues/$id');
-  Future createStockIssue(Map<String, dynamic> body) =>
-      store('/inventory/stock-issues', body);
-  Future updateStockIssue(int id, Map<String, dynamic> body) =>
-      update('/inventory/stock-issues/$id', body);
-  Future postStockIssue(int id, Map<String, dynamic> body) =>
-      action('/inventory/stock-issues/$id/post', body: body);
-  Future cancelStockIssue(int id, Map<String, dynamic> body) =>
-      action('/inventory/stock-issues/$id/cancel', body: body);
-  Future deleteStockIssue(int id) => destroy('/inventory/stock-issues/$id');
+  Future<PaginatedResponse<StockIssueModel>> stockIssues({
+    Map<String, dynamic>? filters,
+  }) => paginated<StockIssueModel>(
+    '/inventory/stock-issues',
+    filters: filters,
+    fromJson: StockIssueModel.fromJson,
+  );
+  Future<ApiResponse<StockIssueModel>> stockIssue(int id) =>
+      object<StockIssueModel>(
+        '/inventory/stock-issues/$id',
+        fromJson: StockIssueModel.fromJson,
+      );
+  Future<ApiResponse<StockIssueModel>> createStockIssue(StockIssueModel body) =>
+      createModel<StockIssueModel>(
+        '/inventory/stock-issues',
+        body,
+        fromJson: StockIssueModel.fromJson,
+      );
+  Future<ApiResponse<StockIssueModel>> updateStockIssue(
+    int id,
+    StockIssueModel body,
+  ) => updateModel<StockIssueModel>(
+    '/inventory/stock-issues/$id',
+    body,
+    fromJson: StockIssueModel.fromJson,
+  );
+  Future<ApiResponse<StockIssueModel>> postStockIssue(
+    int id,
+    StockIssueModel body,
+  ) => actionModel<StockIssueModel>(
+    '/inventory/stock-issues/$id/post',
+    body: body,
+    fromJson: StockIssueModel.fromJson,
+  );
+  Future<ApiResponse<StockIssueModel>> cancelStockIssue(
+    int id,
+    StockIssueModel body,
+  ) => actionModel<StockIssueModel>(
+    '/inventory/stock-issues/$id/cancel',
+    body: body,
+    fromJson: StockIssueModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteStockIssue(int id) =>
+      destroy('/inventory/stock-issues/$id');
 
-  Future internalStockReceipts({Map<String, dynamic>? filters}) =>
-      index('/inventory/internal-stock-receipts', filters: filters);
-  Future internalStockReceipt(int id) =>
-      show('/inventory/internal-stock-receipts/$id');
-  Future createInternalStockReceipt(Map<String, dynamic> body) =>
-      store('/inventory/internal-stock-receipts', body);
-  Future updateInternalStockReceipt(int id, Map<String, dynamic> body) =>
-      update('/inventory/internal-stock-receipts/$id', body);
-  Future postInternalStockReceipt(int id, Map<String, dynamic> body) =>
-      action('/inventory/internal-stock-receipts/$id/post', body: body);
-  Future cancelInternalStockReceipt(int id, Map<String, dynamic> body) =>
-      action('/inventory/internal-stock-receipts/$id/cancel', body: body);
-  Future deleteInternalStockReceipt(int id) =>
+  Future<PaginatedResponse<InternalStockReceiptModel>> internalStockReceipts({
+    Map<String, dynamic>? filters,
+  }) => paginated<InternalStockReceiptModel>(
+    '/inventory/internal-stock-receipts',
+    filters: filters,
+    fromJson: InternalStockReceiptModel.fromJson,
+  );
+  Future<ApiResponse<InternalStockReceiptModel>> internalStockReceipt(int id) =>
+      object<InternalStockReceiptModel>(
+        '/inventory/internal-stock-receipts/$id',
+        fromJson: InternalStockReceiptModel.fromJson,
+      );
+  Future<ApiResponse<InternalStockReceiptModel>> createInternalStockReceipt(
+    InternalStockReceiptModel body,
+  ) => createModel<InternalStockReceiptModel>(
+    '/inventory/internal-stock-receipts',
+    body,
+    fromJson: InternalStockReceiptModel.fromJson,
+  );
+  Future<ApiResponse<InternalStockReceiptModel>> updateInternalStockReceipt(
+    int id,
+    InternalStockReceiptModel body,
+  ) => updateModel<InternalStockReceiptModel>(
+    '/inventory/internal-stock-receipts/$id',
+    body,
+    fromJson: InternalStockReceiptModel.fromJson,
+  );
+  Future<ApiResponse<InternalStockReceiptModel>> postInternalStockReceipt(
+    int id,
+    InternalStockReceiptModel body,
+  ) => actionModel<InternalStockReceiptModel>(
+    '/inventory/internal-stock-receipts/$id/post',
+    body: body,
+    fromJson: InternalStockReceiptModel.fromJson,
+  );
+  Future<ApiResponse<InternalStockReceiptModel>> cancelInternalStockReceipt(
+    int id,
+    InternalStockReceiptModel body,
+  ) => actionModel<InternalStockReceiptModel>(
+    '/inventory/internal-stock-receipts/$id/cancel',
+    body: body,
+    fromJson: InternalStockReceiptModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteInternalStockReceipt(int id) =>
       destroy('/inventory/internal-stock-receipts/$id');
 
-  Future stockDamageEntries({Map<String, dynamic>? filters}) =>
-      index('/inventory/stock-damage-entries', filters: filters);
-  Future stockDamageEntry(int id) =>
-      show('/inventory/stock-damage-entries/$id');
-  Future createStockDamageEntry(Map<String, dynamic> body) =>
-      store('/inventory/stock-damage-entries', body);
-  Future updateStockDamageEntry(int id, Map<String, dynamic> body) =>
-      update('/inventory/stock-damage-entries/$id', body);
-  Future postStockDamageEntry(int id, Map<String, dynamic> body) =>
-      action('/inventory/stock-damage-entries/$id/post', body: body);
-  Future cancelStockDamageEntry(int id, Map<String, dynamic> body) =>
-      action('/inventory/stock-damage-entries/$id/cancel', body: body);
-  Future deleteStockDamageEntry(int id) =>
+  Future<PaginatedResponse<StockDamageEntryModel>> stockDamageEntries({
+    Map<String, dynamic>? filters,
+  }) => paginated<StockDamageEntryModel>(
+    '/inventory/stock-damage-entries',
+    filters: filters,
+    fromJson: StockDamageEntryModel.fromJson,
+  );
+  Future<ApiResponse<StockDamageEntryModel>> stockDamageEntry(int id) =>
+      object<StockDamageEntryModel>(
+        '/inventory/stock-damage-entries/$id',
+        fromJson: StockDamageEntryModel.fromJson,
+      );
+  Future<ApiResponse<StockDamageEntryModel>> createStockDamageEntry(
+    StockDamageEntryModel body,
+  ) => createModel<StockDamageEntryModel>(
+    '/inventory/stock-damage-entries',
+    body,
+    fromJson: StockDamageEntryModel.fromJson,
+  );
+  Future<ApiResponse<StockDamageEntryModel>> updateStockDamageEntry(
+    int id,
+    StockDamageEntryModel body,
+  ) => updateModel<StockDamageEntryModel>(
+    '/inventory/stock-damage-entries/$id',
+    body,
+    fromJson: StockDamageEntryModel.fromJson,
+  );
+  Future<ApiResponse<StockDamageEntryModel>> postStockDamageEntry(
+    int id,
+    StockDamageEntryModel body,
+  ) => actionModel<StockDamageEntryModel>(
+    '/inventory/stock-damage-entries/$id/post',
+    body: body,
+    fromJson: StockDamageEntryModel.fromJson,
+  );
+  Future<ApiResponse<StockDamageEntryModel>> cancelStockDamageEntry(
+    int id,
+    StockDamageEntryModel body,
+  ) => actionModel<StockDamageEntryModel>(
+    '/inventory/stock-damage-entries/$id/cancel',
+    body: body,
+    fromJson: StockDamageEntryModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteStockDamageEntry(int id) =>
       destroy('/inventory/stock-damage-entries/$id');
 
-  Future physicalStockCounts({Map<String, dynamic>? filters}) =>
-      index('/inventory/physical-stock-counts', filters: filters);
-  Future physicalStockCount(int id) =>
-      show('/inventory/physical-stock-counts/$id');
-  Future createPhysicalStockCount(Map<String, dynamic> body) =>
-      store('/inventory/physical-stock-counts', body);
-  Future updatePhysicalStockCount(int id, Map<String, dynamic> body) =>
-      update('/inventory/physical-stock-counts/$id', body);
-  Future markPhysicalCounted(int id, Map<String, dynamic> body) =>
-      action('/inventory/physical-stock-counts/$id/counted', body: body);
-  Future reconcilePhysicalStockCount(int id, Map<String, dynamic> body) =>
-      action('/inventory/physical-stock-counts/$id/reconcile', body: body);
-  Future cancelPhysicalStockCount(int id, Map<String, dynamic> body) =>
-      action('/inventory/physical-stock-counts/$id/cancel', body: body);
-  Future deletePhysicalStockCount(int id) =>
+  Future<PaginatedResponse<PhysicalStockCountModel>> physicalStockCounts({
+    Map<String, dynamic>? filters,
+  }) => paginated<PhysicalStockCountModel>(
+    '/inventory/physical-stock-counts',
+    filters: filters,
+    fromJson: PhysicalStockCountModel.fromJson,
+  );
+  Future<ApiResponse<PhysicalStockCountModel>> physicalStockCount(int id) =>
+      object<PhysicalStockCountModel>(
+        '/inventory/physical-stock-counts/$id',
+        fromJson: PhysicalStockCountModel.fromJson,
+      );
+  Future<ApiResponse<PhysicalStockCountModel>> createPhysicalStockCount(
+    PhysicalStockCountModel body,
+  ) => createModel<PhysicalStockCountModel>(
+    '/inventory/physical-stock-counts',
+    body,
+    fromJson: PhysicalStockCountModel.fromJson,
+  );
+  Future<ApiResponse<PhysicalStockCountModel>> updatePhysicalStockCount(
+    int id,
+    PhysicalStockCountModel body,
+  ) => updateModel<PhysicalStockCountModel>(
+    '/inventory/physical-stock-counts/$id',
+    body,
+    fromJson: PhysicalStockCountModel.fromJson,
+  );
+  Future<ApiResponse<PhysicalStockCountModel>> markPhysicalCounted(
+    int id,
+    PhysicalStockCountModel body,
+  ) => actionModel<PhysicalStockCountModel>(
+    '/inventory/physical-stock-counts/$id/counted',
+    body: body,
+    fromJson: PhysicalStockCountModel.fromJson,
+  );
+  Future<ApiResponse<PhysicalStockCountModel>> reconcilePhysicalStockCount(
+    int id,
+    PhysicalStockCountModel body,
+  ) => actionModel<PhysicalStockCountModel>(
+    '/inventory/physical-stock-counts/$id/reconcile',
+    body: body,
+    fromJson: PhysicalStockCountModel.fromJson,
+  );
+  Future<ApiResponse<PhysicalStockCountModel>> cancelPhysicalStockCount(
+    int id,
+    PhysicalStockCountModel body,
+  ) => actionModel<PhysicalStockCountModel>(
+    '/inventory/physical-stock-counts/$id/cancel',
+    body: body,
+    fromJson: PhysicalStockCountModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deletePhysicalStockCount(int id) =>
       destroy('/inventory/physical-stock-counts/$id');
 
-  Future stockSummary({Map<String, dynamic>? filters}) =>
-      index('/inventory/inquiry/stock-summary', filters: filters);
-  Future warehouseWiseStock({Map<String, dynamic>? filters}) =>
-      index('/inventory/inquiry/warehouse-wise-stock', filters: filters);
-  Future batchWiseStock({Map<String, dynamic>? filters}) =>
-      index('/inventory/inquiry/batch-wise-stock', filters: filters);
-  Future availableSerials({Map<String, dynamic>? filters}) =>
-      index('/inventory/inquiry/available-serials', filters: filters);
-  Future stockCard({Map<String, dynamic>? filters}) =>
-      index('/inventory/inquiry/stock-card', filters: filters);
-  Future reorderStatus({Map<String, dynamic>? filters}) =>
-      index('/inventory/inquiry/reorder-status', filters: filters);
+  Future<PaginatedResponse<ErpRecordModel>> stockSummary({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/inquiry/stock-summary', filters: filters);
+  Future<PaginatedResponse<ErpRecordModel>> warehouseWiseStock({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/inquiry/warehouse-wise-stock', filters: filters);
+  Future<PaginatedResponse<ErpRecordModel>> batchWiseStock({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/inquiry/batch-wise-stock', filters: filters);
+  Future<PaginatedResponse<ErpRecordModel>> availableSerials({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/inquiry/available-serials', filters: filters);
+  Future<PaginatedResponse<ErpRecordModel>> stockCard({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/inquiry/stock-card', filters: filters);
+  Future<PaginatedResponse<ErpRecordModel>> reorderStatus({
+    Map<String, dynamic>? filters,
+  }) => index('/inventory/inquiry/reorder-status', filters: filters);
 }

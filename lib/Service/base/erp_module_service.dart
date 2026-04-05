@@ -1,6 +1,7 @@
 import '../../core/api/api_client.dart';
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
+import '../../model/common/json_model.dart';
 import '../../model/common/erp_record_model.dart';
 
 class ErpModuleService {
@@ -8,14 +9,105 @@ class ErpModuleService {
 
   final ApiClient client;
 
+  Future<PaginatedResponse<T>> paginated<T>(
+    String endpoint, {
+    Map<String, dynamic>? filters,
+    required T Function(Map<String, dynamic> json) fromJson,
+  }) {
+    return client.getPaginated<T>(
+      endpoint,
+      queryParameters: filters,
+      itemFromJson: fromJson,
+    );
+  }
+
+  Future<ApiResponse<List<T>>> collection<T>(
+    String endpoint, {
+    Map<String, dynamic>? filters,
+    required T Function(Map<String, dynamic> json) fromJson,
+  }) {
+    return client.get<List<T>>(
+      endpoint,
+      queryParameters: filters,
+      fromData: (json) {
+        if (json is! List) {
+          return <T>[];
+        }
+
+        return json
+            .whereType<Map<String, dynamic>>()
+            .map(fromJson)
+            .toList(growable: false);
+      },
+    );
+  }
+
+  Future<ApiResponse<T>> object<T>(
+    String endpoint, {
+    required T Function(Map<String, dynamic> json) fromJson,
+  }) {
+    return client.get<T>(
+      endpoint,
+      fromData: (json) => fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<T>> createModel<T>(
+    String endpoint,
+    JsonModel body, {
+    required T Function(Map<String, dynamic> json) fromJson,
+  }) {
+    return client.post<T>(
+      endpoint,
+      body: body.toJson(),
+      fromData: (json) => fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<T>> updateModel<T>(
+    String endpoint,
+    JsonModel body, {
+    required T Function(Map<String, dynamic> json) fromJson,
+  }) {
+    return client.put<T>(
+      endpoint,
+      body: body.toJson(),
+      fromData: (json) => fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<T>> patchModel<T>(
+    String endpoint,
+    JsonModel body, {
+    required T Function(Map<String, dynamic> json) fromJson,
+  }) {
+    return client.patch<T>(
+      endpoint,
+      body: body.toJson(),
+      fromData: (json) => fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<T>> actionModel<T>(
+    String endpoint, {
+    JsonModel? body,
+    required T Function(Map<String, dynamic> json) fromJson,
+  }) {
+    return client.post<T>(
+      endpoint,
+      body: body?.toJson(),
+      fromData: (json) => fromJson(json as Map<String, dynamic>),
+    );
+  }
+
   Future<PaginatedResponse<ErpRecordModel>> index(
     String endpoint, {
     Map<String, dynamic>? filters,
   }) {
-    return client.getPaginated<ErpRecordModel>(
+    return paginated<ErpRecordModel>(
       endpoint,
-      queryParameters: filters,
-      itemFromJson: ErpRecordModel.fromJson,
+      filters: filters,
+      fromJson: ErpRecordModel.fromJson,
     );
   }
 
@@ -23,58 +115,49 @@ class ErpModuleService {
     String endpoint, {
     Map<String, dynamic>? filters,
   }) {
-    return client.get<List<ErpRecordModel>>(
+    return collection<ErpRecordModel>(
       endpoint,
-      queryParameters: filters,
-      fromData: (json) {
-        if (json is! List) {
-          return <ErpRecordModel>[];
-        }
-
-        return json
-            .whereType<Map<String, dynamic>>()
-            .map(ErpRecordModel.fromJson)
-            .toList(growable: false);
-      },
+      filters: filters,
+      fromJson: ErpRecordModel.fromJson,
     );
   }
 
   Future<ApiResponse<ErpRecordModel>> show(String endpoint) {
-    return client.get<ErpRecordModel>(
-      endpoint,
-      fromData: (json) => ErpRecordModel.fromJson(json as Map<String, dynamic>),
-    );
+    return object<ErpRecordModel>(endpoint, fromJson: ErpRecordModel.fromJson);
   }
 
-  Future<ApiResponse<ErpRecordModel>> store(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) {
+  Map<String, dynamic> _mapBody(dynamic body) {
+    if (body is JsonModel) {
+      return body.toJson();
+    }
+
+    if (body is Map<String, dynamic>) {
+      return body;
+    }
+
+    return <String, dynamic>{};
+  }
+
+  Future<ApiResponse<ErpRecordModel>> store(String endpoint, dynamic body) {
     return client.post<ErpRecordModel>(
       endpoint,
-      body: body,
+      body: _mapBody(body),
       fromData: (json) => ErpRecordModel.fromJson(json as Map<String, dynamic>),
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> update(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) {
+  Future<ApiResponse<ErpRecordModel>> update(String endpoint, dynamic body) {
     return client.put<ErpRecordModel>(
       endpoint,
-      body: body,
+      body: _mapBody(body),
       fromData: (json) => ErpRecordModel.fromJson(json as Map<String, dynamic>),
     );
   }
 
-  Future<ApiResponse<ErpRecordModel>> patch(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) {
+  Future<ApiResponse<ErpRecordModel>> patch(String endpoint, dynamic body) {
     return client.patch<ErpRecordModel>(
       endpoint,
-      body: body,
+      body: _mapBody(body),
       fromData: (json) => ErpRecordModel.fromJson(json as Map<String, dynamic>),
     );
   }
@@ -83,21 +166,18 @@ class ErpModuleService {
     return client.delete<dynamic>(endpoint);
   }
 
-  Future<ApiResponse<ErpRecordModel>> action(
-    String endpoint, {
-    Map<String, dynamic>? body,
-  }) {
+  Future<ApiResponse<ErpRecordModel>> action(String endpoint, {dynamic body}) {
     return client.post<ErpRecordModel>(
       endpoint,
-      body: body,
+      body: body == null ? null : _mapBody(body),
       fromData: (json) => ErpRecordModel.fromJson(json as Map<String, dynamic>),
     );
   }
 
-  Future<ApiResponse<dynamic>> actionDynamic(
-    String endpoint, {
-    Map<String, dynamic>? body,
-  }) {
-    return client.post<dynamic>(endpoint, body: body);
+  Future<ApiResponse<dynamic>> actionDynamic(String endpoint, {dynamic body}) {
+    return client.post<dynamic>(
+      endpoint,
+      body: body == null ? null : _mapBody(body),
+    );
   }
 }

@@ -1,4 +1,6 @@
-class ErpRecordModel {
+import 'json_model.dart';
+
+class ErpRecordModel implements JsonModel {
   const ErpRecordModel(this.data);
 
   final Map<String, dynamic> data;
@@ -33,4 +35,7 @@ class ErpRecordModel {
       data['work_order_status']?.toString();
 
   dynamic operator [](String key) => data[key];
+
+  @override
+  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
 }

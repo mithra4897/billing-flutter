@@ -1,63 +1,205 @@
 import '../../core/api/api_endpoints.dart';
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
+import '../../model/sales/sales_delivery_model.dart';
 import '../../model/sales/sales_invoice_model.dart';
+import '../../model/sales/sales_order_model.dart';
+import '../../model/sales/sales_quotation_model.dart';
+import '../../model/sales/sales_receipt_model.dart';
+import '../../model/sales/sales_return_model.dart';
 import '../base/erp_module_service.dart';
 
 class SalesService extends ErpModuleService {
   SalesService({super.apiClient});
 
-  Future quotations({Map<String, dynamic>? filters}) =>
-      index('/sales/quotations', filters: filters);
-  Future quotationsAll({Map<String, dynamic>? filters}) =>
-      list('/sales/quotations/all', filters: filters);
-  Future quotation(int id) => show('/sales/quotations/$id');
-  Future createQuotation(Map<String, dynamic> body) =>
-      store('/sales/quotations', body);
-  Future updateQuotation(int id, Map<String, dynamic> body) =>
-      update('/sales/quotations/$id', body);
-  Future deleteQuotation(int id) => destroy('/sales/quotations/$id');
-  Future sendQuotation(int id, Map<String, dynamic> body) =>
-      action('/sales/quotations/$id/send', body: body);
-  Future acceptQuotation(int id, Map<String, dynamic> body) =>
-      action('/sales/quotations/$id/accept', body: body);
-  Future rejectQuotation(int id, Map<String, dynamic> body) =>
-      action('/sales/quotations/$id/reject', body: body);
-  Future expireQuotation(int id, Map<String, dynamic> body) =>
-      action('/sales/quotations/$id/expire', body: body);
-  Future cancelQuotation(int id, Map<String, dynamic> body) =>
-      action('/sales/quotations/$id/cancel', body: body);
+  Future<PaginatedResponse<SalesQuotationModel>> quotations({
+    Map<String, dynamic>? filters,
+  }) => paginated<SalesQuotationModel>(
+    '/sales/quotations',
+    filters: filters,
+    fromJson: SalesQuotationModel.fromJson,
+  );
+  Future<ApiResponse<List<SalesQuotationModel>>> quotationsAll({
+    Map<String, dynamic>? filters,
+  }) => collection<SalesQuotationModel>(
+    '/sales/quotations/all',
+    filters: filters,
+    fromJson: SalesQuotationModel.fromJson,
+  );
+  Future<ApiResponse<SalesQuotationModel>> quotation(int id) =>
+      object<SalesQuotationModel>(
+        '/sales/quotations/$id',
+        fromJson: SalesQuotationModel.fromJson,
+      );
+  Future<ApiResponse<SalesQuotationModel>> createQuotation(
+    SalesQuotationModel body,
+  ) => createModel<SalesQuotationModel>(
+    '/sales/quotations',
+    body,
+    fromJson: SalesQuotationModel.fromJson,
+  );
+  Future<ApiResponse<SalesQuotationModel>> updateQuotation(
+    int id,
+    SalesQuotationModel body,
+  ) => updateModel<SalesQuotationModel>(
+    '/sales/quotations/$id',
+    body,
+    fromJson: SalesQuotationModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteQuotation(int id) =>
+      destroy('/sales/quotations/$id');
+  Future<ApiResponse<SalesQuotationModel>> sendQuotation(
+    int id,
+    SalesQuotationModel body,
+  ) => actionModel<SalesQuotationModel>(
+    '/sales/quotations/$id/send',
+    body: body,
+    fromJson: SalesQuotationModel.fromJson,
+  );
+  Future<ApiResponse<SalesQuotationModel>> acceptQuotation(
+    int id,
+    SalesQuotationModel body,
+  ) => actionModel<SalesQuotationModel>(
+    '/sales/quotations/$id/accept',
+    body: body,
+    fromJson: SalesQuotationModel.fromJson,
+  );
+  Future<ApiResponse<SalesQuotationModel>> rejectQuotation(
+    int id,
+    SalesQuotationModel body,
+  ) => actionModel<SalesQuotationModel>(
+    '/sales/quotations/$id/reject',
+    body: body,
+    fromJson: SalesQuotationModel.fromJson,
+  );
+  Future<ApiResponse<SalesQuotationModel>> expireQuotation(
+    int id,
+    SalesQuotationModel body,
+  ) => actionModel<SalesQuotationModel>(
+    '/sales/quotations/$id/expire',
+    body: body,
+    fromJson: SalesQuotationModel.fromJson,
+  );
+  Future<ApiResponse<SalesQuotationModel>> cancelQuotation(
+    int id,
+    SalesQuotationModel body,
+  ) => actionModel<SalesQuotationModel>(
+    '/sales/quotations/$id/cancel',
+    body: body,
+    fromJson: SalesQuotationModel.fromJson,
+  );
 
-  Future orders({Map<String, dynamic>? filters}) =>
-      index('/sales/orders', filters: filters);
-  Future ordersAll({Map<String, dynamic>? filters}) =>
-      list('/sales/orders/all', filters: filters);
-  Future order(int id) => show('/sales/orders/$id');
-  Future createOrder(Map<String, dynamic> body) => store('/sales/orders', body);
-  Future updateOrder(int id, Map<String, dynamic> body) =>
-      update('/sales/orders/$id', body);
-  Future deleteOrder(int id) => destroy('/sales/orders/$id');
-  Future confirmOrder(int id, Map<String, dynamic> body) =>
-      action('/sales/orders/$id/confirm', body: body);
-  Future cancelOrder(int id, Map<String, dynamic> body) =>
-      action('/sales/orders/$id/cancel', body: body);
-  Future closeOrder(int id, Map<String, dynamic> body) =>
-      action('/sales/orders/$id/close', body: body);
+  Future<PaginatedResponse<SalesOrderModel>> orders({
+    Map<String, dynamic>? filters,
+  }) => paginated<SalesOrderModel>(
+    '/sales/orders',
+    filters: filters,
+    fromJson: SalesOrderModel.fromJson,
+  );
+  Future<ApiResponse<List<SalesOrderModel>>> ordersAll({
+    Map<String, dynamic>? filters,
+  }) => collection<SalesOrderModel>(
+    '/sales/orders/all',
+    filters: filters,
+    fromJson: SalesOrderModel.fromJson,
+  );
+  Future<ApiResponse<SalesOrderModel>> order(int id) => object<SalesOrderModel>(
+    '/sales/orders/$id',
+    fromJson: SalesOrderModel.fromJson,
+  );
+  Future<ApiResponse<SalesOrderModel>> createOrder(SalesOrderModel body) =>
+      createModel<SalesOrderModel>(
+        '/sales/orders',
+        body,
+        fromJson: SalesOrderModel.fromJson,
+      );
+  Future<ApiResponse<SalesOrderModel>> updateOrder(
+    int id,
+    SalesOrderModel body,
+  ) => updateModel<SalesOrderModel>(
+    '/sales/orders/$id',
+    body,
+    fromJson: SalesOrderModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteOrder(int id) =>
+      destroy('/sales/orders/$id');
+  Future<ApiResponse<SalesOrderModel>> confirmOrder(
+    int id,
+    SalesOrderModel body,
+  ) => actionModel<SalesOrderModel>(
+    '/sales/orders/$id/confirm',
+    body: body,
+    fromJson: SalesOrderModel.fromJson,
+  );
+  Future<ApiResponse<SalesOrderModel>> cancelOrder(
+    int id,
+    SalesOrderModel body,
+  ) => actionModel<SalesOrderModel>(
+    '/sales/orders/$id/cancel',
+    body: body,
+    fromJson: SalesOrderModel.fromJson,
+  );
+  Future<ApiResponse<SalesOrderModel>> closeOrder(
+    int id,
+    SalesOrderModel body,
+  ) => actionModel<SalesOrderModel>(
+    '/sales/orders/$id/close',
+    body: body,
+    fromJson: SalesOrderModel.fromJson,
+  );
 
-  Future deliveries({Map<String, dynamic>? filters}) =>
-      index('/sales/deliveries', filters: filters);
-  Future deliveriesAll({Map<String, dynamic>? filters}) =>
-      list('/sales/deliveries/all', filters: filters);
-  Future delivery(int id) => show('/sales/deliveries/$id');
-  Future createDelivery(Map<String, dynamic> body) =>
-      store('/sales/deliveries', body);
-  Future updateDelivery(int id, Map<String, dynamic> body) =>
-      update('/sales/deliveries/$id', body);
-  Future deleteDelivery(int id) => destroy('/sales/deliveries/$id');
-  Future postDelivery(int id, Map<String, dynamic> body) =>
-      action('/sales/deliveries/$id/post', body: body);
-  Future cancelDelivery(int id, Map<String, dynamic> body) =>
-      action('/sales/deliveries/$id/cancel', body: body);
+  Future<PaginatedResponse<SalesDeliveryModel>> deliveries({
+    Map<String, dynamic>? filters,
+  }) => paginated<SalesDeliveryModel>(
+    '/sales/deliveries',
+    filters: filters,
+    fromJson: SalesDeliveryModel.fromJson,
+  );
+  Future<ApiResponse<List<SalesDeliveryModel>>> deliveriesAll({
+    Map<String, dynamic>? filters,
+  }) => collection<SalesDeliveryModel>(
+    '/sales/deliveries/all',
+    filters: filters,
+    fromJson: SalesDeliveryModel.fromJson,
+  );
+  Future<ApiResponse<SalesDeliveryModel>> delivery(int id) =>
+      object<SalesDeliveryModel>(
+        '/sales/deliveries/$id',
+        fromJson: SalesDeliveryModel.fromJson,
+      );
+  Future<ApiResponse<SalesDeliveryModel>> createDelivery(
+    SalesDeliveryModel body,
+  ) => createModel<SalesDeliveryModel>(
+    '/sales/deliveries',
+    body,
+    fromJson: SalesDeliveryModel.fromJson,
+  );
+  Future<ApiResponse<SalesDeliveryModel>> updateDelivery(
+    int id,
+    SalesDeliveryModel body,
+  ) => updateModel<SalesDeliveryModel>(
+    '/sales/deliveries/$id',
+    body,
+    fromJson: SalesDeliveryModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteDelivery(int id) =>
+      destroy('/sales/deliveries/$id');
+  Future<ApiResponse<SalesDeliveryModel>> postDelivery(
+    int id,
+    SalesDeliveryModel body,
+  ) => actionModel<SalesDeliveryModel>(
+    '/sales/deliveries/$id/post',
+    body: body,
+    fromJson: SalesDeliveryModel.fromJson,
+  );
+  Future<ApiResponse<SalesDeliveryModel>> cancelDelivery(
+    int id,
+    SalesDeliveryModel body,
+  ) => actionModel<SalesDeliveryModel>(
+    '/sales/deliveries/$id/cancel',
+    body: body,
+    fromJson: SalesDeliveryModel.fromJson,
+  );
 
   Future<PaginatedResponse<SalesInvoiceModel>> invoices({
     Map<String, dynamic>? filters,
@@ -125,33 +267,108 @@ class SalesService extends ErpModuleService {
     );
   }
 
-  Future receipts({Map<String, dynamic>? filters}) =>
-      index('/sales/receipts', filters: filters);
-  Future receiptsAll({Map<String, dynamic>? filters}) =>
-      list('/sales/receipts/all', filters: filters);
-  Future receipt(int id) => show('/sales/receipts/$id');
-  Future createReceipt(Map<String, dynamic> body) =>
-      store('/sales/receipts', body);
-  Future updateReceipt(int id, Map<String, dynamic> body) =>
-      update('/sales/receipts/$id', body);
-  Future deleteReceipt(int id) => destroy('/sales/receipts/$id');
-  Future postReceipt(int id, Map<String, dynamic> body) =>
-      action('/sales/receipts/$id/post', body: body);
-  Future cancelReceipt(int id, Map<String, dynamic> body) =>
-      action('/sales/receipts/$id/cancel', body: body);
+  Future<PaginatedResponse<SalesReceiptModel>> receipts({
+    Map<String, dynamic>? filters,
+  }) => paginated<SalesReceiptModel>(
+    '/sales/receipts',
+    filters: filters,
+    fromJson: SalesReceiptModel.fromJson,
+  );
+  Future<ApiResponse<List<SalesReceiptModel>>> receiptsAll({
+    Map<String, dynamic>? filters,
+  }) => collection<SalesReceiptModel>(
+    '/sales/receipts/all',
+    filters: filters,
+    fromJson: SalesReceiptModel.fromJson,
+  );
+  Future<ApiResponse<SalesReceiptModel>> receipt(int id) =>
+      object<SalesReceiptModel>(
+        '/sales/receipts/$id',
+        fromJson: SalesReceiptModel.fromJson,
+      );
+  Future<ApiResponse<SalesReceiptModel>> createReceipt(
+    SalesReceiptModel body,
+  ) => createModel<SalesReceiptModel>(
+    '/sales/receipts',
+    body,
+    fromJson: SalesReceiptModel.fromJson,
+  );
+  Future<ApiResponse<SalesReceiptModel>> updateReceipt(
+    int id,
+    SalesReceiptModel body,
+  ) => updateModel<SalesReceiptModel>(
+    '/sales/receipts/$id',
+    body,
+    fromJson: SalesReceiptModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteReceipt(int id) =>
+      destroy('/sales/receipts/$id');
+  Future<ApiResponse<SalesReceiptModel>> postReceipt(
+    int id,
+    SalesReceiptModel body,
+  ) => actionModel<SalesReceiptModel>(
+    '/sales/receipts/$id/post',
+    body: body,
+    fromJson: SalesReceiptModel.fromJson,
+  );
+  Future<ApiResponse<SalesReceiptModel>> cancelReceipt(
+    int id,
+    SalesReceiptModel body,
+  ) => actionModel<SalesReceiptModel>(
+    '/sales/receipts/$id/cancel',
+    body: body,
+    fromJson: SalesReceiptModel.fromJson,
+  );
 
-  Future returns({Map<String, dynamic>? filters}) =>
-      index('/sales/returns', filters: filters);
-  Future returnsAll({Map<String, dynamic>? filters}) =>
-      list('/sales/returns/all', filters: filters);
-  Future returnDoc(int id) => show('/sales/returns/$id');
-  Future createReturn(Map<String, dynamic> body) =>
-      store('/sales/returns', body);
-  Future updateReturn(int id, Map<String, dynamic> body) =>
-      update('/sales/returns/$id', body);
-  Future deleteReturn(int id) => destroy('/sales/returns/$id');
-  Future postReturn(int id, Map<String, dynamic> body) =>
-      action('/sales/returns/$id/post', body: body);
-  Future cancelReturn(int id, Map<String, dynamic> body) =>
-      action('/sales/returns/$id/cancel', body: body);
+  Future<PaginatedResponse<SalesReturnModel>> returns({
+    Map<String, dynamic>? filters,
+  }) => paginated<SalesReturnModel>(
+    '/sales/returns',
+    filters: filters,
+    fromJson: SalesReturnModel.fromJson,
+  );
+  Future<ApiResponse<List<SalesReturnModel>>> returnsAll({
+    Map<String, dynamic>? filters,
+  }) => collection<SalesReturnModel>(
+    '/sales/returns/all',
+    filters: filters,
+    fromJson: SalesReturnModel.fromJson,
+  );
+  Future<ApiResponse<SalesReturnModel>> returnDoc(int id) =>
+      object<SalesReturnModel>(
+        '/sales/returns/$id',
+        fromJson: SalesReturnModel.fromJson,
+      );
+  Future<ApiResponse<SalesReturnModel>> createReturn(SalesReturnModel body) =>
+      createModel<SalesReturnModel>(
+        '/sales/returns',
+        body,
+        fromJson: SalesReturnModel.fromJson,
+      );
+  Future<ApiResponse<SalesReturnModel>> updateReturn(
+    int id,
+    SalesReturnModel body,
+  ) => updateModel<SalesReturnModel>(
+    '/sales/returns/$id',
+    body,
+    fromJson: SalesReturnModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteReturn(int id) =>
+      destroy('/sales/returns/$id');
+  Future<ApiResponse<SalesReturnModel>> postReturn(
+    int id,
+    SalesReturnModel body,
+  ) => actionModel<SalesReturnModel>(
+    '/sales/returns/$id/post',
+    body: body,
+    fromJson: SalesReturnModel.fromJson,
+  );
+  Future<ApiResponse<SalesReturnModel>> cancelReturn(
+    int id,
+    SalesReturnModel body,
+  ) => actionModel<SalesReturnModel>(
+    '/sales/returns/$id/cancel',
+    body: body,
+    fromJson: SalesReturnModel.fromJson,
+  );
 }

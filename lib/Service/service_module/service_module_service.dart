@@ -1,63 +1,219 @@
+import '../../core/models/api_response.dart';
+import '../../core/models/paginated_response.dart';
+import '../../model/service/service_contract_model.dart';
+import '../../model/service/service_feedback_model.dart';
+import '../../model/service/service_ticket_model.dart';
+import '../../model/service/service_work_order_model.dart';
 import '../base/erp_module_service.dart';
 
 class ServiceModuleService extends ErpModuleService {
   ServiceModuleService({super.apiClient});
 
-  Future contracts({Map<String, dynamic>? filters}) =>
-      index('/service/contracts', filters: filters);
-  Future contract(int id) => show('/service/contracts/$id');
-  Future createContract(Map<String, dynamic> body) =>
-      store('/service/contracts', body);
-  Future updateContract(int id, Map<String, dynamic> body) =>
-      update('/service/contracts/$id', body);
-  Future approveContract(int id, Map<String, dynamic> body) =>
-      action('/service/contracts/$id/approve', body: body);
-  Future terminateContract(int id, Map<String, dynamic> body) =>
-      action('/service/contracts/$id/terminate', body: body);
-  Future cancelContract(int id, Map<String, dynamic> body) =>
-      action('/service/contracts/$id/cancel', body: body);
-  Future deleteContract(int id) => destroy('/service/contracts/$id');
+  Future<PaginatedResponse<ServiceContractModel>> contracts({
+    Map<String, dynamic>? filters,
+  }) => paginated<ServiceContractModel>(
+    '/service/contracts',
+    filters: filters,
+    fromJson: ServiceContractModel.fromJson,
+  );
+  Future<ApiResponse<ServiceContractModel>> contract(int id) =>
+      object<ServiceContractModel>(
+        '/service/contracts/$id',
+        fromJson: ServiceContractModel.fromJson,
+      );
+  Future<ApiResponse<ServiceContractModel>> createContract(
+    ServiceContractModel body,
+  ) => createModel<ServiceContractModel>(
+    '/service/contracts',
+    body,
+    fromJson: ServiceContractModel.fromJson,
+  );
+  Future<ApiResponse<ServiceContractModel>> updateContract(
+    int id,
+    ServiceContractModel body,
+  ) => updateModel<ServiceContractModel>(
+    '/service/contracts/$id',
+    body,
+    fromJson: ServiceContractModel.fromJson,
+  );
+  Future<ApiResponse<ServiceContractModel>> approveContract(
+    int id,
+    ServiceContractModel body,
+  ) => actionModel<ServiceContractModel>(
+    '/service/contracts/$id/approve',
+    body: body,
+    fromJson: ServiceContractModel.fromJson,
+  );
+  Future<ApiResponse<ServiceContractModel>> terminateContract(
+    int id,
+    ServiceContractModel body,
+  ) => actionModel<ServiceContractModel>(
+    '/service/contracts/$id/terminate',
+    body: body,
+    fromJson: ServiceContractModel.fromJson,
+  );
+  Future<ApiResponse<ServiceContractModel>> cancelContract(
+    int id,
+    ServiceContractModel body,
+  ) => actionModel<ServiceContractModel>(
+    '/service/contracts/$id/cancel',
+    body: body,
+    fromJson: ServiceContractModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteContract(int id) =>
+      destroy('/service/contracts/$id');
 
-  Future tickets({Map<String, dynamic>? filters}) =>
-      index('/service/tickets', filters: filters);
-  Future ticket(int id) => show('/service/tickets/$id');
-  Future createTicket(Map<String, dynamic> body) =>
-      store('/service/tickets', body);
-  Future updateTicket(int id, Map<String, dynamic> body) =>
-      update('/service/tickets/$id', body);
-  Future assignTicket(int id, Map<String, dynamic> body) =>
-      action('/service/tickets/$id/assign', body: body);
-  Future resolveTicket(int id, Map<String, dynamic> body) =>
-      action('/service/tickets/$id/resolve', body: body);
-  Future closeTicket(int id, Map<String, dynamic> body) =>
-      action('/service/tickets/$id/close', body: body);
-  Future cancelTicket(int id, Map<String, dynamic> body) =>
-      action('/service/tickets/$id/cancel', body: body);
-  Future deleteTicket(int id) => destroy('/service/tickets/$id');
+  Future<PaginatedResponse<ServiceTicketModel>> tickets({
+    Map<String, dynamic>? filters,
+  }) => paginated<ServiceTicketModel>(
+    '/service/tickets',
+    filters: filters,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> ticket(int id) =>
+      object<ServiceTicketModel>(
+        '/service/tickets/$id',
+        fromJson: ServiceTicketModel.fromJson,
+      );
+  Future<ApiResponse<ServiceTicketModel>> createTicket(
+    ServiceTicketModel body,
+  ) => createModel<ServiceTicketModel>(
+    '/service/tickets',
+    body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> updateTicket(
+    int id,
+    ServiceTicketModel body,
+  ) => updateModel<ServiceTicketModel>(
+    '/service/tickets/$id',
+    body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> assignTicket(
+    int id,
+    ServiceTicketModel body,
+  ) => actionModel<ServiceTicketModel>(
+    '/service/tickets/$id/assign',
+    body: body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> resolveTicket(
+    int id,
+    ServiceTicketModel body,
+  ) => actionModel<ServiceTicketModel>(
+    '/service/tickets/$id/resolve',
+    body: body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> closeTicket(
+    int id,
+    ServiceTicketModel body,
+  ) => actionModel<ServiceTicketModel>(
+    '/service/tickets/$id/close',
+    body: body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> cancelTicket(
+    int id,
+    ServiceTicketModel body,
+  ) => actionModel<ServiceTicketModel>(
+    '/service/tickets/$id/cancel',
+    body: body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteTicket(int id) =>
+      destroy('/service/tickets/$id');
 
-  Future workOrders({Map<String, dynamic>? filters}) =>
-      index('/service/work-orders', filters: filters);
-  Future workOrder(int id) => show('/service/work-orders/$id');
-  Future createWorkOrder(Map<String, dynamic> body) =>
-      store('/service/work-orders', body);
-  Future updateWorkOrder(int id, Map<String, dynamic> body) =>
-      update('/service/work-orders/$id', body);
-  Future startWorkOrder(int id, Map<String, dynamic> body) =>
-      action('/service/work-orders/$id/start', body: body);
-  Future completeWorkOrder(int id, Map<String, dynamic> body) =>
-      action('/service/work-orders/$id/complete', body: body);
-  Future closeWorkOrder(int id, Map<String, dynamic> body) =>
-      action('/service/work-orders/$id/close', body: body);
-  Future cancelWorkOrder(int id, Map<String, dynamic> body) =>
-      action('/service/work-orders/$id/cancel', body: body);
-  Future deleteWorkOrder(int id) => destroy('/service/work-orders/$id');
+  Future<PaginatedResponse<ServiceWorkOrderModel>> workOrders({
+    Map<String, dynamic>? filters,
+  }) => paginated<ServiceWorkOrderModel>(
+    '/service/work-orders',
+    filters: filters,
+    fromJson: ServiceWorkOrderModel.fromJson,
+  );
+  Future<ApiResponse<ServiceWorkOrderModel>> workOrder(int id) =>
+      object<ServiceWorkOrderModel>(
+        '/service/work-orders/$id',
+        fromJson: ServiceWorkOrderModel.fromJson,
+      );
+  Future<ApiResponse<ServiceWorkOrderModel>> createWorkOrder(
+    ServiceWorkOrderModel body,
+  ) => createModel<ServiceWorkOrderModel>(
+    '/service/work-orders',
+    body,
+    fromJson: ServiceWorkOrderModel.fromJson,
+  );
+  Future<ApiResponse<ServiceWorkOrderModel>> updateWorkOrder(
+    int id,
+    ServiceWorkOrderModel body,
+  ) => updateModel<ServiceWorkOrderModel>(
+    '/service/work-orders/$id',
+    body,
+    fromJson: ServiceWorkOrderModel.fromJson,
+  );
+  Future<ApiResponse<ServiceWorkOrderModel>> startWorkOrder(
+    int id,
+    ServiceWorkOrderModel body,
+  ) => actionModel<ServiceWorkOrderModel>(
+    '/service/work-orders/$id/start',
+    body: body,
+    fromJson: ServiceWorkOrderModel.fromJson,
+  );
+  Future<ApiResponse<ServiceWorkOrderModel>> completeWorkOrder(
+    int id,
+    ServiceWorkOrderModel body,
+  ) => actionModel<ServiceWorkOrderModel>(
+    '/service/work-orders/$id/complete',
+    body: body,
+    fromJson: ServiceWorkOrderModel.fromJson,
+  );
+  Future<ApiResponse<ServiceWorkOrderModel>> closeWorkOrder(
+    int id,
+    ServiceWorkOrderModel body,
+  ) => actionModel<ServiceWorkOrderModel>(
+    '/service/work-orders/$id/close',
+    body: body,
+    fromJson: ServiceWorkOrderModel.fromJson,
+  );
+  Future<ApiResponse<ServiceWorkOrderModel>> cancelWorkOrder(
+    int id,
+    ServiceWorkOrderModel body,
+  ) => actionModel<ServiceWorkOrderModel>(
+    '/service/work-orders/$id/cancel',
+    body: body,
+    fromJson: ServiceWorkOrderModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteWorkOrder(int id) =>
+      destroy('/service/work-orders/$id');
 
-  Future feedbacks({Map<String, dynamic>? filters}) =>
-      index('/service/feedbacks', filters: filters);
-  Future feedback(int id) => show('/service/feedbacks/$id');
-  Future createFeedback(Map<String, dynamic> body) =>
-      store('/service/feedbacks', body);
-  Future updateFeedback(int id, Map<String, dynamic> body) =>
-      update('/service/feedbacks/$id', body);
-  Future deleteFeedback(int id) => destroy('/service/feedbacks/$id');
+  Future<PaginatedResponse<ServiceFeedbackModel>> feedbacks({
+    Map<String, dynamic>? filters,
+  }) => paginated<ServiceFeedbackModel>(
+    '/service/feedbacks',
+    filters: filters,
+    fromJson: ServiceFeedbackModel.fromJson,
+  );
+  Future<ApiResponse<ServiceFeedbackModel>> feedback(int id) =>
+      object<ServiceFeedbackModel>(
+        '/service/feedbacks/$id',
+        fromJson: ServiceFeedbackModel.fromJson,
+      );
+  Future<ApiResponse<ServiceFeedbackModel>> createFeedback(
+    ServiceFeedbackModel body,
+  ) => createModel<ServiceFeedbackModel>(
+    '/service/feedbacks',
+    body,
+    fromJson: ServiceFeedbackModel.fromJson,
+  );
+  Future<ApiResponse<ServiceFeedbackModel>> updateFeedback(
+    int id,
+    ServiceFeedbackModel body,
+  ) => updateModel<ServiceFeedbackModel>(
+    '/service/feedbacks/$id',
+    body,
+    fromJson: ServiceFeedbackModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteFeedback(int id) =>
+      destroy('/service/feedbacks/$id');
 }

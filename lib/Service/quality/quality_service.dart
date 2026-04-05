@@ -1,68 +1,217 @@
+import '../../core/models/api_response.dart';
+import '../../core/models/paginated_response.dart';
+import '../../model/quality/qc_inspection_model.dart';
+import '../../model/quality/qc_non_conformance_log_model.dart';
+import '../../model/quality/qc_plan_model.dart';
+import '../../model/quality/qc_result_action_model.dart';
 import '../base/erp_module_service.dart';
 
 class QualityService extends ErpModuleService {
   QualityService({super.apiClient});
 
-  Future qcPlans({Map<String, dynamic>? filters}) =>
-      index('/quality/qc-plans', filters: filters);
-  Future qcPlan(int id) => show('/quality/qc-plans/$id');
-  Future createQcPlan(Map<String, dynamic> body) =>
-      store('/quality/qc-plans', body);
-  Future updateQcPlan(int id, Map<String, dynamic> body) =>
-      update('/quality/qc-plans/$id', body);
-  Future approveQcPlan(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-plans/$id/approve', body: body);
-  Future deactivateQcPlan(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-plans/$id/deactivate', body: body);
-  Future obsoleteQcPlan(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-plans/$id/obsolete', body: body);
-  Future deleteQcPlan(int id) => destroy('/quality/qc-plans/$id');
+  Future<PaginatedResponse<QcPlanModel>> qcPlans({
+    Map<String, dynamic>? filters,
+  }) => paginated<QcPlanModel>(
+    '/quality/qc-plans',
+    filters: filters,
+    fromJson: QcPlanModel.fromJson,
+  );
+  Future<ApiResponse<QcPlanModel>> qcPlan(int id) => object<QcPlanModel>(
+    '/quality/qc-plans/$id',
+    fromJson: QcPlanModel.fromJson,
+  );
+  Future<ApiResponse<QcPlanModel>> createQcPlan(QcPlanModel body) =>
+      createModel<QcPlanModel>(
+        '/quality/qc-plans',
+        body,
+        fromJson: QcPlanModel.fromJson,
+      );
+  Future<ApiResponse<QcPlanModel>> updateQcPlan(int id, QcPlanModel body) =>
+      updateModel<QcPlanModel>(
+        '/quality/qc-plans/$id',
+        body,
+        fromJson: QcPlanModel.fromJson,
+      );
+  Future<ApiResponse<QcPlanModel>> approveQcPlan(int id, QcPlanModel body) =>
+      actionModel<QcPlanModel>(
+        '/quality/qc-plans/$id/approve',
+        body: body,
+        fromJson: QcPlanModel.fromJson,
+      );
+  Future<ApiResponse<QcPlanModel>> deactivateQcPlan(int id, QcPlanModel body) =>
+      actionModel<QcPlanModel>(
+        '/quality/qc-plans/$id/deactivate',
+        body: body,
+        fromJson: QcPlanModel.fromJson,
+      );
+  Future<ApiResponse<QcPlanModel>> obsoleteQcPlan(int id, QcPlanModel body) =>
+      actionModel<QcPlanModel>(
+        '/quality/qc-plans/$id/obsolete',
+        body: body,
+        fromJson: QcPlanModel.fromJson,
+      );
+  Future<ApiResponse<dynamic>> deleteQcPlan(int id) =>
+      destroy('/quality/qc-plans/$id');
 
-  Future qcInspections({Map<String, dynamic>? filters}) =>
-      index('/quality/qc-inspections', filters: filters);
-  Future qcInspection(int id) => show('/quality/qc-inspections/$id');
-  Future createQcInspection(Map<String, dynamic> body) =>
-      store('/quality/qc-inspections', body);
-  Future updateQcInspection(int id, Map<String, dynamic> body) =>
-      update('/quality/qc-inspections/$id', body);
-  Future startQcInspection(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-inspections/$id/start', body: body);
-  Future completeQcInspection(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-inspections/$id/complete', body: body);
-  Future approveQcInspection(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-inspections/$id/approve', body: body);
-  Future rejectQcInspection(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-inspections/$id/reject', body: body);
-  Future cancelQcInspection(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-inspections/$id/cancel', body: body);
-  Future deleteQcInspection(int id) => destroy('/quality/qc-inspections/$id');
+  Future<PaginatedResponse<QcInspectionModel>> qcInspections({
+    Map<String, dynamic>? filters,
+  }) => paginated<QcInspectionModel>(
+    '/quality/qc-inspections',
+    filters: filters,
+    fromJson: QcInspectionModel.fromJson,
+  );
+  Future<ApiResponse<QcInspectionModel>> qcInspection(int id) =>
+      object<QcInspectionModel>(
+        '/quality/qc-inspections/$id',
+        fromJson: QcInspectionModel.fromJson,
+      );
+  Future<ApiResponse<QcInspectionModel>> createQcInspection(
+    QcInspectionModel body,
+  ) => createModel<QcInspectionModel>(
+    '/quality/qc-inspections',
+    body,
+    fromJson: QcInspectionModel.fromJson,
+  );
+  Future<ApiResponse<QcInspectionModel>> updateQcInspection(
+    int id,
+    QcInspectionModel body,
+  ) => updateModel<QcInspectionModel>(
+    '/quality/qc-inspections/$id',
+    body,
+    fromJson: QcInspectionModel.fromJson,
+  );
+  Future<ApiResponse<QcInspectionModel>> startQcInspection(
+    int id,
+    QcInspectionModel body,
+  ) => actionModel<QcInspectionModel>(
+    '/quality/qc-inspections/$id/start',
+    body: body,
+    fromJson: QcInspectionModel.fromJson,
+  );
+  Future<ApiResponse<QcInspectionModel>> completeQcInspection(
+    int id,
+    QcInspectionModel body,
+  ) => actionModel<QcInspectionModel>(
+    '/quality/qc-inspections/$id/complete',
+    body: body,
+    fromJson: QcInspectionModel.fromJson,
+  );
+  Future<ApiResponse<QcInspectionModel>> approveQcInspection(
+    int id,
+    QcInspectionModel body,
+  ) => actionModel<QcInspectionModel>(
+    '/quality/qc-inspections/$id/approve',
+    body: body,
+    fromJson: QcInspectionModel.fromJson,
+  );
+  Future<ApiResponse<QcInspectionModel>> rejectQcInspection(
+    int id,
+    QcInspectionModel body,
+  ) => actionModel<QcInspectionModel>(
+    '/quality/qc-inspections/$id/reject',
+    body: body,
+    fromJson: QcInspectionModel.fromJson,
+  );
+  Future<ApiResponse<QcInspectionModel>> cancelQcInspection(
+    int id,
+    QcInspectionModel body,
+  ) => actionModel<QcInspectionModel>(
+    '/quality/qc-inspections/$id/cancel',
+    body: body,
+    fromJson: QcInspectionModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteQcInspection(int id) =>
+      destroy('/quality/qc-inspections/$id');
 
-  Future qcResultActions({Map<String, dynamic>? filters}) =>
-      index('/quality/qc-result-actions', filters: filters);
-  Future qcResultAction(int id) => show('/quality/qc-result-actions/$id');
-  Future createQcResultAction(Map<String, dynamic> body) =>
-      store('/quality/qc-result-actions', body);
-  Future updateQcResultAction(int id, Map<String, dynamic> body) =>
-      update('/quality/qc-result-actions/$id', body);
-  Future completeQcResultAction(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-result-actions/$id/complete', body: body);
-  Future cancelQcResultAction(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-result-actions/$id/cancel', body: body);
-  Future deleteQcResultAction(int id) =>
+  Future<PaginatedResponse<QcResultActionModel>> qcResultActions({
+    Map<String, dynamic>? filters,
+  }) => paginated<QcResultActionModel>(
+    '/quality/qc-result-actions',
+    filters: filters,
+    fromJson: QcResultActionModel.fromJson,
+  );
+  Future<ApiResponse<QcResultActionModel>> qcResultAction(int id) =>
+      object<QcResultActionModel>(
+        '/quality/qc-result-actions/$id',
+        fromJson: QcResultActionModel.fromJson,
+      );
+  Future<ApiResponse<QcResultActionModel>> createQcResultAction(
+    QcResultActionModel body,
+  ) => createModel<QcResultActionModel>(
+    '/quality/qc-result-actions',
+    body,
+    fromJson: QcResultActionModel.fromJson,
+  );
+  Future<ApiResponse<QcResultActionModel>> updateQcResultAction(
+    int id,
+    QcResultActionModel body,
+  ) => updateModel<QcResultActionModel>(
+    '/quality/qc-result-actions/$id',
+    body,
+    fromJson: QcResultActionModel.fromJson,
+  );
+  Future<ApiResponse<QcResultActionModel>> completeQcResultAction(
+    int id,
+    QcResultActionModel body,
+  ) => actionModel<QcResultActionModel>(
+    '/quality/qc-result-actions/$id/complete',
+    body: body,
+    fromJson: QcResultActionModel.fromJson,
+  );
+  Future<ApiResponse<QcResultActionModel>> cancelQcResultAction(
+    int id,
+    QcResultActionModel body,
+  ) => actionModel<QcResultActionModel>(
+    '/quality/qc-result-actions/$id/cancel',
+    body: body,
+    fromJson: QcResultActionModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteQcResultAction(int id) =>
       destroy('/quality/qc-result-actions/$id');
 
-  Future qcNonConformanceLogs({Map<String, dynamic>? filters}) =>
-      index('/quality/qc-non-conformance-logs', filters: filters);
-  Future qcNonConformanceLog(int id) =>
-      show('/quality/qc-non-conformance-logs/$id');
-  Future createQcNonConformanceLog(Map<String, dynamic> body) =>
-      store('/quality/qc-non-conformance-logs', body);
-  Future updateQcNonConformanceLog(int id, Map<String, dynamic> body) =>
-      update('/quality/qc-non-conformance-logs/$id', body);
-  Future closeQcNonConformanceLog(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-non-conformance-logs/$id/close', body: body);
-  Future waiveQcNonConformanceLog(int id, Map<String, dynamic> body) =>
-      action('/quality/qc-non-conformance-logs/$id/waive', body: body);
-  Future deleteQcNonConformanceLog(int id) =>
+  Future<PaginatedResponse<QcNonConformanceLogModel>> qcNonConformanceLogs({
+    Map<String, dynamic>? filters,
+  }) => paginated<QcNonConformanceLogModel>(
+    '/quality/qc-non-conformance-logs',
+    filters: filters,
+    fromJson: QcNonConformanceLogModel.fromJson,
+  );
+  Future<ApiResponse<QcNonConformanceLogModel>> qcNonConformanceLog(int id) =>
+      object<QcNonConformanceLogModel>(
+        '/quality/qc-non-conformance-logs/$id',
+        fromJson: QcNonConformanceLogModel.fromJson,
+      );
+  Future<ApiResponse<QcNonConformanceLogModel>> createQcNonConformanceLog(
+    QcNonConformanceLogModel body,
+  ) => createModel<QcNonConformanceLogModel>(
+    '/quality/qc-non-conformance-logs',
+    body,
+    fromJson: QcNonConformanceLogModel.fromJson,
+  );
+  Future<ApiResponse<QcNonConformanceLogModel>> updateQcNonConformanceLog(
+    int id,
+    QcNonConformanceLogModel body,
+  ) => updateModel<QcNonConformanceLogModel>(
+    '/quality/qc-non-conformance-logs/$id',
+    body,
+    fromJson: QcNonConformanceLogModel.fromJson,
+  );
+  Future<ApiResponse<QcNonConformanceLogModel>> closeQcNonConformanceLog(
+    int id,
+    QcNonConformanceLogModel body,
+  ) => actionModel<QcNonConformanceLogModel>(
+    '/quality/qc-non-conformance-logs/$id/close',
+    body: body,
+    fromJson: QcNonConformanceLogModel.fromJson,
+  );
+  Future<ApiResponse<QcNonConformanceLogModel>> waiveQcNonConformanceLog(
+    int id,
+    QcNonConformanceLogModel body,
+  ) => actionModel<QcNonConformanceLogModel>(
+    '/quality/qc-non-conformance-logs/$id/waive',
+    body: body,
+    fromJson: QcNonConformanceLogModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteQcNonConformanceLog(int id) =>
       destroy('/quality/qc-non-conformance-logs/$id');
 }

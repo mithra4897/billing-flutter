@@ -1,26 +1,77 @@
+import '../../core/models/api_response.dart';
+import '../../core/models/paginated_response.dart';
+import '../../model/admin/permission_model.dart';
+import '../../model/admin/role_model.dart';
+import '../../model/admin/user_model.dart';
+import '../../model/common/erp_record_model.dart';
 import '../base/erp_module_service.dart';
 
 class AdminService extends ErpModuleService {
   AdminService({super.apiClient});
 
-  Future users({Map<String, dynamic>? filters}) =>
-      index('/admin/users', filters: filters);
-  Future user(int id) => show('/admin/users/$id');
-  Future createUser(Map<String, dynamic> body) => store('/admin/users', body);
-  Future updateUser(int id, Map<String, dynamic> body) =>
-      update('/admin/users/$id', body);
-  Future toggleUserStatus(int id, Map<String, dynamic> body) =>
-      patch('/admin/users/$id/toggle-status', body);
+  Future<PaginatedResponse<UserModel>> users({Map<String, dynamic>? filters}) {
+    return paginated(
+      '/admin/users',
+      filters: filters,
+      fromJson: UserModel.fromJson,
+    );
+  }
 
-  Future roles({Map<String, dynamic>? filters}) =>
-      index('/admin/roles', filters: filters);
-  Future role(int id) => show('/admin/roles/$id');
-  Future createRole(Map<String, dynamic> body) => store('/admin/roles', body);
-  Future updateRole(int id, Map<String, dynamic> body) =>
-      update('/admin/roles/$id', body);
-  Future assignRolePermissions(int id, Map<String, dynamic> body) =>
-      action('/admin/roles/$id/permissions', body: body);
+  Future<ApiResponse<UserModel>> user(int id) {
+    return object('/admin/users/$id', fromJson: UserModel.fromJson);
+  }
 
-  Future permissions({Map<String, dynamic>? filters}) =>
-      index('/admin/permissions', filters: filters);
+  Future<ApiResponse<UserModel>> createUser(UserModel user) {
+    return createModel('/admin/users', user, fromJson: UserModel.fromJson);
+  }
+
+  Future<ApiResponse<UserModel>> updateUser(int id, UserModel user) {
+    return updateModel('/admin/users/$id', user, fromJson: UserModel.fromJson);
+  }
+
+  Future<ApiResponse<UserModel>> toggleUserStatus(int id, ErpRecordModel body) {
+    return patchModel(
+      '/admin/users/$id/toggle-status',
+      body,
+      fromJson: UserModel.fromJson,
+    );
+  }
+
+  Future<PaginatedResponse<RoleModel>> roles({Map<String, dynamic>? filters}) {
+    return paginated(
+      '/admin/roles',
+      filters: filters,
+      fromJson: RoleModel.fromJson,
+    );
+  }
+
+  Future<ApiResponse<RoleModel>> role(int id) {
+    return object('/admin/roles/$id', fromJson: RoleModel.fromJson);
+  }
+
+  Future<ApiResponse<RoleModel>> createRole(RoleModel role) {
+    return createModel('/admin/roles', role, fromJson: RoleModel.fromJson);
+  }
+
+  Future<ApiResponse<RoleModel>> updateRole(int id, RoleModel role) {
+    return updateModel('/admin/roles/$id', role, fromJson: RoleModel.fromJson);
+  }
+
+  Future<ApiResponse<RoleModel>> assignRolePermissions(int id, RoleModel role) {
+    return actionModel(
+      '/admin/roles/$id/permissions',
+      body: role,
+      fromJson: RoleModel.fromJson,
+    );
+  }
+
+  Future<PaginatedResponse<PermissionModel>> permissions({
+    Map<String, dynamic>? filters,
+  }) {
+    return paginated(
+      '/admin/permissions',
+      filters: filters,
+      fromJson: PermissionModel.fromJson,
+    );
+  }
 }
