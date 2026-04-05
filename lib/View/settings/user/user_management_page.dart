@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/constants/app_config.dart';
 import '../../../app/constants/app_ui_constants.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../components/adaptive_shell.dart';
@@ -15,6 +16,7 @@ import '../../../model/auth/user_permission_model.dart';
 import '../../../model/auth/user_permission_summary_model.dart';
 import '../../../service/app/app_session_service.dart';
 import '../../../service/auth/auth_service.dart';
+import '../../../service/media/media_service.dart';
 
 class UserManagementPage extends StatefulWidget {
   const UserManagementPage({super.key, this.initialUserId});
@@ -28,6 +30,7 @@ class UserManagementPage extends StatefulWidget {
 class _UserManagementPageState extends State<UserManagementPage>
     with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
+  final MediaService _mediaService = MediaService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   late final TabController _tabController;
@@ -48,6 +51,7 @@ class _UserManagementPageState extends State<UserManagementPage>
   bool _initialLoading = true;
   bool _savingProfile = false;
   bool _savingPermissions = false;
+  bool _uploadingPhoto = false;
   String? _pageError;
   String? _formError;
   String? _gender;
@@ -438,6 +442,80 @@ class _UserManagementPageState extends State<UserManagementPage>
       if (mounted) {
         setState(() {
           _savingPermissions = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _uploadUserImage() async {
+    final pathController = TextEditingController();
+
+    final selectedPath = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Upload User Image'),
+          content: TextField(
+            controller: pathController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Local File Path',
+              hintText: '/Users/name/Pictures/user.png',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(pathController.text.trim()),
+              child: const Text('Upload'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || selectedPath == null || selectedPath.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _uploadingPhoto = true;
+      _formError = null;
+    });
+
+    try {
+      final response = await _mediaService.uploadFile(
+        filePath: selectedPath,
+        module: 'auth',
+        documentType: 'users',
+        documentId: _selectedUserId,
+        purpose: 'profile_photo',
+        folder: 'users/profile',
+        isPublic: true,
+      );
+
+      final uploaded = response.data;
+      if (uploaded == null) {
+        setState(() {
+          _formError = response.message;
+        });
+        return;
+      }
+
+      _profilePhotoController.text = uploaded.filePath;
+      setState(() {});
+    } catch (error) {
+      setState(() {
+        _formError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingPhoto = false;
         });
       }
     }
@@ -840,11 +918,75 @@ class _UserManagementPageState extends State<UserManagementPage>
                 ),
                 _inputBox(
                   width: 560,
-                  child: TextFormField(
-                    controller: _profilePhotoController,
-                    decoration: const InputDecoration(
-                      labelText: 'Profile Photo Path',
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_profilePhotoController.text.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                              AppUiConstants.fieldRadius,
+                            ),
+                            child: Image.network(
+                              AppConfig.resolvePublicFileUrl(
+                                    _profilePhotoController.text,
+                                  ) ??
+                                  '',
+                              width: 96,
+                              height: 96,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 96,
+                                  height: 96,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .extension<AppThemeExtension>()!
+                                        .subtleFill,
+                                    borderRadius: BorderRadius.circular(
+                                      AppUiConstants.fieldRadius,
+                                    ),
+                                  ),
+                                  child: const Icon(Icons.person_outline),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _profilePhotoController,
+                              decoration: const InputDecoration(
+                                labelText: 'Profile Photo Path',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton.icon(
+                            onPressed: _uploadingPhoto
+                                ? null
+                                : _uploadUserImage,
+                            icon: _uploadingPhoto
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.upload_outlined),
+                            label: Text(
+                              _uploadingPhoto ? 'Uploading...' : 'Upload',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],

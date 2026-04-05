@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/constants/app_config.dart';
 import '../../../app/constants/app_ui_constants.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../components/adaptive_shell.dart';
@@ -9,6 +10,7 @@ import '../../../model/admin/user_model.dart';
 import '../../../model/app/public_branding_model.dart';
 import '../../../service/app/app_session_service.dart';
 import '../../../service/auth/auth_service.dart';
+import '../../../service/media/media_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -19,6 +21,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final AuthService _authService = AuthService();
+  final MediaService _mediaService = MediaService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   final TextEditingController _firstNameController = TextEditingController();
@@ -32,6 +35,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool _loading = true;
   bool _saving = false;
+  bool _uploadingPhoto = false;
   String? _error;
   UserModel? _profile;
   String? _gender;
@@ -166,6 +170,80 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _uploadProfileImage() async {
+    final pathController = TextEditingController();
+
+    final selectedPath = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Upload Profile Image'),
+          content: TextField(
+            controller: pathController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Local File Path',
+              hintText: '/Users/name/Pictures/profile.png',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(pathController.text.trim()),
+              child: const Text('Upload'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || selectedPath == null || selectedPath.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _uploadingPhoto = true;
+      _error = null;
+    });
+
+    try {
+      final response = await _mediaService.uploadFile(
+        filePath: selectedPath,
+        module: 'auth',
+        documentType: 'users',
+        documentId: _profile?.id,
+        purpose: 'profile_photo',
+        folder: 'users/profile',
+        isPublic: true,
+      );
+
+      final uploaded = response.data;
+      if (uploaded == null) {
+        setState(() {
+          _error = response.message;
+        });
+        return;
+      }
+
+      _profilePhotoController.text = uploaded.filePath;
+      setState(() {});
+    } catch (error) {
+      setState(() {
+        _error = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingPhoto = false;
+        });
+      }
+    }
+  }
+
   Future<void> _logout(BuildContext context) async {
     await AppSessionService.instance.clearSession();
     if (context.mounted) {
@@ -202,8 +280,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   profile: _profile,
                   error: _error,
                   saving: _saving,
+                  uploadingPhoto: _uploadingPhoto,
                   onGenderChanged: (value) => setState(() => _gender = value),
                   onSave: _save,
+                  onUploadPhoto: _uploadProfileImage,
                 ),
         );
       },
@@ -226,8 +306,10 @@ class _ProfileContent extends StatelessWidget {
     required this.profile,
     required this.error,
     required this.saving,
+    required this.uploadingPhoto,
     required this.onGenderChanged,
     required this.onSave,
+    required this.onUploadPhoto,
   });
 
   final GlobalKey<FormState> formKey;
@@ -243,8 +325,10 @@ class _ProfileContent extends StatelessWidget {
   final UserModel? profile;
   final String? error;
   final bool saving;
+  final bool uploadingPhoto;
   final ValueChanged<String?> onGenderChanged;
   final Future<void> Function() onSave;
+  final Future<void> Function() onUploadPhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -401,11 +485,81 @@ class _ProfileContent extends StatelessWidget {
                         ),
                         _FormFieldBox(
                           width: 536,
-                          child: TextFormField(
-                            controller: profilePhotoController,
-                            decoration: const InputDecoration(
-                              labelText: 'Profile Photo Path',
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (profilePhotoController.text.trim().isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(
+                                      AppUiConstants.fieldRadius,
+                                    ),
+                                    child: Image.network(
+                                      AppConfig.resolvePublicFileUrl(
+                                            profilePhotoController.text,
+                                          ) ??
+                                          '',
+                                      width: 96,
+                                      height: 96,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) => Container(
+                                            width: 96,
+                                            height: 96,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: appTheme.subtleFill,
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    AppUiConstants.fieldRadius,
+                                                  ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.person_outline,
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: profilePhotoController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Profile Photo Path',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  OutlinedButton.icon(
+                                    onPressed: uploadingPhoto
+                                        ? null
+                                        : onUploadPhoto,
+                                    icon: uploadingPhoto
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.upload_outlined),
+                                    label: Text(
+                                      uploadingPhoto
+                                          ? 'Uploading...'
+                                          : 'Upload',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
