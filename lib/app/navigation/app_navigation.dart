@@ -26,6 +26,30 @@ class AppNavigation {
   const AppNavigation._();
 
   static const String dashboardPath = '/dashboard';
+  static const Map<String, int> _defaultTopLevelOrder = <String, int>{
+    'dashboard': 0,
+    'crm': 10,
+    'sales': 20,
+    'purchase': 30,
+    'inventory': 40,
+    'planning': 50,
+    'manufacturing': 60,
+    'quality': 70,
+    'jobwork': 80,
+    'service': 90,
+    'projects': 100,
+    'maintenance': 110,
+    'assets': 120,
+    'accounting': 130,
+    'hr': 140,
+    'parties': 150,
+    'masters': 160,
+    'tax': 170,
+    'communication': 180,
+    'media': 190,
+    'administration': 900,
+    'settings': 910,
+  };
 
   static final List<AppNavigationItem> menu = <AppNavigationItem>[
     const AppNavigationItem(
@@ -40,46 +64,101 @@ class AppNavigation {
       icon: Icons.settings_outlined,
       children: [
         AppNavigationItem(
-          key: 'company',
-          title: 'Companies',
-          icon: Icons.apartment_outlined,
-          path: '/settings/companies',
-          requiredPermissions: ['company.view'],
+          key: 'settings-tax-categories',
+          title: 'Tax Categories',
+          icon: Icons.percent_outlined,
+          path: '/settings/tax-categories',
+          requiredPermissions: ['tax_code.view'],
         ),
         AppNavigationItem(
-          key: 'branch',
-          title: 'Branches',
-          icon: Icons.account_tree_outlined,
-          path: '/settings/branches',
-          requiredPermissions: ['branch.view'],
+          key: 'settings-uom',
+          title: 'UOM',
+          icon: Icons.straighten_outlined,
+          path: '/settings/uom',
+          requiredPermissions: ['uom.view'],
         ),
         AppNavigationItem(
-          key: 'business-location',
-          title: 'Business Locations',
-          icon: Icons.place_outlined,
-          path: '/settings/business-locations',
-          requiredPermissions: ['business_location.view'],
+          key: 'settings-company-setup',
+          title: 'Company Setup',
+          icon: Icons.corporate_fare_outlined,
+          children: [
+            AppNavigationItem(
+              key: 'settings-companies',
+              title: 'Companies',
+              icon: Icons.apartment_outlined,
+              path: '/settings/companies',
+              requiredPermissions: ['company.view'],
+            ),
+            AppNavigationItem(
+              key: 'settings-branches',
+              title: 'Branches',
+              icon: Icons.account_tree_outlined,
+              path: '/settings/branches',
+              requiredPermissions: ['branch.view'],
+            ),
+            AppNavigationItem(
+              key: 'settings-business-locations',
+              title: 'Business Locations',
+              icon: Icons.place_outlined,
+              path: '/settings/business-locations',
+              requiredPermissions: ['business_location.view'],
+            ),
+            AppNavigationItem(
+              key: 'settings-warehouses',
+              title: 'Warehouses',
+              icon: Icons.warehouse_outlined,
+              path: '/settings/warehouses',
+              requiredPermissions: ['warehouse.view'],
+            ),
+            AppNavigationItem(
+              key: 'settings-financial-years',
+              title: 'Financial Years',
+              icon: Icons.calendar_month_outlined,
+              path: '/settings/financial-years',
+              requiredPermissions: ['financial_year.view'],
+            ),
+            AppNavigationItem(
+              key: 'settings-document-series',
+              title: 'Document Series',
+              icon: Icons.confirmation_number_outlined,
+              path: '/settings/document-series',
+              requiredPermissions: ['document_series.view'],
+            ),
+            AppNavigationItem(
+              key: 'settings-module-preferences',
+              title: 'Module Preferences',
+              icon: Icons.view_sidebar_outlined,
+              path: '/settings/module-preferences',
+              requiredPermissions: ['permission.view'],
+            ),
+          ],
         ),
         AppNavigationItem(
-          key: 'warehouse',
-          title: 'Warehouses',
-          icon: Icons.warehouse_outlined,
-          path: '/settings/warehouses',
-          requiredPermissions: ['warehouse.view'],
-        ),
-        AppNavigationItem(
-          key: 'financial-year',
-          title: 'Financial Years',
-          icon: Icons.calendar_month_outlined,
-          path: '/settings/financial-years',
-          requiredPermissions: ['financial_year.view'],
-        ),
-        AppNavigationItem(
-          key: 'document-series',
-          title: 'Document Series',
-          icon: Icons.confirmation_number_outlined,
-          path: '/settings/document-series',
-          requiredPermissions: ['document_series.view'],
+          key: 'settings-user',
+          title: 'User',
+          icon: Icons.manage_accounts_outlined,
+          children: [
+            AppNavigationItem(
+              key: 'settings-profile',
+              title: 'Profile',
+              icon: Icons.person_outline,
+              path: '/settings/profile',
+            ),
+            AppNavigationItem(
+              key: 'settings-users',
+              title: 'Users',
+              icon: Icons.people_outline,
+              path: '/settings/users',
+              requiredPermissions: ['user.view'],
+            ),
+            AppNavigationItem(
+              key: 'settings-roles',
+              title: 'Roles',
+              icon: Icons.badge_outlined,
+              path: '/settings/roles',
+              requiredPermissions: ['role.view'],
+            ),
+          ],
         ),
       ],
     ),
@@ -89,20 +168,6 @@ class AppNavigation {
       icon: Icons.admin_panel_settings_outlined,
       children: [
         AppNavigationItem(
-          key: 'admin-users',
-          title: 'Users',
-          icon: Icons.people_outline,
-          path: '/admin/users',
-          requiredPermissions: ['user.view'],
-        ),
-        AppNavigationItem(
-          key: 'admin-roles',
-          title: 'Roles',
-          icon: Icons.badge_outlined,
-          path: '/admin/roles',
-          requiredPermissions: ['role.view'],
-        ),
-        AppNavigationItem(
           key: 'admin-permissions',
           title: 'Permissions',
           icon: Icons.lock_open_outlined,
@@ -110,11 +175,11 @@ class AppNavigation {
           requiredPermissions: ['permission.view'],
         ),
         AppNavigationItem(
-          key: 'admin-access',
-          title: 'User Access',
-          icon: Icons.security_outlined,
-          path: '/admin/user-access',
-          requiredPermissions: ['user.view'],
+          key: 'admin-modules',
+          title: 'Modules',
+          icon: Icons.apps_outlined,
+          path: '/admin/modules',
+          requiredPermissions: ['permission.view'],
         ),
       ],
     ),
@@ -1266,26 +1331,26 @@ class AppNavigation {
     List<AppNavigationItem> items,
     List<ModuleModel> orderedModules,
   ) {
-    if (orderedModules.isEmpty) {
-      return items;
-    }
-
     final orderMap = <String, int>{};
     final hiddenModules = <String>{};
 
-    for (final module in orderedModules) {
-      final code = module.moduleCode?.toLowerCase();
-      if (code == null || code.isEmpty) {
-        continue;
-      }
+    if (orderedModules.isEmpty) {
+      orderMap.addAll(_defaultTopLevelOrder);
+    } else {
+      for (final module in orderedModules) {
+        final code = module.moduleCode?.toLowerCase();
+        if (code == null || code.isEmpty) {
+          continue;
+        }
 
-      final sortOrder = module.effectiveSortOrder ?? module.sortOrder;
-      if (sortOrder != null) {
-        orderMap[code] = sortOrder;
-      }
+        final sortOrder = module.effectiveSortOrder ?? module.sortOrder;
+        if (sortOrder != null) {
+          orderMap[code] = sortOrder;
+        }
 
-      if (module.isHidden == true) {
-        hiddenModules.add(code);
+        if (module.isHidden == true) {
+          hiddenModules.add(code);
+        }
       }
     }
 

@@ -150,15 +150,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                               ),
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: Text(
-                              '${widget.branding.currentYear ?? DateTime.now().year} ${widget.branding.companyName}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: appTheme.mutedText,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -223,6 +214,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                   _buildNavigationItem(
                     item: item,
                     currentPath: currentPath,
+                    depth: 0,
                     collapsed: collapsed,
                     showPermanentDrawer: showPermanentDrawer,
                     foregroundColor: foregroundColor,
@@ -239,6 +231,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             child: _buildLeafTile(
               icon: Icons.logout,
               label: 'Logout',
+              depth: 0,
               collapsed: collapsed,
               foregroundColor: foregroundColor,
               mutedColor: mutedColor,
@@ -256,6 +249,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   Widget _buildNavigationItem({
     required AppNavigationItem item,
     required String currentPath,
+    required int depth,
     required bool collapsed,
     required bool showPermanentDrawer,
     required Color foregroundColor,
@@ -269,6 +263,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       return _buildLeafTile(
         icon: item.icon,
         label: item.title,
+        depth: depth,
         collapsed: collapsed,
         foregroundColor: foregroundColor,
         mutedColor: mutedColor,
@@ -291,6 +286,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       return _buildLeafTile(
         icon: item.icon,
         label: item.title,
+        depth: depth,
         collapsed: true,
         foregroundColor: foregroundColor,
         mutedColor: mutedColor,
@@ -329,6 +325,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                   horizontal: 12,
                   vertical: 12,
                 ),
+                margin: EdgeInsets.only(left: depth * 12.0),
                 decoration: BoxDecoration(
                   color: containsCurrentPath ? selectedBackground : null,
                   borderRadius: BorderRadius.circular(
@@ -369,24 +366,20 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
           ),
           if (isExpanded)
             Padding(
-              padding: const EdgeInsets.only(left: 14, top: 4),
+              padding: const EdgeInsets.only(top: 4),
               child: Column(
                 children: [
                   for (final child in item.children)
-                    _buildLeafTile(
-                      icon: child.icon,
-                      label: child.title,
+                    _buildNavigationItem(
+                      item: child,
+                      currentPath: currentPath,
+                      depth: depth + 1,
                       collapsed: false,
-                      dense: true,
+                      showPermanentDrawer: showPermanentDrawer,
                       foregroundColor: foregroundColor,
                       mutedColor: mutedColor,
-                      selected: child.path == currentPath,
                       selectedBackground: selectedBackground,
                       selectedForeground: selectedForeground,
-                      onTap: () => _handleRouteTap(
-                        child.path!,
-                        showPermanentDrawer: showPermanentDrawer,
-                      ),
                     ),
                 ],
               ),
@@ -399,6 +392,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   Widget _buildLeafTile({
     required IconData icon,
     required String label,
+    required int depth,
     required bool collapsed,
     required Color foregroundColor,
     required Color mutedColor,
@@ -422,6 +416,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               horizontal: 12,
               vertical: dense ? 10 : 12,
             ),
+            margin: EdgeInsets.only(left: collapsed ? 0 : depth * 12.0),
             decoration: BoxDecoration(
               color: selected ? selectedBackground : null,
               borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),

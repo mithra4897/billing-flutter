@@ -9,6 +9,8 @@ import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
 import 'view/core/module_placeholder_page.dart';
 import 'view/dashboard/dashboard_page.dart';
+import 'view/settings/user/profile_page.dart';
+import 'view/settings/user/user_management_page.dart';
 
 void main() {
   if (kIsWeb) {
@@ -47,6 +49,18 @@ class BillingApp extends StatelessWidget {
               settings: settings,
               builder: (_) =>
                   LoginPage(redirectTo: uri.queryParameters['redirect']),
+            );
+          case '/settings/profile':
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => const ProfilePage(),
+            );
+          case '/settings/users':
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => UserManagementPage(
+                initialUserId: int.tryParse(uri.queryParameters['id'] ?? ''),
+              ),
             );
           default:
             final matchedRoute = AppNavigation.findByPath(uri.path);

@@ -7,16 +7,19 @@ import '../../model/admin/role_model.dart';
 import '../../model/admin/user_model.dart';
 import '../../model/auth/auth_context_model.dart';
 import '../../model/auth/auth_user_model.dart';
+import '../../model/auth/audit_log_model.dart';
 import '../../model/auth/change_password_request_model.dart';
 import '../../model/auth/login_history_model.dart';
 import '../../model/auth/login_request_model.dart';
 import '../../model/auth/login_response_model.dart';
 import '../../model/auth/module_model.dart';
 import '../../model/auth/role_permission_summary_model.dart';
+import '../../model/auth/user_permission_summary_model.dart';
 import '../../model/auth/role_permission_sync_request_model.dart';
 import '../../model/auth/user_branches_sync_request_model.dart';
 import '../../model/auth/user_companies_sync_request_model.dart';
 import '../../model/auth/user_locations_sync_request_model.dart';
+import '../../model/auth/user_permission_model.dart';
 import '../../model/auth/user_roles_sync_request_model.dart';
 import '../../model/auth/user_warehouses_sync_request_model.dart';
 import '../base/erp_module_service.dart';
@@ -49,6 +52,12 @@ class AuthService extends ErpModuleService {
           AuthContextModel.fromJson(json as Map<String, dynamic>),
     );
   }
+
+  Future<ApiResponse<UserModel>> profile() =>
+      object('/auth/profile', fromJson: UserModel.fromJson);
+
+  Future<ApiResponse<UserModel>> updateProfile(UserModel body) =>
+      updateModel('/auth/profile', body, fromJson: UserModel.fromJson);
 
   Future<ApiResponse<dynamic>> logout() async {
     final response = await client.post<dynamic>(ApiEndpoints.logout);
@@ -186,14 +195,44 @@ class AuthService extends ErpModuleService {
       updateModel('/users/$id', body, fromJson: UserModel.fromJson);
   Future<ApiResponse<UserModel>> changeUserStatus(int id, UserModel body) =>
       patchModel('/users/$id/status', body, fromJson: UserModel.fromJson);
-  Future<ApiResponse<UserModel>> resetUserPassword(int id, UserModel body) =>
-      actionModel(
-        '/users/$id/reset-password',
-        body: body,
-        fromJson: UserModel.fromJson,
-      );
+  Future<ApiResponse<dynamic>> resetUserPassword(int id, UserModel body) =>
+      actionDynamic('/users/$id/reset-password', body: body);
   Future<ApiResponse<UserModel>> userAccessSummary(int id) =>
       object('/users/$id/access-summary', fromJson: UserModel.fromJson);
+  Future<ApiResponse<UserPermissionSummaryModel>> userPermissions(int id) =>
+      object(
+        '/users/$id/permissions',
+        fromJson: UserPermissionSummaryModel.fromJson,
+      );
+  Future<ApiResponse<UserPermissionSummaryModel>> syncUserExtraPermissions(
+    int id,
+    List<UserPermissionModel> permissions,
+  ) => client.post<UserPermissionSummaryModel>(
+    '/users/$id/permissions/sync',
+    body: {
+      'extra_permissions': permissions
+          .map((item) => item.toJson())
+          .toList(growable: false),
+    },
+    fromData: (json) =>
+        UserPermissionSummaryModel.fromJson(json as Map<String, dynamic>),
+  );
+  Future<PaginatedResponse<AuditLogModel>> userAuditLogs(
+    int id, {
+    Map<String, dynamic>? filters,
+  }) => paginated(
+    '/users/$id/audit-logs',
+    filters: filters,
+    fromJson: AuditLogModel.fromJson,
+  );
+  Future<PaginatedResponse<LoginHistoryModel>> userLoginHistory(
+    int id, {
+    Map<String, dynamic>? filters,
+  }) => paginated(
+    '/users/$id/login-history',
+    filters: filters,
+    fromJson: LoginHistoryModel.fromJson,
+  );
   Future<ApiResponse<dynamic>> syncUserRoles(
     int id,
     UserRolesSyncRequestModel body,

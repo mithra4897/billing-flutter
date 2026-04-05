@@ -1,6 +1,8 @@
 import '../common/json_model.dart';
 import '../common/model_value.dart';
 import 'role_model.dart';
+import '../auth/user_permission_model.dart';
+import '../auth/user_role_model.dart';
 
 class UserModel implements JsonModel {
   const UserModel({
@@ -23,6 +25,8 @@ class UserModel implements JsonModel {
     this.remarks,
     this.roleIds = const [],
     this.roles = const [],
+    this.userRoles = const [],
+    this.extraPermissions = const [],
     this.raw,
   });
 
@@ -45,6 +49,8 @@ class UserModel implements JsonModel {
   final String? remarks;
   final List<int> roleIds;
   final List<RoleModel> roles;
+  final List<UserRoleModel> userRoles;
+  final List<UserPermissionModel> extraPermissions;
   final Map<String, dynamic>? raw;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -73,6 +79,8 @@ class UserModel implements JsonModel {
       remarks: json['remarks']?.toString(),
       roleIds: _roleIds(json['role_ids']),
       roles: _roles(json['roles']),
+      userRoles: _userRoles(json['user_roles']),
+      extraPermissions: _extraPermissions(json['user_permissions']),
       raw: json,
     );
   }
@@ -98,7 +106,22 @@ class UserModel implements JsonModel {
         'must_change_password': mustChangePassword,
       if (status != null) 'status': status,
       if (remarks != null) 'remarks': remarks,
-      if (roleIds.isNotEmpty) 'role_ids': roleIds,
+      if (roleIds.isNotEmpty)
+        'roles': roleIds
+            .asMap()
+            .entries
+            .map(
+              (entry) => {
+                'role_id': entry.value,
+                'is_primary_role': entry.key == 0,
+                'is_active': true,
+              },
+            )
+            .toList(growable: false),
+      if (extraPermissions.isNotEmpty)
+        'extra_permissions': extraPermissions
+            .map((item) => item.toJson())
+            .toList(growable: false),
     };
   }
 
@@ -119,5 +142,27 @@ class UserModel implements JsonModel {
     }
 
     return value.map(ModelValue.intOf).toList(growable: false);
+  }
+
+  static List<UserRoleModel> _userRoles(dynamic value) {
+    if (value is! List) {
+      return const <UserRoleModel>[];
+    }
+
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map(UserRoleModel.fromJson)
+        .toList(growable: false);
+  }
+
+  static List<UserPermissionModel> _extraPermissions(dynamic value) {
+    if (value is! List) {
+      return const <UserPermissionModel>[];
+    }
+
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map(UserPermissionModel.fromJson)
+        .toList(growable: false);
   }
 }

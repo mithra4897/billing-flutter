@@ -1,4 +1,9 @@
 export 'auth_context_model.dart';
 export 'auth_user_model.dart';
+export 'audit_log_model.dart';
 export 'login_request_model.dart';
 export 'login_response_model.dart';
+export 'login_history_model.dart';
+export 'user_permission_model.dart';
+export 'user_permission_summary_model.dart';
+export 'user_role_model.dart';
