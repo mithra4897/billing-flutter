@@ -3,6 +3,7 @@ import '../masters/business_location_model.dart';
 import '../masters/company_model.dart';
 import '../masters/financial_year_model.dart';
 import '../masters/warehouse_model.dart';
+import 'module_model.dart';
 
 class AuthContextModel {
   const AuthContextModel({
@@ -12,6 +13,7 @@ class AuthContextModel {
     required this.warehouses,
     required this.financialYears,
     this.permissionCodes = const [],
+    this.menuModules = const [],
     this.raw,
   });
 
@@ -21,6 +23,7 @@ class AuthContextModel {
   final List<WarehouseModel> warehouses;
   final List<FinancialYearModel> financialYears;
   final List<String> permissionCodes;
+  final List<ModuleModel> menuModules;
   final Map<String, dynamic>? raw;
 
   factory AuthContextModel.fromJson(Map<String, dynamic> json) {
@@ -46,6 +49,10 @@ class AuthContextModel {
         (item) => FinancialYearModel.fromJson(item),
       ),
       permissionCodes: _stringList(json['permission_codes']),
+      menuModules: _mapList(
+        json['menu_modules'],
+        (item) => ModuleModel.fromJson(item),
+      ),
       raw: json,
     );
   }
@@ -62,6 +69,9 @@ class AuthContextModel {
       'warehouses': const <Map<String, dynamic>>[],
       'financial_years': const <Map<String, dynamic>>[],
       'permission_codes': permissionCodes,
+      'menu_modules': menuModules
+          .map((item) => item.toJson())
+          .toList(growable: false),
     };
   }
 

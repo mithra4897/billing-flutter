@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../model/auth/module_model.dart';
+
 class AppNavigationItem {
   const AppNavigationItem({
     required this.key,
@@ -1172,12 +1174,15 @@ class AppNavigation {
   static List<AppNavigationItem> visibleMenu({
     required Set<String> permissionCodes,
     required bool isSuperAdmin,
+    List<ModuleModel> orderedModules = const <ModuleModel>[],
   }) {
-    return _visibleItems(
+    final visibleItems = _visibleItems(
       items: menu,
       permissionCodes: permissionCodes,
       isSuperAdmin: isSuperAdmin,
     );
+
+    return _sortTopLevelItems(visibleItems, orderedModules);
   }
 
   static bool containsPath(AppNavigationItem item, String path) {
@@ -1255,6 +1260,60 @@ class AppNavigation {
     }
 
     return visible;
+  }
+
+  static List<AppNavigationItem> _sortTopLevelItems(
+    List<AppNavigationItem> items,
+    List<ModuleModel> orderedModules,
+  ) {
+    if (orderedModules.isEmpty) {
+      return items;
+    }
+
+    final orderMap = <String, int>{};
+    final hiddenModules = <String>{};
+
+    for (final module in orderedModules) {
+      final code = module.moduleCode?.toLowerCase();
+      if (code == null || code.isEmpty) {
+        continue;
+      }
+
+      final sortOrder = module.effectiveSortOrder ?? module.sortOrder;
+      if (sortOrder != null) {
+        orderMap[code] = sortOrder;
+      }
+
+      if (module.isHidden == true) {
+        hiddenModules.add(code);
+      }
+    }
+
+    final filtered = items
+        .where((item) {
+          return !hiddenModules.contains(item.key.toLowerCase());
+        })
+        .toList(growable: false);
+
+    filtered.sort((left, right) {
+      if (left.key == 'dashboard') {
+        return -1;
+      }
+      if (right.key == 'dashboard') {
+        return 1;
+      }
+
+      final leftOrder = orderMap[left.key.toLowerCase()] ?? 100000;
+      final rightOrder = orderMap[right.key.toLowerCase()] ?? 100000;
+      final orderCompare = leftOrder.compareTo(rightOrder);
+      if (orderCompare != 0) {
+        return orderCompare;
+      }
+
+      return left.title.compareTo(right.title);
+    });
+
+    return filtered;
   }
 
   static String _normalizePath(String path) {

@@ -5,6 +5,7 @@ import '../app/navigation/app_navigation.dart';
 import '../app/theme/app_theme_extension.dart';
 import '../core/storage/session_storage.dart';
 import '../model/app/public_branding_model.dart';
+import '../model/auth/module_model.dart';
 import 'app_branding_logo.dart';
 
 class AdaptiveShell extends StatefulWidget {
@@ -29,6 +30,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   bool _drawerExpanded = true;
   bool _isSuperAdmin = false;
   Set<String> _permissionCodes = const <String>{};
+  List<ModuleModel> _orderedModules = const <ModuleModel>[];
   final Set<String> _expandedGroups = <String>{};
 
   @override
@@ -40,6 +42,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   Future<void> _loadAccess() async {
     final permissionCodes = await SessionStorage.getPermissionCodes();
     final currentUser = await SessionStorage.getCurrentUser();
+    final authContext = await SessionStorage.getAuthContext();
 
     if (!mounted) {
       return;
@@ -50,6 +53,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       _isSuperAdmin =
           currentUser?['is_super_admin'] == true ||
           currentUser?['is_super_admin'] == 1;
+      _orderedModules = authContext?.menuModules ?? const <ModuleModel>[];
     });
   }
 
@@ -64,6 +68,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     final visibleMenu = AppNavigation.visibleMenu(
       permissionCodes: _permissionCodes,
       isSuperAdmin: _isSuperAdmin,
+      orderedModules: _orderedModules,
     );
 
     return Scaffold(

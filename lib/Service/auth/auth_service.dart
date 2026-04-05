@@ -11,6 +11,7 @@ import '../../model/auth/change_password_request_model.dart';
 import '../../model/auth/login_history_model.dart';
 import '../../model/auth/login_request_model.dart';
 import '../../model/auth/login_response_model.dart';
+import '../../model/auth/module_model.dart';
 import '../../model/auth/role_permission_summary_model.dart';
 import '../../model/auth/role_permission_sync_request_model.dart';
 import '../../model/auth/user_branches_sync_request_model.dart';
@@ -66,6 +67,55 @@ class AuthService extends ErpModuleService {
   Future<ApiResponse<dynamic>> changePassword(
     ChangePasswordRequestModel body,
   ) => actionDynamic('/auth/change-password', body: body);
+
+  Future<PaginatedResponse<ModuleModel>> modules({
+    Map<String, dynamic>? filters,
+  }) => paginated(
+    '/auth/modules',
+    filters: filters,
+    fromJson: ModuleModel.fromJson,
+  );
+
+  Future<ApiResponse<ModuleModel>> module(int id) =>
+      object('/auth/modules/$id', fromJson: ModuleModel.fromJson);
+
+  Future<ApiResponse<ModuleModel>> createModule(ModuleModel body) =>
+      createModel('/auth/modules', body, fromJson: ModuleModel.fromJson);
+
+  Future<ApiResponse<ModuleModel>> updateModule(int id, ModuleModel body) =>
+      updateModel('/auth/modules/$id', body, fromJson: ModuleModel.fromJson);
+
+  Future<ApiResponse<ModuleModel>> changeModuleStatus(
+    int id,
+    ModuleModel body,
+  ) => patchModel(
+    '/auth/modules/$id/status',
+    body,
+    fromJson: ModuleModel.fromJson,
+  );
+
+  Future<ApiResponse<List<ModuleModel>>> menuPreferences() =>
+      collection('/auth/menu-preferences', fromJson: ModuleModel.fromJson);
+
+  Future<ApiResponse<List<ModuleModel>>> syncMenuPreferences(
+    List<ModuleModel> modules,
+  ) => client.post<List<ModuleModel>>(
+    '/auth/menu-preferences/sync',
+    body: {
+      'modules': modules.map((item) => item.toJson()).toList(growable: false),
+    },
+    fromData: (json) {
+      if (json is! List) {
+        return <ModuleModel>[];
+      }
+
+      return json
+          .whereType<Map<String, dynamic>>()
+          .map(ModuleModel.fromJson)
+          .toList(growable: false);
+    },
+  );
+
   Future<PaginatedResponse<LoginHistoryModel>> loginHistory({
     Map<String, dynamic>? filters,
   }) => paginated(
