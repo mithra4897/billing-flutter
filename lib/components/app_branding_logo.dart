@@ -20,7 +20,7 @@ class AppBrandingLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final logoPath = branding.logoPath;
-    final color = textColor ?? const Color(0xFF0A2540);
+    final color = textColor ?? Theme.of(context).colorScheme.primary;
 
     return Row(
       mainAxisSize: MainAxisSize.min,

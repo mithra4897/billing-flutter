@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/theme/app_theme_extension.dart';
+
 class AppLoadingView extends StatelessWidget {
   const AppLoadingView({super.key, this.message = 'Loading...'});
 
@@ -7,6 +9,8 @@ class AppLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -21,7 +25,7 @@ class AppLoadingView extends StatelessWidget {
             message,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF52606D)),
+            ).textTheme.bodyMedium?.copyWith(color: appTheme.mutedText),
           ),
         ],
       ),

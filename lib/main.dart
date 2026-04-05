@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 import 'app/constants/app_config.dart';
+import 'app/theme/app_theme.dart';
 import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
 import 'view/dashboard/dashboard_page.dart';
@@ -23,11 +24,7 @@ class BillingApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: AppConfig.appTitle,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF0A2540),
-        scaffoldBackgroundColor: const Color(0xFFEFF3F6),
-      ),
+      theme: AppTheme.light(),
       initialRoute: '/',
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '/');

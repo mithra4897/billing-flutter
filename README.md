@@ -1,17 +1,49 @@
-# billing
+# Billing Flutter
 
-A new Flutter project.
+Flutter frontend for the Billing ERP platform. This app is being built for mobile, tablet, desktop, and web with a route-first shell and a typed MVVM-friendly service layer.
 
-## Getting Started
+## Current Foundation
 
-This project is a starting point for a Flutter application.
+- route-based navigation with web-friendly path URLs
+- responsive shell with mobile drawer and persistent tablet/desktop sidebar
+- company branding fetched from the backend instead of hardcoded values
+- remember-me bootstrap and auto-login flow
+- automatic JWT refresh before expiry
+- typed service and model layer aligned with the Lumen ERP API
 
-A few resources to get you started if this is your first Flutter project:
+## Backend Dependency
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+This app works with the sibling backend project:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- [billing-api](/billing-api)
+
+Key shell/auth endpoints currently used:
+
+- `GET /api/v1/public/branding`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
+
+## Run
+
+```bash
+flutter pub get
+flutter run
+```
+
+## Architecture Direction
+
+- reusable UI pieces under `lib/components`
+- route-aware screens under `lib/view`
+- typed models under `lib/model`
+- typed module services under `lib/service`
+- shared HTTP/session infrastructure under `lib/core`
+
+## Next Build Areas
+
+- auth/session view models
+- dashboard data widgets
+- master selection flows
+- sales and purchase document forms
+- shared query and path-driven list pages

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/constants/app_ui_constants.dart';
+
 class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
@@ -26,12 +28,14 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          style: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 6),
         TextFormField(
@@ -44,15 +48,8 @@ class AppTextField extends StatelessWidget {
             hintText: hint,
             prefixIcon: Icon(icon),
             suffixIcon: suffixIcon,
-            filled: true,
-            fillColor: const Color(0xFFF7F9FB),
-            contentPadding: const EdgeInsets.symmetric(
-              vertical: 14,
-              horizontal: 12,
-            ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(AppUiConstants.fieldRadius),
             ),
           ),
         ),

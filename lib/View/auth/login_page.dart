@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/constants/app_ui_constants.dart';
+import '../../app/theme/app_theme_extension.dart';
 import '../../components/app_branding_logo.dart';
 import '../../components/app_loading_view.dart';
 import '../../core/error/api_exception.dart';
@@ -133,6 +135,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final appTheme = theme.extension<AppThemeExtension>()!;
     final branding =
         _branding ?? const PublicBrandingModel(companyName: 'Billing ERP');
     final year = branding.currentYear ?? DateTime.now().year;
@@ -155,15 +160,19 @@ class _LoginPageState extends State<LoginPage> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 460),
+                    constraints: const BoxConstraints(
+                      maxWidth: AppUiConstants.formMaxWidth,
+                    ),
                     child: Container(
-                      padding: const EdgeInsets.all(28),
+                      padding: const EdgeInsets.all(AppUiConstants.cardPadding),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
+                        color: appTheme.cardBackground,
+                        borderRadius: BorderRadius.circular(
+                          AppUiConstants.cardRadius,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
+                            color: appTheme.cardShadow,
                             blurRadius: 30,
                             offset: const Offset(0, 10),
                           ),
@@ -185,8 +194,9 @@ class _LoginPageState extends State<LoginPage> {
                             const SizedBox(height: 8),
                             Text(
                               'Access your ERP workspace across mobile, tablet, desktop, and web.',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: const Color(0xFF52606D)),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: appTheme.mutedText,
+                              ),
                             ),
                             const SizedBox(height: 28),
                             AppTextField(
@@ -256,10 +266,10 @@ class _LoginPageState extends State<LoginPage> {
                               child: ElevatedButton(
                                 onPressed: _isLoading ? null : _signIn,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0A2540),
-                                  foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(
+                                      AppUiConstants.buttonRadius,
+                                    ),
                                   ),
                                 ),
                                 child: _isLoading
@@ -280,8 +290,9 @@ class _LoginPageState extends State<LoginPage> {
                               child: Text(
                                 'Copyright $year ${branding.companyName}',
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: Colors.grey),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: appTheme.mutedText,
+                                ),
                               ),
                             ),
                           ],
@@ -296,10 +307,15 @@ class _LoginPageState extends State<LoginPage> {
               Expanded(
                 flex: 9,
                 child: Container(
-                  padding: const EdgeInsets.all(48),
-                  decoration: const BoxDecoration(
+                  padding: const EdgeInsets.all(
+                    AppUiConstants.pagePaddingLarge,
+                  ),
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF0A2540), Color(0xFF184E77)],
+                      colors: [
+                        appTheme.heroGradientStart,
+                        appTheme.heroGradientEnd,
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -325,21 +341,20 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 12),
                       Text(
                         'Responsive by design for mobile, tablet, desktop, and web. Routing, session renewal, and branding are now shell-level concerns instead of screen-level hacks.',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              height: 1.5,
-                            ),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: colorScheme.onPrimary.withValues(alpha: 0.9),
+                          height: 1.5,
+                        ),
                       ),
                       const SizedBox(height: 32),
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.12),
+                          color: appTheme.heroOverlayBackground,
+                          borderRadius: BorderRadius.circular(
+                            AppUiConstants.panelRadius,
                           ),
+                          border: Border.all(color: appTheme.heroOverlayBorder),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,16 +386,20 @@ class _BulletText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onPrimary;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+          Icon(Icons.check_circle_outline, color: color, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(color: Colors.white, height: 1.4),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: color, height: 1.4),
             ),
           ),
         ],
