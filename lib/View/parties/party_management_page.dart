@@ -16,6 +16,15 @@ class PartyManagementPage extends StatefulWidget {
 
 class _PartyManagementPageState extends State<PartyManagementPage>
     with SingleTickerProviderStateMixin {
+  static const List<AppDropdownItem<int>> _partyTypeFilterItemsBase =
+      <AppDropdownItem<int>>[AppDropdownItem(value: 0, label: 'All')];
+  static const List<AppDropdownItem<String>> _sortItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'name_asc', label: 'Name A-Z'),
+        AppDropdownItem(value: 'name_desc', label: 'Name Z-A'),
+        AppDropdownItem(value: 'code_asc', label: 'Code A-Z'),
+        AppDropdownItem(value: 'code_desc', label: 'Code Z-A'),
+      ];
   static const List<AppDropdownItem<String>> _gstTypeItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'registered', label: 'Registered'),
@@ -61,6 +70,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       ];
 
   final PartiesService _partiesService = PartiesService();
+  final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   late final TabController _tabController;
@@ -154,9 +164,12 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   String? _detailFormError;
 
   List<PartyTypeModel> _partyTypes = const <PartyTypeModel>[];
+  List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> _parties = const <PartyModel>[];
   List<PartyModel> _filteredParties = const <PartyModel>[];
   PartyModel? _selectedParty;
+  int _partyTypeFilterId = 0;
+  String _partySort = 'name_asc';
 
   int? _partyTypeId;
   bool _isCompany = false;
@@ -195,6 +208,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   String _dueBasis = 'invoice_date';
   bool _paymentDefault = false;
   bool _paymentActive = true;
+  bool _partyCodeManuallyEdited = false;
+  bool _suppressPartyCodeListener = false;
 
   @override
   void initState() {
@@ -209,6 +224,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             setState(() {});
           }
         });
+    _partyCodeController.addListener(_handlePartyCodeChanged);
     _searchController.addListener(_applySearch);
     _loadPage();
   }
@@ -274,6 +290,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     super.dispose();
   }
 
+  void _handlePartyCodeChanged() {
+    if (_suppressPartyCodeListener) {
+      return;
+    }
+
+    _partyCodeManuallyEdited = true;
+  }
+
   Future<void> _loadPage({int? selectId}) async {
     setState(() {
       _initialLoading = _parties.isEmpty;
@@ -284,6 +308,13 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       final partyTypesResponse = await _partiesService.partyTypes(
         filters: const {'per_page': 100, 'sort_by': 'name'},
       );
+      final documentSeriesResponse = await _masterService.documentSeries(
+        filters: const {
+          'per_page': 100,
+          'document_type': 'PARTY',
+          'is_active': 1,
+        },
+      );
       final partiesResponse = await _partiesService.parties(
         filters: const {'per_page': 100, 'sort_by': 'party_name'},
       );
@@ -293,22 +324,15 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       }
 
       final partyTypes = partyTypesResponse.data ?? const <PartyTypeModel>[];
+      final documentSeries =
+          documentSeriesResponse.data ?? const <DocumentSeriesModel>[];
       final parties = partiesResponse.data ?? const <PartyModel>[];
 
       setState(() {
         _partyTypes = partyTypes;
+        _documentSeries = documentSeries;
         _parties = parties;
-        _filteredParties = filterMasterList(parties, _searchController.text, (
-          party,
-        ) {
-          return [
-            party.partyCode ?? '',
-            party.partyName ?? '',
-            party.displayName ?? '',
-            party.mobile ?? '',
-            party.email ?? '',
-          ];
-        });
+        _filteredParties = _computeFilteredParties(parties);
         _initialLoading = false;
       });
 
@@ -343,23 +367,159 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   void _applySearch() {
     setState(() {
-      _filteredParties = filterMasterList(_parties, _searchController.text, (
-        party,
-      ) {
-        return [
-          party.partyCode ?? '',
-          party.partyName ?? '',
-          party.displayName ?? '',
-          party.mobile ?? '',
-          party.email ?? '',
-        ];
-      });
+      _filteredParties = _computeFilteredParties(_parties);
     });
+  }
+
+  List<PartyModel> _computeFilteredParties(List<PartyModel> source) {
+    final filteredByType = _partyTypeFilterId == 0
+        ? source
+        : source
+              .where((party) => party.partyTypeId == _partyTypeFilterId)
+              .toList(growable: false);
+
+    final searched = filterMasterList(filteredByType, _searchController.text, (
+      party,
+    ) {
+      return [
+        party.partyCode ?? '',
+        party.partyName ?? '',
+        party.displayName ?? '',
+        party.partyType ?? '',
+        party.mobile ?? '',
+        party.email ?? '',
+      ];
+    });
+
+    final sorted = searched.toList(growable: false);
+    sorted.sort((left, right) {
+      final leftName = (left.partyName ?? '').toLowerCase();
+      final rightName = (right.partyName ?? '').toLowerCase();
+      final leftCode = (left.partyCode ?? '').toLowerCase();
+      final rightCode = (right.partyCode ?? '').toLowerCase();
+
+      switch (_partySort) {
+        case 'name_desc':
+          return rightName.compareTo(leftName);
+        case 'code_asc':
+          return leftCode.compareTo(rightCode);
+        case 'code_desc':
+          return rightCode.compareTo(leftCode);
+        case 'name_asc':
+        default:
+          return leftName.compareTo(rightName);
+      }
+    });
+
+    return sorted;
+  }
+
+  List<AppDropdownItem<int>> _partyTypeFilterItems() {
+    return [
+      ..._partyTypeFilterItemsBase,
+      ..._partyTypes.map(
+        (type) => AppDropdownItem<int>(
+          value: intValue(type.data, 'id') ?? 0,
+          label: stringValue(type.data, 'name'),
+        ),
+      ),
+    ];
+  }
+
+  PartyTypeModel? _partyTypeById(int? id) {
+    if (id == null) {
+      return null;
+    }
+
+    return _partyTypes.cast<PartyTypeModel?>().firstWhere(
+      (item) => intValue(item?.data ?? const {}, 'id') == id,
+      orElse: () => null,
+    );
+  }
+
+  bool _isNonBusinessPartyType(int? id) {
+    final type = _partyTypeById(id);
+    final code = stringValue(type?.data ?? const {}, 'code').toUpperCase();
+
+    return const {'BANK', 'CASH', 'EMPLOYEE', 'GENERAL'}.contains(code);
+  }
+
+  bool _supportsGst(int? id) => !_isNonBusinessPartyType(id);
+
+  bool _supportsCompanyFlag(int? id) => !_isNonBusinessPartyType(id);
+
+  String _partyTypeCode(int? id) {
+    if (id == null) {
+      return 'PTY';
+    }
+
+    final matched = _partyTypeById(id);
+
+    final source =
+        stringValue(matched?.data ?? const {}, 'code').trim().isNotEmpty
+        ? stringValue(matched?.data ?? const {}, 'code')
+        : stringValue(matched?.data ?? const {}, 'name', 'PTY');
+    final normalized = source.replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
+    final prefix = normalized.isEmpty ? 'PTY' : normalized.toUpperCase();
+
+    return prefix.length <= 3 ? prefix : prefix.substring(0, 3);
+  }
+
+  DocumentSeriesModel? _defaultPartySeries() {
+    final partySeries = _documentSeries
+        .where((item) => (item.documentType ?? '').toUpperCase() == 'PARTY')
+        .toList(growable: false);
+    final series = partySeries.cast<DocumentSeriesModel?>().firstWhere(
+      (item) => item?.isDefault == true,
+      orElse: () => null,
+    );
+
+    return series ?? (partySeries.isNotEmpty ? partySeries.first : null);
+  }
+
+  String _generatePartyCodeForType(int? partyTypeId) {
+    final typeCode = _partyTypeCode(partyTypeId);
+    final series = _defaultPartySeries();
+    final number = (series?.nextNumber ?? (_parties.length + 1))
+        .toString()
+        .padLeft(series?.numberLength ?? 5, '0');
+    final suffix = (series?.suffix ?? '').trim();
+
+    return '$typeCode/$number$suffix';
+  }
+
+  void _setPartyCode(String value, {bool autoGenerated = false}) {
+    _suppressPartyCodeListener = true;
+    _partyCodeController.text = value;
+    _suppressPartyCodeListener = false;
+    _partyCodeManuallyEdited = !autoGenerated;
+  }
+
+  void _onPartyTypeChanged(int? value) {
+    setState(() {
+      _partyTypeId = value;
+      if (!_supportsCompanyFlag(value)) {
+        _isCompany = false;
+      }
+      if (!_supportsGst(value)) {
+        _gstinController.clear();
+        _gstType = 'unregistered';
+        _gstDetails = const <PartyGstDetailModel>[];
+        _selectedGstDetail = null;
+        _resetGstForm();
+      }
+    });
+
+    if (_selectedParty == null && !_partyCodeManuallyEdited) {
+      _setPartyCode(_generatePartyCodeForType(value), autoGenerated: true);
+      setState(() {});
+    }
   }
 
   Future<void> _selectParty(PartyModel party) async {
     _selectedParty = party;
     _partyCodeController.text = party.partyCode ?? '';
+    _partyCodeManuallyEdited = true;
     _partyNameController.text = party.partyName ?? '';
     _displayNameController.text = party.displayName ?? '';
     _partyTypeId = party.partyTypeId;
@@ -444,7 +604,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   void _resetPartyForm() {
     _selectedParty = null;
-    _partyCodeController.clear();
+    _setPartyCode('', autoGenerated: true);
     _partyNameController.clear();
     _displayNameController.clear();
     _partyTypeId = null;
@@ -505,7 +665,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       partyName: _partyNameController.text.trim(),
       displayName: nullIfEmpty(_displayNameController.text),
       partyTypeId: _partyTypeId,
-      isCompany: _isCompany,
+      isCompany: _supportsCompanyFlag(_partyTypeId) ? _isCompany : false,
       contactPerson: nullIfEmpty(_contactPersonController.text),
       mobile: nullIfEmpty(_mobileController.text),
       phone: nullIfEmpty(_phoneController.text),
@@ -513,8 +673,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       website: nullIfEmpty(_websiteController.text),
       pan: nullIfEmpty(_panController.text),
       aadhaar: nullIfEmpty(_aadhaarController.text),
-      gstin: nullIfEmpty(_gstinController.text),
-      gstType: _gstType,
+      gstin: _supportsGst(_partyTypeId)
+          ? nullIfEmpty(_gstinController.text)
+          : null,
+      gstType: _supportsGst(_partyTypeId) ? _gstType : 'unregistered',
       defaultCurrency: nullIfEmpty(_currencyController.text) ?? 'INR',
       openingBalance: double.tryParse(_openingBalanceController.text.trim()),
       openingBalanceType: _openingBalanceType,
@@ -1050,7 +1212,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     final content = _buildContent(context);
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _resetPartyForm,
+        onPressed: () {
+          _resetPartyForm();
+          _tabController.animateTo(0);
+        },
         icon: Icons.person_add_alt_outlined,
         label: 'New Party',
       ),
@@ -1081,30 +1246,93 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       );
     }
 
+    final partyTypeFilterItems = _partyTypeFilterItems();
+
     return SettingsWorkspace(
       scrollController: _pageScrollController,
-      list: SettingsListCard<PartyModel>(
-        title: 'Parties',
-        subtitle:
-            'Search and select a customer, supplier, or other business party from one place.',
-        searchController: _searchController,
-        searchHint: 'Search parties',
-        items: _filteredParties,
-        selectedItem: _selectedParty,
-        emptyMessage: 'No parties found.',
-        itemBuilder: (party, selected) => SettingsListTile(
-          title: party.partyName ?? '-',
-          subtitle: [
-            party.partyCode ?? '',
-            party.mobile ?? '',
-            party.email ?? '',
-          ].where((value) => value.isNotEmpty).join(' • '),
-          selected: selected,
-          onTap: () => _selectParty(party),
-          trailing: SettingsStatusPill(
-            label: party.isActive ? 'Active' : 'Inactive',
-            active: party.isActive,
-          ),
+      list: AppSectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Parties',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Search by name or code, filter by party type, and sort the list without leaving the workspace.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(
+                  context,
+                ).extension<AppThemeExtension>()!.mutedText,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            AppFormTextField(
+              labelText: 'Search parties',
+              controller: _searchController,
+              prefixIcon: const Icon(Icons.search),
+            ),
+            const SizedBox(height: 12),
+            AppDropdownField<int>.fromMapped(
+              labelText: 'Party Type',
+              mappedItems: partyTypeFilterItems,
+              initialValue: _partyTypeFilterId,
+              onChanged: (value) {
+                setState(() {
+                  _partyTypeFilterId = value ?? 0;
+                  _filteredParties = _computeFilteredParties(_parties);
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            AppDropdownField<String>.fromMapped(
+              labelText: 'Sort',
+              mappedItems: _sortItems,
+              initialValue: _partySort,
+              onChanged: (value) {
+                setState(() {
+                  _partySort = value ?? 'name_asc';
+                  _filteredParties = _computeFilteredParties(_parties);
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            if (_filteredParties.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Text('No parties found.'),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _filteredParties.length,
+                separatorBuilder: (_, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final party = _filteredParties[index];
+                  final selected = identical(party, _selectedParty);
+                  return SettingsListTile(
+                    title: party.partyName ?? '-',
+                    subtitle: [
+                      party.partyType ?? '',
+                      party.partyCode ?? '',
+                      party.mobile ?? '',
+                      party.email ?? '',
+                    ].where((value) => value.isNotEmpty).join(' • '),
+                    selected: selected,
+                    onTap: () => _selectParty(party),
+                    trailing: SettingsStatusPill(
+                      label: party.isActive ? 'Active' : 'Inactive',
+                      active: party.isActive,
+                    ),
+                  );
+                },
+              ),
+          ],
         ),
       ),
       editor: SettingsEditorCard(
@@ -1147,7 +1375,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildPrimaryTab(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
+    final supportsGst = _supportsGst(_partyTypeId);
+    final supportsCompanyFlag = _supportsCompanyFlag(_partyTypeId);
     final partyTypeItems = _partyTypes
         .map(
           (type) => AppDropdownItem<int>(
@@ -1168,91 +1397,74 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           ],
           SettingsFormWrap(
             children: [
+              AppDropdownField<int>.fromMapped(
+                labelText: 'Party Type',
+                mappedItems: partyTypeItems,
+                initialValue: _partyTypeId,
+                onChanged: _onPartyTypeChanged,
+              ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Party Code',
                 controller: _partyCodeController,
                 validator: Validators.required('Party code'),
               ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Party Name',
                 controller: _partyNameController,
                 validator: Validators.required('Party name'),
               ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Display Name',
                 controller: _displayNameController,
               ),
-              AppDropdownField<int>.fromMapped(
-                width: fieldWidth,
-                labelText: 'Party Type',
-                mappedItems: partyTypeItems,
-                initialValue: _partyTypeId,
-                onChanged: (value) => setState(() => _partyTypeId = value),
-              ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Contact Person',
                 controller: _contactPersonController,
               ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Mobile',
                 controller: _mobileController,
               ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Phone',
                 controller: _phoneController,
               ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Email',
                 controller: _emailController,
               ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Website',
                 controller: _websiteController,
               ),
+              AppFormTextField(labelText: 'PAN', controller: _panController),
               AppFormTextField(
-                width: fieldWidth,
-                labelText: 'PAN',
-                controller: _panController,
-              ),
-              AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Aadhaar',
                 controller: _aadhaarController,
               ),
+              if (supportsGst)
+                AppFormTextField(
+                  labelText: 'GSTIN',
+                  controller: _gstinController,
+                ),
+              if (supportsGst)
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'GST Type',
+                  mappedItems: _gstTypeItems,
+                  initialValue: _gstType,
+                  onChanged: (value) =>
+                      setState(() => _gstType = value ?? 'registered'),
+                ),
               AppFormTextField(
-                width: fieldWidth,
-                labelText: 'GSTIN',
-                controller: _gstinController,
-              ),
-              AppDropdownField<String>.fromMapped(
-                width: fieldWidth,
-                labelText: 'GST Type',
-                mappedItems: _gstTypeItems,
-                initialValue: _gstType,
-                onChanged: (value) =>
-                    setState(() => _gstType = value ?? 'registered'),
-              ),
-              AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Default Currency',
                 controller: _currencyController,
               ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Opening Balance',
                 controller: _openingBalanceController,
                 keyboardType: TextInputType.number,
               ),
               AppDropdownField<String>.fromMapped(
-                width: fieldWidth,
                 labelText: 'Opening Balance Type',
                 mappedItems: _openingBalanceTypeItems,
                 initialValue: _openingBalanceType,
@@ -1260,7 +1472,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                     setState(() => _openingBalanceType = value ?? 'debit'),
               ),
               AppFormTextField(
-                width: fieldWidth,
                 labelText: 'Remarks',
                 controller: _remarksController,
                 maxLines: 3,
@@ -1272,16 +1483,15 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             spacing: 16,
             runSpacing: 12,
             children: [
-              SizedBox(
-                width: fieldWidth,
-                child: AppSwitchTile(
-                  label: 'Is Company',
-                  value: _isCompany,
-                  onChanged: (value) => setState(() => _isCompany = value),
+              if (supportsCompanyFlag)
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Is Company',
+                    value: _isCompany,
+                    onChanged: (value) => setState(() => _isCompany = value),
+                  ),
                 ),
-              ),
               SizedBox(
-                width: fieldWidth,
                 child: AppSwitchTile(
                   label: 'Active',
                   value: _partyActive,
@@ -1347,6 +1557,16 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildGstDetailsTab(BuildContext context) {
+    if (!_supportsGst(_selectedParty?.partyTypeId ?? _partyTypeId)) {
+      return SettingsEmptyState(
+        icon: Icons.receipt_long_outlined,
+        title: 'GST not applicable',
+        message:
+            'GST details are not required for bank, cash, employee, or general parties.',
+        minHeight: 200,
+      );
+    }
+
     return _buildDetailTab<PartyGstDetailModel>(
       title: 'GST Details',
       subtitle:
@@ -1524,14 +1744,12 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildAddressForm(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SettingsFormWrap(
           children: [
             AppDropdownField<String>.fromMapped(
-              width: fieldWidth,
               labelText: 'Address Type',
               mappedItems: _addressTypeItems,
               initialValue: _addressType,
@@ -1539,48 +1757,39 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                   setState(() => _addressType = value ?? 'billing'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Address Line 1',
               controller: _addressLine1Controller,
               validator: Validators.required('Address line 1'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Address Line 2',
               controller: _addressLine2Controller,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Area',
               controller: _addressAreaController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'City',
               controller: _addressCityController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'District',
               controller: _addressDistrictController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'State Code',
               controller: _addressStateCodeController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'State Name',
               controller: _addressStateNameController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Country Code',
               controller: _addressCountryCodeController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Postal Code',
               controller: _addressPostalCodeController,
             ),
@@ -1592,7 +1801,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           runSpacing: 12,
           children: [
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Default',
                 value: _addressDefault,
@@ -1600,7 +1808,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               ),
             ),
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Active',
                 value: _addressActive,
@@ -1621,35 +1828,29 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildContactForm(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SettingsFormWrap(
           children: [
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Contact Name',
               controller: _contactNameController,
               validator: Validators.required('Contact name'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Designation',
               controller: _contactDesignationController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Mobile',
               controller: _contactMobileController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Phone',
               controller: _contactPhoneController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Email',
               controller: _contactEmailController,
             ),
@@ -1661,7 +1862,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           runSpacing: 12,
           children: [
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Primary Contact',
                 value: _contactPrimary,
@@ -1669,7 +1869,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               ),
             ),
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Active',
                 value: _contactActive,
@@ -1690,19 +1889,16 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildGstForm(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SettingsFormWrap(
           children: [
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'GSTIN',
               controller: _gstinDetailController,
             ),
             AppDropdownField<String>.fromMapped(
-              width: fieldWidth,
               labelText: 'Registration Type',
               mappedItems: _registrationTypeItems,
               initialValue: _registrationType,
@@ -1710,47 +1906,35 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                   setState(() => _registrationType = value ?? 'regular'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Legal Name',
               controller: _gstLegalNameController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Trade Name',
               controller: _gstTradeNameController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'State Code',
               controller: _gstStateCodeController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'State Name',
               controller: _gstStateNameController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Address Line 1',
               controller: _gstAddress1Controller,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Address Line 2',
               controller: _gstAddress2Controller,
             ),
+            AppFormTextField(labelText: 'City', controller: _gstCityController),
             AppFormTextField(
-              width: fieldWidth,
-              labelText: 'City',
-              controller: _gstCityController,
-            ),
-            AppFormTextField(
-              width: fieldWidth,
               labelText: 'District',
               controller: _gstDistrictController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Postal Code',
               controller: _gstPostalCodeController,
             ),
@@ -1762,7 +1946,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           runSpacing: 12,
           children: [
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Default GST Detail',
                 value: _gstDefault,
@@ -1770,7 +1953,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               ),
             ),
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Active',
                 value: _gstActive,
@@ -1793,52 +1975,43 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildBankForm(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SettingsFormWrap(
           children: [
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Account Holder Name',
               controller: _bankAccountHolderController,
               validator: Validators.required('Account holder name'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Bank Name',
               controller: _bankNameController,
               validator: Validators.required('Bank name'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Branch Name',
               controller: _bankBranchController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Account Number',
               controller: _bankAccountNumberController,
               validator: Validators.required('Account number'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'IFSC Code',
               controller: _bankIfscController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'SWIFT Code',
               controller: _bankSwiftController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'IBAN',
               controller: _bankIbanController,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'UPI ID',
               controller: _bankUpiController,
             ),
@@ -1850,7 +2023,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           runSpacing: 12,
           children: [
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Default Bank Account',
                 value: _bankDefault,
@@ -1858,7 +2030,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               ),
             ),
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Active',
                 value: _bankActive,
@@ -1881,33 +2052,28 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildCreditForm(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SettingsFormWrap(
           children: [
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Credit Limit',
               controller: _creditLimitController,
               keyboardType: TextInputType.number,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Credit Days',
               controller: _creditDaysController,
               keyboardType: TextInputType.number,
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Effective From',
               controller: _creditFromController,
               inputFormatters: [DateInputFormatter()],
               hintText: 'YYYY-MM-DD',
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Effective To',
               controller: _creditToController,
               inputFormatters: [DateInputFormatter()],
@@ -1917,7 +2083,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         ),
         const SizedBox(height: 16),
         SizedBox(
-          width: fieldWidth,
           child: AppSwitchTile(
             label: 'Active',
             value: _creditActive,
@@ -1938,26 +2103,22 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildPaymentTermForm(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SettingsFormWrap(
           children: [
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Term Name',
               controller: _paymentTermNameController,
               validator: Validators.required('Term name'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Days',
               controller: _paymentDaysController,
               keyboardType: TextInputType.number,
             ),
             AppDropdownField<String>.fromMapped(
-              width: fieldWidth,
               labelText: 'Due Basis',
               mappedItems: _dueBasisItems,
               initialValue: _dueBasis,
@@ -1965,7 +2126,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                   setState(() => _dueBasis = value ?? 'invoice_date'),
             ),
             AppFormTextField(
-              width: fieldWidth,
               labelText: 'Remarks',
               controller: _paymentRemarksController,
               maxLines: 3,
@@ -1978,7 +2138,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           runSpacing: 12,
           children: [
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Default Payment Term',
                 value: _paymentDefault,
@@ -1986,7 +2145,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               ),
             ),
             SizedBox(
-              width: fieldWidth,
               child: AppSwitchTile(
                 label: 'Active',
                 value: _paymentActive,

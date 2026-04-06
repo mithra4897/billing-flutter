@@ -264,32 +264,42 @@ class SettingsStatusPill extends StatelessWidget {
 }
 
 class SettingsFormWrap extends StatelessWidget {
-  const SettingsFormWrap({super.key, required this.children});
+  const SettingsFormWrap({
+    super.key,
+    required this.children,
+    this.spacing = 16,
+    this.runSpacing = 16,
+    this.mobileBreakpoint = 640,
+  });
 
   final List<Widget> children;
+  final double spacing;
+  final double runSpacing;
+  final double mobileBreakpoint;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(spacing: 16, runSpacing: 16, children: children);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final isMobile = availableWidth < mobileBreakpoint;
+        final itemWidth = isMobile
+            ? availableWidth
+            : (availableWidth - spacing) / 2;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: runSpacing,
+          children: children
+              .map(
+                (child) => SizedBox(
+                  width: itemWidth > 0 ? itemWidth : null,
+                  child: child,
+                ),
+              )
+              .toList(growable: false),
+        );
+      },
+    );
   }
-}
-
-double settingsResponsiveFieldWidth(
-  BuildContext context, {
-  double minWidth = 240,
-  double maxWidth = 360,
-}) {
-  final screenWidth = MediaQuery.sizeOf(context).width;
-
-  if (screenWidth < 640) {
-    return screenWidth - 64;
-  }
-
-  if (screenWidth < 1100) {
-    final width = (screenWidth - 120) / 2;
-    return width.clamp(minWidth, maxWidth);
-  }
-
-  final width = (screenWidth - 180) / 3;
-  return width.clamp(minWidth, maxWidth);
 }

@@ -278,7 +278,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
               item.id != _selectedWarehouse?.id,
         )
         .toList(growable: false);
-    final fieldWidth = settingsResponsiveFieldWidth(context);
 
     return SettingsWorkspace(
       scrollController: _pageScrollController,
@@ -321,7 +320,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
                   AppDropdownField<int>(
                     initialValue: _companyId,
                     labelText: 'Company',
-                    width: fieldWidth,
                     items: _companies
                         .map(
                           (company) => DropdownMenuItem<int>(
@@ -353,7 +351,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
                   AppDropdownField<int>(
                     initialValue: _branchId,
                     labelText: 'Branch',
-                    width: fieldWidth,
                     items: branches
                         .map(
                           (branch) => DropdownMenuItem<int>(
@@ -378,7 +375,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
                   AppDropdownField<int>(
                     initialValue: _locationId,
                     labelText: 'Business Location',
-                    width: fieldWidth,
                     items: locations
                         .map(
                           (location) => DropdownMenuItem<int>(
@@ -399,7 +395,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
                   AppFormTextField(
                     controller: _codeController,
                     labelText: 'Code',
-                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Code is required'
@@ -408,7 +403,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
                   AppFormTextField(
                     controller: _nameController,
                     labelText: 'Name',
-                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Name is required'
@@ -417,7 +411,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
                   AppDropdownField<String>.fromMapped(
                     initialValue: _warehouseType,
                     labelText: 'Warehouse Type',
-                    width: fieldWidth,
                     mappedItems: const [
                       AppDropdownItem(value: 'main', label: 'Main'),
                       AppDropdownItem(
@@ -442,7 +435,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
                   AppDropdownField<int?>.fromMapped(
                     initialValue: _parentWarehouseId,
                     labelText: 'Parent Warehouse',
-                    width: fieldWidth,
                     mappedItems: [
                       const AppDropdownItem<int?>(value: null, label: 'None'),
                       ...parentOptions.map(

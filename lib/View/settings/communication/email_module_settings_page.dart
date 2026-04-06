@@ -17,7 +17,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _moduleController = TextEditingController();
-  final TextEditingController _documentTypeController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
 
   bool _initialLoading = true;
@@ -25,11 +24,15 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
   String? _pageError;
   String? _formError;
   List<CompanyModel> _companies = const <CompanyModel>[];
+  List<AppDropdownItem<String>> _documentTypeItems = const [
+    AppDropdownItem(value: '', label: 'All'),
+  ];
   List<EmailModuleSettingModel> _records = const <EmailModuleSettingModel>[];
   List<EmailModuleSettingModel> _filteredRecords =
       const <EmailModuleSettingModel>[];
   EmailModuleSettingModel? _selectedRecord;
   int? _companyId;
+  String _documentType = '';
   bool _autoEmailEnabled = true;
   bool _manualEmailEnabled = true;
   bool _isActive = true;
@@ -46,7 +49,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
     _pageScrollController.dispose();
     _searchController.dispose();
     _moduleController.dispose();
-    _documentTypeController.dispose();
     _remarksController.dispose();
     super.dispose();
   }
@@ -61,6 +63,9 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
       final companiesResponse = await _masterService.companies(
         filters: const {'per_page': 100, 'sort_by': 'legal_name'},
       );
+      final documentSeriesResponse = await _masterService.documentSeries(
+        filters: const {'per_page': 500},
+      );
       final recordsResponse = await _communicationService.emailModuleSettings();
 
       if (!mounted) {
@@ -68,10 +73,23 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
       }
 
       final companies = companiesResponse.data ?? const <CompanyModel>[];
+      final documentTypes =
+          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
+              .map((item) => (item.documentType ?? '').trim())
+              .where((item) => item.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
       final records = recordsResponse.data ?? const <EmailModuleSettingModel>[];
 
       setState(() {
         _companies = companies;
+        _documentTypeItems = [
+          const AppDropdownItem(value: '', label: 'All'),
+          ...documentTypes.map(
+            (item) => AppDropdownItem(value: item, label: item),
+          ),
+        ];
         _records = records;
         _filteredRecords = filterMasterList(
           records,
@@ -134,7 +152,7 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
     _selectedRecord = record;
     _companyId = intValue(data, 'company_id');
     _moduleController.text = stringValue(data, 'module');
-    _documentTypeController.text = stringValue(data, 'document_type');
+    _documentType = stringValue(data, 'document_type');
     _remarksController.text = stringValue(data, 'remarks');
     _autoEmailEnabled = boolValue(data, 'auto_email_enabled', fallback: true);
     _manualEmailEnabled = boolValue(
@@ -151,7 +169,7 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
     _selectedRecord = null;
     _companyId = null;
     _moduleController.clear();
-    _documentTypeController.clear();
+    _documentType = '';
     _remarksController.clear();
     _autoEmailEnabled = true;
     _manualEmailEnabled = true;
@@ -175,7 +193,7 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
         'id': intValue(_selectedRecord!.data, 'id'),
       if (_companyId != null) 'company_id': _companyId,
       'module': _moduleController.text.trim(),
-      'document_type': nullIfEmpty(_documentTypeController.text),
+      'document_type': nullIfEmpty(_documentType),
       'auto_email_enabled': _autoEmailEnabled,
       'manual_email_enabled': _manualEmailEnabled,
       'is_active': _isActive,
@@ -252,15 +270,15 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
       );
     }
 
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-    final companyItems = _companies
-        .map(
-          (company) => AppDropdownItem<int>(
-            value: company.id ?? 0,
-            label: company.legalName ?? company.code ?? 'Company',
-          ),
-        )
-        .toList(growable: false);
+    final companyItems = <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All'),
+      ..._companies.map(
+        (company) => AppDropdownItem<int?>(
+          value: company.id,
+          label: company.legalName ?? company.code ?? 'Company',
+        ),
+      ),
+    ];
 
     return SettingsWorkspace(
       scrollController: _pageScrollController,
@@ -303,26 +321,25 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    width: fieldWidth,
+                  AppDropdownField<int?>.fromMapped(
                     labelText: 'Company',
                     mappedItems: companyItems,
                     initialValue: _companyId,
                     onChanged: (value) => setState(() => _companyId = value),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Module',
                     controller: _moduleController,
                     validator: Validators.required('Module'),
                   ),
-                  AppFormTextField(
-                    width: fieldWidth,
+                  AppDropdownField<String>.fromMapped(
                     labelText: 'Document Type',
-                    controller: _documentTypeController,
+                    mappedItems: _documentTypeItems,
+                    initialValue: _documentType,
+                    onChanged: (value) =>
+                        setState(() => _documentType = value ?? ''),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Remarks',
                     controller: _remarksController,
                     maxLines: 3,
@@ -335,7 +352,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
                 runSpacing: 12,
                 children: [
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Auto Email Enabled',
                       value: _autoEmailEnabled,
@@ -344,7 +360,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Manual Email Enabled',
                       value: _manualEmailEnabled,
@@ -353,7 +368,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Active',
                       value: _isActive,

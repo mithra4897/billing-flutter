@@ -378,7 +378,6 @@ class _ProfileContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
-    final fieldWidth = settingsResponsiveFieldWidth(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
@@ -406,12 +405,9 @@ class _ProfileContent extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Wrap(
-                    runSpacing: 16,
-                    spacing: 16,
+                  SettingsFormWrap(
                     children: [
                       AppFormTextField(
-                        width: fieldWidth,
                         controller: firstNameController,
                         labelText: 'First Name',
                         validator: (value) =>
@@ -420,30 +416,25 @@ class _ProfileContent extends StatelessWidget {
                             : null,
                       ),
                       AppFormTextField(
-                        width: fieldWidth,
                         controller: lastNameController,
                         labelText: 'Last Name',
                       ),
                       AppFormTextField(
-                        width: fieldWidth,
                         controller: displayNameController,
                         labelText: 'Display Name',
                         onChanged: (_) => onDisplayNameEdited(),
                       ),
                       AppFormTextField(
-                        width: fieldWidth,
                         initialValue: profile?.username ?? '',
                         enabled: false,
                         labelText: 'Username',
                       ),
                       AppFormTextField(
-                        width: fieldWidth,
                         initialValue: profile?.employeeCode ?? '',
                         enabled: false,
                         labelText: 'Employee Code',
                       ),
                       AppDropdownField<String>.fromMapped(
-                        width: fieldWidth,
                         initialValue: gender,
                         labelText: 'Gender',
                         mappedItems: const [
@@ -458,34 +449,28 @@ class _ProfileContent extends StatelessWidget {
                         onChanged: onGenderChanged,
                       ),
                       AppFormTextField(
-                        width: fieldWidth,
                         controller: emailController,
                         labelText: 'Email',
                       ),
                       AppFormTextField(
-                        width: fieldWidth,
                         controller: mobileController,
                         labelText: 'Mobile',
                       ),
                       AppFormTextField(
-                        width: fieldWidth,
                         controller: dobController,
                         labelText: 'Date of Birth',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateInputFormatter()],
                       ),
-                      AppFieldBox(
-                        width: 536,
-                        child: UploadPathField(
-                          controller: profilePhotoController,
-                          labelText: 'Profile Photo Path',
-                          isUploading: uploadingPhoto,
-                          onUpload: onUploadPhoto,
-                          previewUrl: AppConfig.resolvePublicFileUrl(
-                            profilePhotoController.text,
-                          ),
-                          previewIcon: Icons.person_outline,
+                      UploadPathField(
+                        controller: profilePhotoController,
+                        labelText: 'Profile Photo Path',
+                        isUploading: uploadingPhoto,
+                        onUpload: onUploadPhoto,
+                        previewUrl: AppConfig.resolvePublicFileUrl(
+                          profilePhotoController.text,
                         ),
+                        previewIcon: Icons.person_outline,
                       ),
                     ],
                   ),

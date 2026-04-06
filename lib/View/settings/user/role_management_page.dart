@@ -619,8 +619,6 @@ class _RoleManagementPageState extends State<RoleManagementPage>
   }
 
   Widget _buildProfileTab(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-
     if (_loadingRoleDetails) {
       return const Padding(
         padding: EdgeInsets.all(AppUiConstants.cardPadding),
@@ -635,46 +633,33 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
+            SettingsFormWrap(
               children: [
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _nameController,
-                    labelText: 'Role Name',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Role name is required'
-                        : null,
-                  ),
+                AppFormTextField(
+                  controller: _nameController,
+                  labelText: 'Role Name',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Role name is required'
+                      : null,
                 ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _codeController,
-                    textCapitalization: TextCapitalization.characters,
-                    labelText: 'Role Code',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Role code is required'
-                        : null,
-                  ),
+                AppFormTextField(
+                  controller: _codeController,
+                  textCapitalization: TextCapitalization.characters,
+                  labelText: 'Role Code',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Role code is required'
+                      : null,
                 ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppDropdownField<String>.fromMapped(
-                    initialValue: _isActive ? 'active' : 'inactive',
-                    labelText: 'Status',
-                    mappedItems: const [
-                      AppDropdownItem(value: 'active', label: 'Active'),
-                      AppDropdownItem(value: 'inactive', label: 'Inactive'),
-                    ],
-                    onChanged: (value) => setState(() {
-                      _isActive = value == 'active';
-                    }),
-                  ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: _isActive ? 'active' : 'inactive',
+                  labelText: 'Status',
+                  mappedItems: const [
+                    AppDropdownItem(value: 'active', label: 'Active'),
+                    AppDropdownItem(value: 'inactive', label: 'Inactive'),
+                  ],
+                  onChanged: (value) => setState(() {
+                    _isActive = value == 'active';
+                  }),
                 ),
               ],
             ),
@@ -900,10 +885,6 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         ),
       ],
     );
-  }
-
-  Widget _inputBox({required Widget child, double? width}) {
-    return SizedBox(width: width, child: child);
   }
 
   Widget _emptyStateCard(

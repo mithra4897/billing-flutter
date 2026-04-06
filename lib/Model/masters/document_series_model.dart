@@ -1,22 +1,34 @@
-class DocumentSeriesModel {
+import '../common/json_model.dart';
+
+class DocumentSeriesModel implements JsonModel {
   const DocumentSeriesModel({
-    required this.id,
-    required this.companyId,
-    required this.seriesCode,
-    required this.seriesName,
+    this.id,
+    this.companyId,
+    this.seriesCode,
+    this.seriesName,
     this.documentType,
     this.prefix,
+    this.suffix,
+    this.nextNumber,
+    this.numberLength,
+    this.isDefault = false,
     this.isActive = true,
+    this.remarks,
     this.raw,
   });
 
-  final int id;
-  final int companyId;
-  final String seriesCode;
-  final String seriesName;
+  final int? id;
+  final int? companyId;
+  final String? seriesCode;
+  final String? seriesName;
   final String? documentType;
   final String? prefix;
+  final String? suffix;
+  final int? nextNumber;
+  final int? numberLength;
+  final bool isDefault;
   final bool isActive;
+  final String? remarks;
   final Map<String, dynamic>? raw;
 
   factory DocumentSeriesModel.fromJson(Map<String, dynamic> json) {
@@ -27,11 +39,39 @@ class DocumentSeriesModel {
       seriesName: json['series_name']?.toString() ?? '',
       documentType: json['document_type']?.toString(),
       prefix: json['prefix']?.toString(),
+      suffix: json['suffix']?.toString(),
+      nextNumber: _parseInt(json['next_number']),
+      numberLength: _parseInt(json['number_length']),
+      isDefault: json['is_default'] == true || json['is_default'] == 1,
       isActive: json['is_active'] != false && json['is_active'] != 0,
+      remarks: json['remarks']?.toString(),
       raw: json,
     );
   }
 
-  static int _parseInt(dynamic value) =>
-      int.tryParse(value?.toString() ?? '') ?? 0;
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (seriesCode != null) 'series_code': seriesCode,
+      if (seriesName != null) 'series_name': seriesName,
+      if (documentType != null) 'document_type': documentType,
+      if (prefix != null) 'prefix': prefix,
+      if (suffix != null) 'suffix': suffix,
+      if (nextNumber != null) 'next_number': nextNumber,
+      if (numberLength != null) 'number_length': numberLength,
+      'is_default': isDefault,
+      'is_active': isActive,
+      if (remarks != null) 'remarks': remarks,
+    };
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null || value.toString().isEmpty) {
+      return null;
+    }
+
+    return int.tryParse(value.toString());
+  }
 }

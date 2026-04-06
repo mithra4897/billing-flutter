@@ -42,7 +42,8 @@ flutter run
 
 ## Frontend Standards
 
-- shared frontend rulebook: [FRONTEND_STANDARDS.md](/Users/buddykit/Projects/billing-flutter/FRONTEND_STANDARDS.md)
+- shared frontend rulebook: [FRONTEND_STANDARDS.md](/FRONTEND_STANDARDS.md)
+- completed frontend module note: [FRONTEND_COMPLETED_MODULES.md](/FRONTEND_COMPLETED_MODULES.md)
 
 ## Next Build Areas
 

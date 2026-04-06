@@ -285,8 +285,6 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
       );
     }
 
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<TaxCodeModel>(
@@ -331,19 +329,16 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
               SettingsFormWrap(
                 children: [
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Tax Code',
                     controller: _codeController,
                     validator: Validators.required('Tax code'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Tax Name',
                     controller: _nameController,
                     validator: Validators.required('Tax name'),
                   ),
                   AppDropdownField<String>.fromMapped(
-                    width: fieldWidth,
                     labelText: 'Tax Type',
                     mappedItems: _taxTypeItems,
                     initialValue: _taxType,
@@ -351,25 +346,21 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
                         setState(() => _taxType = value ?? 'gst'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Tax Rate (%)',
                     controller: _rateController,
                     keyboardType: TextInputType.number,
                     validator: Validators.required('Tax rate'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'CESS Rate (%)',
                     controller: _cessRateController,
                     keyboardType: TextInputType.number,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'HSN / SAC',
                     controller: _hsnSacController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Remarks',
                     controller: _remarksController,
                     maxLines: 3,
@@ -378,7 +369,6 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
               ),
               const SizedBox(height: 16),
               SizedBox(
-                width: fieldWidth,
                 child: AppSwitchTile(
                   label: 'Active',
                   subtitle:

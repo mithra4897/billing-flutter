@@ -4,7 +4,13 @@ import 'package:flutter/material.dart';
 class ShellPageActionsController extends ValueNotifier<List<Widget>> {
   ShellPageActionsController() : super(const <Widget>[]);
 
+  bool _isDisposed = false;
+
   void setActions(List<Widget> actions) {
+    if (_isDisposed) {
+      return;
+    }
+
     if (listEquals(value, actions)) {
       return;
     }
@@ -13,11 +19,21 @@ class ShellPageActionsController extends ValueNotifier<List<Widget>> {
   }
 
   void clearActions() {
+    if (_isDisposed) {
+      return;
+    }
+
     if (value.isEmpty) {
       return;
     }
 
     value = const <Widget>[];
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }
 
@@ -73,9 +89,11 @@ class _ShellPageActionsState extends State<ShellPageActions> {
   @override
   void dispose() {
     _clearOnDispose = true;
+    final controller = _controller;
+    _controller = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_clearOnDispose) {
-        _controller?.clearActions();
+        controller?.clearActions();
       }
     });
     super.dispose();

@@ -18,7 +18,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _moduleController = TextEditingController();
-  final TextEditingController _documentTypeController = TextEditingController();
   final TextEditingController _eventCodeController = TextEditingController();
   final TextEditingController _recipientEmailsController =
       TextEditingController();
@@ -33,12 +32,16 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
   String? _pageError;
   String? _formError;
   List<CompanyModel> _companies = const <CompanyModel>[];
+  List<AppDropdownItem<String>> _documentTypeItems = const [
+    AppDropdownItem(value: '', label: 'All'),
+  ];
   List<EmailTemplateModel> _templates = const <EmailTemplateModel>[];
   List<EmailRuleModel> _records = const <EmailRuleModel>[];
   List<EmailRuleModel> _filteredRecords = const <EmailRuleModel>[];
   EmailRuleModel? _selectedRecord;
   int? _companyId;
   int? _templateId;
+  String _documentType = '';
   bool _autoEnabled = true;
   bool _manualEnabled = true;
   bool _sendToPartyEmail = true;
@@ -61,7 +64,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
     _codeController.dispose();
     _nameController.dispose();
     _moduleController.dispose();
-    _documentTypeController.dispose();
     _eventCodeController.dispose();
     _recipientEmailsController.dispose();
     _ccEmailsController.dispose();
@@ -81,6 +83,9 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
       final companiesResponse = await _masterService.companies(
         filters: const {'per_page': 100, 'sort_by': 'legal_name'},
       );
+      final documentSeriesResponse = await _masterService.documentSeries(
+        filters: const {'per_page': 500},
+      );
       final templatesResponse = await _communicationService.emailTemplates(
         filters: const {'per_page': 100},
       );
@@ -93,11 +98,24 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
       }
 
       final companies = companiesResponse.data ?? const <CompanyModel>[];
+      final documentTypes =
+          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
+              .map((item) => (item.documentType ?? '').trim())
+              .where((item) => item.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
       final templates = templatesResponse.data ?? const <EmailTemplateModel>[];
       final rules = rulesResponse.data ?? const <EmailRuleModel>[];
 
       setState(() {
         _companies = companies;
+        _documentTypeItems = [
+          const AppDropdownItem(value: '', label: 'All'),
+          ...documentTypes.map(
+            (item) => AppDropdownItem(value: item, label: item),
+          ),
+        ];
         _templates = templates;
         _records = rules;
         _filteredRecords = filterMasterList(
@@ -166,7 +184,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
     _codeController.text = stringValue(data, 'rule_code');
     _nameController.text = stringValue(data, 'rule_name');
     _moduleController.text = stringValue(data, 'module');
-    _documentTypeController.text = stringValue(data, 'document_type');
+    _documentType = stringValue(data, 'document_type');
     _eventCodeController.text = stringValue(data, 'event_code');
     _recipientEmailsController.text = stringValue(data, 'recipient_emails');
     _ccEmailsController.text = stringValue(data, 'cc_emails');
@@ -191,7 +209,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
     _codeController.clear();
     _nameController.clear();
     _moduleController.clear();
-    _documentTypeController.clear();
+    _documentType = '';
     _eventCodeController.clear();
     _recipientEmailsController.clear();
     _ccEmailsController.clear();
@@ -226,7 +244,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
       'rule_code': _codeController.text.trim(),
       'rule_name': _nameController.text.trim(),
       'module': _moduleController.text.trim(),
-      'document_type': nullIfEmpty(_documentTypeController.text),
+      'document_type': nullIfEmpty(_documentType),
       'event_code': _eventCodeController.text.trim(),
       if (_templateId != null) 'template_id': _templateId,
       'auto_enabled': _autoEnabled,
@@ -347,15 +365,15 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
       );
     }
 
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-    final companyItems = _companies
-        .map(
-          (company) => AppDropdownItem<int>(
-            value: company.id ?? 0,
-            label: company.legalName ?? company.code ?? 'Company',
-          ),
-        )
-        .toList(growable: false);
+    final companyItems = <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All'),
+      ..._companies.map(
+        (company) => AppDropdownItem<int?>(
+          value: company.id,
+          label: company.legalName ?? company.code ?? 'Company',
+        ),
+      ),
+    ];
     final templateItems = _templates
         .map(
           (template) => AppDropdownItem<int>(
@@ -414,71 +432,62 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    width: fieldWidth,
+                  AppDropdownField<int?>.fromMapped(
                     labelText: 'Company',
                     mappedItems: companyItems,
                     initialValue: _companyId,
                     onChanged: (value) => setState(() => _companyId = value),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Rule Code',
                     controller: _codeController,
                     validator: Validators.required('Rule code'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Rule Name',
                     controller: _nameController,
                     validator: Validators.required('Rule name'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Module',
                     controller: _moduleController,
                     validator: Validators.required('Module'),
                   ),
-                  AppFormTextField(
-                    width: fieldWidth,
+                  AppDropdownField<String>.fromMapped(
                     labelText: 'Document Type',
-                    controller: _documentTypeController,
+                    mappedItems: _documentTypeItems,
+                    initialValue: _documentType,
+                    onChanged: (value) =>
+                        setState(() => _documentType = value ?? ''),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Event Code',
                     controller: _eventCodeController,
                     validator: Validators.required('Event code'),
                   ),
                   AppDropdownField<int>.fromMapped(
-                    width: fieldWidth,
                     labelText: 'Template',
                     mappedItems: templateItems,
                     initialValue: _templateId,
                     onChanged: (value) => setState(() => _templateId = value),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Recipient Emails',
                     controller: _recipientEmailsController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'CC Emails',
                     controller: _ccEmailsController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'BCC Emails',
                     controller: _bccEmailsController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Subject Override',
                     controller: _subjectOverrideController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Body Override',
                     controller: _bodyOverrideController,
                     maxLines: 6,
@@ -491,7 +500,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
                 runSpacing: 12,
                 children: [
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Auto Enabled',
                       value: _autoEnabled,
@@ -500,7 +508,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Manual Enabled',
                       value: _manualEnabled,
@@ -509,7 +516,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Send To Party Email',
                       value: _sendToPartyEmail,
@@ -518,7 +524,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Send To Contact Email',
                       value: _sendToContactEmail,
@@ -527,7 +532,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Send To Assigned User',
                       value: _sendToAssignedUser,
@@ -536,7 +540,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Send To Owner User',
                       value: _sendToOwnerUser,
@@ -545,7 +548,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Active',
                       value: _isActive,

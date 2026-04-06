@@ -295,15 +295,15 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
       );
     }
 
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-    final companyItems = _companies
-        .map(
-          (company) => AppDropdownItem<int>(
-            value: company.id ?? 0,
-            label: company.legalName ?? company.code ?? 'Company',
-          ),
-        )
-        .toList(growable: false);
+    final companyItems = <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All'),
+      ..._companies.map(
+        (company) => AppDropdownItem<int?>(
+          value: company.id,
+          label: company.legalName ?? company.code ?? 'Company',
+        ),
+      ),
+    ];
 
     return SettingsWorkspace(
       scrollController: _pageScrollController,
@@ -352,21 +352,18 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    width: fieldWidth,
+                  AppDropdownField<int?>.fromMapped(
                     labelText: 'Company',
                     mappedItems: companyItems,
                     initialValue: _companyId,
                     onChanged: (value) => setState(() => _companyId = value),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Setting Name',
                     controller: _settingNameController,
                     validator: Validators.required('Setting name'),
                   ),
                   AppDropdownField<String>.fromMapped(
-                    width: fieldWidth,
                     labelText: 'Mail Driver',
                     mappedItems: _driverItems,
                     initialValue: _mailDriver,
@@ -374,35 +371,29 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
                         setState(() => _mailDriver = value ?? 'disabled'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'From Name',
                     controller: _fromNameController,
                     validator: Validators.required('From name'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'From Email',
                     controller: _fromEmailController,
                     validator: Validators.required('From email'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Reply-To Email',
                     controller: _replyToEmailController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'SMTP Host',
                     controller: _smtpHostController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'SMTP Port',
                     controller: _smtpPortController,
                     keyboardType: TextInputType.number,
                   ),
                   AppDropdownField<String>.fromMapped(
-                    width: fieldWidth,
                     labelText: 'Encryption',
                     mappedItems: _encryptionItems,
                     initialValue: _smtpEncryption,
@@ -410,12 +401,10 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
                         setState(() => _smtpEncryption = value ?? 'none'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'SMTP Username',
                     controller: _smtpUsernameController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'SMTP Password',
                     controller: _smtpPasswordController,
                     obscureText: true,
@@ -428,7 +417,6 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
                 runSpacing: 12,
                 children: [
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Auto Email Enabled',
                       value: _autoEmailEnabled,
@@ -437,7 +425,6 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Default Setting',
                       value: _isDefault,
@@ -445,7 +432,6 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Active',
                       value: _isActive,
@@ -455,13 +441,19 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
                 ],
               ),
               const SizedBox(height: 20),
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: _selectedSetting == null
-                    ? 'Save Email Setting'
-                    : 'Update Email Setting',
-                onPressed: _save,
-                busy: _saving,
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: _selectedSetting == null
+                        ? 'Save Email Setting'
+                        : 'Update Email Setting',
+                    onPressed: _save,
+                    busy: _saving,
+                  ),
+                ],
               ),
             ],
           ),

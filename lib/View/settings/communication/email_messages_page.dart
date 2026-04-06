@@ -19,6 +19,9 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
   bool _sending = false;
   String? _pageError;
   List<CompanyModel> _companies = const <CompanyModel>[];
+  List<AppDropdownItem<String>> _documentTypeItems = const [
+    AppDropdownItem(value: '', label: 'All'),
+  ];
   List<EmailMessageModel> _messages = const <EmailMessageModel>[];
   List<EmailMessageModel> _filteredMessages = const <EmailMessageModel>[];
   EmailMessageModel? _selectedMessage;
@@ -47,6 +50,9 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
       final companiesResponse = await _masterService.companies(
         filters: const {'per_page': 100, 'sort_by': 'legal_name'},
       );
+      final documentSeriesResponse = await _masterService.documentSeries(
+        filters: const {'per_page': 500},
+      );
       final messagesResponse = await _communicationService.emailMessages(
         filters: const {'per_page': 100},
       );
@@ -56,10 +62,23 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
       }
 
       final companies = companiesResponse.data ?? const <CompanyModel>[];
+      final documentTypes =
+          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
+              .map((item) => (item.documentType ?? '').trim())
+              .where((item) => item.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
       final messages = messagesResponse.data ?? const <EmailMessageModel>[];
 
       setState(() {
         _companies = companies;
+        _documentTypeItems = [
+          const AppDropdownItem(value: '', label: 'All'),
+          ...documentTypes.map(
+            (item) => AppDropdownItem(value: item, label: item),
+          ),
+        ];
         _messages = messages;
         _filteredMessages = _filterMessages(messages, _searchController.text);
         _initialLoading = false;
@@ -128,14 +147,15 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     final isHtmlNotifier = ValueNotifier<bool>(true);
     final formKey = GlobalKey<FormState>();
 
-    final companyItems = _companies
-        .map(
-          (company) => AppDropdownItem<int>(
-            value: company.id ?? 0,
-            label: company.legalName ?? company.code ?? 'Company',
-          ),
-        )
-        .toList(growable: false);
+    final companyItems = <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All'),
+      ..._companies.map(
+        (company) => AppDropdownItem<int?>(
+          value: company.id,
+          label: company.legalName ?? company.code ?? 'Company',
+        ),
+      ),
+    ];
 
     final result = await showDialog<bool>(
       context: context,
@@ -155,8 +175,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
                         ValueListenableBuilder<int?>(
                           valueListenable: companyIdNotifier,
                           builder: (context, companyId, _) {
-                            return AppDropdownField<int>.fromMapped(
-                              width: 300,
+                            return AppDropdownField<int?>.fromMapped(
                               labelText: 'Company',
                               mappedItems: companyItems,
                               initialValue: companyId,
@@ -166,69 +185,60 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
                           },
                         ),
                         AppFormTextField(
-                          width: 300,
                           labelText: 'Module',
                           controller: moduleController,
                           validator: Validators.required('Module'),
                         ),
-                        AppFormTextField(
-                          width: 300,
+                        AppDropdownField<String>.fromMapped(
                           labelText: 'Document Type',
-                          controller: documentTypeController,
+                          mappedItems: _documentTypeItems,
+                          initialValue: '',
+                          onChanged: (value) =>
+                              documentTypeController.text = value ?? '',
                         ),
                         AppFormTextField(
-                          width: 300,
                           labelText: 'Document Id',
                           controller: documentIdController,
                           keyboardType: TextInputType.number,
                         ),
                         AppFormTextField(
-                          width: 300,
                           labelText: 'Event Code',
                           controller: eventCodeController,
                         ),
                         AppFormTextField(
-                          width: 300,
                           labelText: 'To',
                           controller: toController,
                           validator: Validators.required('To'),
                         ),
                         AppFormTextField(
-                          width: 300,
                           labelText: 'CC',
                           controller: ccController,
                         ),
                         AppFormTextField(
-                          width: 300,
                           labelText: 'BCC',
                           controller: bccController,
                         ),
                         AppFormTextField(
-                          width: 620,
                           labelText: 'Subject',
                           controller: subjectController,
                           validator: Validators.required('Subject'),
                         ),
                         AppFormTextField(
-                          width: 620,
                           labelText: 'Body',
                           controller: bodyController,
                           maxLines: 10,
                           validator: Validators.required('Body'),
                         ),
-                        SizedBox(
-                          width: 300,
-                          child: ValueListenableBuilder<bool>(
-                            valueListenable: isHtmlNotifier,
-                            builder: (context, isHtml, _) {
-                              return AppSwitchTile(
-                                label: 'HTML Email',
-                                value: isHtml,
-                                onChanged: (value) =>
-                                    isHtmlNotifier.value = value,
-                              );
-                            },
-                          ),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: isHtmlNotifier,
+                          builder: (context, isHtml, _) {
+                            return AppSwitchTile(
+                              label: 'HTML Email',
+                              value: isHtml,
+                              onChanged: (value) =>
+                                  isHtmlNotifier.value = value,
+                            );
+                          },
                         ),
                       ],
                     ),

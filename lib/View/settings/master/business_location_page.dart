@@ -303,7 +303,6 @@ class _BusinessLocationManagementPageState
     }
 
     final filteredBranches = branchesForCompany(_branches, _companyId);
-    final fieldWidth = settingsResponsiveFieldWidth(context);
 
     return SettingsWorkspace(
       scrollController: _pageScrollController,
@@ -347,7 +346,6 @@ class _BusinessLocationManagementPageState
                   AppDropdownField<int>.fromMapped(
                     initialValue: _companyId,
                     labelText: 'Company',
-                    width: fieldWidth,
                     mappedItems: _companies
                         .where((company) => company.id != null)
                         .map(
@@ -372,7 +370,6 @@ class _BusinessLocationManagementPageState
                   AppDropdownField<int>.fromMapped(
                     initialValue: _branchId,
                     labelText: 'Branch',
-                    width: fieldWidth,
                     mappedItems: filteredBranches
                         .where((branch) => branch.id != null)
                         .map(
@@ -389,7 +386,6 @@ class _BusinessLocationManagementPageState
                   AppFormTextField(
                     controller: _codeController,
                     labelText: 'Code',
-                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Code is required'
@@ -398,7 +394,6 @@ class _BusinessLocationManagementPageState
                   AppFormTextField(
                     controller: _nameController,
                     labelText: 'Name',
-                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Name is required'
@@ -407,7 +402,6 @@ class _BusinessLocationManagementPageState
                   AppDropdownField<String>.fromMapped(
                     initialValue: _locationType,
                     labelText: 'Location Type',
-                    width: fieldWidth,
                     mappedItems: const [
                       AppDropdownItem(value: 'billing', label: 'Billing'),
                       AppDropdownItem(value: 'office', label: 'Office'),
@@ -427,27 +421,22 @@ class _BusinessLocationManagementPageState
                   AppFormTextField(
                     controller: _contactController,
                     labelText: 'Contact Person',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _phoneController,
                     labelText: 'Phone',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _emailController,
                     labelText: 'Email',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _cityController,
                     labelText: 'City',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _stateController,
                     labelText: 'State',
-                    width: fieldWidth,
                   ),
                 ],
               ),

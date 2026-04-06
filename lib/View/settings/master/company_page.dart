@@ -270,8 +270,6 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
       return Center(child: Text(_pageError!));
     }
 
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<CompanyModel>(
@@ -311,7 +309,6 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
                   AppFormTextField(
                     controller: _codeController,
                     labelText: 'Code',
-                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Code is required'
@@ -320,7 +317,6 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
                   AppFormTextField(
                     controller: _legalNameController,
                     labelText: 'Legal Name',
-                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Legal Name is required'
@@ -329,12 +325,10 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
                   AppFormTextField(
                     controller: _tradeNameController,
                     labelText: 'Trade Name',
-                    width: fieldWidth,
                   ),
                   AppDropdownField<String>.fromMapped(
                     initialValue: _companyType,
                     labelText: 'Company Type',
-                    width: fieldWidth,
                     mappedItems: const [
                       AppDropdownItem(
                         value: 'private_limited',
@@ -363,42 +357,34 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
                   AppFormTextField(
                     controller: _gstinController,
                     labelText: 'GSTIN',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _panController,
                     labelText: 'PAN',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _phoneController,
                     labelText: 'Phone',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _emailController,
                     labelText: 'Email',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _websiteController,
                     labelText: 'Website',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _cityController,
                     labelText: 'City',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _stateController,
                     labelText: 'State Name',
-                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _currencyController,
                     labelText: 'Base Currency',
-                    width: fieldWidth,
                   ),
                 ],
               ),

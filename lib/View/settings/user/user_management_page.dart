@@ -1046,8 +1046,6 @@ class _UserManagementPageState extends State<UserManagementPage>
   }
 
   Widget _buildProfileTab(BuildContext context) {
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-
     return Padding(
       padding: const EdgeInsets.all(AppUiConstants.cardPadding),
       child: Form(
@@ -1055,166 +1053,126 @@ class _UserManagementPageState extends State<UserManagementPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
+            SettingsFormWrap(
               children: [
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _employeeCodeController,
-                    labelText: 'Employee Code',
-                  ),
+                AppFormTextField(
+                  controller: _employeeCodeController,
+                  labelText: 'Employee Code',
                 ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _usernameController,
-                    labelText: 'Username',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Username is required'
-                        : null,
-                  ),
+                AppFormTextField(
+                  controller: _usernameController,
+                  labelText: 'Username',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Username is required'
+                      : null,
                 ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    labelText: _isNewUser
-                        ? 'Password'
-                        : 'Password (leave blank to keep)',
-                    validator: (value) {
-                      if (_isNewUser &&
-                          (value == null || value.trim().length < 6)) {
-                        return 'Password must be at least 6 characters';
+                AppFormTextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  labelText: _isNewUser
+                      ? 'Password'
+                      : 'Password (leave blank to keep)',
+                  validator: (value) {
+                    if (_isNewUser &&
+                        (value == null || value.trim().length < 6)) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                AppFormTextField(
+                  controller: _firstNameController,
+                  labelText: 'First Name',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'First name is required'
+                      : null,
+                ),
+                AppFormTextField(
+                  controller: _lastNameController,
+                  labelText: 'Last Name',
+                ),
+                AppFormTextField(
+                  controller: _displayNameController,
+                  labelText: 'Display Name',
+                  onChanged: (_) => _handleDisplayNameEdited(),
+                ),
+                AppFormTextField(
+                  controller: _emailController,
+                  labelText: 'Email',
+                ),
+                AppFormTextField(
+                  controller: _mobileController,
+                  labelText: 'Mobile',
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: _gender,
+                  labelText: 'Gender',
+                  mappedItems: const [
+                    AppDropdownItem(value: 'male', label: 'Male'),
+                    AppDropdownItem(value: 'female', label: 'Female'),
+                    AppDropdownItem(value: 'other', label: 'Other'),
+                    AppDropdownItem(
+                      value: 'prefer_not_to_say',
+                      label: 'Prefer not to say',
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => _gender = value),
+                ),
+                AppFormTextField(
+                  controller: _dobController,
+                  labelText: 'Date of Birth',
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                ),
+                InlineFieldAction(
+                  actionTooltip: 'Create role',
+                  onAddNew: _openCreateRoleDialog,
+                  field: AppDropdownField<int>(
+                    initialValue: _selectedRoleId,
+                    labelText: 'Primary Role',
+                    items: [
+                      ..._roles.map(
+                        (role) => DropdownMenuItem<int>(
+                          value: role.id,
+                          child: Text(role.name ?? role.code ?? 'Role'),
+                        ),
+                      ),
+                      const DropdownMenuItem<int>(
+                        value: -1,
+                        child: Row(
+                          children: [
+                            Icon(Icons.add, size: 18),
+                            SizedBox(width: 8),
+                            Text('Create New Role'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == -1) {
+                        _openCreateRoleDialog();
+                        return;
                       }
-                      return null;
+
+                      setState(() {
+                        _selectedRoleId = value;
+                        if (_selectedRoleImpliesSuperAdmin()) {
+                          _isSuperAdmin = true;
+                        }
+                      });
+                      _resetPermissionsForSelectedRole();
                     },
                   ),
                 ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _firstNameController,
-                    labelText: 'First Name',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'First name is required'
-                        : null,
+                UploadPathField(
+                  controller: _profilePhotoController,
+                  labelText: 'Profile Photo Path',
+                  isUploading: _uploadingPhoto,
+                  onUpload: _uploadUserImage,
+                  previewUrl: AppConfig.resolvePublicFileUrl(
+                    _profilePhotoController.text,
                   ),
-                ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _lastNameController,
-                    labelText: 'Last Name',
-                  ),
-                ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _displayNameController,
-                    labelText: 'Display Name',
-                    onChanged: (_) => _handleDisplayNameEdited(),
-                  ),
-                ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _emailController,
-                    labelText: 'Email',
-                  ),
-                ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _mobileController,
-                    labelText: 'Mobile',
-                  ),
-                ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppDropdownField<String>.fromMapped(
-                    initialValue: _gender,
-                    labelText: 'Gender',
-                    mappedItems: const [
-                      AppDropdownItem(value: 'male', label: 'Male'),
-                      AppDropdownItem(value: 'female', label: 'Female'),
-                      AppDropdownItem(value: 'other', label: 'Other'),
-                      AppDropdownItem(
-                        value: 'prefer_not_to_say',
-                        label: 'Prefer not to say',
-                      ),
-                    ],
-                    onChanged: (value) => setState(() => _gender = value),
-                  ),
-                ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: AppFormTextField(
-                    controller: _dobController,
-                    labelText: 'Date of Birth',
-                    keyboardType: TextInputType.datetime,
-                    inputFormatters: const [DateInputFormatter()],
-                  ),
-                ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: InlineFieldAction(
-                    actionTooltip: 'Create role',
-                    onAddNew: _openCreateRoleDialog,
-                    field: AppDropdownField<int>(
-                      initialValue: _selectedRoleId,
-                      labelText: 'Primary Role',
-                      items: [
-                        ..._roles.map(
-                          (role) => DropdownMenuItem<int>(
-                            value: role.id,
-                            child: Text(role.name ?? role.code ?? 'Role'),
-                          ),
-                        ),
-                        const DropdownMenuItem<int>(
-                          value: -1,
-                          child: Row(
-                            children: [
-                              Icon(Icons.add, size: 18),
-                              SizedBox(width: 8),
-                              Text('Create New Role'),
-                            ],
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value == -1) {
-                          _openCreateRoleDialog();
-                          return;
-                        }
-
-                        setState(() {
-                          _selectedRoleId = value;
-                          if (_selectedRoleImpliesSuperAdmin()) {
-                            _isSuperAdmin = true;
-                          }
-                        });
-                        _resetPermissionsForSelectedRole();
-                      },
-                    ),
-                  ),
-                ),
-                _inputBox(
-                  width: fieldWidth,
-                  child: UploadPathField(
-                    controller: _profilePhotoController,
-                    labelText: 'Profile Photo Path',
-                    isUploading: _uploadingPhoto,
-                    onUpload: _uploadUserImage,
-                    previewUrl: AppConfig.resolvePublicFileUrl(
-                      _profilePhotoController.text,
-                    ),
-                    previewIcon: Icons.person_outline,
-                  ),
+                  previewIcon: Icons.person_outline,
                 ),
               ],
             ),
@@ -1258,7 +1216,6 @@ class _UserManagementPageState extends State<UserManagementPage>
             ],
             const SizedBox(height: 16),
             SizedBox(
-              width: fieldWidth,
               child: AppDropdownField<String>.fromMapped(
                 initialValue: _status,
                 labelText: 'Status',
@@ -1566,10 +1523,6 @@ class _UserManagementPageState extends State<UserManagementPage>
         );
       },
     );
-  }
-
-  Widget _inputBox({required Widget child, double? width}) {
-    return SizedBox(width: width, child: child);
   }
 
   Widget _emptyStateCard(

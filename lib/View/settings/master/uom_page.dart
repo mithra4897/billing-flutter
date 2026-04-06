@@ -248,8 +248,6 @@ class _UomManagementPageState extends State<UomManagementPage> {
       );
     }
 
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<UomModel>(
@@ -291,19 +289,16 @@ class _UomManagementPageState extends State<UomManagementPage> {
               SettingsFormWrap(
                 children: [
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'UOM Code',
                     controller: _codeController,
                     validator: Validators.required('UOM code'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'UOM Name',
                     controller: _nameController,
                     validator: Validators.required('UOM name'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Symbol',
                     controller: _symbolController,
                     validator: Validators.required('Symbol'),
@@ -316,7 +311,6 @@ class _UomManagementPageState extends State<UomManagementPage> {
                 runSpacing: 12,
                 children: [
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Fraction Allowed',
                       subtitle: 'Enable decimal quantity for this unit.',
@@ -326,7 +320,6 @@ class _UomManagementPageState extends State<UomManagementPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Active',
                       subtitle: 'Inactive UOMs stay hidden from normal use.',

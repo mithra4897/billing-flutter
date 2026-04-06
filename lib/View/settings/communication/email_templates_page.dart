@@ -18,7 +18,6 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _moduleController = TextEditingController();
-  final TextEditingController _documentTypeController = TextEditingController();
   final TextEditingController _eventCodeController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
@@ -28,10 +27,14 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
   String? _pageError;
   String? _formError;
   List<CompanyModel> _companies = const <CompanyModel>[];
+  List<AppDropdownItem<String>> _documentTypeItems = const [
+    AppDropdownItem(value: '', label: 'All'),
+  ];
   List<EmailTemplateModel> _records = const <EmailTemplateModel>[];
   List<EmailTemplateModel> _filteredRecords = const <EmailTemplateModel>[];
   EmailTemplateModel? _selectedRecord;
   int? _companyId;
+  String _documentType = '';
   bool _isHtml = true;
   bool _isActive = true;
 
@@ -49,7 +52,6 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
     _codeController.dispose();
     _nameController.dispose();
     _moduleController.dispose();
-    _documentTypeController.dispose();
     _eventCodeController.dispose();
     _subjectController.dispose();
     _bodyController.dispose();
@@ -66,6 +68,9 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
       final companiesResponse = await _masterService.companies(
         filters: const {'per_page': 100, 'sort_by': 'legal_name'},
       );
+      final documentSeriesResponse = await _masterService.documentSeries(
+        filters: const {'per_page': 500},
+      );
       final recordsResponse = await _communicationService.emailTemplates(
         filters: const {'per_page': 100},
       );
@@ -75,10 +80,23 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
       }
 
       final companies = companiesResponse.data ?? const <CompanyModel>[];
+      final documentTypes =
+          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
+              .map((item) => (item.documentType ?? '').trim())
+              .where((item) => item.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
       final records = recordsResponse.data ?? const <EmailTemplateModel>[];
 
       setState(() {
         _companies = companies;
+        _documentTypeItems = [
+          const AppDropdownItem(value: '', label: 'All'),
+          ...documentTypes.map(
+            (item) => AppDropdownItem(value: item, label: item),
+          ),
+        ];
         _records = records;
         _filteredRecords = filterMasterList(
           records,
@@ -145,7 +163,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
     _codeController.text = stringValue(data, 'template_code');
     _nameController.text = stringValue(data, 'template_name');
     _moduleController.text = stringValue(data, 'module');
-    _documentTypeController.text = stringValue(data, 'document_type');
+    _documentType = stringValue(data, 'document_type');
     _eventCodeController.text = stringValue(data, 'event_code');
     _subjectController.text = stringValue(data, 'subject_template');
     _bodyController.text = stringValue(data, 'body_template');
@@ -161,7 +179,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
     _codeController.clear();
     _nameController.clear();
     _moduleController.clear();
-    _documentTypeController.clear();
+    _documentType = '';
     _eventCodeController.clear();
     _subjectController.clear();
     _bodyController.clear();
@@ -188,7 +206,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
       'template_code': _codeController.text.trim(),
       'template_name': _nameController.text.trim(),
       'module': _moduleController.text.trim(),
-      'document_type': nullIfEmpty(_documentTypeController.text),
+      'document_type': nullIfEmpty(_documentType),
       'event_code': nullIfEmpty(_eventCodeController.text),
       'subject_template': _subjectController.text.trim(),
       'body_template': _bodyController.text.trim(),
@@ -300,15 +318,15 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
       );
     }
 
-    final fieldWidth = settingsResponsiveFieldWidth(context);
-    final companyItems = _companies
-        .map(
-          (company) => AppDropdownItem<int>(
-            value: company.id ?? 0,
-            label: company.legalName ?? company.code ?? 'Company',
-          ),
-        )
-        .toList(growable: false);
+    final companyItems = <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All'),
+      ..._companies.map(
+        (company) => AppDropdownItem<int?>(
+          value: company.id,
+          label: company.legalName ?? company.code ?? 'Company',
+        ),
+      ),
+    ];
 
     return SettingsWorkspace(
       scrollController: _pageScrollController,
@@ -355,49 +373,44 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    width: fieldWidth,
+                  AppDropdownField<int?>.fromMapped(
                     labelText: 'Company',
                     mappedItems: companyItems,
                     initialValue: _companyId,
                     onChanged: (value) => setState(() => _companyId = value),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Template Code',
                     controller: _codeController,
                     validator: Validators.required('Template code'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Template Name',
                     controller: _nameController,
                     validator: Validators.required('Template name'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Module',
                     controller: _moduleController,
                     validator: Validators.required('Module'),
                   ),
-                  AppFormTextField(
-                    width: fieldWidth,
+                  AppDropdownField<String>.fromMapped(
                     labelText: 'Document Type',
-                    controller: _documentTypeController,
+                    mappedItems: _documentTypeItems,
+                    initialValue: _documentType,
+                    onChanged: (value) =>
+                        setState(() => _documentType = value ?? ''),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Event Code',
                     controller: _eventCodeController,
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Subject Template',
                     controller: _subjectController,
                     validator: Validators.required('Subject template'),
                   ),
                   AppFormTextField(
-                    width: fieldWidth,
                     labelText: 'Body Template',
                     controller: _bodyController,
                     maxLines: 10,
@@ -411,7 +424,6 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
                 runSpacing: 12,
                 children: [
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'HTML Template',
                       value: _isHtml,
@@ -419,7 +431,6 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
                     ),
                   ),
                   SizedBox(
-                    width: fieldWidth,
                     child: AppSwitchTile(
                       label: 'Active',
                       value: _isActive,
