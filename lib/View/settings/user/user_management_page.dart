@@ -5,6 +5,9 @@ import '../../../app/constants/app_ui_constants.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../components/adaptive_shell.dart';
 import '../../../components/app_loading_view.dart';
+import '../../../components/date_input_formatter.dart';
+import '../../../components/inline_field_action.dart';
+import '../../../components/upload_path_field.dart';
 import '../../../core/storage/session_storage.dart';
 import '../../../model/admin/permission_model.dart';
 import '../../../model/admin/role_model.dart';
@@ -32,6 +35,7 @@ class _UserManagementPageState extends State<UserManagementPage>
   final AuthService _authService = AuthService();
   final MediaService _mediaService = MediaService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final ScrollController _pageScrollController = ScrollController();
 
   late final TabController _tabController;
 
@@ -60,31 +64,42 @@ class _UserManagementPageState extends State<UserManagementPage>
   bool _isSystemUser = true;
   bool _isSuperAdmin = false;
   String _status = 'active';
+  bool _displayNameTouched = false;
 
   List<UserModel> _users = const <UserModel>[];
   List<UserModel> _filteredUsers = const <UserModel>[];
   List<RoleModel> _roles = const <RoleModel>[];
+  List<UserPermissionModel> _rolePermissions = const <UserPermissionModel>[];
   List<PermissionModel> _permissions = const <PermissionModel>[];
-  List<UserPermissionModel> _directPermissions = const <UserPermissionModel>[];
   List<UserPermissionModel> _effectivePermissions =
       const <UserPermissionModel>[];
   List<AuditLogModel> _auditLogs = const <AuditLogModel>[];
   List<LoginHistoryModel> _loginHistory = const <LoginHistoryModel>[];
 
   int? _selectedUserId;
+
   bool get _isNewUser => _selectedUserId == null;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
     _searchController.addListener(_applyUserFilter);
+    _firstNameController.addListener(_syncDisplayNameFromNameParts);
+    _lastNameController.addListener(_syncDisplayNameFromNameParts);
+    _displayNameController.addListener(_handleDisplayNameEdited);
     _loadInitial();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _pageScrollController.dispose();
     _searchController.dispose();
     _employeeCodeController.dispose();
     _usernameController.dispose();
@@ -185,7 +200,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     _displayNameController.text = user.displayName ?? '';
     _emailController.text = user.email ?? '';
     _mobileController.text = user.mobile ?? '';
-    _dobController.text = user.dateOfBirth ?? '';
+    _dobController.text = _normalizeDate(user.dateOfBirth);
     _profilePhotoController.text = user.profilePhotoPath ?? '';
     _remarksController.text = user.remarks ?? '';
     _gender = user.gender;
@@ -193,6 +208,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     _isSystemUser = user.isSystemUser ?? true;
     _isSuperAdmin = user.isSuperAdmin ?? false;
     _status = user.status ?? 'active';
+    _displayNameTouched = (user.displayName ?? '').trim().isNotEmpty;
     final primaryRole = user.userRoles.where(
       (item) => item.isPrimaryRole == true,
     );
@@ -225,44 +241,12 @@ class _UserManagementPageState extends State<UserManagementPage>
   }
 
   void _applyPermissionSummary(UserPermissionSummaryModel? summary) {
-    _effectivePermissions = summary?.effectivePermissions ?? const [];
-    final directMap = {
-      for (final item
-          in summary?.directPermissions ?? const <UserPermissionModel>[])
-        item.permissionId ?? 0: item,
-    };
-
-    _directPermissions = _permissions
-        .map((permission) {
-          final direct =
-              directMap[permission.id] ??
-              UserPermissionModel(
-                permissionId: permission.id,
-                module: permission.module,
-                code: permission.code,
-                name: permission.name,
-                description: permission.description,
-                allowView: false,
-                allowCreate: false,
-                allowUpdate: false,
-                allowDelete: false,
-                allowApprove: false,
-                allowPrint: false,
-                allowExport: false,
-                isActive: true,
-                permission: permission,
-              );
-
-          return direct.copyWith(
-            permissionId: permission.id,
-            module: permission.module,
-            code: permission.code,
-            name: permission.name,
-            description: permission.description,
-            permission: permission,
-          );
-        })
-        .toList(growable: false);
+    _rolePermissions = _mergePermissionSet(
+      summary?.rolePermissions ?? const [],
+    );
+    _effectivePermissions = _mergePermissionSet(
+      summary?.effectivePermissions ?? const [],
+    );
   }
 
   void _resetForm() {
@@ -284,27 +268,9 @@ class _UserManagementPageState extends State<UserManagementPage>
     _isSystemUser = true;
     _isSuperAdmin = false;
     _status = 'active';
-    _directPermissions = _permissions
-        .map((permission) {
-          return UserPermissionModel(
-            permissionId: permission.id,
-            module: permission.module,
-            code: permission.code,
-            name: permission.name,
-            description: permission.description,
-            allowView: false,
-            allowCreate: false,
-            allowUpdate: false,
-            allowDelete: false,
-            allowApprove: false,
-            allowPrint: false,
-            allowExport: false,
-            isActive: true,
-            permission: permission,
-          );
-        })
-        .toList(growable: false);
-    _effectivePermissions = const [];
+    _displayNameTouched = false;
+    _rolePermissions = _mergePermissionSet(const []);
+    _effectivePermissions = _mergePermissionSet(const []);
     _auditLogs = const [];
     _loginHistory = const [];
     _formError = null;
@@ -355,7 +321,7 @@ class _UserManagementPageState extends State<UserManagementPage>
         gender: _gender,
         dateOfBirth: _dobController.text.trim().isEmpty
             ? null
-            : _dobController.text.trim(),
+            : _normalizeDate(_dobController.text.trim()),
         profilePhotoPath: _profilePhotoController.text.trim().isEmpty
             ? null
             : _profilePhotoController.text.trim(),
@@ -411,16 +377,8 @@ class _UserManagementPageState extends State<UserManagementPage>
     });
 
     try {
-      final toSave = _directPermissions
-          .where((permission) {
-            return permission.allowView == true ||
-                permission.allowCreate == true ||
-                permission.allowUpdate == true ||
-                permission.allowDelete == true ||
-                permission.allowApprove == true ||
-                permission.allowPrint == true ||
-                permission.allowExport == true;
-          })
+      final toSave = _effectivePermissions
+          .where((permission) => _differsFromRole(permission))
           .toList(growable: false);
 
       final response = await _authService.syncUserExtraPermissions(
@@ -522,19 +480,321 @@ class _UserManagementPageState extends State<UserManagementPage>
   }
 
   void _togglePermission(int index, String field, bool enabled) {
-    final current = _directPermissions[index];
+    final current = _effectivePermissions[index];
     setState(() {
-      _directPermissions = List<UserPermissionModel>.from(_directPermissions)
-        ..[index] = current.copyWith(
-          allowView: field == 'view' ? enabled : current.allowView,
-          allowCreate: field == 'create' ? enabled : current.allowCreate,
-          allowUpdate: field == 'update' ? enabled : current.allowUpdate,
-          allowDelete: field == 'delete' ? enabled : current.allowDelete,
-          allowApprove: field == 'approve' ? enabled : current.allowApprove,
-          allowPrint: field == 'print' ? enabled : current.allowPrint,
-          allowExport: field == 'export' ? enabled : current.allowExport,
-        );
+      _effectivePermissions =
+          List<UserPermissionModel>.from(_effectivePermissions)
+            ..[index] = current.copyWith(
+              allowView: field == 'view' ? enabled : current.allowView,
+              allowCreate: field == 'create' ? enabled : current.allowCreate,
+              allowUpdate: field == 'update' ? enabled : current.allowUpdate,
+              allowDelete: field == 'delete' ? enabled : current.allowDelete,
+              allowApprove: field == 'approve' ? enabled : current.allowApprove,
+              allowPrint: field == 'print' ? enabled : current.allowPrint,
+              allowExport: field == 'export' ? enabled : current.allowExport,
+            );
     });
+  }
+
+  void _handleDisplayNameEdited() {
+    final generated = _generatedDisplayName;
+    final current = _displayNameController.text.trim();
+    if (current.isEmpty || current == generated) {
+      _displayNameTouched = false;
+      return;
+    }
+
+    _displayNameTouched = true;
+  }
+
+  void _syncDisplayNameFromNameParts() {
+    if (_displayNameTouched) {
+      return;
+    }
+
+    final generated = _generatedDisplayName;
+    if (_displayNameController.text != generated) {
+      _displayNameController.value = _displayNameController.value.copyWith(
+        text: generated,
+        selection: TextSelection.collapsed(offset: generated.length),
+      );
+    }
+  }
+
+  String get _generatedDisplayName {
+    return [
+      _firstNameController.text.trim(),
+      _lastNameController.text.trim(),
+    ].where((value) => value.isNotEmpty).join(' ');
+  }
+
+  String _normalizeDate(String? value) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) {
+      return '';
+    }
+
+    return text.length >= 10 ? text.substring(0, 10) : text;
+  }
+
+  bool _selectedRoleImpliesSuperAdmin() {
+    final role = _roles.where((item) => item.id == _selectedRoleId).firstOrNull;
+    final tokens = '${role?.code ?? ''} ${role?.name ?? ''}'.toLowerCase();
+    return tokens.contains('superadmin') || tokens.contains('super admin');
+  }
+
+  List<UserPermissionModel> _mergePermissionSet(
+    List<UserPermissionModel> source,
+  ) {
+    final sourceMap = {for (final item in source) item.permissionId ?? 0: item};
+
+    return _permissions
+        .map((permission) {
+          final item =
+              sourceMap[permission.id] ??
+              UserPermissionModel(
+                permissionId: permission.id,
+                module: permission.module,
+                code: permission.code,
+                name: permission.name,
+                description: permission.description,
+                allowView: false,
+                allowCreate: false,
+                allowUpdate: false,
+                allowDelete: false,
+                allowApprove: false,
+                allowPrint: false,
+                allowExport: false,
+                isActive: true,
+                permission: permission,
+              );
+
+          return item.copyWith(
+            permissionId: permission.id,
+            module: permission.module,
+            code: permission.code,
+            name: permission.name,
+            description: permission.description,
+            permission: permission,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  bool _differsFromRole(UserPermissionModel permission) {
+    final baseline = _rolePermissions.firstWhere(
+      (item) => item.permissionId == permission.permissionId,
+      orElse: () => UserPermissionModel(permissionId: permission.permissionId),
+    );
+
+    for (final field in [
+      permission.allowView != baseline.allowView,
+      permission.allowCreate != baseline.allowCreate,
+      permission.allowUpdate != baseline.allowUpdate,
+      permission.allowDelete != baseline.allowDelete,
+      permission.allowApprove != baseline.allowApprove,
+      permission.allowPrint != baseline.allowPrint,
+      permission.allowExport != baseline.allowExport,
+    ]) {
+      if (field) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Future<void> _resetPermissionsForSelectedRole() async {
+    if (_selectedRoleId == null) {
+      setState(() {
+        _rolePermissions = _mergePermissionSet(const []);
+        _effectivePermissions = _mergePermissionSet(const []);
+      });
+      return;
+    }
+
+    final response = await _authService.rolePermissions(_selectedRoleId!);
+    final permissionRows =
+        (response.data?.data['permissions'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(UserPermissionModel.fromJson)
+            .toList(growable: false);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _rolePermissions = _mergePermissionSet(permissionRows);
+      _effectivePermissions = _mergePermissionSet(permissionRows);
+    });
+  }
+
+  Future<void> _openCreateRoleDialog() async {
+    final nameController = TextEditingController();
+    final codeController = TextEditingController();
+    final descriptionController = TextEditingController();
+    var saving = false;
+    String? errorText;
+
+    String generateCode(String value) {
+      final cleaned = value
+          .trim()
+          .toUpperCase()
+          .replaceAll(RegExp(r'[^A-Z0-9]+'), '_')
+          .replaceAll(RegExp(r'_+'), '_')
+          .replaceAll(RegExp(r'^_|_$'), '');
+      return cleaned.length > 50 ? cleaned.substring(0, 50) : cleaned;
+    }
+
+    nameController.addListener(() {
+      if (codeController.text.trim().isEmpty) {
+        codeController.text = generateCode(nameController.text);
+      }
+    });
+
+    final createdRole = await showDialog<RoleModel>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> submit() async {
+              final name = nameController.text.trim();
+              final code = codeController.text.trim().isEmpty
+                  ? generateCode(name)
+                  : codeController.text.trim().toUpperCase();
+
+              if (name.isEmpty || code.isEmpty) {
+                setDialogState(() {
+                  errorText = 'Role name and code are required.';
+                });
+                return;
+              }
+
+              setDialogState(() {
+                saving = true;
+                errorText = null;
+              });
+
+              try {
+                final response = await _authService.createRole(
+                  RoleModel(
+                    code: code,
+                    name: name,
+                    description: descriptionController.text.trim().isEmpty
+                        ? null
+                        : descriptionController.text.trim(),
+                    isActive: true,
+                    isSystemRole: false,
+                  ),
+                );
+
+                if (!dialogContext.mounted) {
+                  return;
+                }
+
+                final role = response.data;
+                if (role == null || role.id == null) {
+                  setDialogState(() {
+                    saving = false;
+                    errorText = response.message;
+                  });
+                  return;
+                }
+
+                Navigator.of(dialogContext).pop(role);
+              } catch (error) {
+                setDialogState(() {
+                  saving = false;
+                  errorText = error.toString();
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Create Role'),
+              content: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      autofocus: true,
+                      decoration: const InputDecoration(labelText: 'Role Name'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: codeController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(labelText: 'Role Code'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descriptionController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                      ),
+                    ),
+                    if (errorText != null && errorText!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        errorText!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton.icon(
+                  onPressed: saving ? null : submit,
+                  icon: saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.add),
+                  label: Text(saving ? 'Creating...' : 'Create Role'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (createdRole == null || createdRole.id == null || !mounted) {
+      return;
+    }
+
+    final refreshedRoles = await _authService.roles(
+      filters: const {'per_page': 100},
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _roles = refreshedRoles.data ?? <RoleModel>[createdRole];
+      _selectedRoleId = createdRole.id;
+      if (_selectedRoleImpliesSuperAdmin()) {
+        _isSuperAdmin = true;
+      }
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Role created successfully.')));
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -556,6 +816,14 @@ class _UserManagementPageState extends State<UserManagementPage>
         return AdaptiveShell(
           title: 'Users',
           branding: branding,
+          scrollController: _pageScrollController,
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: _resetForm,
+              icon: Icons.add,
+              label: 'New User',
+            ),
+          ],
           onLogout: () => _logout(context),
           child: _initialLoading
               ? const AppLoadingView(message: 'Loading users...')
@@ -565,7 +833,8 @@ class _UserManagementPageState extends State<UserManagementPage>
                   builder: (context, constraints) {
                     final showSideList = constraints.maxWidth >= 1100;
 
-                    return Padding(
+                    return SingleChildScrollView(
+                      controller: _pageScrollController,
                       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
                       child: showSideList
                           ? Row(
@@ -573,7 +842,6 @@ class _UserManagementPageState extends State<UserManagementPage>
                               children: [
                                 SizedBox(
                                   width: 320,
-                                  height: double.infinity,
                                   child: _buildUserList(context),
                                 ),
                                 const SizedBox(width: 24),
@@ -581,13 +849,11 @@ class _UserManagementPageState extends State<UserManagementPage>
                               ],
                             )
                           : Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                SizedBox(
-                                  height: 320,
-                                  child: _buildUserList(context),
-                                ),
+                                _buildUserList(context),
                                 const SizedBox(height: 20),
-                                Expanded(child: _buildEditor(context)),
+                                _buildEditor(context),
                               ],
                             ),
                     );
@@ -618,24 +884,6 @@ class _UserManagementPageState extends State<UserManagementPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Users',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: _resetForm,
-                  icon: const Icon(Icons.add),
-                  label: const Text('New'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
             TextField(
               controller: _searchController,
               decoration: const InputDecoration(
@@ -644,65 +892,64 @@ class _UserManagementPageState extends State<UserManagementPage>
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: _filteredUsers.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final user = _filteredUsers[index];
-                  final selected = user.id == _selectedUserId;
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _filteredUsers.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final user = _filteredUsers[index];
+                final selected = user.id == _selectedUserId;
 
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(
-                      AppUiConstants.buttonRadius,
+                return InkWell(
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.buttonRadius,
+                  ),
+                  onTap: () {
+                    if (user.id != null) {
+                      _loadUser(user.id!);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.12)
+                          : appTheme.subtleFill,
+                      borderRadius: BorderRadius.circular(
+                        AppUiConstants.buttonRadius,
+                      ),
                     ),
-                    onTap: () {
-                      if (user.id != null) {
-                        _loadUser(user.id!);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.12)
-                            : appTheme.subtleFill,
-                        borderRadius: BorderRadius.circular(
-                          AppUiConstants.buttonRadius,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.displayName ??
+                              '${user.firstName ?? ''} ${user.lastName ?? ''}'
+                                  .trim()
+                                  .ifEmpty(user.username ?? 'User'),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user.displayName ??
-                                '${user.firstName ?? ''} ${user.lastName ?? ''}'
-                                    .trim()
-                                    .ifEmpty(user.username ?? 'User'),
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user.username ?? '',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: appTheme.mutedText),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            user.status ?? 'active',
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(color: appTheme.mutedText),
-                          ),
-                        ],
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user.username ?? '',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: appTheme.mutedText),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          user.status ?? 'active',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: appTheme.mutedText),
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -712,6 +959,7 @@ class _UserManagementPageState extends State<UserManagementPage>
 
   Widget _buildEditor(BuildContext context) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final showDetailTabs = !_isNewUser && _selectedUserId != null;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -736,12 +984,6 @@ class _UserManagementPageState extends State<UserManagementPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isNewUser ? 'Create User' : 'Edit User',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
                         _isNewUser
                             ? 'Fill the complete user profile first. After saving, the permission, audit, and login tabs become active.'
                             : 'Role gives the base access, and direct permissions can be added in the next tab.',
@@ -752,37 +994,30 @@ class _UserManagementPageState extends State<UserManagementPage>
                     ],
                   ),
                 ),
-                if (_selectedUserId != null)
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.of(
-                      context,
-                    ).pushReplacementNamed('/settings/profile'),
-                    icon: const Icon(Icons.person_outline),
-                    label: const Text('My Profile'),
-                  ),
               ],
             ),
           ),
-          TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabs: const [
-              Tab(text: 'Profile'),
-              Tab(text: 'Permissions'),
-              Tab(text: 'Audit Log'),
-              Tab(text: 'Login History'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
+          if (showDetailTabs)
+            TabBar(
               controller: _tabController,
-              children: [
-                _buildProfileTab(context),
-                _buildPermissionsTab(context),
-                _buildAuditTab(context),
-                _buildLoginHistoryTab(context),
+              isScrollable: true,
+              tabs: const [
+                Tab(text: 'Profile'),
+                Tab(text: 'Permissions'),
+                Tab(text: 'Audit Log'),
+                Tab(text: 'Login History'),
               ],
             ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 28),
+            child: showDetailTabs
+                ? [
+                    _buildProfileTab(context),
+                    _buildPermissionsTab(context),
+                    _buildAuditTab(context),
+                    _buildLoginHistoryTab(context),
+                  ][_tabController.index]
+                : _buildProfileTab(context),
           ),
         ],
       ),
@@ -790,7 +1025,7 @@ class _UserManagementPageState extends State<UserManagementPage>
   }
 
   Widget _buildProfileTab(BuildContext context) {
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.all(AppUiConstants.cardPadding),
       child: Form(
         key: _formKey,
@@ -859,6 +1094,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                     decoration: const InputDecoration(
                       labelText: 'Display Name',
                     ),
+                    onChanged: (_) => _handleDisplayNameEdited(),
                   ),
                 ),
                 _inputBox(
@@ -894,99 +1130,67 @@ class _UserManagementPageState extends State<UserManagementPage>
                     controller: _dobController,
                     decoration: const InputDecoration(
                       labelText: 'Date of Birth',
-                      hintText: 'YYYY-MM-DD',
                     ),
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: const [DateInputFormatter()],
                   ),
                 ),
                 _inputBox(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: _selectedRoleId,
-                    decoration: const InputDecoration(
-                      labelText: 'Primary Role',
-                    ),
-                    items: _roles
-                        .map(
+                  width: 324,
+                  child: InlineFieldAction(
+                    actionTooltip: 'Create role',
+                    onAddNew: _openCreateRoleDialog,
+                    field: DropdownButtonFormField<int>(
+                      initialValue: _selectedRoleId,
+                      decoration: const InputDecoration(
+                        labelText: 'Primary Role',
+                      ),
+                      items: [
+                        ..._roles.map(
                           (role) => DropdownMenuItem<int>(
                             value: role.id,
                             child: Text(role.name ?? role.code ?? 'Role'),
                           ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) =>
-                        setState(() => _selectedRoleId = value),
+                        ),
+                        const DropdownMenuItem<int>(
+                          value: -1,
+                          child: Row(
+                            children: [
+                              Icon(Icons.add, size: 18),
+                              SizedBox(width: 8),
+                              Text('Create New Role'),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == -1) {
+                          _openCreateRoleDialog();
+                          return;
+                        }
+
+                        setState(() {
+                          _selectedRoleId = value;
+                          if (_selectedRoleImpliesSuperAdmin()) {
+                            _isSuperAdmin = true;
+                          }
+                        });
+                        _resetPermissionsForSelectedRole();
+                      },
+                    ),
                   ),
                 ),
                 _inputBox(
                   width: 560,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_profilePhotoController.text.trim().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                              AppUiConstants.fieldRadius,
-                            ),
-                            child: Image.network(
-                              AppConfig.resolvePublicFileUrl(
-                                    _profilePhotoController.text,
-                                  ) ??
-                                  '',
-                              width: 96,
-                              height: 96,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 96,
-                                  height: 96,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .extension<AppThemeExtension>()!
-                                        .subtleFill,
-                                    borderRadius: BorderRadius.circular(
-                                      AppUiConstants.fieldRadius,
-                                    ),
-                                  ),
-                                  child: const Icon(Icons.person_outline),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _profilePhotoController,
-                              decoration: const InputDecoration(
-                                labelText: 'Profile Photo Path',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          OutlinedButton.icon(
-                            onPressed: _uploadingPhoto
-                                ? null
-                                : _uploadUserImage,
-                            icon: _uploadingPhoto
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.upload_outlined),
-                            label: Text(
-                              _uploadingPhoto ? 'Uploading...' : 'Upload',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  child: UploadPathField(
+                    controller: _profilePhotoController,
+                    labelText: 'Profile Photo Path',
+                    isUploading: _uploadingPhoto,
+                    onUpload: _uploadUserImage,
+                    previewUrl: AppConfig.resolvePublicFileUrl(
+                      _profilePhotoController.text,
+                    ),
+                    previewIcon: Icons.person_outline,
                   ),
                 ),
               ],
@@ -1010,12 +1214,27 @@ class _UserManagementPageState extends State<UserManagementPage>
                 ),
                 _boolSwitch(
                   context,
-                  'Super Admin',
+                  _selectedRoleImpliesSuperAdmin()
+                      ? 'Super Admin via Role'
+                      : 'Super Admin Override',
                   _isSuperAdmin,
-                  (value) => setState(() => _isSuperAdmin = value),
+                  _selectedRoleImpliesSuperAdmin()
+                      ? null
+                      : (value) => setState(() => _isSuperAdmin = value),
                 ),
               ],
             ),
+            if (_selectedRoleImpliesSuperAdmin()) ...[
+              const SizedBox(height: 8),
+              Text(
+                'The selected role already grants super admin access.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).extension<AppThemeExtension>()!.mutedText,
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               width: 260,
@@ -1057,13 +1276,6 @@ class _UserManagementPageState extends State<UserManagementPage>
                       : const Icon(Icons.save_outlined),
                   label: Text(_savingProfile ? 'Saving...' : 'Save User'),
                 ),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pushReplacementNamed('/settings/roles'),
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Create Role'),
-                ),
               ],
             ),
             if (_formError != null && _formError!.isNotEmpty) ...[
@@ -1081,13 +1293,17 @@ class _UserManagementPageState extends State<UserManagementPage>
 
   Widget _buildPermissionsTab(BuildContext context) {
     if (_isNewUser) {
-      return const Center(
-        child: Text('Save the user first to review and assign permissions.'),
+      return _emptyStateCard(
+        context,
+        icon: Icons.verified_user_outlined,
+        title: 'Permissions Will Appear After Save',
+        message:
+            'Create the user first, then we can show role-based access and user-specific permission overrides here.',
       );
     }
 
     final grouped = <String, List<UserPermissionModel>>{};
-    for (final permission in _directPermissions) {
+    for (final permission in _effectivePermissions) {
       final key = permission.module ?? 'general';
       grouped.putIfAbsent(key, () => <UserPermissionModel>[]).add(permission);
     }
@@ -1100,7 +1316,7 @@ class _UserManagementPageState extends State<UserManagementPage>
             children: [
               Expanded(
                 child: Text(
-                  'Role gives baseline access. Use direct permissions here for additional user-specific rights.',
+                  'Role gives the baseline access. You can add or remove rights here for this user only. Changing the role resets these custom overrides to the new role baseline.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -1114,138 +1330,144 @@ class _UserManagementPageState extends State<UserManagementPage>
                       )
                     : const Icon(Icons.verified_user_outlined),
                 label: Text(
-                  _savingPermissions ? 'Saving...' : 'Save Direct Permissions',
+                  _savingPermissions ? 'Saving...' : 'Save Permissions',
                 ),
               ),
             ],
           ),
         ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-            children: grouped.entries
-                .map((entry) {
-                  return Card(
-                    child: ExpansionTile(
-                      initiallyExpanded: true,
-                      title: Text(entry.key.toUpperCase()),
-                      children: entry.value
-                          .map((permission) {
-                            final index = _directPermissions.indexOf(
-                              permission,
-                            );
-                            final effective = _effectivePermissions.firstWhere(
-                              (item) =>
-                                  item.permissionId == permission.permissionId,
-                              orElse: () => permission,
-                            );
+        ListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+          children: grouped.entries
+              .map((entry) {
+                return Card(
+                  child: ExpansionTile(
+                    initiallyExpanded: true,
+                    title: Text(entry.key.toUpperCase()),
+                    children: entry.value
+                        .map((permission) {
+                          final index = _effectivePermissions.indexOf(
+                            permission,
+                          );
+                          final effective = _effectivePermissions.firstWhere(
+                            (item) =>
+                                item.permissionId == permission.permissionId,
+                            orElse: () => permission,
+                          );
+                          final baseline = _rolePermissions.firstWhere(
+                            (item) =>
+                                item.permissionId == permission.permissionId,
+                            orElse: () => permission,
+                          );
 
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    permission.name ??
-                                        permission.code ??
-                                        'Permission',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(fontWeight: FontWeight.w700),
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  permission.name ??
+                                      permission.code ??
+                                      'Permission',
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                if ((permission.description ?? '').isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(permission.description!),
                                   ),
-                                  if ((permission.description ?? '').isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Text(permission.description!),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 8,
+                                  children: [
+                                    _permCheck(
+                                      'View',
+                                      effective.allowView ?? false,
+                                      (value) => _togglePermission(
+                                        index,
+                                        'view',
+                                        value,
+                                      ),
                                     ),
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                    spacing: 12,
-                                    runSpacing: 8,
-                                    children: [
-                                      _permCheck(
-                                        'View',
-                                        permission.allowView ?? false,
-                                        (value) => _togglePermission(
-                                          index,
-                                          'view',
-                                          value,
-                                        ),
+                                    _permCheck(
+                                      'Create',
+                                      effective.allowCreate ?? false,
+                                      (value) => _togglePermission(
+                                        index,
+                                        'create',
+                                        value,
                                       ),
-                                      _permCheck(
-                                        'Create',
-                                        permission.allowCreate ?? false,
-                                        (value) => _togglePermission(
-                                          index,
-                                          'create',
-                                          value,
-                                        ),
+                                    ),
+                                    _permCheck(
+                                      'Update',
+                                      effective.allowUpdate ?? false,
+                                      (value) => _togglePermission(
+                                        index,
+                                        'update',
+                                        value,
                                       ),
-                                      _permCheck(
-                                        'Update',
-                                        permission.allowUpdate ?? false,
-                                        (value) => _togglePermission(
-                                          index,
-                                          'update',
-                                          value,
-                                        ),
+                                    ),
+                                    _permCheck(
+                                      'Delete',
+                                      effective.allowDelete ?? false,
+                                      (value) => _togglePermission(
+                                        index,
+                                        'delete',
+                                        value,
                                       ),
-                                      _permCheck(
-                                        'Delete',
-                                        permission.allowDelete ?? false,
-                                        (value) => _togglePermission(
-                                          index,
-                                          'delete',
-                                          value,
-                                        ),
+                                    ),
+                                    _permCheck(
+                                      'Approve',
+                                      effective.allowApprove ?? false,
+                                      (value) => _togglePermission(
+                                        index,
+                                        'approve',
+                                        value,
                                       ),
-                                      _permCheck(
-                                        'Approve',
-                                        permission.allowApprove ?? false,
-                                        (value) => _togglePermission(
-                                          index,
-                                          'approve',
-                                          value,
-                                        ),
+                                    ),
+                                    _permCheck(
+                                      'Print',
+                                      effective.allowPrint ?? false,
+                                      (value) => _togglePermission(
+                                        index,
+                                        'print',
+                                        value,
                                       ),
-                                      _permCheck(
-                                        'Print',
-                                        permission.allowPrint ?? false,
-                                        (value) => _togglePermission(
-                                          index,
-                                          'print',
-                                          value,
-                                        ),
+                                    ),
+                                    _permCheck(
+                                      'Export',
+                                      effective.allowExport ?? false,
+                                      (value) => _togglePermission(
+                                        index,
+                                        'export',
+                                        value,
                                       ),
-                                      _permCheck(
-                                        'Export',
-                                        permission.allowExport ?? false,
-                                        (value) => _togglePermission(
-                                          index,
-                                          'export',
-                                          value,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Effective access: ${_rightsLabel(effective)}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                            );
-                          })
-                          .toList(growable: false),
-                    ),
-                  );
-                })
-                .toList(growable: false),
-          ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Role baseline: ${_rightsLabel(baseline)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Effective access: ${_rightsLabel(effective)}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          );
+                        })
+                        .toList(growable: false),
+                  ),
+                );
+              })
+              .toList(growable: false),
         ),
       ],
     );
@@ -1253,8 +1475,12 @@ class _UserManagementPageState extends State<UserManagementPage>
 
   Widget _buildAuditTab(BuildContext context) {
     if (_isNewUser) {
-      return const Center(
-        child: Text('Save the user first to view audit history.'),
+      return _emptyStateCard(
+        context,
+        icon: Icons.history_outlined,
+        title: 'Audit History Will Appear After Save',
+        message:
+            'Once the user record exists, audit events like updates, status changes, and permission changes will show here.',
       );
     }
 
@@ -1270,8 +1496,12 @@ class _UserManagementPageState extends State<UserManagementPage>
 
   Widget _buildLoginHistoryTab(BuildContext context) {
     if (_isNewUser) {
-      return const Center(
-        child: Text('Save the user first to view login history.'),
+      return _emptyStateCard(
+        context,
+        icon: Icons.login_outlined,
+        title: 'Login History Will Appear After Save',
+        message:
+            'After the user is created and starts signing in, the login history timeline will be available here.',
       );
     }
 
@@ -1281,7 +1511,7 @@ class _UserManagementPageState extends State<UserManagementPage>
       titleBuilder: (entry) => entry.status ?? 'login',
       subtitleBuilder: (entry) =>
           '${entry.loginAt ?? ''} • ${entry.ipAddress ?? ''}'.trim(),
-      trailingBuilder: (entry) => entry.failureReason ?? '',
+      trailingBuilder: (entry) => entry.remarks ?? '',
     );
   }
 
@@ -1295,7 +1525,12 @@ class _UserManagementPageState extends State<UserManagementPage>
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
 
     if (items.isEmpty) {
-      return const Center(child: Text('No records found.'));
+      return _emptyStateCard(
+        context,
+        icon: Icons.inbox_outlined,
+        title: 'No Records Found',
+        message: 'There are no entries to show for this section yet.',
+      );
     }
 
     return ListView.separated(
@@ -1354,11 +1589,58 @@ class _UserManagementPageState extends State<UserManagementPage>
     return SizedBox(width: width, child: child);
   }
 
+  Widget _emptyStateCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 320),
+      padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+      alignment: Alignment.center,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 560),
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: appTheme.subtleFill,
+          borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 40, color: appTheme.mutedText),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: appTheme.mutedText,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _boolSwitch(
     BuildContext context,
     String label,
     bool value,
-    ValueChanged<bool> onChanged,
+    ValueChanged<bool>? onChanged,
   ) {
     return Row(
       mainAxisSize: MainAxisSize.min,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../app/constants/app_ui_constants.dart';
 import '../app/navigation/app_navigation.dart';
@@ -15,15 +16,170 @@ class AdaptiveShell extends StatefulWidget {
     required this.branding,
     required this.child,
     required this.onLogout,
+    this.actions = const <Widget>[],
+    this.scrollController,
+    this.mobileAutoHideHeader = true,
   });
 
   final String title;
   final PublicBrandingModel branding;
   final Widget child;
   final VoidCallback onLogout;
+  final List<Widget> actions;
+  final ScrollController? scrollController;
+  final bool mobileAutoHideHeader;
 
   @override
   State<AdaptiveShell> createState() => _AdaptiveShellState();
+}
+
+class AdaptiveShellActionButton extends StatelessWidget {
+  const AdaptiveShellActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.filled = true,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.width < 600;
+    final child = compact
+        ? Icon(icon, size: 20)
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 8),
+              Text(label),
+            ],
+          );
+
+    final button = filled
+        ? FilledButton(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 0 : 14,
+                vertical: 10,
+              ),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
+                ),
+              ),
+            ),
+            child: child,
+          )
+        : OutlinedButton(
+            onPressed: onPressed,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 0 : 14,
+                vertical: 10,
+              ),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
+                ),
+              ),
+            ),
+            child: child,
+          );
+
+    return Tooltip(message: label, child: button);
+  }
+}
+
+class AdaptiveShellMenuAction<T> extends StatelessWidget {
+  const AdaptiveShellMenuAction({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.itemBuilder,
+    required this.onSelected,
+    this.filled = false,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final String label;
+  final PopupMenuItemBuilder<T> itemBuilder;
+  final PopupMenuItemSelected<T> onSelected;
+  final bool filled;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.width < 600;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final appTheme = theme.extension<AppThemeExtension>()!;
+
+    final child = Container(
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: filled ? colorScheme.primary : colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+        border: filled
+            ? null
+            : Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
+        boxShadow: filled
+            ? [
+                BoxShadow(
+                  color: appTheme.cardShadow,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: filled ? colorScheme.onPrimary : colorScheme.onSurface,
+          ),
+          if (!compact) ...[
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: filled ? colorScheme.onPrimary : colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return Tooltip(
+      message: tooltip ?? label,
+      child: PopupMenuButton<T>(
+        tooltip: tooltip ?? label,
+        onSelected: onSelected,
+        itemBuilder: itemBuilder,
+        child: child,
+      ),
+    );
+  }
 }
 
 class _AdaptiveShellState extends State<AdaptiveShell> {
@@ -31,12 +187,39 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   bool _isSuperAdmin = false;
   Set<String> _permissionCodes = const <String>{};
   List<ModuleModel> _orderedModules = const <ModuleModel>[];
-  final Set<String> _expandedGroups = <String>{};
+  final Map<String, bool> _groupExpansionOverrides = <String, bool>{};
+  final ScrollController _drawerScrollController = ScrollController();
+  final Map<String, GlobalKey> _menuKeys = <String, GlobalKey>{};
+  String? _lastSyncedPath;
+  bool _showMobileHeader = true;
 
   @override
   void initState() {
     super.initState();
     _loadAccess();
+    _bindScrollController(widget.scrollController);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncMenuStateForCurrentRoute();
+  }
+
+  @override
+  void dispose() {
+    _unbindScrollController(widget.scrollController);
+    _drawerScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant AdaptiveShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollController != widget.scrollController) {
+      _unbindScrollController(oldWidget.scrollController);
+      _bindScrollController(widget.scrollController);
+    }
   }
 
   Future<void> _loadAccess() async {
@@ -70,6 +253,13 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       isSuperAdmin: _isSuperAdmin,
       orderedModules: _orderedModules,
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _ensureSelectedMenuVisible(currentPath);
+    });
 
     return Scaffold(
       drawer: showPermanentDrawer
@@ -114,43 +304,87 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
           Expanded(
             child: Column(
               children: [
-                Material(
-                  color: appTheme.shellHeaderBackground,
-                  elevation: 1,
-                  child: SafeArea(
-                    bottom: false,
-                    child: SizedBox(
-                      height: AppUiConstants.shellHeaderHeight,
-                      child: Row(
-                        children: [
-                          if (!showPermanentDrawer)
-                            Builder(
-                              builder: (context) => IconButton(
-                                icon: const Icon(Icons.menu),
-                                onPressed: () =>
-                                    Scaffold.of(context).openDrawer(),
-                              ),
-                            )
-                          else
-                            IconButton(
-                              icon: Icon(
-                                _drawerExpanded ? Icons.menu_open : Icons.menu,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _drawerExpanded = !_drawerExpanded;
-                                });
-                              },
-                            ),
-                          Expanded(
-                            child: Text(
-                              widget.title,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                ClipRect(
+                  child: AnimatedSlide(
+                    offset:
+                        !showPermanentDrawer &&
+                            widget.mobileAutoHideHeader &&
+                            !_showMobileHeader
+                        ? const Offset(0, -1)
+                        : Offset.zero,
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      height:
+                          !showPermanentDrawer &&
+                              widget.mobileAutoHideHeader &&
+                              !_showMobileHeader
+                          ? 0
+                          : AppUiConstants.shellHeaderHeight +
+                                MediaQuery.of(context).padding.top,
+                      child: Material(
+                        color: appTheme.shellHeaderBackground,
+                        elevation: 1,
+                        child: SafeArea(
+                          bottom: false,
+                          child: SizedBox(
+                            height: AppUiConstants.shellHeaderHeight,
+                            child: Row(
+                              children: [
+                                if (!showPermanentDrawer)
+                                  Builder(
+                                    builder: (context) => IconButton(
+                                      icon: const Icon(Icons.menu),
+                                      onPressed: () =>
+                                          Scaffold.of(context).openDrawer(),
+                                    ),
+                                  )
+                                else
+                                  IconButton(
+                                    icon: Icon(
+                                      _drawerExpanded
+                                          ? Icons.menu_open
+                                          : Icons.menu,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _drawerExpanded = !_drawerExpanded;
+                                      });
+                                    },
+                                  ),
+                                Expanded(
+                                  child: _AdaptiveShellTitle(
+                                    title: widget.title,
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                if (widget.actions.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: widget.actions
+                                            .map(
+                                              (action) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                  left: 8,
+                                                ),
+                                                child: action,
+                                              ),
+                                            )
+                                            .toList(growable: false),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -208,6 +442,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
           const SizedBox(height: 8),
           Expanded(
             child: ListView(
+              controller: _drawerScrollController,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               children: [
                 for (final item in items)
@@ -261,6 +496,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
 
     if (!item.hasChildren) {
       return _buildLeafTile(
+        key: _menuKey(item.key),
         icon: item.icon,
         label: item.title,
         depth: depth,
@@ -280,10 +516,11 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     final containsCurrentPath = AppNavigation.containsPath(item, currentPath);
     final isExpanded =
         !collapsed &&
-        (_expandedGroups.contains(item.key) || containsCurrentPath);
+        (_groupExpansionOverrides[item.key] ?? containsCurrentPath);
 
     if (collapsed) {
       return _buildLeafTile(
+        key: _menuKey(item.key),
         icon: item.icon,
         label: item.title,
         depth: depth,
@@ -296,7 +533,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         onTap: () {
           setState(() {
             _drawerExpanded = true;
-            _expandedGroups.add(item.key);
+            _groupExpansionOverrides[item.key] = true;
           });
         },
       );
@@ -308,16 +545,13 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Material(
+            key: _menuKey(item.key),
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
               onTap: () {
                 setState(() {
-                  if (isExpanded) {
-                    _expandedGroups.remove(item.key);
-                  } else {
-                    _expandedGroups.add(item.key);
-                  }
+                  _groupExpansionOverrides[item.key] = !isExpanded;
                 });
               },
               child: Container(
@@ -390,6 +624,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   }
 
   Widget _buildLeafTile({
+    Key? key,
     required IconData icon,
     required String label,
     required int depth,
@@ -407,6 +642,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     return Padding(
       padding: EdgeInsets.only(bottom: dense ? 2 : 4),
       child: Material(
+        key: key,
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
@@ -467,5 +703,141 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     }
 
     Navigator.of(context).pushReplacementNamed(route);
+  }
+
+  void _syncMenuStateForCurrentRoute() {
+    final currentPath = _currentPath;
+    if (_lastSyncedPath == currentPath) {
+      return;
+    }
+
+    for (final key in AppNavigation.ancestorKeysForPath(currentPath)) {
+      _groupExpansionOverrides.putIfAbsent(key, () => true);
+    }
+
+    _lastSyncedPath = currentPath;
+  }
+
+  void _ensureSelectedMenuVisible(String currentPath) {
+    final selectedKey = AppNavigation.findByPath(currentPath)?.key;
+    if (selectedKey == null) {
+      return;
+    }
+
+    final context = _menuKeys[selectedKey]?.currentContext;
+    if (context == null) {
+      return;
+    }
+
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 180),
+      alignment: 0.2,
+      curve: Curves.easeOut,
+    );
+  }
+
+  GlobalKey _menuKey(String key) {
+    return _menuKeys.putIfAbsent(key, GlobalKey.new);
+  }
+
+  void _bindScrollController(ScrollController? controller) {
+    controller?.addListener(_handleShellScroll);
+  }
+
+  void _unbindScrollController(ScrollController? controller) {
+    controller?.removeListener(_handleShellScroll);
+  }
+
+  void _handleShellScroll() {
+    final controller = widget.scrollController;
+    if (!mounted ||
+        controller == null ||
+        !controller.hasClients ||
+        !widget.mobileAutoHideHeader) {
+      return;
+    }
+
+    final direction = controller.position.userScrollDirection;
+    final offset = controller.offset;
+    final shouldShow = direction == ScrollDirection.forward || offset <= 8;
+
+    if (_showMobileHeader != shouldShow) {
+      setState(() {
+        _showMobileHeader = shouldShow;
+      });
+    }
+  }
+}
+
+class _AdaptiveShellTitle extends StatefulWidget {
+  const _AdaptiveShellTitle({required this.title, this.style});
+
+  final String title;
+  final TextStyle? style;
+
+  @override
+  State<_AdaptiveShellTitle> createState() => _AdaptiveShellTitleState();
+}
+
+class _AdaptiveShellTitleState extends State<_AdaptiveShellTitle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final textStyle = widget.style;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textPainter = TextPainter(
+          text: TextSpan(text: widget.title, style: textStyle),
+          maxLines: 1,
+          textDirection: Directionality.of(context),
+        )..layout(maxWidth: double.infinity);
+
+        final overflow = textPainter.width > constraints.maxWidth;
+
+        if (!isMobile || !overflow) {
+          return Text(
+            widget.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textStyle,
+          );
+        }
+
+        final travel = textPainter.width - constraints.maxWidth;
+
+        return ClipRect(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(-travel * _controller.value, 0),
+                child: child,
+              );
+            },
+            child: Text(widget.title, maxLines: 1, style: textStyle),
+          ),
+        );
+      },
+    );
   }
 }

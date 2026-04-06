@@ -7,12 +7,14 @@ class UserPermissionSummaryModel implements JsonModel {
   const UserPermissionSummaryModel({
     this.user,
     this.roles = const [],
+    this.rolePermissions = const [],
     this.directPermissions = const [],
     this.effectivePermissions = const [],
   });
 
   final UserModel? user;
   final List<UserRoleModel> roles;
+  final List<UserPermissionModel> rolePermissions;
   final List<UserPermissionModel> directPermissions;
   final List<UserPermissionModel> effectivePermissions;
 
@@ -22,6 +24,7 @@ class UserPermissionSummaryModel implements JsonModel {
           ? UserModel.fromJson(json['user'] as Map<String, dynamic>)
           : null,
       roles: _roles(json['roles']),
+      rolePermissions: _permissions(json['role_permissions']),
       directPermissions: _permissions(json['direct_permissions']),
       effectivePermissions: _permissions(json['effective_permissions']),
     );
@@ -32,6 +35,9 @@ class UserPermissionSummaryModel implements JsonModel {
     return {
       if (user != null) 'user': user!.toJson(),
       'roles': roles.map((item) => item.toJson()).toList(growable: false),
+      'role_permissions': rolePermissions
+          .map((item) => item.toJson())
+          .toList(growable: false),
       'direct_permissions': directPermissions
           .map((item) => item.toJson())
           .toList(growable: false),

@@ -5,6 +5,8 @@ import '../../../app/constants/app_ui_constants.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../components/adaptive_shell.dart';
 import '../../../components/app_loading_view.dart';
+import '../../../components/date_input_formatter.dart';
+import '../../../components/upload_path_field.dart';
 import '../../../core/storage/session_storage.dart';
 import '../../../model/admin/user_model.dart';
 import '../../../model/app/public_branding_model.dart';
@@ -39,10 +41,14 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _error;
   UserModel? _profile;
   String? _gender;
+  bool _displayNameTouched = false;
 
   @override
   void initState() {
     super.initState();
+    _firstNameController.addListener(_syncDisplayNameFromNameParts);
+    _lastNameController.addListener(_syncDisplayNameFromNameParts);
+    _displayNameController.addListener(_handleDisplayNameEdited);
     _loadProfile();
   }
 
@@ -85,10 +91,11 @@ class _ProfilePageState extends State<ProfilePage> {
       _displayNameController.text = profile.displayName ?? '';
       _emailController.text = profile.email ?? '';
       _mobileController.text = profile.mobile ?? '';
-      _dobController.text = profile.dateOfBirth ?? '';
+      _dobController.text = _normalizeDate(profile.dateOfBirth);
       _profilePhotoController.text = profile.profilePhotoPath ?? '';
       _remarksController.text = profile.remarks ?? '';
       _gender = profile.gender;
+      _displayNameTouched = (profile.displayName ?? '').trim().isNotEmpty;
 
       setState(() {
         _loading = false;
@@ -133,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
           gender: _gender,
           dateOfBirth: _dobController.text.trim().isEmpty
               ? null
-              : _dobController.text.trim(),
+              : _normalizeDate(_dobController.text.trim()),
           profilePhotoPath: _profilePhotoController.text.trim().isEmpty
               ? null
               : _profilePhotoController.text.trim(),
@@ -251,6 +258,47 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _handleDisplayNameEdited() {
+    final generated = _generatedDisplayName;
+    final current = _displayNameController.text.trim();
+    if (current.isEmpty || current == generated) {
+      _displayNameTouched = false;
+      return;
+    }
+
+    _displayNameTouched = true;
+  }
+
+  void _syncDisplayNameFromNameParts() {
+    if (_displayNameTouched) {
+      return;
+    }
+
+    final generated = _generatedDisplayName;
+    if (_displayNameController.text != generated) {
+      _displayNameController.value = _displayNameController.value.copyWith(
+        text: generated,
+        selection: TextSelection.collapsed(offset: generated.length),
+      );
+    }
+  }
+
+  String get _generatedDisplayName {
+    return [
+      _firstNameController.text.trim(),
+      _lastNameController.text.trim(),
+    ].where((value) => value.isNotEmpty).join(' ');
+  }
+
+  String _normalizeDate(String? value) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) {
+      return '';
+    }
+
+    return text.length >= 10 ? text.substring(0, 10) : text;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<PublicBrandingModel?>(
@@ -282,6 +330,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   saving: _saving,
                   uploadingPhoto: _uploadingPhoto,
                   onGenderChanged: (value) => setState(() => _gender = value),
+                  onDisplayNameEdited: _handleDisplayNameEdited,
                   onSave: _save,
                   onUploadPhoto: _uploadProfileImage,
                 ),
@@ -308,6 +357,7 @@ class _ProfileContent extends StatelessWidget {
     required this.saving,
     required this.uploadingPhoto,
     required this.onGenderChanged,
+    required this.onDisplayNameEdited,
     required this.onSave,
     required this.onUploadPhoto,
   });
@@ -327,6 +377,7 @@ class _ProfileContent extends StatelessWidget {
   final bool saving;
   final bool uploadingPhoto;
   final ValueChanged<String?> onGenderChanged;
+  final VoidCallback onDisplayNameEdited;
   final Future<void> Function() onSave;
   final Future<void> Function() onUploadPhoto;
 
@@ -405,6 +456,7 @@ class _ProfileContent extends StatelessWidget {
                             decoration: const InputDecoration(
                               labelText: 'Display Name',
                             ),
+                            onChanged: (_) => onDisplayNameEdited(),
                           ),
                         ),
                         _FormFieldBox(
@@ -479,87 +531,22 @@ class _ProfileContent extends StatelessWidget {
                             controller: dobController,
                             decoration: const InputDecoration(
                               labelText: 'Date of Birth',
-                              hintText: 'YYYY-MM-DD',
                             ),
+                            keyboardType: TextInputType.datetime,
+                            inputFormatters: const [DateInputFormatter()],
                           ),
                         ),
                         _FormFieldBox(
                           width: 536,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (profilePhotoController.text.trim().isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(
-                                      AppUiConstants.fieldRadius,
-                                    ),
-                                    child: Image.network(
-                                      AppConfig.resolvePublicFileUrl(
-                                            profilePhotoController.text,
-                                          ) ??
-                                          '',
-                                      width: 96,
-                                      height: 96,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) => Container(
-                                            width: 96,
-                                            height: 96,
-                                            alignment: Alignment.center,
-                                            decoration: BoxDecoration(
-                                              color: appTheme.subtleFill,
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                    AppUiConstants.fieldRadius,
-                                                  ),
-                                            ),
-                                            child: const Icon(
-                                              Icons.person_outline,
-                                            ),
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: profilePhotoController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Profile Photo Path',
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  OutlinedButton.icon(
-                                    onPressed: uploadingPhoto
-                                        ? null
-                                        : onUploadPhoto,
-                                    icon: uploadingPhoto
-                                        ? const SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : const Icon(Icons.upload_outlined),
-                                    label: Text(
-                                      uploadingPhoto
-                                          ? 'Uploading...'
-                                          : 'Upload',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          child: UploadPathField(
+                            controller: profilePhotoController,
+                            labelText: 'Profile Photo Path',
+                            isUploading: uploadingPhoto,
+                            onUpload: onUploadPhoto,
+                            previewUrl: AppConfig.resolvePublicFileUrl(
+                              profilePhotoController.text,
+                            ),
+                            previewIcon: Icons.person_outline,
                           ),
                         ),
                       ],

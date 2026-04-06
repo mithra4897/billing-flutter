@@ -9,6 +9,7 @@ import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
 import 'view/core/module_placeholder_page.dart';
 import 'view/dashboard/dashboard_page.dart';
+import 'view/settings/user/login_history_page.dart';
 import 'view/settings/user/profile_page.dart';
 import 'view/settings/user/user_management_page.dart';
 
@@ -61,6 +62,11 @@ class BillingApp extends StatelessWidget {
               builder: (_) => UserManagementPage(
                 initialUserId: int.tryParse(uri.queryParameters['id'] ?? ''),
               ),
+            );
+          case '/settings/login-history':
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => const LoginHistoryPage(),
             );
           default:
             final matchedRoute = AppNavigation.findByPath(uri.path);

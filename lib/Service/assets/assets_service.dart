@@ -75,46 +75,51 @@ class AssetsService extends ErpModuleService {
   Future<PaginatedResponse<AssetModel>> assets({
     Map<String, dynamic>? filters,
   }) => paginated<AssetModel>(
-    '/assets',
+    '/assets/register',
     filters: filters,
     fromJson: AssetModel.fromJson,
   );
   Future<ApiResponse<AssetModel>> asset(int id) =>
-      object<AssetModel>('/assets/$id', fromJson: AssetModel.fromJson);
+      object<AssetModel>('/assets/register/$id', fromJson: AssetModel.fromJson);
   Future<ApiResponse<AssetModel>> createAsset(AssetModel body) =>
-      createModel<AssetModel>('/assets', body, fromJson: AssetModel.fromJson);
+      createModel<AssetModel>(
+        '/assets/register',
+        body,
+        fromJson: AssetModel.fromJson,
+      );
   Future<ApiResponse<AssetModel>> updateAsset(int id, AssetModel body) =>
       updateModel<AssetModel>(
-        '/assets/$id',
+        '/assets/register/$id',
         body,
         fromJson: AssetModel.fromJson,
       );
   Future<ApiResponse<AssetModel>> activateAsset(int id, AssetModel body) =>
       actionModel<AssetModel>(
-        '/assets/$id/activate',
+        '/assets/register/$id/activate',
         body: body,
         fromJson: AssetModel.fromJson,
       );
-  Future<ApiResponse<dynamic>> deleteAsset(int id) => destroy('/assets/$id');
+  Future<ApiResponse<dynamic>> deleteAsset(int id) =>
+      destroy('/assets/register/$id');
 
   Future<PaginatedResponse<AssetBookModel>> assetBooks(
     int assetId, {
     Map<String, dynamic>? filters,
   }) => paginated<AssetBookModel>(
-    '/assets/$assetId/books',
+    '/assets/register/$assetId/books',
     filters: filters,
     fromJson: AssetBookModel.fromJson,
   );
   Future<ApiResponse<AssetBookModel>> assetBook(int assetId, int id) =>
       object<AssetBookModel>(
-        '/assets/$assetId/books/$id',
+        '/assets/register/$assetId/books/$id',
         fromJson: AssetBookModel.fromJson,
       );
   Future<ApiResponse<AssetBookModel>> createAssetBook(
     int assetId,
     AssetBookModel body,
   ) => createModel<AssetBookModel>(
-    '/assets/$assetId/books',
+    '/assets/register/$assetId/books',
     body,
     fromJson: AssetBookModel.fromJson,
   );
@@ -123,12 +128,12 @@ class AssetsService extends ErpModuleService {
     int id,
     AssetBookModel body,
   ) => updateModel<AssetBookModel>(
-    '/assets/$assetId/books/$id',
+    '/assets/register/$assetId/books/$id',
     body,
     fromJson: AssetBookModel.fromJson,
   );
   Future<ApiResponse<dynamic>> deleteAssetBook(int assetId, int id) =>
-      destroy('/assets/$assetId/books/$id');
+      destroy('/assets/register/$assetId/books/$id');
 
   Future<PaginatedResponse<AssetDepreciationRunModel>> depreciationRuns({
     Map<String, dynamic>? filters,

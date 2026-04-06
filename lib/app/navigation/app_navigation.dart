@@ -152,6 +152,13 @@ class AppNavigation {
               requiredPermissions: ['user.view'],
             ),
             AppNavigationItem(
+              key: 'settings-login-history',
+              title: 'Login History',
+              icon: Icons.history_outlined,
+              path: '/settings/login-history',
+              requiredPermissions: ['user.view'],
+            ),
+            AppNavigationItem(
               key: 'settings-roles',
               title: 'Roles',
               icon: Icons.badge_outlined,
@@ -1266,6 +1273,11 @@ class AppNavigation {
     return false;
   }
 
+  static List<String> ancestorKeysForPath(String path) {
+    final normalizedPath = _normalizePath(path);
+    return _ancestorKeys(menu, normalizedPath) ?? const <String>[];
+  }
+
   static AppNavigationItem? _findInList(
     List<AppNavigationItem> items,
     String path,
@@ -1278,6 +1290,24 @@ class AppNavigation {
       final found = _findInList(item.children, path);
       if (found != null) {
         return found;
+      }
+    }
+
+    return null;
+  }
+
+  static List<String>? _ancestorKeys(
+    List<AppNavigationItem> items,
+    String path,
+  ) {
+    for (final item in items) {
+      if (item.path == path) {
+        return <String>[];
+      }
+
+      final childPath = _ancestorKeys(item.children, path);
+      if (childPath != null) {
+        return <String>[item.key, ...childPath];
       }
     }
 
