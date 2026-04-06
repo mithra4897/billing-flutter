@@ -50,6 +50,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
   List<RolePermissionModel> _rolePermissions = const <RolePermissionModel>[];
 
   int? _selectedRoleId;
+  int? _permissionsLoadedForRoleId;
   int _roleLoadToken = 0;
 
   bool get _isNewRole => _selectedRoleId == null;
@@ -141,8 +142,9 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       setState(() {
         _selectedRoleId = roleId;
         _loadingRoleDetails = true;
-        _loadingPermissions = true;
         _formError = null;
+        _rolePermissions = const <RolePermissionModel>[];
+        _permissionsLoadedForRoleId = null;
         if (resetTab) {
           _tabController.index = 0;
         }
@@ -161,7 +163,6 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         setState(() {
           _formError = 'Role not found.';
           _loadingRoleDetails = false;
-          _loadingPermissions = false;
         });
         return;
       }
@@ -175,10 +176,12 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         _isActive = role.isActive ?? true;
         _isSystemRole = role.isSystemRole ?? false;
         _codeTouched = (role.code ?? '').trim().isNotEmpty;
-        _rolePermissions = role.rolePermissions;
         _loadingRoleDetails = false;
-        _loadingPermissions = false;
       });
+
+      if (_tabController.index == 1 && role.id != null) {
+        await _loadRolePermissions(role.id!, force: true);
+      }
     } catch (error) {
       if (!mounted || token != _roleLoadToken) {
         return;
@@ -186,6 +189,44 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       setState(() {
         _formError = error.toString();
         _loadingRoleDetails = false;
+      });
+    }
+  }
+
+  Future<void> _loadRolePermissions(int roleId, {bool force = false}) async {
+    if (!force &&
+        !_loadingPermissions &&
+        _permissionsLoadedForRoleId == roleId &&
+        _rolePermissions.isNotEmpty) {
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _loadingPermissions = true;
+        _formError = null;
+      });
+    }
+
+    try {
+      final response = await _authService.rolePermissions(roleId);
+      if (!mounted || _selectedRoleId != roleId) {
+        return;
+      }
+
+      setState(() {
+        _rolePermissions =
+            response.data?.permissions ?? const <RolePermissionModel>[];
+        _permissionsLoadedForRoleId = roleId;
+        _loadingPermissions = false;
+      });
+    } catch (error) {
+      if (!mounted || _selectedRoleId != roleId) {
+        return;
+      }
+
+      setState(() {
+        _formError = error.toString();
         _loadingPermissions = false;
       });
     }
@@ -200,6 +241,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
     _isSystemRole = false;
     _codeTouched = false;
     _rolePermissions = const <RolePermissionModel>[];
+    _permissionsLoadedForRoleId = null;
     _formError = null;
     _tabController.index = 0;
     _loadingRoleDetails = false;
@@ -278,7 +320,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         RolePermissionSyncRequestModel(permissions: _rolePermissions),
       );
 
-      await _loadRole(_selectedRoleId!);
+      await _loadRolePermissions(_selectedRoleId!, force: true);
 
       if (mounted) {
         ScaffoldMessenger.of(
@@ -315,9 +357,15 @@ class _RoleManagementPageState extends State<RoleManagementPage>
   }
 
   void _handleTabChanged() {
-    if (!_tabController.indexIsChanging) {
-      setState(() {});
+    if (_tabController.indexIsChanging) {
+      return;
     }
+
+    if (_tabController.index == 1 && _selectedRoleId != null) {
+      _loadRolePermissions(_selectedRoleId!);
+    }
+
+    setState(() {});
   }
 
   void _syncCodeFromName() {
@@ -532,23 +580,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       ),
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _isNewRole
-                        ? 'Create the role details first. After saving, the permission tab becomes active.'
-                        : 'Role permissions define the default access baseline for users assigned to this role.',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: appTheme.mutedText),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 12),
           if (showDetailTabs)
             TabBar(
               controller: _tabController,
@@ -720,12 +752,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
           padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
           child: Row(
             children: [
-              Expanded(
-                child: Text(
-                  'These rights become the default access baseline for every user assigned to this role.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
+              const Spacer(),
               FilledButton.icon(
                 onPressed: _savingPermissions ? null : _savePermissions,
                 icon: _savingPermissions
