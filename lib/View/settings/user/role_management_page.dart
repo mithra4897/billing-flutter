@@ -8,7 +8,6 @@ import '../../../core/storage/session_storage.dart';
 import '../../../model/admin/role_model.dart';
 import '../../../model/app/public_branding_model.dart';
 import '../../../model/auth/role_permission_model.dart';
-import '../../../model/auth/role_permission_summary_model.dart';
 import '../../../model/auth/role_permission_sync_request_model.dart';
 import '../../../service/app/app_session_service.dart';
 import '../../../service/auth/auth_service.dart';
@@ -142,6 +141,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       setState(() {
         _selectedRoleId = roleId;
         _loadingRoleDetails = true;
+        _loadingPermissions = true;
         _formError = null;
         if (resetTab) {
           _tabController.index = 0;
@@ -177,9 +177,8 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         _codeTouched = (role.code ?? '').trim().isNotEmpty;
         _rolePermissions = role.rolePermissions;
         _loadingRoleDetails = false;
+        _loadingPermissions = false;
       });
-
-      await _loadRolePermissions(role.id!, force: true, token: token);
     } catch (error) {
       if (!mounted || token != _roleLoadToken) {
         return;
@@ -187,50 +186,9 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       setState(() {
         _formError = error.toString();
         _loadingRoleDetails = false;
-      });
-    }
-  }
-
-  Future<void> _loadRolePermissions(
-    int roleId, {
-    bool force = false,
-    int? token,
-  }) async {
-    if (!force && _rolePermissions.isNotEmpty) {
-      return;
-    }
-
-    if (mounted) {
-      setState(() {
-        _loadingPermissions = true;
-      });
-    }
-
-    try {
-      final permissionResponse = await _authService.rolePermissions(roleId);
-
-      if (!mounted || (token != null && token != _roleLoadToken)) {
-        return;
-      }
-
-      setState(() {
-        _applyPermissionSummary(permissionResponse.data);
-        _loadingPermissions = false;
-      });
-    } catch (error) {
-      if (!mounted || (token != null && token != _roleLoadToken)) {
-        return;
-      }
-
-      setState(() {
-        _formError = error.toString();
         _loadingPermissions = false;
       });
     }
-  }
-
-  void _applyPermissionSummary(RolePermissionSummaryModel? summary) {
-    _rolePermissions = summary?.permissions ?? const <RolePermissionModel>[];
   }
 
   void _resetForm() {
@@ -320,7 +278,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         RolePermissionSyncRequestModel(permissions: _rolePermissions),
       );
 
-      await _loadRolePermissions(_selectedRoleId!, force: true);
+      await _loadRole(_selectedRoleId!);
 
       if (mounted) {
         ScaffoldMessenger.of(
@@ -357,10 +315,8 @@ class _RoleManagementPageState extends State<RoleManagementPage>
   }
 
   void _handleTabChanged() {
-    if (!_tabController.indexIsChanging &&
-        _tabController.index == 1 &&
-        _selectedRoleId != null) {
-      _loadRolePermissions(_selectedRoleId!, force: true); //TODO: i forced here, now working
+    if (!_tabController.indexIsChanging) {
+      setState(() {});
     }
   }
 
