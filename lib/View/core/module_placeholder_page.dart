@@ -1,12 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../../app/constants/app_ui_constants.dart';
-import '../../app/navigation/app_navigation.dart';
-import '../../app/theme/app_theme_extension.dart';
-import '../../components/adaptive_shell.dart';
-import '../../core/storage/session_storage.dart';
-import '../../model/app/public_branding_model.dart';
-import '../../service/app/app_session_service.dart';
+import '../../screen.dart';
 
 class ModulePlaceholderPage extends StatelessWidget {
   const ModulePlaceholderPage({

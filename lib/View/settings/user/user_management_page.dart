@@ -1,26 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../../../app/constants/app_config.dart';
-import '../../../app/constants/app_ui_constants.dart';
-import '../../../app/theme/app_theme_extension.dart';
-import '../../../components/adaptive_shell.dart';
-import '../../../components/app_loading_view.dart';
-import '../../../components/date_input_formatter.dart';
-import '../../../components/inline_field_action.dart';
-import '../../../components/upload_path_field.dart';
-import '../../../core/storage/session_storage.dart';
-import '../../../model/admin/permission_model.dart';
-import '../../../model/admin/role_model.dart';
-import '../../../model/admin/user_model.dart';
-import '../../../model/app/public_branding_model.dart';
-import '../../../model/auth/audit_log_model.dart';
-import '../../../model/auth/login_history_model.dart';
-import '../../../model/auth/user_permission_model.dart';
-import '../../../model/auth/user_permission_summary_model.dart';
-import '../../../service/app/app_session_service.dart';
-import '../../../service/auth/auth_service.dart';
-import '../../../service/media/media_service.dart';
-import '../../core/page_shell_actions.dart';
+import '../../../screen.dart';
 
 class UserManagementPage extends StatefulWidget {
   const UserManagementPage({
@@ -1080,17 +1058,15 @@ class _UserManagementPageState extends State<UserManagementPage>
               runSpacing: 16,
               children: [
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _employeeCodeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Employee Code',
-                    ),
+                    labelText: 'Employee Code',
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _usernameController,
-                    decoration: const InputDecoration(labelText: 'Username'),
+                    labelText: 'Username',
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Username is required'
@@ -1098,14 +1074,12 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: _isNewUser
-                          ? 'Password'
-                          : 'Password (leave blank to keep)',
-                    ),
+                    labelText: _isNewUser
+                        ? 'Password'
+                        : 'Password (leave blank to keep)',
                     validator: (value) {
                       if (_isNewUser &&
                           (value == null || value.trim().length < 6)) {
@@ -1116,9 +1090,9 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _firstNameController,
-                    decoration: const InputDecoration(labelText: 'First Name'),
+                    labelText: 'First Name',
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'First name is required'
@@ -1126,54 +1100,50 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _lastNameController,
-                    decoration: const InputDecoration(labelText: 'Last Name'),
+                    labelText: 'Last Name',
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _displayNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Display Name',
-                    ),
+                    labelText: 'Display Name',
                     onChanged: (_) => _handleDisplayNameEdited(),
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Email'),
+                    labelText: 'Email',
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _mobileController,
-                    decoration: const InputDecoration(labelText: 'Mobile'),
+                    labelText: 'Mobile',
                   ),
                 ),
                 _inputBox(
-                  child: DropdownButtonFormField<String>(
+                  child: AppDropdownField<String>.fromMapped(
                     initialValue: _gender,
-                    decoration: const InputDecoration(labelText: 'Gender'),
-                    items: const [
-                      DropdownMenuItem(value: 'male', child: Text('Male')),
-                      DropdownMenuItem(value: 'female', child: Text('Female')),
-                      DropdownMenuItem(value: 'other', child: Text('Other')),
-                      DropdownMenuItem(
+                    labelText: 'Gender',
+                    mappedItems: const [
+                      AppDropdownItem(value: 'male', label: 'Male'),
+                      AppDropdownItem(value: 'female', label: 'Female'),
+                      AppDropdownItem(value: 'other', label: 'Other'),
+                      AppDropdownItem(
                         value: 'prefer_not_to_say',
-                        child: Text('Prefer not to say'),
+                        label: 'Prefer not to say',
                       ),
                     ],
                     onChanged: (value) => setState(() => _gender = value),
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _dobController,
-                    decoration: const InputDecoration(
-                      labelText: 'Date of Birth',
-                    ),
+                    labelText: 'Date of Birth',
                     keyboardType: TextInputType.datetime,
                     inputFormatters: const [DateInputFormatter()],
                   ),
@@ -1183,11 +1153,9 @@ class _UserManagementPageState extends State<UserManagementPage>
                   child: InlineFieldAction(
                     actionTooltip: 'Create role',
                     onAddNew: _openCreateRoleDialog,
-                    field: DropdownButtonFormField<int>(
+                    field: AppDropdownField<int>(
                       initialValue: _selectedRoleId,
-                      decoration: const InputDecoration(
-                        labelText: 'Primary Role',
-                      ),
+                      labelText: 'Primary Role',
                       items: [
                         ..._roles.map(
                           (role) => DropdownMenuItem<int>(
@@ -1243,25 +1211,23 @@ class _UserManagementPageState extends State<UserManagementPage>
               spacing: 24,
               runSpacing: 12,
               children: [
-                _boolSwitch(
-                  context,
-                  'System User',
-                  _isSystemUser,
-                  (value) => setState(() => _isSystemUser = value),
+                AppSwitchTile(
+                  label: 'System User',
+                  value: _isSystemUser,
+                  onChanged: (value) => setState(() => _isSystemUser = value),
                 ),
-                _boolSwitch(
-                  context,
-                  'Must Change Password',
-                  _mustChangePassword,
-                  (value) => setState(() => _mustChangePassword = value),
+                AppSwitchTile(
+                  label: 'Must Change Password',
+                  value: _mustChangePassword,
+                  onChanged: (value) =>
+                      setState(() => _mustChangePassword = value),
                 ),
-                _boolSwitch(
-                  context,
-                  _selectedRoleImpliesSuperAdmin()
+                AppSwitchTile(
+                  label: _selectedRoleImpliesSuperAdmin()
                       ? 'Super Admin via Role'
                       : 'Super Admin Override',
-                  _isSuperAdmin,
-                  _selectedRoleImpliesSuperAdmin()
+                  value: _isSuperAdmin,
+                  onChanged: _selectedRoleImpliesSuperAdmin()
                       ? null
                       : (value) => setState(() => _isSuperAdmin = value),
                 ),
@@ -1281,43 +1247,35 @@ class _UserManagementPageState extends State<UserManagementPage>
             const SizedBox(height: 16),
             SizedBox(
               width: 260,
-              child: DropdownButtonFormField<String>(
+              child: AppDropdownField<String>.fromMapped(
                 initialValue: _status,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: const [
-                  DropdownMenuItem(value: 'active', child: Text('Active')),
-                  DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-                  DropdownMenuItem(
-                    value: 'suspended',
-                    child: Text('Suspended'),
-                  ),
-                  DropdownMenuItem(value: 'blocked', child: Text('Blocked')),
+                labelText: 'Status',
+                mappedItems: const [
+                  AppDropdownItem(value: 'active', label: 'Active'),
+                  AppDropdownItem(value: 'inactive', label: 'Inactive'),
+                  AppDropdownItem(value: 'suspended', label: 'Suspended'),
+                  AppDropdownItem(value: 'blocked', label: 'Blocked'),
                 ],
                 onChanged: (value) =>
                     setState(() => _status = value ?? 'active'),
               ),
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            AppFormTextField(
               controller: _remarksController,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Remarks'),
+              labelText: 'Remarks',
             ),
             const SizedBox(height: 18),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
-                FilledButton.icon(
+                AppActionButton(
                   onPressed: _savingProfile ? null : _saveProfile,
-                  icon: _savingProfile
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.save_outlined),
-                  label: Text(_savingProfile ? 'Saving...' : 'Save User'),
+                  icon: Icons.save_outlined,
+                  label: _savingProfile ? 'Saving...' : 'Save User',
+                  busy: _savingProfile,
                 ),
               ],
             ),
@@ -1352,18 +1310,11 @@ class _UserManagementPageState extends State<UserManagementPage>
           child: Row(
             children: [
               const Spacer(),
-              FilledButton.icon(
+              AppActionButton(
                 onPressed: _savingPermissions ? null : _savePermissions,
-                icon: _savingPermissions
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.verified_user_outlined),
-                label: Text(
-                  _savingPermissions ? 'Saving...' : 'Save Permissions',
-                ),
+                icon: Icons.verified_user_outlined,
+                label: _savingPermissions ? 'Saving...' : 'Save Permissions',
+                busy: _savingPermissions,
               ),
             ],
           ),
@@ -1653,21 +1604,6 @@ class _UserManagementPageState extends State<UserManagementPage>
           ],
         ),
       ),
-    );
-  }
-
-  Widget _boolSwitch(
-    BuildContext context,
-    String label,
-    bool value,
-    ValueChanged<bool>? onChanged,
-  ) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Switch(value: value, onChanged: onChanged),
-        Text(label),
-      ],
     );
   }
 

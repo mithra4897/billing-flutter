@@ -1,18 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../../../app/constants/app_config.dart';
-import '../../../app/constants/app_ui_constants.dart';
-import '../../../app/theme/app_theme_extension.dart';
-import '../../../components/adaptive_shell.dart';
-import '../../../components/app_loading_view.dart';
-import '../../../components/date_input_formatter.dart';
-import '../../../components/upload_path_field.dart';
-import '../../../core/storage/session_storage.dart';
-import '../../../model/admin/user_model.dart';
-import '../../../model/app/public_branding_model.dart';
-import '../../../service/app/app_session_service.dart';
-import '../../../service/auth/auth_service.dart';
-import '../../../service/media/media_service.dart';
+import '../../../screen.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.embedded = false});
@@ -398,218 +384,141 @@ class _ProfileContent extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 880),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: appTheme.cardBackground,
-              borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-              boxShadow: [
-                BoxShadow(
-                  color: appTheme.cardShadow,
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'My Profile',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
+          child: AppSectionCard(
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'My Profile',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'You can update your personal details here. Sensitive fields like role, status, and access rights stay under user administration.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: appTheme.mutedText,
-                        height: 1.5,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'You can update your personal details here. Sensitive fields like role, status, and access rights stay under user administration.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: appTheme.mutedText,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Wrap(
+                    runSpacing: 16,
+                    spacing: 16,
+                    children: [
+                      AppFormTextField(
+                        width: 260,
+                        controller: firstNameController,
+                        labelText: 'First Name',
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                            ? 'First name is required'
+                            : null,
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    Wrap(
-                      runSpacing: 16,
-                      spacing: 16,
-                      children: [
-                        _FormFieldBox(
-                          width: 260,
-                          child: TextFormField(
-                            controller: firstNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'First Name',
-                            ),
-                            validator: (value) =>
-                                (value == null || value.trim().isEmpty)
-                                ? 'First name is required'
-                                : null,
+                      AppFormTextField(
+                        width: 260,
+                        controller: lastNameController,
+                        labelText: 'Last Name',
+                      ),
+                      AppFormTextField(
+                        width: 260,
+                        controller: displayNameController,
+                        labelText: 'Display Name',
+                        onChanged: (_) => onDisplayNameEdited(),
+                      ),
+                      AppFormTextField(
+                        width: 260,
+                        initialValue: profile?.username ?? '',
+                        enabled: false,
+                        labelText: 'Username',
+                      ),
+                      AppFormTextField(
+                        width: 260,
+                        initialValue: profile?.employeeCode ?? '',
+                        enabled: false,
+                        labelText: 'Employee Code',
+                      ),
+                      AppDropdownField<String>.fromMapped(
+                        width: 260,
+                        initialValue: gender,
+                        labelText: 'Gender',
+                        mappedItems: const [
+                          AppDropdownItem(value: 'male', label: 'Male'),
+                          AppDropdownItem(value: 'female', label: 'Female'),
+                          AppDropdownItem(value: 'other', label: 'Other'),
+                          AppDropdownItem(
+                            value: 'prefer_not_to_say',
+                            label: 'Prefer not to say',
                           ),
-                        ),
-                        _FormFieldBox(
-                          width: 260,
-                          child: TextFormField(
-                            controller: lastNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Last Name',
-                            ),
+                        ],
+                        onChanged: onGenderChanged,
+                      ),
+                      AppFormTextField(
+                        width: 260,
+                        controller: emailController,
+                        labelText: 'Email',
+                      ),
+                      AppFormTextField(
+                        width: 260,
+                        controller: mobileController,
+                        labelText: 'Mobile',
+                      ),
+                      AppFormTextField(
+                        width: 260,
+                        controller: dobController,
+                        labelText: 'Date of Birth',
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                      ),
+                      AppFieldBox(
+                        width: 536,
+                        child: UploadPathField(
+                          controller: profilePhotoController,
+                          labelText: 'Profile Photo Path',
+                          isUploading: uploadingPhoto,
+                          onUpload: onUploadPhoto,
+                          previewUrl: AppConfig.resolvePublicFileUrl(
+                            profilePhotoController.text,
                           ),
-                        ),
-                        _FormFieldBox(
-                          width: 260,
-                          child: TextFormField(
-                            controller: displayNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Display Name',
-                            ),
-                            onChanged: (_) => onDisplayNameEdited(),
-                          ),
-                        ),
-                        _FormFieldBox(
-                          width: 260,
-                          child: TextFormField(
-                            initialValue: profile?.username ?? '',
-                            enabled: false,
-                            decoration: const InputDecoration(
-                              labelText: 'Username',
-                            ),
-                          ),
-                        ),
-                        _FormFieldBox(
-                          width: 260,
-                          child: TextFormField(
-                            initialValue: profile?.employeeCode ?? '',
-                            enabled: false,
-                            decoration: const InputDecoration(
-                              labelText: 'Employee Code',
-                            ),
-                          ),
-                        ),
-                        _FormFieldBox(
-                          width: 260,
-                          child: DropdownButtonFormField<String>(
-                            initialValue: gender,
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'male',
-                                child: Text('Male'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'female',
-                                child: Text('Female'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'other',
-                                child: Text('Other'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'prefer_not_to_say',
-                                child: Text('Prefer not to say'),
-                              ),
-                            ],
-                            onChanged: onGenderChanged,
-                            decoration: const InputDecoration(
-                              labelText: 'Gender',
-                            ),
-                          ),
-                        ),
-                        _FormFieldBox(
-                          width: 260,
-                          child: TextFormField(
-                            controller: emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                            ),
-                          ),
-                        ),
-                        _FormFieldBox(
-                          width: 260,
-                          child: TextFormField(
-                            controller: mobileController,
-                            decoration: const InputDecoration(
-                              labelText: 'Mobile',
-                            ),
-                          ),
-                        ),
-                        _FormFieldBox(
-                          width: 260,
-                          child: TextFormField(
-                            controller: dobController,
-                            decoration: const InputDecoration(
-                              labelText: 'Date of Birth',
-                            ),
-                            keyboardType: TextInputType.datetime,
-                            inputFormatters: const [DateInputFormatter()],
-                          ),
-                        ),
-                        _FormFieldBox(
-                          width: 536,
-                          child: UploadPathField(
-                            controller: profilePhotoController,
-                            labelText: 'Profile Photo Path',
-                            isUploading: uploadingPhoto,
-                            onUpload: onUploadPhoto,
-                            previewUrl: AppConfig.resolvePublicFileUrl(
-                              profilePhotoController.text,
-                            ),
-                            previewIcon: Icons.person_outline,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: remarksController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Remarks'),
-                    ),
-                    if (error != null && error!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                          previewIcon: Icons.person_outline,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton.icon(
-                        onPressed: saving ? null : onSave,
-                        icon: saving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.save_outlined),
-                        label: Text(saving ? 'Saving...' : 'Save Profile'),
+                  ),
+                  const SizedBox(height: 16),
+                  AppFormTextField(
+                    controller: remarksController,
+                    maxLines: 3,
+                    labelText: 'Remarks',
+                  ),
+                  if (error != null && error!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: AppActionButton(
+                      onPressed: saving ? null : onSave,
+                      icon: Icons.save_outlined,
+                      label: saving ? 'Saving...' : 'Save Profile',
+                      busy: saving,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ),
     );
-  }
-}
-
-class _FormFieldBox extends StatelessWidget {
-  const _FormFieldBox({required this.width, required this.child});
-
-  final double width;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(width: width, child: child);
   }
 }

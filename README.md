@@ -40,6 +40,10 @@ flutter run
 - typed module services under `lib/service`
 - shared HTTP/session infrastructure under `lib/core`
 
+## Frontend Standards
+
+- shared frontend rulebook: [FRONTEND_STANDARDS.md](/Users/buddykit/Projects/billing-flutter/FRONTEND_STANDARDS.md)
+
 ## Next Build Areas
 
 - auth/session view models

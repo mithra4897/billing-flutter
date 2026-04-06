@@ -1,17 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../../../app/constants/app_ui_constants.dart';
-import '../../../app/theme/app_theme_extension.dart';
-import '../../../components/adaptive_shell.dart';
-import '../../../components/app_loading_view.dart';
-import '../../../components/report_pagination_bar.dart';
-import '../../../core/models/pagination_meta.dart';
-import '../../../core/storage/session_storage.dart';
-import '../../../model/app/public_branding_model.dart';
-import '../../../model/auth/login_history_model.dart';
-import '../../../service/app/app_session_service.dart';
-import '../../../service/auth/auth_service.dart';
-import '../../core/page_shell_actions.dart';
+import '../../../screen.dart';
 
 class LoginHistoryPage extends StatefulWidget {
   const LoginHistoryPage({super.key, this.embedded = false});
@@ -391,39 +378,39 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
           ),
         ),
         _filterBox(
-          child: DropdownButtonFormField<String>(
+          child: AppDropdownField<String>.fromMapped(
             initialValue: _deviceType,
-            decoration: const InputDecoration(labelText: 'Device'),
-            items: const [
-              DropdownMenuItem(value: 'desktop', child: Text('Desktop')),
-              DropdownMenuItem(value: 'mobile', child: Text('Mobile')),
-              DropdownMenuItem(value: 'tablet', child: Text('Tablet')),
+            labelText: 'Device',
+            mappedItems: const [
+              AppDropdownItem(value: 'desktop', label: 'Desktop'),
+              AppDropdownItem(value: 'mobile', label: 'Mobile'),
+              AppDropdownItem(value: 'tablet', label: 'Tablet'),
             ],
             onChanged: (value) => setState(() => _deviceType = value),
           ),
         ),
         _filterBox(
-          child: DropdownButtonFormField<String>(
+          child: AppDropdownField<String>.fromMapped(
             initialValue: _os,
-            decoration: const InputDecoration(labelText: 'OS'),
-            items: const [
-              DropdownMenuItem(value: 'Windows', child: Text('Windows')),
-              DropdownMenuItem(value: 'macOS', child: Text('macOS')),
-              DropdownMenuItem(value: 'Linux', child: Text('Linux')),
-              DropdownMenuItem(value: 'Android', child: Text('Android')),
-              DropdownMenuItem(value: 'iOS', child: Text('iOS')),
+            labelText: 'OS',
+            mappedItems: const [
+              AppDropdownItem(value: 'Windows', label: 'Windows'),
+              AppDropdownItem(value: 'macOS', label: 'macOS'),
+              AppDropdownItem(value: 'Linux', label: 'Linux'),
+              AppDropdownItem(value: 'Android', label: 'Android'),
+              AppDropdownItem(value: 'iOS', label: 'iOS'),
             ],
             onChanged: (value) => setState(() => _os = value),
           ),
         ),
         _filterBox(
-          child: DropdownButtonFormField<String>(
+          child: AppDropdownField<String>.fromMapped(
             initialValue: _status,
-            decoration: const InputDecoration(labelText: 'Status'),
-            items: const [
-              DropdownMenuItem(value: 'success', child: Text('Success')),
-              DropdownMenuItem(value: 'failed', child: Text('Failed')),
-              DropdownMenuItem(value: 'blocked', child: Text('Blocked')),
+            labelText: 'Status',
+            mappedItems: const [
+              AppDropdownItem(value: 'success', label: 'Success'),
+              AppDropdownItem(value: 'failed', label: 'Failed'),
+              AppDropdownItem(value: 'blocked', label: 'Blocked'),
             ],
             onChanged: (value) => setState(() => _status = value),
           ),

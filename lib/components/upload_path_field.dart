@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app/constants/app_ui_constants.dart';
 import '../app/theme/app_theme_extension.dart';
+import 'app_form_text_field.dart';
 
 class UploadPathField extends StatelessWidget {
   const UploadPathField({
@@ -57,28 +58,26 @@ class UploadPathField extends StatelessWidget {
               ),
             ),
           ),
-        TextFormField(
+        AppFormTextField(
           controller: controller,
           maxLines: maxLines,
-          decoration: InputDecoration(
-            labelText: labelText,
-            suffixIcon: Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: isUploading
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : IconButton(
-                      tooltip: 'Upload file',
-                      onPressed: onUpload,
-                      icon: const Icon(Icons.upload_outlined),
+          labelText: labelText,
+          suffixIcon: Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: isUploading
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-            ),
+                  )
+                : IconButton(
+                    tooltip: 'Upload file',
+                    onPressed: onUpload,
+                    icon: const Icon(Icons.upload_outlined),
+                  ),
           ),
         ),
       ],

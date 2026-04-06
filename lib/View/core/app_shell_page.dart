@@ -1,20 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
-import '../../app/navigation/app_navigation.dart';
-import '../../components/adaptive_shell.dart';
-import '../../core/storage/session_storage.dart';
-import '../../model/app/public_branding_model.dart';
-import '../../model/auth/auth_context_model.dart';
-import '../../service/app/app_session_service.dart';
+import '../../screen.dart';
 import '../dashboard/dashboard_page.dart';
 import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
 import '../settings/user/role_management_page.dart';
 import '../settings/user/user_management_page.dart';
-import '../settings/master/master_setup_pages.dart';
+import '../settings/master/branch_page.dart';
+import '../settings/master/business_location_page.dart';
+import '../settings/master/company_page.dart';
+import '../settings/master/warehouse_page.dart';
 import 'module_placeholder_page.dart';
-import 'page_shell_actions.dart';
 
 class AppShellPage extends StatefulWidget {
   const AppShellPage({

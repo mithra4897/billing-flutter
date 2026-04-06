@@ -1,12 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../../components/app_error_state_view.dart';
-import '../../components/app_loading_view.dart';
-import '../../core/error/api_exception.dart';
-import '../../core/storage/session_storage.dart';
-import '../../service/app/app_session_service.dart';
-import '../../service/app/public_branding_service.dart';
-import '../../service/auth/auth_service.dart';
+import '../../screen.dart';
 
 class AppBootstrapPage extends StatefulWidget {
   const AppBootstrapPage({super.key});

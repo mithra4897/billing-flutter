@@ -1,17 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../../../app/constants/app_ui_constants.dart';
-import '../../../app/theme/app_theme_extension.dart';
-import '../../../components/adaptive_shell.dart';
-import '../../../components/app_loading_view.dart';
-import '../../../core/storage/session_storage.dart';
-import '../../../model/admin/role_model.dart';
-import '../../../model/app/public_branding_model.dart';
-import '../../../model/auth/role_permission_model.dart';
-import '../../../model/auth/role_permission_sync_request_model.dart';
-import '../../../service/app/app_session_service.dart';
-import '../../../service/auth/auth_service.dart';
-import '../../core/page_shell_actions.dart';
+import '../../../screen.dart';
 
 class RoleManagementPage extends StatefulWidget {
   const RoleManagementPage({
@@ -651,9 +638,9 @@ class _RoleManagementPageState extends State<RoleManagementPage>
               runSpacing: 16,
               children: [
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Role Name'),
+                    labelText: 'Role Name',
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Role name is required'
@@ -661,10 +648,10 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                   ),
                 ),
                 _inputBox(
-                  child: TextFormField(
+                  child: AppFormTextField(
                     controller: _codeController,
                     textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(labelText: 'Role Code'),
+                    labelText: 'Role Code',
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Role code is required'
@@ -673,15 +660,12 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                 ),
                 _inputBox(
                   width: 260,
-                  child: DropdownButtonFormField<String>(
+                  child: AppDropdownField<String>.fromMapped(
                     initialValue: _isActive ? 'active' : 'inactive',
-                    decoration: const InputDecoration(labelText: 'Status'),
-                    items: const [
-                      DropdownMenuItem(value: 'active', child: Text('Active')),
-                      DropdownMenuItem(
-                        value: 'inactive',
-                        child: Text('Inactive'),
-                      ),
+                    labelText: 'Status',
+                    mappedItems: const [
+                      AppDropdownItem(value: 'active', label: 'Active'),
+                      AppDropdownItem(value: 'inactive', label: 'Inactive'),
                     ],
                     onChanged: (value) => setState(() {
                       _isActive = value == 'active';
@@ -691,10 +675,10 @@ class _RoleManagementPageState extends State<RoleManagementPage>
               ],
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            AppFormTextField(
               controller: _descriptionController,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Description'),
+              labelText: 'Description',
             ),
             const SizedBox(height: 16),
             if (_isSystemRole)
@@ -711,16 +695,11 @@ class _RoleManagementPageState extends State<RoleManagementPage>
               spacing: 12,
               runSpacing: 12,
               children: [
-                FilledButton.icon(
+                AppActionButton(
                   onPressed: _savingProfile ? null : _saveProfile,
-                  icon: _savingProfile
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.save_outlined),
-                  label: Text(_savingProfile ? 'Saving...' : 'Save Role'),
+                  icon: Icons.save_outlined,
+                  label: _savingProfile ? 'Saving...' : 'Save Role',
+                  busy: _savingProfile,
                 ),
               ],
             ),
