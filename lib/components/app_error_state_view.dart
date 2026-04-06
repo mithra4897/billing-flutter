@@ -17,6 +17,11 @@ class AppErrorStateView extends StatelessWidget {
   final String actionLabel;
   final VoidCallback? onRetry;
 
+  const AppErrorStateView.inline({super.key, required this.message})
+    : title = 'Something went wrong',
+      actionLabel = 'Retry',
+      onRetry = null;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

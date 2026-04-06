@@ -1,32 +1,55 @@
+import '../common/json_model.dart';
 import 'party_address_model.dart';
 import 'party_contact_model.dart';
 
-class PartyModel {
+class PartyModel implements JsonModel {
   const PartyModel({
-    required this.id,
-    required this.partyCode,
-    required this.partyName,
+    this.id,
+    this.partyCode,
+    this.partyName,
     this.displayName,
+    this.partyTypeId,
     this.partyType,
+    this.isCompany = false,
+    this.contactPerson,
     this.mobile,
+    this.phone,
     this.email,
+    this.website,
     this.gstin,
+    this.gstType,
     this.pan,
+    this.aadhaar,
+    this.defaultCurrency,
+    this.openingBalance,
+    this.openingBalanceType,
+    this.remarks,
     this.isActive = true,
     this.addresses = const [],
     this.contacts = const [],
     this.raw,
   });
 
-  final int id;
-  final String partyCode;
-  final String partyName;
+  final int? id;
+  final String? partyCode;
+  final String? partyName;
   final String? displayName;
+  final int? partyTypeId;
   final String? partyType;
+  final bool isCompany;
+  final String? contactPerson;
   final String? mobile;
+  final String? phone;
   final String? email;
+  final String? website;
   final String? gstin;
+  final String? gstType;
   final String? pan;
+  final String? aadhaar;
+  final String? defaultCurrency;
+  final double? openingBalance;
+  final String? openingBalanceType;
+  final String? remarks;
   final bool isActive;
   final List<PartyAddressModel> addresses;
   final List<PartyContactModel> contacts;
@@ -38,11 +61,22 @@ class PartyModel {
       partyCode: json['party_code']?.toString() ?? '',
       partyName: json['party_name']?.toString() ?? '',
       displayName: json['display_name']?.toString(),
+      partyTypeId: _parseInt(json['party_type_id']),
       partyType: json['party_type']?.toString(),
+      isCompany: json['is_company'] == true || json['is_company'] == 1,
+      contactPerson: json['contact_person']?.toString(),
       mobile: json['mobile']?.toString(),
+      phone: json['phone']?.toString(),
       email: json['email']?.toString(),
+      website: json['website']?.toString(),
       gstin: json['gstin']?.toString(),
+      gstType: json['gst_type']?.toString(),
       pan: json['pan']?.toString(),
+      aadhaar: json['aadhaar']?.toString(),
+      defaultCurrency: json['default_currency']?.toString(),
+      openingBalance: _parseDouble(json['opening_balance']),
+      openingBalanceType: json['opening_balance_type']?.toString(),
+      remarks: json['remarks']?.toString(),
       isActive: json['is_active'] != false && json['is_active'] != 0,
       addresses: _mapList(
         json['addresses'],
@@ -54,6 +88,33 @@ class PartyModel {
       ),
       raw: json,
     );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      if (id != null) 'id': id,
+      if (partyCode != null) 'party_code': partyCode,
+      if (partyName != null) 'party_name': partyName,
+      if (displayName != null) 'display_name': displayName,
+      if (partyTypeId != null) 'party_type_id': partyTypeId,
+      'is_company': isCompany,
+      if (contactPerson != null) 'contact_person': contactPerson,
+      if (mobile != null) 'mobile': mobile,
+      if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
+      if (website != null) 'website': website,
+      if (pan != null) 'pan': pan,
+      if (aadhaar != null) 'aadhaar': aadhaar,
+      if (gstin != null) 'gstin': gstin,
+      if (gstType != null) 'gst_type': gstType,
+      if (defaultCurrency != null) 'default_currency': defaultCurrency,
+      if (openingBalance != null) 'opening_balance': openingBalance,
+      if (openingBalanceType != null)
+        'opening_balance_type': openingBalanceType,
+      if (remarks != null) 'remarks': remarks,
+      'is_active': isActive,
+    };
   }
 
   static List<T> _mapList<T>(
@@ -70,6 +131,14 @@ class PartyModel {
         .toList(growable: false);
   }
 
-  static int _parseInt(dynamic value) =>
-      int.tryParse(value?.toString() ?? '') ?? 0;
+  static int? _parseInt(dynamic value) {
+    if (value == null || value.toString().isEmpty) {
+      return null;
+    }
+
+    return int.tryParse(value.toString());
+  }
+
+  static double? _parseDouble(dynamic value) =>
+      double.tryParse(value?.toString() ?? '');
 }

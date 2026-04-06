@@ -23,6 +23,61 @@ String? nullIfEmpty(String value) {
   return trimmed.isEmpty ? null : trimmed;
 }
 
+String stringValue(
+  Map<String, dynamic> data,
+  String key, [
+  String fallback = '',
+]) {
+  final value = data[key];
+  if (value == null) {
+    return fallback;
+  }
+
+  return value.toString();
+}
+
+String? nullableStringValue(Map<String, dynamic> data, String key) {
+  final value = data[key];
+  if (value == null) {
+    return null;
+  }
+
+  final text = value.toString().trim();
+  return text.isEmpty ? null : text;
+}
+
+int? intValue(Map<String, dynamic> data, String key) {
+  final value = data[key];
+  if (value == null || value.toString().trim().isEmpty) {
+    return null;
+  }
+
+  return int.tryParse(value.toString());
+}
+
+double? doubleValue(Map<String, dynamic> data, String key) {
+  final value = data[key];
+  if (value == null || value.toString().trim().isEmpty) {
+    return null;
+  }
+
+  return double.tryParse(value.toString());
+}
+
+bool boolValue(Map<String, dynamic> data, String key, {bool fallback = false}) {
+  final value = data[key];
+  if (value == null) {
+    return fallback;
+  }
+
+  if (value is bool) {
+    return value;
+  }
+
+  final normalized = value.toString().trim().toLowerCase();
+  return normalized == '1' || normalized == 'true' || normalized == 'yes';
+}
+
 String companyNameById(List<CompanyModel> companies, int? id) {
   return companies
           .cast<CompanyModel?>()

@@ -10,9 +10,9 @@ import '../base/erp_module_service.dart';
 class CommunicationService extends ErpModuleService {
   CommunicationService({super.apiClient});
 
-  Future<PaginatedResponse<EmailSettingModel>> emailSettings({
+  Future<ApiResponse<List<EmailSettingModel>>> emailSettings({
     Map<String, dynamic>? filters,
-  }) => paginated<EmailSettingModel>(
+  }) => collection<EmailSettingModel>(
     '/communication/email-settings',
     filters: filters,
     fromJson: EmailSettingModel.fromJson,
@@ -33,9 +33,9 @@ class CommunicationService extends ErpModuleService {
     fromJson: EmailSettingModel.fromJson,
   );
 
-  Future<PaginatedResponse<EmailModuleSettingModel>> emailModuleSettings({
+  Future<ApiResponse<List<EmailModuleSettingModel>>> emailModuleSettings({
     Map<String, dynamic>? filters,
-  }) => paginated<EmailModuleSettingModel>(
+  }) => collection<EmailModuleSettingModel>(
     '/communication/email-module-settings',
     filters: filters,
     fromJson: EmailModuleSettingModel.fromJson,

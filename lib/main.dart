@@ -43,9 +43,18 @@ class BillingApp extends StatelessWidget {
                   LoginPage(redirectTo: uri.queryParameters['redirect']),
             );
           default:
-            final matchedRoute = uri.path == '/dashboard'
-                ? true
-                : AppNavigation.findByPath(uri.path) != null;
+            final matchedRoute =
+                uri.path == '/dashboard' ||
+                AppNavigation.findByPath(uri.path) != null ||
+                const <String>{
+                  '/communication/send-email',
+                  '/parties/addresses',
+                  '/parties/contacts',
+                  '/parties/gst-details',
+                  '/parties/bank-accounts',
+                  '/parties/credit-limits',
+                  '/parties/payment-terms',
+                }.contains(uri.path);
             if (matchedRoute) {
               return MaterialPageRoute<void>(
                 settings: settings,

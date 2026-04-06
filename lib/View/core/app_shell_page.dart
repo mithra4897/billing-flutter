@@ -1,5 +1,11 @@
 import '../../screen.dart';
 import '../dashboard/dashboard_page.dart';
+import '../parties/party_management_page.dart';
+import '../settings/communication/email_messages_page.dart';
+import '../settings/communication/email_module_settings_page.dart';
+import '../settings/communication/email_rules_page.dart';
+import '../settings/communication/email_settings_page.dart';
+import '../settings/communication/email_templates_page.dart';
 import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
 import '../settings/user/role_management_page.dart';
@@ -7,6 +13,8 @@ import '../settings/user/user_management_page.dart';
 import '../settings/master/branch_page.dart';
 import '../settings/master/business_location_page.dart';
 import '../settings/master/company_page.dart';
+import '../settings/master/tax_category_page.dart';
+import '../settings/master/uom_page.dart';
 import '../settings/master/warehouse_page.dart';
 import 'module_placeholder_page.dart';
 
@@ -152,6 +160,61 @@ class _AppShellPageState extends State<AppShellPage> {
         return BusinessLocationManagementPage(key: routeKey, embedded: true);
       case '/settings/warehouses':
         return WarehouseManagementPage(key: routeKey, embedded: true);
+      case '/settings/uom':
+      case '/masters/uoms':
+        return UomManagementPage(key: routeKey, embedded: true);
+      case '/settings/tax-categories':
+      case '/masters/tax-codes':
+        return TaxCategoryManagementPage(key: routeKey, embedded: true);
+      case '/communication/email-settings':
+        return EmailSettingsPage(key: routeKey, embedded: true);
+      case '/communication/email-module-settings':
+        return EmailModuleSettingsPage(key: routeKey, embedded: true);
+      case '/communication/email-templates':
+        return EmailTemplatesPage(key: routeKey, embedded: true);
+      case '/communication/email-rules':
+        return EmailRulesPage(key: routeKey, embedded: true);
+      case '/communication/email-messages':
+      case '/communication/send-email':
+        return EmailMessagesPage(key: routeKey, embedded: true);
+      case '/parties':
+        return PartyManagementPage(key: routeKey, embedded: true);
+      case '/parties/addresses':
+        return PartyManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 1,
+        );
+      case '/parties/contacts':
+        return PartyManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 2,
+        );
+      case '/parties/gst-details':
+        return PartyManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 3,
+        );
+      case '/parties/bank-accounts':
+        return PartyManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 4,
+        );
+      case '/parties/credit-limits':
+        return PartyManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 5,
+        );
+      case '/parties/payment-terms':
+        return PartyManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 6,
+        );
       default:
         return ModulePlaceholderPage(
           key: routeKey,
@@ -169,6 +232,13 @@ class _AppShellPageState extends State<AppShellPage> {
       if (routePath == path && (moduleName ?? '').isNotEmpty) {
         return moduleName!;
       }
+    }
+
+    if (path.startsWith('/parties/')) {
+      return 'Parties';
+    }
+    if (path == '/communication/send-email') {
+      return 'Email Messages';
     }
 
     return AppNavigation.findByPath(path)?.title ?? 'Module';
