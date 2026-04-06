@@ -732,7 +732,14 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       return;
     }
 
-    _ensureMenuKeyVisible(selectedKey, alignment: 0.2);
+    _ensureMenuKeyVisible(selectedKey, alignment: 0.5);
+
+    Future<void>.delayed(const Duration(milliseconds: 220), () {
+      if (!mounted) {
+        return;
+      }
+      _ensureMenuKeyVisible(selectedKey, alignment: 0.5);
+    });
   }
 
   void _ensureMenuKeyVisible(String key, {double alignment = 0.2}) {

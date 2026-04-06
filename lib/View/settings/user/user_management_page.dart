@@ -73,6 +73,7 @@ class _UserManagementPageState extends State<UserManagementPage>
   List<PermissionModel> _permissions = const <PermissionModel>[];
   List<UserPermissionModel> _effectivePermissions =
       const <UserPermissionModel>[];
+  Set<String> _expandedPermissionModules = <String>{};
   List<AuditLogModel> _auditLogs = const <AuditLogModel>[];
   List<LoginHistoryModel> _loginHistory = const <LoginHistoryModel>[];
 
@@ -247,6 +248,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     _effectivePermissions = _mergePermissionSet(
       summary?.effectivePermissions ?? const [],
     );
+    _expandedPermissionModules = <String>{};
   }
 
   void _resetForm() {
@@ -271,6 +273,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     _displayNameTouched = false;
     _rolePermissions = _mergePermissionSet(const []);
     _effectivePermissions = _mergePermissionSet(const []);
+    _expandedPermissionModules = <String>{};
     _auditLogs = const [];
     _loginHistory = const [];
     _formError = null;
@@ -642,6 +645,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     setState(() {
       _rolePermissions = _mergePermissionSet(permissionRows);
       _effectivePermissions = _mergePermissionSet(permissionRows);
+      _expandedPermissionModules = <String>{};
     });
   }
 
@@ -1317,24 +1321,13 @@ class _UserManagementPageState extends State<UserManagementPage>
       );
     }
 
-    final grouped = <String, List<UserPermissionModel>>{};
-    for (final permission in _effectivePermissions) {
-      final key = permission.module ?? 'general';
-      grouped.putIfAbsent(key, () => <UserPermissionModel>[]).add(permission);
-    }
-
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
           child: Row(
             children: [
-              Expanded(
-                child: Text(
-                  'Role gives the baseline access. You can add or remove rights here for this user only. Changing the role resets these custom overrides to the new role baseline.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
+              const Spacer(),
               FilledButton.icon(
                 onPressed: _savingPermissions ? null : _savePermissions,
                 icon: _savingPermissions
@@ -1355,130 +1348,115 @@ class _UserManagementPageState extends State<UserManagementPage>
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-          children: grouped.entries
-              .map((entry) {
-                return Card(
-                  child: ExpansionTile(
-                    initiallyExpanded: true,
-                    title: Text(entry.key.toUpperCase()),
-                    children: entry.value
-                        .map((permission) {
-                          final index = _effectivePermissions.indexOf(
-                            permission,
-                          );
-                          final effective = _effectivePermissions.firstWhere(
-                            (item) =>
-                                item.permissionId == permission.permissionId,
-                            orElse: () => permission,
-                          );
-                          final baseline = _rolePermissions.firstWhere(
-                            (item) =>
-                                item.permissionId == permission.permissionId,
-                            orElse: () => permission,
-                          );
+          children: _effectivePermissions
+              .map((permission) {
+                final permissionKey =
+                    '${permission.permissionId ?? permission.code ?? permission.name ?? 'permission'}';
+                final index = _effectivePermissions.indexOf(permission);
+                final effective = _effectivePermissions.firstWhere(
+                  (item) => item.permissionId == permission.permissionId,
+                  orElse: () => permission,
+                );
 
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                return Card(
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  color: Theme.of(
+                    context,
+                  ).extension<AppThemeExtension>()!.subtleFill,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.buttonRadius,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    initiallyExpanded: false,
+                    onExpansionChanged: (expanded) {
+                      setState(() {
+                        if (expanded) {
+                          _expandedPermissionModules.add(permissionKey);
+                        } else {
+                          _expandedPermissionModules.remove(permissionKey);
+                        }
+                      });
+                    },
+                    title: Text(
+                      permission.name ?? permission.code ?? 'Permission',
+                    ),
+                    trailing: _permissionGroupTrailing(
+                      context,
+                      permissionKey,
+                      effective,
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 16, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if ((permission.description ?? '').isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: Text(permission.description!),
+                              ),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 8,
                               children: [
-                                Text(
-                                  permission.name ??
-                                      permission.code ??
-                                      'Permission',
-                                  style: Theme.of(context).textTheme.titleSmall
-                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                _permCheck(
+                                  'View',
+                                  effective.allowView ?? false,
+                                  (value) =>
+                                      _togglePermission(index, 'view', value),
                                 ),
-                                if ((permission.description ?? '').isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(permission.description!),
+                                _permCheck(
+                                  'Create',
+                                  effective.allowCreate ?? false,
+                                  (value) =>
+                                      _togglePermission(index, 'create', value),
+                                ),
+                                _permCheck(
+                                  'Update',
+                                  effective.allowUpdate ?? false,
+                                  (value) =>
+                                      _togglePermission(index, 'update', value),
+                                ),
+                                _permCheck(
+                                  'Delete',
+                                  effective.allowDelete ?? false,
+                                  (value) =>
+                                      _togglePermission(index, 'delete', value),
+                                ),
+                                _permCheck(
+                                  'Approve',
+                                  effective.allowApprove ?? false,
+                                  (value) => _togglePermission(
+                                    index,
+                                    'approve',
+                                    value,
                                   ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 12,
-                                  runSpacing: 8,
-                                  children: [
-                                    _permCheck(
-                                      'View',
-                                      effective.allowView ?? false,
-                                      (value) => _togglePermission(
-                                        index,
-                                        'view',
-                                        value,
-                                      ),
-                                    ),
-                                    _permCheck(
-                                      'Create',
-                                      effective.allowCreate ?? false,
-                                      (value) => _togglePermission(
-                                        index,
-                                        'create',
-                                        value,
-                                      ),
-                                    ),
-                                    _permCheck(
-                                      'Update',
-                                      effective.allowUpdate ?? false,
-                                      (value) => _togglePermission(
-                                        index,
-                                        'update',
-                                        value,
-                                      ),
-                                    ),
-                                    _permCheck(
-                                      'Delete',
-                                      effective.allowDelete ?? false,
-                                      (value) => _togglePermission(
-                                        index,
-                                        'delete',
-                                        value,
-                                      ),
-                                    ),
-                                    _permCheck(
-                                      'Approve',
-                                      effective.allowApprove ?? false,
-                                      (value) => _togglePermission(
-                                        index,
-                                        'approve',
-                                        value,
-                                      ),
-                                    ),
-                                    _permCheck(
-                                      'Print',
-                                      effective.allowPrint ?? false,
-                                      (value) => _togglePermission(
-                                        index,
-                                        'print',
-                                        value,
-                                      ),
-                                    ),
-                                    _permCheck(
-                                      'Export',
-                                      effective.allowExport ?? false,
-                                      (value) => _togglePermission(
-                                        index,
-                                        'export',
-                                        value,
-                                      ),
-                                    ),
-                                  ],
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Role baseline: ${_rightsLabel(baseline)}',
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                _permCheck(
+                                  'Print',
+                                  effective.allowPrint ?? false,
+                                  (value) =>
+                                      _togglePermission(index, 'print', value),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Effective access: ${_rightsLabel(effective)}',
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                _permCheck(
+                                  'Export',
+                                  effective.allowExport ?? false,
+                                  (value) =>
+                                      _togglePermission(index, 'export', value),
                                 ),
                               ],
                             ),
-                          );
-                        })
-                        .toList(growable: false),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 );
               })
@@ -1549,6 +1527,9 @@ class _UserManagementPageState extends State<UserManagementPage>
     }
 
     return ListView.separated(
+      shrinkWrap: true,
+      primary: false,
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(AppUiConstants.cardPadding),
       itemCount: items.length,
       separatorBuilder: (context, index) => const SizedBox(height: 10),
@@ -1674,16 +1655,64 @@ class _UserManagementPageState extends State<UserManagementPage>
     );
   }
 
-  String _rightsLabel(UserPermissionModel permission) {
-    final labels = <String>[];
-    if (permission.allowView == true) labels.add('view');
-    if (permission.allowCreate == true) labels.add('create');
-    if (permission.allowUpdate == true) labels.add('update');
-    if (permission.allowDelete == true) labels.add('delete');
-    if (permission.allowApprove == true) labels.add('approve');
-    if (permission.allowPrint == true) labels.add('print');
-    if (permission.allowExport == true) labels.add('export');
-    return labels.isEmpty ? 'none' : labels.join(', ');
+  Widget _permissionGroupTrailing(
+    BuildContext context,
+    String permissionKey,
+    UserPermissionModel permission,
+  ) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final isExpanded = _expandedPermissionModules.contains(permissionKey);
+    final summary = _permissionRightsSummary(permission);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (summary.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              summary,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        const SizedBox(width: 10),
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: appTheme.cardBackground,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Icon(
+            isExpanded ? Icons.expand_less : Icons.expand_more,
+            size: 18,
+            color: appTheme.mutedText,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _permissionRightsSummary(UserPermissionModel permission) {
+    final letters = <String>[];
+    if (permission.allowView == true) letters.add('V');
+    if (permission.allowCreate == true) letters.add('C');
+    if (permission.allowUpdate == true) letters.add('U');
+    if (permission.allowDelete == true) letters.add('D');
+    if (permission.allowApprove == true) letters.add('A');
+    if (permission.allowPrint == true) letters.add('P');
+    if (permission.allowExport == true) letters.add('E');
+    return letters.join(' ');
   }
 }
 

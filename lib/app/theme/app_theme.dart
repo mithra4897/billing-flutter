@@ -36,6 +36,7 @@ class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: const Color(0xFFEFF3F6),
       cardColor: extension.cardBackground,
+      dividerColor: Colors.transparent,
       extensions: const [extension],
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -68,6 +69,13 @@ class AppTheme {
       ),
       checkboxTheme: CheckboxThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+      expansionTileTheme: ExpansionTileThemeData(
+        shape: const RoundedRectangleBorder(side: BorderSide.none),
+        collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
+        childrenPadding: EdgeInsets.zero,
+        iconColor: extension.mutedText,
+        collapsedIconColor: extension.mutedText,
       ),
     );
   }
