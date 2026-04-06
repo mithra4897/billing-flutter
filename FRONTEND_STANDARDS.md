@@ -34,6 +34,9 @@ Whenever we create a new page, form, report, dialog, list, or shell section, we 
 - Keep only truly local/special imports beside it.
   - example: sibling helper file, highly specific local widget, or package not meant for global export
 - Avoid long repeated import blocks in every page.
+- Thumb rule:
+  - if the same import is repeating across multiple screens, export it from [screen.dart](/lib/screen.dart)
+  - keep only genuinely local or feature-specific imports directly inside the file
 
 ## Theme Rule
 

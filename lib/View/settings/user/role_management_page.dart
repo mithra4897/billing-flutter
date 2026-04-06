@@ -619,6 +619,8 @@ class _RoleManagementPageState extends State<RoleManagementPage>
   }
 
   Widget _buildProfileTab(BuildContext context) {
+    final fieldWidth = settingsResponsiveFieldWidth(context);
+
     if (_loadingRoleDetails) {
       return const Padding(
         padding: EdgeInsets.all(AppUiConstants.cardPadding),
@@ -638,6 +640,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
               runSpacing: 16,
               children: [
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _nameController,
                     labelText: 'Role Name',
@@ -648,6 +651,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _codeController,
                     textCapitalization: TextCapitalization.characters,
@@ -659,7 +663,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                   ),
                 ),
                 _inputBox(
-                  width: 260,
+                  width: fieldWidth,
                   child: AppDropdownField<String>.fromMapped(
                     initialValue: _isActive ? 'active' : 'inactive',
                     labelText: 'Status',
@@ -898,7 +902,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
     );
   }
 
-  Widget _inputBox({required Widget child, double width = 260}) {
+  Widget _inputBox({required Widget child, double? width}) {
     return SizedBox(width: width, child: child);
   }
 

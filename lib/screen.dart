@@ -57,3 +57,7 @@ export 'service/master/master_service.dart';
 export 'service/media/media_service.dart';
 
 export 'view/core/page_shell_actions.dart';
+export 'view/settings/widgets/settings_empty_state.dart';
+export 'view/settings/widgets/settings_field_box.dart';
+export 'view/settings/widgets/settings_workspace.dart';
+export 'view/settings/master/master_setup_helpers.dart';

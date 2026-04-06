@@ -273,3 +273,23 @@ class SettingsFormWrap extends StatelessWidget {
     return Wrap(spacing: 16, runSpacing: 16, children: children);
   }
 }
+
+double settingsResponsiveFieldWidth(
+  BuildContext context, {
+  double minWidth = 240,
+  double maxWidth = 360,
+}) {
+  final screenWidth = MediaQuery.sizeOf(context).width;
+
+  if (screenWidth < 640) {
+    return screenWidth - 64;
+  }
+
+  if (screenWidth < 1100) {
+    final width = (screenWidth - 120) / 2;
+    return width.clamp(minWidth, maxWidth);
+  }
+
+  final width = (screenWidth - 180) / 3;
+  return width.clamp(minWidth, maxWidth);
+}

@@ -1,6 +1,4 @@
 import '../../../screen.dart';
-import '../widgets/settings_workspace.dart';
-import 'master_setup_helpers.dart';
 
 class CompanyManagementPage extends StatefulWidget {
   const CompanyManagementPage({super.key, this.embedded = false});
@@ -272,6 +270,8 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
       return Center(child: Text(_pageError!));
     }
 
+    final fieldWidth = settingsResponsiveFieldWidth(context);
+
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<CompanyModel>(
@@ -311,7 +311,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
                   AppFormTextField(
                     controller: _codeController,
                     labelText: 'Code',
-                    width: 260,
+                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Code is required'
@@ -320,7 +320,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
                   AppFormTextField(
                     controller: _legalNameController,
                     labelText: 'Legal Name',
-                    width: 260,
+                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Legal Name is required'
@@ -329,12 +329,12 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
                   AppFormTextField(
                     controller: _tradeNameController,
                     labelText: 'Trade Name',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                   AppDropdownField<String>.fromMapped(
                     initialValue: _companyType,
                     labelText: 'Company Type',
-                    width: 260,
+                    width: fieldWidth,
                     mappedItems: const [
                       AppDropdownItem(
                         value: 'private_limited',
@@ -363,42 +363,42 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
                   AppFormTextField(
                     controller: _gstinController,
                     labelText: 'GSTIN',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _panController,
                     labelText: 'PAN',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _phoneController,
                     labelText: 'Phone',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _emailController,
                     labelText: 'Email',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _websiteController,
                     labelText: 'Website',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _cityController,
                     labelText: 'City',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _stateController,
                     labelText: 'State Name',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                   AppFormTextField(
                     controller: _currencyController,
                     labelText: 'Base Currency',
-                    width: 260,
+                    width: fieldWidth,
                   ),
                 ],
               ),

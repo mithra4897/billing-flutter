@@ -1046,6 +1046,8 @@ class _UserManagementPageState extends State<UserManagementPage>
   }
 
   Widget _buildProfileTab(BuildContext context) {
+    final fieldWidth = settingsResponsiveFieldWidth(context);
+
     return Padding(
       padding: const EdgeInsets.all(AppUiConstants.cardPadding),
       child: Form(
@@ -1058,12 +1060,14 @@ class _UserManagementPageState extends State<UserManagementPage>
               runSpacing: 16,
               children: [
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _employeeCodeController,
                     labelText: 'Employee Code',
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _usernameController,
                     labelText: 'Username',
@@ -1074,6 +1078,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _passwordController,
                     obscureText: true,
@@ -1090,6 +1095,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _firstNameController,
                     labelText: 'First Name',
@@ -1100,12 +1106,14 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _lastNameController,
                     labelText: 'Last Name',
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _displayNameController,
                     labelText: 'Display Name',
@@ -1113,18 +1121,21 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _emailController,
                     labelText: 'Email',
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _mobileController,
                     labelText: 'Mobile',
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppDropdownField<String>.fromMapped(
                     initialValue: _gender,
                     labelText: 'Gender',
@@ -1141,6 +1152,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
+                  width: fieldWidth,
                   child: AppFormTextField(
                     controller: _dobController,
                     labelText: 'Date of Birth',
@@ -1149,7 +1161,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
-                  width: 324,
+                  width: fieldWidth,
                   child: InlineFieldAction(
                     actionTooltip: 'Create role',
                     onAddNew: _openCreateRoleDialog,
@@ -1192,7 +1204,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                   ),
                 ),
                 _inputBox(
-                  width: 560,
+                  width: fieldWidth,
                   child: UploadPathField(
                     controller: _profilePhotoController,
                     labelText: 'Profile Photo Path',
@@ -1246,7 +1258,7 @@ class _UserManagementPageState extends State<UserManagementPage>
             ],
             const SizedBox(height: 16),
             SizedBox(
-              width: 260,
+              width: fieldWidth,
               child: AppDropdownField<String>.fromMapped(
                 initialValue: _status,
                 labelText: 'Status',
@@ -1556,7 +1568,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     );
   }
 
-  Widget _inputBox({required Widget child, double width = 260}) {
+  Widget _inputBox({required Widget child, double? width}) {
     return SizedBox(width: width, child: child);
   }
 

@@ -1,6 +1,4 @@
 import '../../../screen.dart';
-import '../widgets/settings_workspace.dart';
-import 'master_setup_helpers.dart';
 
 class BranchManagementPage extends StatefulWidget {
   const BranchManagementPage({super.key, this.embedded = false});
@@ -226,6 +224,8 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
       return Center(child: Text(_pageError!));
     }
 
+    final fieldWidth = settingsResponsiveFieldWidth(context);
+
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<BranchModel>(
@@ -264,7 +264,7 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                 children: [
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Company',
-                    width: 260,
+                    width: fieldWidth,
                     initialValue: _companyId,
                     mappedItems: _companies
                         .where((company) => company.id != null)
@@ -282,7 +282,7 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                   AppFormTextField(
                     controller: _codeController,
                     labelText: 'Code',
-                    width: 260,
+                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Code is required'
@@ -291,7 +291,7 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                   AppFormTextField(
                     controller: _nameController,
                     labelText: 'Name',
-                    width: 260,
+                    width: fieldWidth,
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
                         ? 'Name is required'
@@ -300,7 +300,7 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                   AppDropdownField<String>.fromMapped(
                     initialValue: _branchType,
                     labelText: 'Branch Type',
-                    width: 260,
+                    width: fieldWidth,
                     mappedItems: const [
                       AppDropdownItem(
                         value: 'head_office',

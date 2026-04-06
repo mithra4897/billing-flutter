@@ -131,9 +131,9 @@ class AppNavigation {
           ],
         ),
         AppNavigationItem(
-          key: 'settings-user',
-          title: 'Users',
-          icon: Icons.manage_accounts_outlined,
+          key: 'settings-access-control',
+          title: 'Access Control',
+          icon: Icons.admin_panel_settings_outlined,
           children: [
             AppNavigationItem(
               key: 'settings-profile',
@@ -149,20 +149,6 @@ class AppNavigation {
               requiredPermissions: ['user.view'],
             ),
             AppNavigationItem(
-              key: 'settings-login-history',
-              title: 'Login History',
-              icon: Icons.history_outlined,
-              path: '/settings/login-history',
-              requiredPermissions: ['user.view'],
-            ),
-          ],
-        ),
-        AppNavigationItem(
-          key: 'settings-access-control',
-          title: 'Access Control',
-          icon: Icons.admin_panel_settings_outlined,
-          children: [
-            AppNavigationItem(
               key: 'settings-roles',
               title: 'Roles',
               icon: Icons.badge_outlined,
@@ -175,6 +161,13 @@ class AppNavigation {
               icon: Icons.apps_outlined,
               path: '/admin/modules',
               requiredPermissions: ['permission.view'],
+            ),
+            AppNavigationItem(
+              key: 'settings-login-history',
+              title: 'Login History',
+              icon: Icons.history_outlined,
+              path: '/settings/login-history',
+              requiredPermissions: ['user.view'],
             ),
           ],
         ),

@@ -378,6 +378,7 @@ class _ProfileContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final fieldWidth = settingsResponsiveFieldWidth(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
@@ -410,7 +411,7 @@ class _ProfileContent extends StatelessWidget {
                     spacing: 16,
                     children: [
                       AppFormTextField(
-                        width: 260,
+                        width: fieldWidth,
                         controller: firstNameController,
                         labelText: 'First Name',
                         validator: (value) =>
@@ -419,30 +420,30 @@ class _ProfileContent extends StatelessWidget {
                             : null,
                       ),
                       AppFormTextField(
-                        width: 260,
+                        width: fieldWidth,
                         controller: lastNameController,
                         labelText: 'Last Name',
                       ),
                       AppFormTextField(
-                        width: 260,
+                        width: fieldWidth,
                         controller: displayNameController,
                         labelText: 'Display Name',
                         onChanged: (_) => onDisplayNameEdited(),
                       ),
                       AppFormTextField(
-                        width: 260,
+                        width: fieldWidth,
                         initialValue: profile?.username ?? '',
                         enabled: false,
                         labelText: 'Username',
                       ),
                       AppFormTextField(
-                        width: 260,
+                        width: fieldWidth,
                         initialValue: profile?.employeeCode ?? '',
                         enabled: false,
                         labelText: 'Employee Code',
                       ),
                       AppDropdownField<String>.fromMapped(
-                        width: 260,
+                        width: fieldWidth,
                         initialValue: gender,
                         labelText: 'Gender',
                         mappedItems: const [
@@ -457,17 +458,17 @@ class _ProfileContent extends StatelessWidget {
                         onChanged: onGenderChanged,
                       ),
                       AppFormTextField(
-                        width: 260,
+                        width: fieldWidth,
                         controller: emailController,
                         labelText: 'Email',
                       ),
                       AppFormTextField(
-                        width: 260,
+                        width: fieldWidth,
                         controller: mobileController,
                         labelText: 'Mobile',
                       ),
                       AppFormTextField(
-                        width: 260,
+                        width: fieldWidth,
                         controller: dobController,
                         labelText: 'Date of Birth',
                         keyboardType: TextInputType.datetime,
