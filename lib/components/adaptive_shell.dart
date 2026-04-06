@@ -354,11 +354,28 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                                     },
                                   ),
                                 Expanded(
-                                  child: _AdaptiveShellTitle(
-                                    title: widget.title,
-                                    style: theme.textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _AdaptiveShellTitle(
+                                        title: widget.title,
+                                        style: theme.textTheme.titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      Text(
+                                        'Powered by Sakthi Controller',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: appTheme.mutedText,
+                                            ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 if (widget.actions.isNotEmpty)
@@ -460,22 +477,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               ],
             ),
           ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-            child: _buildLeafTile(
-              icon: Icons.logout,
-              label: 'Logout',
-              depth: 0,
-              collapsed: collapsed,
-              foregroundColor: foregroundColor,
-              mutedColor: mutedColor,
-              selected: false,
-              selectedBackground: selectedBackground,
-              selectedForeground: selectedForeground,
-              onTap: widget.onLogout,
-            ),
-          ),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -535,6 +537,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             _drawerExpanded = true;
             _groupExpansionOverrides[item.key] = true;
           });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _ensureMenuKeyVisible(item.key, alignment: 0.08);
+          });
         },
       );
     }
@@ -550,9 +555,15 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             child: InkWell(
               borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
               onTap: () {
+                final nextExpanded = !isExpanded;
                 setState(() {
-                  _groupExpansionOverrides[item.key] = !isExpanded;
+                  _groupExpansionOverrides[item.key] = nextExpanded;
                 });
+                if (nextExpanded) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _ensureMenuKeyVisible(item.key, alignment: 0.08);
+                  });
+                }
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -614,6 +625,20 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                       mutedColor: mutedColor,
                       selectedBackground: selectedBackground,
                       selectedForeground: selectedForeground,
+                    ),
+                  if (item.key == 'settings')
+                    _buildLeafTile(
+                      key: _menuKey('settings-logout'),
+                      icon: Icons.logout,
+                      label: 'Logout',
+                      depth: depth + 1,
+                      collapsed: false,
+                      foregroundColor: foregroundColor,
+                      mutedColor: mutedColor,
+                      selected: false,
+                      selectedBackground: selectedBackground,
+                      selectedForeground: selectedForeground,
+                      onTap: widget.onLogout,
                     ),
                 ],
               ),
@@ -724,7 +749,11 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       return;
     }
 
-    final context = _menuKeys[selectedKey]?.currentContext;
+    _ensureMenuKeyVisible(selectedKey, alignment: 0.2);
+  }
+
+  void _ensureMenuKeyVisible(String key, {double alignment = 0.2}) {
+    final context = _menuKeys[key]?.currentContext;
     if (context == null) {
       return;
     }
@@ -732,7 +761,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     Scrollable.ensureVisible(
       context,
       duration: const Duration(milliseconds: 180),
-      alignment: 0.2,
+      alignment: alignment,
       curve: Curves.easeOut,
     );
   }

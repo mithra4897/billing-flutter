@@ -1,14 +1,31 @@
 import '../common/json_model.dart';
+import 'role_permission_model.dart';
 
 class RolePermissionSyncRequestModel implements JsonModel {
-  const RolePermissionSyncRequestModel(this.data);
+  const RolePermissionSyncRequestModel({
+    this.permissions = const <RolePermissionModel>[],
+  });
 
-  final Map<String, dynamic> data;
+  final List<RolePermissionModel> permissions;
 
   factory RolePermissionSyncRequestModel.fromJson(Map<String, dynamic> json) {
-    return RolePermissionSyncRequestModel(json);
+    final rawPermissions = json['permissions'];
+    return RolePermissionSyncRequestModel(
+      permissions: rawPermissions is List
+          ? rawPermissions
+                .whereType<Map<String, dynamic>>()
+                .map(RolePermissionModel.fromJson)
+                .toList(growable: false)
+          : const <RolePermissionModel>[],
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() {
+    return {
+      'permissions': permissions
+          .map((item) => item.toJson())
+          .toList(growable: false),
+    };
+  }
 }

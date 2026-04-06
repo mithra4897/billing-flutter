@@ -41,22 +41,19 @@ class ReportHeaderActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: actions
-            .map(
-              (ReportHeaderActionItem action) => Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: _ReportHeaderActionControl(
-                  action: action,
-                  compact: isMobile,
-                ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: actions
+          .map(
+            (ReportHeaderActionItem action) => Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _ReportHeaderActionControl(
+                action: action,
+                compact: isMobile,
               ),
-            )
-            .toList(growable: false),
-      ),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }
@@ -79,19 +76,23 @@ class _ReportHeaderActionControl extends StatelessWidget {
 
     final child = Container(
       alignment: Alignment.center,
-      constraints: BoxConstraints(minWidth: compact ? 44 : 118, minHeight: 44),
-      padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 14, vertical: 10),
+      constraints: BoxConstraints(
+        minWidth: compact ? 44 : 124,
+        minHeight: 44,
+        maxHeight: 44,
+      ),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 16, vertical: 10),
       decoration: BoxDecoration(
         color: isFilled ? colorScheme.primary : colorScheme.surface,
         borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
         border: isFilled
             ? null
             : Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
-        boxShadow: isFilled
+        boxShadow: isFilled || !compact
             ? [
                 BoxShadow(
                   color: appTheme.cardShadow,
-                  blurRadius: 10,
+                  blurRadius: isFilled ? 10 : 8,
                   offset: const Offset(0, 4),
                 ),
               ]

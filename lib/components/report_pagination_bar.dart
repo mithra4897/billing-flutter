@@ -51,6 +51,7 @@ class _ReportPaginationBarState extends State<ReportPaginationBar> {
   Widget build(BuildContext context) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final preferSingleRow = !isMobile;
     final start = widget.meta.total == 0
         ? 0
         : ((widget.meta.currentPage - 1) * widget.meta.perPage) + 1;
@@ -74,114 +75,122 @@ class _ReportPaginationBarState extends State<ReportPaginationBar> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final controls = _buildControlsRow(context, isMobile: isMobile);
+            final summary = Text(
               'Showing $start-$end of ${widget.meta.total}',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: appTheme.mutedText),
-            ),
-            const SizedBox(height: 12),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: isMobile ? 86 : 100,
-                    child: DropdownButtonFormField<int>(
-                      initialValue:
-                          widget.perPageOptions.contains(widget.meta.perPage)
-                          ? widget.meta.perPage
-                          : widget.perPageOptions.first,
-                      decoration: InputDecoration(
-                        labelText: isMobile ? 'Rows' : 'Rows',
-                        isDense: true,
-                      ),
-                      items: widget.perPageOptions
-                          .map(
-                            (value) => DropdownMenuItem<int>(
-                              value: value,
-                              child: Text('$value'),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) {
-                        if (value != null) {
-                          widget.onPerPageChanged(value);
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  _navButton(
-                    context,
-                    icon: Icons.first_page,
-                    label: 'First',
-                    enabled: widget.meta.currentPage > 1,
-                    onTap: () => widget.onPageChanged(1),
-                    compact: isMobile,
-                  ),
-                  const SizedBox(width: 8),
-                  _navButton(
-                    context,
-                    icon: Icons.chevron_left,
-                    label: 'Previous',
-                    enabled: widget.meta.currentPage > 1,
-                    onTap: () =>
-                        widget.onPageChanged(widget.meta.currentPage - 1),
-                    compact: isMobile,
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: isMobile ? 74 : 84,
-                    constraints: const BoxConstraints(minHeight: 44),
-                    child: TextField(
-                      controller: _pageController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: const InputDecoration(
-                        labelText: 'Page',
-                        isDense: true,
-                      ),
-                      onSubmitted: (_) => _jumpToPage(),
-                    ),
-                  ),
-                  if (!isMobile) ...[
-                    const SizedBox(width: 12),
-                    Text(
-                      '${widget.meta.currentPage} / ${widget.meta.lastPage}',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: appTheme.mutedText,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(width: 12),
-                  _navButton(
-                    context,
-                    icon: Icons.chevron_right,
-                    label: 'Next',
-                    enabled: widget.meta.currentPage < widget.meta.lastPage,
-                    onTap: () =>
-                        widget.onPageChanged(widget.meta.currentPage + 1),
-                    compact: isMobile,
-                  ),
-                  const SizedBox(width: 8),
-                  _navButton(
-                    context,
-                    icon: Icons.last_page,
-                    label: 'Last',
-                    enabled: widget.meta.currentPage < widget.meta.lastPage,
-                    onTap: () => widget.onPageChanged(widget.meta.lastPage),
-                    compact: isMobile,
-                  ),
-                ],
-              ),
-            ),
-          ],
+            );
+
+            if (preferSingleRow && constraints.maxWidth >= 840) {
+              return Row(children: [summary, const Spacer(), controls]);
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                summary,
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: controls,
+                ),
+              ],
+            );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildControlsRow(BuildContext context, {required bool isMobile}) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    return Row(
+      children: [
+        SizedBox(
+          width: isMobile ? 86 : 100,
+          child: DropdownButtonFormField<int>(
+            initialValue: widget.perPageOptions.contains(widget.meta.perPage)
+                ? widget.meta.perPage
+                : widget.perPageOptions.first,
+            decoration: const InputDecoration(labelText: 'Rows', isDense: true),
+            items: widget.perPageOptions
+                .map(
+                  (value) => DropdownMenuItem<int>(
+                    value: value,
+                    child: Text('$value'),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value != null) {
+                widget.onPerPageChanged(value);
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        _navButton(
+          context,
+          icon: Icons.first_page,
+          label: 'First',
+          enabled: widget.meta.currentPage > 1,
+          onTap: () => widget.onPageChanged(1),
+          compact: isMobile,
+        ),
+        const SizedBox(width: 8),
+        _navButton(
+          context,
+          icon: Icons.chevron_left,
+          label: 'Previous',
+          enabled: widget.meta.currentPage > 1,
+          onTap: () => widget.onPageChanged(widget.meta.currentPage - 1),
+          compact: isMobile,
+        ),
+        const SizedBox(width: 10),
+        Container(
+          width: isMobile ? 74 : 84,
+          constraints: const BoxConstraints(minHeight: 44),
+          child: TextField(
+            controller: _pageController,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            decoration: const InputDecoration(labelText: 'Page', isDense: true),
+            onSubmitted: (_) => _jumpToPage(),
+          ),
+        ),
+        if (!isMobile) ...[
+          const SizedBox(width: 12),
+          Text(
+            '${widget.meta.currentPage} / ${widget.meta.lastPage}',
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: appTheme.mutedText),
+          ),
+        ],
+        const SizedBox(width: 12),
+        _navButton(
+          context,
+          icon: Icons.chevron_right,
+          label: 'Next',
+          enabled: widget.meta.currentPage < widget.meta.lastPage,
+          onTap: () => widget.onPageChanged(widget.meta.currentPage + 1),
+          compact: isMobile,
+        ),
+        const SizedBox(width: 8),
+        _navButton(
+          context,
+          icon: Icons.last_page,
+          label: 'Last',
+          enabled: widget.meta.currentPage < widget.meta.lastPage,
+          onTap: () => widget.onPageChanged(widget.meta.lastPage),
+          compact: isMobile,
+        ),
+      ],
     );
   }
 

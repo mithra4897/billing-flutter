@@ -614,11 +614,26 @@ class _UserManagementPageState extends State<UserManagementPage>
     }
 
     final response = await _authService.rolePermissions(_selectedRoleId!);
-    final permissionRows =
-        (response.data?.data['permissions'] as List<dynamic>? ?? const [])
-            .whereType<Map<String, dynamic>>()
-            .map(UserPermissionModel.fromJson)
-            .toList(growable: false);
+    final permissionRows = (response.data?.permissions ?? const [])
+        .map(
+          (item) => UserPermissionModel(
+            permissionId: item.permissionId,
+            module: item.module,
+            code: item.code,
+            name: item.name,
+            description: item.description,
+            allowView: item.allowView,
+            allowCreate: item.allowCreate,
+            allowUpdate: item.allowUpdate,
+            allowDelete: item.allowDelete,
+            allowApprove: item.allowApprove,
+            allowPrint: item.allowPrint,
+            allowExport: item.allowExport,
+            isActive: item.rolePermissionIsActive,
+            permission: item.permission,
+          ),
+        )
+        .toList(growable: false);
 
     if (!mounted) {
       return;

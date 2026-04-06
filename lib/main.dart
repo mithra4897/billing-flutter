@@ -11,6 +11,7 @@ import 'view/core/module_placeholder_page.dart';
 import 'view/dashboard/dashboard_page.dart';
 import 'view/settings/user/login_history_page.dart';
 import 'view/settings/user/profile_page.dart';
+import 'view/settings/user/role_management_page.dart';
 import 'view/settings/user/user_management_page.dart';
 
 void main() {
@@ -67,6 +68,13 @@ class BillingApp extends StatelessWidget {
             return MaterialPageRoute<void>(
               settings: settings,
               builder: (_) => const LoginHistoryPage(),
+            );
+          case '/settings/roles':
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => RoleManagementPage(
+                initialRoleId: int.tryParse(uri.queryParameters['id'] ?? ''),
+              ),
             );
           default:
             final matchedRoute = AppNavigation.findByPath(uri.path);
