@@ -307,9 +307,6 @@ class _BusinessLocationManagementPageState
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<BusinessLocationModel>(
-        title: 'Business Locations',
-        subtitle:
-            'Physical operating sites used by sales, purchase, stock, and accounts.',
         searchController: _searchController,
         searchHint: 'Search locations',
         items: _filteredLocations,
@@ -331,11 +328,6 @@ class _BusinessLocationManagementPageState
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedLocation == null
-            ? 'Create Business Location'
-            : 'Edit Business Location',
-        subtitle:
-            'Store physical site details and enable only the modules this location should operate.',
         child: Form(
           key: _formKey,
           child: Column(

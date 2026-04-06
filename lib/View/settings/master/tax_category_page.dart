@@ -288,9 +288,6 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<TaxCodeModel>(
-        title: 'Tax Categories',
-        subtitle:
-            'Define GST and cess combinations used across your item and document flows.',
         searchController: _searchController,
         searchHint: 'Search tax categories',
         items: _filteredTaxCodes,
@@ -312,11 +309,6 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedTaxCode == null
-            ? 'Create Tax Category'
-            : 'Edit Tax Category',
-        subtitle:
-            'Keep GST classification, rate, and cess rules consistent from master level.',
         child: Form(
           key: _formKey,
           child: Column(

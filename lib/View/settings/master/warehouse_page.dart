@@ -282,8 +282,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<WarehouseModel>(
-        title: 'Warehouse Directory',
-        subtitle: 'Stock storage units under each business location.',
         searchController: _searchController,
         searchHint: 'Search warehouses',
         items: _filteredWarehouses,
@@ -305,11 +303,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedWarehouse == null
-            ? 'Create Warehouse'
-            : 'Edit Warehouse',
-        subtitle:
-            'Define stock buckets per location, including defaults and parent-child storage structure.',
         child: Form(
           key: _formKey,
           child: Column(

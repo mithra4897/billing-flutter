@@ -226,6 +226,11 @@ class _AppShellPageState extends State<AppShellPage> {
   }
 
   String _titleForPath(String path, AuthContextModel? authContext) {
+    final navigationTitle = AppNavigation.findByPath(path)?.title.trim();
+    if ((navigationTitle ?? '').isNotEmpty) {
+      return navigationTitle!;
+    }
+
     for (final module in authContext?.menuModules ?? const []) {
       final routePath = module.routePath?.trim();
       final moduleName = module.moduleName?.trim();
@@ -241,7 +246,7 @@ class _AppShellPageState extends State<AppShellPage> {
       return 'Email Messages';
     }
 
-    return AppNavigation.findByPath(path)?.title ?? 'Module';
+    return 'Module';
   }
 
   bool _sameQuery(Map<String, String> left, Map<String, String> right) {

@@ -273,8 +273,6 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<CompanyModel>(
-        title: 'Company Directory',
-        subtitle: 'Legal entities and base configuration.',
         searchController: _searchController,
         searchHint: 'Search companies',
         items: _filteredCompanies,
@@ -296,9 +294,6 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedCompany == null ? 'Create Company' : 'Edit Company',
-        subtitle:
-            'Keep company-level legal identity, tax identifiers, and base contact details here.',
         child: Form(
           key: _formKey,
           child: Column(

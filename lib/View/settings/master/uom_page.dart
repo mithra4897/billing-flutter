@@ -251,9 +251,6 @@ class _UomManagementPageState extends State<UomManagementPage> {
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<UomModel>(
-        title: 'UOM',
-        subtitle:
-            'Manage unit masters used across inventory, purchase, and sales flows.',
         searchController: _searchController,
         searchHint: 'Search UOM',
         items: _filteredUoms,
@@ -274,9 +271,6 @@ class _UomManagementPageState extends State<UomManagementPage> {
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedUom == null ? 'Create UOM' : 'Edit UOM',
-        subtitle:
-            'Keep unit definitions consistent so documents and stock moves stay aligned.',
         child: Form(
           key: _formKey,
           child: Column(

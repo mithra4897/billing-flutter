@@ -47,8 +47,8 @@ class SettingsWorkspace extends StatelessWidget {
 class SettingsListCard<T> extends StatelessWidget {
   const SettingsListCard({
     super.key,
-    required this.title,
-    required this.subtitle,
+    this.title,
+    this.subtitle,
     required this.searchController,
     required this.searchHint,
     required this.items,
@@ -57,8 +57,8 @@ class SettingsListCard<T> extends StatelessWidget {
     required this.itemBuilder,
   });
 
-  final String title;
-  final String subtitle;
+  final String? title;
+  final String? subtitle;
   final TextEditingController searchController;
   final String searchHint;
   final List<T> items;
@@ -72,23 +72,29 @@ class SettingsListCard<T> extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(
+          if (title != null) ...[
+            Text(
+              title!,
+              style: Theme.of(
                 context,
-              ).extension<AppThemeExtension>()!.mutedText,
-              height: 1.5,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 8),
+          ],
+          if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
+            ...[
+              Text(
+                subtitle!,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).extension<AppThemeExtension>()!.mutedText,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ],
           TextField(
             controller: searchController,
             decoration: InputDecoration(
@@ -122,13 +128,13 @@ class SettingsListCard<T> extends StatelessWidget {
 class SettingsEditorCard extends StatelessWidget {
   const SettingsEditorCard({
     super.key,
-    required this.title,
-    required this.subtitle,
+    this.title,
+    this.subtitle,
     required this.child,
   });
 
-  final String title;
-  final String subtitle;
+  final String? title;
+  final String? subtitle;
   final Widget child;
 
   @override
@@ -137,23 +143,27 @@ class SettingsEditorCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(
+          if (title != null) ...[
+            Text(
+              title!,
+              style: Theme.of(
                 context,
-              ).extension<AppThemeExtension>()!.mutedText,
-              height: 1.5,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 8),
+          ],
+          if (subtitle != null) ...[
+            Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(
+                  context,
+                ).extension<AppThemeExtension>()!.mutedText,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
           child,
         ],
       ),

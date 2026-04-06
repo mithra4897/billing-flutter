@@ -227,8 +227,6 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
     return SettingsWorkspace(
       scrollController: _pageScrollController,
       list: SettingsListCard<BranchModel>(
-        title: 'Branch Structure',
-        subtitle: 'Organizational and accounting units under each company.',
         searchController: _searchController,
         searchHint: 'Search branches',
         items: _filteredBranches,
@@ -250,9 +248,6 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedBranch == null ? 'Create Branch' : 'Edit Branch',
-        subtitle:
-            'Use branches for organizational ownership and reporting context.',
         child: Form(
           key: _formKey,
           child: Column(

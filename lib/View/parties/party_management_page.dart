@@ -1254,23 +1254,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Parties',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Search by name or code, filter by party type, and sort the list without leaving the workspace.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(
-                  context,
-                ).extension<AppThemeExtension>()!.mutedText,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 16),
             AppFormTextField(
               labelText: 'Search parties',
               controller: _searchController,
@@ -1336,9 +1319,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedParty == null ? 'Create Party' : 'Edit Party',
-        subtitle:
-            'Maintain the party profile and all related operational details from a single workspace.',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
