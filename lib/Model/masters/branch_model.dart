@@ -5,9 +5,7 @@ class BranchModel {
     required this.code,
     required this.name,
     this.branchType,
-    this.phone,
-    this.email,
-    this.city,
+    this.isHeadOffice = false,
     this.isActive = true,
     this.raw,
   });
@@ -17,9 +15,7 @@ class BranchModel {
   final String code;
   final String name;
   final String? branchType;
-  final String? phone;
-  final String? email;
-  final String? city;
+  final bool isHeadOffice;
   final bool isActive;
   final Map<String, dynamic>? raw;
 
@@ -30,9 +26,8 @@ class BranchModel {
       code: json['code']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       branchType: json['branch_type']?.toString(),
-      phone: json['phone']?.toString(),
-      email: json['email']?.toString(),
-      city: json['city']?.toString(),
+      isHeadOffice:
+          json['is_head_office'] == true || json['is_head_office'] == 1,
       isActive: json['is_active'] != false && json['is_active'] != 0,
       raw: json,
     );
