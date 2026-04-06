@@ -354,28 +354,11 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                                     },
                                   ),
                                 Expanded(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      _AdaptiveShellTitle(
-                                        title: widget.title,
-                                        style: theme.textTheme.titleLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                      ),
-                                      Text(
-                                        'Powered by Sakthi Controller',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              color: appTheme.mutedText,
-                                            ),
-                                      ),
-                                    ],
+                                  child: _AdaptiveShellTitle(
+                                    title: widget.title,
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                                 if (widget.actions.isNotEmpty)

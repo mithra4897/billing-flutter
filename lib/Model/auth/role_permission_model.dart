@@ -42,15 +42,22 @@ class RolePermissionModel implements JsonModel {
   final PermissionModel? permission;
 
   factory RolePermissionModel.fromJson(Map<String, dynamic> json) {
+    final permissionJson = json['permission'] is Map<String, dynamic>
+        ? json['permission'] as Map<String, dynamic>
+        : null;
+    final permission = permissionJson != null
+        ? PermissionModel.fromJson(permissionJson)
+        : null;
+
     return RolePermissionModel(
       id: ModelValue.nullableInt(json['id']),
       permissionId:
           ModelValue.nullableInt(json['permission_id']) ??
           ModelValue.nullableInt(json['id']),
-      module: json['module']?.toString(),
-      code: json['code']?.toString(),
-      name: json['name']?.toString(),
-      description: json['description']?.toString(),
+      module: json['module']?.toString() ?? permission?.module,
+      code: json['code']?.toString() ?? permission?.code,
+      name: json['name']?.toString() ?? permission?.name,
+      description: json['description']?.toString() ?? permission?.description,
       isSystemPermission: json['is_system_permission'] == null
           ? null
           : ModelValue.boolOf(json['is_system_permission']),
@@ -85,9 +92,7 @@ class RolePermissionModel implements JsonModel {
       allowExport: json['allow_export'] == null
           ? null
           : ModelValue.boolOf(json['allow_export']),
-      permission: json['permission'] is Map<String, dynamic>
-          ? PermissionModel.fromJson(json['permission'] as Map<String, dynamic>)
-          : null,
+      permission: permission,
     );
   }
 

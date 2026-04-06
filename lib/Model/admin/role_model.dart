@@ -1,5 +1,6 @@
 import '../common/json_model.dart';
 import '../common/model_value.dart';
+import '../auth/role_permission_model.dart';
 import 'permission_model.dart';
 
 class RoleModel implements JsonModel {
@@ -11,6 +12,7 @@ class RoleModel implements JsonModel {
     this.isSystemRole,
     this.isActive,
     this.permissions = const [],
+    this.rolePermissions = const [],
     this.permissionIds = const [],
     this.raw,
   });
@@ -22,6 +24,7 @@ class RoleModel implements JsonModel {
   final bool? isSystemRole;
   final bool? isActive;
   final List<PermissionModel> permissions;
+  final List<RolePermissionModel> rolePermissions;
   final List<int> permissionIds;
   final Map<String, dynamic>? raw;
 
@@ -38,6 +41,7 @@ class RoleModel implements JsonModel {
           ? null
           : ModelValue.boolOf(json['is_active']),
       permissions: _permissionList(json['permissions']),
+      rolePermissions: _rolePermissionList(json['role_permissions']),
       permissionIds: _permissionIdList(json['permission_ids']),
       raw: json,
     );
@@ -73,5 +77,16 @@ class RoleModel implements JsonModel {
     }
 
     return value.map(ModelValue.intOf).toList(growable: false);
+  }
+
+  static List<RolePermissionModel> _rolePermissionList(dynamic value) {
+    if (value is! List) {
+      return const <RolePermissionModel>[];
+    }
+
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map(RolePermissionModel.fromJson)
+        .toList(growable: false);
   }
 }
