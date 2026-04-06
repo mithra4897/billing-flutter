@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/foundation.dart';
 
 import '../app/constants/app_ui_constants.dart';
 import '../app/navigation/app_navigation.dart';
@@ -17,8 +18,11 @@ class AdaptiveShell extends StatefulWidget {
     required this.child,
     required this.onLogout,
     this.actions = const <Widget>[],
+    this.actionsListenable,
     this.scrollController,
     this.mobileAutoHideHeader = true,
+    this.onNavigate,
+    this.currentPath,
   });
 
   final String title;
@@ -26,8 +30,11 @@ class AdaptiveShell extends StatefulWidget {
   final Widget child;
   final VoidCallback onLogout;
   final List<Widget> actions;
+  final ValueListenable<List<Widget>>? actionsListenable;
   final ScrollController? scrollController;
   final bool mobileAutoHideHeader;
+  final ValueChanged<String>? onNavigate;
+  final String? currentPath;
 
   @override
   State<AdaptiveShell> createState() => _AdaptiveShellState();
@@ -253,6 +260,12 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       isSuperAdmin: _isSuperAdmin,
       orderedModules: _orderedModules,
     );
+    final actionBar = widget.actionsListenable == null
+        ? _buildHeaderActions(widget.actions)
+        : ValueListenableBuilder<List<Widget>>(
+            valueListenable: widget.actionsListenable!,
+            builder: (context, actions, _) => _buildHeaderActions(actions),
+          );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -361,26 +374,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                                     ),
                                   ),
                                 ),
-                                if (widget.actions.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 12),
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: widget.actions
-                                            .map(
-                                              (action) => Padding(
-                                                padding: const EdgeInsets.only(
-                                                  left: 8,
-                                                ),
-                                                child: action,
-                                              ),
-                                            )
-                                            .toList(growable: false),
-                                      ),
-                                    ),
-                                  ),
+                                actionBar,
                               ],
                             ),
                           ),
@@ -399,8 +393,35 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   }
 
   String get _currentPath {
+    if ((widget.currentPath ?? '').isNotEmpty) {
+      return Uri.parse(widget.currentPath!).path;
+    }
     final routeName = ModalRoute.of(context)?.settings.name ?? '/dashboard';
     return Uri.parse(routeName).path;
+  }
+
+  Widget _buildHeaderActions(List<Widget> actions) {
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: actions
+              .map(
+                (action) => Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: action,
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ),
+    );
   }
 
   Widget _buildDrawer({
@@ -696,7 +717,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
 
   void _handleRouteTap(String route, {required bool showPermanentDrawer}) {
     final currentName = ModalRoute.of(context)?.settings.name;
-    final currentUri = currentName == null ? null : Uri.parse(currentName);
+    final currentUri = (widget.currentPath ?? '').isNotEmpty
+        ? Uri.parse(widget.currentPath!)
+        : (currentName == null ? null : Uri.parse(currentName));
     final targetUri = Uri.parse(route);
     final isSameRoute =
         currentUri?.path == targetUri.path &&
@@ -707,6 +730,11 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     }
 
     if (isSameRoute) {
+      return;
+    }
+
+    if (widget.onNavigate != null) {
+      widget.onNavigate!(route);
       return;
     }
 

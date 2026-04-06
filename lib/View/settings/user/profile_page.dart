@@ -15,7 +15,9 @@ import '../../../service/auth/auth_service.dart';
 import '../../../service/media/media_service.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -301,6 +303,33 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final content = _loading
+        ? const AppLoadingView(message: 'Loading profile...')
+        : _ProfileContent(
+            formKey: _formKey,
+            firstNameController: _firstNameController,
+            lastNameController: _lastNameController,
+            displayNameController: _displayNameController,
+            emailController: _emailController,
+            mobileController: _mobileController,
+            dobController: _dobController,
+            profilePhotoController: _profilePhotoController,
+            remarksController: _remarksController,
+            gender: _gender,
+            profile: _profile,
+            error: _error,
+            saving: _saving,
+            uploadingPhoto: _uploadingPhoto,
+            onGenderChanged: (value) => setState(() => _gender = value),
+            onDisplayNameEdited: _handleDisplayNameEdited,
+            onSave: _save,
+            onUploadPhoto: _uploadProfileImage,
+          );
+
+    if (widget.embedded) {
+      return content;
+    }
+
     return FutureBuilder<PublicBrandingModel?>(
       future: SessionStorage.getBranding(),
       builder: (context, snapshot) {
@@ -312,28 +341,7 @@ class _ProfilePageState extends State<ProfilePage> {
           title: 'Profile',
           branding: branding,
           onLogout: () => _logout(context),
-          child: _loading
-              ? const AppLoadingView(message: 'Loading profile...')
-              : _ProfileContent(
-                  formKey: _formKey,
-                  firstNameController: _firstNameController,
-                  lastNameController: _lastNameController,
-                  displayNameController: _displayNameController,
-                  emailController: _emailController,
-                  mobileController: _mobileController,
-                  dobController: _dobController,
-                  profilePhotoController: _profilePhotoController,
-                  remarksController: _remarksController,
-                  gender: _gender,
-                  profile: _profile,
-                  error: _error,
-                  saving: _saving,
-                  uploadingPhoto: _uploadingPhoto,
-                  onGenderChanged: (value) => setState(() => _gender = value),
-                  onDisplayNameEdited: _handleDisplayNameEdited,
-                  onSave: _save,
-                  onUploadPhoto: _uploadProfileImage,
-                ),
+          child: content,
         );
       },
     );

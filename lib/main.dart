@@ -7,12 +7,7 @@ import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
 import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
-import 'view/core/module_placeholder_page.dart';
-import 'view/dashboard/dashboard_page.dart';
-import 'view/settings/user/login_history_page.dart';
-import 'view/settings/user/profile_page.dart';
-import 'view/settings/user/role_management_page.dart';
-import 'view/settings/user/user_management_page.dart';
+import 'view/core/app_shell_page.dart';
 
 void main() {
   if (kIsWeb) {
@@ -41,47 +36,20 @@ class BillingApp extends StatelessWidget {
               settings: settings,
               builder: (_) => const AppBootstrapPage(),
             );
-          case '/dashboard':
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => const DashboardPage(),
-            );
           case '/login':
             return MaterialPageRoute<void>(
               settings: settings,
               builder: (_) =>
                   LoginPage(redirectTo: uri.queryParameters['redirect']),
             );
-          case '/settings/profile':
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => const ProfilePage(),
-            );
-          case '/settings/users':
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => UserManagementPage(
-                initialUserId: int.tryParse(uri.queryParameters['id'] ?? ''),
-              ),
-            );
-          case '/settings/login-history':
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => const LoginHistoryPage(),
-            );
-          case '/settings/roles':
-            return MaterialPageRoute<void>(
-              settings: settings,
-              builder: (_) => RoleManagementPage(
-                initialRoleId: int.tryParse(uri.queryParameters['id'] ?? ''),
-              ),
-            );
           default:
-            final matchedRoute = AppNavigation.findByPath(uri.path);
-            if (matchedRoute != null) {
+            final matchedRoute = uri.path == '/dashboard'
+                ? true
+                : AppNavigation.findByPath(uri.path) != null;
+            if (matchedRoute) {
               return MaterialPageRoute<void>(
                 settings: settings,
-                builder: (_) => ModulePlaceholderPage(
+                builder: (_) => AppShellPage(
                   path: uri.path,
                   queryParameters: uri.queryParameters,
                 ),

@@ -20,11 +20,17 @@ import '../../../model/auth/user_permission_summary_model.dart';
 import '../../../service/app/app_session_service.dart';
 import '../../../service/auth/auth_service.dart';
 import '../../../service/media/media_service.dart';
+import '../../core/page_shell_actions.dart';
 
 class UserManagementPage extends StatefulWidget {
-  const UserManagementPage({super.key, this.initialUserId});
+  const UserManagementPage({
+    super.key,
+    this.initialUserId,
+    this.embedded = false,
+  });
 
   final int? initialUserId;
+  final bool embedded;
 
   @override
   State<UserManagementPage> createState() => _UserManagementPageState();
@@ -825,6 +831,57 @@ class _UserManagementPageState extends State<UserManagementPage>
 
   @override
   Widget build(BuildContext context) {
+    final content = _initialLoading
+        ? const AppLoadingView(message: 'Loading users...')
+        : _pageError != null
+        ? Center(child: Text(_pageError!))
+        : LayoutBuilder(
+            builder: (context, constraints) {
+              final showSideList = constraints.maxWidth >= 1100;
+
+              return SingleChildScrollView(
+                controller: _pageScrollController,
+                padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (showSideList)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(width: 320, child: _buildUserList(context)),
+                          const SizedBox(width: 24),
+                          Expanded(child: _buildEditor(context)),
+                        ],
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildUserList(context),
+                          const SizedBox(height: 20),
+                          _buildEditor(context),
+                        ],
+                      ),
+                  ],
+                ),
+              );
+            },
+          );
+
+    if (widget.embedded) {
+      return ShellPageActions(
+        actions: [
+          AdaptiveShellActionButton(
+            onPressed: _resetForm,
+            icon: Icons.add,
+            label: 'New User',
+          ),
+        ],
+        child: content,
+      );
+    }
+
     return FutureBuilder<PublicBrandingModel?>(
       future: SessionStorage.getBranding(),
       builder: (context, snapshot) {
@@ -844,40 +901,7 @@ class _UserManagementPageState extends State<UserManagementPage>
             ),
           ],
           onLogout: () => _logout(context),
-          child: _initialLoading
-              ? const AppLoadingView(message: 'Loading users...')
-              : _pageError != null
-              ? Center(child: Text(_pageError!))
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final showSideList = constraints.maxWidth >= 1100;
-
-                    return SingleChildScrollView(
-                      controller: _pageScrollController,
-                      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                      child: showSideList
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  width: 320,
-                                  child: _buildUserList(context),
-                                ),
-                                const SizedBox(width: 24),
-                                Expanded(child: _buildEditor(context)),
-                              ],
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildUserList(context),
-                                const SizedBox(height: 20),
-                                _buildEditor(context),
-                              ],
-                            ),
-                    );
-                  },
-                ),
+          child: content,
         );
       },
     );

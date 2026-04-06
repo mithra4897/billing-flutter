@@ -11,11 +11,17 @@ import '../../../model/auth/role_permission_model.dart';
 import '../../../model/auth/role_permission_sync_request_model.dart';
 import '../../../service/app/app_session_service.dart';
 import '../../../service/auth/auth_service.dart';
+import '../../core/page_shell_actions.dart';
 
 class RoleManagementPage extends StatefulWidget {
-  const RoleManagementPage({super.key, this.initialRoleId});
+  const RoleManagementPage({
+    super.key,
+    this.initialRoleId,
+    this.embedded = false,
+  });
 
   final int? initialRoleId;
+  final bool embedded;
 
   @override
   State<RoleManagementPage> createState() => _RoleManagementPageState();
@@ -415,6 +421,57 @@ class _RoleManagementPageState extends State<RoleManagementPage>
 
   @override
   Widget build(BuildContext context) {
+    final content = _initialLoading
+        ? const AppLoadingView(message: 'Loading roles...')
+        : _pageError != null
+        ? Center(child: Text(_pageError!))
+        : LayoutBuilder(
+            builder: (context, constraints) {
+              final showSideList = constraints.maxWidth >= 1100;
+
+              return SingleChildScrollView(
+                controller: _pageScrollController,
+                padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (showSideList)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(width: 320, child: _buildRoleList(context)),
+                          const SizedBox(width: 24),
+                          Expanded(child: _buildEditor(context)),
+                        ],
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildRoleList(context),
+                          const SizedBox(height: 20),
+                          _buildEditor(context),
+                        ],
+                      ),
+                  ],
+                ),
+              );
+            },
+          );
+
+    if (widget.embedded) {
+      return ShellPageActions(
+        actions: [
+          AdaptiveShellActionButton(
+            onPressed: _resetForm,
+            icon: Icons.add,
+            label: 'New Role',
+          ),
+        ],
+        child: content,
+      );
+    }
+
     return FutureBuilder<PublicBrandingModel?>(
       future: SessionStorage.getBranding(),
       builder: (context, snapshot) {
@@ -434,40 +491,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
             ),
           ],
           onLogout: () => _logout(context),
-          child: _initialLoading
-              ? const AppLoadingView(message: 'Loading roles...')
-              : _pageError != null
-              ? Center(child: Text(_pageError!))
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final showSideList = constraints.maxWidth >= 1100;
-
-                    return SingleChildScrollView(
-                      controller: _pageScrollController,
-                      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                      child: showSideList
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  width: 320,
-                                  child: _buildRoleList(context),
-                                ),
-                                const SizedBox(width: 24),
-                                Expanded(child: _buildEditor(context)),
-                              ],
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildRoleList(context),
-                                const SizedBox(height: 20),
-                                _buildEditor(context),
-                              ],
-                            ),
-                    );
-                  },
-                ),
+          child: content,
         );
       },
     );

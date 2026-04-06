@@ -4,7 +4,6 @@ import '../../../app/constants/app_ui_constants.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../components/adaptive_shell.dart';
 import '../../../components/app_loading_view.dart';
-import '../../../components/report_header_action_bar.dart';
 import '../../../components/report_pagination_bar.dart';
 import '../../../core/models/pagination_meta.dart';
 import '../../../core/storage/session_storage.dart';
@@ -12,9 +11,12 @@ import '../../../model/app/public_branding_model.dart';
 import '../../../model/auth/login_history_model.dart';
 import '../../../service/app/app_session_service.dart';
 import '../../../service/auth/auth_service.dart';
+import '../../core/page_shell_actions.dart';
 
 class LoginHistoryPage extends StatefulWidget {
-  const LoginHistoryPage({super.key});
+  const LoginHistoryPage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   State<LoginHistoryPage> createState() => _LoginHistoryPageState();
@@ -215,6 +217,11 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final content = _buildShellContent(context);
+    if (widget.embedded) {
+      return ShellPageActions(actions: _buildShellActions(), child: content);
+    }
+
     return FutureBuilder<PublicBrandingModel?>(
       future: SessionStorage.getBranding(),
       builder: (context, snapshot) {
@@ -226,107 +233,101 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
           title: 'Login History',
           branding: branding,
           scrollController: _pageScrollController,
-          actions: [
-            ReportHeaderActionBar(
-              actions: [
-                ReportHeaderActionItem.menu(
-                  icon: Icons.sort_outlined,
-                  label: 'Sort',
-                  onSelected: (value) {
-                    final parts = value.split(':');
-                    setState(() {
-                      _sortBy = parts.first;
-                      _sortDirection = parts.last;
-                    });
-                    _loadHistory(page: 1);
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: 'login_at:desc',
-                      child: Text('Latest Login'),
-                    ),
-                    PopupMenuItem(
-                      value: 'login_at:asc',
-                      child: Text('Oldest Login'),
-                    ),
-                    PopupMenuItem(
-                      value: 'username:asc',
-                      child: Text('Username A-Z'),
-                    ),
-                    PopupMenuItem(
-                      value: 'login_status:asc',
-                      child: Text('Status'),
-                    ),
-                    PopupMenuItem(
-                      value: 'device_type:asc',
-                      child: Text('Device'),
-                    ),
-                  ],
-                ),
-                ReportHeaderActionItem.button(
-                  icon: Icons.filter_alt_outlined,
-                  label: 'Filter',
-                  onPressed: _openFilterPanel,
-                ),
-                ReportHeaderActionItem.button(
-                  icon: Icons.refresh,
-                  label: 'Refresh',
-                  onPressed: _loadHistory,
-                ),
-              ],
-            ),
-          ],
+          actions: _buildShellActions(),
           onLogout: () => _logout(context),
-          child: _initialLoading
-              ? const AppLoadingView(message: 'Loading login history...')
-              : _error != null
-              ? Center(child: Text(_error!))
-              : SingleChildScrollView(
-                  controller: _pageScrollController,
-                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildAppliedFilters(context),
-                      const SizedBox(height: 20),
-                      if (_dataLoading)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: LinearProgressIndicator(
-                            minHeight: 3,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                        ),
-                      IgnorePointer(
-                        ignoring: _dataLoading,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 180),
-                          opacity: _dataLoading ? 0.72 : 1,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildResults(context),
-                              if (_meta != null) ...[
-                                const SizedBox(height: 20),
-                                ReportPaginationBar(
-                                  meta: _meta!,
-                                  onPerPageChanged: (value) {
-                                    _loadHistory(page: 1, perPage: value);
-                                  },
-                                  onPageChanged: (value) {
-                                    _loadHistory(page: value);
-                                  },
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          child: content,
         );
       },
+    );
+  }
+
+  List<Widget> _buildShellActions() {
+    return [
+      AdaptiveShellMenuAction<String>(
+        icon: Icons.sort_outlined,
+        label: 'Sort',
+        onSelected: (value) {
+          final parts = value.split(':');
+          setState(() {
+            _sortBy = parts.first;
+            _sortDirection = parts.last;
+          });
+          _loadHistory(page: 1);
+        },
+        itemBuilder: (context) => const [
+          PopupMenuItem(value: 'login_at:desc', child: Text('Latest Login')),
+          PopupMenuItem(value: 'login_at:asc', child: Text('Oldest Login')),
+          PopupMenuItem(value: 'username:asc', child: Text('Username A-Z')),
+          PopupMenuItem(value: 'login_status:asc', child: Text('Status')),
+          PopupMenuItem(value: 'device_type:asc', child: Text('Device')),
+        ],
+      ),
+      AdaptiveShellActionButton(
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+        onPressed: _openFilterPanel,
+      ),
+      AdaptiveShellActionButton(
+        icon: Icons.refresh,
+        label: 'Refresh',
+        onPressed: _loadHistory,
+      ),
+    ];
+  }
+
+  Widget _buildShellContent(BuildContext context) {
+    if (_initialLoading) {
+      return const AppLoadingView(message: 'Loading login history...');
+    }
+
+    if (_error != null) {
+      return Center(child: Text(_error!));
+    }
+
+    return SingleChildScrollView(
+      controller: _pageScrollController,
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildAppliedFilters(context),
+          const SizedBox(height: 20),
+          if (_dataLoading)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: LinearProgressIndicator(
+                minHeight: 3,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          IgnorePointer(
+            ignoring: _dataLoading,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: _dataLoading ? 0.72 : 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildResults(context),
+                  if (_meta != null) ...[
+                    const SizedBox(height: 20),
+                    ReportPaginationBar(
+                      meta: _meta!,
+                      onPerPageChanged: (value) {
+                        _loadHistory(page: 1, perPage: value);
+                      },
+                      onPageChanged: (value) {
+                        _loadHistory(page: value);
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
