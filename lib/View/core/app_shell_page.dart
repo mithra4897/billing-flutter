@@ -12,6 +12,7 @@ import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
 import '../settings/user/role_management_page.dart';
 import '../settings/user/user_management_page.dart';
+import '../settings/master/master_setup_pages.dart';
 import 'module_placeholder_page.dart';
 import 'page_shell_actions.dart';
 
@@ -149,6 +150,14 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           initialRoleId: int.tryParse(_currentQueryParameters['id'] ?? ''),
         );
+      case '/settings/companies':
+        return CompanyManagementPage(key: routeKey, embedded: true);
+      case '/settings/branches':
+        return BranchManagementPage(key: routeKey, embedded: true);
+      case '/settings/business-locations':
+        return BusinessLocationManagementPage(key: routeKey, embedded: true);
+      case '/settings/warehouses':
+        return WarehouseManagementPage(key: routeKey, embedded: true);
       default:
         return ModulePlaceholderPage(
           key: routeKey,
