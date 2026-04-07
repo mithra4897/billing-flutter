@@ -1191,6 +1191,10 @@ class AppNavigation {
     return _ancestorKeys(menu, normalizedPath) ?? const <String>[];
   }
 
+  static List<String> ancestorKeysForItemKey(String key) {
+    return _ancestorKeysForItemKey(menu, key) ?? const <String>[];
+  }
+
   static AppNavigationItem? _findInList(
     List<AppNavigationItem> items,
     String path,
@@ -1219,6 +1223,24 @@ class AppNavigation {
       }
 
       final childPath = _ancestorKeys(item.children, path);
+      if (childPath != null) {
+        return <String>[item.key, ...childPath];
+      }
+    }
+
+    return null;
+  }
+
+  static List<String>? _ancestorKeysForItemKey(
+    List<AppNavigationItem> items,
+    String key,
+  ) {
+    for (final item in items) {
+      if (item.key == key) {
+        return <String>[];
+      }
+
+      final childPath = _ancestorKeysForItemKey(item.children, key);
       if (childPath != null) {
         return <String>[item.key, ...childPath];
       }

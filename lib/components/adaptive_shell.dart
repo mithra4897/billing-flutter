@@ -196,7 +196,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   List<ModuleModel> _orderedModules = const <ModuleModel>[];
   final Map<String, bool> _groupExpansionOverrides = <String, bool>{};
   final ScrollController _drawerScrollController = ScrollController();
+  final GlobalKey _drawerListKey = GlobalKey();
   final Map<String, GlobalKey> _menuKeys = <String, GlobalKey>{};
+  final Map<String, GlobalKey> _groupKeys = <String, GlobalKey>{};
   String? _lastSyncedPath;
   bool _showMobileHeader = true;
 
@@ -266,13 +268,6 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             valueListenable: widget.actionsListenable!,
             builder: (context, actions, _) => _buildHeaderActions(actions),
           );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      _ensureSelectedMenuVisible(currentPath);
-    });
 
     return Scaffold(
       drawer: showPermanentDrawer
@@ -463,6 +458,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
           const SizedBox(height: 8),
           Expanded(
             child: ListView(
+              key: _drawerListKey,
               controller: _drawerScrollController,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               children: [
@@ -539,16 +535,15 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         onTap: () {
           setState(() {
             _drawerExpanded = true;
-            _groupExpansionOverrides[item.key] = true;
+            _expandGroup(item.key, currentPath: currentPath);
           });
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _ensureMenuKeyVisible(item.key, alignment: 0.08);
-          });
+          _scheduleExpandedGroupVisibility(item.key);
         },
       );
     }
 
     return Padding(
+      key: _groupKey(item.key),
       padding: const EdgeInsets.only(bottom: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -561,12 +556,14 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               onTap: () {
                 final nextExpanded = !isExpanded;
                 setState(() {
-                  _groupExpansionOverrides[item.key] = nextExpanded;
+                  if (nextExpanded) {
+                    _expandGroup(item.key, currentPath: currentPath);
+                  } else {
+                    _groupExpansionOverrides[item.key] = false;
+                  }
                 });
                 if (nextExpanded) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _ensureMenuKeyVisible(item.key, alignment: 0.08);
-                  });
+                  _scheduleExpandedGroupVisibility(item.key);
                 }
               },
               child: Container(
@@ -725,6 +722,8 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         currentUri?.path == targetUri.path &&
         currentUri?.query == targetUri.query;
 
+    _syncExpandedParentsForRoute(targetUri.path);
+
     if (!showPermanentDrawer) {
       Navigator.of(context).pop();
     }
@@ -741,51 +740,120 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     Navigator.of(context).pushReplacementNamed(route);
   }
 
+  void _syncExpandedParentsForRoute(String path) {
+    final ancestorKeys = AppNavigation.ancestorKeysForPath(path);
+
+    setState(() {
+      _replaceExpandedOverrides(ancestorKeys);
+    });
+  }
+
   void _syncMenuStateForCurrentRoute() {
     final currentPath = _currentPath;
     if (_lastSyncedPath == currentPath) {
       return;
     }
 
-    for (final key in AppNavigation.ancestorKeysForPath(currentPath)) {
-      _groupExpansionOverrides.putIfAbsent(key, () => true);
-    }
+    _replaceExpandedOverrides(AppNavigation.ancestorKeysForPath(currentPath));
 
     _lastSyncedPath = currentPath;
   }
 
-  void _ensureSelectedMenuVisible(String currentPath) {
-    final selectedKey = AppNavigation.findByPath(currentPath)?.key;
-    if (selectedKey == null) {
-      return;
-    }
+  void _expandGroup(String key, {required String currentPath}) {
+    final keysToKeep = <String>{
+      ...AppNavigation.ancestorKeysForPath(currentPath),
+      ...AppNavigation.ancestorKeysForItemKey(key),
+      key,
+    };
 
-    _ensureMenuKeyVisible(selectedKey, alignment: 0.5);
-
-    Future<void>.delayed(const Duration(milliseconds: 220), () {
-      if (!mounted) {
-        return;
-      }
-      _ensureMenuKeyVisible(selectedKey, alignment: 0.5);
-    });
+    _replaceExpandedOverrides(keysToKeep);
   }
 
-  void _ensureMenuKeyVisible(String key, {double alignment = 0.2}) {
-    final context = _menuKeys[key]?.currentContext;
-    if (context == null) {
-      return;
-    }
-
-    Scrollable.ensureVisible(
-      context,
-      duration: const Duration(milliseconds: 180),
-      alignment: alignment,
-      curve: Curves.easeOut,
-    );
+  void _replaceExpandedOverrides(Iterable<String> expandedKeys) {
+    _groupExpansionOverrides
+      ..clear()
+      ..addEntries(
+        expandedKeys.map((key) => MapEntry<String, bool>(key, true)),
+      );
   }
 
   GlobalKey _menuKey(String key) {
     return _menuKeys.putIfAbsent(key, GlobalKey.new);
+  }
+
+  GlobalKey _groupKey(String key) {
+    return _groupKeys.putIfAbsent(key, GlobalKey.new);
+  }
+
+  void _scheduleExpandedGroupVisibility(String key) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      _ensureExpandedGroupVisible(key);
+    });
+  }
+
+  void _ensureExpandedGroupVisible(String key) {
+    if (!_drawerScrollController.hasClients) {
+      return;
+    }
+
+    final viewportContext = _drawerListKey.currentContext;
+    final headerContext = _menuKeys[key]?.currentContext;
+    final groupContext = _groupKeys[key]?.currentContext;
+    if (viewportContext == null ||
+        headerContext == null ||
+        groupContext == null) {
+      return;
+    }
+
+    final viewportBox = viewportContext.findRenderObject() as RenderBox?;
+    final headerBox = headerContext.findRenderObject() as RenderBox?;
+    final groupBox = groupContext.findRenderObject() as RenderBox?;
+    if (viewportBox == null || headerBox == null || groupBox == null) {
+      return;
+    }
+
+    const edgePadding = 12.0;
+    final viewportHeight = viewportBox.size.height;
+    final headerTop = headerBox
+        .localToGlobal(Offset.zero, ancestor: viewportBox)
+        .dy;
+    final groupTop = groupBox
+        .localToGlobal(Offset.zero, ancestor: viewportBox)
+        .dy;
+    final groupHeight = groupBox.size.height;
+    final groupBottom = groupTop + groupHeight;
+    final visibleHeight = viewportHeight - (edgePadding * 2);
+
+    double targetOffset = _drawerScrollController.offset;
+
+    if (groupHeight > visibleHeight) {
+      targetOffset += headerTop - edgePadding;
+    } else {
+      if (headerTop < edgePadding) {
+        targetOffset += headerTop - edgePadding;
+      } else if (groupBottom > viewportHeight - edgePadding) {
+        targetOffset += groupBottom - (viewportHeight - edgePadding);
+      }
+    }
+
+    final clampedOffset = targetOffset.clamp(
+      _drawerScrollController.position.minScrollExtent,
+      _drawerScrollController.position.maxScrollExtent,
+    );
+
+    if ((clampedOffset - _drawerScrollController.offset).abs() < 6) {
+      return;
+    }
+
+    _drawerScrollController.animateTo(
+      clampedOffset,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   void _bindScrollController(ScrollController? controller) {
