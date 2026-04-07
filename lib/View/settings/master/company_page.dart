@@ -294,140 +294,130 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
           onTap: () => _selectCompany(company),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SettingsFormWrap(
-                children: [
-                  AppFormTextField(
-                    controller: _codeController,
-                    labelText: 'Code',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Code is required'
-                        : null,
-                  ),
-                  AppFormTextField(
-                    controller: _legalNameController,
-                    labelText: 'Legal Name',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Legal Name is required'
-                        : null,
-                  ),
-                  AppFormTextField(
-                    controller: _tradeNameController,
-                    labelText: 'Trade Name',
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    initialValue: _companyType,
-                    labelText: 'Company Type',
-                    mappedItems: const [
-                      AppDropdownItem(
-                        value: 'private_limited',
-                        label: 'Private Limited',
-                      ),
-                      AppDropdownItem(
-                        value: 'proprietorship',
-                        label: 'Proprietorship',
-                      ),
-                      AppDropdownItem(
-                        value: 'partnership',
-                        label: 'Partnership',
-                      ),
-                      AppDropdownItem(value: 'llp', label: 'LLP'),
-                      AppDropdownItem(
-                        value: 'public_limited',
-                        label: 'Public Limited',
-                      ),
-                      AppDropdownItem(value: 'trust', label: 'Trust'),
-                      AppDropdownItem(value: 'society', label: 'Society'),
-                      AppDropdownItem(value: 'other', label: 'Other'),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _companyType = value ?? _companyType),
-                  ),
-                  AppFormTextField(
-                    controller: _gstinController,
-                    labelText: 'GSTIN',
-                  ),
-                  AppFormTextField(
-                    controller: _panController,
-                    labelText: 'PAN',
-                  ),
-                  AppFormTextField(
-                    controller: _phoneController,
-                    labelText: 'Phone',
-                  ),
-                  AppFormTextField(
-                    controller: _emailController,
-                    labelText: 'Email',
-                  ),
-                  AppFormTextField(
-                    controller: _websiteController,
-                    labelText: 'Website',
-                  ),
-                  AppFormTextField(
-                    controller: _cityController,
-                    labelText: 'City',
-                  ),
-                  AppFormTextField(
-                    controller: _stateController,
-                    labelText: 'State Name',
-                  ),
-                  AppFormTextField(
-                    controller: _currencyController,
-                    labelText: 'Base Currency',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              AppSwitchTile(
-                label: 'Active',
-                subtitle:
-                    'Inactive companies stay visible but should not be used for new work.',
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              const SizedBox(height: 8),
-              AppFormTextField(
-                controller: _remarksController,
-                maxLines: 3,
-                labelText: 'Remarks',
-              ),
-              if ((_formError ?? '').isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                AppFormTextField(
+                  controller: _codeController,
+                  labelText: 'Code',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Code is required'
+                      : null,
+                ),
+                AppFormTextField(
+                  controller: _legalNameController,
+                  labelText: 'Legal Name',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Legal Name is required'
+                      : null,
+                ),
+                AppFormTextField(
+                  controller: _tradeNameController,
+                  labelText: 'Trade Name',
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: _companyType,
+                  labelText: 'Company Type',
+                  mappedItems: const [
+                    AppDropdownItem(
+                      value: 'private_limited',
+                      label: 'Private Limited',
+                    ),
+                    AppDropdownItem(
+                      value: 'proprietorship',
+                      label: 'Proprietorship',
+                    ),
+                    AppDropdownItem(value: 'partnership', label: 'Partnership'),
+                    AppDropdownItem(value: 'llp', label: 'LLP'),
+                    AppDropdownItem(
+                      value: 'public_limited',
+                      label: 'Public Limited',
+                    ),
+                    AppDropdownItem(value: 'trust', label: 'Trust'),
+                    AppDropdownItem(value: 'society', label: 'Society'),
+                    AppDropdownItem(value: 'other', label: 'Other'),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _companyType = value ?? _companyType),
+                ),
+                AppFormTextField(
+                  controller: _gstinController,
+                  labelText: 'GSTIN',
+                ),
+                AppFormTextField(controller: _panController, labelText: 'PAN'),
+                AppFormTextField(
+                  controller: _phoneController,
+                  labelText: 'Phone',
+                ),
+                AppFormTextField(
+                  controller: _emailController,
+                  labelText: 'Email',
+                ),
+                AppFormTextField(
+                  controller: _websiteController,
+                  labelText: 'Website',
+                ),
+                AppFormTextField(
+                  controller: _cityController,
+                  labelText: 'City',
+                ),
+                AppFormTextField(
+                  controller: _stateController,
+                  labelText: 'State Name',
+                ),
+                AppFormTextField(
+                  controller: _currencyController,
+                  labelText: 'Base Currency',
                 ),
               ],
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  AppActionButton(
-                    onPressed: _saving ? null : _save,
-                    icon: _selectedCompany == null
-                        ? Icons.add
-                        : Icons.save_outlined,
-                    label: _saving ? 'Saving...' : 'Save Company',
-                    busy: _saving,
-                  ),
-                  AppActionButton(
-                    onPressed: _saving ? null : _resetForm,
-                    icon: Icons.refresh,
-                    label: 'Reset',
-                    filled: false,
-                  ),
-                ],
+            ),
+            const SizedBox(height: 16),
+            AppSwitchTile(
+              label: 'Active',
+              subtitle:
+                  'Inactive companies stay visible but should not be used for new work.',
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            const SizedBox(height: 8),
+            AppFormTextField(
+              controller: _remarksController,
+              maxLines: 3,
+              labelText: 'Remarks',
+            ),
+            if ((_formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-          ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppActionButton(
+                  onPressed: _saving ? null : _save,
+                  icon: _selectedCompany == null
+                      ? Icons.add
+                      : Icons.save_outlined,
+                  label: _saving ? 'Saving...' : 'Save Company',
+                  busy: _saving,
+                ),
+                AppActionButton(
+                  onPressed: _saving ? null : _resetForm,
+                  icon: Icons.refresh,
+                  label: 'Reset',
+                  filled: false,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

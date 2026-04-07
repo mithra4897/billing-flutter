@@ -328,193 +328,187 @@ class _BusinessLocationManagementPageState
           onTap: () => _selectLocation(location),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int>.fromMapped(
-                    initialValue: _companyId,
-                    labelText: 'Company',
-                    mappedItems: _companies
-                        .where((company) => company.id != null)
-                        .map(
-                          (company) => AppDropdownItem<int>(
-                            value: company.id!,
-                            label: company.legalName ?? '',
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      setState(() {
-                        _companyId = value;
-                        final branches = branchesForCompany(_branches, value);
-                        _branchId = branches.isNotEmpty
-                            ? branches.first.id
-                            : null;
-                      });
-                    },
-                    validator: (value) =>
-                        value == null ? 'Company is required' : null,
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    initialValue: _branchId,
-                    labelText: 'Branch',
-                    mappedItems: filteredBranches
-                        .where((branch) => branch.id != null)
-                        .map(
-                          (branch) => AppDropdownItem<int>(
-                            value: branch.id!,
-                            label: branch.name ?? '',
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) => setState(() => _branchId = value),
-                    validator: (value) =>
-                        value == null ? 'Branch is required' : null,
-                  ),
-                  AppFormTextField(
-                    controller: _codeController,
-                    labelText: 'Code',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Code is required'
-                        : null,
-                  ),
-                  AppFormTextField(
-                    controller: _nameController,
-                    labelText: 'Name',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Name is required'
-                        : null,
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    initialValue: _locationType,
-                    labelText: 'Location Type',
-                    mappedItems: const [
-                      AppDropdownItem(value: 'billing', label: 'Billing'),
-                      AppDropdownItem(value: 'office', label: 'Office'),
-                      AppDropdownItem(value: 'factory', label: 'Factory'),
-                      AppDropdownItem(value: 'retail', label: 'Retail'),
-                      AppDropdownItem(value: 'service', label: 'Service'),
-                      AppDropdownItem(value: 'jobwork', label: 'Jobwork'),
-                      AppDropdownItem(
-                        value: 'warehouse',
-                        label: 'Warehouse Site',
-                      ),
-                      AppDropdownItem(value: 'other', label: 'Other'),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _locationType = value ?? _locationType),
-                  ),
-                  AppFormTextField(
-                    controller: _contactController,
-                    labelText: 'Contact Person',
-                  ),
-                  AppFormTextField(
-                    controller: _phoneController,
-                    labelText: 'Phone',
-                  ),
-                  AppFormTextField(
-                    controller: _emailController,
-                    labelText: 'Email',
-                  ),
-                  AppFormTextField(
-                    controller: _cityController,
-                    labelText: 'City',
-                  ),
-                  AppFormTextField(
-                    controller: _stateController,
-                    labelText: 'State',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              AppFormTextField(
-                controller: _addressController,
-                maxLines: 2,
-                labelText: 'Address Line 1',
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  AppToggleChip(
-                    label: 'Sales',
-                    value: _allowSales,
-                    onChanged: (value) => setState(() => _allowSales = value),
-                  ),
-                  AppToggleChip(
-                    label: 'Purchase',
-                    value: _allowPurchase,
-                    onChanged: (value) =>
-                        setState(() => _allowPurchase = value),
-                  ),
-                  AppToggleChip(
-                    label: 'Stock',
-                    value: _allowStock,
-                    onChanged: (value) => setState(() => _allowStock = value),
-                  ),
-                  AppToggleChip(
-                    label: 'Accounts',
-                    value: _allowAccounts,
-                    onChanged: (value) =>
-                        setState(() => _allowAccounts = value),
-                  ),
-                  AppToggleChip(
-                    label: 'HR',
-                    value: _allowHr,
-                    onChanged: (value) => setState(() => _allowHr = value),
-                  ),
-                ],
-              ),
-              AppSwitchTile(
-                label: 'Default Location',
-                value: _isDefault,
-                onChanged: (value) => setState(() => _isDefault = value),
-              ),
-              AppSwitchTile(
-                label: 'Active',
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              AppFormTextField(
-                controller: _remarksController,
-                maxLines: 3,
-                labelText: 'Remarks',
-              ),
-              if ((_formError ?? '').isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int>.fromMapped(
+                  initialValue: _companyId,
+                  labelText: 'Company',
+                  mappedItems: _companies
+                      .where((company) => company.id != null)
+                      .map(
+                        (company) => AppDropdownItem<int>(
+                          value: company.id!,
+                          label: company.legalName ?? '',
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    setState(() {
+                      _companyId = value;
+                      final branches = branchesForCompany(_branches, value);
+                      _branchId = branches.isNotEmpty
+                          ? branches.first.id
+                          : null;
+                    });
+                  },
+                  validator: (value) =>
+                      value == null ? 'Company is required' : null,
+                ),
+                AppDropdownField<int>.fromMapped(
+                  initialValue: _branchId,
+                  labelText: 'Branch',
+                  mappedItems: filteredBranches
+                      .where((branch) => branch.id != null)
+                      .map(
+                        (branch) => AppDropdownItem<int>(
+                          value: branch.id!,
+                          label: branch.name ?? '',
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) => setState(() => _branchId = value),
+                  validator: (value) =>
+                      value == null ? 'Branch is required' : null,
+                ),
+                AppFormTextField(
+                  controller: _codeController,
+                  labelText: 'Code',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Code is required'
+                      : null,
+                ),
+                AppFormTextField(
+                  controller: _nameController,
+                  labelText: 'Name',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Name is required'
+                      : null,
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: _locationType,
+                  labelText: 'Location Type',
+                  mappedItems: const [
+                    AppDropdownItem(value: 'billing', label: 'Billing'),
+                    AppDropdownItem(value: 'office', label: 'Office'),
+                    AppDropdownItem(value: 'factory', label: 'Factory'),
+                    AppDropdownItem(value: 'retail', label: 'Retail'),
+                    AppDropdownItem(value: 'service', label: 'Service'),
+                    AppDropdownItem(value: 'jobwork', label: 'Jobwork'),
+                    AppDropdownItem(
+                      value: 'warehouse',
+                      label: 'Warehouse Site',
+                    ),
+                    AppDropdownItem(value: 'other', label: 'Other'),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _locationType = value ?? _locationType),
+                ),
+                AppFormTextField(
+                  controller: _contactController,
+                  labelText: 'Contact Person',
+                ),
+                AppFormTextField(
+                  controller: _phoneController,
+                  labelText: 'Phone',
+                ),
+                AppFormTextField(
+                  controller: _emailController,
+                  labelText: 'Email',
+                ),
+                AppFormTextField(
+                  controller: _cityController,
+                  labelText: 'City',
+                ),
+                AppFormTextField(
+                  controller: _stateController,
+                  labelText: 'State',
                 ),
               ],
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                children: [
-                  AppActionButton(
-                    onPressed: _saving ? null : _save,
-                    icon: _selectedLocation == null ? Icons.add : Icons.save,
-                    label: _saving ? 'Saving...' : 'Save Location',
-                    busy: _saving,
-                  ),
-                  AppActionButton(
-                    onPressed: _saving ? null : _resetForm,
-                    icon: Icons.refresh,
-                    label: 'Reset',
-                    filled: false,
-                  ),
-                ],
+            ),
+            const SizedBox(height: 8),
+            AppFormTextField(
+              controller: _addressController,
+              maxLines: 2,
+              labelText: 'Address Line 1',
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppToggleChip(
+                  label: 'Sales',
+                  value: _allowSales,
+                  onChanged: (value) => setState(() => _allowSales = value),
+                ),
+                AppToggleChip(
+                  label: 'Purchase',
+                  value: _allowPurchase,
+                  onChanged: (value) => setState(() => _allowPurchase = value),
+                ),
+                AppToggleChip(
+                  label: 'Stock',
+                  value: _allowStock,
+                  onChanged: (value) => setState(() => _allowStock = value),
+                ),
+                AppToggleChip(
+                  label: 'Accounts',
+                  value: _allowAccounts,
+                  onChanged: (value) => setState(() => _allowAccounts = value),
+                ),
+                AppToggleChip(
+                  label: 'HR',
+                  value: _allowHr,
+                  onChanged: (value) => setState(() => _allowHr = value),
+                ),
+              ],
+            ),
+            AppSwitchTile(
+              label: 'Default Location',
+              value: _isDefault,
+              onChanged: (value) => setState(() => _isDefault = value),
+            ),
+            AppSwitchTile(
+              label: 'Active',
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            AppFormTextField(
+              controller: _remarksController,
+              maxLines: 3,
+              labelText: 'Remarks',
+            ),
+            if ((_formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-          ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              children: [
+                AppActionButton(
+                  onPressed: _saving ? null : _save,
+                  icon: _selectedLocation == null ? Icons.add : Icons.save,
+                  label: _saving ? 'Saving...' : 'Save Location',
+                  busy: _saving,
+                ),
+                AppActionButton(
+                  onPressed: _saving ? null : _resetForm,
+                  icon: Icons.refresh,
+                  label: 'Reset',
+                  filled: false,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

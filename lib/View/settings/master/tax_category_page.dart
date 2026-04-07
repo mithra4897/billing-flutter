@@ -309,91 +309,89 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
           ),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: 16),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppFormTextField(
-                    labelText: 'Tax Code',
-                    controller: _codeController,
-                    validator: Validators.required('Tax code'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Tax Name',
-                    controller: _nameController,
-                    validator: Validators.required('Tax name'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Tax Type',
-                    mappedItems: _taxTypeItems,
-                    initialValue: _taxType,
-                    onChanged: (value) =>
-                        setState(() => _taxType = value ?? 'gst'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Tax Rate (%)',
-                    controller: _rateController,
-                    keyboardType: TextInputType.number,
-                    validator: Validators.required('Tax rate'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'CESS Rate (%)',
-                    controller: _cessRateController,
-                    keyboardType: TextInputType.number,
-                  ),
-                  AppFormTextField(
-                    labelText: 'HSN / SAC',
-                    controller: _hsnSacController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Remarks',
-                    controller: _remarksController,
-                    maxLines: 3,
-                  ),
-                ],
-              ),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: 16),
-              SizedBox(
-                child: AppSwitchTile(
-                  label: 'Active',
-                  subtitle:
-                      'Inactive categories stay out of normal selection lists.',
-                  value: _isActive,
-                  onChanged: (value) => setState(() => _isActive = value),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: _selectedTaxCode == null
-                        ? 'Save Tax Category'
-                        : 'Update Tax Category',
-                    onPressed: _save,
-                    busy: _saving,
-                  ),
-                  if (_selectedTaxCode?.id != null)
-                    AppActionButton(
-                      icon: Icons.delete_outline,
-                      label: 'Delete',
-                      onPressed: _saving ? null : _delete,
-                      filled: false,
-                    ),
-                ],
-              ),
             ],
-          ),
+            SettingsFormWrap(
+              children: [
+                AppFormTextField(
+                  labelText: 'Tax Code',
+                  controller: _codeController,
+                  validator: Validators.required('Tax code'),
+                ),
+                AppFormTextField(
+                  labelText: 'Tax Name',
+                  controller: _nameController,
+                  validator: Validators.required('Tax name'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Tax Type',
+                  mappedItems: _taxTypeItems,
+                  initialValue: _taxType,
+                  onChanged: (value) =>
+                      setState(() => _taxType = value ?? 'gst'),
+                ),
+                AppFormTextField(
+                  labelText: 'Tax Rate (%)',
+                  controller: _rateController,
+                  keyboardType: TextInputType.number,
+                  validator: Validators.required('Tax rate'),
+                ),
+                AppFormTextField(
+                  labelText: 'CESS Rate (%)',
+                  controller: _cessRateController,
+                  keyboardType: TextInputType.number,
+                ),
+                AppFormTextField(
+                  labelText: 'HSN / SAC',
+                  controller: _hsnSacController,
+                ),
+                AppFormTextField(
+                  labelText: 'Remarks',
+                  controller: _remarksController,
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              child: AppSwitchTile(
+                label: 'Active',
+                subtitle:
+                    'Inactive categories stay out of normal selection lists.',
+                value: _isActive,
+                onChanged: (value) => setState(() => _isActive = value),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedTaxCode == null
+                      ? 'Save Tax Category'
+                      : 'Update Tax Category',
+                  onPressed: _save,
+                  busy: _saving,
+                ),
+                if (_selectedTaxCode?.id != null)
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    onPressed: _saving ? null : _delete,
+                    filled: false,
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -268,81 +268,79 @@ class _UomManagementPageState extends State<UomManagementPage> {
           ),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: 16),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppFormTextField(
-                    labelText: 'UOM Code',
-                    controller: _codeController,
-                    validator: Validators.required('UOM code'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'UOM Name',
-                    controller: _nameController,
-                    validator: Validators.required('UOM name'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Symbol',
-                    controller: _symbolController,
-                    validator: Validators.required('Symbol'),
-                  ),
-                ],
-              ),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Fraction Allowed',
-                      subtitle: 'Enable decimal quantity for this unit.',
-                      value: _isFractionAllowed,
-                      onChanged: (value) =>
-                          setState(() => _isFractionAllowed = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Active',
-                      subtitle: 'Inactive UOMs stay hidden from normal use.',
-                      value: _isActive,
-                      onChanged: (value) => setState(() => _isActive = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: _selectedUom == null ? 'Save UOM' : 'Update UOM',
-                    onPressed: _save,
-                    busy: _saving,
-                  ),
-                  if (_selectedUom?.id != null)
-                    AppActionButton(
-                      icon: Icons.delete_outline,
-                      label: 'Delete',
-                      onPressed: _saving ? null : _delete,
-                      filled: false,
-                    ),
-                ],
-              ),
             ],
-          ),
+            SettingsFormWrap(
+              children: [
+                AppFormTextField(
+                  labelText: 'UOM Code',
+                  controller: _codeController,
+                  validator: Validators.required('UOM code'),
+                ),
+                AppFormTextField(
+                  labelText: 'UOM Name',
+                  controller: _nameController,
+                  validator: Validators.required('UOM name'),
+                ),
+                AppFormTextField(
+                  labelText: 'Symbol',
+                  controller: _symbolController,
+                  validator: Validators.required('Symbol'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Fraction Allowed',
+                    subtitle: 'Enable decimal quantity for this unit.',
+                    value: _isFractionAllowed,
+                    onChanged: (value) =>
+                        setState(() => _isFractionAllowed = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Active',
+                    subtitle: 'Inactive UOMs stay hidden from normal use.',
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedUom == null ? 'Save UOM' : 'Update UOM',
+                  onPressed: _save,
+                  busy: _saving,
+                ),
+                if (_selectedUom?.id != null)
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    onPressed: _saving ? null : _delete,
+                    filled: false,
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -302,84 +302,82 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
           ),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: 16),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: companyItems,
-                    initialValue: _companyId,
-                    onChanged: (value) => setState(() => _companyId = value),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Module',
-                    controller: _moduleController,
-                    validator: Validators.required('Module'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Document Type',
-                    mappedItems: _documentTypeItems,
-                    initialValue: _documentType,
-                    onChanged: (value) =>
-                        setState(() => _documentType = value ?? ''),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Remarks',
-                    controller: _remarksController,
-                    maxLines: 3,
-                  ),
-                ],
-              ),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Auto Email Enabled',
-                      value: _autoEmailEnabled,
-                      onChanged: (value) =>
-                          setState(() => _autoEmailEnabled = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Manual Email Enabled',
-                      value: _manualEmailEnabled,
-                      onChanged: (value) =>
-                          setState(() => _manualEmailEnabled = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Active',
-                      value: _isActive,
-                      onChanged: (value) => setState(() => _isActive = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: _selectedRecord == null
-                    ? 'Save Module Setting'
-                    : 'Update Module Setting',
-                onPressed: _save,
-                busy: _saving,
-              ),
             ],
-          ),
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Company',
+                  mappedItems: companyItems,
+                  initialValue: _companyId,
+                  onChanged: (value) => setState(() => _companyId = value),
+                ),
+                AppFormTextField(
+                  labelText: 'Module',
+                  controller: _moduleController,
+                  validator: Validators.required('Module'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Document Type',
+                  mappedItems: _documentTypeItems,
+                  initialValue: _documentType,
+                  onChanged: (value) =>
+                      setState(() => _documentType = value ?? ''),
+                ),
+                AppFormTextField(
+                  labelText: 'Remarks',
+                  controller: _remarksController,
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Auto Email Enabled',
+                    value: _autoEmailEnabled,
+                    onChanged: (value) =>
+                        setState(() => _autoEmailEnabled = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Manual Email Enabled',
+                    value: _manualEmailEnabled,
+                    onChanged: (value) =>
+                        setState(() => _manualEmailEnabled = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Active',
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            AppActionButton(
+              icon: Icons.save_outlined,
+              label: _selectedRecord == null
+                  ? 'Save Module Setting'
+                  : 'Update Module Setting',
+              onPressed: _save,
+              busy: _saving,
+            ),
+          ],
         ),
       ),
     );

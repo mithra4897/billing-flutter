@@ -33,6 +33,7 @@ class SettingsWorkspace extends StatefulWidget {
     required this.editor,
     this.breakpoint = 1120,
     this.listWidth = 360,
+    this.editorTitle,
   });
 
   final ScrollController scrollController;
@@ -41,6 +42,7 @@ class SettingsWorkspace extends StatefulWidget {
   final double breakpoint;
   final double listWidth;
   final String title;
+  final String? editorTitle;
 
   @override
   State<SettingsWorkspace> createState() => _SettingsWorkspaceState();
@@ -69,6 +71,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final showInlineEditor = Responsive.isDesktop(context);
+        final theme = Theme.of(context).textTheme;
 
         return _SettingsWorkspaceScope(
           controller: _controller,
@@ -81,7 +84,22 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                     children: [
                       SizedBox(width: widget.listWidth, child: widget.list),
                       const SizedBox(width: 24),
-                      Expanded(child: widget.editor),
+
+                      Expanded(
+                        child: AppSectionCard(
+                          child: Column(
+                            children: [
+                              if (widget.editorTitle != null &&
+                                  Responsive.isNotMobile(context))
+                                Text(
+                                  widget.editorTitle!,
+                                  style: theme.headlineSmall,
+                                ),
+                              widget.editor,
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 )
@@ -108,12 +126,12 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
         return;
       }
 
-      final routeTitle = _editorRouteTitle(context);
-
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (context) =>
-              _SettingsEditorRoutePage(title: routeTitle, child: widget.editor),
+          builder: (context) => _SettingsEditorRoutePage(
+            title: widget.title,
+            child: widget.editor,
+          ),
         ),
       );
 
@@ -125,18 +143,6 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
         _editorRouteOpen = false;
       }
     });
-  }
-
-  String _editorRouteTitle(BuildContext context) {
-    if (widget.editor is SettingsEditorCard) {
-      final title = widget.title.trim();
-      return title;
-    }
-
-    final currentPath = Uri.parse(
-      ModalRoute.of(context)?.settings.name ?? '/dashboard',
-    ).path;
-    return AppNavigation.findByPath(currentPath)?.title ?? 'Details';
   }
 }
 
@@ -191,17 +197,6 @@ class SettingsListCard<T> extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class SettingsEditorCard extends StatelessWidget {
-  const SettingsEditorCard({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppSectionCard(child: child);
   }
 }
 

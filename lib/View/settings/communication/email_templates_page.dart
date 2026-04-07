@@ -354,108 +354,106 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
           ),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: 16),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: companyItems,
-                    initialValue: _companyId,
-                    onChanged: (value) => setState(() => _companyId = value),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Template Code',
-                    controller: _codeController,
-                    validator: Validators.required('Template code'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Template Name',
-                    controller: _nameController,
-                    validator: Validators.required('Template name'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Module',
-                    controller: _moduleController,
-                    validator: Validators.required('Module'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Document Type',
-                    mappedItems: _documentTypeItems,
-                    initialValue: _documentType,
-                    onChanged: (value) =>
-                        setState(() => _documentType = value ?? ''),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Event Code',
-                    controller: _eventCodeController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Subject Template',
-                    controller: _subjectController,
-                    validator: Validators.required('Subject template'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Body Template',
-                    controller: _bodyController,
-                    maxLines: 10,
-                    validator: Validators.required('Body template'),
-                  ),
-                ],
-              ),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'HTML Template',
-                      value: _isHtml,
-                      onChanged: (value) => setState(() => _isHtml = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Active',
-                      value: _isActive,
-                      onChanged: (value) => setState(() => _isActive = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: _selectedRecord == null
-                        ? 'Save Template'
-                        : 'Update Template',
-                    onPressed: _save,
-                    busy: _saving,
-                  ),
-                  if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
-                    AppActionButton(
-                      icon: Icons.delete_outline,
-                      label: 'Delete',
-                      onPressed: _saving ? null : _delete,
-                      filled: false,
-                    ),
-                ],
-              ),
             ],
-          ),
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Company',
+                  mappedItems: companyItems,
+                  initialValue: _companyId,
+                  onChanged: (value) => setState(() => _companyId = value),
+                ),
+                AppFormTextField(
+                  labelText: 'Template Code',
+                  controller: _codeController,
+                  validator: Validators.required('Template code'),
+                ),
+                AppFormTextField(
+                  labelText: 'Template Name',
+                  controller: _nameController,
+                  validator: Validators.required('Template name'),
+                ),
+                AppFormTextField(
+                  labelText: 'Module',
+                  controller: _moduleController,
+                  validator: Validators.required('Module'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Document Type',
+                  mappedItems: _documentTypeItems,
+                  initialValue: _documentType,
+                  onChanged: (value) =>
+                      setState(() => _documentType = value ?? ''),
+                ),
+                AppFormTextField(
+                  labelText: 'Event Code',
+                  controller: _eventCodeController,
+                ),
+                AppFormTextField(
+                  labelText: 'Subject Template',
+                  controller: _subjectController,
+                  validator: Validators.required('Subject template'),
+                ),
+                AppFormTextField(
+                  labelText: 'Body Template',
+                  controller: _bodyController,
+                  maxLines: 10,
+                  validator: Validators.required('Body template'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'HTML Template',
+                    value: _isHtml,
+                    onChanged: (value) => setState(() => _isHtml = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Active',
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedRecord == null
+                      ? 'Save Template'
+                      : 'Update Template',
+                  onPressed: _save,
+                  busy: _saving,
+                ),
+                if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    onPressed: _saving ? null : _delete,
+                    filled: false,
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

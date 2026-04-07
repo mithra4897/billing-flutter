@@ -393,75 +393,73 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
           );
         },
       ),
-      editor: SettingsEditorCard(
-        child: _selectedMessage == null
-            ? const SettingsEmptyState(
-                icon: Icons.mark_email_read_outlined,
-                title: 'No email selected',
-                message:
-                    'Choose an email message from the left to review its recipients, content, and status.',
-                minHeight: 280,
-              )
-            : SettingsFormWrap(
-                children: [
-                  AppFormTextField(
-                    width: 320,
-                    labelText: 'Subject',
-                    initialValue: stringValue(selectedData, 'subject'),
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    width: 320,
-                    labelText: 'Status',
-                    initialValue: stringValue(selectedData, 'status'),
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    width: 320,
-                    labelText: 'Module',
-                    initialValue: stringValue(selectedData, 'module'),
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    width: 320,
-                    labelText: 'Document Type',
-                    initialValue: stringValue(selectedData, 'document_type'),
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    width: 320,
-                    labelText: 'To',
-                    initialValue: stringValue(selectedData, 'to_emails'),
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    width: 320,
-                    labelText: 'CC',
-                    initialValue: stringValue(selectedData, 'cc_emails'),
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    width: 320,
-                    labelText: 'BCC',
-                    initialValue: stringValue(selectedData, 'bcc_emails'),
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    width: 320,
-                    labelText: 'Error Message',
-                    initialValue: stringValue(selectedData, 'error_message'),
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    width: 660,
-                    labelText: 'Body',
-                    initialValue: stringValue(selectedData, 'body'),
-                    readOnly: true,
-                    maxLines: 12,
-                  ),
-                ],
-              ),
-      ),
+      editor: _selectedMessage == null
+          ? const SettingsEmptyState(
+              icon: Icons.mark_email_read_outlined,
+              title: 'No email selected',
+              message:
+                  'Choose an email message from the left to review its recipients, content, and status.',
+              minHeight: 280,
+            )
+          : SettingsFormWrap(
+              children: [
+                AppFormTextField(
+                  width: 320,
+                  labelText: 'Subject',
+                  initialValue: stringValue(selectedData, 'subject'),
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  width: 320,
+                  labelText: 'Status',
+                  initialValue: stringValue(selectedData, 'status'),
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  width: 320,
+                  labelText: 'Module',
+                  initialValue: stringValue(selectedData, 'module'),
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  width: 320,
+                  labelText: 'Document Type',
+                  initialValue: stringValue(selectedData, 'document_type'),
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  width: 320,
+                  labelText: 'To',
+                  initialValue: stringValue(selectedData, 'to_emails'),
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  width: 320,
+                  labelText: 'CC',
+                  initialValue: stringValue(selectedData, 'cc_emails'),
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  width: 320,
+                  labelText: 'BCC',
+                  initialValue: stringValue(selectedData, 'bcc_emails'),
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  width: 320,
+                  labelText: 'Error Message',
+                  initialValue: stringValue(selectedData, 'error_message'),
+                  readOnly: true,
+                ),
+                AppFormTextField(
+                  width: 660,
+                  labelText: 'Body',
+                  initialValue: stringValue(selectedData, 'body'),
+                  readOnly: true,
+                  maxLines: 12,
+                ),
+              ],
+            ),
     );
   }
 }

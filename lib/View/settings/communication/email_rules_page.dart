@@ -413,166 +413,161 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
           ),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: 16),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: companyItems,
-                    initialValue: _companyId,
-                    onChanged: (value) => setState(() => _companyId = value),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Rule Code',
-                    controller: _codeController,
-                    validator: Validators.required('Rule code'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Rule Name',
-                    controller: _nameController,
-                    validator: Validators.required('Rule name'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Module',
-                    controller: _moduleController,
-                    validator: Validators.required('Module'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Document Type',
-                    mappedItems: _documentTypeItems,
-                    initialValue: _documentType,
-                    onChanged: (value) =>
-                        setState(() => _documentType = value ?? ''),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Event Code',
-                    controller: _eventCodeController,
-                    validator: Validators.required('Event code'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Template',
-                    mappedItems: templateItems,
-                    initialValue: _templateId,
-                    onChanged: (value) => setState(() => _templateId = value),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Recipient Emails',
-                    controller: _recipientEmailsController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'CC Emails',
-                    controller: _ccEmailsController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'BCC Emails',
-                    controller: _bccEmailsController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Subject Override',
-                    controller: _subjectOverrideController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Body Override',
-                    controller: _bodyOverrideController,
-                    maxLines: 6,
-                  ),
-                ],
-              ),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Auto Enabled',
-                      value: _autoEnabled,
-                      onChanged: (value) =>
-                          setState(() => _autoEnabled = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Manual Enabled',
-                      value: _manualEnabled,
-                      onChanged: (value) =>
-                          setState(() => _manualEnabled = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Send To Party Email',
-                      value: _sendToPartyEmail,
-                      onChanged: (value) =>
-                          setState(() => _sendToPartyEmail = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Send To Contact Email',
-                      value: _sendToContactEmail,
-                      onChanged: (value) =>
-                          setState(() => _sendToContactEmail = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Send To Assigned User',
-                      value: _sendToAssignedUser,
-                      onChanged: (value) =>
-                          setState(() => _sendToAssignedUser = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Send To Owner User',
-                      value: _sendToOwnerUser,
-                      onChanged: (value) =>
-                          setState(() => _sendToOwnerUser = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Active',
-                      value: _isActive,
-                      onChanged: (value) => setState(() => _isActive = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: _selectedRecord == null
-                        ? 'Save Rule'
-                        : 'Update Rule',
-                    onPressed: _save,
-                    busy: _saving,
-                  ),
-                  if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
-                    AppActionButton(
-                      icon: Icons.delete_outline,
-                      label: 'Delete',
-                      onPressed: _saving ? null : _delete,
-                      filled: false,
-                    ),
-                ],
-              ),
             ],
-          ),
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Company',
+                  mappedItems: companyItems,
+                  initialValue: _companyId,
+                  onChanged: (value) => setState(() => _companyId = value),
+                ),
+                AppFormTextField(
+                  labelText: 'Rule Code',
+                  controller: _codeController,
+                  validator: Validators.required('Rule code'),
+                ),
+                AppFormTextField(
+                  labelText: 'Rule Name',
+                  controller: _nameController,
+                  validator: Validators.required('Rule name'),
+                ),
+                AppFormTextField(
+                  labelText: 'Module',
+                  controller: _moduleController,
+                  validator: Validators.required('Module'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Document Type',
+                  mappedItems: _documentTypeItems,
+                  initialValue: _documentType,
+                  onChanged: (value) =>
+                      setState(() => _documentType = value ?? ''),
+                ),
+                AppFormTextField(
+                  labelText: 'Event Code',
+                  controller: _eventCodeController,
+                  validator: Validators.required('Event code'),
+                ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Template',
+                  mappedItems: templateItems,
+                  initialValue: _templateId,
+                  onChanged: (value) => setState(() => _templateId = value),
+                ),
+                AppFormTextField(
+                  labelText: 'Recipient Emails',
+                  controller: _recipientEmailsController,
+                ),
+                AppFormTextField(
+                  labelText: 'CC Emails',
+                  controller: _ccEmailsController,
+                ),
+                AppFormTextField(
+                  labelText: 'BCC Emails',
+                  controller: _bccEmailsController,
+                ),
+                AppFormTextField(
+                  labelText: 'Subject Override',
+                  controller: _subjectOverrideController,
+                ),
+                AppFormTextField(
+                  labelText: 'Body Override',
+                  controller: _bodyOverrideController,
+                  maxLines: 6,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Auto Enabled',
+                    value: _autoEnabled,
+                    onChanged: (value) => setState(() => _autoEnabled = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Manual Enabled',
+                    value: _manualEnabled,
+                    onChanged: (value) =>
+                        setState(() => _manualEnabled = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Send To Party Email',
+                    value: _sendToPartyEmail,
+                    onChanged: (value) =>
+                        setState(() => _sendToPartyEmail = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Send To Contact Email',
+                    value: _sendToContactEmail,
+                    onChanged: (value) =>
+                        setState(() => _sendToContactEmail = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Send To Assigned User',
+                    value: _sendToAssignedUser,
+                    onChanged: (value) =>
+                        setState(() => _sendToAssignedUser = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Send To Owner User',
+                    value: _sendToOwnerUser,
+                    onChanged: (value) =>
+                        setState(() => _sendToOwnerUser = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Active',
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedRecord == null ? 'Save Rule' : 'Update Rule',
+                  onPressed: _save,
+                  busy: _saving,
+                ),
+                if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    onPressed: _saving ? null : _delete,
+                    filled: false,
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

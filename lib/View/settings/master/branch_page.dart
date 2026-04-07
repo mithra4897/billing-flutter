@@ -248,122 +248,115 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
           onTap: () => _selectBranch(branch),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    initialValue: _companyId,
-                    mappedItems: _companies
-                        .where((company) => company.id != null)
-                        .map(
-                          (company) => AppDropdownItem<int>(
-                            value: company.id!,
-                            label: company.legalName ?? '',
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) => setState(() => _companyId = value),
-                    validator: (value) =>
-                        value == null ? 'Company is required' : null,
-                  ),
-                  AppFormTextField(
-                    controller: _codeController,
-                    labelText: 'Code',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Code is required'
-                        : null,
-                  ),
-                  AppFormTextField(
-                    controller: _nameController,
-                    labelText: 'Name',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Name is required'
-                        : null,
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    initialValue: _branchType,
-                    labelText: 'Branch Type',
-                    mappedItems: const [
-                      AppDropdownItem(
-                        value: 'head_office',
-                        label: 'Head Office',
-                      ),
-                      AppDropdownItem(
-                        value: 'branch_office',
-                        label: 'Branch Office',
-                      ),
-                      AppDropdownItem(value: 'factory', label: 'Factory'),
-                      AppDropdownItem(
-                        value: 'warehouse_office',
-                        label: 'Warehouse Office',
-                      ),
-                      AppDropdownItem(
-                        value: 'retail_outlet',
-                        label: 'Retail Outlet',
-                      ),
-                      AppDropdownItem(
-                        value: 'service_center',
-                        label: 'Service Center',
-                      ),
-                      AppDropdownItem(value: 'other', label: 'Other'),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _branchType = value ?? _branchType),
-                  ),
-                ],
-              ),
-              AppSwitchTile(
-                label: 'Head Office',
-                subtitle: 'Mark only one branch per company as head office.',
-                value: _isHeadOffice,
-                onChanged: (value) => setState(() => _isHeadOffice = value),
-              ),
-              AppSwitchTile(
-                label: 'Active',
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              const SizedBox(height: 8),
-              AppFormTextField(
-                controller: _remarksController,
-                maxLines: 3,
-                labelText: 'Remarks',
-              ),
-              if ((_formError ?? '').isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Company',
+                  initialValue: _companyId,
+                  mappedItems: _companies
+                      .where((company) => company.id != null)
+                      .map(
+                        (company) => AppDropdownItem<int>(
+                          value: company.id!,
+                          label: company.legalName ?? '',
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) => setState(() => _companyId = value),
+                  validator: (value) =>
+                      value == null ? 'Company is required' : null,
+                ),
+                AppFormTextField(
+                  controller: _codeController,
+                  labelText: 'Code',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Code is required'
+                      : null,
+                ),
+                AppFormTextField(
+                  controller: _nameController,
+                  labelText: 'Name',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Name is required'
+                      : null,
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: _branchType,
+                  labelText: 'Branch Type',
+                  mappedItems: const [
+                    AppDropdownItem(value: 'head_office', label: 'Head Office'),
+                    AppDropdownItem(
+                      value: 'branch_office',
+                      label: 'Branch Office',
+                    ),
+                    AppDropdownItem(value: 'factory', label: 'Factory'),
+                    AppDropdownItem(
+                      value: 'warehouse_office',
+                      label: 'Warehouse Office',
+                    ),
+                    AppDropdownItem(
+                      value: 'retail_outlet',
+                      label: 'Retail Outlet',
+                    ),
+                    AppDropdownItem(
+                      value: 'service_center',
+                      label: 'Service Center',
+                    ),
+                    AppDropdownItem(value: 'other', label: 'Other'),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _branchType = value ?? _branchType),
                 ),
               ],
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                children: [
-                  AppActionButton(
-                    onPressed: _saving ? null : _save,
-                    icon: _selectedBranch == null ? Icons.add : Icons.save,
-                    label: _saving ? 'Saving...' : 'Save Branch',
-                    busy: _saving,
-                  ),
-                  AppActionButton(
-                    onPressed: _saving ? null : _resetForm,
-                    icon: Icons.refresh,
-                    label: 'Reset',
-                    filled: false,
-                  ),
-                ],
+            ),
+            AppSwitchTile(
+              label: 'Head Office',
+              subtitle: 'Mark only one branch per company as head office.',
+              value: _isHeadOffice,
+              onChanged: (value) => setState(() => _isHeadOffice = value),
+            ),
+            AppSwitchTile(
+              label: 'Active',
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            const SizedBox(height: 8),
+            AppFormTextField(
+              controller: _remarksController,
+              maxLines: 3,
+              labelText: 'Remarks',
+            ),
+            if ((_formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-          ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              children: [
+                AppActionButton(
+                  onPressed: _saving ? null : _save,
+                  icon: _selectedBranch == null ? Icons.add : Icons.save,
+                  label: _saving ? 'Saving...' : 'Save Branch',
+                  busy: _saving,
+                ),
+                AppActionButton(
+                  onPressed: _saving ? null : _resetForm,
+                  icon: Icons.refresh,
+                  label: 'Reset',
+                  filled: false,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

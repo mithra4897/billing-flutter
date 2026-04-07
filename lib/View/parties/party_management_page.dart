@@ -1206,6 +1206,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
     return SettingsWorkspace(
       title: 'Parties',
+      editorTitle: _selectedParty?.toString() ?? "New Party",
       scrollController: _pageScrollController,
       list: AppSectionCard(
         child: Column(
@@ -1274,38 +1275,36 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           ],
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabs: const [
-                Tab(text: 'Primary'),
-                Tab(text: 'Addresses'),
-                Tab(text: 'Contacts'),
-                Tab(text: 'GST Details'),
-                Tab(text: 'Bank Accounts'),
-                Tab(text: 'Credit Limits'),
-                Tab(text: 'Payment Terms'),
-              ],
-            ),
-            const SizedBox(height: 20),
-            IndexedStack(
-              index: _tabController.index,
-              children: [
-                _buildPrimaryTab(context),
-                _buildAddressesTab(context),
-                _buildContactsTab(context),
-                _buildGstDetailsTab(context),
-                _buildBankAccountsTab(context),
-                _buildCreditLimitsTab(context),
-                _buildPaymentTermsTab(context),
-              ],
-            ),
-          ],
-        ),
+      editor: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabs: const [
+              Tab(text: 'Primary'),
+              Tab(text: 'Addresses'),
+              Tab(text: 'Contacts'),
+              Tab(text: 'GST Details'),
+              Tab(text: 'Bank Accounts'),
+              Tab(text: 'Credit Limits'),
+              Tab(text: 'Payment Terms'),
+            ],
+          ),
+          const SizedBox(height: 20),
+          IndexedStack(
+            index: _tabController.index,
+            children: [
+              _buildPrimaryTab(context),
+              _buildAddressesTab(context),
+              _buildContactsTab(context),
+              _buildGstDetailsTab(context),
+              _buildBankAccountsTab(context),
+              _buildCreditLimitsTab(context),
+              _buildPaymentTermsTab(context),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1337,38 +1336,60 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                 mappedItems: partyTypeItems,
                 initialValue: _partyTypeId,
                 onChanged: _onPartyTypeChanged,
+                validator: Validators.requiredSelection('Party type'),
               ),
               AppFormTextField(
                 labelText: 'Party Code',
                 controller: _partyCodeController,
-                validator: Validators.required('Party code'),
+                readOnly: true,
+                validator: Validators.compose([
+                  Validators.required('Party code'),
+                  Validators.optionalMaxLength(50, 'Party code'),
+                ]),
               ),
               AppFormTextField(
                 labelText: 'Party Name',
                 controller: _partyNameController,
-                validator: Validators.required('Party name'),
+                validator: Validators.compose([
+                  Validators.required('Party name'),
+                  Validators.optionalMaxLength(255, 'Party name'),
+                ]),
               ),
               AppFormTextField(
                 labelText: 'Display Name',
                 controller: _displayNameController,
+                validator: Validators.optionalMaxLength(255, 'Display name'),
               ),
               AppFormTextField(
                 labelText: 'Website',
                 controller: _websiteController,
+                validator: Validators.optionalMaxLength(255, 'Website'),
               ),
-              AppFormTextField(labelText: 'PAN', controller: _panController),
+              AppFormTextField(
+                labelText: 'PAN',
+                controller: _panController,
+                validator: Validators.compose([
+                  Validators.optionalMaxLength(10, 'PAN'),
+                  Validators.optionalExactLength(10, 'PAN'),
+                ]),
+              ),
               AppFormTextField(
                 labelText: 'Aadhaar',
                 controller: _aadhaarController,
+                validator: Validators.optionalDigitsExactLength(12, 'Aadhaar'),
               ),
               AppFormTextField(
                 labelText: 'Default Currency',
                 controller: _currencyController,
+                validator: Validators.optionalMaxLength(10, 'Default currency'),
               ),
               AppFormTextField(
                 labelText: 'Opening Balance',
                 controller: _openingBalanceController,
                 keyboardType: TextInputType.number,
+                validator: Validators.optionalNonNegativeNumber(
+                  'Opening balance',
+                ),
               ),
               AppDropdownField<String>.fromMapped(
                 labelText: 'Opening Balance Type',
@@ -1665,39 +1686,50 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             AppFormTextField(
               labelText: 'Address Line 1',
               controller: _addressLine1Controller,
-              validator: Validators.required('Address line 1'),
+              validator: Validators.compose([
+                Validators.required('Address line 1'),
+                Validators.optionalMaxLength(255, 'Address line 1'),
+              ]),
             ),
             AppFormTextField(
               labelText: 'Address Line 2',
               controller: _addressLine2Controller,
+              validator: Validators.optionalMaxLength(255, 'Address line 2'),
             ),
             AppFormTextField(
               labelText: 'Area',
               controller: _addressAreaController,
+              validator: Validators.optionalMaxLength(150, 'Area'),
             ),
             AppFormTextField(
               labelText: 'City',
               controller: _addressCityController,
+              validator: Validators.optionalMaxLength(100, 'City'),
             ),
             AppFormTextField(
               labelText: 'District',
               controller: _addressDistrictController,
+              validator: Validators.optionalMaxLength(100, 'District'),
             ),
             AppFormTextField(
               labelText: 'State Code',
               controller: _addressStateCodeController,
+              validator: Validators.optionalMaxLength(5, 'State code'),
             ),
             AppFormTextField(
               labelText: 'State Name',
               controller: _addressStateNameController,
+              validator: Validators.optionalMaxLength(100, 'State name'),
             ),
             AppFormTextField(
               labelText: 'Country Code',
               controller: _addressCountryCodeController,
+              validator: Validators.optionalMaxLength(5, 'Country code'),
             ),
             AppFormTextField(
               labelText: 'Postal Code',
               controller: _addressPostalCodeController,
+              validator: Validators.optionalMaxLength(20, 'Postal code'),
             ),
           ],
         ),
@@ -1742,23 +1774,33 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             AppFormTextField(
               labelText: 'Contact Name',
               controller: _contactNameController,
-              validator: Validators.required('Contact name'),
+              validator: Validators.compose([
+                Validators.required('Contact name'),
+                Validators.optionalMaxLength(150, 'Contact name'),
+              ]),
             ),
             AppFormTextField(
               labelText: 'Designation',
               controller: _contactDesignationController,
+              validator: Validators.optionalMaxLength(100, 'Designation'),
             ),
             AppFormTextField(
               labelText: 'Mobile',
               controller: _contactMobileController,
+              validator: Validators.optionalMaxLength(20, 'Mobile'),
             ),
             AppFormTextField(
               labelText: 'Phone',
               controller: _contactPhoneController,
+              validator: Validators.optionalMaxLength(20, 'Phone'),
             ),
             AppFormTextField(
               labelText: 'Email',
               controller: _contactEmailController,
+              validator: Validators.compose([
+                Validators.optionalEmail(),
+                Validators.optionalMaxLength(150, 'Email'),
+              ]),
             ),
           ],
         ),
@@ -1803,6 +1845,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             AppFormTextField(
               labelText: 'GSTIN',
               controller: _gstinDetailController,
+              validator: Validators.compose([
+                Validators.optionalMaxLength(15, 'GSTIN'),
+                Validators.optionalExactLength(15, 'GSTIN'),
+              ]),
             ),
             AppDropdownField<String>.fromMapped(
               labelText: 'Registration Type',
@@ -1810,39 +1856,52 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               initialValue: _registrationType,
               onChanged: (value) =>
                   setState(() => _registrationType = value ?? 'regular'),
+              validator: Validators.requiredSelection('Registration type'),
             ),
             AppFormTextField(
               labelText: 'Legal Name',
               controller: _gstLegalNameController,
+              validator: Validators.optionalMaxLength(255, 'Legal name'),
             ),
             AppFormTextField(
               labelText: 'Trade Name',
               controller: _gstTradeNameController,
+              validator: Validators.optionalMaxLength(255, 'Trade name'),
             ),
             AppFormTextField(
               labelText: 'State Code',
               controller: _gstStateCodeController,
+              validator: Validators.optionalMaxLength(5, 'State code'),
             ),
             AppFormTextField(
               labelText: 'State Name',
               controller: _gstStateNameController,
+              validator: Validators.optionalMaxLength(100, 'State name'),
             ),
             AppFormTextField(
               labelText: 'Address Line 1',
               controller: _gstAddress1Controller,
+              validator: Validators.optionalMaxLength(255, 'Address line 1'),
             ),
             AppFormTextField(
               labelText: 'Address Line 2',
               controller: _gstAddress2Controller,
+              validator: Validators.optionalMaxLength(255, 'Address line 2'),
             ),
-            AppFormTextField(labelText: 'City', controller: _gstCityController),
+            AppFormTextField(
+              labelText: 'City',
+              controller: _gstCityController,
+              validator: Validators.optionalMaxLength(100, 'City'),
+            ),
             AppFormTextField(
               labelText: 'District',
               controller: _gstDistrictController,
+              validator: Validators.optionalMaxLength(100, 'District'),
             ),
             AppFormTextField(
               labelText: 'Postal Code',
               controller: _gstPostalCodeController,
+              validator: Validators.optionalMaxLength(20, 'Postal code'),
             ),
           ],
         ),
@@ -1889,37 +1948,54 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             AppFormTextField(
               labelText: 'Account Holder Name',
               controller: _bankAccountHolderController,
-              validator: Validators.required('Account holder name'),
+              validator: Validators.compose([
+                Validators.required('Account holder name'),
+                Validators.optionalMaxLength(255, 'Account holder name'),
+              ]),
             ),
             AppFormTextField(
               labelText: 'Bank Name',
               controller: _bankNameController,
-              validator: Validators.required('Bank name'),
+              validator: Validators.compose([
+                Validators.required('Bank name'),
+                Validators.optionalMaxLength(255, 'Bank name'),
+              ]),
             ),
             AppFormTextField(
               labelText: 'Branch Name',
               controller: _bankBranchController,
+              validator: Validators.optionalMaxLength(255, 'Branch name'),
             ),
             AppFormTextField(
               labelText: 'Account Number',
               controller: _bankAccountNumberController,
-              validator: Validators.required('Account number'),
+              validator: Validators.compose([
+                Validators.required('Account number'),
+                Validators.optionalMaxLength(50, 'Account number'),
+              ]),
             ),
             AppFormTextField(
               labelText: 'IFSC Code',
               controller: _bankIfscController,
+              validator: Validators.compose([
+                Validators.optionalMaxLength(20, 'IFSC code'),
+                Validators.optionalExactLength(11, 'IFSC code'),
+              ]),
             ),
             AppFormTextField(
               labelText: 'SWIFT Code',
               controller: _bankSwiftController,
+              validator: Validators.optionalMaxLength(20, 'SWIFT code'),
             ),
             AppFormTextField(
               labelText: 'IBAN',
               controller: _bankIbanController,
+              validator: Validators.optionalMaxLength(50, 'IBAN'),
             ),
             AppFormTextField(
               labelText: 'UPI ID',
               controller: _bankUpiController,
+              validator: Validators.optionalMaxLength(100, 'UPI ID'),
             ),
           ],
         ),
@@ -1967,23 +2043,31 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               labelText: 'Credit Limit',
               controller: _creditLimitController,
               keyboardType: TextInputType.number,
+              validator: Validators.optionalNonNegativeNumber('Credit limit'),
             ),
             AppFormTextField(
               labelText: 'Credit Days',
               controller: _creditDaysController,
               keyboardType: TextInputType.number,
+              validator: Validators.optionalNonNegativeInteger('Credit days'),
             ),
             AppFormTextField(
               labelText: 'Effective From',
               controller: _creditFromController,
               inputFormatters: [DateInputFormatter()],
               hintText: 'YYYY-MM-DD',
+              validator: Validators.optionalDate('Effective from'),
             ),
             AppFormTextField(
               labelText: 'Effective To',
               controller: _creditToController,
               inputFormatters: [DateInputFormatter()],
               hintText: 'YYYY-MM-DD',
+              validator: Validators.optionalDateOnOrAfter(
+                'Effective to',
+                () => _creditFromController.text,
+                startFieldName: 'Effective from',
+              ),
             ),
           ],
         ),
@@ -2017,12 +2101,16 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             AppFormTextField(
               labelText: 'Term Name',
               controller: _paymentTermNameController,
-              validator: Validators.required('Term name'),
+              validator: Validators.compose([
+                Validators.required('Term name'),
+                Validators.optionalMaxLength(150, 'Term name'),
+              ]),
             ),
             AppFormTextField(
               labelText: 'Days',
               controller: _paymentDaysController,
               keyboardType: TextInputType.number,
+              validator: Validators.optionalNonNegativeInteger('Days'),
             ),
             AppDropdownField<String>.fromMapped(
               labelText: 'Due Basis',
@@ -2030,6 +2118,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               initialValue: _dueBasis,
               onChanged: (value) =>
                   setState(() => _dueBasis = value ?? 'invoice_date'),
+              validator: Validators.requiredSelection('Due basis'),
             ),
             AppFormTextField(
               labelText: 'Remarks',

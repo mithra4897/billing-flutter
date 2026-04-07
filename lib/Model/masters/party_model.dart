@@ -43,6 +43,9 @@ class PartyModel implements JsonModel {
   final List<PartyContactModel> contacts;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => displayName ?? partyName ?? partyCode ?? 'New Party';
+
   factory PartyModel.fromJson(Map<String, dynamic> json) {
     return PartyModel(
       id: _parseInt(json['id']),

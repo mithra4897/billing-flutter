@@ -303,212 +303,206 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
           onTap: () => _selectWarehouse(warehouse),
         ),
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int>(
-                    initialValue: _companyId,
-                    labelText: 'Company',
-                    items: _companies
-                        .map(
-                          (company) => DropdownMenuItem<int>(
-                            value: company.id,
-                            child: Text(company.legalName ?? ''),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      setState(() {
-                        _companyId = value;
-                        final branches = branchesForCompany(_branches, value);
-                        _branchId = branches.isNotEmpty
-                            ? branches.first.id
-                            : null;
-                        final locations = locationsForBranch(
-                          _locations,
-                          _branchId,
-                        );
-                        _locationId = locations.isNotEmpty
-                            ? locations.first.id
-                            : null;
-                        _parentWarehouseId = null;
-                      });
-                    },
-                    validator: (value) =>
-                        value == null ? 'Company is required' : null,
-                  ),
-                  AppDropdownField<int>(
-                    initialValue: _branchId,
-                    labelText: 'Branch',
-                    items: branches
-                        .map(
-                          (branch) => DropdownMenuItem<int>(
-                            value: branch.id,
-                            child: Text(branch.name ?? ''),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      setState(() {
-                        _branchId = value;
-                        final locations = locationsForBranch(_locations, value);
-                        _locationId = locations.isNotEmpty
-                            ? locations.first.id
-                            : null;
-                        _parentWarehouseId = null;
-                      });
-                    },
-                    validator: (value) =>
-                        value == null ? 'Branch is required' : null,
-                  ),
-                  AppDropdownField<int>(
-                    initialValue: _locationId,
-                    labelText: 'Business Location',
-                    items: locations
-                        .map(
-                          (location) => DropdownMenuItem<int>(
-                            value: location.id,
-                            child: Text(location.name ?? ''),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      setState(() {
-                        _locationId = value;
-                        _parentWarehouseId = null;
-                      });
-                    },
-                    validator: (value) =>
-                        value == null ? 'Location is required' : null,
-                  ),
-                  AppFormTextField(
-                    controller: _codeController,
-                    labelText: 'Code',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Code is required'
-                        : null,
-                  ),
-                  AppFormTextField(
-                    controller: _nameController,
-                    labelText: 'Name',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Name is required'
-                        : null,
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    initialValue: _warehouseType,
-                    labelText: 'Warehouse Type',
-                    mappedItems: const [
-                      AppDropdownItem(value: 'main', label: 'Main'),
-                      AppDropdownItem(
-                        value: 'raw_material',
-                        label: 'Raw Material',
-                      ),
-                      AppDropdownItem(
-                        value: 'finished_goods',
-                        label: 'Finished Goods',
-                      ),
-                      AppDropdownItem(value: 'wip', label: 'WIP'),
-                      AppDropdownItem(value: 'damage', label: 'Damage'),
-                      AppDropdownItem(value: 'returns', label: 'Returns'),
-                      AppDropdownItem(value: 'transit', label: 'Transit'),
-                      AppDropdownItem(value: 'jobwork', label: 'Jobwork'),
-                      AppDropdownItem(value: 'other', label: 'Other'),
-                    ],
-                    onChanged: (value) => setState(
-                      () => _warehouseType = value ?? _warehouseType,
-                    ),
-                  ),
-                  AppDropdownField<int?>.fromMapped(
-                    initialValue: _parentWarehouseId,
-                    labelText: 'Parent Warehouse',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: 'None'),
-                      ...parentOptions.map(
-                        (warehouse) => AppDropdownItem<int?>(
-                          value: warehouse.id,
-                          label: warehouse.name ?? '',
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int>(
+                  initialValue: _companyId,
+                  labelText: 'Company',
+                  items: _companies
+                      .map(
+                        (company) => DropdownMenuItem<int>(
+                          value: company.id,
+                          child: Text(company.legalName ?? ''),
                         ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    setState(() {
+                      _companyId = value;
+                      final branches = branchesForCompany(_branches, value);
+                      _branchId = branches.isNotEmpty
+                          ? branches.first.id
+                          : null;
+                      final locations = locationsForBranch(
+                        _locations,
+                        _branchId,
+                      );
+                      _locationId = locations.isNotEmpty
+                          ? locations.first.id
+                          : null;
+                      _parentWarehouseId = null;
+                    });
+                  },
+                  validator: (value) =>
+                      value == null ? 'Company is required' : null,
+                ),
+                AppDropdownField<int>(
+                  initialValue: _branchId,
+                  labelText: 'Branch',
+                  items: branches
+                      .map(
+                        (branch) => DropdownMenuItem<int>(
+                          value: branch.id,
+                          child: Text(branch.name ?? ''),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    setState(() {
+                      _branchId = value;
+                      final locations = locationsForBranch(_locations, value);
+                      _locationId = locations.isNotEmpty
+                          ? locations.first.id
+                          : null;
+                      _parentWarehouseId = null;
+                    });
+                  },
+                  validator: (value) =>
+                      value == null ? 'Branch is required' : null,
+                ),
+                AppDropdownField<int>(
+                  initialValue: _locationId,
+                  labelText: 'Business Location',
+                  items: locations
+                      .map(
+                        (location) => DropdownMenuItem<int>(
+                          value: location.id,
+                          child: Text(location.name ?? ''),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    setState(() {
+                      _locationId = value;
+                      _parentWarehouseId = null;
+                    });
+                  },
+                  validator: (value) =>
+                      value == null ? 'Location is required' : null,
+                ),
+                AppFormTextField(
+                  controller: _codeController,
+                  labelText: 'Code',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Code is required'
+                      : null,
+                ),
+                AppFormTextField(
+                  controller: _nameController,
+                  labelText: 'Name',
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Name is required'
+                      : null,
+                ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: _warehouseType,
+                  labelText: 'Warehouse Type',
+                  mappedItems: const [
+                    AppDropdownItem(value: 'main', label: 'Main'),
+                    AppDropdownItem(
+                      value: 'raw_material',
+                      label: 'Raw Material',
+                    ),
+                    AppDropdownItem(
+                      value: 'finished_goods',
+                      label: 'Finished Goods',
+                    ),
+                    AppDropdownItem(value: 'wip', label: 'WIP'),
+                    AppDropdownItem(value: 'damage', label: 'Damage'),
+                    AppDropdownItem(value: 'returns', label: 'Returns'),
+                    AppDropdownItem(value: 'transit', label: 'Transit'),
+                    AppDropdownItem(value: 'jobwork', label: 'Jobwork'),
+                    AppDropdownItem(value: 'other', label: 'Other'),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _warehouseType = value ?? _warehouseType),
+                ),
+                AppDropdownField<int?>.fromMapped(
+                  initialValue: _parentWarehouseId,
+                  labelText: 'Parent Warehouse',
+                  mappedItems: [
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
+                    ...parentOptions.map(
+                      (warehouse) => AppDropdownItem<int?>(
+                        value: warehouse.id,
+                        label: warehouse.name ?? '',
                       ),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _parentWarehouseId = value),
-                  ),
-                ],
-              ),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  AppToggleChip(
-                    label: 'Allow Negative',
-                    value: _allowNegativeStock,
-                    onChanged: (value) =>
-                        setState(() => _allowNegativeStock = value),
-                  ),
-                  AppToggleChip(
-                    label: 'Sellable',
-                    value: _isSellableStock,
-                    onChanged: (value) =>
-                        setState(() => _isSellableStock = value),
-                  ),
-                  AppToggleChip(
-                    label: 'Reserved Only',
-                    value: _isReservedOnly,
-                    onChanged: (value) =>
-                        setState(() => _isReservedOnly = value),
-                  ),
-                ],
-              ),
-              AppSwitchTile(
-                label: 'Default Warehouse',
-                value: _isDefault,
-                onChanged: (value) => setState(() => _isDefault = value),
-              ),
-              AppSwitchTile(
-                label: 'Active',
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              AppFormTextField(
-                controller: _remarksController,
-                maxLines: 3,
-                labelText: 'Remarks',
-              ),
-              if ((_formError ?? '').isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _parentWarehouseId = value),
                 ),
               ],
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                children: [
-                  AppActionButton(
-                    onPressed: _saving ? null : _save,
-                    icon: _selectedWarehouse == null ? Icons.add : Icons.save,
-                    label: _saving ? 'Saving...' : 'Save Warehouse',
-                    busy: _saving,
-                  ),
-                  AppActionButton(
-                    onPressed: _saving ? null : _resetForm,
-                    icon: Icons.refresh,
-                    label: 'Reset',
-                    filled: false,
-                  ),
-                ],
+            ),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppToggleChip(
+                  label: 'Allow Negative',
+                  value: _allowNegativeStock,
+                  onChanged: (value) =>
+                      setState(() => _allowNegativeStock = value),
+                ),
+                AppToggleChip(
+                  label: 'Sellable',
+                  value: _isSellableStock,
+                  onChanged: (value) =>
+                      setState(() => _isSellableStock = value),
+                ),
+                AppToggleChip(
+                  label: 'Reserved Only',
+                  value: _isReservedOnly,
+                  onChanged: (value) => setState(() => _isReservedOnly = value),
+                ),
+              ],
+            ),
+            AppSwitchTile(
+              label: 'Default Warehouse',
+              value: _isDefault,
+              onChanged: (value) => setState(() => _isDefault = value),
+            ),
+            AppSwitchTile(
+              label: 'Active',
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            AppFormTextField(
+              controller: _remarksController,
+              maxLines: 3,
+              labelText: 'Remarks',
+            ),
+            if ((_formError ?? '').isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-          ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              children: [
+                AppActionButton(
+                  onPressed: _saving ? null : _save,
+                  icon: _selectedWarehouse == null ? Icons.add : Icons.save,
+                  label: _saving ? 'Saving...' : 'Save Warehouse',
+                  busy: _saving,
+                ),
+                AppActionButton(
+                  onPressed: _saving ? null : _resetForm,
+                  icon: Icons.refresh,
+                  label: 'Reset',
+                  filled: false,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

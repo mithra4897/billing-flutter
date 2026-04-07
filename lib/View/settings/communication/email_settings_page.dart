@@ -333,123 +333,121 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
           );
         },
       ),
-      editor: SettingsEditorCard(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: 16),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: companyItems,
-                    initialValue: _companyId,
-                    onChanged: (value) => setState(() => _companyId = value),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Setting Name',
-                    controller: _settingNameController,
-                    validator: Validators.required('Setting name'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Mail Driver',
-                    mappedItems: _driverItems,
-                    initialValue: _mailDriver,
-                    onChanged: (value) =>
-                        setState(() => _mailDriver = value ?? 'disabled'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'From Name',
-                    controller: _fromNameController,
-                    validator: Validators.required('From name'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'From Email',
-                    controller: _fromEmailController,
-                    validator: Validators.required('From email'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Reply-To Email',
-                    controller: _replyToEmailController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'SMTP Host',
-                    controller: _smtpHostController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'SMTP Port',
-                    controller: _smtpPortController,
-                    keyboardType: TextInputType.number,
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Encryption',
-                    mappedItems: _encryptionItems,
-                    initialValue: _smtpEncryption,
-                    onChanged: (value) =>
-                        setState(() => _smtpEncryption = value ?? 'none'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'SMTP Username',
-                    controller: _smtpUsernameController,
-                  ),
-                  AppFormTextField(
-                    labelText: 'SMTP Password',
-                    controller: _smtpPasswordController,
-                    obscureText: true,
-                  ),
-                ],
-              ),
+      editor: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Auto Email Enabled',
-                      value: _autoEmailEnabled,
-                      onChanged: (value) =>
-                          setState(() => _autoEmailEnabled = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Default Setting',
-                      value: _isDefault,
-                      onChanged: (value) => setState(() => _isDefault = value),
-                    ),
-                  ),
-                  SizedBox(
-                    child: AppSwitchTile(
-                      label: 'Active',
-                      value: _isActive,
-                      onChanged: (value) => setState(() => _isActive = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: _selectedSetting == null
-                        ? 'Save Email Setting'
-                        : 'Update Email Setting',
-                    onPressed: _save,
-                    busy: _saving,
-                  ),
-                ],
-              ),
             ],
-          ),
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Company',
+                  mappedItems: companyItems,
+                  initialValue: _companyId,
+                  onChanged: (value) => setState(() => _companyId = value),
+                ),
+                AppFormTextField(
+                  labelText: 'Setting Name',
+                  controller: _settingNameController,
+                  validator: Validators.required('Setting name'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Mail Driver',
+                  mappedItems: _driverItems,
+                  initialValue: _mailDriver,
+                  onChanged: (value) =>
+                      setState(() => _mailDriver = value ?? 'disabled'),
+                ),
+                AppFormTextField(
+                  labelText: 'From Name',
+                  controller: _fromNameController,
+                  validator: Validators.required('From name'),
+                ),
+                AppFormTextField(
+                  labelText: 'From Email',
+                  controller: _fromEmailController,
+                  validator: Validators.required('From email'),
+                ),
+                AppFormTextField(
+                  labelText: 'Reply-To Email',
+                  controller: _replyToEmailController,
+                ),
+                AppFormTextField(
+                  labelText: 'SMTP Host',
+                  controller: _smtpHostController,
+                ),
+                AppFormTextField(
+                  labelText: 'SMTP Port',
+                  controller: _smtpPortController,
+                  keyboardType: TextInputType.number,
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Encryption',
+                  mappedItems: _encryptionItems,
+                  initialValue: _smtpEncryption,
+                  onChanged: (value) =>
+                      setState(() => _smtpEncryption = value ?? 'none'),
+                ),
+                AppFormTextField(
+                  labelText: 'SMTP Username',
+                  controller: _smtpUsernameController,
+                ),
+                AppFormTextField(
+                  labelText: 'SMTP Password',
+                  controller: _smtpPasswordController,
+                  obscureText: true,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Auto Email Enabled',
+                    value: _autoEmailEnabled,
+                    onChanged: (value) =>
+                        setState(() => _autoEmailEnabled = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Default Setting',
+                    value: _isDefault,
+                    onChanged: (value) => setState(() => _isDefault = value),
+                  ),
+                ),
+                SizedBox(
+                  child: AppSwitchTile(
+                    label: 'Active',
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedSetting == null
+                      ? 'Save Email Setting'
+                      : 'Update Email Setting',
+                  onPressed: _save,
+                  busy: _saving,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
