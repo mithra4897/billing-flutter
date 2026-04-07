@@ -5,6 +5,12 @@ class EmailSettingModel implements JsonModel {
 
   final Map<String, dynamic> data;
 
+  @override
+  String toString() =>
+      data['setting_name']?.toString() ??
+      data['from_email']?.toString() ??
+      'New Email Setting';
+
   factory EmailSettingModel.fromJson(Map<String, dynamic> json) {
     return EmailSettingModel(json);
   }

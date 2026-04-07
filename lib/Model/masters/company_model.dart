@@ -63,6 +63,9 @@ class CompanyModel implements JsonModel {
   final bool isActive;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => tradeName ?? legalName ?? code ?? 'New Company';
+
   factory CompanyModel.fromJson(Map<String, dynamic> json) {
     return CompanyModel(
       id: _parseInt(json['id']),

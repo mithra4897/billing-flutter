@@ -7,7 +7,7 @@ class AppUiConstants {
   static const double pagePadding = 24;
   static const double pagePaddingLarge = 48;
   static const double formMaxWidth = 460;
-  static const double cardPadding = 28;
+  static const double cardPadding = 22;
   static const double cardRadius = 24;
   static const double panelRadius = 20;
   static const double buttonRadius = 12;

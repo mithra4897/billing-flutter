@@ -63,6 +63,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   final PartiesService _partiesService = PartiesService();
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   late final TabController _tabController;
 
@@ -216,6 +218,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _tabController.dispose();
     _partyCodeController.dispose();
@@ -524,30 +527,12 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   Future<void> _loadPartyChildren(int partyId) async {
     try {
-      final addressesResponse = await _partiesService.partyAddresses(
-        partyId,
-        filters: const {'per_page': 100},
-      );
-      final contactsResponse = await _partiesService.partyContacts(
-        partyId,
-        filters: const {'per_page': 100},
-      );
-      final gstResponse = await _partiesService.partyGstDetails(
-        partyId,
-        filters: const {'per_page': 100},
-      );
-      final bankResponse = await _partiesService.partyBankAccounts(
-        partyId,
-        filters: const {'per_page': 100},
-      );
-      final creditResponse = await _partiesService.partyCreditLimits(
-        partyId,
-        filters: const {'per_page': 100},
-      );
-      final paymentResponse = await _partiesService.partyPaymentTerms(
-        partyId,
-        filters: const {'per_page': 100},
-      );
+      final addressesResponse = await _partiesService.partyAddresses(partyId);
+      final contactsResponse = await _partiesService.partyContacts(partyId);
+      final gstResponse = await _partiesService.partyGstDetails(partyId);
+      final bankResponse = await _partiesService.partyBankAccounts(partyId);
+      final creditResponse = await _partiesService.partyCreditLimits(partyId);
+      final paymentResponse = await _partiesService.partyPaymentTerms(partyId);
 
       if (!mounted) {
         return;
@@ -1163,15 +1148,22 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     }
   }
 
+  void _startNewParty() {
+    _resetPartyForm();
+    _clearDetailTabs();
+    _tabController.animateTo(0);
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: () {
-          _resetPartyForm();
-          _tabController.animateTo(0);
-        },
+        onPressed: _startNewParty,
         icon: Icons.person_add_alt_outlined,
         label: 'New Party',
       ),
@@ -1205,8 +1197,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     final partyTypeFilterItems = _partyTypeFilterItems();
 
     return SettingsWorkspace(
+      controller: _workspaceController,
       title: 'Parties',
-      editorTitle: _selectedParty?.toString() ?? "New Party",
+      editorTitle: _selectedParty?.toString(),
       scrollController: _pageScrollController,
       list: AppSectionCard(
         child: Column(

@@ -371,7 +371,8 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     final selectedData = _selectedMessage?.data ?? const <String, dynamic>{};
 
     return SettingsWorkspace(
-      title: 'Message Detail',
+      title: 'Email Messages',
+      editorTitle: _selectedMessage?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailMessageModel>(
         searchController: _searchController,

@@ -5,6 +5,12 @@ class EmailMessageModel implements JsonModel {
 
   final Map<String, dynamic> data;
 
+  @override
+  String toString() =>
+      data['subject']?.toString() ??
+      data['module']?.toString() ??
+      'Email Message';
+
   factory EmailMessageModel.fromJson(Map<String, dynamic> json) {
     return EmailMessageModel(json);
   }

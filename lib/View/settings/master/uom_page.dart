@@ -12,6 +12,8 @@ class UomManagementPage extends StatefulWidget {
 class _UomManagementPageState extends State<UomManagementPage> {
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
@@ -38,6 +40,7 @@ class _UomManagementPageState extends State<UomManagementPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _codeController.dispose();
     _nameController.dispose();
@@ -217,7 +220,7 @@ class _UomManagementPageState extends State<UomManagementPage> {
     final content = _buildContent(context);
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewUom,
         icon: Icons.add_circle_outline,
         label: 'New UOM',
       ),
@@ -249,7 +252,9 @@ class _UomManagementPageState extends State<UomManagementPage> {
     }
 
     return SettingsWorkspace(
-      title: "UOM ${_nameController.text}",
+      controller: _workspaceController,
+      title: 'UOM',
+      editorTitle: _selectedUom?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<UomModel>(
         searchController: _searchController,
@@ -344,5 +349,13 @@ class _UomManagementPageState extends State<UomManagementPage> {
         ),
       ),
     );
+  }
+
+  void _startNewUom() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
   }
 }

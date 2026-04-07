@@ -13,6 +13,8 @@ class WarehouseManagementPage extends StatefulWidget {
 class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
@@ -50,6 +52,7 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _codeController.dispose();
     _nameController.dispose();
@@ -238,12 +241,20 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
     }
   }
 
+  void _startNewWarehouse() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = [
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewWarehouse,
         icon: Icons.add_home_work_outlined,
         label: 'New Warehouse',
       ),
@@ -280,7 +291,9 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
         .toList(growable: false);
 
     return SettingsWorkspace(
+      controller: _workspaceController,
       title: 'Warehouses',
+      editorTitle: _selectedWarehouse?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<WarehouseModel>(
         searchController: _searchController,

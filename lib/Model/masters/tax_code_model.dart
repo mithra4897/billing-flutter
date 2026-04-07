@@ -25,6 +25,9 @@ class TaxCodeModel implements JsonModel {
   final bool isActive;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => taxName ?? taxCode ?? 'New Tax Category';
+
   factory TaxCodeModel.fromJson(Map<String, dynamic> json) {
     return TaxCodeModel(
       id: _parseInt(json['id']),

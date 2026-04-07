@@ -59,6 +59,9 @@ class BusinessLocationModel implements JsonModel {
   final String? remarks;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => name ?? code ?? 'New Location';
+
   factory BusinessLocationModel.fromJson(Map<String, dynamic> json) {
     return BusinessLocationModel(
       id: _parseInt(json['id']),

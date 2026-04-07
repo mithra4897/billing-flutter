@@ -19,6 +19,9 @@ class UomModel implements JsonModel {
   final bool isActive;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => uomName ?? symbol ?? uomCode ?? 'New UOM';
+
   factory UomModel.fromJson(Map<String, dynamic> json) {
     return UomModel(
       id: _parseInt(json['id']),

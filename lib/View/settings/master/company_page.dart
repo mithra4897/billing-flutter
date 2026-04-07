@@ -12,6 +12,8 @@ class CompanyManagementPage extends StatefulWidget {
 class _CompanyManagementPageState extends State<CompanyManagementPage> {
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
@@ -47,6 +49,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _codeController.dispose();
     _legalNameController.dispose();
@@ -239,12 +242,20 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
     }
   }
 
+  void _startNewCompany() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = [
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewCompany,
         icon: Icons.add_business_outlined,
         label: 'New Company',
       ),
@@ -271,7 +282,9 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
     }
 
     return SettingsWorkspace(
+      controller: _workspaceController,
       title: 'Companies',
+      editorTitle: _selectedCompany?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<CompanyModel>(
         searchController: _searchController,

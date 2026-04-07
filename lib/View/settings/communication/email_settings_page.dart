@@ -27,6 +27,8 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
   final CommunicationService _communicationService = CommunicationService();
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _settingNameController = TextEditingController();
@@ -63,6 +65,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _settingNameController.dispose();
     _fromNameController.dispose();
@@ -259,12 +262,20 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
     }
   }
 
+  void _startNewEmailSetting() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewEmailSetting,
         icon: Icons.add_outlined,
         label: 'New Email Setting',
       ),
@@ -306,7 +317,9 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
     ];
 
     return SettingsWorkspace(
-      title: 'Email Setting',
+      controller: _workspaceController,
+      title: 'Email Settings',
+      editorTitle: _selectedSetting?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailSettingModel>(
         searchController: _searchController,

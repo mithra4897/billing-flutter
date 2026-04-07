@@ -5,6 +5,12 @@ class EmailModuleSettingModel implements JsonModel {
 
   final Map<String, dynamic> data;
 
+  @override
+  String toString() =>
+      data['module']?.toString() ??
+      data['document_type']?.toString() ??
+      'New Module Setting';
+
   factory EmailModuleSettingModel.fromJson(Map<String, dynamic> json) {
     return EmailModuleSettingModel(json);
   }

@@ -12,6 +12,8 @@ class BranchManagementPage extends StatefulWidget {
 class _BranchManagementPageState extends State<BranchManagementPage> {
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
@@ -41,6 +43,7 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _codeController.dispose();
     _nameController.dispose();
@@ -193,12 +196,20 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
     }
   }
 
+  void _startNewBranch() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = [
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewBranch,
         icon: Icons.add,
         label: 'New Branch',
       ),
@@ -225,7 +236,9 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
     }
 
     return SettingsWorkspace(
+      controller: _workspaceController,
       title: 'Branches',
+      editorTitle: _selectedBranch?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<BranchModel>(
         searchController: _searchController,

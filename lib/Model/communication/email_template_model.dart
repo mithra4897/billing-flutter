@@ -5,6 +5,12 @@ class EmailTemplateModel implements JsonModel {
 
   final Map<String, dynamic> data;
 
+  @override
+  String toString() =>
+      data['template_name']?.toString() ??
+      data['template_code']?.toString() ??
+      'New Template';
+
   factory EmailTemplateModel.fromJson(Map<String, dynamic> json) {
     return EmailTemplateModel(json);
   }

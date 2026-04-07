@@ -22,6 +22,8 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
 
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
@@ -51,6 +53,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _codeController.dispose();
     _nameController.dispose();
@@ -215,6 +218,14 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
     }
   }
 
+  void _startNewTaxCategory() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   Future<void> _delete() async {
     final id = _selectedTaxCode?.id;
     if (id == null) {
@@ -254,7 +265,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
     final content = _buildContent(context);
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewTaxCategory,
         icon: Icons.add_chart_outlined,
         label: 'New Tax Category',
       ),
@@ -286,7 +297,9 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
     }
 
     return SettingsWorkspace(
+      controller: _workspaceController,
       title: 'Tax Categories',
+      editorTitle: _selectedTaxCode?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<TaxCodeModel>(
         searchController: _searchController,

@@ -14,6 +14,8 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
   final CommunicationService _communicationService = CommunicationService();
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _moduleController = TextEditingController();
@@ -47,6 +49,7 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _moduleController.dispose();
     _remarksController.dispose();
@@ -234,12 +237,20 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
     }
   }
 
+  void _startNewModuleSetting() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewModuleSetting,
         icon: Icons.add_outlined,
         label: 'New Module Setting',
       ),
@@ -281,7 +292,9 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
     ];
 
     return SettingsWorkspace(
-      title: 'Module Setting',
+      controller: _workspaceController,
+      title: 'Module Settings',
+      editorTitle: _selectedRecord?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailModuleSettingModel>(
         searchController: _searchController,

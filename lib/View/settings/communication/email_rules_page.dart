@@ -13,6 +13,8 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
   final CommunicationService _communicationService = CommunicationService();
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
@@ -60,6 +62,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _codeController.dispose();
     _nameController.dispose();
@@ -329,12 +332,20 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
     }
   }
 
+  void _startNewRule() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewRule,
         icon: Icons.add_outlined,
         label: 'New Rule',
       ),
@@ -388,7 +399,9 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
         .toList(growable: false);
 
     return SettingsWorkspace(
-      title: 'Email Rule',
+      controller: _workspaceController,
+      title: 'Email Rules',
+      editorTitle: _selectedRecord?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailRuleModel>(
         searchController: _searchController,

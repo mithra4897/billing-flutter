@@ -14,6 +14,8 @@ class _BusinessLocationManagementPageState
     extends State<BusinessLocationManagementPage> {
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
@@ -57,6 +59,7 @@ class _BusinessLocationManagementPageState
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _codeController.dispose();
     _nameController.dispose();
@@ -271,12 +274,20 @@ class _BusinessLocationManagementPageState
     }
   }
 
+  void _startNewLocation() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = [
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewLocation,
         icon: Icons.add_location_alt_outlined,
         label: 'New Location',
       ),
@@ -305,7 +316,9 @@ class _BusinessLocationManagementPageState
     final filteredBranches = branchesForCompany(_branches, _companyId);
 
     return SettingsWorkspace(
+      controller: _workspaceController,
       title: 'Business Locations',
+      editorTitle: _selectedLocation?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<BusinessLocationModel>(
         searchController: _searchController,

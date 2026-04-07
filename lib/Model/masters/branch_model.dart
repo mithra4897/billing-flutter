@@ -23,6 +23,9 @@ class BranchModel implements JsonModel {
   final String? remarks;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => name ?? code ?? 'New Branch';
+
   factory BranchModel.fromJson(Map<String, dynamic> json) {
     return BranchModel(
       id: _parseInt(json['id']),

@@ -13,6 +13,8 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
   final CommunicationService _communicationService = CommunicationService();
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
@@ -48,6 +50,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _workspaceController.dispose();
     _searchController.dispose();
     _codeController.dispose();
     _nameController.dispose();
@@ -282,12 +285,20 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
     }
   }
 
+  void _startNewTemplate() {
+    _resetForm();
+
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _resetForm,
+        onPressed: _startNewTemplate,
         icon: Icons.add_outlined,
         label: 'New Template',
       ),
@@ -329,7 +340,9 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
     ];
 
     return SettingsWorkspace(
+      controller: _workspaceController,
       title: 'Email Templates',
+      editorTitle: _selectedRecord?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailTemplateModel>(
         searchController: _searchController,

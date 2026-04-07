@@ -35,6 +35,9 @@ class WarehouseModel implements JsonModel {
   final String? remarks;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => name ?? code ?? 'New Warehouse';
+
   factory WarehouseModel.fromJson(Map<String, dynamic> json) {
     return WarehouseModel(
       id: _parseInt(json['id']),

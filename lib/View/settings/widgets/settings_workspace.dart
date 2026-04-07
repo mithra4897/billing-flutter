@@ -1,23 +1,29 @@
 import '../../../screen.dart';
 
-class _SettingsWorkspaceController extends ChangeNotifier {
-  _SettingsWorkspaceController({required this.openEditorRoute});
+class SettingsWorkspaceController extends ChangeNotifier {
+  VoidCallback? _openEditorRoute;
 
-  final VoidCallback openEditorRoute;
+  void bindEditorRoute(VoidCallback openEditorRoute) {
+    _openEditorRoute = openEditorRoute;
+  }
 
-  void handleItemSelected() {
-    openEditorRoute();
+  void unbindEditorRoute() {
+    _openEditorRoute = null;
+  }
+
+  void openEditor() {
+    _openEditorRoute?.call();
   }
 }
 
 class _SettingsWorkspaceScope
-    extends InheritedNotifier<_SettingsWorkspaceController> {
+    extends InheritedNotifier<SettingsWorkspaceController> {
   const _SettingsWorkspaceScope({
-    required _SettingsWorkspaceController controller,
+    required SettingsWorkspaceController controller,
     required super.child,
   }) : super(notifier: controller);
 
-  static _SettingsWorkspaceController? maybeOf(BuildContext context) {
+  static SettingsWorkspaceController? maybeOf(BuildContext context) {
     return context
         .dependOnInheritedWidgetOfExactType<_SettingsWorkspaceScope>()
         ?.notifier;
@@ -34,6 +40,7 @@ class SettingsWorkspace extends StatefulWidget {
     this.breakpoint = 1120,
     this.listWidth = 360,
     this.editorTitle,
+    this.controller,
   });
 
   final ScrollController scrollController;
@@ -43,26 +50,31 @@ class SettingsWorkspace extends StatefulWidget {
   final double listWidth;
   final String title;
   final String? editorTitle;
+  final SettingsWorkspaceController? controller;
 
   @override
   State<SettingsWorkspace> createState() => _SettingsWorkspaceState();
 }
 
 class _SettingsWorkspaceState extends State<SettingsWorkspace> {
-  late final _SettingsWorkspaceController _controller;
+  late final SettingsWorkspaceController _controller;
+  late final bool _ownsController;
   bool _editorRouteOpen = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = _SettingsWorkspaceController(
-      openEditorRoute: _scheduleEditorRoutePush,
-    );
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? SettingsWorkspaceController();
+    _controller.bindEditorRoute(_scheduleEditorRoutePush);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.unbindEditorRoute();
+    if (_ownsController) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -90,11 +102,13 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                           child: Column(
                             children: [
                               if (widget.editorTitle != null &&
-                                  Responsive.isNotMobile(context))
+                                  Responsive.isNotMobile(context)) ...[
                                 Text(
                                   widget.editorTitle!,
                                   style: theme.headlineSmall,
                                 ),
+                                SizedBox(height: 8),
+                              ],
                               widget.editor,
                             ],
                           ),
@@ -129,7 +143,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (context) => _SettingsEditorRoutePage(
-            title: widget.title,
+            title: widget.editorTitle ?? widget.title,
             child: widget.editor,
           ),
         ),
@@ -227,7 +241,7 @@ class SettingsListTile extends StatelessWidget {
       onTap: () {
         onTap();
         if (!Responsive.isDesktop(context)) {
-          workspaceController?.handleItemSelected();
+          workspaceController?.openEditor();
         }
       },
       child: Container(
