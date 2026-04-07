@@ -13,6 +13,7 @@ class ItemCategoryManagementPage extends StatefulWidget {
 class _ItemCategoryManagementPageState
     extends State<ItemCategoryManagementPage> {
   final InventoryService _inventoryService = InventoryService();
+  final MediaService _mediaService = MediaService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
@@ -25,6 +26,7 @@ class _ItemCategoryManagementPageState
 
   bool _initialLoading = true;
   bool _saving = false;
+  bool _uploadingImage = false;
   String? _pageError;
   String? _formError;
   List<ItemCategoryModel> _items = const <ItemCategoryModel>[];
@@ -225,6 +227,80 @@ class _ItemCategoryManagementPageState
     }
   }
 
+  Future<void> _uploadCategoryImage() async {
+    final pathController = TextEditingController();
+
+    final selectedPath = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Upload Category Image'),
+          content: TextField(
+            controller: pathController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Local File Path',
+              hintText: '/Users/name/Pictures/category.png',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(pathController.text.trim()),
+              child: const Text('Upload'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || selectedPath == null || selectedPath.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _uploadingImage = true;
+      _formError = null;
+    });
+
+    try {
+      final response = await _mediaService.uploadFile(
+        filePath: selectedPath,
+        module: 'inventory',
+        documentType: 'item_categories',
+        documentId: _selectedItem?.id,
+        purpose: 'category_image',
+        folder: 'inventory/item-categories',
+        isPublic: true,
+      );
+
+      final uploaded = response.data;
+      if (uploaded == null) {
+        setState(() {
+          _formError = response.message;
+        });
+        return;
+      }
+
+      _imagePathController.text = uploaded.filePath;
+      setState(() {});
+    } catch (error) {
+      setState(() {
+        _formError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingImage = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent();
@@ -332,10 +408,15 @@ class _ItemCategoryManagementPageState
                 onChanged: (value) => setState(() => _parentCategoryId = value),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              UploadPathField(
                 controller: _imagePathController,
-                decoration: const InputDecoration(labelText: 'Image Path'),
-                validator: Validators.optionalMaxLength(500, 'Image Path'),
+                labelText: 'Image Path',
+                isUploading: _uploadingImage,
+                onUpload: _uploadCategoryImage,
+                previewUrl: AppConfig.resolvePublicFileUrl(
+                  _imagePathController.text,
+                ),
+                previewIcon: Icons.category_outlined,
               ),
               const SizedBox(height: 12),
               TextFormField(
