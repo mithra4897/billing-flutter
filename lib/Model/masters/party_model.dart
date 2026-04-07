@@ -11,13 +11,7 @@ class PartyModel implements JsonModel {
     this.partyTypeId,
     this.partyType,
     this.isCompany = false,
-    this.contactPerson,
-    this.mobile,
-    this.phone,
-    this.email,
     this.website,
-    this.gstin,
-    this.gstType,
     this.pan,
     this.aadhaar,
     this.defaultCurrency,
@@ -37,13 +31,7 @@ class PartyModel implements JsonModel {
   final int? partyTypeId;
   final String? partyType;
   final bool isCompany;
-  final String? contactPerson;
-  final String? mobile;
-  final String? phone;
-  final String? email;
   final String? website;
-  final String? gstin;
-  final String? gstType;
   final String? pan;
   final String? aadhaar;
   final String? defaultCurrency;
@@ -64,13 +52,7 @@ class PartyModel implements JsonModel {
       partyTypeId: _parseInt(json['party_type_id']),
       partyType: json['party_type']?.toString(),
       isCompany: json['is_company'] == true || json['is_company'] == 1,
-      contactPerson: json['contact_person']?.toString(),
-      mobile: json['mobile']?.toString(),
-      phone: json['phone']?.toString(),
-      email: json['email']?.toString(),
       website: json['website']?.toString(),
-      gstin: json['gstin']?.toString(),
-      gstType: json['gst_type']?.toString(),
       pan: json['pan']?.toString(),
       aadhaar: json['aadhaar']?.toString(),
       defaultCurrency: json['default_currency']?.toString(),
@@ -99,15 +81,9 @@ class PartyModel implements JsonModel {
       if (displayName != null) 'display_name': displayName,
       if (partyTypeId != null) 'party_type_id': partyTypeId,
       'is_company': isCompany,
-      if (contactPerson != null) 'contact_person': contactPerson,
-      if (mobile != null) 'mobile': mobile,
-      if (phone != null) 'phone': phone,
-      if (email != null) 'email': email,
       if (website != null) 'website': website,
       if (pan != null) 'pan': pan,
       if (aadhaar != null) 'aadhaar': aadhaar,
-      if (gstin != null) 'gstin': gstin,
-      if (gstType != null) 'gst_type': gstType,
       if (defaultCurrency != null) 'default_currency': defaultCurrency,
       if (openingBalance != null) 'opening_balance': openingBalance,
       if (openingBalanceType != null)

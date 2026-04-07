@@ -25,15 +25,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         AppDropdownItem(value: 'code_asc', label: 'Code A-Z'),
         AppDropdownItem(value: 'code_desc', label: 'Code Z-A'),
       ];
-  static const List<AppDropdownItem<String>> _gstTypeItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'registered', label: 'Registered'),
-        AppDropdownItem(value: 'unregistered', label: 'Unregistered'),
-        AppDropdownItem(value: 'composition', label: 'Composition'),
-        AppDropdownItem(value: 'consumer', label: 'Consumer'),
-        AppDropdownItem(value: 'overseas', label: 'Overseas'),
-      ];
-
   static const List<AppDropdownItem<String>> _openingBalanceTypeItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'debit', label: 'Debit'),
@@ -79,15 +70,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   final TextEditingController _partyCodeController = TextEditingController();
   final TextEditingController _partyNameController = TextEditingController();
   final TextEditingController _displayNameController = TextEditingController();
-  final TextEditingController _contactPersonController =
-      TextEditingController();
-  final TextEditingController _mobileController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
   final TextEditingController _panController = TextEditingController();
   final TextEditingController _aadhaarController = TextEditingController();
-  final TextEditingController _gstinController = TextEditingController();
   final TextEditingController _currencyController = TextEditingController();
   final TextEditingController _openingBalanceController =
       TextEditingController();
@@ -173,7 +158,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   int? _partyTypeId;
   bool _isCompany = false;
-  String _gstType = 'registered';
   String _openingBalanceType = 'debit';
   bool _partyActive = true;
 
@@ -237,14 +221,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _partyCodeController.dispose();
     _partyNameController.dispose();
     _displayNameController.dispose();
-    _contactPersonController.dispose();
-    _mobileController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
     _websiteController.dispose();
     _panController.dispose();
     _aadhaarController.dispose();
-    _gstinController.dispose();
     _currencyController.dispose();
     _openingBalanceController.dispose();
     _remarksController.dispose();
@@ -386,8 +365,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         party.partyName ?? '',
         party.displayName ?? '',
         party.partyType ?? '',
-        party.mobile ?? '',
-        party.email ?? '',
+        party.website ?? '',
       ];
     });
 
@@ -502,8 +480,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         _isCompany = false;
       }
       if (!_supportsGst(value)) {
-        _gstinController.clear();
-        _gstType = 'unregistered';
         _gstDetails = const <PartyGstDetailModel>[];
         _selectedGstDetail = null;
         _resetGstForm();
@@ -524,15 +500,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _displayNameController.text = party.displayName ?? '';
     _partyTypeId = party.partyTypeId;
     _isCompany = party.isCompany;
-    _contactPersonController.text = party.contactPerson ?? '';
-    _mobileController.text = party.mobile ?? '';
-    _phoneController.text = party.phone ?? '';
-    _emailController.text = party.email ?? '';
     _websiteController.text = party.website ?? '';
     _panController.text = party.pan ?? '';
     _aadhaarController.text = party.aadhaar ?? '';
-    _gstinController.text = party.gstin ?? '';
-    _gstType = party.gstType ?? 'registered';
     _currencyController.text = party.defaultCurrency ?? 'INR';
     _openingBalanceController.text = party.openingBalance?.toString() ?? '';
     _openingBalanceType = party.openingBalanceType ?? 'debit';
@@ -609,15 +579,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _displayNameController.clear();
     _partyTypeId = null;
     _isCompany = false;
-    _contactPersonController.clear();
-    _mobileController.clear();
-    _phoneController.clear();
-    _emailController.clear();
     _websiteController.clear();
     _panController.clear();
     _aadhaarController.clear();
-    _gstinController.clear();
-    _gstType = 'registered';
     _currencyController.text = 'INR';
     _openingBalanceController.clear();
     _openingBalanceType = 'debit';
@@ -666,17 +630,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       displayName: nullIfEmpty(_displayNameController.text),
       partyTypeId: _partyTypeId,
       isCompany: _supportsCompanyFlag(_partyTypeId) ? _isCompany : false,
-      contactPerson: nullIfEmpty(_contactPersonController.text),
-      mobile: nullIfEmpty(_mobileController.text),
-      phone: nullIfEmpty(_phoneController.text),
-      email: nullIfEmpty(_emailController.text),
       website: nullIfEmpty(_websiteController.text),
       pan: nullIfEmpty(_panController.text),
       aadhaar: nullIfEmpty(_aadhaarController.text),
-      gstin: _supportsGst(_partyTypeId)
-          ? nullIfEmpty(_gstinController.text)
-          : null,
-      gstType: _supportsGst(_partyTypeId) ? _gstType : 'unregistered',
       defaultCurrency: nullIfEmpty(_currencyController.text) ?? 'INR',
       openingBalance: double.tryParse(_openingBalanceController.text.trim()),
       openingBalanceType: _openingBalanceType,
@@ -1304,8 +1260,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                     subtitle: [
                       party.partyType ?? '',
                       party.partyCode ?? '',
-                      party.mobile ?? '',
-                      party.email ?? '',
+                      party.displayName ?? '',
                     ].where((value) => value.isNotEmpty).join(' • '),
                     selected: selected,
                     onTap: () => _selectParty(party),
@@ -1356,7 +1311,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildPrimaryTab(BuildContext context) {
-    final supportsGst = _supportsGst(_partyTypeId);
     final supportsCompanyFlag = _supportsCompanyFlag(_partyTypeId);
     final partyTypeItems = _partyTypes
         .map(
@@ -1399,22 +1353,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                 controller: _displayNameController,
               ),
               AppFormTextField(
-                labelText: 'Contact Person',
-                controller: _contactPersonController,
-              ),
-              AppFormTextField(
-                labelText: 'Mobile',
-                controller: _mobileController,
-              ),
-              AppFormTextField(
-                labelText: 'Phone',
-                controller: _phoneController,
-              ),
-              AppFormTextField(
-                labelText: 'Email',
-                controller: _emailController,
-              ),
-              AppFormTextField(
                 labelText: 'Website',
                 controller: _websiteController,
               ),
@@ -1423,19 +1361,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                 labelText: 'Aadhaar',
                 controller: _aadhaarController,
               ),
-              if (supportsGst)
-                AppFormTextField(
-                  labelText: 'GSTIN',
-                  controller: _gstinController,
-                ),
-              if (supportsGst)
-                AppDropdownField<String>.fromMapped(
-                  labelText: 'GST Type',
-                  mappedItems: _gstTypeItems,
-                  initialValue: _gstType,
-                  onChanged: (value) =>
-                      setState(() => _gstType = value ?? 'registered'),
-                ),
               AppFormTextField(
                 labelText: 'Default Currency',
                 controller: _currencyController,

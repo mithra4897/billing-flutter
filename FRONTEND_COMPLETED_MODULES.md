@@ -260,6 +260,7 @@ How this was done:
 
 - left side: searchable party list
 - right side: party workspace with tabs
+- primary tab keeps only core party fields
 - tabs:
   - `Primary`
   - `Addresses`
@@ -274,6 +275,16 @@ Important design choice:
 - `Party Types` is not a separate frontend management page in the current completed flow
 - party type is used as a dropdown inside the party primary form
 - drawer/menu clutter was intentionally reduced
+- duplicated contact and GST entry fields were removed from the primary tab
+- contacts are maintained in `Contacts`
+- GST registration data is maintained in `GST Details`
+- bank, credit limit, and payment term data are maintained only in their own tabs
+
+Future note:
+
+- backend party list search now supports related contact/GST data
+- the current Flutter left-side party search is still local in-memory filtering
+- if live child-data search is needed in that left list, move this page to API-driven search/filter in a future pass
 
 ## Typed Model / Service Work Completed
 
