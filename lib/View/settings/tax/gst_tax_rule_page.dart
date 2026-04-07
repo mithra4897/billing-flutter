@@ -66,7 +66,7 @@ class _GstTaxRuleManagementPageState extends State<GstTaxRuleManagementPage> {
       ];
 
   final TaxesService _taxesService = TaxesService();
-  final MasterService _masterService = MasterService();
+  final InventoryService _inventoryService = InventoryService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
@@ -122,7 +122,7 @@ class _GstTaxRuleManagementPageState extends State<GstTaxRuleManagementPage> {
     try {
       final responses = await Future.wait<dynamic>([
         _taxesService.gstTaxRules(filters: const {'per_page': 200}),
-        _masterService.taxCodes(filters: const {'per_page': 200}),
+        _inventoryService.taxCodes(filters: const {'per_page': 200}),
       ]);
 
       final items =

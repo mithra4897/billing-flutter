@@ -170,14 +170,10 @@ class _AppShellPageState extends State<AppShellPage> {
         return DocumentSeriesManagementPage(key: routeKey, embedded: true);
       case '/settings/module-preferences':
         return ModulePreferencesPage(key: routeKey, embedded: true);
-      case '/settings/uom':
-      case '/masters/uoms':
       case '/inventory/uoms':
         return UomManagementPage(key: routeKey, embedded: true);
-      case '/masters/tax-codes':
       case '/inventory/tax-codes':
         return TaxCategoryManagementPage(key: routeKey, embedded: true);
-      case '/masters/item-categories':
       case '/inventory/item-categories':
         return ItemCategoryManagementPage(key: routeKey, embedded: true);
       case '/tax/states':

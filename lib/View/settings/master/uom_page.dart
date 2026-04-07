@@ -10,7 +10,7 @@ class UomManagementPage extends StatefulWidget {
 }
 
 class _UomManagementPageState extends State<UomManagementPage> {
-  final MasterService _masterService = MasterService();
+  final InventoryService _inventoryService = InventoryService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
@@ -55,7 +55,7 @@ class _UomManagementPageState extends State<UomManagementPage> {
     });
 
     try {
-      final response = await _masterService.uoms(
+      final response = await _inventoryService.uoms(
         filters: const {'per_page': 100, 'sort_by': 'uom_name'},
       );
       final items = response.data ?? const <UomModel>[];
@@ -151,8 +151,8 @@ class _UomManagementPageState extends State<UomManagementPage> {
 
     try {
       final response = _selectedUom == null
-          ? await _masterService.createUom(model)
-          : await _masterService.updateUom(_selectedUom!.id!, model);
+          ? await _inventoryService.createUom(model)
+          : await _inventoryService.updateUom(_selectedUom!.id!, model);
       final saved = response.data;
       if (!mounted) {
         return;
@@ -193,7 +193,7 @@ class _UomManagementPageState extends State<UomManagementPage> {
     });
 
     try {
-      final response = await _masterService.destroy('/masters/uoms/$id');
+      final response = await _inventoryService.deleteUom(id);
       if (!mounted) {
         return;
       }

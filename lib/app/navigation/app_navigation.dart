@@ -43,7 +43,6 @@ class AppNavigation {
     'accounting': 130,
     'hr': 140,
     'parties': 150,
-    'masters': 160,
     'tax': 170,
     'settings': 910,
   };
@@ -60,13 +59,6 @@ class AppNavigation {
       title: 'Settings',
       icon: Icons.settings_outlined,
       children: [
-        AppNavigationItem(
-          key: 'settings-uom',
-          title: 'UOM',
-          icon: Icons.straighten_outlined,
-          path: '/settings/uom',
-          requiredPermissions: ['uom.view'],
-        ),
         AppNavigationItem(
           key: 'settings-company-setup',
           title: 'Company Setup',
@@ -240,20 +232,6 @@ class AppNavigation {
           icon: Icons.rule_outlined,
           path: '/tax/gst-tax-rules',
           requiredPermissions: ['taxes.view'],
-        ),
-      ],
-    ),
-    const AppNavigationItem(
-      key: 'masters',
-      title: 'Masters',
-      icon: Icons.layers_outlined,
-      children: [
-        AppNavigationItem(
-          key: 'master-items',
-          title: 'Items',
-          icon: Icons.inventory_2_outlined,
-          path: '/masters/items',
-          requiredPermissions: ['item.view'],
         ),
       ],
     ),
@@ -550,13 +528,6 @@ class AppNavigation {
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
-          key: 'inventory-uoms',
-          title: 'UOMs',
-          icon: Icons.straighten_outlined,
-          path: '/inventory/uoms',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
           key: 'inventory-uom-conversions',
           title: 'UOM Conversions',
           icon: Icons.swap_vert_outlined,
@@ -612,41 +583,7 @@ class AppNavigation {
           path: '/inventory/stock-serials',
           requiredPermissions: ['inventory.view'],
         ),
-        AppNavigationItem(
-          key: 'inventory-stock-movements',
-          title: 'Stock Movements',
-          icon: Icons.move_up_outlined,
-          path: '/inventory/stock-movements',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-stock-balances',
-          title: 'Stock Balances',
-          icon: Icons.pie_chart_outline,
-          path: '/inventory/stock-balances',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-adjustments',
-          title: 'Inventory Adjustments',
-          icon: Icons.tune_outlined,
-          path: '/inventory/adjustments',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-opening-stocks',
-          title: 'Opening Stocks',
-          icon: Icons.note_add_outlined,
-          path: '/inventory/opening-stocks',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-stock-transfers',
-          title: 'Stock Transfers',
-          icon: Icons.swap_horiz_outlined,
-          path: '/inventory/stock-transfers',
-          requiredPermissions: ['inventory.view'],
-        ),
+
         AppNavigationItem(
           key: 'inventory-stock-issues',
           title: 'Stock Issues',
@@ -662,10 +599,45 @@ class AppNavigation {
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
+          key: 'inventory-stock-transfers',
+          title: 'Stock Transfers',
+          icon: Icons.swap_horiz_outlined,
+          path: '/inventory/stock-transfers',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
           key: 'inventory-stock-damage',
           title: 'Stock Damage',
           icon: Icons.report_gmailerrorred_outlined,
           path: '/inventory/stock-damage',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
+          key: 'inventory-opening-stocks',
+          title: 'Opening Stocks',
+          icon: Icons.note_add_outlined,
+          path: '/inventory/opening-stocks',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
+          key: 'inventory-adjustments',
+          title: 'Inventory Adjustments',
+          icon: Icons.tune_outlined,
+          path: '/inventory/adjustments',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
+          key: 'inventory-stock-movements',
+          title: 'Stock Movements',
+          icon: Icons.move_up_outlined,
+          path: '/inventory/stock-movements',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
+          key: 'inventory-stock-balances',
+          title: 'Stock Balances',
+          icon: Icons.pie_chart_outline,
+          path: '/inventory/stock-balances',
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(

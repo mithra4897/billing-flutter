@@ -7,11 +7,7 @@ import '../../model/masters/business_location_model.dart';
 import '../../model/masters/company_model.dart';
 import '../../model/masters/document_series_model.dart';
 import '../../model/masters/financial_year_model.dart';
-import '../../model/masters/item_category_model.dart';
-import '../../model/masters/item_model.dart';
 import '../../model/masters/party_model.dart';
-import '../../model/masters/tax_code_model.dart';
-import '../../model/masters/uom_model.dart';
 import '../../model/masters/warehouse_model.dart';
 import '../base/erp_module_service.dart';
 
@@ -229,121 +225,6 @@ class MasterService extends ErpModuleService {
     body,
     fromJson: DocumentSeriesModel.fromJson,
   );
-
-  Future<PaginatedResponse<UomModel>> uoms({Map<String, dynamic>? filters}) {
-    return client.getPaginated<UomModel>(
-      ApiEndpoints.uoms,
-      queryParameters: filters,
-      itemFromJson: UomModel.fromJson,
-    );
-  }
-
-  Future<ApiResponse<UomModel>> uom(int id) =>
-      object<UomModel>('/masters/uoms/$id', fromJson: UomModel.fromJson);
-
-  Future<ApiResponse<UomModel>> createUom(UomModel body) =>
-      createModel<UomModel>('/masters/uoms', body, fromJson: UomModel.fromJson);
-
-  Future<ApiResponse<UomModel>> updateUom(int id, UomModel body) =>
-      updateModel<UomModel>(
-        '/masters/uoms/$id',
-        body,
-        fromJson: UomModel.fromJson,
-      );
-
-  Future<PaginatedResponse<TaxCodeModel>> taxCodes({
-    Map<String, dynamic>? filters,
-  }) {
-    return client.getPaginated<TaxCodeModel>(
-      ApiEndpoints.taxCodes,
-      queryParameters: filters,
-      itemFromJson: TaxCodeModel.fromJson,
-    );
-  }
-
-  Future<ApiResponse<TaxCodeModel>> taxCode(int id) => object<TaxCodeModel>(
-    '/masters/tax-codes/$id',
-    fromJson: TaxCodeModel.fromJson,
-  );
-
-  Future<ApiResponse<TaxCodeModel>> createTaxCode(TaxCodeModel body) =>
-      createModel<TaxCodeModel>(
-        '/masters/tax-codes',
-        body,
-        fromJson: TaxCodeModel.fromJson,
-      );
-
-  Future<ApiResponse<TaxCodeModel>> updateTaxCode(int id, TaxCodeModel body) =>
-      updateModel<TaxCodeModel>(
-        '/masters/tax-codes/$id',
-        body,
-        fromJson: TaxCodeModel.fromJson,
-      );
-
-  Future<PaginatedResponse<ItemCategoryModel>> itemCategories({
-    Map<String, dynamic>? filters,
-  }) {
-    return client.getPaginated<ItemCategoryModel>(
-      ApiEndpoints.itemCategories,
-      queryParameters: filters,
-      itemFromJson: ItemCategoryModel.fromJson,
-    );
-  }
-
-  Future<ApiResponse<ItemCategoryModel>> itemCategory(int id) =>
-      object<ItemCategoryModel>(
-        '/masters/item-categories/$id',
-        fromJson: ItemCategoryModel.fromJson,
-      );
-
-  Future<ApiResponse<ItemCategoryModel>> createItemCategory(
-    ItemCategoryModel body,
-  ) => createModel<ItemCategoryModel>(
-    '/masters/item-categories',
-    body,
-    fromJson: ItemCategoryModel.fromJson,
-  );
-
-  Future<ApiResponse<ItemCategoryModel>> updateItemCategory(
-    int id,
-    ItemCategoryModel body,
-  ) => updateModel<ItemCategoryModel>(
-    '/masters/item-categories/$id',
-    body,
-    fromJson: ItemCategoryModel.fromJson,
-  );
-
-  Future<PaginatedResponse<ItemModel>> items({Map<String, dynamic>? filters}) {
-    return client.getPaginated<ItemModel>(
-      ApiEndpoints.items,
-      queryParameters: filters,
-      itemFromJson: ItemModel.fromJson,
-    );
-  }
-
-  Future<ApiResponse<ItemModel>> item(int id) =>
-      object<ItemModel>('/masters/items/$id', fromJson: ItemModel.fromJson);
-
-  Future<ApiResponse<ItemModel>> createItem(ItemModel body) =>
-      createModel<ItemModel>(
-        '/masters/items',
-        body,
-        fromJson: ItemModel.fromJson,
-      );
-
-  Future<ApiResponse<ItemModel>> updateItem(int id, ItemModel body) =>
-      updateModel<ItemModel>(
-        '/masters/items/$id',
-        body,
-        fromJson: ItemModel.fromJson,
-      );
-
-  Future<ApiResponse<ItemModel>> toggleItemStatus(int id, ItemModel body) =>
-      patchModel<ItemModel>(
-        '/masters/items/$id/toggle-status',
-        body,
-        fromJson: ItemModel.fromJson,
-      );
 
   Future<PaginatedResponse<PartyModel>> parties({
     Map<String, dynamic>? filters,

@@ -20,7 +20,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
         AppDropdownItem(value: 'none', label: 'No Tax'),
       ];
 
-  final MasterService _masterService = MasterService();
+  final InventoryService _inventoryService = InventoryService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
@@ -71,7 +71,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
     });
 
     try {
-      final response = await _masterService.taxCodes(
+      final response = await _inventoryService.taxCodes(
         filters: const {'per_page': 100, 'sort_by': 'tax_name'},
       );
       final items = response.data ?? const <TaxCodeModel>[];
@@ -188,8 +188,8 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
 
     try {
       final response = _selectedTaxCode == null
-          ? await _masterService.createTaxCode(model)
-          : await _masterService.updateTaxCode(_selectedTaxCode!.id!, model);
+          ? await _inventoryService.createTaxCode(model)
+          : await _inventoryService.updateTaxCode(_selectedTaxCode!.id!, model);
       final saved = response.data;
       if (!mounted) {
         return;
@@ -238,7 +238,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
     });
 
     try {
-      final response = await _masterService.destroy('/masters/tax-codes/$id');
+      final response = await _inventoryService.deleteTaxCode(id);
       if (!mounted) {
         return;
       }

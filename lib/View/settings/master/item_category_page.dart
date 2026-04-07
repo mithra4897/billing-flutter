@@ -12,7 +12,7 @@ class ItemCategoryManagementPage extends StatefulWidget {
 
 class _ItemCategoryManagementPageState
     extends State<ItemCategoryManagementPage> {
-  final MasterService _masterService = MasterService();
+  final InventoryService _inventoryService = InventoryService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
@@ -59,7 +59,7 @@ class _ItemCategoryManagementPageState
     });
 
     try {
-      final response = await _masterService.itemCategories(
+      final response = await _inventoryService.itemCategories(
         filters: const {'per_page': 200, 'sort_by': 'category_name'},
       );
       final items = response.data ?? const <ItemCategoryModel>[];
@@ -159,8 +159,11 @@ class _ItemCategoryManagementPageState
 
     try {
       final response = _selectedItem == null
-          ? await _masterService.createItemCategory(model)
-          : await _masterService.updateItemCategory(_selectedItem!.id!, model);
+          ? await _inventoryService.createItemCategory(model)
+          : await _inventoryService.updateItemCategory(
+              _selectedItem!.id!,
+              model,
+            );
       final saved = response.data;
       if (!mounted) {
         return;
@@ -194,9 +197,7 @@ class _ItemCategoryManagementPageState
     });
 
     try {
-      final response = await _masterService.destroy(
-        '/masters/item-categories/$id',
-      );
+      final response = await _inventoryService.deleteItemCategory(id);
       if (!mounted) {
         return;
       }
