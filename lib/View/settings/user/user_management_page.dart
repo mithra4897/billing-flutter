@@ -1018,27 +1018,36 @@ class _UserManagementPageState extends State<UserManagementPage>
               ],
             ),
           ),
-          if (showDetailTabs)
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabs: const [
-                Tab(text: 'Profile'),
-                Tab(text: 'Permissions'),
-                Tab(text: 'Audit Log'),
-                Tab(text: 'Login History'),
-              ],
-            ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 28),
-            child: showDetailTabs
-                ? [
-                    _buildProfileTab(context),
-                    _buildPermissionsTab(context),
-                    _buildAuditTab(context),
-                    _buildLoginHistoryTab(context),
-                  ][_tabController.index]
-                : _buildProfileTab(context),
+          AnimatedBuilder(
+            animation: _tabController,
+            builder: (context, _) {
+              return Column(
+                children: [
+                  if (showDetailTabs)
+                    TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      tabs: const [
+                        Tab(text: 'Profile'),
+                        Tab(text: 'Permissions'),
+                        Tab(text: 'Audit Log'),
+                        Tab(text: 'Login History'),
+                      ],
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 28),
+                    child: showDetailTabs
+                        ? [
+                            _buildProfileTab(context),
+                            _buildPermissionsTab(context),
+                            _buildAuditTab(context),
+                            _buildLoginHistoryTab(context),
+                          ][_tabController.index]
+                        : _buildProfileTab(context),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

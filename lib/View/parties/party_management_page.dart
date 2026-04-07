@@ -1271,31 +1271,41 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       editor: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabs: const [
-              Tab(text: 'Primary'),
-              Tab(text: 'Addresses'),
-              Tab(text: 'Contacts'),
-              Tab(text: 'GST Details'),
-              Tab(text: 'Bank Accounts'),
-              Tab(text: 'Credit Limits'),
-              Tab(text: 'Payment Terms'),
-            ],
-          ),
-          const SizedBox(height: 20),
-          IndexedStack(
-            index: _tabController.index,
-            children: [
-              _buildPrimaryTab(context),
-              _buildAddressesTab(context),
-              _buildContactsTab(context),
-              _buildGstDetailsTab(context),
-              _buildBankAccountsTab(context),
-              _buildCreditLimitsTab(context),
-              _buildPaymentTermsTab(context),
-            ],
+          AnimatedBuilder(
+            animation: _tabController,
+            builder: (context, _) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabs: const [
+                      Tab(text: 'Primary'),
+                      Tab(text: 'Addresses'),
+                      Tab(text: 'Contacts'),
+                      Tab(text: 'GST Details'),
+                      Tab(text: 'Bank Accounts'),
+                      Tab(text: 'Credit Limits'),
+                      Tab(text: 'Payment Terms'),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  IndexedStack(
+                    index: _tabController.index,
+                    children: [
+                      _buildPrimaryTab(context),
+                      _buildAddressesTab(context),
+                      _buildContactsTab(context),
+                      _buildGstDetailsTab(context),
+                      _buildBankAccountsTab(context),
+                      _buildCreditLimitsTab(context),
+                      _buildPaymentTermsTab(context),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

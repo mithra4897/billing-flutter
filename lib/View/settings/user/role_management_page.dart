@@ -595,23 +595,32 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       child: Column(
         children: [
           const SizedBox(height: 12),
-          if (showDetailTabs)
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabs: const [
-                Tab(text: 'Profile'),
-                Tab(text: 'Permissions'),
-              ],
-            ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 28),
-            child: showDetailTabs
-                ? [
-                    _buildProfileTab(context),
-                    _buildPermissionsTab(context),
-                  ][_tabController.index]
-                : _buildProfileTab(context),
+          AnimatedBuilder(
+            animation: _tabController,
+            builder: (context, _) {
+              return Column(
+                children: [
+                  if (showDetailTabs)
+                    TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      tabs: const [
+                        Tab(text: 'Profile'),
+                        Tab(text: 'Permissions'),
+                      ],
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 28),
+                    child: showDetailTabs
+                        ? [
+                            _buildProfileTab(context),
+                            _buildPermissionsTab(context),
+                          ][_tabController.index]
+                        : _buildProfileTab(context),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
