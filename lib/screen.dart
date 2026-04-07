@@ -71,6 +71,7 @@ export 'model/communication/email_module_setting_model.dart';
 export 'model/communication/email_rule_model.dart';
 export 'model/communication/email_setting_model.dart';
 export 'model/communication/email_template_model.dart';
+export 'model/inventory/uom_conversion_model.dart';
 export 'model/tax/gst_registration_model.dart';
 export 'model/tax/gst_tax_rule_model.dart';
 

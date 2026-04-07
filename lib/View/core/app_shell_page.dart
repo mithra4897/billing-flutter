@@ -16,6 +16,7 @@ import '../settings/master/company_page.dart';
 import '../settings/master/document_series_page.dart';
 import '../settings/master/item_category_page.dart';
 import '../settings/master/tax_category_page.dart';
+import '../settings/master/uom_conversion_page.dart';
 import '../settings/master/uom_page.dart';
 import '../settings/master/warehouse_page.dart';
 import '../settings/tax/gst_registration_page.dart';
@@ -172,6 +173,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return ModulePreferencesPage(key: routeKey, embedded: true);
       case '/inventory/uoms':
         return UomManagementPage(key: routeKey, embedded: true);
+      case '/inventory/uom-conversions':
+        return UomConversionManagementPage(key: routeKey, embedded: true);
       case '/inventory/tax-codes':
         return TaxCategoryManagementPage(key: routeKey, embedded: true);
       case '/inventory/item-categories':
