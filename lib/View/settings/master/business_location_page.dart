@@ -305,6 +305,7 @@ class _BusinessLocationManagementPageState
     final filteredBranches = branchesForCompany(_branches, _companyId);
 
     return SettingsWorkspace(
+      title: 'Business Locations',
       scrollController: _pageScrollController,
       list: SettingsListCard<BusinessLocationModel>(
         searchController: _searchController,

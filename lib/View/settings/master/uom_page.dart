@@ -249,6 +249,7 @@ class _UomManagementPageState extends State<UomManagementPage> {
     }
 
     return SettingsWorkspace(
+      title: "UOM ${_nameController.text}",
       scrollController: _pageScrollController,
       list: SettingsListCard<UomModel>(
         searchController: _searchController,
@@ -258,10 +259,7 @@ class _UomManagementPageState extends State<UomManagementPage> {
         emptyMessage: 'No UOM records found.',
         itemBuilder: (uom, selected) => SettingsListTile(
           title: uom.uomName ?? '-',
-          subtitle: [
-            uom.uomCode ?? '',
-            if ((uom.symbol ?? '').isNotEmpty) uom.symbol!,
-          ].where((value) => value.isNotEmpty).join(' • '),
+          subtitle: uom.symbol ?? uom.uomCode ?? '',
           selected: selected,
           onTap: () => _selectUom(uom),
           trailing: SettingsStatusPill(

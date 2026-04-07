@@ -329,11 +329,9 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
     ];
 
     return SettingsWorkspace(
+      title: 'Email Templates',
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailTemplateModel>(
-        title: 'Email Templates',
-        subtitle:
-            'Prepare reusable subject and body templates for every document event.',
         searchController: _searchController,
         searchHint: 'Search email templates',
         items: _filteredRecords,
@@ -357,11 +355,6 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedRecord == null
-            ? 'Create Email Template'
-            : 'Edit Email Template',
-        subtitle:
-            'Compose a reusable template once and let rules reuse it everywhere.',
         child: Form(
           key: _formKey,
           child: Column(

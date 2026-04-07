@@ -306,11 +306,9 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
     ];
 
     return SettingsWorkspace(
+      title: 'Email Setting',
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailSettingModel>(
-        title: 'Email Settings',
-        subtitle:
-            'Configure actual outgoing mail accounts and default sender identities.',
         searchController: _searchController,
         searchHint: 'Search email settings',
         items: _filteredSettings,
@@ -336,11 +334,6 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
         },
       ),
       editor: SettingsEditorCard(
-        title: _selectedSetting == null
-            ? 'Create Email Setting'
-            : 'Edit Email Setting',
-        subtitle:
-            'Keep sender identity, SMTP settings, and auto-mail behavior in one place.',
         child: Form(
           key: _formKey,
           child: Column(

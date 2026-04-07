@@ -277,13 +277,6 @@ class AppNavigation {
       icon: Icons.layers_outlined,
       children: [
         AppNavigationItem(
-          key: 'master-uoms',
-          title: 'UOMs',
-          icon: Icons.straighten_outlined,
-          path: '/masters/uoms',
-          requiredPermissions: ['uom.view'],
-        ),
-        AppNavigationItem(
           key: 'master-tax-codes',
           title: 'Tax Codes',
           icon: Icons.percent_outlined,

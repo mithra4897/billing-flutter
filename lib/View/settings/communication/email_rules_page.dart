@@ -388,11 +388,9 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
         .toList(growable: false);
 
     return SettingsWorkspace(
+      title: 'Email Rule',
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailRuleModel>(
-        title: 'Email Rules',
-        subtitle:
-            'Define when templates should auto-send and who should receive them.',
         searchController: _searchController,
         searchHint: 'Search email rules',
         items: _filteredRecords,
@@ -416,11 +414,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedRecord == null
-            ? 'Create Email Rule'
-            : 'Edit Email Rule',
-        subtitle:
-            'Use rules to connect document events, recipients, and reusable templates.',
         child: Form(
           key: _formKey,
           child: Column(

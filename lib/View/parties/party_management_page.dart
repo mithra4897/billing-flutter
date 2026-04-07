@@ -1249,6 +1249,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     final partyTypeFilterItems = _partyTypeFilterItems();
 
     return SettingsWorkspace(
+      title: 'Parties',
       scrollController: _pageScrollController,
       list: AppSectionCard(
         child: Column(

@@ -225,6 +225,7 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
     }
 
     return SettingsWorkspace(
+      title: 'Branches',
       scrollController: _pageScrollController,
       list: SettingsListCard<BranchModel>(
         searchController: _searchController,

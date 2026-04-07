@@ -280,6 +280,7 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
         .toList(growable: false);
 
     return SettingsWorkspace(
+      title: 'Warehouses',
       scrollController: _pageScrollController,
       list: SettingsListCard<WarehouseModel>(
         searchController: _searchController,

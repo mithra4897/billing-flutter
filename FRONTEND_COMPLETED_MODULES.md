@@ -45,6 +45,7 @@ These parts are already in place and should be reused instead of rebuilt:
 - shared form widgets
 - shared report header and pagination widgets
 - shared settings workspace layout
+- shared mobile list-to-editor behavior for settings workspaces
 
 Important base files:
 
@@ -112,6 +113,13 @@ Main files:
 - [adaptive_shell.dart](/lib/components/adaptive_shell.dart)
 - [app_navigation.dart](/lib/app/navigation/app_navigation.dart)
 - [app_shell_page.dart](/lib/view/core/app_shell_page.dart)
+- [settings_workspace.dart](/lib/view/settings/widgets/settings_workspace.dart)
+
+Mobile settings workspace behavior:
+
+- on desktop, settings pages keep list and editor side by side
+- on mobile and tablet, tapping a list record opens the editor in a new themed screen
+- this behavior is centralized in `SettingsWorkspace`, so new settings pages should inherit it automatically
 
 ### 3. Dashboard
 

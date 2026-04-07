@@ -271,6 +271,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
     }
 
     return SettingsWorkspace(
+      title: 'Companies',
       scrollController: _pageScrollController,
       list: SettingsListCard<CompanyModel>(
         searchController: _searchController,

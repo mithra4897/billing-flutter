@@ -286,6 +286,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
     }
 
     return SettingsWorkspace(
+      title: 'Tax Categories',
       scrollController: _pageScrollController,
       list: SettingsListCard<TaxCodeModel>(
         searchController: _searchController,

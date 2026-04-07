@@ -281,11 +281,9 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
     ];
 
     return SettingsWorkspace(
+      title: 'Module Setting',
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailModuleSettingModel>(
-        title: 'Module Settings',
-        subtitle:
-            'Control whether each module supports auto email, manual email, or both.',
         searchController: _searchController,
         searchHint: 'Search module settings',
         items: _filteredRecords,
@@ -305,11 +303,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
         ),
       ),
       editor: SettingsEditorCard(
-        title: _selectedRecord == null
-            ? 'Create Module Setting'
-            : 'Edit Module Setting',
-        subtitle:
-            'Enable or disable email behavior per module and document flow.',
         child: Form(
           key: _formKey,
           child: Column(

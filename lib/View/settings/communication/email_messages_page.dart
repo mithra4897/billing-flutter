@@ -371,11 +371,9 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     final selectedData = _selectedMessage?.data ?? const <String, dynamic>{};
 
     return SettingsWorkspace(
+      title: 'Message Detail',
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailMessageModel>(
-        title: 'Email Messages',
-        subtitle:
-            'Review delivery logs and open the latest message details without leaving settings.',
         searchController: _searchController,
         searchHint: 'Search email messages',
         items: _filteredMessages,
@@ -396,9 +394,6 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
         },
       ),
       editor: SettingsEditorCard(
-        title: 'Message Detail',
-        subtitle:
-            'Inspect delivery status, recipients, and actual content from the selected email log.',
         child: _selectedMessage == null
             ? const SettingsEmptyState(
                 icon: Icons.mark_email_read_outlined,

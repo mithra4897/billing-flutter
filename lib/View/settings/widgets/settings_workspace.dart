@@ -1,8 +1,33 @@
 import '../../../screen.dart';
 
-class SettingsWorkspace extends StatelessWidget {
+class _SettingsWorkspaceController extends ChangeNotifier {
+  _SettingsWorkspaceController({required this.openEditorRoute});
+
+  final VoidCallback openEditorRoute;
+
+  void handleItemSelected() {
+    openEditorRoute();
+  }
+}
+
+class _SettingsWorkspaceScope
+    extends InheritedNotifier<_SettingsWorkspaceController> {
+  const _SettingsWorkspaceScope({
+    required _SettingsWorkspaceController controller,
+    required super.child,
+  }) : super(notifier: controller);
+
+  static _SettingsWorkspaceController? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<_SettingsWorkspaceScope>()
+        ?.notifier;
+  }
+}
+
+class SettingsWorkspace extends StatefulWidget {
   const SettingsWorkspace({
     super.key,
+    required this.title,
     required this.scrollController,
     required this.list,
     required this.editor,
@@ -15,40 +40,109 @@ class SettingsWorkspace extends StatelessWidget {
   final Widget editor;
   final double breakpoint;
   final double listWidth;
+  final String title;
+
+  @override
+  State<SettingsWorkspace> createState() => _SettingsWorkspaceState();
+}
+
+class _SettingsWorkspaceState extends State<SettingsWorkspace> {
+  late final _SettingsWorkspaceController _controller;
+  bool _editorRouteOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = _SettingsWorkspaceController(
+      openEditorRoute: _scheduleEditorRoutePush,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= breakpoint;
+        final showInlineEditor = Responsive.isDesktop(context);
 
-        return SingleChildScrollView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-          child: wide
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: listWidth, child: list),
-                    const SizedBox(width: 24),
-                    Expanded(child: editor),
-                  ],
+        return _SettingsWorkspaceScope(
+          controller: _controller,
+          child: showInlineEditor
+              ? SingleChildScrollView(
+                  controller: widget.scrollController,
+                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(width: widget.listWidth, child: widget.list),
+                      const SizedBox(width: 24),
+                      Expanded(child: widget.editor),
+                    ],
+                  ),
                 )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [list, const SizedBox(height: 20), editor],
+              : SingleChildScrollView(
+                  controller: widget.scrollController,
+                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                  child: widget.list,
                 ),
         );
       },
     );
+  }
+
+  void _scheduleEditorRoutePush() {
+    if (_editorRouteOpen) {
+      return;
+    }
+
+    _editorRouteOpen = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        _editorRouteOpen = false;
+        return;
+      }
+
+      final routeTitle = _editorRouteTitle(context);
+
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) =>
+              _SettingsEditorRoutePage(title: routeTitle, child: widget.editor),
+        ),
+      );
+
+      if (mounted) {
+        setState(() {
+          _editorRouteOpen = false;
+        });
+      } else {
+        _editorRouteOpen = false;
+      }
+    });
+  }
+
+  String _editorRouteTitle(BuildContext context) {
+    if (widget.editor is SettingsEditorCard) {
+      final title = widget.title.trim();
+      return title;
+    }
+
+    final currentPath = Uri.parse(
+      ModalRoute.of(context)?.settings.name ?? '/dashboard',
+    ).path;
+    return AppNavigation.findByPath(currentPath)?.title ?? 'Details';
   }
 }
 
 class SettingsListCard<T> extends StatelessWidget {
   const SettingsListCard({
     super.key,
-    this.title,
-    this.subtitle,
     required this.searchController,
     required this.searchHint,
     required this.items,
@@ -57,8 +151,6 @@ class SettingsListCard<T> extends StatelessWidget {
     required this.itemBuilder,
   });
 
-  final String? title;
-  final String? subtitle;
   final TextEditingController searchController;
   final String searchHint;
   final List<T> items;
@@ -72,29 +164,6 @@ class SettingsListCard<T> extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (title != null) ...[
-            Text(
-              title!,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-          ],
-          if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
-            ...[
-              Text(
-                subtitle!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).extension<AppThemeExtension>()!.mutedText,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ],
           TextField(
             controller: searchController,
             decoration: InputDecoration(
@@ -126,48 +195,13 @@ class SettingsListCard<T> extends StatelessWidget {
 }
 
 class SettingsEditorCard extends StatelessWidget {
-  const SettingsEditorCard({
-    super.key,
-    this.title,
-    this.subtitle,
-    required this.child,
-  });
+  const SettingsEditorCard({super.key, required this.child});
 
-  final String? title;
-  final String? subtitle;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (title != null) ...[
-            Text(
-              title!,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-          ],
-          if (subtitle != null) ...[
-            Text(
-              subtitle!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(
-                  context,
-                ).extension<AppThemeExtension>()!.mutedText,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-          child,
-        ],
-      ),
-    );
+    return AppSectionCard(child: child);
   }
 }
 
@@ -191,10 +225,16 @@ class SettingsListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final workspaceController = _SettingsWorkspaceScope.maybeOf(context);
 
     return InkWell(
       borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-      onTap: onTap,
+      onTap: () {
+        onTap();
+        if (!Responsive.isDesktop(context)) {
+          workspaceController?.handleItemSelected();
+        }
+      },
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -232,6 +272,30 @@ class SettingsListTile extends StatelessWidget {
             ),
             if (trailing != null) ...[const SizedBox(width: 12), trailing!],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsEditorRoutePage extends StatelessWidget {
+  const _SettingsEditorRoutePage({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(title: Text(title)),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+          child: child,
         ),
       ),
     );
