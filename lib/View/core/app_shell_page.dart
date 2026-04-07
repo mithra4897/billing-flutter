@@ -13,9 +13,15 @@ import '../settings/user/user_management_page.dart';
 import '../settings/master/branch_page.dart';
 import '../settings/master/business_location_page.dart';
 import '../settings/master/company_page.dart';
+import '../settings/master/document_series_page.dart';
+import '../settings/master/item_category_page.dart';
 import '../settings/master/tax_category_page.dart';
 import '../settings/master/uom_page.dart';
 import '../settings/master/warehouse_page.dart';
+import '../settings/tax/gst_registration_page.dart';
+import '../settings/tax/gst_tax_rule_page.dart';
+import '../settings/tax/state_page.dart';
+import '../settings/user/module_preferences_page.dart';
 import 'module_placeholder_page.dart';
 
 class AppShellPage extends StatefulWidget {
@@ -160,12 +166,26 @@ class _AppShellPageState extends State<AppShellPage> {
         return BusinessLocationManagementPage(key: routeKey, embedded: true);
       case '/settings/warehouses':
         return WarehouseManagementPage(key: routeKey, embedded: true);
+      case '/settings/document-series':
+        return DocumentSeriesManagementPage(key: routeKey, embedded: true);
+      case '/settings/module-preferences':
+        return ModulePreferencesPage(key: routeKey, embedded: true);
       case '/settings/uom':
       case '/masters/uoms':
+      case '/inventory/uoms':
         return UomManagementPage(key: routeKey, embedded: true);
-      case '/settings/tax-categories':
       case '/masters/tax-codes':
+      case '/inventory/tax-codes':
         return TaxCategoryManagementPage(key: routeKey, embedded: true);
+      case '/masters/item-categories':
+      case '/inventory/item-categories':
+        return ItemCategoryManagementPage(key: routeKey, embedded: true);
+      case '/tax/states':
+        return StateManagementPage(key: routeKey, embedded: true);
+      case '/tax/gst-registrations':
+        return GstRegistrationManagementPage(key: routeKey, embedded: true);
+      case '/tax/gst-tax-rules':
+        return GstTaxRuleManagementPage(key: routeKey, embedded: true);
       case '/communication/email-settings':
         return EmailSettingsPage(key: routeKey, embedded: true);
       case '/communication/email-module-settings':

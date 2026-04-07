@@ -30,6 +30,9 @@ class ModuleModel implements JsonModel {
   final bool? isActive;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => moduleName ?? moduleCode ?? 'New Module';
+
   factory ModuleModel.fromJson(Map<String, dynamic> json) {
     return ModuleModel(
       moduleCode: json['module_code']?.toString(),

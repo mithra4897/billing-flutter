@@ -2,7 +2,6 @@ import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
 import '../../model/masters/state_model.dart';
 import '../../model/tax/document_tax_line_model.dart';
-import '../../model/tax/gst_place_of_supply_rule_model.dart';
 import '../../model/tax/gst_registration_model.dart';
 import '../../model/tax/gst_tax_rule_model.dart';
 import '../base/erp_module_service.dart';
@@ -75,48 +74,6 @@ class TaxesService extends ErpModuleService {
 
   Future<ApiResponse<dynamic>> deleteGstRegistration(int id) =>
       destroy('/tax/gst-registrations/$id');
-
-  Future<PaginatedResponse<GstPlaceOfSupplyRuleModel>> placeOfSupplyRules({
-    Map<String, dynamic>? filters,
-  }) => paginated(
-    '/tax/place-of-supply-rules',
-    filters: filters,
-    fromJson: GstPlaceOfSupplyRuleModel.fromJson,
-  );
-
-  Future<ApiResponse<List<GstPlaceOfSupplyRuleModel>>> placeOfSupplyRulesAll({
-    Map<String, dynamic>? filters,
-  }) => collection(
-    '/tax/place-of-supply-rules/all',
-    filters: filters,
-    fromJson: GstPlaceOfSupplyRuleModel.fromJson,
-  );
-
-  Future<ApiResponse<GstPlaceOfSupplyRuleModel>> placeOfSupplyRule(int id) =>
-      object(
-        '/tax/place-of-supply-rules/$id',
-        fromJson: GstPlaceOfSupplyRuleModel.fromJson,
-      );
-
-  Future<ApiResponse<GstPlaceOfSupplyRuleModel>> createPlaceOfSupplyRule(
-    GstPlaceOfSupplyRuleModel body,
-  ) => createModel(
-    '/tax/place-of-supply-rules',
-    body,
-    fromJson: GstPlaceOfSupplyRuleModel.fromJson,
-  );
-
-  Future<ApiResponse<GstPlaceOfSupplyRuleModel>> updatePlaceOfSupplyRule(
-    int id,
-    GstPlaceOfSupplyRuleModel body,
-  ) => updateModel(
-    '/tax/place-of-supply-rules/$id',
-    body,
-    fromJson: GstPlaceOfSupplyRuleModel.fromJson,
-  );
-
-  Future<ApiResponse<dynamic>> deletePlaceOfSupplyRule(int id) =>
-      destroy('/tax/place-of-supply-rules/$id');
 
   Future<PaginatedResponse<GstTaxRuleModel>> gstTaxRules({
     Map<String, dynamic>? filters,

@@ -61,13 +61,6 @@ class AppNavigation {
       icon: Icons.settings_outlined,
       children: [
         AppNavigationItem(
-          key: 'settings-tax-categories',
-          title: 'Tax Categories',
-          icon: Icons.percent_outlined,
-          path: '/settings/tax-categories',
-          requiredPermissions: ['tax_code.view'],
-        ),
-        AppNavigationItem(
           key: 'settings-uom',
           title: 'UOM',
           icon: Icons.straighten_outlined,
@@ -156,13 +149,6 @@ class AppNavigation {
               requiredPermissions: ['role.view'],
             ),
             AppNavigationItem(
-              key: 'settings-modules',
-              title: 'Modules',
-              icon: Icons.apps_outlined,
-              path: '/admin/modules',
-              requiredPermissions: ['permission.view'],
-            ),
-            AppNavigationItem(
               key: 'settings-login-history',
               title: 'Login History',
               icon: Icons.history_outlined,
@@ -249,24 +235,10 @@ class AppNavigation {
           requiredPermissions: ['taxes.view'],
         ),
         AppNavigationItem(
-          key: 'tax-pos-rules',
-          title: 'Place of Supply Rules',
-          icon: Icons.route_outlined,
-          path: '/tax/place-of-supply-rules',
-          requiredPermissions: ['taxes.view'],
-        ),
-        AppNavigationItem(
           key: 'tax-rules',
           title: 'GST Tax Rules',
           icon: Icons.rule_outlined,
           path: '/tax/gst-tax-rules',
-          requiredPermissions: ['taxes.view'],
-        ),
-        AppNavigationItem(
-          key: 'document-tax-lines',
-          title: 'Document Tax Lines',
-          icon: Icons.segment_outlined,
-          path: '/tax/document-tax-lines',
           requiredPermissions: ['taxes.view'],
         ),
       ],
@@ -276,20 +248,6 @@ class AppNavigation {
       title: 'Masters',
       icon: Icons.layers_outlined,
       children: [
-        AppNavigationItem(
-          key: 'master-tax-codes',
-          title: 'Tax Codes',
-          icon: Icons.percent_outlined,
-          path: '/masters/tax-codes',
-          requiredPermissions: ['tax_code.view'],
-        ),
-        AppNavigationItem(
-          key: 'master-item-categories',
-          title: 'Item Categories',
-          icon: Icons.category_outlined,
-          path: '/masters/item-categories',
-          requiredPermissions: ['item_category.view'],
-        ),
         AppNavigationItem(
           key: 'master-items',
           title: 'Items',
@@ -582,7 +540,7 @@ class AppNavigation {
           title: 'Item Categories',
           icon: Icons.category_outlined,
           path: '/inventory/item-categories',
-          requiredPermissions: ['inventory.view'],
+          requiredPermissions: ['item_category.view'],
         ),
         AppNavigationItem(
           key: 'inventory-brands',
@@ -610,7 +568,7 @@ class AppNavigation {
           title: 'Tax Codes',
           icon: Icons.percent_outlined,
           path: '/inventory/tax-codes',
-          requiredPermissions: ['inventory.view'],
+          requiredPermissions: ['tax_code.view'],
         ),
         AppNavigationItem(
           key: 'inventory-items',

@@ -267,7 +267,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
       AdaptiveShellActionButton(
         onPressed: _startNewTaxCategory,
         icon: Icons.add_chart_outlined,
-        label: 'New Tax Category',
+        label: 'New Tax Code',
       ),
     ];
 
@@ -276,7 +276,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
     }
 
     return AppStandaloneShell(
-      title: 'Tax Categories',
+      title: 'Tax Codes',
       scrollController: _pageScrollController,
       actions: actions,
       child: content,
@@ -285,12 +285,12 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
 
   Widget _buildContent(BuildContext context) {
     if (_initialLoading) {
-      return const AppLoadingView(message: 'Loading tax categories...');
+      return const AppLoadingView(message: 'Loading tax codes...');
     }
 
     if (_pageError != null) {
       return AppErrorStateView(
-        title: 'Unable to load tax categories',
+        title: 'Unable to load tax codes',
         message: _pageError!,
         onRetry: _loadTaxCodes,
       );
@@ -298,15 +298,15 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
 
     return SettingsWorkspace(
       controller: _workspaceController,
-      title: 'Tax Categories',
+      title: 'Tax Codes',
       editorTitle: _selectedTaxCode?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<TaxCodeModel>(
         searchController: _searchController,
-        searchHint: 'Search tax categories',
+        searchHint: 'Search tax codes',
         items: _filteredTaxCodes,
         selectedItem: _selectedTaxCode,
-        emptyMessage: 'No tax categories found.',
+        emptyMessage: 'No tax codes found.',
         itemBuilder: (taxCode, selected) => SettingsListTile(
           title: taxCode.taxName ?? '-',
           subtitle: [
@@ -336,7 +336,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
                 AppFormTextField(
                   labelText: 'Tax Code',
                   controller: _codeController,
-                  validator: Validators.required('Tax code'),
+                  validator: Validators.required('Tax Code'),
                 ),
                 AppFormTextField(
                   labelText: 'Tax Name',

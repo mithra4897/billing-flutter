@@ -4,6 +4,7 @@ class DocumentSeriesModel implements JsonModel {
   const DocumentSeriesModel({
     this.id,
     this.companyId,
+    this.financialYearId,
     this.seriesCode,
     this.seriesName,
     this.documentType,
@@ -19,6 +20,7 @@ class DocumentSeriesModel implements JsonModel {
 
   final int? id;
   final int? companyId;
+  final int? financialYearId;
   final String? seriesCode;
   final String? seriesName;
   final String? documentType;
@@ -31,10 +33,14 @@ class DocumentSeriesModel implements JsonModel {
   final String? remarks;
   final Map<String, dynamic>? raw;
 
+  @override
+  String toString() => seriesName ?? seriesCode ?? 'New Document Series';
+
   factory DocumentSeriesModel.fromJson(Map<String, dynamic> json) {
     return DocumentSeriesModel(
       id: _parseInt(json['id']),
       companyId: _parseInt(json['company_id']),
+      financialYearId: _parseInt(json['financial_year_id']),
       seriesCode: json['series_code']?.toString() ?? '',
       seriesName: json['series_name']?.toString() ?? '',
       documentType: json['document_type']?.toString(),
@@ -54,6 +60,7 @@ class DocumentSeriesModel implements JsonModel {
     return {
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
+      if (financialYearId != null) 'financial_year_id': financialYearId,
       if (seriesCode != null) 'series_code': seriesCode,
       if (seriesName != null) 'series_name': seriesName,
       if (documentType != null) 'document_type': documentType,
