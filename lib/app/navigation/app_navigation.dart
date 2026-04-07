@@ -613,6 +613,13 @@ class AppNavigation {
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
+          key: 'inventory-alternate-items',
+          title: 'Alternate Items',
+          icon: Icons.swap_horiz_outlined,
+          path: '/inventory/alternate-items',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
           key: 'inventory-item-categories',
           title: 'Item Categories',
           icon: Icons.category_outlined,
@@ -627,10 +634,17 @@ class AppNavigation {
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
-          key: 'inventory-item-supplier-maps',
-          title: 'Item Supplier Maps',
+          key: 'inventory-item-suppliers',
+          title: 'Item Suppliers',
           icon: Icons.local_shipping_outlined,
-          path: '/inventory/item-supplier-maps',
+          path: '/inventory/item-suppliers',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
+          key: 'inventory-supplier-items',
+          title: 'Supplier Items',
+          icon: Icons.inventory_2_outlined,
+          path: '/inventory/supplier-items',
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(

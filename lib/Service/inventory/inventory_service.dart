@@ -442,23 +442,6 @@ class InventoryService extends ErpModuleService {
         '/inventory/stock-balances/$id',
         fromJson: StockBalanceModel.fromJson,
       );
-  Future<ApiResponse<StockBalanceModel>> createStockBalance(
-    StockBalanceModel body,
-  ) => createModel<StockBalanceModel>(
-    '/inventory/stock-balances',
-    body,
-    fromJson: StockBalanceModel.fromJson,
-  );
-  Future<ApiResponse<StockBalanceModel>> updateStockBalance(
-    int id,
-    StockBalanceModel body,
-  ) => updateModel<StockBalanceModel>(
-    '/inventory/stock-balances/$id',
-    body,
-    fromJson: StockBalanceModel.fromJson,
-  );
-  Future<ApiResponse<dynamic>> deleteStockBalance(int id) =>
-      destroy('/inventory/stock-balances/$id');
 
   Future<PaginatedResponse<InventoryAdjustmentModel>> inventoryAdjustments({
     Map<String, dynamic>? filters,

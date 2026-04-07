@@ -1,0 +1,920 @@
+import '../../../screen.dart';
+
+enum ItemSupplierMapViewMode { itemWise, supplierWise }
+
+class ItemSupplierMapManagementPage extends StatefulWidget {
+  const ItemSupplierMapManagementPage({
+    super.key,
+    required this.mode,
+    this.embedded = false,
+  });
+
+  final ItemSupplierMapViewMode mode;
+  final bool embedded;
+
+  @override
+  State<ItemSupplierMapManagementPage> createState() =>
+      _ItemSupplierMapManagementPageState();
+}
+
+class _ItemSupplierMapManagementPageState
+    extends State<ItemSupplierMapManagementPage> {
+  final InventoryService _inventoryService = InventoryService();
+  final PartiesService _partiesService = PartiesService();
+  final ScrollController _pageScrollController = ScrollController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
+  final TextEditingController _masterSearchController = TextEditingController();
+  final TextEditingController _mappingSearchController =
+      TextEditingController();
+  final TextEditingController _addSearchController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _supplierItemCodeController =
+      TextEditingController();
+  final TextEditingController _supplierItemNameController =
+      TextEditingController();
+  final TextEditingController _leadTimeDaysController = TextEditingController();
+  final TextEditingController _minOrderQtyController = TextEditingController();
+  final TextEditingController _supplierPriorityController =
+      TextEditingController();
+  final TextEditingController _remarksController = TextEditingController();
+
+  bool _initialLoading = true;
+  bool _saving = false;
+  String? _pageError;
+  String? _formError;
+  List<ItemSupplierMapModel> _items = const <ItemSupplierMapModel>[];
+  List<ItemSupplierMapModel> _filteredItems = const <ItemSupplierMapModel>[];
+  List<ItemModel> _allItems = const <ItemModel>[];
+  List<ItemModel> _filteredMastersItems = const <ItemModel>[];
+  List<PartyModel> _allSuppliers = const <PartyModel>[];
+  List<PartyModel> _filteredMasterSuppliers = const <PartyModel>[];
+  List<UomModel> _uoms = const <UomModel>[];
+  ItemSupplierMapModel? _selectedItem;
+  int? _selectedMasterId;
+  int? _counterpartyId;
+  int? _purchaseUomId;
+  bool _isPrimarySupplier = false;
+  bool _isActive = true;
+
+  bool get _isItemWise => widget.mode == ItemSupplierMapViewMode.itemWise;
+
+  String get _pageTitle => _isItemWise ? 'Item Suppliers' : 'Supplier Items';
+
+  String get _masterLabel => _isItemWise ? 'Item' : 'Supplier';
+
+  String get _counterpartyLabel => _isItemWise ? 'Supplier' : 'Item';
+
+  @override
+  void initState() {
+    super.initState();
+    _masterSearchController.addListener(_applyMasterSearch);
+    _mappingSearchController.addListener(_applyMappingSearch);
+    _addSearchController.addListener(_refreshAddSearch);
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _pageScrollController.dispose();
+    _workspaceController.dispose();
+    _masterSearchController.dispose();
+    _mappingSearchController.dispose();
+    _addSearchController.dispose();
+    _supplierItemCodeController.dispose();
+    _supplierItemNameController.dispose();
+    _leadTimeDaysController.dispose();
+    _minOrderQtyController.dispose();
+    _supplierPriorityController.dispose();
+    _remarksController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData({int? selectId}) async {
+    setState(() {
+      _initialLoading = _allItems.isEmpty && _allSuppliers.isEmpty;
+      _pageError = null;
+    });
+
+    try {
+      final responses = await Future.wait<dynamic>([
+        _inventoryService.items(
+          filters: const {
+            'per_page': 200,
+            'sort_by': 'item_name',
+            'sort_order': 'asc',
+          },
+        ),
+        _partiesService.partyTypes(
+          filters: const {
+            'per_page': 200,
+            'sort_by': 'name',
+            'sort_order': 'asc',
+          },
+        ),
+        _partiesService.parties(
+          filters: const {
+            'per_page': 200,
+            'sort_by': 'display_name',
+            'sort_order': 'asc',
+          },
+        ),
+        _inventoryService.uoms(
+          filters: const {
+            'per_page': 200,
+            'sort_by': 'uom_name',
+            'sort_order': 'asc',
+          },
+        ),
+      ]);
+
+      final items =
+          (responses[0] as PaginatedResponse<ItemModel>).data ??
+          const <ItemModel>[];
+      final partyTypes =
+          (responses[1] as PaginatedResponse<PartyTypeModel>).data ??
+          const <PartyTypeModel>[];
+      final parties =
+          (responses[2] as PaginatedResponse<PartyModel>).data ??
+          const <PartyModel>[];
+      final uoms =
+          (responses[3] as PaginatedResponse<UomModel>).data ??
+          const <UomModel>[];
+
+      if (!mounted) {
+        return;
+      }
+
+      final supplierTypeIds = partyTypes
+          .where(_isSupplierPartyType)
+          .map(_partyTypeId)
+          .whereType<int>()
+          .toSet();
+
+      final suppliers = parties
+          .where(
+            (party) =>
+                party.isActive && supplierTypeIds.contains(party.partyTypeId),
+          )
+          .toList(growable: false);
+
+      setState(() {
+        _allItems = items
+            .whereType<ItemModel>()
+            .where((item) => item.isActive)
+            .toList(growable: false);
+        _allSuppliers = suppliers;
+        _uoms = uoms.where((uom) => uom.isActive).toList(growable: false);
+        _filteredMastersItems = _filterMasterItems(
+          _allItems,
+          _masterSearchController.text,
+        );
+        _filteredMasterSuppliers = _filterMasterSuppliers(
+          _allSuppliers,
+          _masterSearchController.text,
+        );
+      });
+
+      _selectedMasterId ??= _isItemWise
+          ? (_allItems.isNotEmpty ? _allItems.first.id : null)
+          : (_allSuppliers.isNotEmpty ? _allSuppliers.first.id : null);
+
+      await _loadMappings(selectId: selectId);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _initialLoading = false;
+        _pageError = error.toString();
+      });
+    }
+  }
+
+  int? _partyTypeId(PartyTypeModel partyType) {
+    final json = partyType.toJson();
+    return int.tryParse(json['id']?.toString() ?? '');
+  }
+
+  bool _isSupplierPartyType(PartyTypeModel partyType) {
+    final json = partyType.toJson();
+    final code = json['type_code']?.toString().toLowerCase().trim() ?? '';
+    final name = json['name']?.toString().toLowerCase().trim() ?? '';
+    return code.contains('supplier') ||
+        code.contains('vendor') ||
+        name.contains('supplier') ||
+        name.contains('vendor');
+  }
+
+  Future<void> _loadMappings({int? selectId}) async {
+    if (_selectedMasterId == null) {
+      setState(() {
+        _items = const <ItemSupplierMapModel>[];
+        _filteredItems = const <ItemSupplierMapModel>[];
+        _initialLoading = false;
+      });
+      _resetForm();
+      return;
+    }
+
+    setState(() {
+      _pageError = null;
+    });
+
+    try {
+      final response = await _inventoryService.itemSupplierMaps(
+        filters: {
+          'per_page': 200,
+          'sort_by': 'supplier_priority',
+          'sort_order': 'asc',
+          if (_isItemWise) 'item_id': _selectedMasterId,
+          if (!_isItemWise) 'supplier_id': _selectedMasterId,
+        },
+      );
+      final items = response.data ?? const <ItemSupplierMapModel>[];
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _items = items;
+        _filteredItems = _filterMappings(items, _mappingSearchController.text);
+        _initialLoading = false;
+      });
+
+      final selected = selectId != null
+          ? items.cast<ItemSupplierMapModel?>().firstWhere(
+              (item) => item?.id == selectId,
+              orElse: () => null,
+            )
+          : (_selectedItem == null
+                ? (items.isNotEmpty ? items.first : null)
+                : items.cast<ItemSupplierMapModel?>().firstWhere(
+                    (item) => item?.id == _selectedItem?.id,
+                    orElse: () => items.isNotEmpty ? items.first : null,
+                  ));
+
+      if (selected != null) {
+        _selectMapping(selected);
+      } else {
+        _resetForm();
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _initialLoading = false;
+        _pageError = error.toString();
+      });
+    }
+  }
+
+  List<ItemSupplierMapModel> _filterItems(
+    List<ItemSupplierMapModel> source,
+    String query,
+  ) {
+    return filterMasterList(source, query, (item) {
+      return [
+        item.itemCode,
+        item.itemName,
+        item.supplierCode,
+        item.supplierName,
+        item.supplierItemCode ?? '',
+        item.supplierItemName ?? '',
+      ];
+    });
+  }
+
+  List<ItemModel> _filterMasterItems(List<ItemModel> source, String query) {
+    return filterMasterList(source, query, (item) {
+      return [item.itemCode, item.itemName];
+    });
+  }
+
+  List<PartyModel> _filterMasterSuppliers(
+    List<PartyModel> source,
+    String query,
+  ) {
+    return filterMasterList(source, query, (party) {
+      return [
+        party.partyCode ?? '',
+        party.displayName ?? '',
+        party.partyName ?? '',
+        party.partyType ?? '',
+      ];
+    });
+  }
+
+  List<ItemSupplierMapModel> _filterMappings(
+    List<ItemSupplierMapModel> source,
+    String query,
+  ) {
+    return _filterItems(source, query);
+  }
+
+  void _applyMasterSearch() {
+    setState(() {
+      _filteredMastersItems = _filterMasterItems(
+        _allItems,
+        _masterSearchController.text,
+      );
+      _filteredMasterSuppliers = _filterMasterSuppliers(
+        _allSuppliers,
+        _masterSearchController.text,
+      );
+    });
+  }
+
+  void _applyMappingSearch() {
+    setState(() {
+      _filteredItems = _filterMappings(_items, _mappingSearchController.text);
+    });
+  }
+
+  void _refreshAddSearch() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _selectMapping(ItemSupplierMapModel item) {
+    _selectedItem = item;
+    _counterpartyId = _isItemWise ? item.supplierId : item.itemId;
+    _purchaseUomId = item.purchaseUomId;
+    _supplierItemCodeController.text = item.supplierItemCode ?? '';
+    _supplierItemNameController.text = item.supplierItemName ?? '';
+    _leadTimeDaysController.text = item.leadTimeDays?.toString() ?? '';
+    _minOrderQtyController.text = item.minOrderQty?.toString() ?? '';
+    _supplierPriorityController.text = item.supplierPriority?.toString() ?? '';
+    _remarksController.text = item.remarks ?? '';
+    _isPrimarySupplier = item.isPrimarySupplier;
+    _isActive = item.isActive;
+    _formError = null;
+    setState(() {});
+  }
+
+  void _resetForm() {
+    _selectedItem = null;
+    _counterpartyId = null;
+    _purchaseUomId = _uoms.isNotEmpty ? _uoms.first.id : null;
+    _supplierItemCodeController.clear();
+    _supplierItemNameController.clear();
+    _leadTimeDaysController.clear();
+    _minOrderQtyController.clear();
+    _supplierPriorityController.text = '0';
+    _remarksController.clear();
+    _isPrimarySupplier = false;
+    _isActive = true;
+    _addSearchController.clear();
+    _formError = null;
+    setState(() {});
+  }
+
+  List<dynamic> get _counterpartyOptions =>
+      _isItemWise ? _allSuppliers : _allItems;
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate() || _selectedMasterId == null) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _formError = null;
+    });
+
+    final model = ItemSupplierMapModel(
+      id: _selectedItem?.id,
+      itemId: _isItemWise ? _selectedMasterId : _counterpartyId,
+      supplierId: _isItemWise ? _counterpartyId : _selectedMasterId,
+      supplierItemCode: nullIfEmpty(_supplierItemCodeController.text),
+      supplierItemName: nullIfEmpty(_supplierItemNameController.text),
+      purchaseUomId: _purchaseUomId,
+      leadTimeDays: int.tryParse(_leadTimeDaysController.text.trim()),
+      minOrderQty: double.tryParse(_minOrderQtyController.text.trim()),
+      supplierPriority:
+          int.tryParse(_supplierPriorityController.text.trim()) ?? 0,
+      isPrimarySupplier: _isPrimarySupplier,
+      isActive: _isActive,
+      remarks: nullIfEmpty(_remarksController.text),
+    );
+
+    try {
+      final response = _selectedItem == null
+          ? await _inventoryService.createItemSupplierMap(model)
+          : await _inventoryService.updateItemSupplierMap(
+              _selectedItem!.id!,
+              model,
+            );
+      final saved = response.data;
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(response.message)));
+      await _loadMappings(selectId: saved?.id);
+    } catch (error) {
+      setState(() {
+        _formError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _delete() async {
+    final id = _selectedItem?.id;
+    if (id == null) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _formError = null;
+    });
+
+    try {
+      final response = await _inventoryService.deleteItemSupplierMap(id);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(response.message)));
+      await _loadMappings();
+    } catch (error) {
+      setState(() {
+        _formError = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  void _startNew() {
+    _resetForm();
+    if (!Responsive.isDesktop(context)) {
+      _workspaceController.openEditor();
+    }
+  }
+
+  void _selectMaster(int? id) {
+    if (id == null) {
+      return;
+    }
+    setState(() {
+      _selectedMasterId = id;
+    });
+    _loadMappings();
+  }
+
+  void _startNewWithCounterparty(int id) {
+    _resetForm();
+    _counterpartyId = id;
+    _formError = null;
+    setState(() {});
+  }
+
+  String _itemLabel(ItemModel item) {
+    final name = item.itemName.trim();
+    final code = item.itemCode.trim();
+    if (code.isNotEmpty && name.isNotEmpty) {
+      return '$code - $name';
+    }
+    return name.isNotEmpty ? name : code;
+  }
+
+  String _supplierLabel(PartyModel party) {
+    final name = (party.displayName ?? party.partyName ?? '').trim();
+    final code = (party.partyCode ?? '').trim();
+    if (code.isNotEmpty && name.isNotEmpty) {
+      return '$code - $name';
+    }
+    return name.isNotEmpty ? name : code;
+  }
+
+  String get _selectedMasterTitle {
+    if (_selectedMasterId == null) {
+      return _pageTitle;
+    }
+
+    if (_isItemWise) {
+      final item = _allItems.cast<ItemModel?>().firstWhere(
+        (entry) => entry?.id == _selectedMasterId,
+        orElse: () => null,
+      );
+      return item == null ? _pageTitle : _itemLabel(item);
+    }
+
+    final supplier = _allSuppliers.cast<PartyModel?>().firstWhere(
+      (entry) => entry?.id == _selectedMasterId,
+      orElse: () => null,
+    );
+    return supplier == null ? _pageTitle : _supplierLabel(supplier);
+  }
+
+  List<dynamic> get _availableCounterpartyOptions {
+    final selectedIds = _items
+        .map((item) => _isItemWise ? item.supplierId : item.itemId)
+        .whereType<int>()
+        .toSet();
+
+    if (_counterpartyId != null) {
+      selectedIds.remove(_counterpartyId);
+    }
+
+    if (_isItemWise) {
+      return _allSuppliers
+          .where((party) => party.id != null && !selectedIds.contains(party.id))
+          .toList(growable: false);
+    }
+
+    return _allItems
+        .where((item) => !selectedIds.contains(item.id))
+        .toList(growable: false);
+  }
+
+  List<dynamic> get _filteredAvailableCounterpartyOptions {
+    final query = _addSearchController.text.trim().toLowerCase();
+    final options = _availableCounterpartyOptions;
+    if (query.isEmpty) {
+      return options.take(8).toList(growable: false);
+    }
+
+    return options
+        .where((option) {
+          final text = _isItemWise
+              ? _supplierLabel(option as PartyModel).toLowerCase()
+              : _itemLabel(option as ItemModel).toLowerCase();
+          return text.contains(query);
+        })
+        .take(8)
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final content = _buildContent();
+    final actions = <Widget>[
+      AdaptiveShellActionButton(
+        onPressed: _selectedMasterId == null ? null : _startNew,
+        icon: _isItemWise
+            ? Icons.local_shipping_outlined
+            : Icons.inventory_2_outlined,
+        label: _isItemWise ? 'Add Supplier' : 'Add Item',
+      ),
+    ];
+
+    if (widget.embedded) {
+      return ShellPageActions(actions: actions, child: content);
+    }
+
+    return AppStandaloneShell(
+      title: _pageTitle,
+      scrollController: _pageScrollController,
+      actions: actions,
+      child: content,
+    );
+  }
+
+  Widget _buildContent() {
+    if (_initialLoading) {
+      return AppLoadingView(message: 'Loading ${_pageTitle.toLowerCase()}...');
+    }
+
+    if (_pageError != null) {
+      return AppErrorStateView(
+        title: 'Unable to load ${_pageTitle.toLowerCase()}',
+        message: _pageError!,
+        onRetry: _loadData,
+      );
+    }
+
+    return SettingsWorkspace(
+      controller: _workspaceController,
+      title: _pageTitle,
+      editorTitle: _selectedMasterTitle,
+      scrollController: _pageScrollController,
+      list: SettingsListCard<dynamic>(
+        searchController: _masterSearchController,
+        searchHint: 'Search $_masterLabel',
+        items: _isItemWise ? _filteredMastersItems : _filteredMasterSuppliers,
+        selectedItem: _isItemWise
+            ? _allItems.cast<ItemModel?>().firstWhere(
+                (item) => item?.id == _selectedMasterId,
+                orElse: () => null,
+              )
+            : _allSuppliers.cast<PartyModel?>().firstWhere(
+                (party) => party?.id == _selectedMasterId,
+                orElse: () => null,
+              ),
+        emptyMessage: 'No $_masterLabel records found.',
+        itemBuilder: (entry, selected) {
+          if (_isItemWise) {
+            final item = entry as ItemModel;
+            return SettingsListTile(
+              title: item.itemName,
+              subtitle: item.itemCode,
+              selected: selected,
+              onTap: () => _selectMaster(item.id),
+            );
+          }
+
+          final supplier = entry as PartyModel;
+          return SettingsListTile(
+            title: supplier.displayName ?? supplier.partyName ?? '-',
+            subtitle: supplier.partyCode ?? '',
+            selected: selected,
+            onTap: () => _selectMaster(supplier.id),
+          );
+        },
+      ),
+      editor: AppSectionCard(
+        child: _selectedMasterId == null
+            ? SettingsEmptyState(
+                icon: _isItemWise
+                    ? Icons.inventory_2_outlined
+                    : Icons.local_shipping_outlined,
+                title: 'Select $_masterLabel',
+                message:
+                    'Choose a $_masterLabel from the left to manage ${_counterpartyLabel.toLowerCase()} mappings.',
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _selectedMasterTitle,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _mappingSearchController,
+                    decoration: InputDecoration(
+                      hintText: _isItemWise
+                          ? 'Search suppliers for this item'
+                          : 'Search items for this supplier',
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_filteredItems.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        _isItemWise
+                            ? 'No suppliers mapped for this item.'
+                            : 'No items mapped for this supplier.',
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _filteredItems.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final item = _filteredItems[index];
+                        return SettingsListTile(
+                          title: _isItemWise
+                              ? (item.supplierName.isNotEmpty
+                                    ? item.supplierName
+                                    : item.supplierCode)
+                              : (item.itemName.isNotEmpty
+                                    ? item.itemName
+                                    : item.itemCode),
+                          subtitle: [
+                            if (item.supplierItemCode != null)
+                              item.supplierItemCode!,
+                            if (item.purchaseUomSymbol.isNotEmpty)
+                              item.purchaseUomSymbol,
+                            if (item.supplierPriority != null)
+                              'Priority ${item.supplierPriority}',
+                            if (item.isPrimarySupplier) 'Primary',
+                          ].join(' · '),
+                          selected: identical(item, _selectedItem),
+                          onTap: () => _selectMapping(item),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _isItemWise ? 'Add Supplier' : 'Add Item',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _addSearchController,
+                    decoration: InputDecoration(
+                      hintText: _isItemWise
+                          ? 'Search supplier to add'
+                          : 'Search item to add',
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_filteredAvailableCounterpartyOptions.isEmpty)
+                    Text(
+                      _isItemWise
+                          ? 'No more suppliers available to add.'
+                          : 'No more items available to add.',
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _filteredAvailableCounterpartyOptions.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final option =
+                            _filteredAvailableCounterpartyOptions[index];
+                        final optionId = _isItemWise
+                            ? (option as PartyModel).id
+                            : (option as ItemModel).id;
+                        if (optionId == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return SettingsListTile(
+                          title: _isItemWise
+                              ? _supplierLabel(option as PartyModel)
+                              : _itemLabel(option as ItemModel),
+                          subtitle: '',
+                          selected:
+                              optionId == _counterpartyId &&
+                              _selectedItem == null,
+                          onTap: () => _startNewWithCounterparty(optionId),
+                          trailing: const Icon(Icons.add_circle_outline),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 20),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_formError != null) ...[
+                          AppErrorStateView.inline(message: _formError!),
+                          const SizedBox(height: 12),
+                        ],
+                        DropdownButtonFormField<int>(
+                          initialValue: _counterpartyId,
+                          decoration: InputDecoration(
+                            labelText: _counterpartyLabel,
+                          ),
+                          items: _counterpartyOptions
+                              .where((entry) => entry.id != null)
+                              .map(
+                                (entry) => DropdownMenuItem<int>(
+                                  value: entry.id as int,
+                                  child: Text(
+                                    _isItemWise
+                                        ? _supplierLabel(entry as PartyModel)
+                                        : _itemLabel(entry as ItemModel),
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _counterpartyId = value),
+                          validator: (value) =>
+                              Validators.requiredSelectionField(
+                                value,
+                                _counterpartyLabel,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _supplierItemCodeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Supplier Item Code',
+                          ),
+                          validator: Validators.optionalMaxLength(
+                            100,
+                            'Supplier Item Code',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _supplierItemNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Supplier Item Name',
+                          ),
+                          validator: Validators.optionalMaxLength(
+                            255,
+                            'Supplier Item Name',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<int>(
+                          initialValue: _purchaseUomId,
+                          decoration: const InputDecoration(
+                            labelText: 'Purchase UOM',
+                          ),
+                          items: _uoms
+                              .where((uom) => uom.id != null)
+                              .map(
+                                (uom) => DropdownMenuItem<int>(
+                                  value: uom.id,
+                                  child: Text(uom.toString()),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _purchaseUomId = value),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _leadTimeDaysController,
+                          decoration: const InputDecoration(
+                            labelText: 'Lead Time Days',
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: Validators.optionalNonNegativeInteger(
+                            'Lead Time Days',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _minOrderQtyController,
+                          decoration: const InputDecoration(
+                            labelText: 'Minimum Order Quantity',
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          validator: Validators.optionalNonNegativeNumber(
+                            'Minimum Order Quantity',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _supplierPriorityController,
+                          decoration: const InputDecoration(
+                            labelText: 'Supplier Priority',
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: Validators.optionalNonNegativeInteger(
+                            'Supplier Priority',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _remarksController,
+                          decoration: const InputDecoration(
+                            labelText: 'Remarks',
+                          ),
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 12),
+                        AppSwitchTile(
+                          label: 'Primary Supplier',
+                          value: _isPrimarySupplier,
+                          onChanged: (value) =>
+                              setState(() => _isPrimarySupplier = value),
+                        ),
+                        const SizedBox(height: 12),
+                        AppSwitchTile(
+                          label: 'Active',
+                          value: _isActive,
+                          onChanged: (value) =>
+                              setState(() => _isActive = value),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (_selectedItem?.id != null)
+                              TextButton(
+                                onPressed: _saving ? null : _delete,
+                                child: const Text('Delete'),
+                              ),
+                            const SizedBox(width: 12),
+                            FilledButton.icon(
+                              onPressed: _saving ? null : _save,
+                              icon: const Icon(Icons.save_outlined),
+                              label: Text(_saving ? 'Saving...' : 'Save'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}

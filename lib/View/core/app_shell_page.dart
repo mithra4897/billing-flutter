@@ -10,11 +10,18 @@ import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
 import '../settings/user/role_management_page.dart';
 import '../settings/user/user_management_page.dart';
+import '../settings/master/brand_page.dart';
 import '../settings/master/branch_page.dart';
 import '../settings/master/business_location_page.dart';
 import '../settings/master/company_page.dart';
 import '../settings/master/document_series_page.dart';
+import '../settings/master/item_alternate_page.dart';
 import '../settings/master/item_category_page.dart';
+import '../settings/master/item_page.dart';
+import '../settings/master/item_price_page.dart';
+import '../settings/master/physical_stock_count_page.dart';
+import '../settings/master/item_supplier_map_page.dart';
+import '../settings/master/stock_balance_page.dart';
 import '../settings/master/tax_category_page.dart';
 import '../settings/master/uom_conversion_page.dart';
 import '../settings/master/uom_page.dart';
@@ -179,6 +186,40 @@ class _AppShellPageState extends State<AppShellPage> {
         return TaxCategoryManagementPage(key: routeKey, embedded: true);
       case '/inventory/item-categories':
         return ItemCategoryManagementPage(key: routeKey, embedded: true);
+      case '/inventory/items':
+        return ItemManagementPage(key: routeKey, embedded: true);
+      case '/inventory/item-prices':
+        return ItemPriceManagementPage(key: routeKey, embedded: true);
+      case '/inventory/stock-balances':
+        return StockBalancePage(key: routeKey, embedded: true);
+      case '/inventory/physical-stock-counts':
+        return PhysicalStockCountPage(key: routeKey, embedded: true);
+      case '/inventory/brands':
+        return BrandManagementPage(key: routeKey, embedded: true);
+      case '/inventory/item-alternates':
+        return ItemAlternateManagementPage(
+          key: routeKey,
+          embedded: true,
+          mode: ItemAlternateViewMode.itemWise,
+        );
+      case '/inventory/alternate-items':
+        return ItemAlternateManagementPage(
+          key: routeKey,
+          embedded: true,
+          mode: ItemAlternateViewMode.alternateWise,
+        );
+      case '/inventory/item-suppliers':
+        return ItemSupplierMapManagementPage(
+          key: routeKey,
+          embedded: true,
+          mode: ItemSupplierMapViewMode.itemWise,
+        );
+      case '/inventory/supplier-items':
+        return ItemSupplierMapManagementPage(
+          key: routeKey,
+          embedded: true,
+          mode: ItemSupplierMapViewMode.supplierWise,
+        );
       case '/tax/states':
         return StateManagementPage(key: routeKey, embedded: true);
       case '/tax/gst-registrations':
