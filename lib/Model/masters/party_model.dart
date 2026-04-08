@@ -53,7 +53,7 @@ class PartyModel implements JsonModel {
       partyName: json['party_name']?.toString() ?? '',
       displayName: json['display_name']?.toString(),
       partyTypeId: _parseInt(json['party_type_id']),
-      partyType: json['party_type']?.toString(),
+      partyType: json['party_type_id']?.toString(),
       isCompany: json['is_company'] == true || json['is_company'] == 1,
       website: json['website']?.toString(),
       pan: json['pan']?.toString(),

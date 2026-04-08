@@ -212,6 +212,10 @@ class _ItemAlternateManagementPageState
   }
 
   void _selectMapping(ItemAlternateModel item) {
+    if (_selectedItem?.id == item.id) {
+      _resetForm();
+      return;
+    }
     _selectedItem = item;
     _counterpartyId = _counterpartyIdFor(item);
     _priorityController.text = item.priorityOrder?.toString() ?? '1';
@@ -414,10 +418,6 @@ class _ItemAlternateManagementPageState
 
   List<ItemModel> get _availableCounterpartyOptions {
     final selectedIds = _items.map(_counterpartyIdFor).whereType<int>().toSet();
-
-    if (_counterpartyId != null) {
-      selectedIds.remove(_counterpartyId);
-    }
 
     return _allItems
         .where(

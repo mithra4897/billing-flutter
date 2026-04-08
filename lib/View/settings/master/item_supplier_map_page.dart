@@ -37,10 +37,9 @@ class _ItemSupplierMapManagementPageState
       TextEditingController();
   final TextEditingController _supplierItemNameController =
       TextEditingController();
+  final TextEditingController _supplierRateController = TextEditingController();
   final TextEditingController _leadTimeDaysController = TextEditingController();
   final TextEditingController _minOrderQtyController = TextEditingController();
-  final TextEditingController _supplierPriorityController =
-      TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
 
   bool _initialLoading = true;
@@ -86,9 +85,9 @@ class _ItemSupplierMapManagementPageState
     _addSearchController.dispose();
     _supplierItemCodeController.dispose();
     _supplierItemNameController.dispose();
+    _supplierRateController.dispose();
     _leadTimeDaysController.dispose();
     _minOrderQtyController.dispose();
-    _supplierPriorityController.dispose();
     _remarksController.dispose();
     super.dispose();
   }
@@ -245,10 +244,10 @@ class _ItemSupplierMapManagementPageState
       final response = await _inventoryService.itemSupplierMaps(
         filters: {
           'per_page': 200,
-          'sort_by': 'supplier_priority',
-          'sort_order': 'asc',
+          'sort_by': 'is_primary_supplier',
+          'sort_order': 'desc',
           if (_isItemWise) 'item_id': _selectedMasterId,
-          if (!_isItemWise) 'supplier_id': _selectedMasterId,
+          if (!_isItemWise) 'supplier_party_id': _selectedMasterId,
         },
       );
       final items = response.data ?? const <ItemSupplierMapModel>[];
@@ -330,14 +329,18 @@ class _ItemSupplierMapManagementPageState
   }
 
   void _selectMapping(ItemSupplierMapModel item) {
+    if (_selectedItem?.id == item.id) {
+      _resetForm();
+      return;
+    }
     _selectedItem = item;
     _counterpartyId = _isItemWise ? item.supplierId : item.itemId;
     _purchaseUomId = item.purchaseUomId;
     _supplierItemCodeController.text = item.supplierItemCode ?? '';
     _supplierItemNameController.text = item.supplierItemName ?? '';
+    _supplierRateController.text = item.supplierRate?.toString() ?? '';
     _leadTimeDaysController.text = item.leadTimeDays?.toString() ?? '';
     _minOrderQtyController.text = item.minOrderQty?.toString() ?? '';
-    _supplierPriorityController.text = item.supplierPriority?.toString() ?? '';
     _remarksController.text = item.remarks ?? '';
     _isPrimarySupplier = item.isPrimarySupplier;
     _isActive = item.isActive;
@@ -351,9 +354,9 @@ class _ItemSupplierMapManagementPageState
     _purchaseUomId = _defaultPurchaseUomId;
     _supplierItemCodeController.clear();
     _supplierItemNameController.clear();
+    _supplierRateController.clear();
     _leadTimeDaysController.clear();
     _minOrderQtyController.clear();
-    _supplierPriorityController.text = '0';
     _remarksController.clear();
     _isPrimarySupplier = false;
     _isActive = true;
@@ -454,10 +457,9 @@ class _ItemSupplierMapManagementPageState
       supplierItemCode: nullIfEmpty(_supplierItemCodeController.text),
       supplierItemName: nullIfEmpty(_supplierItemNameController.text),
       purchaseUomId: _purchaseUomId,
+      supplierRate: double.tryParse(_supplierRateController.text.trim()),
       leadTimeDays: int.tryParse(_leadTimeDaysController.text.trim()),
       minOrderQty: double.tryParse(_minOrderQtyController.text.trim()),
-      supplierPriority:
-          int.tryParse(_supplierPriorityController.text.trim()) ?? 0,
       isPrimarySupplier: _isPrimarySupplier,
       isActive: _isActive,
       remarks: nullIfEmpty(_remarksController.text),
@@ -635,10 +637,6 @@ class _ItemSupplierMapManagementPageState
         .map((item) => _isItemWise ? item.supplierId : item.itemId)
         .whereType<int>()
         .toSet();
-
-    if (_counterpartyId != null) {
-      selectedIds.remove(_counterpartyId);
-    }
 
     if (_isItemWise) {
       return _allSuppliers
@@ -832,8 +830,7 @@ class _ItemSupplierMapManagementPageState
                 subtitle: [
                   if (item.supplierItemCode != null) item.supplierItemCode!,
                   if (item.purchaseUomSymbol.isNotEmpty) item.purchaseUomSymbol,
-                  if (item.supplierPriority != null)
-                    'Priority ${item.supplierPriority}',
+                  if (item.supplierRate != null) 'Rate ${item.supplierRate}',
                   if (item.isPrimarySupplier) 'Primary',
                 ].join(' · '),
                 selected: identical(item, _selectedItem),
@@ -967,6 +964,16 @@ class _ItemSupplierMapManagementPageState
                           setState(() => _purchaseUomId = value),
                     ),
                     AppFormTextField(
+                      labelText: 'Supplier Rate',
+                      controller: _supplierRateController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Supplier Rate',
+                      ),
+                    ),
+                    AppFormTextField(
                       labelText: 'Lead Time Days',
                       controller: _leadTimeDaysController,
                       keyboardType: TextInputType.number,
@@ -982,14 +989,6 @@ class _ItemSupplierMapManagementPageState
                       ),
                       validator: Validators.optionalNonNegativeNumber(
                         'Minimum Order Quantity',
-                      ),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Supplier Priority',
-                      controller: _supplierPriorityController,
-                      keyboardType: TextInputType.number,
-                      validator: Validators.optionalNonNegativeInteger(
-                        'Supplier Priority',
                       ),
                     ),
                     AppFormTextField(

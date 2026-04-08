@@ -313,6 +313,10 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
   }
 
   void _selectPrice(ItemPriceModel item) {
+    if (_selectedPrice?.id == item.id) {
+      _resetForm();
+      return;
+    }
     _selectedPrice = item;
     _uomId = item.uomId;
     _priceType = item.priceType ?? 'sales';
