@@ -1,3 +1,4 @@
+import '../../../helper/media_upload_helper.dart';
 import '../../../screen.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -166,77 +167,30 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _uploadProfileImage() async {
-    final pathController = TextEditingController();
-
-    final selectedPath = await showDialog<String>(
+    await MediaUploadHelper.uploadImage(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Upload Profile Image'),
-          content: TextField(
-            controller: pathController,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Local File Path',
-              hintText: '/Users/name/Pictures/profile.png',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(pathController.text.trim()),
-              child: const Text('Upload'),
-            ),
-          ],
-        );
+      mediaService: _mediaService,
+      onLoading: (isLoading) {
+        if (mounted) setState(() => _uploadingPhoto = isLoading);
       },
+      onSuccess: (filePath) {
+        if (mounted) {
+          setState(() {
+            _profilePhotoController.text = filePath;
+            _error = null;
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) setState(() => _error = error);
+      },
+      module: 'auth',
+      documentType: 'users',
+      documentId: _profile?.id,
+      purpose: 'profile_photo',
+      folder: 'users/profile',
+      isPublic: true,
     );
-
-    if (!mounted || selectedPath == null || selectedPath.isEmpty) {
-      return;
-    }
-
-    setState(() {
-      _uploadingPhoto = true;
-      _error = null;
-    });
-
-    try {
-      final response = await _mediaService.uploadFile(
-        filePath: selectedPath,
-        module: 'auth',
-        documentType: 'users',
-        documentId: _profile?.id,
-        purpose: 'profile_photo',
-        folder: 'users/profile',
-        isPublic: true,
-      );
-
-      final uploaded = response.data;
-      if (uploaded == null) {
-        setState(() {
-          _error = response.message;
-        });
-        return;
-      }
-
-      _profilePhotoController.text = uploaded.filePath;
-      setState(() {});
-    } catch (error) {
-      setState(() {
-        _error = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _uploadingPhoto = false;
-        });
-      }
-    }
   }
 
   Future<void> _logout(BuildContext context) async {

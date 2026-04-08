@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../../app/constants/app_config.dart';
 import '../error/api_exception.dart';
@@ -238,6 +240,71 @@ class ApiClient {
         'multipart': true,
         'file_field': fileField,
         'file_path': filePath,
+        'fields': fields ?? <String, String>{},
+      },
+    );
+
+    final streamed = await _guardRequest(
+      requestContext: requestContext,
+      () => request.send(),
+    );
+    final response = await http.Response.fromStream(streamed);
+
+    _invalidateCacheForMutation(endpoint, response.statusCode);
+    return _parseResponse(
+      response,
+      fromData: fromData,
+      requestContext: requestContext,
+    );
+  }
+
+  Future<ApiResponse<T>> uploadBytes<T>(
+    String endpoint, {
+    required String fileField,
+    required Uint8List fileBytes,
+    required String fileName,
+    Map<String, String>? fields,
+    T Function(dynamic json)? fromData,
+  }) async {
+    final uri = _buildUri(endpoint);
+    final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll(await _buildMultipartHeaders());
+
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+
+    MediaType? mediaType;
+    final ext = fileName.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'png': mediaType = MediaType('image', 'png'); break;
+      case 'jpg':
+      case 'jpeg': mediaType = MediaType('image', 'jpeg'); break;
+      case 'webp': mediaType = MediaType('image', 'webp'); break;
+      case 'gif': mediaType = MediaType('image', 'gif'); break;
+      case 'pdf': mediaType = MediaType('application', 'pdf'); break;
+      default: mediaType = MediaType('application', 'octet-stream');
+    }
+
+    final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9.\-_]'), '_');
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        fileField, 
+        fileBytes, 
+        filename: safeFileName,
+        contentType: mediaType,
+      ),
+    );
+
+    final requestContext = _RequestDebugContext(
+      method: 'POST',
+      uri: uri,
+      requestBody: <String, dynamic>{
+        'multipart': true,
+        'file_field': fileField,
+        'file_name': fileName,
+        'file_size': fileBytes.length,
         'fields': fields ?? <String, String>{},
       },
     );

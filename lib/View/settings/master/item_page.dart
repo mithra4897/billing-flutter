@@ -1,3 +1,4 @@
+import '../../../helper/media_upload_helper.dart';
 import '../../../screen.dart';
 import '../../../model/inventory/opening_stock_model.dart';
 import 'item_alternate_page.dart';
@@ -523,77 +524,30 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   }
 
   Future<void> _uploadItemImage() async {
-    final pathController = TextEditingController();
-
-    final selectedPath = await showDialog<String>(
+    await MediaUploadHelper.uploadImage(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Upload Item Image'),
-          content: TextField(
-            controller: pathController,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Local File Path',
-              hintText: '/Users/name/Pictures/item.png',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(pathController.text.trim()),
-              child: const Text('Upload'),
-            ),
-          ],
-        );
+      mediaService: _mediaService,
+      onLoading: (isLoading) {
+        if (mounted) setState(() => _uploadingImage = isLoading);
       },
+      onSuccess: (filePath) {
+        if (mounted) {
+          setState(() {
+            _imagePathController.text = filePath;
+            _formError = null;
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) setState(() => _formError = error);
+      },
+      module: 'inventory',
+      documentType: 'items',
+      documentId: _selectedItem?.id,
+      purpose: 'item_image',
+      folder: 'inventory/items',
+      isPublic: true,
     );
-
-    if (!mounted || selectedPath == null || selectedPath.isEmpty) {
-      return;
-    }
-
-    setState(() {
-      _uploadingImage = true;
-      _formError = null;
-    });
-
-    try {
-      final response = await _mediaService.uploadFile(
-        filePath: selectedPath,
-        module: 'inventory',
-        documentType: 'items',
-        documentId: _selectedItem?.id,
-        purpose: 'item_image',
-        folder: 'inventory/items',
-        isPublic: true,
-      );
-
-      final uploaded = response.data;
-      if (uploaded == null) {
-        setState(() {
-          _formError = response.message;
-        });
-        return;
-      }
-
-      _imagePathController.text = uploaded.filePath;
-      setState(() {});
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _uploadingImage = false;
-        });
-      }
-    }
   }
 
   String _nextSimpleCode(String prefix, Iterable<String> existingCodes) {
