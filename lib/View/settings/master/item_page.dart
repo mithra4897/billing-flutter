@@ -1336,12 +1336,6 @@ class _ItemManagementPageState extends State<ItemManagementPage>
                   onChanged: (value) => setState(() => _isPurchaseable = value),
                 ),
                 _ItemFlagTile(
-                  label: 'Manufacturable',
-                  value: _isManufacturable,
-                  onChanged: (value) =>
-                      setState(() => _isManufacturable = value),
-                ),
-                _ItemFlagTile(
                   label: 'Jobwork Applicable',
                   value: _isJobworkApplicable,
                   onChanged: (value) =>
@@ -1482,13 +1476,22 @@ class _ItemFlagTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
+    final extension = theme.extension<AppThemeExtension>()!;
+    final tileBackground = extension.subtleFill;
+    final borderColor = value
+        ? primary.withValues(alpha: 0.30)
+        : extension.mutedText.withValues(alpha: 0.24);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 52),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppUiConstants.cardPadding * 0.5,
+        vertical: 6,
+      ),
       decoration: BoxDecoration(
+        color: tileBackground,
         borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.28)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -1497,6 +1500,7 @@ class _ItemFlagTile extends StatelessWidget {
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),
