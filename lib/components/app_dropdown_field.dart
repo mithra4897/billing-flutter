@@ -7,6 +7,9 @@ class AppDropdownItem<T> {
 
   final T value;
   final String label;
+
+  @override
+  String toString() => label;
 }
 
 class AppDropdownField<T> extends StatelessWidget {
@@ -66,16 +69,28 @@ class AppDropdownField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dropdownItems = items ?? _buildMappedItems() ?? _buildRecordItems();
+
     return AppFieldBox(
       width: width,
       child: DropdownButtonFormField<T>(
-        initialValue: initialValue,
+        initialValue: _resolveInitialValue(dropdownItems),
         decoration: InputDecoration(labelText: labelText, hintText: hintText),
-        items: items ?? _buildMappedItems() ?? _buildRecordItems(),
+        items: dropdownItems,
         onChanged: onChanged,
         validator: validator,
       ),
     );
+  }
+
+  T? _resolveInitialValue(List<DropdownMenuItem<T>> dropdownItems) {
+    final value = initialValue;
+    if (value == null) {
+      return null;
+    }
+
+    final hasMatch = dropdownItems.any((item) => item.value == value);
+    return hasMatch ? value : null;
   }
 
   List<DropdownMenuItem<T>>? _buildMappedItems() {

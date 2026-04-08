@@ -197,6 +197,13 @@ class AppNavigation {
           icon: Icons.receipt_long_outlined,
           children: [
             AppNavigationItem(
+              key: 'tax-gst-registrations',
+              title: 'GST Registrations',
+              icon: Icons.assignment_ind_outlined,
+              path: '/tax/gst-registrations',
+              requiredPermissions: ['taxes.view'],
+            ),
+            AppNavigationItem(
               key: 'inventory-tax-codes',
               title: 'Tax Codes',
               icon: Icons.percent_outlined,
@@ -210,13 +217,7 @@ class AppNavigation {
               path: '/tax/states',
               requiredPermissions: ['taxes.view'],
             ),
-            AppNavigationItem(
-              key: 'tax-gst-registrations',
-              title: 'GST Registrations',
-              icon: Icons.assignment_ind_outlined,
-              path: '/tax/gst-registrations',
-              requiredPermissions: ['taxes.view'],
-            ),
+
             AppNavigationItem(
               key: 'tax-rules',
               title: 'GST Tax Rules',

@@ -1266,66 +1266,52 @@ class _ItemManagementPageState extends State<ItemManagementPage>
             maxLines: 3,
           ),
           const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final columns = width >= 1080 ? 3 : (width >= 720 ? 2 : 1);
-              final spacing = 12.0;
-              final tileWidth = (width - ((columns - 1) * spacing)) / columns;
-
-              final tiles = <Widget>[
-                _ItemFlagTile(
-                  label: 'Track Inventory',
-                  value: _trackInventory,
-                  onChanged: (value) => setState(() => _trackInventory = value),
-                ),
-                _ItemFlagTile(
-                  label: 'Saleable',
-                  value: _isSaleable,
-                  onChanged: (value) => setState(() => _isSaleable = value),
-                ),
-                _ItemFlagTile(
-                  label: 'Purchaseable',
-                  value: _isPurchaseable,
-                  onChanged: (value) => setState(() => _isPurchaseable = value),
-                ),
-                _ItemFlagTile(
-                  label: 'Jobwork Applicable',
-                  value: _isJobworkApplicable,
-                  onChanged: (value) =>
-                      setState(() => _isJobworkApplicable = value),
-                ),
-                _ItemFlagTile(
-                  label: 'Batch Enabled',
-                  value: _hasBatch,
-                  onChanged: (value) => setState(() => _hasBatch = value),
-                ),
-                _ItemFlagTile(
-                  label: 'Serial Enabled',
-                  value: _hasSerial,
-                  onChanged: (value) => setState(() => _hasSerial = value),
-                ),
-                _ItemFlagTile(
-                  label: 'Expiry Enabled',
-                  value: _hasExpiry,
-                  onChanged: (value) => setState(() => _hasExpiry = value),
-                ),
-                _ItemFlagTile(
-                  label: 'Active',
-                  value: _isActive,
-                  onChanged: (value) => setState(() => _isActive = value),
-                ),
-              ];
-
-              return Wrap(
-                spacing: spacing,
-                runSpacing: spacing,
-                children: tiles
-                    .map((tile) => SizedBox(width: tileWidth, child: tile))
-                    .toList(growable: false),
-              );
-            },
+          Wrap(
+            children: [
+              AppToggleChip(
+                label: 'Track Inventory',
+                value: _trackInventory,
+                onChanged: (value) => setState(() => _trackInventory = value),
+              ),
+              AppToggleChip(
+                label: 'Saleable',
+                value: _isSaleable,
+                onChanged: (value) => setState(() => _isSaleable = value),
+              ),
+              AppToggleChip(
+                label: 'Purchaseable',
+                value: _isPurchaseable,
+                onChanged: (value) => setState(() => _isPurchaseable = value),
+              ),
+              AppToggleChip(
+                label: 'Jobwork Applicable',
+                value: _isJobworkApplicable,
+                onChanged: (value) =>
+                    setState(() => _isJobworkApplicable = value),
+              ),
+              AppToggleChip(
+                label: 'Batch Enabled',
+                value: _hasBatch,
+                onChanged: (value) => setState(() => _hasBatch = value),
+              ),
+              AppToggleChip(
+                label: 'Serial Enabled',
+                value: _hasSerial,
+                onChanged: (value) => setState(() => _hasSerial = value),
+              ),
+              AppToggleChip(
+                label: 'Expiry Enabled',
+                value: _hasExpiry,
+                onChanged: (value) => setState(() => _hasExpiry = value),
+              ),
+              AppToggleChip(
+                label: 'Active',
+                value: _isActive,
+                onChanged: (value) => setState(() => _isActive = value),
+              ),
+            ],
           ),
+
           const SizedBox(height: 20),
           Wrap(
             spacing: 12,
@@ -1411,62 +1397,6 @@ class _ItemManagementPageState extends State<ItemManagementPage>
       title: 'Select Or Save Item',
       message:
           'Use the Primary tab to select an existing item or save this item first before managing $featureLabel.',
-    );
-  }
-}
-
-class _ItemFlagTile extends StatelessWidget {
-  const _ItemFlagTile({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-    final extension = theme.extension<AppThemeExtension>()!;
-    final tileBackground = extension.subtleFill;
-    final borderColor = value
-        ? primary.withValues(alpha: 0.30)
-        : extension.mutedText.withValues(alpha: 0.24);
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 52),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppUiConstants.cardPadding * 0.5,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color: tileBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Switch.adaptive(
-            value: value,
-            activeColor: primary,
-            activeTrackColor: primary,
-            onChanged: onChanged,
-          ),
-        ],
-      ),
     );
   }
 }
