@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:http/http.dart' as http;
 
@@ -7,8 +8,11 @@ import '../../app/constants/app_config.dart';
 import '../error/api_exception.dart';
 import '../models/api_response.dart';
 import '../models/paginated_response.dart';
+import '../navigation/app_route_state.dart';
 import '../storage/session_storage.dart';
 import 'api_cache_store.dart';
+import '../../main.dart';
+import '../../service/app/app_session_service.dart';
 
 class ApiClient {
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
@@ -58,12 +62,16 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     T Function(dynamic json)? fromData,
   }) async {
+    final uri = _buildUri(endpoint, queryParameters);
     final response = await _getResponse(
       endpoint,
       queryParameters: queryParameters,
     );
-
-    return _parseResponse(response, fromData: fromData);
+    return _parseResponse(
+      response,
+      fromData: fromData,
+      requestContext: _RequestDebugContext(method: 'GET', uri: uri),
+    );
   }
 
   Future<PaginatedResponse<T>> getPaginated<T>(
@@ -71,13 +79,18 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     required T Function(Map<String, dynamic> json) itemFromJson,
   }) async {
+    final uri = _buildUri(endpoint, queryParameters);
     final response = await _getResponse(
       endpoint,
       queryParameters: queryParameters,
     );
-
     final json = _decodeBody(response.body);
-    _throwIfHttpError(response.statusCode, json);
+    _throwIfHttpError(
+      response.statusCode,
+      json,
+      requestContext: _RequestDebugContext(method: 'GET', uri: uri),
+      responseBody: response.body,
+    );
     return PaginatedResponse<T>.fromJson(json, itemFromJson: itemFromJson);
   }
 
@@ -86,16 +99,29 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic json)? fromData,
   }) async {
+    final uri = _buildUri(endpoint);
     final response = await _guardRequest(
+      requestContext: _RequestDebugContext(
+        method: 'POST',
+        uri: uri,
+        requestBody: body,
+      ),
       () async => _client.post(
-        _buildUri(endpoint),
+        uri,
         headers: await _buildHeaders(),
         body: jsonEncode(body ?? <String, dynamic>{}),
       ),
     );
-
     _invalidateCacheForMutation(endpoint, response.statusCode);
-    return _parseResponse(response, fromData: fromData);
+    return _parseResponse(
+      response,
+      fromData: fromData,
+      requestContext: _RequestDebugContext(
+        method: 'POST',
+        uri: uri,
+        requestBody: body,
+      ),
+    );
   }
 
   Future<ApiResponse<T>> put<T>(
@@ -103,16 +129,29 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic json)? fromData,
   }) async {
+    final uri = _buildUri(endpoint);
     final response = await _guardRequest(
+      requestContext: _RequestDebugContext(
+        method: 'PUT',
+        uri: uri,
+        requestBody: body,
+      ),
       () async => _client.put(
-        _buildUri(endpoint),
+        uri,
         headers: await _buildHeaders(),
         body: jsonEncode(body ?? <String, dynamic>{}),
       ),
     );
-
     _invalidateCacheForMutation(endpoint, response.statusCode);
-    return _parseResponse(response, fromData: fromData);
+    return _parseResponse(
+      response,
+      fromData: fromData,
+      requestContext: _RequestDebugContext(
+        method: 'PUT',
+        uri: uri,
+        requestBody: body,
+      ),
+    );
   }
 
   Future<ApiResponse<T>> patch<T>(
@@ -120,16 +159,29 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic json)? fromData,
   }) async {
+    final uri = _buildUri(endpoint);
     final response = await _guardRequest(
+      requestContext: _RequestDebugContext(
+        method: 'PATCH',
+        uri: uri,
+        requestBody: body,
+      ),
       () async => _client.patch(
-        _buildUri(endpoint),
+        uri,
         headers: await _buildHeaders(),
         body: jsonEncode(body ?? <String, dynamic>{}),
       ),
     );
-
     _invalidateCacheForMutation(endpoint, response.statusCode);
-    return _parseResponse(response, fromData: fromData);
+    return _parseResponse(
+      response,
+      fromData: fromData,
+      requestContext: _RequestDebugContext(
+        method: 'PATCH',
+        uri: uri,
+        requestBody: body,
+      ),
+    );
   }
 
   Future<ApiResponse<T>> delete<T>(
@@ -137,16 +189,29 @@ class ApiClient {
     Map<String, dynamic>? body,
     T Function(dynamic json)? fromData,
   }) async {
+    final uri = _buildUri(endpoint);
     final response = await _guardRequest(
+      requestContext: _RequestDebugContext(
+        method: 'DELETE',
+        uri: uri,
+        requestBody: body,
+      ),
       () async => _client.delete(
-        _buildUri(endpoint),
+        uri,
         headers: await _buildHeaders(),
         body: body == null ? null : jsonEncode(body),
       ),
     );
-
     _invalidateCacheForMutation(endpoint, response.statusCode);
-    return _parseResponse(response, fromData: fromData);
+    return _parseResponse(
+      response,
+      fromData: fromData,
+      requestContext: _RequestDebugContext(
+        method: 'DELETE',
+        uri: uri,
+        requestBody: body,
+      ),
+    );
   }
 
   Future<ApiResponse<T>> upload<T>(
@@ -156,7 +221,8 @@ class ApiClient {
     Map<String, String>? fields,
     T Function(dynamic json)? fromData,
   }) async {
-    final request = http.MultipartRequest('POST', _buildUri(endpoint));
+    final uri = _buildUri(endpoint);
+    final request = http.MultipartRequest('POST', uri);
     request.headers.addAll(await _buildMultipartHeaders());
 
     if (fields != null) {
@@ -165,11 +231,29 @@ class ApiClient {
 
     request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
 
-    final streamed = await _guardRequest(() => request.send());
+    final requestContext = _RequestDebugContext(
+      method: 'POST',
+      uri: uri,
+      requestBody: <String, dynamic>{
+        'multipart': true,
+        'file_field': fileField,
+        'file_path': filePath,
+        'fields': fields ?? <String, String>{},
+      },
+    );
+
+    final streamed = await _guardRequest(
+      requestContext: requestContext,
+      () => request.send(),
+    );
     final response = await http.Response.fromStream(streamed);
 
     _invalidateCacheForMutation(endpoint, response.statusCode);
-    return _parseResponse(response, fromData: fromData);
+    return _parseResponse(
+      response,
+      fromData: fromData,
+      requestContext: requestContext,
+    );
   }
 
   Future<http.Response> _getResponse(
@@ -297,9 +381,15 @@ class ApiClient {
   ApiResponse<T> _parseResponse<T>(
     http.Response response, {
     T Function(dynamic json)? fromData,
+    _RequestDebugContext? requestContext,
   }) {
     final json = _decodeBody(response.body);
-    _throwIfHttpError(response.statusCode, json);
+    _throwIfHttpError(
+      response.statusCode,
+      json,
+      requestContext: requestContext,
+      responseBody: response.body,
+    );
     return ApiResponse<T>.fromJson(json, fromData: fromData);
   }
 
@@ -320,33 +410,103 @@ class ApiClient {
           };
   }
 
-  void _throwIfHttpError(int statusCode, Map<String, dynamic> json) {
+  void _throwIfHttpError(
+    int statusCode,
+    Map<String, dynamic> json, {
+    _RequestDebugContext? requestContext,
+    String? responseBody,
+  }) {
     if (statusCode >= 200 && statusCode < 300) {
       return;
     }
 
-    throw ApiException(
-      json['message']?.toString() ?? 'Request failed',
+    _logFailedRequest(
+      requestContext,
       statusCode: statusCode,
-      errors: json['errors'],
+      responseJson: json,
+      responseBody: responseBody,
     );
+
+    if (statusCode == 401 || statusCode == 403) {
+      _handleUnauthorized();
+    }
+
+    final message = _resolveErrorMessage(json);
+
+    throw ApiException(message, statusCode: statusCode, errors: json['errors']);
   }
 
-  Future<T> _guardRequest<T>(Future<T> Function() request) async {
+  Future<T> _guardRequest<T>(
+    Future<T> Function() request, {
+    _RequestDebugContext? requestContext,
+  }) async {
     try {
       return await request().timeout(_requestTimeout);
-    } on TimeoutException {
+    } on TimeoutException catch (error, stackTrace) {
+      _logFailedRequest(requestContext, error: error, stackTrace: stackTrace);
       throw const ApiException(
         'The server is taking too long to respond. Please try again.',
         isTimeout: true,
       );
-    } on http.ClientException {
+    } on http.ClientException catch (error, stackTrace) {
+      _logFailedRequest(requestContext, error: error, stackTrace: stackTrace);
       throw const ApiException(
         'Server is unreachable. Please check the connection and try again.',
         isNetworkError: true,
       );
-    } on FormatException {
+    } on FormatException catch (error, stackTrace) {
+      _logFailedRequest(requestContext, error: error, stackTrace: stackTrace);
       throw const ApiException('Invalid response received from server.');
+    }
+  }
+
+  void _logFailedRequest(
+    _RequestDebugContext? context, {
+    int? statusCode,
+    Map<String, dynamic>? responseJson,
+    String? responseBody,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    if (context == null) {
+      return;
+    }
+
+    final buffer = StringBuffer()
+      ..writeln('[API ERROR]')
+      ..writeln('${context.method} ${context.uri}');
+
+    if (context.requestBody != null) {
+      buffer.writeln('Request Body: ${_prettyJson(context.requestBody)}');
+    }
+
+    if (statusCode != null) {
+      buffer.writeln('Status: $statusCode');
+    }
+
+    if (responseJson != null) {
+      buffer.writeln('Response JSON: ${_prettyJson(responseJson)}');
+    } else if (responseBody != null && responseBody.trim().isNotEmpty) {
+      buffer.writeln('Response Body: $responseBody');
+    }
+
+    if (error != null) {
+      buffer.writeln('Error: $error');
+    }
+
+    developer.log(
+      buffer.toString().trimRight(),
+      name: 'ApiClient',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+
+  String _prettyJson(dynamic value) {
+    try {
+      return const JsonEncoder.withIndent('  ').convert(value);
+    } catch (_) {
+      return value.toString();
     }
   }
 
@@ -390,4 +550,82 @@ class ApiClient {
         ? path.substring(0, path.length - 1)
         : path;
   }
+
+  String _resolveErrorMessage(Map<String, dynamic> json) {
+    final message = json['message']?.toString().trim();
+    final details = _flattenErrors(json['errors']);
+
+    if ((message == null || message.isEmpty) && details.isNotEmpty) {
+      return details;
+    }
+
+    if (message == null || message.isEmpty) {
+      return 'Request failed';
+    }
+
+    if (details.isEmpty || message.contains(details)) {
+      return message;
+    }
+
+    return '$message\n$details';
+  }
+
+  String _flattenErrors(dynamic value) {
+    if (value is List) {
+      return value
+          .map((item) => item?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .join('\n');
+    }
+
+    if (value is Map) {
+      return value.values
+          .map(_flattenErrors)
+          .where((item) => item.trim().isNotEmpty)
+          .join('\n');
+    }
+
+    return value?.toString().trim() ?? '';
+  }
+
+  void _handleUnauthorized() {
+    if (AppRouteState.redirectingToLogin) {
+      return;
+    }
+
+    AppRouteState.setRedirectingToLogin(true);
+    final currentRoute = AppRouteState.currentRoute;
+
+    Future<void>(() async {
+      await AppSessionService.instance.clearSession();
+      final navigator = appNavigatorKey.currentState;
+      if (navigator == null) {
+        AppRouteState.setRedirectingToLogin(false);
+        return;
+      }
+
+      final redirectTo = currentRoute.startsWith('/login')
+          ? '/dashboard'
+          : currentRoute;
+      final loginRoute = Uri(
+        path: '/login',
+        queryParameters: <String, String>{'redirect': redirectTo},
+      ).toString();
+      navigator.pushNamedAndRemoveUntil(loginRoute, (_) => false);
+      AppRouteState.update(loginRoute);
+      AppRouteState.setRedirectingToLogin(false);
+    });
+  }
+}
+
+class _RequestDebugContext {
+  const _RequestDebugContext({
+    required this.method,
+    required this.uri,
+    this.requestBody,
+  });
+
+  final String method;
+  final Uri uri;
+  final dynamic requestBody;
 }

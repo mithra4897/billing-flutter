@@ -5,6 +5,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'app/constants/app_config.dart';
 import 'app/navigation/app_navigation.dart';
 import 'app/theme/app_theme.dart';
+import 'core/navigation/app_route_state.dart';
 import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
 import 'view/core/app_shell_page.dart';
@@ -17,18 +18,22 @@ void main() {
   runApp(const BillingApp());
 }
 
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
 class BillingApp extends StatelessWidget {
   const BillingApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: appNavigatorKey,
       debugShowCheckedModeBanner: false,
       title: AppConfig.appTitle,
       theme: AppTheme.light(),
       initialRoute: '/',
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '/');
+        AppRouteState.update(uri.toString());
 
         switch (uri.path) {
           case '/':

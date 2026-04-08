@@ -69,11 +69,8 @@ class CompanyModel implements JsonModel {
   factory CompanyModel.fromJson(Map<String, dynamic> json) {
     return CompanyModel(
       id: _parseInt(json['id']),
-      code: json['code']?.toString() ?? json['company_code']?.toString() ?? '',
-      legalName:
-          json['legal_name']?.toString() ??
-          json['company_name']?.toString() ??
-          '',
+      code: json['code']?.toString() ?? '',
+      legalName: json['legal_name']?.toString() ?? '',
       tradeName: json['trade_name']?.toString(),
       companyType: json['company_type']?.toString(),
       gstin: json['gstin']?.toString(),

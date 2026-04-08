@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../core/navigation/app_route_state.dart';
 import '../dashboard/dashboard_page.dart';
 import '../parties/party_management_page.dart';
 import '../settings/communication/email_messages_page.dart';
@@ -23,7 +24,6 @@ import '../settings/master/physical_stock_count_page.dart';
 import '../settings/master/item_supplier_map_page.dart';
 import '../settings/master/stock_balance_page.dart';
 import '../settings/master/tax_category_page.dart';
-import '../settings/master/uom_conversion_page.dart';
 import '../settings/master/uom_page.dart';
 import '../settings/master/warehouse_page.dart';
 import '../settings/tax/gst_registration_page.dart';
@@ -109,6 +109,7 @@ class _AppShellPageState extends State<AppShellPage> {
       _currentPath = uri.path;
       _currentQueryParameters = Map<String, String>.from(uri.queryParameters);
     });
+    AppRouteState.update(uri.toString());
 
     SystemNavigator.routeInformationUpdated(uri: uri, replace: true);
   }
@@ -181,7 +182,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/inventory/uoms':
         return UomManagementPage(key: routeKey, embedded: true);
       case '/inventory/uom-conversions':
-        return UomConversionManagementPage(key: routeKey, embedded: true);
+        return UomManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 1,
+        );
       case '/inventory/tax-codes':
         return TaxCategoryManagementPage(key: routeKey, embedded: true);
       case '/inventory/item-categories':
@@ -197,17 +202,8 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/inventory/brands':
         return BrandManagementPage(key: routeKey, embedded: true);
       case '/inventory/item-alternates':
-        return ItemAlternateManagementPage(
-          key: routeKey,
-          embedded: true,
-          mode: ItemAlternateViewMode.itemWise,
-        );
       case '/inventory/alternate-items':
-        return ItemAlternateManagementPage(
-          key: routeKey,
-          embedded: true,
-          mode: ItemAlternateViewMode.alternateWise,
-        );
+        return ItemAlternateManagementPage(key: routeKey, embedded: true);
       case '/inventory/item-suppliers':
         return ItemSupplierMapManagementPage(
           key: routeKey,

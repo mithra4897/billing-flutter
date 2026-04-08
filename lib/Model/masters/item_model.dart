@@ -124,10 +124,8 @@ class ItemModel implements JsonModel {
     return ItemModel(
       id: _nullableInt(json['id']),
       companyId: _nullableInt(json['company_id'] ?? company['id']),
-      companyCode:
-          company['company_code']?.toString() ?? company['code']?.toString(),
+      companyCode: company['code']?.toString(),
       companyName:
-          company['company_name']?.toString() ??
           company['trade_name']?.toString() ??
           company['legal_name']?.toString(),
       itemCode: json['item_code']?.toString() ?? '',

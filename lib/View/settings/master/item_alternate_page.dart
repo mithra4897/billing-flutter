@@ -1,16 +1,16 @@
 import '../../../screen.dart';
 
-enum ItemAlternateViewMode { itemWise, alternateWise }
-
 class ItemAlternateManagementPage extends StatefulWidget {
   const ItemAlternateManagementPage({
     super.key,
-    required this.mode,
     this.embedded = false,
+    this.fixedItemId,
+    this.fixedItemLabel,
   });
 
-  final ItemAlternateViewMode mode;
   final bool embedded;
+  final int? fixedItemId;
+  final String? fixedItemLabel;
 
   @override
   State<ItemAlternateManagementPage> createState() =>
@@ -24,8 +24,6 @@ class _ItemAlternateManagementPageState
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _masterSearchController = TextEditingController();
-  final TextEditingController _mappingSearchController =
-      TextEditingController();
   final TextEditingController _addSearchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _priorityController = TextEditingController();
@@ -43,17 +41,14 @@ class _ItemAlternateManagementPageState
   int? _selectedMasterId;
   int? _counterpartyId;
   bool _isActive = true;
-
-  bool get _isItemWise => widget.mode == ItemAlternateViewMode.itemWise;
-  String get _pageTitle => _isItemWise ? 'Item Alternates' : 'Alternate Items';
-  String get _masterLabel => _isItemWise ? 'Item' : 'Alternate Item';
-  String get _counterpartyLabel => _isItemWise ? 'Alternate Item' : 'Item';
+  static const String _pageTitle = 'Item Alternates';
+  static const String _masterLabel = 'Item';
+  static const String _counterpartyLabel = 'Alternate Item';
 
   @override
   void initState() {
     super.initState();
     _masterSearchController.addListener(_applyMasterSearch);
-    _mappingSearchController.addListener(_applyMappingSearch);
     _addSearchController.addListener(_refreshAddSearch);
     _loadData();
   }
@@ -63,7 +58,6 @@ class _ItemAlternateManagementPageState
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _masterSearchController.dispose();
-    _mappingSearchController.dispose();
     _addSearchController.dispose();
     _priorityController.dispose();
     _remarksController.dispose();
@@ -95,7 +89,11 @@ class _ItemAlternateManagementPageState
         );
       });
 
-      _selectedMasterId ??= _allItems.isNotEmpty ? _allItems.first.id : null;
+      if (widget.fixedItemId != null) {
+        _selectedMasterId = widget.fixedItemId;
+      } else {
+        _selectedMasterId ??= _allItems.isNotEmpty ? _allItems.first.id : null;
+      }
       await _loadMappings(selectId: selectId);
     } catch (error) {
       if (!mounted) {
@@ -120,23 +118,40 @@ class _ItemAlternateManagementPageState
     }
 
     try {
-      final response = await _inventoryService.itemAlternates(
-        filters: {
-          'per_page': 300,
-          'sort_by': 'priority',
-          'sort_order': 'asc',
-          if (_isItemWise) 'item_id': _selectedMasterId,
-          if (!_isItemWise) 'alternate_item_id': _selectedMasterId,
-        },
-      );
-      final items = response.data ?? const <ItemAlternateModel>[];
+      final responses =
+          await Future.wait<PaginatedResponse<ItemAlternateModel>>([
+            _inventoryService.itemAlternates(
+              filters: {
+                'per_page': 300,
+                'sort_by': 'priority_order',
+                'sort_order': 'asc',
+                'item_id': _selectedMasterId,
+              },
+            ),
+            _inventoryService.itemAlternates(
+              filters: {
+                'per_page': 300,
+                'sort_by': 'priority_order',
+                'sort_order': 'asc',
+                'alternate_item_id': _selectedMasterId,
+              },
+            ),
+          ]);
+      final uniqueItems = <int?, ItemAlternateModel>{};
+      for (final item in <ItemAlternateModel>[
+        ...(responses[0].data ?? const <ItemAlternateModel>[]),
+        ...(responses[1].data ?? const <ItemAlternateModel>[]),
+      ]) {
+        uniqueItems[item.id] = item;
+      }
+      final items = uniqueItems.values.toList(growable: false);
       if (!mounted) {
         return;
       }
 
       setState(() {
         _items = items;
-        _filteredItems = _filterMappings(items, _mappingSearchController.text);
+        _filteredItems = items;
         _initialLoading = false;
       });
 
@@ -174,32 +189,12 @@ class _ItemAlternateManagementPageState
     });
   }
 
-  List<ItemAlternateModel> _filterMappings(
-    List<ItemAlternateModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [
-        item.itemCode,
-        item.itemName,
-        item.alternateItemCode,
-        item.alternateItemName,
-      ];
-    });
-  }
-
   void _applyMasterSearch() {
     setState(() {
       _filteredMasterItems = _filterMasterItems(
         _allItems,
         _masterSearchController.text,
       );
-    });
-  }
-
-  void _applyMappingSearch() {
-    setState(() {
-      _filteredItems = _filterMappings(_items, _mappingSearchController.text);
     });
   }
 
@@ -218,9 +213,9 @@ class _ItemAlternateManagementPageState
 
   void _selectMapping(ItemAlternateModel item) {
     _selectedItem = item;
-    _counterpartyId = _isItemWise ? item.alternateItemId : item.itemId;
-    _priorityController.text = item.priority?.toString() ?? '0';
-    _remarksController.text = item.remarks ?? '';
+    _counterpartyId = _counterpartyIdFor(item);
+    _priorityController.text = item.priorityOrder?.toString() ?? '1';
+    _remarksController.text = item.reason ?? '';
     _isActive = item.isActive;
     _formError = null;
     setState(() {});
@@ -229,7 +224,7 @@ class _ItemAlternateManagementPageState
   void _resetForm() {
     _selectedItem = null;
     _counterpartyId = null;
-    _priorityController.text = '0';
+    _priorityController.text = '1';
     _remarksController.clear();
     _addSearchController.clear();
     _isActive = true;
@@ -255,11 +250,11 @@ class _ItemAlternateManagementPageState
 
     final model = ItemAlternateModel(
       id: _selectedItem?.id,
-      itemId: _isItemWise ? _selectedMasterId : _counterpartyId,
-      alternateItemId: _isItemWise ? _counterpartyId : _selectedMasterId,
-      priority: int.tryParse(_priorityController.text.trim()) ?? 0,
+      itemId: _itemIdForSave(),
+      alternateItemId: _alternateItemIdForSave(),
+      priorityOrder: int.tryParse(_priorityController.text.trim()) ?? 1,
       isActive: _isActive,
-      remarks: nullIfEmpty(_remarksController.text),
+      reason: nullIfEmpty(_remarksController.text),
     );
 
     try {
@@ -289,6 +284,30 @@ class _ItemAlternateManagementPageState
         });
       }
     }
+  }
+
+  int? _itemIdForSave() {
+    if (_selectedItem != null && widget.fixedItemId != null) {
+      if (_selectedItem!.itemId == _selectedMasterId) {
+        return _selectedMasterId;
+      }
+      if (_selectedItem!.alternateItemId == _selectedMasterId) {
+        return _counterpartyId;
+      }
+    }
+    return _selectedMasterId;
+  }
+
+  int? _alternateItemIdForSave() {
+    if (_selectedItem != null && widget.fixedItemId != null) {
+      if (_selectedItem!.itemId == _selectedMasterId) {
+        return _counterpartyId;
+      }
+      if (_selectedItem!.alternateItemId == _selectedMasterId) {
+        return _selectedMasterId;
+      }
+    }
+    return _counterpartyId;
   }
 
   Future<void> _delete() async {
@@ -325,6 +344,37 @@ class _ItemAlternateManagementPageState
     }
   }
 
+  Future<void> _confirmDelete(ItemAlternateModel item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Remove Alternate'),
+          content: Text(
+            'Remove ${_counterpartyLabelFor(item)} from this item alternates list?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Remove'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    _selectMapping(item);
+    await _delete();
+  }
+
   String _itemLabel(ItemModel item) {
     final code = item.itemCode.trim();
     final name = item.itemName.trim();
@@ -342,11 +392,28 @@ class _ItemAlternateManagementPageState
     return selected == null ? _pageTitle : _itemLabel(selected);
   }
 
+  int? _counterpartyIdFor(ItemAlternateModel item) {
+    if (item.itemId == _selectedMasterId) {
+      return item.alternateItemId;
+    }
+    if (item.alternateItemId == _selectedMasterId) {
+      return item.itemId;
+    }
+    return item.alternateItemId;
+  }
+
+  String _counterpartyLabelFor(ItemAlternateModel item) {
+    final isDirect = item.itemId == _selectedMasterId;
+    final code = isDirect ? item.alternateItemCode : item.itemCode;
+    final name = isDirect ? item.alternateItemName : item.itemName;
+    if (name.isNotEmpty) {
+      return name;
+    }
+    return code;
+  }
+
   List<ItemModel> get _availableCounterpartyOptions {
-    final selectedIds = _items
-        .map((item) => _isItemWise ? item.alternateItemId : item.itemId)
-        .whereType<int>()
-        .toSet();
+    final selectedIds = _items.map(_counterpartyIdFor).whereType<int>().toSet();
 
     if (_counterpartyId != null) {
       selectedIds.remove(_counterpartyId);
@@ -375,6 +442,21 @@ class _ItemAlternateManagementPageState
         .toList(growable: false);
   }
 
+  List<ItemModel> get _dropdownCounterpartyOptions {
+    final options = _availableCounterpartyOptions.toList(growable: true);
+    if (_counterpartyId != null) {
+      final selected = _allItems.cast<ItemModel?>().firstWhere(
+        (item) => item?.id == _counterpartyId,
+        orElse: () => null,
+      );
+      if (selected != null &&
+          options.every((option) => option.id != selected.id)) {
+        options.insert(0, selected);
+      }
+    }
+    return options;
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent();
@@ -382,9 +464,13 @@ class _ItemAlternateManagementPageState
       AdaptiveShellActionButton(
         onPressed: _selectedMasterId == null ? null : _resetForm,
         icon: Icons.compare_arrows_outlined,
-        label: _isItemWise ? 'Add Alternate' : 'Add Item',
+        label: 'Add Alternate',
       ),
     ];
+
+    if (widget.fixedItemId != null) {
+      return content;
+    }
 
     if (widget.embedded) {
       return ShellPageActions(actions: actions, child: content);
@@ -416,6 +502,16 @@ class _ItemAlternateManagementPageState
       orElse: () => null,
     );
 
+    if (widget.fixedItemId != null) {
+      return _selectedMasterId == null
+          ? const SettingsEmptyState(
+              icon: Icons.compare_arrows_outlined,
+              title: 'Item Not Found',
+              message: 'The selected item is not available.',
+            )
+          : _buildEditorBody();
+    }
+
     return SettingsWorkspace(
       controller: _workspaceController,
       title: _pageTitle,
@@ -442,187 +538,179 @@ class _ItemAlternateManagementPageState
                 message:
                     'Choose a $_masterLabel from the left to manage alternates.',
               )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _selectedMasterTitle,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _mappingSearchController,
-                    decoration: InputDecoration(
-                      hintText: _isItemWise
-                          ? 'Search alternates for this item'
-                          : 'Search items for this alternate',
-                      prefixIcon: const Icon(Icons.search),
+            : _buildEditorBody(),
+      ),
+    );
+  }
+
+  Widget _buildEditorBody() {
+    final hasDraft = _selectedItem != null || _counterpartyId != null;
+    final selectedCounterparty = _allItems.cast<ItemModel?>().firstWhere(
+      (item) => item?.id == _counterpartyId,
+      orElse: () => null,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_filteredItems.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text('No alternates mapped for this item.'),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _filteredItems.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final item = _filteredItems[index];
+              return SettingsListTile(
+                title: _counterpartyLabelFor(item),
+                subtitle: [
+                  if (item.priorityOrder != null)
+                    'Priority ${item.priorityOrder}',
+                  if (item.isActive) 'Active',
+                ].join(' · '),
+                selected: identical(item, _selectedItem),
+                onTap: () => _selectMapping(item),
+                trailing: IconButton(
+                  tooltip: 'Remove alternate',
+                  onPressed: _saving ? null : () => _confirmDelete(item),
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+              );
+            },
+          ),
+        const SizedBox(height: 20),
+        TextField(
+          controller: _addSearchController,
+          decoration: const InputDecoration(
+            hintText: 'Search alternate item to add',
+            prefixIcon: Icon(Icons.search),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (_filteredAvailableCounterpartyOptions.isEmpty)
+          const Text('No more alternate items available to add.')
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _filteredAvailableCounterpartyOptions.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final option = _filteredAvailableCounterpartyOptions[index];
+              return SettingsListTile(
+                title: _itemLabel(option),
+                subtitle: '',
+                selected: option.id == _counterpartyId && _selectedItem == null,
+                onTap: () => _startNewWithCounterparty(option.id!),
+                trailing: const Icon(Icons.add_circle_outline),
+              );
+            },
+          ),
+        if (hasDraft) ...[
+          const SizedBox(height: 20),
+          Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_formError != null) ...[
+                  AppErrorStateView.inline(message: _formError!),
+                  const SizedBox(height: 12),
+                ],
+                if (widget.fixedItemId == null) ...[
+                  DropdownButtonFormField<int>(
+                    initialValue: _counterpartyId,
+                    decoration: const InputDecoration(
+                      labelText: _counterpartyLabel,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_filteredItems.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        _isItemWise
-                            ? 'No alternates mapped for this item.'
-                            : 'No items mapped for this alternate.',
-                      ),
-                    )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _filteredItems.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final item = _filteredItems[index];
-                        return SettingsListTile(
-                          title: _isItemWise
-                              ? (item.alternateItemName.isNotEmpty
-                                    ? item.alternateItemName
-                                    : item.alternateItemCode)
-                              : (item.itemName.isNotEmpty
-                                    ? item.itemName
-                                    : item.itemCode),
-                          subtitle: [
-                            if (item.priority != null)
-                              'Priority ${item.priority}',
-                            if (item.isActive) 'Active',
-                          ].join(' · '),
-                          selected: identical(item, _selectedItem),
-                          onTap: () => _selectMapping(item),
-                        );
-                      },
-                    ),
-                  const SizedBox(height: 20),
-                  Text(
-                    _isItemWise ? 'Add Alternate' : 'Add Item',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _addSearchController,
-                    decoration: InputDecoration(
-                      hintText: _isItemWise
-                          ? 'Search alternate item to add'
-                          : 'Search item to add',
-                      prefixIcon: const Icon(Icons.search),
-                    ),
+                    items: _allItems
+                        .where(
+                          (item) => _dropdownCounterpartyOptions.any(
+                            (option) => option.id == item.id,
+                          ),
+                        )
+                        .map(
+                          (item) => DropdownMenuItem<int>(
+                            value: item.id,
+                            child: Text(_itemLabel(item)),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) =>
+                        setState(() => _counterpartyId = value),
+                    validator: Validators.requiredSelection(_counterpartyLabel),
                   ),
                   const SizedBox(height: 12),
-                  if (_filteredAvailableCounterpartyOptions.isEmpty)
-                    Text(
-                      _isItemWise
-                          ? 'No more alternate items available to add.'
-                          : 'No more items available to add.',
-                    )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _filteredAvailableCounterpartyOptions.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final option =
-                            _filteredAvailableCounterpartyOptions[index];
-                        return SettingsListTile(
-                          title: _itemLabel(option),
-                          subtitle: '',
-                          selected:
-                              option.id == _counterpartyId &&
-                              _selectedItem == null,
-                          onTap: () => _startNewWithCounterparty(option.id!),
-                          trailing: const Icon(Icons.add_circle_outline),
-                        );
-                      },
-                    ),
-                  const SizedBox(height: 20),
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_formError != null) ...[
-                          AppErrorStateView.inline(message: _formError!),
-                          const SizedBox(height: 12),
-                        ],
-                        DropdownButtonFormField<int>(
-                          initialValue: _counterpartyId,
-                          decoration: InputDecoration(
-                            labelText: _counterpartyLabel,
-                          ),
-                          items: _allItems
-                              .where(
-                                (item) =>
-                                    item.id != null &&
-                                    item.id != _selectedMasterId,
-                              )
-                              .map(
-                                (item) => DropdownMenuItem<int>(
-                                  value: item.id,
-                                  child: Text(_itemLabel(item)),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) =>
-                              setState(() => _counterpartyId = value),
-                          validator: Validators.requiredSelection(
-                            _counterpartyLabel,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        AppFormTextField(
-                          labelText: 'Priority',
-                          controller: _priorityController,
-                          keyboardType: TextInputType.number,
-                          validator: Validators.optionalNonNegativeInteger(
-                            'Priority',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: _remarksController,
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 12),
-                        AppSwitchTile(
-                          label: 'Active',
-                          value: _isActive,
-                          onChanged: (value) =>
-                              setState(() => _isActive = value),
-                        ),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            AppActionButton(
-                              icon: Icons.save_outlined,
-                              label: _selectedItem == null
-                                  ? 'Save Mapping'
-                                  : 'Update Mapping',
-                              onPressed: _save,
-                              busy: _saving,
-                            ),
-                            if (_selectedItem?.id != null)
-                              AppActionButton(
-                                icon: Icons.delete_outline,
-                                label: 'Delete',
-                                onPressed: _saving ? null : _delete,
-                                filled: false,
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
+                ] else if (selectedCounterparty != null) ...[
+                  Text(
+                    _itemLabel(selectedCounterparty),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
+                  const SizedBox(height: 12),
                 ],
-              ),
-      ),
+                SettingsFormWrap(
+                  children: [
+                    AppFormTextField(
+                      labelText: 'Priority',
+                      controller: _priorityController,
+                      keyboardType: TextInputType.number,
+                      validator: Validators.compose([
+                        Validators.required('Priority'),
+                        Validators.optionalMinimumInteger(1, 'Priority'),
+                      ]),
+                    ),
+                    AppFormTextField(
+                      labelText: 'Reason',
+                      controller: _remarksController,
+                      maxLines: 3,
+                      validator: Validators.optionalMaxLength(255, 'Reason'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 280,
+                  child: AppSwitchTile(
+                    label: 'Active',
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    AppActionButton(
+                      icon: Icons.save_outlined,
+                      label: _selectedItem == null
+                          ? 'Save Mapping'
+                          : 'Update Mapping',
+                      onPressed: _save,
+                      busy: _saving,
+                    ),
+                    if (_selectedItem?.id != null)
+                      AppActionButton(
+                        icon: Icons.delete_outline,
+                        label: 'Delete',
+                        onPressed: _saving ? null : _delete,
+                        filled: false,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 16),
+          const Text('Pick an alternate above to start this mapping.'),
+        ],
+      ],
     );
   }
 }

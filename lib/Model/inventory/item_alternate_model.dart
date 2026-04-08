@@ -5,9 +5,9 @@ class ItemAlternateModel implements JsonModel {
     this.id,
     this.itemId,
     this.alternateItemId,
-    this.priority,
+    this.priorityOrder,
     this.isActive = true,
-    this.remarks,
+    this.reason,
     this.itemCode = '',
     this.itemName = '',
     this.itemType,
@@ -20,9 +20,9 @@ class ItemAlternateModel implements JsonModel {
   final int? id;
   final int? itemId;
   final int? alternateItemId;
-  final int? priority;
+  final int? priorityOrder;
   final bool isActive;
-  final String? remarks;
+  final String? reason;
   final String itemCode;
   final String itemName;
   final String? itemType;
@@ -44,9 +44,9 @@ class ItemAlternateModel implements JsonModel {
       alternateItemId: _nullableInt(
         json['alternate_item_id'] ?? alternate['id'],
       ),
-      priority: _nullableInt(json['priority']),
+      priorityOrder: _nullableInt(json['priority_order'] ?? json['priority']),
       isActive: _bool(json['is_active'], fallback: true),
-      remarks: json['remarks']?.toString(),
+      reason: json['reason']?.toString() ?? json['remarks']?.toString(),
       itemCode: item['item_code']?.toString() ?? '',
       itemName: item['item_name']?.toString() ?? '',
       itemType: item['item_type']?.toString(),
@@ -63,9 +63,9 @@ class ItemAlternateModel implements JsonModel {
       if (id != null) 'id': id,
       if (itemId != null) 'item_id': itemId,
       if (alternateItemId != null) 'alternate_item_id': alternateItemId,
-      if (priority != null) 'priority': priority,
+      if (priorityOrder != null) 'priority_order': priorityOrder,
       'is_active': isActive,
-      if (remarks != null) 'remarks': remarks,
+      if (reason != null) 'reason': reason,
     };
   }
 

@@ -240,13 +240,6 @@ class AppNavigation {
           path: '/inventory/uoms',
           requiredPermissions: ['inventory.view'],
         ),
-        AppNavigationItem(
-          key: 'inventory-uom-conversions',
-          title: 'UOM Conversions',
-          icon: Icons.swap_vert_outlined,
-          path: '/inventory/uom-conversions',
-          requiredPermissions: ['inventory.view'],
-        ),
       ],
     ),
 
@@ -592,31 +585,10 @@ class AppNavigation {
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
-          key: 'inventory-item-prices',
-          title: 'Item Prices',
-          icon: Icons.price_change_outlined,
-          path: '/inventory/item-prices',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
           key: 'inventory-items',
           title: 'Items',
           icon: Icons.inventory_2_outlined,
           path: '/inventory/items',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-item-alternates',
-          title: 'Item Alternates',
-          icon: Icons.compare_arrows_outlined,
-          path: '/inventory/item-alternates',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-alternate-items',
-          title: 'Alternate Items',
-          icon: Icons.swap_horiz_outlined,
-          path: '/inventory/alternate-items',
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
@@ -631,13 +603,6 @@ class AppNavigation {
           title: 'Brands',
           icon: Icons.sell_outlined,
           path: '/inventory/brands',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-item-suppliers',
-          title: 'Item Suppliers',
-          icon: Icons.local_shipping_outlined,
-          path: '/inventory/item-suppliers',
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
@@ -659,13 +624,6 @@ class AppNavigation {
           title: 'Stock Serials',
           icon: Icons.qr_code_outlined,
           path: '/inventory/stock-serials',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-opening-stocks',
-          title: 'Opening Stocks',
-          icon: Icons.note_add_outlined,
-          path: '/inventory/opening-stocks',
           requiredPermissions: ['inventory.view'],
         ),
       ],

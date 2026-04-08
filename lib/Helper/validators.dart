@@ -47,6 +47,13 @@ class Validators {
     return (value) => nonNegativeIntegerField(value, fieldName);
   }
 
+  static String? Function(String?) optionalMinimumInteger(
+    int minimum,
+    String fieldName,
+  ) {
+    return (value) => minimumIntegerField(value, minimum, fieldName);
+  }
+
   static String? Function(String?) optionalDate(String fieldName) {
     return (value) => dateField(value, fieldName);
   }
@@ -185,6 +192,32 @@ class Validators {
 
     if (parsed < 0) {
       return '$fieldName cannot be negative';
+    }
+
+    return null;
+  }
+
+  static String? minimumIntegerField(
+    String? value,
+    int minimum,
+    String fieldName,
+  ) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+
+    if (!_wholeNumberPattern.hasMatch(trimmed)) {
+      return '$fieldName must be a whole number';
+    }
+
+    final parsed = int.tryParse(trimmed);
+    if (parsed == null) {
+      return '$fieldName must be a valid whole number';
+    }
+
+    if (parsed < minimum) {
+      return '$fieldName must be at least $minimum';
     }
 
     return null;

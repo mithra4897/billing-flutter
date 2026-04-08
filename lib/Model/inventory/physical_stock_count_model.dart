@@ -94,8 +94,7 @@ class PhysicalStockCountModel implements JsonModel {
           : const <PhysicalStockCountLineModel>[],
       companyName:
           company['trade_name']?.toString() ??
-          company['legal_name']?.toString() ??
-          company['company_name']?.toString(),
+          company['legal_name']?.toString(),
       branchName: branch['name']?.toString(),
       locationName: location['name']?.toString(),
       financialYearName:

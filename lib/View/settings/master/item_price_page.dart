@@ -1,9 +1,18 @@
 import '../../../screen.dart';
 
 class ItemPriceManagementPage extends StatefulWidget {
-  const ItemPriceManagementPage({super.key, this.embedded = false});
+  const ItemPriceManagementPage({
+    super.key,
+    this.embedded = false,
+    this.fixedItemId,
+    this.fixedItem,
+    this.fixedItemLabel,
+  });
 
   final bool embedded;
+  final int? fixedItemId;
+  final ItemModel? fixedItem;
+  final String? fixedItemLabel;
 
   @override
   State<ItemPriceManagementPage> createState() =>
@@ -47,6 +56,7 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
   List<ItemPriceModel> _prices = const <ItemPriceModel>[];
   List<ItemPriceModel> _filteredPrices = const <ItemPriceModel>[];
   List<UomModel> _uoms = const <UomModel>[];
+  List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
   ItemModel? _selectedItemMaster;
   ItemPriceModel? _selectedPrice;
   int? _uomId;
@@ -92,6 +102,13 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
         _inventoryService.uoms(
           filters: const {'per_page': 200, 'sort_by': 'uom_name'},
         ),
+        _inventoryService.uomConversions(
+          filters: const {
+            'per_page': 500,
+            'sort_by': 'from_uom_id',
+            'sort_order': 'asc',
+          },
+        ),
       ]);
 
       final items =
@@ -100,6 +117,9 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
       final uoms =
           (responses[1] as PaginatedResponse<UomModel>).data ??
           const <UomModel>[];
+      final uomConversions =
+          (responses[2] as PaginatedResponse<UomConversionModel>).data ??
+          const <UomConversionModel>[];
 
       if (!mounted) {
         return;
@@ -109,9 +129,21 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
         _allItems = items;
         _filteredItems = _filterItemList(items, _masterSearchController.text);
         _uoms = uoms.where((uom) => uom.isActive).toList(growable: false);
+        _uomConversions = uomConversions
+            .where((conversion) => conversion.isActive)
+            .toList(growable: false);
       });
 
-      _selectedItemMaster ??= items.isNotEmpty ? items.first : null;
+      if (widget.fixedItemId != null) {
+        _selectedItemMaster =
+            widget.fixedItem ??
+            items.cast<ItemModel?>().firstWhere(
+              (item) => item?.id == widget.fixedItemId,
+              orElse: () => null,
+            );
+      } else {
+        _selectedItemMaster ??= items.isNotEmpty ? items.first : null;
+      }
       await _loadPrices(selectPriceId: selectPriceId);
     } catch (error) {
       if (!mounted) {
@@ -205,6 +237,62 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
     });
   }
 
+  Set<int> _allowedUomIdsForItem(ItemModel? item) {
+    final seedIds = <int>{
+      if (item?.baseUomId != null) item!.baseUomId!,
+      if (item?.purchaseUomId != null) item!.purchaseUomId!,
+      if (item?.salesUomId != null) item!.salesUomId!,
+    };
+
+    if (seedIds.isEmpty) {
+      return <int>{};
+    }
+
+    final allowed = <int>{...seedIds};
+    for (final conversion in _uomConversions) {
+      final fromId = conversion.fromUomId;
+      final toId = conversion.toUomId;
+      if (fromId == null || toId == null) {
+        continue;
+      }
+      if (seedIds.contains(fromId) || seedIds.contains(toId)) {
+        allowed.add(fromId);
+        allowed.add(toId);
+      }
+    }
+    return allowed;
+  }
+
+  List<UomModel> get _allowedUoms {
+    final allowedIds = _allowedUomIdsForItem(_selectedItemMaster);
+    if (_selectedPrice?.uomId != null) {
+      allowedIds.add(_selectedPrice!.uomId!);
+    }
+    if (allowedIds.isEmpty) {
+      return _uoms;
+    }
+
+    return _uoms
+        .where((uom) => uom.id != null && allowedIds.contains(uom.id))
+        .toList(growable: false);
+  }
+
+  int? get _defaultUomId {
+    final item = _selectedItemMaster;
+    final allowedIds = _allowedUomIdsForItem(item);
+    final preferred = <int?>[
+      item?.salesUomId,
+      item?.baseUomId,
+      item?.purchaseUomId,
+    ];
+    for (final id in preferred) {
+      if (id != null && (allowedIds.isEmpty || allowedIds.contains(id))) {
+        return id;
+      }
+    }
+    return _allowedUoms.isNotEmpty ? _allowedUoms.first.id : null;
+  }
+
   void _applyMasterSearch() {
     setState(() {
       _filteredItems = _filterItemList(_allItems, _masterSearchController.text);
@@ -220,6 +308,7 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
   void _selectMasterItem(ItemModel item) {
     _selectedItemMaster = item;
     _selectedPrice = null;
+    _uomId = _defaultUomId;
     _loadPrices();
   }
 
@@ -242,10 +331,7 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
 
   void _resetForm() {
     _selectedPrice = null;
-    _uomId =
-        _selectedItemMaster?.salesUomId ??
-        _selectedItemMaster?.baseUomId ??
-        (_uoms.isNotEmpty ? _uoms.first.id : null);
+    _uomId = _defaultUomId;
     _priceType = 'sales';
     _priceController.clear();
     _mrpController.clear();
@@ -351,18 +437,9 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
 
   void _startNew() {
     _resetForm();
-    if (!Responsive.isDesktop(context)) {
+    if (widget.fixedItemId == null && !Responsive.isDesktop(context)) {
       _workspaceController.openEditor();
     }
-  }
-
-  String _itemLabel(ItemModel item) {
-    final code = item.itemCode.trim();
-    final name = item.itemName.trim();
-    if (code.isNotEmpty && name.isNotEmpty) {
-      return '$code - $name';
-    }
-    return name.isNotEmpty ? name : code;
   }
 
   @override
@@ -375,6 +452,10 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
         label: 'New Price',
       ),
     ];
+
+    if (widget.fixedItemId != null) {
+      return content;
+    }
 
     if (widget.embedded) {
       return ShellPageActions(actions: actions, child: content);
@@ -399,6 +480,16 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
         message: _pageError!,
         onRetry: _loadData,
       );
+    }
+
+    if (widget.fixedItemId != null) {
+      return _selectedItemMaster == null
+          ? const SettingsEmptyState(
+              icon: Icons.price_change_outlined,
+              title: 'Item Not Found',
+              message: 'The selected item is not available.',
+            )
+          : _buildEditorBody();
     }
 
     return SettingsWorkspace(
@@ -426,210 +517,202 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                 title: 'Select Item',
                 message: 'Choose an item from the left to manage price rows.',
               )
-            : Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _itemLabel(_selectedItemMaster!),
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _priceSearchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search price rows',
-                        prefixIcon: Icon(Icons.search),
+            : _buildEditorBody(),
+      ),
+    );
+  }
+
+  Widget _buildEditorBody() {
+    if (_selectedItemMaster == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _priceSearchController,
+            decoration: const InputDecoration(
+              hintText: 'Search price rows',
+              prefixIcon: Icon(Icons.search),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_filteredPrices.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text('No price rows found for this item.'),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _filteredPrices.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final price = _filteredPrices[index];
+                return SettingsListTile(
+                  title:
+                      '${price.priceType ?? '-'} · ${price.price?.toString() ?? '0'}',
+                  subtitle: [
+                    if ((price.uomName ?? '').isNotEmpty) price.uomName!,
+                    if ((price.validFrom ?? '').isNotEmpty)
+                      'From ${price.validFrom}',
+                    if ((price.validTo ?? '').isNotEmpty) 'To ${price.validTo}',
+                    if (price.isDefault) 'Default',
+                  ].join(' · '),
+                  selected: identical(price, _selectedPrice),
+                  onTap: () => _selectPrice(price),
+                );
+              },
+            ),
+          const SizedBox(height: 20),
+          if (_formError != null) ...[
+            AppErrorStateView.inline(message: _formError!),
+            const SizedBox(height: 12),
+          ],
+          SettingsFormWrap(
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: _priceType,
+                decoration: const InputDecoration(labelText: 'Price Type'),
+                items: _priceTypeItems
+                    .map(
+                      (item) => DropdownMenuItem<String>(
+                        value: item.value,
+                        child: Text(item.label),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_filteredPrices.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Text('No price rows found for this item.'),
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _filteredPrices.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final price = _filteredPrices[index];
-                          return SettingsListTile(
-                            title:
-                                '${price.priceType ?? '-'} · ${price.price?.toString() ?? '0'}',
-                            subtitle: [
-                              if ((price.uomName ?? '').isNotEmpty)
-                                price.uomName!,
-                              if ((price.validFrom ?? '').isNotEmpty)
-                                'From ${price.validFrom}',
-                              if ((price.validTo ?? '').isNotEmpty)
-                                'To ${price.validTo}',
-                              if (price.isDefault) 'Default',
-                            ].join(' · '),
-                            selected: identical(price, _selectedPrice),
-                            onTap: () => _selectPrice(price),
-                          );
-                        },
+                    )
+                    .toList(growable: false),
+                onChanged: (value) =>
+                    setState(() => _priceType = value ?? 'sales'),
+              ),
+              DropdownButtonFormField<int>(
+                initialValue: _uomId,
+                decoration: const InputDecoration(labelText: 'UOM'),
+                items: _allowedUoms
+                    .where((uom) => uom.id != null)
+                    .map(
+                      (uom) => DropdownMenuItem<int>(
+                        value: uom.id,
+                        child: Text(uom.toString()),
                       ),
-                    const SizedBox(height: 20),
-                    if (_formError != null) ...[
-                      AppErrorStateView.inline(message: _formError!),
-                      const SizedBox(height: 12),
-                    ],
-                    SettingsFormWrap(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          initialValue: _priceType,
-                          decoration: const InputDecoration(
-                            labelText: 'Price Type',
-                          ),
-                          items: _priceTypeItems
-                              .map(
-                                (item) => DropdownMenuItem<String>(
-                                  value: item.value,
-                                  child: Text(item.label),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) =>
-                              setState(() => _priceType = value ?? 'sales'),
-                        ),
-                        DropdownButtonFormField<int>(
-                          initialValue: _uomId,
-                          decoration: const InputDecoration(labelText: 'UOM'),
-                          items: _uoms
-                              .where((uom) => uom.id != null)
-                              .map(
-                                (uom) => DropdownMenuItem<int>(
-                                  value: uom.id,
-                                  child: Text(uom.toString()),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) => setState(() => _uomId = value),
-                          validator: Validators.requiredSelection('UOM'),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Price',
-                          controller: _priceController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.compose([
-                            Validators.required('Price'),
-                            Validators.optionalNonNegativeNumber('Price'),
-                          ]),
-                        ),
-                        AppFormTextField(
-                          labelText: 'MRP',
-                          controller: _mrpController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.optionalNonNegativeNumber(
-                            'MRP',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Minimum Price',
-                          controller: _minPriceController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Minimum Price',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Max Discount %',
-                          controller: _maxDiscountController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Max Discount %',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Valid From',
-                          controller: _validFromController,
-                          hintText: 'YYYY-MM-DD',
-                          validator: Validators.compose([
-                            Validators.required('Valid From'),
-                            Validators.optionalDate('Valid From'),
-                          ]),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Valid To',
-                          controller: _validToController,
-                          hintText: 'YYYY-MM-DD',
-                          validator: Validators.optionalDateOnOrAfter(
-                            'Valid To',
-                            () => _validFromController.text,
-                            startFieldName: 'Valid From',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: _remarksController,
-                          maxLines: 3,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 12,
-                      children: [
-                        SizedBox(
-                          width: 280,
-                          child: AppSwitchTile(
-                            label: 'Default Price',
-                            value: _isDefault,
-                            onChanged: (value) =>
-                                setState(() => _isDefault = value),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 280,
-                          child: AppSwitchTile(
-                            label: 'Active',
-                            value: _isActive,
-                            onChanged: (value) =>
-                                setState(() => _isActive = value),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        AppActionButton(
-                          icon: Icons.save_outlined,
-                          label: _selectedPrice == null
-                              ? 'Save Price'
-                              : 'Update Price',
-                          onPressed: _save,
-                          busy: _saving,
-                        ),
-                        if (_selectedPrice?.id != null)
-                          AppActionButton(
-                            icon: Icons.delete_outline,
-                            label: 'Delete',
-                            onPressed: _saving ? null : _delete,
-                            filled: false,
-                          ),
-                      ],
-                    ),
-                  ],
+                    )
+                    .toList(growable: false),
+                onChanged: (value) => setState(() => _uomId = value),
+                validator: Validators.requiredSelection('UOM'),
+              ),
+              AppFormTextField(
+                labelText: 'Price',
+                controller: _priceController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: Validators.compose([
+                  Validators.required('Price'),
+                  Validators.optionalNonNegativeNumber('Price'),
+                ]),
+              ),
+              AppFormTextField(
+                labelText: 'MRP',
+                controller: _mrpController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: Validators.optionalNonNegativeNumber('MRP'),
+              ),
+              AppFormTextField(
+                labelText: 'Minimum Price',
+                controller: _minPriceController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: Validators.optionalNonNegativeNumber(
+                  'Minimum Price',
                 ),
               ),
+              AppFormTextField(
+                labelText: 'Max Discount %',
+                controller: _maxDiscountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: Validators.optionalNonNegativeNumber(
+                  'Max Discount %',
+                ),
+              ),
+              AppFormTextField(
+                labelText: 'Valid From',
+                controller: _validFromController,
+                hintText: 'YYYY-MM-DD',
+                validator: Validators.compose([
+                  Validators.required('Valid From'),
+                  Validators.optionalDate('Valid From'),
+                ]),
+              ),
+              AppFormTextField(
+                labelText: 'Valid To',
+                controller: _validToController,
+                hintText: 'YYYY-MM-DD',
+                validator: Validators.optionalDateOnOrAfter(
+                  'Valid To',
+                  () => _validFromController.text,
+                  startFieldName: 'Valid From',
+                ),
+              ),
+              AppFormTextField(
+                labelText: 'Remarks',
+                controller: _remarksController,
+                maxLines: 3,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 280,
+                child: AppSwitchTile(
+                  label: 'Default Price',
+                  value: _isDefault,
+                  onChanged: (value) => setState(() => _isDefault = value),
+                ),
+              ),
+              SizedBox(
+                width: 280,
+                child: AppSwitchTile(
+                  label: 'Active',
+                  value: _isActive,
+                  onChanged: (value) => setState(() => _isActive = value),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              AppActionButton(
+                icon: Icons.save_outlined,
+                label: _selectedPrice == null ? 'Save Price' : 'Update Price',
+                onPressed: _save,
+                busy: _saving,
+              ),
+              if (_selectedPrice?.id != null)
+                AppActionButton(
+                  icon: Icons.delete_outline,
+                  label: 'Delete',
+                  onPressed: _saving ? null : _delete,
+                  filled: false,
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
