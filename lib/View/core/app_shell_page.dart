@@ -61,11 +61,13 @@ class _AppShellPageState extends State<AppShellPage> {
     _currentPath = widget.path;
     _currentQueryParameters = Map<String, String>.from(widget.queryParameters);
     _shellPageActionsController = ShellPageActionsController();
+    AppSessionService.accessVersion.addListener(_handleAccessVersionChanged);
     _loadShellContext();
   }
 
   @override
   void dispose() {
+    AppSessionService.accessVersion.removeListener(_handleAccessVersionChanged);
     _shellPageActionsController.dispose();
     super.dispose();
   }
@@ -85,6 +87,8 @@ class _AppShellPageState extends State<AppShellPage> {
   Future<void> _loadShellContext() async {
     final branding = await SessionStorage.getBranding();
     final authContext = await SessionStorage.getAuthContext();
+    final permissionCodes = await SessionStorage.getPermissionCodes();
+    final currentUser = await SessionStorage.getCurrentUser();
     if (!mounted) {
       return;
     }
@@ -93,6 +97,59 @@ class _AppShellPageState extends State<AppShellPage> {
       _branding = branding ?? _branding;
       _authContext = authContext;
     });
+
+    _ensureCurrentRouteAllowed(
+      permissionCodes: permissionCodes.toSet(),
+      isSuperAdmin:
+          currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1,
+      orderedModules: authContext?.menuModules ?? const <ModuleModel>[],
+    );
+  }
+
+  void _handleAccessVersionChanged() {
+    _loadShellContext();
+  }
+
+  void _ensureCurrentRouteAllowed({
+    required Set<String> permissionCodes,
+    required bool isSuperAdmin,
+    required List<ModuleModel> orderedModules,
+  }) {
+    if (_currentPath == '/dashboard' || _currentPath == '/settings/profile') {
+      return;
+    }
+
+    final routeItem = AppNavigation.findByPath(_currentPath);
+    if (routeItem == null) {
+      return;
+    }
+
+    final visibleMenu = AppNavigation.visibleMenu(
+      permissionCodes: permissionCodes,
+      isSuperAdmin: isSuperAdmin,
+      orderedModules: orderedModules,
+    );
+
+    final isVisible = _containsPath(visibleMenu, _currentPath);
+    if (isVisible || !mounted) {
+      return;
+    }
+
+    _handleNavigate('/dashboard');
+  }
+
+  bool _containsPath(List<AppNavigationItem> items, String path) {
+    for (final item in items) {
+      if (item.path == path) {
+        return true;
+      }
+      if (item.children.isNotEmpty && _containsPath(item.children, path)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   Future<void> _logout(BuildContext context) async {

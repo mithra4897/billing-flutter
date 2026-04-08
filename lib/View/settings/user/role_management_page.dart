@@ -317,6 +317,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       );
 
       await _loadRolePermissions(_selectedRoleId!, force: true);
+      await AppSessionService.instance.refreshUserAccess();
 
       if (mounted) {
         ScaffoldMessenger.of(

@@ -461,9 +461,22 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   String _generatePartyCodeForType(int? partyTypeId) {
     final typeCode = _partyTypeCode(partyTypeId);
     final series = _defaultPartySeries();
-    final number = (series?.nextNumber ?? (_parties.length + 1))
-        .toString()
-        .padLeft(series?.numberLength ?? 5, '0');
+    final pattern = RegExp('^${RegExp.escape(typeCode)}/(\\d+)');
+    var nextNumber = series?.nextNumber ?? 1;
+
+    for (final party in _parties) {
+      final match = pattern.firstMatch((party.partyCode ?? '').trim().toUpperCase());
+      if (match == null) {
+        continue;
+      }
+
+      final value = int.tryParse(match.group(1) ?? '');
+      if (value != null && value >= nextNumber) {
+        nextNumber = value + 1;
+      }
+    }
+
+    final number = nextNumber.toString().padLeft(series?.numberLength ?? 5, '0');
     final suffix = (series?.suffix ?? '').trim();
 
     return '$typeCode/$number$suffix';

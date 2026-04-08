@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 import '../../core/error/api_exception.dart';
 import '../../core/storage/session_storage.dart';
@@ -10,6 +11,7 @@ class AppSessionService {
   AppSessionService._();
 
   static final AppSessionService instance = AppSessionService._();
+  static final ValueNotifier<int> accessVersion = ValueNotifier<int>(0);
 
   final AuthService _authService = AuthService();
   Timer? _refreshTimer;
@@ -42,6 +44,7 @@ class AppSessionService {
     _refreshTimer?.cancel();
     _refreshTimer = null;
     await SessionStorage.clearSessionOnly();
+    accessVersion.value++;
   }
 
   Future<void> _scheduleRefresh() async {
@@ -104,15 +107,22 @@ class AppSessionService {
 
   Future<void> refreshUserAccess() async {
     try {
+      final profileResponse = await _authService.profile();
+      if (profileResponse.success && profileResponse.data != null) {
+        await SessionStorage.saveCurrentUser(profileResponse.data!.toJson());
+      }
+
       final contextResponse = await _authService.context();
       if (contextResponse.success && contextResponse.data != null) {
         await SessionStorage.saveAuthContext(contextResponse.data!);
+        accessVersion.value++;
       }
     } catch (_) {}
   }
 
   Future<void> updateCurrentUser(AuthUserModel user) async {
     await SessionStorage.saveCurrentUser(user.toJson());
+    accessVersion.value++;
   }
 
   void _scheduleRetry(Duration delay) {

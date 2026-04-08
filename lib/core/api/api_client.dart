@@ -219,7 +219,9 @@ class ApiClient {
   Future<ApiResponse<T>> upload<T>(
     String endpoint, {
     required String fileField,
-    required String filePath,
+    String? filePath,
+    Uint8List? fileBytes,
+    String? fileName,
     Map<String, String>? fields,
     T Function(dynamic json)? fromData,
   }) async {
@@ -231,7 +233,21 @@ class ApiClient {
       request.fields.addAll(fields);
     }
 
-    request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+    if (fileBytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          fileField,
+          fileBytes,
+          filename: fileName ?? 'upload.bin',
+        ),
+      );
+    } else if (filePath != null && filePath.trim().isNotEmpty) {
+      request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+    } else {
+      throw ArgumentError(
+        'Either filePath or fileBytes must be provided for upload.',
+      );
+    }
 
     final requestContext = _RequestDebugContext(
       method: 'POST',
@@ -239,7 +255,15 @@ class ApiClient {
       requestBody: <String, dynamic>{
         'multipart': true,
         'file_field': fileField,
-        'file_path': filePath,
+        ...(filePath == null
+            ? const <String, dynamic>{}
+            : <String, dynamic>{'file_path': filePath}),
+        ...(fileBytes == null
+            ? const <String, dynamic>{}
+            : <String, dynamic>{'file_bytes_length': fileBytes.length}),
+        ...(fileName == null
+            ? const <String, dynamic>{}
+            : <String, dynamic>{'file_name': fileName}),
         'fields': fields ?? <String, String>{},
       },
     );

@@ -31,6 +31,7 @@ export 'core/error/api_exception.dart';
 export 'core/models/api_response.dart';
 export 'core/models/pagination_meta.dart';
 export 'core/models/paginated_response.dart';
+export 'core/files/local_file_picker.dart';
 export 'core/storage/session_storage.dart';
 
 export 'helper/validators.dart';
@@ -42,6 +43,7 @@ export 'model/admin/user_model.dart';
 export 'model/app/public_branding_model.dart';
 export 'model/auth/audit_log_model.dart';
 export 'model/auth/auth_context_model.dart';
+export 'model/auth/change_password_request_model.dart';
 export 'model/auth/login_history_model.dart';
 export 'model/auth/login_request_model.dart';
 export 'model/auth/module_model.dart';

@@ -77,6 +77,19 @@ class AuthService extends ErpModuleService {
     ChangePasswordRequestModel body,
   ) => actionDynamic('/auth/change-password', body: body);
 
+  Future<String?> nextEmployeeCode({String prefix = 'EMP'}) async {
+    final response = await client.get<Map<String, dynamic>>(
+      '/auth/users/next-employee-code',
+      queryParameters: prefix.trim().isEmpty
+          ? null
+          : <String, dynamic>{'prefix': prefix.trim()},
+      fromData: (json) =>
+          json is Map<String, dynamic> ? json : <String, dynamic>{},
+    );
+
+    return response.data?['employee_code']?.toString();
+  }
+
   Future<PaginatedResponse<ModuleModel>> modules({
     Map<String, dynamic>? filters,
   }) => paginated(

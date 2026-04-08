@@ -14,6 +14,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final AuthService _authService = AuthService();
   final MediaService _mediaService = MediaService();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _passwordFormKey = GlobalKey<FormState>();
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -23,9 +24,15 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _profilePhotoController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _loading = true;
   bool _saving = false;
+  bool _changingPassword = false;
   bool _uploadingPhoto = false;
   String? _error;
   UserModel? _profile;
@@ -51,6 +58,9 @@ class _ProfilePageState extends State<ProfilePage> {
     _dobController.dispose();
     _profilePhotoController.dispose();
     _remarksController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -144,9 +154,12 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       if (response.data != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
+        final messenger = ScaffoldMessenger.of(context);
+        await AppSessionService.instance.refreshUserAccess();
+        if (!mounted) {
+          return;
+        }
+        messenger.showSnackBar(SnackBar(content: Text(response.message)));
         await _loadProfile();
       } else {
         setState(() {
@@ -191,6 +204,48 @@ class _ProfilePageState extends State<ProfilePage> {
       folder: 'users/profile',
       isPublic: true,
     );
+  }
+
+  Future<void> _changePassword() async {
+    if (!_passwordFormKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _changingPassword = true;
+      _error = null;
+    });
+
+    try {
+      final response = await _authService.changePassword(
+        ChangePasswordRequestModel({
+          'current_password': _currentPasswordController.text.trim(),
+          'new_password': _newPasswordController.text.trim(),
+          'confirm_password': _confirmPasswordController.text.trim(),
+        }),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(response.message)));
+    } catch (error) {
+      setState(() {
+        _error = error.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _changingPassword = false;
+        });
+      }
+    }
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -259,10 +314,16 @@ class _ProfilePageState extends State<ProfilePage> {
             profile: _profile,
             error: _error,
             saving: _saving,
+            passwordFormKey: _passwordFormKey,
+            currentPasswordController: _currentPasswordController,
+            newPasswordController: _newPasswordController,
+            confirmPasswordController: _confirmPasswordController,
+            changingPassword: _changingPassword,
             uploadingPhoto: _uploadingPhoto,
             onGenderChanged: (value) => setState(() => _gender = value),
             onDisplayNameEdited: _handleDisplayNameEdited,
             onSave: _save,
+            onChangePassword: _changePassword,
             onUploadPhoto: _uploadProfileImage,
           );
 
@@ -291,6 +352,7 @@ class _ProfilePageState extends State<ProfilePage> {
 class _ProfileContent extends StatelessWidget {
   const _ProfileContent({
     required this.formKey,
+    required this.passwordFormKey,
     required this.firstNameController,
     required this.lastNameController,
     required this.displayNameController,
@@ -299,18 +361,24 @@ class _ProfileContent extends StatelessWidget {
     required this.dobController,
     required this.profilePhotoController,
     required this.remarksController,
+    required this.currentPasswordController,
+    required this.newPasswordController,
+    required this.confirmPasswordController,
     required this.gender,
     required this.profile,
     required this.error,
     required this.saving,
+    required this.changingPassword,
     required this.uploadingPhoto,
     required this.onGenderChanged,
     required this.onDisplayNameEdited,
     required this.onSave,
+    required this.onChangePassword,
     required this.onUploadPhoto,
   });
 
   final GlobalKey<FormState> formKey;
+  final GlobalKey<FormState> passwordFormKey;
   final TextEditingController firstNameController;
   final TextEditingController lastNameController;
   final TextEditingController displayNameController;
@@ -319,14 +387,19 @@ class _ProfileContent extends StatelessWidget {
   final TextEditingController dobController;
   final TextEditingController profilePhotoController;
   final TextEditingController remarksController;
+  final TextEditingController currentPasswordController;
+  final TextEditingController newPasswordController;
+  final TextEditingController confirmPasswordController;
   final String? gender;
   final UserModel? profile;
   final String? error;
   final bool saving;
+  final bool changingPassword;
   final bool uploadingPhoto;
   final ValueChanged<String?> onGenderChanged;
   final VoidCallback onDisplayNameEdited;
   final Future<void> Function() onSave;
+  final Future<void> Function() onChangePassword;
   final Future<void> Function() onUploadPhoto;
 
   @override
@@ -451,6 +524,97 @@ class _ProfileContent extends StatelessWidget {
                       icon: Icons.save_outlined,
                       label: saving ? 'Saving...' : 'Save Profile',
                       busy: saving,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  const Divider(),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Change Password',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Form(
+                    key: passwordFormKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SettingsFormWrap(
+                          children: [
+                            AppFormTextField(
+                              controller: currentPasswordController,
+                              labelText: 'Current Password',
+                              obscureText: true,
+                              validator: Validators.compose([
+                                Validators.required('Current Password'),
+                                Validators.optionalMaxLength(
+                                  100,
+                                  'Current Password',
+                                ),
+                              ]),
+                            ),
+                            AppFormTextField(
+                              controller: newPasswordController,
+                              labelText: 'New Password',
+                              obscureText: true,
+                              validator: (value) {
+                                final requiredError = Validators.required(
+                                  'New Password',
+                                )(value);
+                                if (requiredError != null) {
+                                  return requiredError;
+                                }
+                                final trimmed = value!.trim();
+                                if (trimmed.length < 6) {
+                                  return 'New Password must be at least 6 characters';
+                                }
+                                if (trimmed.length > 100) {
+                                  return 'New Password must be at most 100 characters';
+                                }
+                                if (trimmed ==
+                                    currentPasswordController.text.trim()) {
+                                  return 'New Password must be different from Current Password';
+                                }
+                                return null;
+                              },
+                            ),
+                            AppFormTextField(
+                              controller: confirmPasswordController,
+                              labelText: 'Confirm Password',
+                              obscureText: true,
+                              validator: (value) {
+                                final requiredError = Validators.required(
+                                  'Confirm Password',
+                                )(value);
+                                if (requiredError != null) {
+                                  return requiredError;
+                                }
+                                if (value!.trim() !=
+                                    newPasswordController.text.trim()) {
+                                  return 'Confirm Password must match New Password';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: AppActionButton(
+                            onPressed: changingPassword
+                                ? null
+                                : onChangePassword,
+                            icon: Icons.lock_reset_outlined,
+                            label: changingPassword
+                                ? 'Changing...'
+                                : 'Change Password',
+                            busy: changingPassword,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

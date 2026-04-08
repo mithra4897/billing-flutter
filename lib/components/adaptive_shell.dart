@@ -8,6 +8,7 @@ import '../app/theme/app_theme_extension.dart';
 import '../core/storage/session_storage.dart';
 import '../model/app/public_branding_model.dart';
 import '../model/auth/module_model.dart';
+import '../service/app/app_session_service.dart';
 import 'app_branding_logo.dart';
 
 class AdaptiveShell extends StatefulWidget {
@@ -205,6 +206,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   @override
   void initState() {
     super.initState();
+    AppSessionService.accessVersion.addListener(_handleAccessVersionChanged);
     _loadAccess();
     _bindScrollController(widget.scrollController);
   }
@@ -217,9 +219,14 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
 
   @override
   void dispose() {
+    AppSessionService.accessVersion.removeListener(_handleAccessVersionChanged);
     _unbindScrollController(widget.scrollController);
     _drawerScrollController.dispose();
     super.dispose();
+  }
+
+  void _handleAccessVersionChanged() {
+    _loadAccess();
   }
 
   @override

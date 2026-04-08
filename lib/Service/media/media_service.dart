@@ -54,6 +54,35 @@ class MediaService {
     );
   }
 
+  Future<ApiResponse<MediaFileModel>> uploadBytes({
+    required Uint8List fileBytes,
+    required String fileName,
+    int? companyId,
+    String? module,
+    String? documentType,
+    int? documentId,
+    String? purpose,
+    String? folder,
+    bool isPublic = false,
+  }) {
+    return _apiClient.upload<MediaFileModel>(
+      ApiEndpoints.mediaFiles,
+      fileField: 'file',
+      fileBytes: fileBytes,
+      fileName: fileName,
+      fields: {
+        if (companyId != null) 'company_id': companyId.toString(),
+        if (module case final String value) 'module': value,
+        if (documentType case final String value) 'document_type': value,
+        if (documentId != null) 'document_id': documentId.toString(),
+        if (purpose case final String value) 'purpose': value,
+        if (folder case final String value) 'folder': value,
+        'is_public': isPublic ? '1' : '0',
+      },
+      fromData: (json) => MediaFileModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
   Future<ApiResponse<dynamic>> deleteFile(int id) {
     return _apiClient.delete<dynamic>('${ApiEndpoints.mediaFiles}/$id');
   }
