@@ -38,6 +38,17 @@ class MasterService extends ErpModuleService {
         fromJson: CompanyModel.fromJson,
       );
 
+  Future<String?> nextCompanyCode({String prefix = 'CMP'}) async {
+    final response = await client.get<Map<String, dynamic>>(
+      '/masters/companies/next-code',
+      queryParameters: <String, dynamic>{'prefix': prefix},
+      fromData: (json) =>
+          (json as Map<String, dynamic>?) ?? <String, dynamic>{},
+    );
+
+    return response.data?['code']?.toString();
+  }
+
   Future<ApiResponse<CompanyModel>> updateCompany(int id, CompanyModel body) =>
       updateModel<CompanyModel>(
         '/masters/companies/$id',
@@ -76,6 +87,23 @@ class MasterService extends ErpModuleService {
         fromJson: BranchModel.fromJson,
       );
 
+  Future<String?> nextBranchCode({
+    required int companyId,
+    required String branchType,
+  }) async {
+    final response = await client.get<Map<String, dynamic>>(
+      '/masters/branches/next-code',
+      queryParameters: <String, dynamic>{
+        'company_id': companyId,
+        'branch_type': branchType,
+      },
+      fromData: (json) =>
+          (json as Map<String, dynamic>?) ?? <String, dynamic>{},
+    );
+
+    return response.data?['code']?.toString();
+  }
+
   Future<ApiResponse<BranchModel>> updateBranch(int id, BranchModel body) =>
       updateModel<BranchModel>(
         '/masters/branches/$id',
@@ -106,6 +134,17 @@ class MasterService extends ErpModuleService {
     body,
     fromJson: BusinessLocationModel.fromJson,
   );
+
+  Future<String?> nextBusinessLocationCode({required int branchId}) async {
+    final response = await client.get<Map<String, dynamic>>(
+      '/masters/business-locations/next-code',
+      queryParameters: <String, dynamic>{'branch_id': branchId},
+      fromData: (json) =>
+          (json as Map<String, dynamic>?) ?? <String, dynamic>{},
+    );
+
+    return response.data?['code']?.toString();
+  }
 
   Future<ApiResponse<BusinessLocationModel>> updateBusinessLocation(
     int id,
@@ -138,6 +177,23 @@ class MasterService extends ErpModuleService {
         body,
         fromJson: WarehouseModel.fromJson,
       );
+
+  Future<String?> nextWarehouseCode({
+    required int locationId,
+    required String warehouseType,
+  }) async {
+    final response = await client.get<Map<String, dynamic>>(
+      '/masters/warehouses/next-code',
+      queryParameters: <String, dynamic>{
+        'location_id': locationId,
+        'warehouse_type': warehouseType,
+      },
+      fromData: (json) =>
+          (json as Map<String, dynamic>?) ?? <String, dynamic>{},
+    );
+
+    return response.data?['code']?.toString();
+  }
 
   Future<ApiResponse<WarehouseModel>> updateWarehouse(
     int id,
