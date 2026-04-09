@@ -543,10 +543,10 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
               prefixIcon: Icon(Icons.search),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppUiConstants.spacingMd),
           if (_filteredPrices.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
               child: Text('No price rows found for this item.'),
             )
           else
@@ -554,7 +554,8 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _filteredPrices.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: AppUiConstants.spacingXs),
               itemBuilder: (context, index) {
                 final price = _filteredPrices[index];
                 return SettingsListTile(
@@ -572,10 +573,10 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                 );
               },
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppUiConstants.spacingLg),
           if (_formError != null) ...[
             AppErrorStateView.inline(message: _formError!),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppUiConstants.spacingSm),
           ],
           SettingsFormWrap(
             children: [
@@ -673,13 +674,13 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppUiConstants.spacingMd),
           Wrap(
-            spacing: 16,
-            runSpacing: 12,
+            spacing: AppUiConstants.spacingMd,
+            runSpacing: AppUiConstants.spacingSm,
             children: [
               SizedBox(
-                width: 280,
+                width: AppUiConstants.switchFieldWidth,
                 child: AppSwitchTile(
                   label: 'Default Price',
                   value: _isDefault,
@@ -687,7 +688,7 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                 ),
               ),
               SizedBox(
-                width: 280,
+                width: AppUiConstants.switchFieldWidth,
                 child: AppSwitchTile(
                   label: 'Active',
                   value: _isActive,
@@ -696,10 +697,10 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppUiConstants.spacingLg),
           Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
             children: [
               AppActionButton(
                 icon: Icons.save_outlined,

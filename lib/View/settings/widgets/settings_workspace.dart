@@ -95,7 +95,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(width: widget.listWidth, child: widget.list),
-                      const SizedBox(width: 24),
+                      const SizedBox(width: AppUiConstants.spacingXl),
 
                       Expanded(
                         child: AppSectionCard(
@@ -107,7 +107,9 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                                   widget.editorTitle!,
                                   style: theme.headlineSmall,
                                 ),
-                                SizedBox(height: 8),
+                                const SizedBox(
+                                  height: AppUiConstants.spacingXs,
+                                ),
                               ],
                               widget.editor,
                             ],
@@ -191,10 +193,12 @@ class SettingsListCard<T> extends StatelessWidget {
               prefixIcon: const Icon(Icons.search),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppUiConstants.spacingMd),
           if (items.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
+              padding: const EdgeInsets.symmetric(
+                vertical: AppUiConstants.spacingXl,
+              ),
               child: Text(emptyMessage),
             )
           else
@@ -202,7 +206,8 @@ class SettingsListCard<T> extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: items.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: AppUiConstants.spacingXs),
               itemBuilder: (context, index) => itemBuilder(
                 items[index],
                 identical(items[index], selectedItem),
@@ -221,11 +226,13 @@ class SettingsListTile extends StatelessWidget {
     required this.subtitle,
     required this.selected,
     required this.onTap,
+    this.detail,
     this.trailing,
   });
 
   final String title;
   final String subtitle;
+  final String? detail;
   final bool selected;
   final VoidCallback onTap;
   final Widget? trailing;
@@ -245,7 +252,7 @@ class SettingsListTile extends StatelessWidget {
         }
       },
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(AppUiConstants.tilePadding),
         decoration: BoxDecoration(
           color: selected ? colorScheme.primary.withValues(alpha: 0.08) : null,
           borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
@@ -268,7 +275,7 @@ class SettingsListTile extends StatelessWidget {
                     ),
                   ),
                   if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppUiConstants.spacingXxs),
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -276,10 +283,22 @@ class SettingsListTile extends StatelessWidget {
                       ),
                     ),
                   ],
+                  if ((detail ?? '').isNotEmpty) ...[
+                    const SizedBox(height: AppUiConstants.spacingXxs),
+                    Text(
+                      detail!,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.extension<AppThemeExtension>()!.mutedText,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            if (trailing != null) ...[const SizedBox(width: 12), trailing!],
+            if (trailing != null) ...[
+              const SizedBox(width: AppUiConstants.spacingSm),
+              trailing!,
+            ],
           ],
         ),
       ),
@@ -333,7 +352,7 @@ class SettingsStatusPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
       ),
       child: Text(
         label,

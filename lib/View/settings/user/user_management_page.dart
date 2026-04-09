@@ -828,8 +828,11 @@ class _UserManagementPageState extends State<UserManagementPage>
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(width: 320, child: _buildUserList(context)),
-                          const SizedBox(width: 24),
+                          SizedBox(
+                            width: AppUiConstants.settingsSidebarWidth,
+                            child: _buildUserList(context),
+                          ),
+                          const SizedBox(width: AppUiConstants.spacingXl),
                           Expanded(child: _buildEditor(context)),
                         ],
                       )
@@ -838,7 +841,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _buildUserList(context),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppUiConstants.spacingLg),
                           _buildEditor(context),
                         ],
                       ),
@@ -887,118 +890,47 @@ class _UserManagementPageState extends State<UserManagementPage>
   }
 
   Widget _buildUserList(BuildContext context) {
-    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
+    return SettingsListCard<UserModel>(
+      searchController: _searchController,
+      searchHint: 'Search users',
+      items: _filteredUsers,
+      selectedItem: _filteredUsers.cast<UserModel?>().firstWhere(
+        (user) => user?.id == _selectedUserId,
+        orElse: () => null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search users',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filteredUsers.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final user = _filteredUsers[index];
-                final selected = user.id == _selectedUserId;
-
-                return InkWell(
-                  borderRadius: BorderRadius.circular(
-                    AppUiConstants.buttonRadius,
-                  ),
-                  onTap: () {
-                    if (user.id != null) {
-                      _loadUser(user.id!);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.12)
-                          : appTheme.subtleFill,
-                      borderRadius: BorderRadius.circular(
-                        AppUiConstants.buttonRadius,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.displayName ??
-                              '${user.firstName ?? ''} ${user.lastName ?? ''}'
-                                  .trim()
-                                  .ifEmpty(user.username ?? 'User'),
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user.username ?? '',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: appTheme.mutedText),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          user.status ?? 'active',
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: appTheme.mutedText),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+      emptyMessage: 'No users found.',
+      itemBuilder: (user, selected) => SettingsListTile(
+        title:
+            user.displayName ??
+            '${user.firstName ?? ''} ${user.lastName ?? ''}'
+                .trim()
+                .ifEmpty(user.username ?? 'User'),
+        subtitle: user.username ?? '',
+        detail: user.status ?? 'active',
+        selected: selected,
+        onTap: () {
+          if (user.id != null) {
+            _loadUser(user.id!);
+          }
+        },
       ),
     );
   }
 
   Widget _buildEditor(BuildContext context) {
-    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
     final showDetailTabs = !_isNewUser && _selectedUserId != null;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+    return AppSectionCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
+            padding: const EdgeInsets.fromLTRB(
+              AppUiConstants.spacing2xl,
+              AppUiConstants.pagePadding,
+              AppUiConstants.spacing2xl,
+              0,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -1010,7 +942,9 @@ class _UserManagementPageState extends State<UserManagementPage>
                             ? 'Fill the complete user profile first. After saving, the permission, audit, and login tabs become active.'
                             : 'Role gives the base access, and direct permissions can be added in the next tab.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: appTheme.mutedText,
+                          color: Theme.of(
+                            context,
+                          ).extension<AppThemeExtension>()!.mutedText,
                         ),
                       ),
                     ],
@@ -1036,7 +970,9 @@ class _UserManagementPageState extends State<UserManagementPage>
                       ],
                     ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 28),
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacing2xl,
+                    ),
                     child: showDetailTabs
                         ? [
                             _buildProfileTab(context),

@@ -804,7 +804,9 @@ class _ItemSupplierMapManagementPageState
       children: [
         if (_filteredItems.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppUiConstants.spacingMd,
+            ),
             child: Text(
               _isItemWise
                   ? 'No suppliers mapped for this item.'
@@ -816,7 +818,8 @@ class _ItemSupplierMapManagementPageState
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _filteredItems.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppUiConstants.spacingXs),
             itemBuilder: (context, index) {
               final item = _filteredItems[index];
               return SettingsListTile(
@@ -843,7 +846,7 @@ class _ItemSupplierMapManagementPageState
               );
             },
           ),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppUiConstants.spacingLg),
         TextField(
           controller: _addSearchController,
           decoration: InputDecoration(
@@ -853,7 +856,7 @@ class _ItemSupplierMapManagementPageState
             prefixIcon: const Icon(Icons.search),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppUiConstants.spacingSm),
         if (_filteredAvailableCounterpartyOptions.isEmpty)
           Text(
             _isItemWise
@@ -865,7 +868,8 @@ class _ItemSupplierMapManagementPageState
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _filteredAvailableCounterpartyOptions.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppUiConstants.spacingXs),
             itemBuilder: (context, index) {
               final option = _filteredAvailableCounterpartyOptions[index];
               final optionId = _isItemWise
@@ -886,7 +890,7 @@ class _ItemSupplierMapManagementPageState
             },
           ),
         if (hasDraft) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: AppUiConstants.spacingLg),
           Form(
             key: _formKey,
             child: Column(
@@ -894,7 +898,7 @@ class _ItemSupplierMapManagementPageState
               children: [
                 if (_formError != null) ...[
                   AppErrorStateView.inline(message: _formError!),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppUiConstants.spacingSm),
                 ],
                 DropdownButtonFormField<int>(
                   initialValue: _counterpartyId,
@@ -998,13 +1002,13 @@ class _ItemSupplierMapManagementPageState
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppUiConstants.spacingSm),
                 Wrap(
-                  spacing: 16,
-                  runSpacing: 12,
+                  spacing: AppUiConstants.spacingMd,
+                  runSpacing: AppUiConstants.spacingSm,
                   children: [
                     SizedBox(
-                      width: 280,
+                      width: AppUiConstants.switchFieldWidth,
                       child: AppSwitchTile(
                         label: 'Primary Supplier',
                         value: _isPrimarySupplier,
@@ -1013,7 +1017,7 @@ class _ItemSupplierMapManagementPageState
                       ),
                     ),
                     SizedBox(
-                      width: 280,
+                      width: AppUiConstants.switchFieldWidth,
                       child: AppSwitchTile(
                         label: 'Active',
                         value: _isActive,
@@ -1022,7 +1026,7 @@ class _ItemSupplierMapManagementPageState
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppUiConstants.spacingMd),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -1031,7 +1035,7 @@ class _ItemSupplierMapManagementPageState
                         onPressed: _saving ? null : _delete,
                         child: const Text('Delete'),
                       ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppUiConstants.spacingSm),
                     FilledButton.icon(
                       onPressed: _saving ? null : _save,
                       icon: const Icon(Icons.save_outlined),
@@ -1043,7 +1047,7 @@ class _ItemSupplierMapManagementPageState
             ),
           ),
         ] else ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppUiConstants.spacingMd),
           Text(
             _isItemWise
                 ? 'Pick a supplier above to start this product mapping.'

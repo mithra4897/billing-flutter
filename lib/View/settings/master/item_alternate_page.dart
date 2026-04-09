@@ -555,7 +555,7 @@ class _ItemAlternateManagementPageState
       children: [
         if (_filteredItems.isEmpty)
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
             child: Text('No alternates mapped for this item.'),
           )
         else
@@ -563,7 +563,8 @@ class _ItemAlternateManagementPageState
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _filteredItems.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppUiConstants.spacingXs),
             itemBuilder: (context, index) {
               final item = _filteredItems[index];
               return SettingsListTile(
@@ -583,7 +584,7 @@ class _ItemAlternateManagementPageState
               );
             },
           ),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppUiConstants.spacingLg),
         TextField(
           controller: _addSearchController,
           decoration: const InputDecoration(
@@ -591,7 +592,7 @@ class _ItemAlternateManagementPageState
             prefixIcon: Icon(Icons.search),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppUiConstants.spacingSm),
         if (_filteredAvailableCounterpartyOptions.isEmpty)
           const Text('No more alternate items available to add.')
         else
@@ -599,7 +600,8 @@ class _ItemAlternateManagementPageState
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _filteredAvailableCounterpartyOptions.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppUiConstants.spacingXs),
             itemBuilder: (context, index) {
               final option = _filteredAvailableCounterpartyOptions[index];
               return SettingsListTile(
@@ -612,7 +614,7 @@ class _ItemAlternateManagementPageState
             },
           ),
         if (hasDraft) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: AppUiConstants.spacingLg),
           Form(
             key: _formKey,
             child: Column(
@@ -620,7 +622,7 @@ class _ItemAlternateManagementPageState
               children: [
                 if (_formError != null) ...[
                   AppErrorStateView.inline(message: _formError!),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppUiConstants.spacingSm),
                 ],
                 if (widget.fixedItemId == null) ...[
                   DropdownButtonFormField<int>(
@@ -645,13 +647,13 @@ class _ItemAlternateManagementPageState
                         setState(() => _counterpartyId = value),
                     validator: Validators.requiredSelection(_counterpartyLabel),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppUiConstants.spacingSm),
                 ] else if (selectedCounterparty != null) ...[
                   Text(
                     _itemLabel(selectedCounterparty),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppUiConstants.spacingSm),
                 ],
                 SettingsFormWrap(
                   children: [
@@ -672,19 +674,19 @@ class _ItemAlternateManagementPageState
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppUiConstants.spacingSm),
                 SizedBox(
-                  width: 280,
+                  width: AppUiConstants.switchFieldWidth,
                   child: AppSwitchTile(
                     label: 'Active',
                     value: _isActive,
                     onChanged: (value) => setState(() => _isActive = value),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppUiConstants.spacingMd),
                 Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingSm,
                   children: [
                     AppActionButton(
                       icon: Icons.save_outlined,
@@ -707,7 +709,7 @@ class _ItemAlternateManagementPageState
             ),
           ),
         ] else ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppUiConstants.spacingMd),
           const Text('Pick an alternate above to start this mapping.'),
         ],
       ],

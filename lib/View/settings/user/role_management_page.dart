@@ -427,8 +427,11 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(width: 320, child: _buildRoleList(context)),
-                          const SizedBox(width: 24),
+                          SizedBox(
+                            width: AppUiConstants.settingsSidebarWidth,
+                            child: _buildRoleList(context),
+                          ),
+                          const SizedBox(width: AppUiConstants.spacingXl),
                           Expanded(child: _buildEditor(context)),
                         ],
                       )
@@ -437,7 +440,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _buildRoleList(context),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppUiConstants.spacingLg),
                           _buildEditor(context),
                         ],
                       ),
@@ -486,116 +489,39 @@ class _RoleManagementPageState extends State<RoleManagementPage>
   }
 
   Widget _buildRoleList(BuildContext context) {
-    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
+    return SettingsListCard<RoleModel>(
+      searchController: _searchController,
+      searchHint: 'Search roles',
+      items: _filteredRoles,
+      selectedItem: _filteredRoles.cast<RoleModel?>().firstWhere(
+        (role) => role?.id == _selectedRoleId,
+        orElse: () => null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search roles',
-                prefixIcon: Icon(Icons.search),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filteredRoles.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final role = _filteredRoles[index];
-                final selected = role.id == _selectedRoleId;
-
-                return InkWell(
-                  borderRadius: BorderRadius.circular(
-                    AppUiConstants.buttonRadius,
-                  ),
-                  onTap: () {
-                    if (role.id != null) {
-                      _loadRole(role.id!, resetTab: true);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.12)
-                          : appTheme.subtleFill,
-                      borderRadius: BorderRadius.circular(
-                        AppUiConstants.buttonRadius,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          role.name ?? role.code ?? 'Role',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          role.code ?? '',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: appTheme.mutedText),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          role.isSystemRole == true
-                              ? 'System Role'
-                              : (role.isActive == true ? 'Active' : 'Inactive'),
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: appTheme.mutedText),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+      emptyMessage: 'No roles found.',
+      itemBuilder: (role, selected) => SettingsListTile(
+        title: role.name ?? role.code ?? 'Role',
+        subtitle: role.code ?? '',
+        detail: role.isSystemRole == true
+            ? 'System Role'
+            : (role.isActive == true ? 'Active' : 'Inactive'),
+        selected: selected,
+        onTap: () {
+          if (role.id != null) {
+            _loadRole(role.id!, resetTab: true);
+          }
+        },
       ),
     );
   }
 
   Widget _buildEditor(BuildContext context) {
-    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
     final showDetailTabs = !_isNewRole && _selectedRoleId != null;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: appTheme.cardBackground,
-        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            color: appTheme.cardShadow,
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+    return AppSectionCard(
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: AppUiConstants.spacingSm),
           AnimatedBuilder(
             animation: _tabController,
             builder: (context, _) {
@@ -611,7 +537,9 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                       ],
                     ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 28),
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacing2xl,
+                    ),
                     child: showDetailTabs
                         ? [
                             _buildProfileTab(context),

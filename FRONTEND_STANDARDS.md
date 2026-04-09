@@ -69,6 +69,8 @@ If an old Flutter model or page disagrees with `install.sql`, fix the Flutter si
 - do not hardcode random colors in pages
 - if a style is reused or likely to change globally, move it to theme/constants
 - app-level behaviors such as expansion visuals should stay app-level, not page-level
+- shared layout/spacing tokens should live in `AppUiConstants`
+- when a width, gap, radius, or padding repeats across screens, move it to `AppUiConstants` instead of keeping magic numbers in pages
 
 ## Navigation Rule
 
@@ -298,6 +300,7 @@ Examples:
 - use `AppToggleChip` instead of making another item-only toggle widget
 - use `AppDropdownField` instead of raw repeated dropdown boilerplate
 - use shared settings/report layout widgets instead of rebuilding the structure again
+- prefer `SettingsListCard`, `SettingsListTile`, `SettingsStatusPill`, and `AppSectionCard` before creating new list/editor chrome
 
 If a local widget solves a reusable problem, promote the shared component instead of copying the pattern again.
 
