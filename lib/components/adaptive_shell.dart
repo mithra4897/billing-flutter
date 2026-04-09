@@ -838,13 +838,16 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     double targetOffset = _drawerScrollController.offset;
 
     if (groupHeight > visibleHeight) {
-      targetOffset += headerTop - edgePadding;
-    } else {
-      if (headerTop < edgePadding) {
+      // On manual expand, do not pull the drawer upward toward another
+      // already-open route. Only scroll downward when the clicked header sits
+      // lower in the viewport and we need to keep it near the top.
+      if (headerTop > edgePadding) {
         targetOffset += headerTop - edgePadding;
-      } else if (groupBottom > viewportHeight - edgePadding) {
-        targetOffset += groupBottom - (viewportHeight - edgePadding);
       }
+    } else if (groupBottom > viewportHeight - edgePadding) {
+      // For smaller groups, only move enough to reveal the newly expanded
+      // bottom content. Avoid upward jumps while browsing the drawer.
+      targetOffset += groupBottom - (viewportHeight - edgePadding);
     }
 
     final clampedOffset = targetOffset.clamp(

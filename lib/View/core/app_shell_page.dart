@@ -7,6 +7,9 @@ import '../settings/communication/email_module_settings_page.dart';
 import '../settings/communication/email_rules_page.dart';
 import '../settings/communication/email_settings_page.dart';
 import '../settings/communication/email_templates_page.dart';
+import '../settings/accounting/account_group_page.dart';
+import '../settings/accounting/account_page.dart';
+import '../settings/accounting/voucher_type_page.dart';
 import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
 import '../settings/user/role_management_page.dart';
@@ -292,6 +295,19 @@ class _AppShellPageState extends State<AppShellPage> {
         return EmailMessagesPage(key: routeKey, embedded: true);
       case '/parties':
         return PartyManagementPage(key: routeKey, embedded: true);
+      case '/accounting/account-groups':
+        return AccountGroupManagementPage(key: routeKey, embedded: true);
+      case '/accounting/accounts':
+        return AccountManagementPage(key: routeKey, embedded: true);
+      case '/accounting/voucher-types':
+        return VoucherTypeManagementPage(key: routeKey, embedded: true);
+      case '/accounting/party-accounts':
+      case '/parties/accounts':
+        return PartyManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 7,
+        );
       case '/parties/addresses':
         return PartyManagementPage(
           key: routeKey,

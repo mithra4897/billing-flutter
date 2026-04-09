@@ -66,7 +66,7 @@ class AccountsService extends ErpModuleService {
     Map<String, dynamic>? filters,
   }) {
     return client.getPaginated<AccountModel>(
-      ApiEndpoints.accounts,
+      '/accounting/accounts',
       queryParameters: filters,
       itemFromJson: AccountModel.fromJson,
     );
@@ -270,9 +270,9 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteDocumentPosting(int id) =>
       destroy('/accounting/document-postings/$id');
 
-  Future<PaginatedResponse<PartyAccountModel>> partyAccounts({
+  Future<ApiResponse<List<PartyAccountModel>>> partyAccounts({
     Map<String, dynamic>? filters,
-  }) => paginated<PartyAccountModel>(
+  }) => collection<PartyAccountModel>(
     '/accounting/party-accounts',
     filters: filters,
     fromJson: PartyAccountModel.fromJson,
