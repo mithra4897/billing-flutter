@@ -25,8 +25,7 @@ class ApiEndpoints {
   static const String brands = '/inventory/brands';
 
   static const String accounts = '/accounting/accounts';
-  static const String vouchers = '/accounts/vouchers';
-
+  static const String vouchers = '/accounting/vouchers';
   static const String salesInvoices = '/sales/invoices';
   static const String salesOrders = '/sales/orders';
   static const String salesQuotations = '/sales/quotations';

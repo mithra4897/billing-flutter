@@ -9,6 +9,10 @@ import '../settings/communication/email_settings_page.dart';
 import '../settings/communication/email_templates_page.dart';
 import '../settings/accounting/account_group_page.dart';
 import '../settings/accounting/account_page.dart';
+import '../settings/accounting/bank_reconciliation_page.dart';
+import '../settings/accounting/cash_session_page.dart';
+import '../settings/accounting/financial_reports_page.dart';
+import '../settings/accounting/voucher_page.dart';
 import '../settings/accounting/voucher_type_page.dart';
 import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
@@ -299,6 +303,14 @@ class _AppShellPageState extends State<AppShellPage> {
         return AccountGroupManagementPage(key: routeKey, embedded: true);
       case '/accounting/accounts':
         return AccountManagementPage(key: routeKey, embedded: true);
+      case '/accounting/vouchers':
+        return VoucherManagementPage(key: routeKey, embedded: true);
+      case '/accounting/cash-sessions':
+        return CashSessionManagementPage(key: routeKey, embedded: true);
+      case '/accounting/bank-reconciliation':
+        return BankReconciliationManagementPage(key: routeKey, embedded: true);
+      case '/accounting/reports':
+        return FinancialReportsPage(key: routeKey, embedded: true);
       case '/accounting/voucher-types':
         return VoucherTypeManagementPage(key: routeKey, embedded: true);
       case '/accounting/party-accounts':

@@ -257,6 +257,34 @@ class AppNavigation {
       icon: Icons.account_balance_wallet_outlined,
       children: [
         AppNavigationItem(
+          key: 'vouchers',
+          title: 'Vouchers',
+          icon: Icons.receipt_long_outlined,
+          path: '/accounting/vouchers',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
+          key: 'cash-sessions',
+          title: 'Cash Sessions',
+          icon: Icons.point_of_sale_outlined,
+          path: '/accounting/cash-sessions',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
+          key: 'bank-reconciliation',
+          title: 'Bank Reconciliation',
+          icon: Icons.account_balance_outlined,
+          path: '/accounting/bank-reconciliation',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
+          key: 'financial-reports',
+          title: 'Financial Reports',
+          icon: Icons.assessment_outlined,
+          path: '/accounting/reports',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
           key: 'accounts',
           title: 'Accounts',
           icon: Icons.account_balance_outlined,

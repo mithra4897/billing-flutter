@@ -58,6 +58,10 @@ class Validators {
     return (value) => dateField(value, fieldName);
   }
 
+  static String? Function(String?) date(String fieldName) {
+    return optionalDate(fieldName);
+  }
+
   static String? Function(String?) optionalDateOnOrAfter(
     String fieldName,
     String Function() startDateProvider, {

@@ -2,6 +2,7 @@ import '../../core/api/api_endpoints.dart';
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
 import '../../model/accounting/account_group_model.dart';
+import '../../model/accounting/accounting_report_model.dart';
 import '../../model/accounting/account_model.dart';
 import '../../model/accounting/bank_reconciliation_model.dart';
 import '../../model/accounting/budget_vs_actual_model.dart';
@@ -14,7 +15,6 @@ import '../../model/accounting/posting_rule_model.dart';
 import '../../model/accounting/voucher_allocation_model.dart';
 import '../../model/accounting/voucher_model.dart';
 import '../../model/accounting/voucher_type_model.dart';
-import '../../model/common/erp_report_row_model.dart';
 import '../base/erp_module_service.dart';
 
 class AccountsService extends ErpModuleService {
@@ -422,9 +422,9 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteVoucherAllocation(int id) =>
       destroy('/accounting/voucher-allocations/$id');
 
-  Future<PaginatedResponse<CashSessionModel>> cashSessions({
+  Future<ApiResponse<List<CashSessionModel>>> cashSessions({
     Map<String, dynamic>? filters,
-  }) => paginated<CashSessionModel>(
+  }) => collection<CashSessionModel>(
     '/accounting/cash-sessions',
     filters: filters,
     fromJson: CashSessionModel.fromJson,
@@ -462,9 +462,9 @@ class AccountsService extends ErpModuleService {
     fromJson: CashSessionModel.fromJson,
   );
 
-  Future<PaginatedResponse<BankReconciliationModel>> bankReconciliation({
+  Future<ApiResponse<List<BankReconciliationModel>>> bankReconciliation({
     Map<String, dynamic>? filters,
-  }) => paginated<BankReconciliationModel>(
+  }) => collection<BankReconciliationModel>(
     '/accounting/bank-reconciliation',
     filters: filters,
     fromJson: BankReconciliationModel.fromJson,
@@ -497,67 +497,75 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteBankReconciliation(int id) =>
       destroy('/accounting/bank-reconciliation/$id');
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportGeneralLedger({
+  Future<ApiResponse<AccountingReportModel>> reportGeneralLedger({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
+  }) => client.get<AccountingReportModel>(
     '/accounting/reports/general-ledger',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
   );
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportAccountsReceivableAging({
+  Future<ApiResponse<AccountingReportModel>> reportAccountsReceivableAging({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
+  }) => client.get<AccountingReportModel>(
     '/accounting/reports/accounts-receivable-aging',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
   );
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportAccountsPayableAging({
+  Future<ApiResponse<AccountingReportModel>> reportAccountsPayableAging({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
+  }) => client.get<AccountingReportModel>(
     '/accounting/reports/accounts-payable-aging',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
   );
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportBalanceSheet({
+  Future<ApiResponse<AccountingReportModel>> reportBalanceSheet({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
+  }) => client.get<AccountingReportModel>(
     '/accounting/reports/balance-sheet',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
   );
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportProfitAndLoss({
+  Future<ApiResponse<AccountingReportModel>> reportProfitAndLoss({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
+  }) => client.get<AccountingReportModel>(
     '/accounting/reports/profit-loss',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
   );
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportTrialBalance({
+  Future<ApiResponse<AccountingReportModel>> reportTrialBalance({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
+  }) => client.get<AccountingReportModel>(
     '/accounting/reports/trial-balance',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
   );
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportCashFlow({
+  Future<ApiResponse<AccountingReportModel>> reportCashFlow({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
+  }) => client.get<AccountingReportModel>(
     '/accounting/reports/cash-flow',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
   );
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportFinancialStatements({
+  Future<ApiResponse<AccountingReportModel>> reportFinancialStatements({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
+  }) => client.get<AccountingReportModel>(
     '/accounting/reports/financial-statements',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
   );
 }

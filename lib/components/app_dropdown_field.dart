@@ -70,13 +70,16 @@ class AppDropdownField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dropdownItems = items ?? _buildMappedItems() ?? _buildRecordItems();
+    final selectedValue = _resolveInitialValue(dropdownItems);
 
     return AppFieldBox(
       width: width,
       child: DropdownButtonFormField<T>(
-        initialValue: _resolveInitialValue(dropdownItems),
+        initialValue: selectedValue,
         decoration: InputDecoration(labelText: labelText, hintText: hintText),
+        isExpanded: true,
         items: dropdownItems,
+        selectedItemBuilder: (context) => _buildSelectedItems(dropdownItems),
         onChanged: onChanged,
         validator: validator,
       ),
@@ -100,8 +103,10 @@ class AppDropdownField<T> extends StatelessWidget {
 
     return mappedItems!
         .map(
-          (item) =>
-              DropdownMenuItem<T>(value: item.value, child: Text(item.label)),
+          (item) => DropdownMenuItem<T>(
+            value: item.value,
+            child: Text(item.label, overflow: TextOverflow.ellipsis),
+          ),
         )
         .toList(growable: false);
   }
@@ -117,9 +122,26 @@ class AppDropdownField<T> extends StatelessWidget {
           final rawLabel = labelKey == null ? rawValue : record[labelKey];
           return DropdownMenuItem<T>(
             value: rawValue as T?,
-            child: Text((rawLabel ?? rawValue ?? '').toString()),
+            child: Text(
+              (rawLabel ?? rawValue ?? '').toString(),
+              overflow: TextOverflow.ellipsis,
+            ),
           );
         })
+        .toList(growable: false);
+  }
+
+  List<Widget> _buildSelectedItems(List<DropdownMenuItem<T>> dropdownItems) {
+    return dropdownItems
+        .map(
+          (item) => Align(
+            alignment: Alignment.centerLeft,
+            child: DefaultTextStyle(
+              style: const TextStyle(overflow: TextOverflow.ellipsis),
+              child: item.child,
+            ),
+          ),
+        )
         .toList(growable: false);
   }
 }
