@@ -191,8 +191,8 @@ class _BankReconciliationManagementPageState
     _voucherId = null;
     _voucherLineId = item.voucherLineId;
     _status = item.reconciliationStatus ?? 'pending';
-    _bankDateController.text = item.bankDate ?? '';
-    _clearedDateController.text = item.clearedDate ?? '';
+    _bankDateController.text = item.bankDate?.split('T').first.split(' ').first ?? '';
+    _clearedDateController.text = item.clearedDate?.split('T').first.split(' ').first ?? '';
     _bankReferenceController.text = item.bankReferenceNo ?? '';
     _remarksController.text = item.remarks ?? '';
     _formError = null;

@@ -249,9 +249,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _voucherTypeId = full.voucherTypeId;
     _documentSeriesId = full.documentSeriesId;
     _voucherNoController.text = full.voucherNo ?? '';
-    _voucherDateController.text = full.voucherDate ?? '';
+    _voucherDateController.text = full.voucherDate?.split('T').first.split(' ').first ?? '';
     _referenceNoController.text = full.referenceNo ?? '';
-    _referenceDateController.text = full.referenceDate ?? '';
+    _referenceDateController.text = full.referenceDate?.split('T').first.split(' ').first ?? '';
     _narrationController.text = full.narration ?? '';
     _adjustmentAccountId = full.adjustmentAccountId;
     _adjustmentRemarksController.text = full.adjustmentRemarks ?? '';

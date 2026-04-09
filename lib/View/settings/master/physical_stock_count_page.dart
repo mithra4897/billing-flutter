@@ -218,7 +218,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
     _warehouseId = item.warehouseId;
     _countNoController.text = item.countNo ?? '';
     _countDateController.text =
-        item.countDate ?? DateTime.now().toIso8601String().split('T').first;
+        item.countDate?.split('T').first.split(' ').first ?? DateTime.now().toIso8601String().split('T').first;
     _remarksController.text = item.remarks ?? '';
     _countScope = item.countScope ?? 'selected_items';
     _lines = item.items.toList(growable: true);
