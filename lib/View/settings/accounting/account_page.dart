@@ -62,7 +62,6 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
   bool _allowManualEntries = true;
   bool _allowReconciliation = false;
   bool _isControlAccount = false;
-  bool _isSystemAccount = false;
   bool _isActive = true;
 
   @override
@@ -185,7 +184,6 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
     _allowManualEntries = item.allowManualEntries;
     _allowReconciliation = item.allowReconciliation;
     _isControlAccount = item.isControlAccount;
-    _isSystemAccount = item.isSystemAccount;
     _isActive = item.isActive;
     _remarksController.text = item.remarks ?? '';
     _formError = null;
@@ -206,7 +204,6 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
     _allowManualEntries = true;
     _allowReconciliation = false;
     _isControlAccount = false;
-    _isSystemAccount = false;
     _isActive = true;
     _remarksController.clear();
     _formError = null;
@@ -236,7 +233,7 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
       allowManualEntries: _allowManualEntries,
       allowReconciliation: _allowReconciliation,
       isControlAccount: _isControlAccount,
-      isSystemAccount: _isSystemAccount,
+      isSystemAccount: _selectedAccount?.isSystemAccount ?? false,
       isActive: _isActive,
       remarks: nullIfEmpty(_remarksController.text),
     );
@@ -511,15 +508,6 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
                           value: _isControlAccount,
                           onChanged: (value) =>
                               setState(() => _isControlAccount = value),
-                        ),
-                      ),
-                      SizedBox(
-                        width: AppUiConstants.switchFieldWidth,
-                        child: AppSwitchTile(
-                          label: 'System Account',
-                          value: _isSystemAccount,
-                          onChanged: (value) =>
-                              setState(() => _isSystemAccount = value),
                         ),
                       ),
                       SizedBox(

@@ -47,7 +47,6 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
   bool _autoPost = true;
   bool _requiresApproval = false;
   bool _allowsReferenceAllocation = true;
-  bool _isSystemType = false;
   bool _isActive = true;
 
   @override
@@ -142,7 +141,6 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
     _autoPost = item.autoPost;
     _requiresApproval = item.requiresApproval;
     _allowsReferenceAllocation = item.allowsReferenceAllocation;
-    _isSystemType = item.isSystemType;
     _isActive = item.isActive;
     _formError = null;
     setState(() {});
@@ -157,7 +155,6 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
     _autoPost = true;
     _requiresApproval = false;
     _allowsReferenceAllocation = true;
-    _isSystemType = false;
     _isActive = true;
     _formError = null;
     setState(() {});
@@ -180,7 +177,7 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
       autoPost: _autoPost,
       requiresApproval: _requiresApproval,
       allowsReferenceAllocation: _allowsReferenceAllocation,
-      isSystemType: _isSystemType,
+      isSystemType: _selectedType?.isSystemType ?? false,
       isActive: _isActive,
     );
 
@@ -365,15 +362,6 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
                       onChanged: (value) => setState(
                         () => _allowsReferenceAllocation = value,
                       ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: AppUiConstants.switchFieldWidth,
-                    child: AppSwitchTile(
-                      label: 'System Type',
-                      value: _isSystemType,
-                      onChanged: (value) =>
-                          setState(() => _isSystemType = value),
                     ),
                   ),
                   SizedBox(

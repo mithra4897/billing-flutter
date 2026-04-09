@@ -68,7 +68,6 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
   String _groupNature = 'asset';
   String _groupCategory = 'other';
   bool _affectsProfitLoss = true;
-  bool _isSystemGroup = false;
   bool _isActive = true;
 
   @override
@@ -169,7 +168,6 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
     _groupNature = item.groupNature ?? 'asset';
     _groupCategory = item.groupCategory ?? 'other';
     _affectsProfitLoss = item.affectsProfitLoss;
-    _isSystemGroup = item.isSystemGroup;
     _isActive = item.isActive;
     _remarksController.text = item.remarks ?? '';
     _formError = null;
@@ -184,7 +182,6 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
     _groupNature = 'asset';
     _groupCategory = 'other';
     _affectsProfitLoss = true;
-    _isSystemGroup = false;
     _isActive = true;
     _remarksController.clear();
     _formError = null;
@@ -207,7 +204,7 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
       groupNature: _groupNature,
       groupCategory: _groupCategory,
       affectsProfitLoss: _affectsProfitLoss,
-      isSystemGroup: _isSystemGroup,
+      isSystemGroup: _selectedGroup?.isSystemGroup ?? false,
       isActive: _isActive,
       remarks: nullIfEmpty(_remarksController.text),
     );
@@ -395,15 +392,6 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
                       value: _affectsProfitLoss,
                       onChanged: (value) =>
                           setState(() => _affectsProfitLoss = value),
-                    ),
-                  ),
-                  SizedBox(
-                    width: AppUiConstants.switchFieldWidth,
-                    child: AppSwitchTile(
-                      label: 'System Group',
-                      value: _isSystemGroup,
-                      onChanged: (value) =>
-                          setState(() => _isSystemGroup = value),
                     ),
                   ),
                   SizedBox(
