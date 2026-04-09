@@ -7,14 +7,10 @@ class ItemPriceModel implements JsonModel {
     this.priceType,
     this.uomId,
     this.price,
-    this.mrp,
-    this.minPrice,
-    this.maxDiscountPercent,
     this.validFrom,
     this.validTo,
     this.isDefault = false,
     this.isActive = true,
-    this.remarks,
     this.itemCode = '',
     this.itemName = '',
     this.itemType,
@@ -29,14 +25,10 @@ class ItemPriceModel implements JsonModel {
   final String? priceType;
   final int? uomId;
   final double? price;
-  final double? mrp;
-  final double? minPrice;
-  final double? maxDiscountPercent;
   final String? validFrom;
   final String? validTo;
   final bool isDefault;
   final bool isActive;
-  final String? remarks;
   final String itemCode;
   final String itemName;
   final String? itemType;
@@ -57,14 +49,10 @@ class ItemPriceModel implements JsonModel {
       priceType: json['price_type']?.toString(),
       uomId: _nullableInt(json['uom_id'] ?? uom['id']),
       price: _parseDouble(json['price']),
-      mrp: _parseDouble(json['mrp']),
-      minPrice: _parseDouble(json['min_price']),
-      maxDiscountPercent: _parseDouble(json['max_discount_percent']),
       validFrom: json['valid_from']?.toString(),
       validTo: json['valid_to']?.toString(),
       isDefault: _bool(json['is_default']),
       isActive: _bool(json['is_active'], fallback: true),
-      remarks: json['remarks']?.toString(),
       itemCode: item['item_code']?.toString() ?? '',
       itemName: item['item_name']?.toString() ?? '',
       itemType: item['item_type']?.toString(),
@@ -83,15 +71,10 @@ class ItemPriceModel implements JsonModel {
       if (priceType != null) 'price_type': priceType,
       if (uomId != null) 'uom_id': uomId,
       if (price != null) 'price': price,
-      if (mrp != null) 'mrp': mrp,
-      if (minPrice != null) 'min_price': minPrice,
-      if (maxDiscountPercent != null)
-        'max_discount_percent': maxDiscountPercent,
       if (validFrom != null) 'valid_from': validFrom,
       if (validTo != null) 'valid_to': validTo,
       'is_default': isDefault,
       'is_active': isActive,
-      if (remarks != null) 'remarks': remarks,
     };
   }
 

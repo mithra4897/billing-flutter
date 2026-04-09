@@ -24,12 +24,10 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'purchase', label: 'Purchase'),
         AppDropdownItem(value: 'sales', label: 'Sales'),
+        AppDropdownItem(value: 'mrp', label: 'MRP'),
         AppDropdownItem(value: 'retail', label: 'Retail'),
         AppDropdownItem(value: 'wholesale', label: 'Wholesale'),
-        AppDropdownItem(value: 'distributor', label: 'Distributor'),
-        AppDropdownItem(value: 'dealer', label: 'Dealer'),
         AppDropdownItem(value: 'special', label: 'Special'),
-        AppDropdownItem(value: 'mrp', label: 'MRP'),
       ];
 
   final InventoryService _inventoryService = InventoryService();
@@ -40,12 +38,8 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
   final TextEditingController _priceSearchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _mrpController = TextEditingController();
-  final TextEditingController _minPriceController = TextEditingController();
-  final TextEditingController _maxDiscountController = TextEditingController();
   final TextEditingController _validFromController = TextEditingController();
   final TextEditingController _validToController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
 
   bool _initialLoading = true;
   bool _saving = false;
@@ -79,12 +73,8 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
     _masterSearchController.dispose();
     _priceSearchController.dispose();
     _priceController.dispose();
-    _mrpController.dispose();
-    _minPriceController.dispose();
-    _maxDiscountController.dispose();
     _validFromController.dispose();
     _validToController.dispose();
-    _remarksController.dispose();
     super.dispose();
   }
 
@@ -321,12 +311,8 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
     _uomId = item.uomId;
     _priceType = item.priceType ?? 'sales';
     _priceController.text = item.price?.toString() ?? '';
-    _mrpController.text = item.mrp?.toString() ?? '';
-    _minPriceController.text = item.minPrice?.toString() ?? '';
-    _maxDiscountController.text = item.maxDiscountPercent?.toString() ?? '';
     _validFromController.text = item.validFrom ?? '';
     _validToController.text = item.validTo ?? '';
-    _remarksController.text = item.remarks ?? '';
     _isDefault = item.isDefault;
     _isActive = item.isActive;
     _formError = null;
@@ -338,15 +324,8 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
     _uomId = _defaultUomId;
     _priceType = 'sales';
     _priceController.clear();
-    _mrpController.clear();
-    _minPriceController.clear();
-    _maxDiscountController.clear();
-    _validFromController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
+    _validFromController.clear();
     _validToController.clear();
-    _remarksController.clear();
     _isDefault = false;
     _isActive = true;
     _formError = null;
@@ -370,14 +349,10 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
       priceType: _priceType,
       uomId: _uomId,
       price: double.tryParse(_priceController.text.trim()),
-      mrp: double.tryParse(_mrpController.text.trim()),
-      minPrice: double.tryParse(_minPriceController.text.trim()),
-      maxDiscountPercent: double.tryParse(_maxDiscountController.text.trim()),
-      validFrom: _validFromController.text.trim(),
+      validFrom: nullIfEmpty(_validFromController.text),
       validTo: nullIfEmpty(_validToController.text),
       isDefault: _isDefault,
       isActive: _isActive,
-      remarks: nullIfEmpty(_remarksController.text),
     );
 
     try {
@@ -621,41 +596,10 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                 ]),
               ),
               AppFormTextField(
-                labelText: 'MRP',
-                controller: _mrpController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: Validators.optionalNonNegativeNumber('MRP'),
-              ),
-              AppFormTextField(
-                labelText: 'Minimum Price',
-                controller: _minPriceController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: Validators.optionalNonNegativeNumber(
-                  'Minimum Price',
-                ),
-              ),
-              AppFormTextField(
-                labelText: 'Max Discount %',
-                controller: _maxDiscountController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: Validators.optionalNonNegativeNumber(
-                  'Max Discount %',
-                ),
-              ),
-              AppFormTextField(
                 labelText: 'Valid From',
                 controller: _validFromController,
                 hintText: 'YYYY-MM-DD',
-                validator: Validators.compose([
-                  Validators.required('Valid From'),
-                  Validators.optionalDate('Valid From'),
-                ]),
+                validator: Validators.optionalDate('Valid From'),
               ),
               AppFormTextField(
                 labelText: 'Valid To',
@@ -666,11 +610,6 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                   () => _validFromController.text,
                   startFieldName: 'Valid From',
                 ),
-              ),
-              AppFormTextField(
-                labelText: 'Remarks',
-                controller: _remarksController,
-                maxLines: 3,
               ),
             ],
           ),
