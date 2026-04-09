@@ -70,8 +70,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   int? _voucherTypeId;
   int? _documentSeriesId;
   int? _adjustmentAccountId;
-  String _approvalStatus = 'approved';
-  String _postingStatus = 'posted';
+  String _approvalStatus = 'draft';
+  String _postingStatus = 'draft';
   bool _isActive = true;
   List<_VoucherLineDraft> _lines = <_VoucherLineDraft>[];
 
@@ -291,8 +291,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _narrationController.clear();
     _adjustmentAccountId = null;
     _adjustmentRemarksController.clear();
-    _approvalStatus = 'approved';
-    _postingStatus = 'posted';
+    _approvalStatus = 'draft';
+    _postingStatus = 'draft';
     _isActive = true;
     _lines = <_VoucherLineDraft>[_VoucherLineDraft()];
     _formError = null;
@@ -343,7 +343,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       financialYearId: _financialYearId,
       voucherTypeId: _voucherTypeId,
       documentSeriesId: _documentSeriesId,
-      voucherNo: _voucherNoController.text.trim(),
+      voucherNo: nullIfEmpty(_voucherNoController.text.trim()),
       voucherDate: _voucherDateController.text.trim(),
       referenceNo: nullIfEmpty(_referenceNoController.text),
       referenceDate: nullIfEmpty(_referenceDateController.text),
@@ -545,10 +545,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                   AppFormTextField(
                     labelText: 'Voucher No',
                     controller: _voucherNoController,
-                    validator: Validators.compose([
-                      Validators.required('Voucher No'),
-                      Validators.optionalMaxLength(100, 'Voucher No'),
-                    ]),
+                    hintText: 'Auto-generated',
+                    readOnly: true,
                   ),
                   AppFormTextField(
                     labelText: 'Voucher Date',
