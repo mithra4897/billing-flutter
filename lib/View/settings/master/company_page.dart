@@ -1,15 +1,22 @@
 import '../../../screen.dart';
+import 'financial_year_page.dart';
 
 class CompanyManagementPage extends StatefulWidget {
-  const CompanyManagementPage({super.key, this.embedded = false});
+  const CompanyManagementPage({
+    super.key,
+    this.embedded = false,
+    this.initialTabIndex = 0,
+  });
 
   final bool embedded;
+  final int initialTabIndex;
 
   @override
   State<CompanyManagementPage> createState() => _CompanyManagementPageState();
 }
 
-class _CompanyManagementPageState extends State<CompanyManagementPage> {
+class _CompanyManagementPageState extends State<CompanyManagementPage>
+    with SingleTickerProviderStateMixin {
   final MasterService _masterService = MasterService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
@@ -38,10 +45,16 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
   CompanyModel? _selectedCompany;
   bool _isActive = true;
   String _companyType = 'private_limited';
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    if (widget.initialTabIndex >= 0 &&
+        widget.initialTabIndex < _tabController.length) {
+      _tabController.index = widget.initialTabIndex;
+    }
     _searchController.addListener(_applySearch);
     _loadCompanies();
   }
@@ -51,6 +64,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
+    _tabController.dispose();
     _codeController.dispose();
     _legalNameController.dispose();
     _tradeNameController.dispose();
@@ -350,133 +364,180 @@ class _CompanyManagementPageState extends State<CompanyManagementPage> {
           onTap: () => _selectCompany(company),
         ),
       ),
-      editor: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SettingsFormWrap(
-              children: [
-                AppFormTextField(
-                  controller: _codeController,
-                  labelText: 'Code',
-                  readOnly: true,
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Code is required'
-                      : null,
-                ),
-                AppFormTextField(
-                  controller: _legalNameController,
-                  labelText: 'Legal Name',
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Legal Name is required'
-                      : null,
-                ),
-                AppFormTextField(
-                  controller: _tradeNameController,
-                  labelText: 'Trade Name',
-                ),
-                AppDropdownField<String>.fromMapped(
-                  initialValue: _companyType,
-                  labelText: 'Company Type',
-                  mappedItems: const [
-                    AppDropdownItem(
-                      value: 'private_limited',
-                      label: 'Private Limited',
-                    ),
-                    AppDropdownItem(
-                      value: 'proprietorship',
-                      label: 'Proprietorship',
-                    ),
-                    AppDropdownItem(value: 'partnership', label: 'Partnership'),
-                    AppDropdownItem(value: 'llp', label: 'LLP'),
-                    AppDropdownItem(
-                      value: 'public_limited',
-                      label: 'Public Limited',
-                    ),
-                    AppDropdownItem(value: 'trust', label: 'Trust'),
-                    AppDropdownItem(value: 'society', label: 'Society'),
-                    AppDropdownItem(value: 'other', label: 'Other'),
-                  ],
-                  onChanged: (value) =>
-                      setState(() => _companyType = value ?? _companyType),
-                ),
-                AppFormTextField(
-                  controller: _gstinController,
-                  labelText: 'GSTIN',
-                ),
-                AppFormTextField(controller: _panController, labelText: 'PAN'),
-                AppFormTextField(
-                  controller: _phoneController,
-                  labelText: 'Phone',
-                ),
-                AppFormTextField(
-                  controller: _emailController,
-                  labelText: 'Email',
-                ),
-                AppFormTextField(
-                  controller: _websiteController,
-                  labelText: 'Website',
-                ),
-                AppFormTextField(
-                  controller: _cityController,
-                  labelText: 'City',
-                ),
-                AppFormTextField(
-                  controller: _stateController,
-                  labelText: 'State Name',
-                ),
-                AppFormTextField(
-                  controller: _currencyController,
-                  labelText: 'Base Currency',
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            AppSwitchTile(
-              label: 'Active',
-              subtitle:
-                  'Inactive companies stay visible but should not be used for new work.',
-              value: _isActive,
-              onChanged: (value) => setState(() => _isActive = value),
-            ),
-            const SizedBox(height: 8),
-            AppFormTextField(
-              controller: _remarksController,
-              maxLines: 3,
-              labelText: 'Remarks',
-            ),
-            if ((_formError ?? '').isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                _formError!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+      editor: AnimatedBuilder(
+        animation: _tabController,
+        builder: (context, _) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabs: const [
+                  Tab(text: 'Primary'),
+                  Tab(text: 'Financial Years'),
+                ],
+              ),
+              const SizedBox(height: 20),
+              IndexedStack(
+                index: _tabController.index,
+                children: [
+                  _buildPrimaryTab(context),
+                  _selectedCompany?.id == null
+                      ? _buildDependentTabPlaceholder(
+                          title: 'Financial Years',
+                          message:
+                              'Select an existing company or save this company first to manage financial years.',
+                        )
+                      : FinancialYearManagementPage(
+                          embedded: true,
+                          fixedCompanyId: _selectedCompany!.id,
+                        ),
+                ],
               ),
             ],
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                AppActionButton(
-                  onPressed: _saving ? null : _save,
-                  icon: _selectedCompany == null
-                      ? Icons.add
-                      : Icons.save_outlined,
-                  label: _saving ? 'Saving...' : 'Save Company',
-                  busy: _saving,
-                ),
-                AppActionButton(
-                  onPressed: _saving ? null : _resetForm,
-                  icon: Icons.refresh,
-                  label: 'Reset',
-                  filled: false,
-                ),
-              ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPrimaryTab(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SettingsFormWrap(
+            children: [
+              AppFormTextField(
+                controller: _codeController,
+                labelText: 'Code',
+                readOnly: true,
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Code is required'
+                    : null,
+              ),
+              AppFormTextField(
+                controller: _legalNameController,
+                labelText: 'Legal Name',
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Legal Name is required'
+                    : null,
+              ),
+              AppFormTextField(
+                controller: _tradeNameController,
+                labelText: 'Trade Name',
+              ),
+              AppDropdownField<String>.fromMapped(
+                initialValue: _companyType,
+                labelText: 'Company Type',
+                mappedItems: const [
+                  AppDropdownItem(
+                    value: 'private_limited',
+                    label: 'Private Limited',
+                  ),
+                  AppDropdownItem(
+                    value: 'proprietorship',
+                    label: 'Proprietorship',
+                  ),
+                  AppDropdownItem(value: 'partnership', label: 'Partnership'),
+                  AppDropdownItem(value: 'llp', label: 'LLP'),
+                  AppDropdownItem(
+                    value: 'public_limited',
+                    label: 'Public Limited',
+                  ),
+                  AppDropdownItem(value: 'trust', label: 'Trust'),
+                  AppDropdownItem(value: 'society', label: 'Society'),
+                  AppDropdownItem(value: 'other', label: 'Other'),
+                ],
+                onChanged: (value) =>
+                    setState(() => _companyType = value ?? _companyType),
+              ),
+              AppFormTextField(
+                controller: _gstinController,
+                labelText: 'GSTIN',
+              ),
+              AppFormTextField(controller: _panController, labelText: 'PAN'),
+              AppFormTextField(
+                controller: _phoneController,
+                labelText: 'Phone',
+              ),
+              AppFormTextField(
+                controller: _emailController,
+                labelText: 'Email',
+              ),
+              AppFormTextField(
+                controller: _websiteController,
+                labelText: 'Website',
+              ),
+              AppFormTextField(controller: _cityController, labelText: 'City'),
+              AppFormTextField(
+                controller: _stateController,
+                labelText: 'State Name',
+              ),
+              AppFormTextField(
+                controller: _currencyController,
+                labelText: 'Base Currency',
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          AppSwitchTile(
+            label: 'Active',
+            subtitle:
+                'Inactive companies stay visible but should not be used for new work.',
+            value: _isActive,
+            onChanged: (value) => setState(() => _isActive = value),
+          ),
+          const SizedBox(height: 8),
+          AppFormTextField(
+            controller: _remarksController,
+            maxLines: 3,
+            labelText: 'Remarks',
+          ),
+          if ((_formError ?? '').isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              _formError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
-        ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              AppActionButton(
+                onPressed: _saving ? null : _save,
+                icon: _selectedCompany == null
+                    ? Icons.add
+                    : Icons.save_outlined,
+                label: _saving ? 'Saving...' : 'Save Company',
+                busy: _saving,
+              ),
+              AppActionButton(
+                onPressed: _saving ? null : _resetForm,
+                icon: Icons.refresh,
+                label: 'Reset',
+                filled: false,
+              ),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildDependentTabPlaceholder({
+    required String title,
+    required String message,
+  }) {
+    return SettingsEmptyState(
+      icon: Icons.link_outlined,
+      title: title,
+      message: message,
+      minHeight: 240,
     );
   }
 }

@@ -123,34 +123,40 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
           filters: const {'per_page': 200, 'sort_by': 'series_name'},
         ),
         _accountsService.voucherTypesAll(filters: const {'sort_by': 'name'}),
-        _accountsService.accountsAll(filters: const {'sort_by': 'account_name'}),
+        _accountsService.accountsAll(
+          filters: const {'sort_by': 'account_name'},
+        ),
         _partiesService.parties(
           filters: const {'per_page': 200, 'sort_by': 'party_name'},
         ),
       ]);
 
-      final vouchers = (responses[0] as PaginatedResponse<VoucherModel>).data ??
+      final vouchers =
+          (responses[0] as PaginatedResponse<VoucherModel>).data ??
           const <VoucherModel>[];
-      final companies = (responses[1] as PaginatedResponse<CompanyModel>).data ??
+      final companies =
+          (responses[1] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
-      final branches = (responses[2] as PaginatedResponse<BranchModel>).data ??
+      final branches =
+          (responses[2] as PaginatedResponse<BranchModel>).data ??
           const <BranchModel>[];
       final locations =
           (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-              const <BusinessLocationModel>[];
+          const <BusinessLocationModel>[];
       final years =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-              const <FinancialYearModel>[];
+          const <FinancialYearModel>[];
       final series =
           (responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-              const <DocumentSeriesModel>[];
+          const <DocumentSeriesModel>[];
       final voucherTypes =
           (responses[6] as ApiResponse<List<VoucherTypeModel>>).data ??
-              const <VoucherTypeModel>[];
+          const <VoucherTypeModel>[];
       final accounts =
           (responses[7] as ApiResponse<List<AccountModel>>).data ??
-              const <AccountModel>[];
-      final parties = (responses[8] as PaginatedResponse<PartyModel>).data ??
+          const <AccountModel>[];
+      final parties =
+          (responses[8] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
 
       if (!mounted) return;
@@ -164,7 +170,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         _financialYears = years.where((item) => item.isActive).toList();
         _documentSeries = series
             .where(
-              (item) => item.isActive && (item.documentType ?? '') == 'JOURNAL_VOUCHER',
+              (item) =>
+                  item.isActive &&
+                  (item.documentType ?? '') == 'JOURNAL_VOUCHER',
             )
             .toList();
         _voucherTypes = voucherTypes.where((item) => item.isActive).toList();
@@ -249,9 +257,11 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _voucherTypeId = full.voucherTypeId;
     _documentSeriesId = full.documentSeriesId;
     _voucherNoController.text = full.voucherNo ?? '';
-    _voucherDateController.text = full.voucherDate?.split('T').first.split(' ').first ?? '';
+    _voucherDateController.text =
+        full.voucherDate?.split('T').first.split(' ').first ?? '';
     _referenceNoController.text = full.referenceNo ?? '';
-    _referenceDateController.text = full.referenceDate?.split('T').first.split(' ').first ?? '';
+    _referenceDateController.text =
+        full.referenceDate?.split('T').first.split(' ').first ?? '';
     _narrationController.text = full.narration ?? '';
     _adjustmentAccountId = full.adjustmentAccountId;
     _adjustmentRemarksController.text = full.adjustmentRemarks ?? '';
@@ -283,9 +293,14 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _locationId = null;
     _financialYearId = _yearOptions.isNotEmpty ? _yearOptions.first.id : null;
     _voucherTypeId = _voucherTypes.isNotEmpty ? _voucherTypes.first.id : null;
-    _documentSeriesId = _documentSeries.isNotEmpty ? _documentSeries.first.id : null;
+    _documentSeriesId = _documentSeries.isNotEmpty
+        ? _documentSeries.first.id
+        : null;
     _voucherNoController.clear();
-    _voucherDateController.text = DateTime.now().toIso8601String().split('T').first;
+    _voucherDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     _referenceNoController.clear();
     _referenceDateController.clear();
     _narrationController.clear();
@@ -466,16 +481,25 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     labelText: 'Company',
                     mappedItems: _companies
                         .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
                         .toList(growable: false),
                     initialValue: _companyId,
                     onChanged: (value) {
                       setState(() {
                         _companyId = value;
-                        if (!_branchOptions.any((item) => item.id == _branchId)) {
+                        if (!_branchOptions.any(
+                          (item) => item.id == _branchId,
+                        )) {
                           _branchId = null;
                         }
-                        if (!_yearOptions.any((item) => item.id == _financialYearId)) {
+                        if (!_yearOptions.any(
+                          (item) => item.id == _financialYearId,
+                        )) {
                           _financialYearId = null;
                         }
                       });
@@ -486,13 +510,20 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     labelText: 'Branch',
                     mappedItems: _branchOptions
                         .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
                         .toList(growable: false),
                     initialValue: _branchId,
                     onChanged: (value) {
                       setState(() {
                         _branchId = value;
-                        if (!_locationOptions.any((item) => item.id == _locationId)) {
+                        if (!_locationOptions.any(
+                          (item) => item.id == _locationId,
+                        )) {
                           _locationId = null;
                         }
                       });
@@ -503,18 +534,25 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     labelText: 'Location',
                     mappedItems: _locationOptions
                         .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
                         .toList(growable: false),
                     initialValue: _locationId,
                     onChanged: (value) => setState(() => _locationId = value),
                     validator: Validators.requiredSelection('Location'),
                   ),
-                  AppDropdownField<int>.fromMapped(
+                  AppDropdownField<int?>.fromMapped(
                     labelText: 'Financial Year',
                     mappedItems: _yearOptions
                         .map(
-                          (item) =>
-                              AppDropdownItem(value: item.id, label: item.toString()),
+                          (item) => AppDropdownItem(
+                            value: item.id,
+                            label: item.toString(),
+                          ),
                         )
                         .toList(growable: false),
                     initialValue: _financialYearId,
@@ -526,17 +564,28 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     labelText: 'Voucher Type',
                     mappedItems: _voucherTypes
                         .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
                         .toList(growable: false),
                     initialValue: _voucherTypeId,
-                    onChanged: (value) => setState(() => _voucherTypeId = value),
+                    onChanged: (value) =>
+                        setState(() => _voucherTypeId = value),
                     validator: Validators.requiredSelection('Voucher Type'),
                   ),
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Document Series',
                     mappedItems: _documentSeries
                         .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
                         .toList(growable: false),
                     initialValue: _documentSeriesId,
                     onChanged: (value) =>
@@ -559,7 +608,10 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                   AppFormTextField(
                     labelText: 'Reference No',
                     controller: _referenceNoController,
-                    validator: Validators.optionalMaxLength(100, 'Reference No'),
+                    validator: Validators.optionalMaxLength(
+                      100,
+                      'Reference No',
+                    ),
                   ),
                   AppFormTextField(
                     labelText: 'Reference Date',
@@ -570,9 +622,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     labelText: 'Approval Status',
                     mappedItems: _approvalStatusItems,
                     initialValue: _approvalStatus,
-                    onChanged: (value) => setState(
-                      () => _approvalStatus = value ?? 'approved',
-                    ),
+                    onChanged: (value) =>
+                        setState(() => _approvalStatus = value ?? 'approved'),
                   ),
                   AppDropdownField<String>.fromMapped(
                     labelText: 'Posting Status',
@@ -585,7 +636,12 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     labelText: 'Adjustment Account',
                     mappedItems: _accounts
                         .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
                         .toList(growable: false),
                     initialValue: _adjustmentAccountId,
                     onChanged: (value) =>
@@ -659,7 +715,12 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                               labelText: 'Account',
                               mappedItems: _accounts
                                   .where((item) => item.id != null)
-                                  .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+                                  .map(
+                                    (item) => AppDropdownItem(
+                                      value: item.id!,
+                                      label: item.toString(),
+                                    ),
+                                  )
                                   .toList(growable: false),
                               initialValue: line.accountId,
                               onChanged: (value) =>
@@ -669,7 +730,12 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                               labelText: 'Party',
                               mappedItems: _parties
                                   .where((item) => item.id != null)
-                                  .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+                                  .map(
+                                    (item) => AppDropdownItem(
+                                      value: item.id!,
+                                      label: item.toString(),
+                                    ),
+                                  )
                                   .toList(growable: false),
                               initialValue: line.partyId,
                               onChanged: (value) =>
@@ -686,9 +752,10 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                             AppFormTextField(
                               labelText: 'Amount',
                               initialValue: line.amountText,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               onChanged: (value) => line.amountText = value,
                             ),
                             AppFormTextField(
@@ -705,7 +772,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               }),
               AppActionButton(
                 icon: Icons.save_outlined,
-                label: _selectedVoucher == null ? 'Save Voucher' : 'Update Voucher',
+                label: _selectedVoucher == null
+                    ? 'Save Voucher'
+                    : 'Update Voucher',
                 onPressed: _save,
                 busy: _saving,
               ),

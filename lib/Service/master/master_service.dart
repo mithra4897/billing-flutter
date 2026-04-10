@@ -240,14 +240,12 @@ class MasterService extends ErpModuleService {
     fromJson: FinancialYearModel.fromJson,
   );
 
-  Future<ApiResponse<FinancialYearModel>> setActiveFinancialYear(
-    int id,
-    FinancialYearModel body,
-  ) => patchModel<FinancialYearModel>(
-    '/masters/financial-years/$id/set-active',
-    body,
-    fromJson: FinancialYearModel.fromJson,
-  );
+  Future<ApiResponse<FinancialYearModel>> setActiveFinancialYear(int id) =>
+      patchModel<FinancialYearModel>(
+        '/masters/financial-years/$id/set-active',
+        const <String, dynamic>{},
+        fromJson: FinancialYearModel.fromJson,
+      );
 
   Future<PaginatedResponse<DocumentSeriesModel>> documentSeries({
     Map<String, dynamic>? filters,

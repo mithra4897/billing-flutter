@@ -20,7 +20,6 @@ import '../settings/user/role_management_page.dart';
 import '../settings/user/user_management_page.dart';
 import '../settings/master/brand_page.dart';
 import '../settings/master/branch_page.dart';
-import '../settings/master/business_location_page.dart';
 import '../settings/master/company_page.dart';
 import '../settings/master/document_series_page.dart';
 import '../settings/master/item_alternate_page.dart';
@@ -32,7 +31,6 @@ import '../settings/master/item_supplier_map_page.dart';
 import '../settings/master/stock_balance_page.dart';
 import '../settings/master/tax_category_page.dart';
 import '../settings/master/uom_page.dart';
-import '../settings/master/warehouse_page.dart';
 import '../settings/tax/gst_registration_page.dart';
 import '../settings/tax/gst_tax_rule_page.dart';
 import '../settings/tax/state_page.dart';
@@ -236,9 +234,23 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/settings/branches':
         return BranchManagementPage(key: routeKey, embedded: true);
       case '/settings/business-locations':
-        return BusinessLocationManagementPage(key: routeKey, embedded: true);
+        return BranchManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 1,
+        );
       case '/settings/warehouses':
-        return WarehouseManagementPage(key: routeKey, embedded: true);
+        return BranchManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 2,
+        );
+      case '/settings/financial-years':
+        return CompanyManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 1,
+        );
       case '/settings/document-series':
         return DocumentSeriesManagementPage(key: routeKey, embedded: true);
       case '/settings/module-preferences':
