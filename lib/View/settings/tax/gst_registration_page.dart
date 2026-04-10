@@ -380,8 +380,7 @@ class _GstRegistrationManagementPageState
           onTap: () => _selectItem(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Form(
+      editor: Form(
           key: _formKey,
           child: Column(
             children: [
@@ -542,7 +541,10 @@ class _GstRegistrationManagementPageState
               const SizedBox(height: 12),
               TextFormField(
                 controller: _remarksController,
-                decoration: const InputDecoration(labelText: 'Remarks'),
+                decoration: const InputDecoration(
+                  labelText: 'Remarks',
+                  alignLabelWithHint: true,
+                ),
                 maxLines: 3,
               ),
               const SizedBox(height: 12),
@@ -578,7 +580,6 @@ class _GstRegistrationManagementPageState
             ],
           ),
         ),
-      ),
     );
   }
 }

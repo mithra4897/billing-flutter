@@ -34,8 +34,9 @@ class _DocumentSeriesManagementPageState
   List<DocumentSeriesModel> _series = const <DocumentSeriesModel>[];
   List<DocumentSeriesModel> _filteredSeries = const <DocumentSeriesModel>[];
   List<CompanyModel> _companies = const <CompanyModel>[];
-  List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   DocumentSeriesModel? _selectedSeries;
+  int? _contextCompanyId;
+  int? _contextFinancialYearId;
   int? _companyId;
   int? _financialYearId;
   bool _isDefault = false;
@@ -87,6 +88,19 @@ class _DocumentSeriesManagementPageState
       final financialYears =
           (responses[2] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
+      final activeFinancialYears = financialYears
+          .where((item) => item.isActive)
+          .toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: activeFinancialYears,
+          );
 
       if (!mounted) {
         return;
@@ -94,30 +108,25 @@ class _DocumentSeriesManagementPageState
 
       setState(() {
         _series = items;
-        _companies = companies;
-        _financialYears = financialYears;
-        _filteredSeries = filterMasterList(items, _searchController.text, (
-          series,
-        ) {
-          return [
-            series.seriesCode ?? '',
-            series.seriesName ?? '',
-            series.documentType ?? '',
-          ];
-        });
+        _companies = activeCompanies;
+        _contextCompanyId = contextSelection.companyId;
+        _contextFinancialYearId = contextSelection.financialYearId;
+        _filteredSeries = _filterSeries(items);
         _initialLoading = false;
       });
 
+      final visibleSeries = _filterSeries(items);
       final selected = selectId != null
-          ? items.cast<DocumentSeriesModel?>().firstWhere(
+          ? visibleSeries.cast<DocumentSeriesModel?>().firstWhere(
               (item) => item?.id == selectId,
               orElse: () => null,
             )
           : (_selectedSeries == null
-                ? (items.isNotEmpty ? items.first : null)
-                : items.cast<DocumentSeriesModel?>().firstWhere(
+                ? (visibleSeries.isNotEmpty ? visibleSeries.first : null)
+                : visibleSeries.cast<DocumentSeriesModel?>().firstWhere(
                     (item) => item?.id == _selectedSeries?.id,
-                    orElse: () => items.isNotEmpty ? items.first : null,
+                    orElse: () =>
+                        visibleSeries.isNotEmpty ? visibleSeries.first : null,
                   ));
 
       if (selected != null) {
@@ -139,15 +148,26 @@ class _DocumentSeriesManagementPageState
 
   void _applySearch() {
     setState(() {
-      _filteredSeries = filterMasterList(_series, _searchController.text, (
-        series,
-      ) {
-        return [
-          series.seriesCode ?? '',
-          series.seriesName ?? '',
-          series.documentType ?? '',
-        ];
-      });
+      _filteredSeries = _filterSeries(_series);
+    });
+  }
+
+  List<DocumentSeriesModel> _filterSeries(List<DocumentSeriesModel> items) {
+    final scoped = items
+        .where(
+          (series) =>
+              (_contextCompanyId == null || series.companyId == _contextCompanyId) &&
+              (_contextFinancialYearId == null ||
+                  series.financialYearId == _contextFinancialYearId),
+        )
+        .toList(growable: false);
+
+    return filterMasterList(scoped, _searchController.text, (series) {
+      return [
+        series.seriesCode ?? '',
+        series.seriesName ?? '',
+        series.documentType ?? '',
+      ];
     });
   }
 
@@ -171,10 +191,8 @@ class _DocumentSeriesManagementPageState
 
   void _resetForm() {
     _selectedSeries = null;
-    _companyId = _companies.isNotEmpty ? _companies.first.id : null;
-    _financialYearId = _financialYears.isNotEmpty
-        ? _financialYears.first.id
-        : null;
+    _companyId = _contextCompanyId;
+    _financialYearId = _contextFinancialYearId;
     _codeController.clear();
     _nameController.clear();
     _documentTypeController.clear();
@@ -312,8 +330,7 @@ class _DocumentSeriesManagementPageState
           onTap: () => _selectSeries(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Form(
+      editor: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,38 +342,6 @@ class _DocumentSeriesManagementPageState
                 ),
                 const SizedBox(height: 12),
               ],
-              DropdownButtonFormField<int>(
-                initialValue: _companyId,
-                decoration: const InputDecoration(labelText: 'Company'),
-                items: _companies
-                    .map(
-                      (company) => DropdownMenuItem<int>(
-                        value: company.id,
-                        child: Text(company.toString()),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) => setState(() => _companyId = value),
-                validator: (value) =>
-                    Validators.requiredSelectionField(value, 'Company'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int>(
-                initialValue: _financialYearId,
-                decoration: const InputDecoration(labelText: 'Financial Year'),
-                items: _financialYears
-                    .map(
-                      (year) => DropdownMenuItem<int>(
-                        value: year.id,
-                        child: Text(year.yearCode),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) => setState(() => _financialYearId = value),
-                validator: (value) =>
-                    Validators.requiredSelectionField(value, 'Financial Year'),
-              ),
-              const SizedBox(height: 12),
               TextFormField(
                 controller: _codeController,
                 decoration: const InputDecoration(labelText: 'Series Code'),
@@ -436,7 +421,10 @@ class _DocumentSeriesManagementPageState
               const SizedBox(height: 12),
               TextFormField(
                 controller: _remarksController,
-                decoration: const InputDecoration(labelText: 'Remarks'),
+                decoration: const InputDecoration(
+                  labelText: 'Remarks',
+                  alignLabelWithHint: true,
+                ),
                 maxLines: 3,
               ),
               const SizedBox(height: 12),
@@ -464,7 +452,6 @@ class _DocumentSeriesManagementPageState
             ],
           ),
         ),
-      ),
     );
   }
 }

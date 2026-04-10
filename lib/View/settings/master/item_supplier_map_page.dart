@@ -44,6 +44,7 @@ class _ItemSupplierMapManagementPageState
 
   bool _initialLoading = true;
   bool _saving = false;
+  bool _showDraftTile = false;
   String? _pageError;
   String? _formError;
   List<ItemSupplierMapModel> _items = const <ItemSupplierMapModel>[];
@@ -333,6 +334,7 @@ class _ItemSupplierMapManagementPageState
       _resetForm();
       return;
     }
+    _showDraftTile = false;
     _selectedItem = item;
     _counterpartyId = _isItemWise ? item.supplierId : item.itemId;
     _purchaseUomId = item.purchaseUomId;
@@ -472,7 +474,6 @@ class _ItemSupplierMapManagementPageState
               _selectedItem!.id!,
               model,
             );
-      final saved = response.data;
       if (!mounted) {
         return;
       }
@@ -480,7 +481,9 @@ class _ItemSupplierMapManagementPageState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadMappings(selectId: saved?.id);
+      _showDraftTile = false;
+      _resetForm();
+      await _loadMappings();
     } catch (error) {
       setState(() {
         _formError = error.toString();
@@ -566,6 +569,7 @@ class _ItemSupplierMapManagementPageState
   }
 
   void _startNew() {
+    _showDraftTile = true;
     _resetForm();
     if (widget.fixedItemId == null && !Responsive.isDesktop(context)) {
       _workspaceController.openEditor();
@@ -583,6 +587,7 @@ class _ItemSupplierMapManagementPageState
   }
 
   void _startNewWithCounterparty(int id) {
+    _showDraftTile = true;
     _resetForm();
     _counterpartyId = id;
     if (!_allowedUomIdsForItem(
@@ -797,12 +802,10 @@ class _ItemSupplierMapManagementPageState
   }
 
   Widget _buildEditorBody() {
-    final hasDraft = _selectedItem != null || _counterpartyId != null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_filteredItems.isEmpty)
+        if (_filteredItems.isEmpty && !_showDraftTile) ...[
           Padding(
             padding: const EdgeInsets.symmetric(
               vertical: AppUiConstants.spacingMd,
@@ -812,249 +815,289 @@ class _ItemSupplierMapManagementPageState
                   ? 'No suppliers mapped for this item.'
                   : 'No items mapped for this supplier.',
             ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _filteredItems.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(height: AppUiConstants.spacingXs),
-            itemBuilder: (context, index) {
-              final item = _filteredItems[index];
-              return SettingsListTile(
-                title: _isItemWise
-                    ? (item.supplierName.isNotEmpty
-                          ? item.supplierName
-                          : item.supplierCode)
-                    : (item.itemName.isNotEmpty
-                          ? item.itemName
-                          : item.itemCode),
-                subtitle: [
-                  if (item.supplierItemCode != null) item.supplierItemCode!,
-                  if (item.purchaseUomSymbol.isNotEmpty) item.purchaseUomSymbol,
-                  if (item.supplierRate != null) 'Rate ${item.supplierRate}',
-                  if (item.isPrimarySupplier) 'Primary',
-                ].join(' · '),
-                selected: identical(item, _selectedItem),
-                onTap: () => _selectMapping(item),
-                trailing: IconButton(
-                  tooltip: _isItemWise ? 'Remove supplier' : 'Remove item',
-                  onPressed: _saving ? null : () => _confirmDelete(item),
-                  icon: const Icon(Icons.remove_circle_outline),
-                ),
-              );
+          ),
+        ],
+        if (_showDraftTile && _selectedItem == null) ...[
+          SettingsExpandableTile(
+            key: const ValueKey('supplier-map-draft'),
+            title: _counterpartyId == null
+                ? (_isItemWise ? 'New Supplier' : 'New Item')
+                : _selectedDraftCounterpartyLabel,
+            subtitle: _isItemWise
+                ? 'Add a supplier for this item.'
+                : 'Add an item for this supplier.',
+            expanded: true,
+            highlighted: true,
+            leadingIcon: Icons.add_outlined,
+            onToggle: () {
+              setState(() {
+                _showDraftTile = false;
+              });
+              _resetForm();
             },
-          ),
-        const SizedBox(height: AppUiConstants.spacingLg),
-        TextField(
-          controller: _addSearchController,
-          decoration: InputDecoration(
-            hintText: _isItemWise
-                ? 'Search supplier to add to this item'
-                : 'Search item to add for this supplier',
-            prefixIcon: const Icon(Icons.search),
-          ),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        if (_filteredAvailableCounterpartyOptions.isEmpty)
-          Text(
-            _isItemWise
-                ? 'No more suppliers available to add.'
-                : 'No more items available to add.',
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _filteredAvailableCounterpartyOptions.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(height: AppUiConstants.spacingXs),
-            itemBuilder: (context, index) {
-              final option = _filteredAvailableCounterpartyOptions[index];
-              final optionId = _isItemWise
-                  ? (option as PartyModel).id
-                  : (option as ItemModel).id;
-              if (optionId == null) {
-                return const SizedBox.shrink();
-              }
-              return SettingsListTile(
-                title: _isItemWise
-                    ? _supplierLabel(option as PartyModel)
-                    : _itemLabel(option as ItemModel),
-                subtitle: '',
-                selected: optionId == _counterpartyId && _selectedItem == null,
-                onTap: () => _startNewWithCounterparty(optionId),
-                trailing: const Icon(Icons.add_circle_outline),
-              );
-            },
-          ),
-        if (hasDraft) ...[
-          const SizedBox(height: AppUiConstants.spacingLg),
-          Form(
-            key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_formError != null) ...[
-                  AppErrorStateView.inline(message: _formError!),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                ],
-                DropdownButtonFormField<int>(
-                  initialValue: _counterpartyId,
-                  decoration: InputDecoration(labelText: _counterpartyLabel),
-                  items: _dropdownCounterpartyOptions
-                      .where((entry) => entry.id != null)
-                      .map(
-                        (entry) => DropdownMenuItem<int>(
-                          value: entry.id as int,
-                          child: Text(
-                            _isItemWise
-                                ? _supplierLabel(entry as PartyModel)
-                                : _itemLabel(entry as ItemModel),
-                          ),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    setState(() {
-                      _counterpartyId = value;
-                      if (!_allowedUomIdsForItem(
-                        _currentItemForUomRules,
-                      ).contains(_purchaseUomId)) {
-                        _purchaseUomId = _defaultPurchaseUomId;
-                      }
-                    });
-                  },
-                  validator: (value) => Validators.requiredSelectionField(
-                    value,
-                    _counterpartyLabel,
+                TextField(
+                  controller: _addSearchController,
+                  decoration: InputDecoration(
+                    hintText: _isItemWise
+                        ? 'Search supplier to add to this item'
+                        : 'Search item to add for this supplier',
+                    prefixIcon: const Icon(Icons.search),
                   ),
                 ),
-                const SizedBox(height: 12),
-                SettingsFormWrap(
-                  children: [
-                    AppFormTextField(
-                      labelText: 'Supplier Item Code',
-                      controller: _supplierItemCodeController,
-                      validator: Validators.optionalMaxLength(
-                        100,
-                        'Supplier Item Code',
-                      ),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Supplier Item Name',
-                      controller: _supplierItemNameController,
-                      validator: Validators.optionalMaxLength(
-                        255,
-                        'Supplier Item Name',
-                      ),
-                    ),
-                    DropdownButtonFormField<int>(
-                      initialValue: _purchaseUomId,
-                      decoration: const InputDecoration(
-                        labelText: 'Purchase UOM',
-                      ),
-                      items: _allowedPurchaseUoms
-                          .where((uom) => uom.id != null)
-                          .map(
-                            (uom) => DropdownMenuItem<int>(
-                              value: uom.id,
-                              child: Text(uom.toString()),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) =>
-                          setState(() => _purchaseUomId = value),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Supplier Rate',
-                      controller: _supplierRateController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      validator: Validators.optionalNonNegativeNumber(
-                        'Supplier Rate',
-                      ),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Lead Time Days',
-                      controller: _leadTimeDaysController,
-                      keyboardType: TextInputType.number,
-                      validator: Validators.optionalNonNegativeInteger(
-                        'Lead Time Days',
-                      ),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Minimum Order Quantity',
-                      controller: _minOrderQtyController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      validator: Validators.optionalNonNegativeNumber(
-                        'Minimum Order Quantity',
-                      ),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Remarks',
-                      controller: _remarksController,
-                      maxLines: 3,
-                    ),
-                  ],
-                ),
                 const SizedBox(height: AppUiConstants.spacingSm),
-                Wrap(
-                  spacing: AppUiConstants.spacingMd,
-                  runSpacing: AppUiConstants.spacingSm,
-                  children: [
-                    SizedBox(
-                      width: AppUiConstants.switchFieldWidth,
-                      child: AppSwitchTile(
-                        label: 'Primary Supplier',
-                        value: _isPrimarySupplier,
-                        onChanged: (value) =>
-                            setState(() => _isPrimarySupplier = value),
-                      ),
-                    ),
-                    SizedBox(
-                      width: AppUiConstants.switchFieldWidth,
-                      child: AppSwitchTile(
-                        label: 'Active',
-                        value: _isActive,
-                        onChanged: (value) => setState(() => _isActive = value),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppUiConstants.spacingMd),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (_selectedItem?.id != null)
-                      TextButton(
-                        onPressed: _saving ? null : _delete,
-                        child: const Text('Delete'),
-                      ),
-                    const SizedBox(width: AppUiConstants.spacingSm),
-                    FilledButton.icon(
-                      onPressed: _saving ? null : _save,
-                      icon: const Icon(Icons.save_outlined),
-                      label: Text(_saving ? 'Saving...' : 'Save'),
-                    ),
-                  ],
-                ),
+                if (_filteredAvailableCounterpartyOptions.isEmpty)
+                  Text(
+                    _isItemWise
+                        ? 'No more suppliers available to add.'
+                        : 'No more items available to add.',
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _filteredAvailableCounterpartyOptions.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: AppUiConstants.spacingXs),
+                    itemBuilder: (context, index) {
+                      final option =
+                          _filteredAvailableCounterpartyOptions[index];
+                      final optionId = _isItemWise
+                          ? (option as PartyModel).id
+                          : (option as ItemModel).id;
+                      if (optionId == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return SettingsListTile(
+                        title: _isItemWise
+                            ? _supplierLabel(option as PartyModel)
+                            : _itemLabel(option as ItemModel),
+                        subtitle: '',
+                        selected: optionId == _counterpartyId,
+                        onTap: () => _startNewWithCounterparty(optionId),
+                        trailing: const Icon(Icons.add_circle_outline),
+                      );
+                    },
+                  ),
+                if (_counterpartyId != null) ...[
+                  const SizedBox(height: AppUiConstants.spacingLg),
+                  _buildMappingForm(),
+                ],
               ],
             ),
           ),
-        ] else ...[
+          if (_filteredItems.isNotEmpty)
+            const SizedBox(height: AppUiConstants.spacingSm),
+        ],
+        ..._filteredItems.map((item) {
+          final expanded = identical(item, _selectedItem);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+            child: SettingsExpandableTile(
+              key: ValueKey('supplier-map-${item.id}-$expanded'),
+              title: _isItemWise
+                  ? (item.supplierName.isNotEmpty
+                        ? item.supplierName
+                        : item.supplierCode)
+                  : (item.itemName.isNotEmpty ? item.itemName : item.itemCode),
+              subtitle: [
+                if (item.supplierItemCode != null) item.supplierItemCode!,
+                if (item.purchaseUomSymbol.isNotEmpty) item.purchaseUomSymbol,
+                if (item.supplierRate != null) 'Rate ${item.supplierRate}',
+                if (item.isPrimarySupplier) 'Primary',
+              ].join(' · '),
+              expanded: expanded,
+              highlighted: expanded,
+              trailing: IconButton(
+                tooltip: _isItemWise ? 'Remove supplier' : 'Remove item',
+                onPressed: _saving ? null : () => _confirmDelete(item),
+                icon: const Icon(Icons.remove_circle_outline),
+              ),
+              onToggle: () {
+                if (expanded) {
+                  _resetForm();
+                } else {
+                  _selectMapping(item);
+                }
+              },
+              child: _buildMappingForm(),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  String get _selectedDraftCounterpartyLabel {
+    if (_counterpartyId == null) {
+      return _isItemWise ? 'New Supplier' : 'New Item';
+    }
+    if (_isItemWise) {
+      final supplier = _allSuppliers.cast<PartyModel?>().firstWhere(
+        (entry) => entry?.id == _counterpartyId,
+        orElse: () => null,
+      );
+      return supplier == null ? 'New Supplier' : _supplierLabel(supplier);
+    }
+    final item = _allItems.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == _counterpartyId,
+      orElse: () => null,
+    );
+    return item == null ? 'New Item' : _itemLabel(item);
+  }
+
+  Widget _buildMappingForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_formError != null) ...[
+            AppErrorStateView.inline(message: _formError!),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
+          DropdownButtonFormField<int>(
+            initialValue: _counterpartyId,
+            decoration: InputDecoration(labelText: _counterpartyLabel),
+            items: _dropdownCounterpartyOptions
+                .where((entry) => entry.id != null)
+                .map(
+                  (entry) => DropdownMenuItem<int>(
+                    value: entry.id as int,
+                    child: Text(
+                      _isItemWise
+                          ? _supplierLabel(entry as PartyModel)
+                          : _itemLabel(entry as ItemModel),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              setState(() {
+                _counterpartyId = value;
+                if (!_allowedUomIdsForItem(
+                  _currentItemForUomRules,
+                ).contains(_purchaseUomId)) {
+                  _purchaseUomId = _defaultPurchaseUomId;
+                }
+              });
+            },
+            validator: (value) =>
+                Validators.requiredSelectionField(value, _counterpartyLabel),
+          ),
+          const SizedBox(height: 12),
+          SettingsFormWrap(
+            children: [
+              AppFormTextField(
+                labelText: 'Supplier Item Code',
+                controller: _supplierItemCodeController,
+                validator: Validators.optionalMaxLength(
+                  100,
+                  'Supplier Item Code',
+                ),
+              ),
+              AppFormTextField(
+                labelText: 'Supplier Item Name',
+                controller: _supplierItemNameController,
+                validator: Validators.optionalMaxLength(
+                  255,
+                  'Supplier Item Name',
+                ),
+              ),
+              DropdownButtonFormField<int>(
+                initialValue: _purchaseUomId,
+                decoration: const InputDecoration(labelText: 'Purchase UOM'),
+                items: _allowedPurchaseUoms
+                    .where((uom) => uom.id != null)
+                    .map(
+                      (uom) => DropdownMenuItem<int>(
+                        value: uom.id,
+                        child: Text(uom.toString()),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) => setState(() => _purchaseUomId = value),
+              ),
+              AppFormTextField(
+                labelText: 'Supplier Rate',
+                controller: _supplierRateController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: Validators.optionalNonNegativeNumber(
+                  'Supplier Rate',
+                ),
+              ),
+              AppFormTextField(
+                labelText: 'Lead Time Days',
+                controller: _leadTimeDaysController,
+                keyboardType: TextInputType.number,
+                validator: Validators.optionalNonNegativeInteger(
+                  'Lead Time Days',
+                ),
+              ),
+              AppFormTextField(
+                labelText: 'Minimum Order Quantity',
+                controller: _minOrderQtyController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: Validators.optionalNonNegativeNumber(
+                  'Minimum Order Quantity',
+                ),
+              ),
+              AppFormTextField(
+                labelText: 'Remarks',
+                controller: _remarksController,
+                maxLines: 3,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          Wrap(
+            spacing: AppUiConstants.spacingMd,
+            runSpacing: AppUiConstants.spacingSm,
+            children: [
+              SizedBox(
+                width: AppUiConstants.switchFieldWidth,
+                child: AppSwitchTile(
+                  label: 'Primary Supplier',
+                  value: _isPrimarySupplier,
+                  onChanged: (value) =>
+                      setState(() => _isPrimarySupplier = value),
+                ),
+              ),
+              SizedBox(
+                width: AppUiConstants.switchFieldWidth,
+                child: AppSwitchTile(
+                  label: 'Active',
+                  value: _isActive,
+                  onChanged: (value) => setState(() => _isActive = value),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: AppUiConstants.spacingMd),
-          Text(
-            _isItemWise
-                ? 'Pick a supplier above to start this product mapping.'
-                : 'Pick an item above to start this supplier mapping.',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (_selectedItem?.id != null)
+                TextButton(
+                  onPressed: _saving ? null : _delete,
+                  child: const Text('Delete'),
+                ),
+              const SizedBox(width: AppUiConstants.spacingSm),
+              FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(_saving ? 'Saving...' : 'Save'),
+              ),
+            ],
           ),
         ],
-      ],
+      ),
     );
   }
 }

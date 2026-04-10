@@ -66,12 +66,12 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   String? _formError;
   List<ItemModel> _items = const <ItemModel>[];
   List<ItemModel> _filteredItems = const <ItemModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
   List<ItemCategoryModel> _categories = const <ItemCategoryModel>[];
   List<BrandModel> _brands = const <BrandModel>[];
   List<UomModel> _uoms = const <UomModel>[];
   List<TaxCodeModel> _taxCodes = const <TaxCodeModel>[];
   ItemModel? _selectedItem;
+  int? _contextCompanyId;
   int? _companyId;
   int? _categoryId;
   int? _brandId;
@@ -89,6 +89,7 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   bool _isManufacturable = false;
   bool _isJobworkApplicable = false;
   bool _isActive = true;
+  int _activeTabIndex = 0;
 
   @override
   void initState() {
@@ -96,9 +97,11 @@ class _ItemManagementPageState extends State<ItemManagementPage>
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (mounted) {
+        _activeTabIndex = _tabController.index;
         setState(() {});
       }
     });
+    _activeTabIndex = _tabController.index;
     _searchController.addListener(_applySearch);
     _codeController.addListener(_handleItemCodeChanged);
     _loadData();
@@ -173,6 +176,16 @@ class _ItemManagementPageState extends State<ItemManagementPage>
       final taxCodes =
           (responses[5] as PaginatedResponse<TaxCodeModel>).data ??
           const <TaxCodeModel>[];
+      final activeCompanies = companies
+          .where((company) => company.isActive)
+          .toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
 
       if (!mounted) {
         return;
@@ -180,7 +193,7 @@ class _ItemManagementPageState extends State<ItemManagementPage>
 
       setState(() {
         _items = items;
-        _companies = companies.where((company) => company.isActive).toList();
+        _contextCompanyId = contextSelection.companyId;
         _categories = categories
             .where((category) => category.isActive)
             .toList();
@@ -360,7 +373,7 @@ class _ItemManagementPageState extends State<ItemManagementPage>
 
   void _resetForm() {
     _selectedItem = null;
-    _companyId = _companies.isNotEmpty ? _companies.first.id : null;
+    _companyId = _contextCompanyId;
     _categoryId = null;
     _brandId = null;
     _baseUomId = _uoms.isNotEmpty ? _uoms.first.id : null;
@@ -953,7 +966,7 @@ class _ItemManagementPageState extends State<ItemManagementPage>
               ),
               const SizedBox(height: 20),
               IndexedStack(
-                index: _tabController.index,
+                index: _activeTabIndex,
                 children: [
                   _buildPrimaryTab(),
                   _buildAlternateItemsTab(),
@@ -981,24 +994,6 @@ class _ItemManagementPageState extends State<ItemManagementPage>
           ],
           SettingsFormWrap(
             children: [
-              DropdownButtonFormField<int>(
-                initialValue: _companyId,
-                decoration: const InputDecoration(labelText: 'Company'),
-                items: _companies
-                    .where((company) => company.id != null)
-                    .map(
-                      (company) => DropdownMenuItem<int>(
-                        value: company.id,
-                        child: Text(company.toString()),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  setState(() => _companyId = value);
-                  _updateGeneratedItemCodeIfNeeded();
-                },
-                validator: Validators.requiredSelection('Company'),
-              ),
               DropdownButtonFormField<String>(
                 initialValue: _itemType,
                 decoration: const InputDecoration(labelText: 'Item Type'),
@@ -1413,25 +1408,20 @@ class _ItemOpeningStockSection extends StatefulWidget {
 
 class _ItemOpeningStockSectionState extends State<_ItemOpeningStockSection> {
   final InventoryService _inventoryService = InventoryService();
-  final TextEditingController _searchController = TextEditingController();
 
   bool _loading = true;
   String? _error;
   List<OpeningStockModel> _entries = const <OpeningStockModel>[];
-  List<OpeningStockModel> _filteredEntries = const <OpeningStockModel>[];
+  int? _expandedEntryId;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
     _load();
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  void dispose() => super.dispose();
 
   Future<void> _load() async {
     setState(() {
@@ -1454,7 +1444,6 @@ class _ItemOpeningStockSectionState extends State<_ItemOpeningStockSection> {
       }
       setState(() {
         _entries = response.data ?? const <OpeningStockModel>[];
-        _filteredEntries = _filter(_entries, _searchController.text);
         _loading = false;
       });
     } catch (error) {
@@ -1466,27 +1455,6 @@ class _ItemOpeningStockSectionState extends State<_ItemOpeningStockSection> {
         _loading = false;
       });
     }
-  }
-
-  List<OpeningStockModel> _filter(
-    List<OpeningStockModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (entry) {
-      final json = entry.toJson();
-      return [
-        json['opening_no']?.toString() ?? '',
-        json['opening_status']?.toString() ?? '',
-        json['opening_date']?.toString() ?? '',
-        json['remarks']?.toString() ?? '',
-      ];
-    });
-  }
-
-  void _applySearch() {
-    setState(() {
-      _filteredEntries = _filter(_entries, _searchController.text);
-    });
   }
 
   @override
@@ -1507,26 +1475,21 @@ class _ItemOpeningStockSectionState extends State<_ItemOpeningStockSection> {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Search opening stock entries',
-            prefixIcon: Icon(Icons.search),
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (_filteredEntries.isEmpty)
+        if (_entries.isEmpty)
           const Text('No opening stock entries found for this item.')
         else
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _filteredEntries.length,
+            itemCount: _entries.length,
             separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              final entry = _filteredEntries[index].toJson();
+              final entry = _entries[index].toJson();
+              final entryId = int.tryParse(entry['id']?.toString() ?? '');
               final status = entry['opening_status']?.toString() ?? '';
-              return SettingsListTile(
+              final expanded = _expandedEntryId == entryId;
+              return SettingsExpandableTile(
+                key: ValueKey('opening-$entryId-$expanded'),
                 title: entry['opening_no']?.toString() ?? 'Opening Stock',
                 subtitle: [
                   entry['opening_date']?.toString() ?? '',
@@ -1534,11 +1497,49 @@ class _ItemOpeningStockSectionState extends State<_ItemOpeningStockSection> {
                   if ((entry['remarks']?.toString() ?? '').trim().isNotEmpty)
                     entry['remarks'].toString(),
                 ].where((value) => value.trim().isNotEmpty).join(' · '),
-                selected: false,
-                onTap: () {},
+                expanded: expanded,
+                onToggle: () {
+                  setState(() {
+                    _expandedEntryId = expanded ? null : entryId;
+                  });
+                },
                 trailing: SettingsStatusPill(
                   label: status.isEmpty ? 'Draft' : status,
                   active: status.toLowerCase() == 'posted',
+                ),
+                child: SettingsFormWrap(
+                  children: [
+                    SettingsFieldBox(
+                      child: Text(
+                        'Warehouse\n${entry['warehouse_name']?.toString() ?? '-'}',
+                      ),
+                    ),
+                    SettingsFieldBox(
+                      child: Text(
+                        'UOM\n${entry['uom_name']?.toString() ?? '-'}',
+                      ),
+                    ),
+                    SettingsFieldBox(
+                      child: Text(
+                        'Quantity\n${entry['qty']?.toString() ?? '-'}',
+                      ),
+                    ),
+                    SettingsFieldBox(
+                      child: Text(
+                        'Unit Cost\n${entry['unit_cost']?.toString() ?? '-'}',
+                      ),
+                    ),
+                    SettingsFieldBox(
+                      child: Text(
+                        'Total Value\n${entry['total_value']?.toString() ?? '-'}',
+                      ),
+                    ),
+                    SettingsFieldBox(
+                      child: Text(
+                        'Remarks\n${entry['remarks']?.toString() ?? '-'}',
+                      ),
+                    ),
+                  ],
                 ),
               );
             },

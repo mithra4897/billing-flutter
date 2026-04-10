@@ -10,6 +10,7 @@ import '../model/app/public_branding_model.dart';
 import '../model/auth/module_model.dart';
 import '../service/app/app_session_service.dart';
 import 'app_branding_logo.dart';
+import 'session_context_button.dart';
 
 class AdaptiveShell extends StatefulWidget {
   const AdaptiveShell({
@@ -375,6 +376,10 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 8),
+                                  child: SessionContextButton(),
                                 ),
                                 actionBar,
                               ],

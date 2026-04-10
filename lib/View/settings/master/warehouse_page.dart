@@ -30,6 +30,7 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
 
   bool _initialLoading = true;
   bool _saving = false;
+  bool _showDraftTile = false;
   String? _pageError;
   String? _formError;
   List<WarehouseModel> _warehouses = const <WarehouseModel>[];
@@ -173,6 +174,7 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
 
   void _selectWarehouse(WarehouseModel warehouse) {
     _selectedWarehouse = warehouse;
+    _showDraftTile = false;
     _companyId = widget.fixedCompanyId ?? warehouse.companyId;
     _branchId = widget.fixedBranchId ?? warehouse.branchId;
     _locationId = warehouse.locationId;
@@ -348,7 +350,9 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData(selectId: saved.id);
+      _showDraftTile = false;
+      _resetForm();
+      await _loadData();
     } catch (error) {
       setState(() => _formError = error.toString());
     } finally {
@@ -359,6 +363,7 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
   }
 
   void _startNewWarehouse() {
+    _showDraftTile = true;
     _resetForm();
 
     if (!Responsive.isDesktop(context)) {
@@ -671,27 +676,78 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
         Row(
           children: [
             AppActionButton(
-              onPressed: _saving ? null : _resetForm,
+              onPressed: _saving ? null : _startNewWarehouse,
               icon: Icons.add_home_work_outlined,
               label: 'New Warehouse',
             ),
           ],
         ),
         const SizedBox(height: 16),
-        _buildEmbeddedList<WarehouseModel>(
-          items: _filteredWarehouses,
-          selectedItem: _selectedWarehouse,
-          emptyMessage: 'No branch warehouses found.',
-          itemTitle: (item) => item.name ?? '-',
-          itemSubtitle: (item) => [
-            item.code ?? '',
-            locationNameById(_locations, item.locationId),
-            item.warehouseType?.replaceAll('_', ' ') ?? '',
-          ].where((value) => value.isNotEmpty).join(' • '),
-          onTap: _selectWarehouse,
-        ),
-        const SizedBox(height: 20),
-        _buildInlineEditor(),
+        if (_filteredWarehouses.isEmpty &&
+            !_showDraftTile &&
+            _selectedWarehouse == null)
+          const SettingsEmptyState(
+            icon: Icons.home_work_outlined,
+            title: 'No Warehouses',
+            message: 'No branch warehouses found.',
+            minHeight: 160,
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_showDraftTile && _selectedWarehouse == null) ...[
+                SettingsExpandableTile(
+                  key: const ValueKey('warehouse-draft'),
+                  title: 'New Warehouse',
+                  subtitle: 'Create a warehouse under this branch.',
+                  expanded: true,
+                  highlighted: true,
+                  leadingIcon: Icons.add_outlined,
+                  onToggle: () {
+                    setState(() {
+                      _showDraftTile = false;
+                    });
+                    _resetForm();
+                  },
+                  child: _buildInlineEditor(),
+                ),
+                if (_filteredWarehouses.isNotEmpty)
+                  const SizedBox(height: AppUiConstants.spacingSm),
+              ],
+              ..._filteredWarehouses.map((item) {
+                final expanded = identical(item, _selectedWarehouse);
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
+                  child: SettingsExpandableTile(
+                    key: ValueKey('warehouse-${item.id}-$expanded'),
+                    title: item.name ?? '-',
+                    subtitle: [
+                      item.code ?? '',
+                      locationNameById(_locations, item.locationId),
+                      item.warehouseType?.replaceAll('_', ' ') ?? '',
+                    ].where((value) => value.isNotEmpty).join(' • '),
+                    detail: [
+                      if (item.isDefault) 'Default',
+                      if (item.isActive) 'Active',
+                    ].join(' • '),
+                    expanded: expanded,
+                    highlighted: expanded,
+                    onToggle: () {
+                      if (expanded) {
+                        _resetForm();
+                      } else {
+                        _selectWarehouse(item);
+                      }
+                    },
+                    child: _buildInlineEditor(),
+                  ),
+                );
+              }),
+            ],
+          ),
       ],
     );
   }
@@ -923,42 +979,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildEmbeddedList<T>({
-    required List<T> items,
-    required T? selectedItem,
-    required String emptyMessage,
-    required String Function(T item) itemTitle,
-    required String Function(T item) itemSubtitle,
-    required ValueChanged<T> onTap,
-  }) {
-    if (items.isEmpty) {
-      return SettingsEmptyState(
-        icon: Icons.list_alt_outlined,
-        title: 'Nothing Added Yet',
-        message: emptyMessage,
-        minHeight: 160,
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: items
-          .map((item) {
-            final selected = identical(item, selectedItem);
-            return SettingsListTile(
-              title: itemTitle(item),
-              subtitle: itemSubtitle(item),
-              selected: selected,
-              onTap: () => onTap(item),
-              trailing: selected
-                  ? const Icon(Icons.edit_outlined, size: 18)
-                  : null,
-            );
-          })
-          .toList(growable: false),
     );
   }
 }

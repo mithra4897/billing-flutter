@@ -48,7 +48,6 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
   int? _companyId;
   int? _accountId;
   int? _partyId;
-  List<CompanyModel> _companies = const <CompanyModel>[];
   List<AccountModel> _accounts = const <AccountModel>[];
   List<PartyModel> _parties = const <PartyModel>[];
   AccountingReportModel? _report;
@@ -94,13 +93,22 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           const <AccountModel>[];
       final parties = (responses[2] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
 
       if (!mounted) return;
       setState(() {
-        _companies = companies.where((item) => item.isActive).toList();
         _accounts = accounts.where((item) => item.isActive).toList();
         _parties = parties.where((item) => item.isActive).toList();
-        _companyId = _companies.isNotEmpty ? _companies.first.id : null;
+        _companyId = contextSelection.companyId;
         _initialLoading = false;
       });
     } catch (error) {
@@ -202,32 +210,130 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
       _reportType == 'balance_sheet' ||
       _reportType == 'financial_statement_pack';
 
+  Future<void> _openFilterPanel() async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                dialogPadding,
+                dialogPadding,
+                dialogPadding,
+                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Filter Financial Reports',
+                          style: Theme.of(dialogContext).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        tooltip: 'Close',
+                        icon: const Icon(Icons.close),
+                        color: appTheme.mutedText,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildFilterFields(dialogContext),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        icon: const Icon(Icons.play_arrow_outlined),
+                        label: const Text('Run Report'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _reportType = 'general_ledger';
+                            _accountId = null;
+                            _partyId = null;
+                            final today = DateTime.now()
+                                .toIso8601String()
+                                .split('T')
+                                .first;
+                            _dateFromController.text = today;
+                            _dateToController.text = today;
+                            _asOfDateController.text = today;
+                          });
+                          Navigator.of(dialogContext).pop(true);
+                        },
+                        icon: const Icon(Icons.clear),
+                        label: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (applied == true) {
+      _runReport();
+    }
+  }
+
+  List<Widget> _buildShellActions() {
+    return [
+      AdaptiveShellActionButton(
+        onPressed: _loading ? null : _openFilterPanel,
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
+        onPressed: _loading ? null : _runReport,
+        icon: Icons.assessment_outlined,
+        label: 'Run Report',
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
     if (widget.embedded) {
-      return ShellPageActions(
-        actions: [
-          AdaptiveShellActionButton(
-            onPressed: _loading ? null : _runReport,
-            icon: Icons.assessment_outlined,
-            label: 'Run Report',
-          ),
-        ],
-        child: content,
-      );
+      return ShellPageActions(actions: _buildShellActions(), child: content);
     }
 
     return AppStandaloneShell(
       title: 'Financial Reports',
       scrollController: _pageScrollController,
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: _loading ? null : _runReport,
-          icon: Icons.assessment_outlined,
-          label: 'Run Report',
-        ),
-      ],
+      actions: _buildShellActions(),
       child: content,
     );
   }
@@ -253,84 +359,10 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppSectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_error != null) ...[
-                  AppErrorStateView.inline(message: _error!),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                ],
-                SettingsFormWrap(
-                  children: [
-                    AppDropdownField<String>.fromMapped(
-                      labelText: 'Report',
-                      mappedItems: _reportItems,
-                      initialValue: _reportType,
-                      onChanged: (value) => setState(
-                        () => _reportType = value ?? 'general_ledger',
-                      ),
-                    ),
-                    AppDropdownField<int>.fromMapped(
-                      labelText: 'Company',
-                      mappedItems: _companies
-                          .where((item) => item.id != null)
-                          .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                          .toList(growable: false),
-                      initialValue: _companyId,
-                      onChanged: (value) => setState(() => _companyId = value),
-                    ),
-                    if (_needsAccount)
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Account',
-                        mappedItems: _accounts
-                            .where((item) => item.id != null)
-                            .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                            .toList(growable: false),
-                        initialValue: _accountId,
-                        onChanged: (value) => setState(() => _accountId = value),
-                      ),
-                    if (_needsParty)
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Party',
-                        mappedItems: _parties
-                            .where((item) => item.id != null)
-                            .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                            .toList(growable: false),
-                        initialValue: _partyId,
-                        onChanged: (value) => setState(() => _partyId = value),
-                      ),
-                    if (_usesDateRange)
-                      AppFormTextField(
-                        labelText: 'Date From',
-                        controller: _dateFromController,
-                        validator: Validators.optionalDate('Date From'),
-                      ),
-                    if (_usesDateRange)
-                      AppFormTextField(
-                        labelText: 'Date To',
-                        controller: _dateToController,
-                        validator: Validators.optionalDate('Date To'),
-                      ),
-                    if (_usesAsOfDate)
-                      AppFormTextField(
-                        labelText: 'As Of Date',
-                        controller: _asOfDateController,
-                        validator: Validators.optionalDate('As Of Date'),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppUiConstants.spacingMd),
-                AppActionButton(
-                  icon: Icons.play_arrow_outlined,
-                  label: 'Run Report',
-                  onPressed: _runReport,
-                  busy: _loading,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
+          if (_error != null) ...[
+            AppErrorStateView.inline(message: _error!),
+            const SizedBox(height: AppUiConstants.spacingMd),
+          ],
           AppSectionCard(
             child: _report == null
                 ? const SettingsEmptyState(
@@ -378,6 +410,77 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFilterFields(BuildContext context) {
+    return SettingsFormWrap(
+      children: [
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Report',
+          mappedItems: _reportItems,
+          initialValue: _reportType,
+          onChanged: (value) => setState(
+            () {
+              _reportType = value ?? 'general_ledger';
+              if (!_needsAccount) {
+                _accountId = null;
+              }
+              if (!_needsParty) {
+                _partyId = null;
+              }
+            },
+          ),
+        ),
+        if (_needsAccount)
+          AppDropdownField<int>.fromMapped(
+            labelText: 'Account',
+            mappedItems: _accounts
+                .where((item) => item.id != null)
+                .map(
+                  (item) => AppDropdownItem(
+                    value: item.id!,
+                    label: item.toString(),
+                  ),
+                )
+                .toList(growable: false),
+            initialValue: _accountId,
+            onChanged: (value) => setState(() => _accountId = value),
+          ),
+        if (_needsParty)
+          AppDropdownField<int>.fromMapped(
+            labelText: 'Party',
+            mappedItems: _parties
+                .where((item) => item.id != null)
+                .map(
+                  (item) => AppDropdownItem(
+                    value: item.id!,
+                    label: item.toString(),
+                  ),
+                )
+                .toList(growable: false),
+            initialValue: _partyId,
+            onChanged: (value) => setState(() => _partyId = value),
+          ),
+        if (_usesDateRange)
+          AppFormTextField(
+            labelText: 'Date From',
+            controller: _dateFromController,
+            validator: Validators.optionalDate('Date From'),
+          ),
+        if (_usesDateRange)
+          AppFormTextField(
+            labelText: 'Date To',
+            controller: _dateToController,
+            validator: Validators.optionalDate('Date To'),
+          ),
+        if (_usesAsOfDate)
+          AppFormTextField(
+            labelText: 'As Of Date',
+            controller: _asOfDateController,
+            validator: Validators.optionalDate('As Of Date'),
+          ),
+      ],
     );
   }
 }

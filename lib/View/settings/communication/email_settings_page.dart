@@ -44,10 +44,10 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
   bool _saving = false;
   String? _pageError;
   String? _formError;
-  List<CompanyModel> _companies = const <CompanyModel>[];
   List<EmailSettingModel> _settings = const <EmailSettingModel>[];
   List<EmailSettingModel> _filteredSettings = const <EmailSettingModel>[];
   EmailSettingModel? _selectedSetting;
+  int? _contextCompanyId;
   int? _companyId;
   String _mailDriver = 'disabled';
   String _smtpEncryption = 'none';
@@ -96,9 +96,18 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
 
       final companies = companiesResponse.data ?? const <CompanyModel>[];
       final settings = settingsResponse.data ?? const <EmailSettingModel>[];
+      final activeCompanies =
+          companies.where((item) => item.isActive).toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
 
       setState(() {
-        _companies = companies;
+        _contextCompanyId = contextSelection.companyId;
         _settings = settings;
         _filteredSettings = filterMasterList(settings, _searchController.text, (
           setting,
@@ -181,7 +190,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
 
   void _resetForm() {
     _selectedSetting = null;
-    _companyId = null;
+    _companyId = _contextCompanyId;
     _settingNameController.clear();
     _fromNameController.clear();
     _fromEmailController.clear();
@@ -306,16 +315,6 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
       );
     }
 
-    final companyItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All'),
-      ..._companies.map(
-        (company) => AppDropdownItem<int?>(
-          value: company.id,
-          label: company.legalName ?? company.code ?? 'Company',
-        ),
-      ),
-    ];
-
     return SettingsWorkspace(
       controller: _workspaceController,
       title: 'Email Settings',
@@ -357,12 +356,6 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int?>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: companyItems,
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() => _companyId = value),
-                ),
                 AppFormTextField(
                   labelText: 'Setting Name',
                   controller: _settingNameController,

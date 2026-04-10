@@ -316,8 +316,7 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
           onTap: () => _selectGroup(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Form(
+      editor: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,7 +426,6 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
             ],
           ),
         ),
-      ),
     );
   }
 }

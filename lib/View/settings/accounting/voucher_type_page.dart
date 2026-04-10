@@ -288,8 +288,7 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
           onTap: () => _selectType(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Form(
+      editor: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,7 +396,6 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
             ],
           ),
         ),
-      ),
     );
   }
 }

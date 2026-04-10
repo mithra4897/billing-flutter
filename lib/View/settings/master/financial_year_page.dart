@@ -33,6 +33,7 @@ class _FinancialYearManagementPageState
   bool _initialLoading = true;
   bool _saving = false;
   bool _activating = false;
+  bool _showDraftTile = false;
   String? _pageError;
   String? _formError;
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
@@ -208,6 +209,7 @@ class _FinancialYearManagementPageState
 
   void _selectFinancialYear(FinancialYearModel item) {
     _selectedFinancialYear = item;
+    _showDraftTile = false;
     _companyId = widget.fixedCompanyId ?? item.companyId;
     _fyCodeController.text = item.fyCode ?? '';
     _fyNameController.text = item.fyName ?? '';
@@ -284,7 +286,9 @@ class _FinancialYearManagementPageState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData(selectId: saved.id);
+      _showDraftTile = false;
+      _resetForm();
+      await _loadData();
     } catch (error) {
       setState(() => _formError = error.toString());
     } finally {
@@ -316,7 +320,9 @@ class _FinancialYearManagementPageState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData(selectId: selected.id);
+      _showDraftTile = false;
+      _resetForm();
+      await _loadData();
     } catch (error) {
       setState(() => _formError = error.toString());
     } finally {
@@ -327,6 +333,7 @@ class _FinancialYearManagementPageState
   }
 
   void _startNewFinancialYear() {
+    _showDraftTile = true;
     _resetForm();
 
     if (!widget.embedded && !Responsive.isDesktop(context)) {
@@ -527,46 +534,77 @@ class _FinancialYearManagementPageState
           ],
         ),
         const SizedBox(height: 16),
-        _buildEmbeddedList(),
-        const SizedBox(height: 20),
-        _buildEditor(),
+        if (_filteredFinancialYears.isEmpty &&
+            !_showDraftTile &&
+            _selectedFinancialYear == null)
+          const SettingsEmptyState(
+            icon: Icons.calendar_month_outlined,
+            title: 'No Financial Years',
+            message: 'No financial years found for this company yet.',
+            minHeight: 160,
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_showDraftTile && _selectedFinancialYear == null) ...[
+                SettingsExpandableTile(
+                  key: const ValueKey('fy-draft'),
+                  title: 'New Financial Year',
+                  subtitle: 'Create a financial year for this company.',
+                  expanded: true,
+                  highlighted: true,
+                  leadingIcon: Icons.add_outlined,
+                  onToggle: () {
+                    setState(() {
+                      _showDraftTile = false;
+                    });
+                    _resetForm();
+                  },
+                  child: _buildEditor(),
+                ),
+                if (_filteredFinancialYears.isNotEmpty)
+                  const SizedBox(height: AppUiConstants.spacingSm),
+              ],
+              ..._filteredFinancialYears.map((item) {
+                final expanded = identical(item, _selectedFinancialYear);
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
+                  child: SettingsExpandableTile(
+                    key: ValueKey('fy-${item.id}-$expanded'),
+                    title: item.fyName ?? item.fyCode ?? '-',
+                    subtitle: [
+                      item.fyCode ?? '',
+                      item.startDate ?? '',
+                      item.endDate ?? '',
+                    ].where((value) => value.trim().isNotEmpty).join(' • '),
+                    detail: item.isCurrent
+                        ? 'Current'
+                        : (item.isActive ? 'Active' : 'Inactive'),
+                    expanded: expanded,
+                    highlighted: expanded,
+                    trailing: SettingsStatusPill(
+                      label: item.isCurrent
+                          ? 'Current'
+                          : (item.isActive ? 'Active' : 'Inactive'),
+                      active: item.isCurrent || item.isActive,
+                    ),
+                    onToggle: () {
+                      if (expanded) {
+                        _resetForm();
+                      } else {
+                        _selectFinancialYear(item);
+                      }
+                    },
+                    child: _buildEditor(),
+                  ),
+                );
+              }),
+            ],
+          ),
       ],
-    );
-  }
-
-  Widget _buildEmbeddedList() {
-    if (_filteredFinancialYears.isEmpty) {
-      return const SettingsEmptyState(
-        icon: Icons.calendar_month_outlined,
-        title: 'No Financial Years',
-        message: 'No financial years found for this company yet.',
-        minHeight: 160,
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: _filteredFinancialYears
-          .map((item) {
-            final selected = identical(item, _selectedFinancialYear);
-            return SettingsListTile(
-              title: item.fyName ?? item.fyCode ?? '-',
-              subtitle: [
-                item.fyCode ?? '',
-                item.startDate ?? '',
-                item.endDate ?? '',
-              ].where((value) => value.trim().isNotEmpty).join(' • '),
-              selected: selected,
-              trailing: SettingsStatusPill(
-                label: item.isCurrent
-                    ? 'Current'
-                    : (item.isActive ? 'Active' : 'Inactive'),
-                active: item.isCurrent || item.isActive,
-              ),
-              onTap: () => _selectFinancialYear(item),
-            );
-          })
-          .toList(growable: false),
     );
   }
 

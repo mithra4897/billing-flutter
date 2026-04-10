@@ -65,6 +65,7 @@ class _UserManagementPageState extends State<UserManagementPage>
   List<LoginHistoryModel> _loginHistory = const <LoginHistoryModel>[];
 
   int? _selectedUserId;
+  int _activeTabIndex = 0;
 
   bool get _isNewUser => _selectedUserId == null;
 
@@ -72,8 +73,10 @@ class _UserManagementPageState extends State<UserManagementPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _activeTabIndex = _tabController.index;
     _tabController.addListener(() {
       if (mounted) {
+        _activeTabIndex = _tabController.index;
         setState(() {});
       }
     });
@@ -979,7 +982,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                             _buildPermissionsTab(context),
                             _buildAuditTab(context),
                             _buildLoginHistoryTab(context),
-                          ][_tabController.index]
+                          ][_activeTabIndex]
                         : _buildProfileTab(context),
                   ),
                 ],

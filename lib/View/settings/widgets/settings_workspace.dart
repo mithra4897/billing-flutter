@@ -306,6 +306,130 @@ class SettingsListTile extends StatelessWidget {
   }
 }
 
+class SettingsExpandableTile extends StatelessWidget {
+  const SettingsExpandableTile({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.expanded,
+    required this.onToggle,
+    required this.child,
+    this.detail,
+    this.leadingIcon,
+    this.trailing,
+    this.highlighted = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? detail;
+  final bool expanded;
+  final bool highlighted;
+  final VoidCallback onToggle;
+  final Widget child;
+  final IconData? leadingIcon;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final accent = highlighted || expanded;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: accent ? colorScheme.primary.withValues(alpha: 0.05) : null,
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+        border: Border.all(
+          color: accent
+              ? colorScheme.primary.withValues(alpha: 0.24)
+              : theme.dividerColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.all(AppUiConstants.tilePadding),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (leadingIcon != null) ...[
+                    Icon(
+                      leadingIcon,
+                      size: 20,
+                      color: accent ? colorScheme.primary : null,
+                    ),
+                    const SizedBox(width: AppUiConstants.spacingSm),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (subtitle.isNotEmpty) ...[
+                          const SizedBox(height: AppUiConstants.spacingXxs),
+                          Text(
+                            subtitle,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme
+                                  .extension<AppThemeExtension>()!
+                                  .mutedText,
+                            ),
+                          ),
+                        ],
+                        if ((detail ?? '').isNotEmpty) ...[
+                          const SizedBox(height: AppUiConstants.spacingXxs),
+                          Text(
+                            detail!,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme
+                                  .extension<AppThemeExtension>()!
+                                  .mutedText,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: AppUiConstants.spacingSm),
+                    trailing!,
+                  ],
+                  const SizedBox(width: AppUiConstants.spacingXs),
+                  Icon(
+                    expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                    color: accent ? colorScheme.primary : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (expanded) ...[
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: theme.dividerColor.withValues(alpha: 0.12),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppUiConstants.tilePadding),
+              child: child,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SettingsEditorRoutePage extends StatelessWidget {
   const _SettingsEditorRoutePage({required this.title, required this.child});
 

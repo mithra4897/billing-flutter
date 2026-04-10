@@ -173,6 +173,23 @@ Do not hand-build repeated title strings unless the screen truly needs custom wo
 - on mobile, header/actions should adapt for space
 - on desktop/tablet, drawer remains visible and can collapse/expand
 
+## Working Context Rule
+
+- the shell header must expose one shared working-context popup on the right side
+- shared working context currently means:
+  - company
+  - branch
+  - business location
+  - financial year
+- if only one active option exists for a context level, auto-assume it
+- show a selector in the popup only when there is more than one active option
+- non-setup forms should read these values from shared working context instead of repeating company, branch, location, or financial-year dropdowns
+- setup screens that define the master itself may still keep those fields when they are part of the record identity
+- when context changes:
+  - dependent context must recalculate
+  - invalid child selections must clear automatically
+  - current route/page should rebuild from the new context source
+
 ## Tab Pattern
 
 If a record must exist before child tabs are meaningful, follow the `Parties` and `Items` pattern:

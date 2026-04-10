@@ -316,8 +316,7 @@ class _BankReconciliationManagementPageState
           onTap: () => _selectRecord(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Form(
+      editor: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +419,6 @@ class _BankReconciliationManagementPageState
             ],
           ),
         ),
-      ),
     );
   }
 }

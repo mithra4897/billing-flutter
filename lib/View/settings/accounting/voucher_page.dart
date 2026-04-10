@@ -54,15 +54,15 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   String? _formError;
   List<VoucherModel> _vouchers = const <VoucherModel>[];
   List<VoucherModel> _filteredVouchers = const <VoucherModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
-  List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<VoucherTypeModel> _voucherTypes = const <VoucherTypeModel>[];
   List<AccountModel> _accounts = const <AccountModel>[];
   List<PartyModel> _parties = const <PartyModel>[];
   VoucherModel? _selectedVoucher;
+  int? _contextCompanyId;
+  int? _contextBranchId;
+  int? _contextLocationId;
+  int? _contextFinancialYearId;
   int? _companyId;
   int? _branchId;
   int? _locationId;
@@ -158,16 +158,27 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       final parties =
           (responses[8] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
+      final activeCompanies = companies.where((item) => item.isActive).toList();
+      final activeBranches = branches.where((item) => item.isActive).toList();
+      final activeLocations = locations.where((item) => item.isActive).toList();
+      final activeFinancialYears = years.where((item) => item.isActive).toList();
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: activeBranches,
+            locations: activeLocations,
+            financialYears: activeFinancialYears,
+          );
 
       if (!mounted) return;
 
       setState(() {
         _vouchers = vouchers;
         _filteredVouchers = _filterVouchers(vouchers, _searchController.text);
-        _companies = companies.where((item) => item.isActive).toList();
-        _branches = branches.where((item) => item.isActive).toList();
-        _locations = locations.where((item) => item.isActive).toList();
-        _financialYears = years.where((item) => item.isActive).toList();
+        _contextCompanyId = contextSelection.companyId;
+        _contextBranchId = contextSelection.branchId;
+        _contextLocationId = contextSelection.locationId;
+        _contextFinancialYearId = contextSelection.financialYearId;
         _documentSeries = series
             .where(
               (item) =>
@@ -224,25 +235,16 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     });
   }
 
-  List<BranchModel> get _branchOptions {
-    if (_companyId == null) return _branches;
-    return _branches
-        .where((item) => item.companyId == null || item.companyId == _companyId)
-        .toList(growable: false);
-  }
-
-  List<BusinessLocationModel> get _locationOptions {
-    if (_branchId == null) return _locations;
-    return _locations
-        .where((item) => item.branchId == null || item.branchId == _branchId)
-        .toList(growable: false);
-  }
-
-  List<FinancialYearModel> get _yearOptions {
-    if (_companyId == null) return _financialYears;
-    return _financialYears
-        .where((item) => item.companyId == _companyId)
-        .toList(growable: false);
+  List<DocumentSeriesModel> get _filteredDocumentSeriesOptions {
+    return _documentSeries.where((item) {
+      final companyMatches =
+          _companyId == null || item.companyId == null || item.companyId == _companyId;
+      final financialYearMatches =
+          _financialYearId == null ||
+          item.financialYearId == null ||
+          item.financialYearId == _financialYearId;
+      return companyMatches && financialYearMatches;
+    }).toList(growable: false);
   }
 
   Future<void> _selectVoucher(VoucherModel voucher) async {
@@ -288,13 +290,13 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
 
   void _resetForm() {
     _selectedVoucher = null;
-    _companyId = _companies.isNotEmpty ? _companies.first.id : null;
-    _branchId = null;
-    _locationId = null;
-    _financialYearId = _yearOptions.isNotEmpty ? _yearOptions.first.id : null;
+    _companyId = _contextCompanyId;
+    _branchId = _contextBranchId;
+    _locationId = _contextLocationId;
+    _financialYearId = _contextFinancialYearId;
     _voucherTypeId = _voucherTypes.isNotEmpty ? _voucherTypes.first.id : null;
-    _documentSeriesId = _documentSeries.isNotEmpty
-        ? _documentSeries.first.id
+    _documentSeriesId = _filteredDocumentSeriesOptions.isNotEmpty
+        ? _filteredDocumentSeriesOptions.first.id
         : null;
     _voucherNoController.clear();
     _voucherDateController.text = DateTime.now()
@@ -465,8 +467,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
           onTap: () => _selectVoucher(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Form(
+      editor: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,89 +478,6 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: _companies
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _companyId,
-                    onChanged: (value) {
-                      setState(() {
-                        _companyId = value;
-                        if (!_branchOptions.any(
-                          (item) => item.id == _branchId,
-                        )) {
-                          _branchId = null;
-                        }
-                        if (!_yearOptions.any(
-                          (item) => item.id == _financialYearId,
-                        )) {
-                          _financialYearId = null;
-                        }
-                      });
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Branch',
-                    mappedItems: _branchOptions
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _branchId,
-                    onChanged: (value) {
-                      setState(() {
-                        _branchId = value;
-                        if (!_locationOptions.any(
-                          (item) => item.id == _locationId,
-                        )) {
-                          _locationId = null;
-                        }
-                      });
-                    },
-                    validator: Validators.requiredSelection('Branch'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Location',
-                    mappedItems: _locationOptions
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _locationId,
-                    onChanged: (value) => setState(() => _locationId = value),
-                    validator: Validators.requiredSelection('Location'),
-                  ),
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Financial Year',
-                    mappedItems: _yearOptions
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _financialYearId,
-                    onChanged: (value) =>
-                        setState(() => _financialYearId = value),
-                    validator: Validators.requiredSelection('Financial Year'),
-                  ),
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Voucher Type',
                     mappedItems: _voucherTypes
@@ -578,7 +496,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                   ),
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Document Series',
-                    mappedItems: _documentSeries
+                    mappedItems: _filteredDocumentSeriesOptions
                         .where((item) => item.id != null)
                         .map(
                           (item) => AppDropdownItem(
@@ -781,7 +699,6 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             ],
           ),
         ),
-      ),
     );
   }
 }

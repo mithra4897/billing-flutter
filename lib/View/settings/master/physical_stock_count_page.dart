@@ -37,10 +37,6 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
   List<PhysicalStockCountModel> _items = const <PhysicalStockCountModel>[];
   List<PhysicalStockCountModel> _filteredItems =
       const <PhysicalStockCountModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
-  List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<WarehouseModel> _warehouses = const <WarehouseModel>[];
   List<ItemModel> _allItems = const <ItemModel>[];
@@ -49,6 +45,10 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
   List<StockSerialModel> _serials = const <StockSerialModel>[];
   PhysicalStockCountModel? _selectedItem;
   List<PhysicalStockCountLineModel> _lines = <PhysicalStockCountLineModel>[];
+  int? _contextCompanyId;
+  int? _contextBranchId;
+  int? _contextLocationId;
+  int? _contextFinancialYearId;
   int? _companyId;
   int? _branchId;
   int? _locationId;
@@ -135,6 +135,17 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
       final serials =
           (responses[10] as ApiResponse<List<StockSerialModel>>).data ??
           const <StockSerialModel>[];
+      final activeCompanies = companies.where((company) => company.isActive).toList();
+      final activeBranches = branches.where((branch) => branch.isActive).toList();
+      final activeLocations = locations.where((location) => location.isActive).toList();
+      final activeFinancialYears = financialYears.where((fy) => fy.isActive).toList();
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: activeBranches,
+            locations: activeLocations,
+            financialYears: activeFinancialYears,
+          );
 
       if (!mounted) {
         return;
@@ -143,10 +154,10 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
       setState(() {
         _items = counts;
         _filteredItems = _filterCounts(counts, _searchController.text);
-        _companies = companies.where((company) => company.isActive).toList();
-        _branches = branches.where((branch) => branch.isActive).toList();
-        _locations = locations.where((location) => location.isActive).toList();
-        _financialYears = financialYears.where((fy) => fy.isActive).toList();
+        _contextCompanyId = contextSelection.companyId;
+        _contextBranchId = contextSelection.branchId;
+        _contextLocationId = contextSelection.locationId;
+        _contextFinancialYearId = contextSelection.financialYearId;
         _documentSeries = documentSeries
             .where((series) => series.documentType == 'STOCK_COUNT')
             .toList();
@@ -228,16 +239,10 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
 
   void _resetForm() {
     _selectedItem = null;
-    _companyId = _companies.isNotEmpty ? _companies.first.id : null;
-    _branchId = _filteredBranchOptions.isNotEmpty
-        ? _filteredBranchOptions.first.id
-        : null;
-    _locationId = _filteredLocationOptions.isNotEmpty
-        ? _filteredLocationOptions.first.id
-        : null;
-    _financialYearId = _filteredFinancialYearOptions.isNotEmpty
-        ? _filteredFinancialYearOptions.first.id
-        : null;
+    _companyId = _contextCompanyId;
+    _branchId = _contextBranchId;
+    _locationId = _contextLocationId;
+    _financialYearId = _contextFinancialYearId;
     _documentSeriesId = _filteredDocumentSeriesOptions.isNotEmpty
         ? _filteredDocumentSeriesOptions.first.id
         : null;
@@ -256,18 +261,6 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
     setState(() {});
   }
 
-  List<BranchModel> get _filteredBranchOptions => _branches
-      .where((branch) => _companyId == null || branch.companyId == _companyId)
-      .toList(growable: false);
-
-  List<BusinessLocationModel> get _filteredLocationOptions => _locations
-      .where((location) => _branchId == null || location.branchId == _branchId)
-      .toList(growable: false);
-
-  List<FinancialYearModel> get _filteredFinancialYearOptions => _financialYears
-      .where((fy) => _companyId == null || fy.companyId == _companyId)
-      .toList(growable: false);
-
   List<DocumentSeriesModel> get _filteredDocumentSeriesOptions =>
       _documentSeries
           .where(
@@ -283,48 +276,6 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
             (_locationId == null || warehouse.locationId == _locationId),
       )
       .toList(growable: false);
-
-  void _onCompanyChanged(int? value) {
-    setState(() {
-      _companyId = value;
-      _branchId = _filteredBranchOptions.isNotEmpty
-          ? _filteredBranchOptions.first.id
-          : null;
-      _locationId = _filteredLocationOptions.isNotEmpty
-          ? _filteredLocationOptions.first.id
-          : null;
-      _financialYearId = _filteredFinancialYearOptions.isNotEmpty
-          ? _filteredFinancialYearOptions.first.id
-          : null;
-      _documentSeriesId = _filteredDocumentSeriesOptions.isNotEmpty
-          ? _filteredDocumentSeriesOptions.first.id
-          : null;
-      _warehouseId = _filteredWarehouseOptions.isNotEmpty
-          ? _filteredWarehouseOptions.first.id
-          : null;
-    });
-  }
-
-  void _onBranchChanged(int? value) {
-    setState(() {
-      _branchId = value;
-      _locationId = _filteredLocationOptions.isNotEmpty
-          ? _filteredLocationOptions.first.id
-          : null;
-      _warehouseId = _filteredWarehouseOptions.isNotEmpty
-          ? _filteredWarehouseOptions.first.id
-          : null;
-    });
-  }
-
-  void _onLocationChanged(int? value) {
-    setState(() {
-      _locationId = value;
-      _warehouseId = _filteredWarehouseOptions.isNotEmpty
-          ? _filteredWarehouseOptions.first.id
-          : null;
-    });
-  }
 
   void _addLine() {
     final defaultItem = _allItems.isNotEmpty ? _allItems.first : null;
@@ -626,97 +577,33 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
               ],
               SettingsFormWrap(
                 children: [
-                  DropdownButtonFormField<int>(
-                    initialValue: _companyId,
-                    decoration: const InputDecoration(labelText: 'Company'),
-                    items: _companies
-                        .where((company) => company.id != null)
-                        .map(
-                          (company) => DropdownMenuItem<int>(
-                            value: company.id,
-                            child: Text(company.toString()),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _onCompanyChanged,
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  DropdownButtonFormField<int>(
-                    initialValue: _branchId,
-                    decoration: const InputDecoration(labelText: 'Branch'),
-                    items: _filteredBranchOptions
-                        .where((branch) => branch.id != null)
-                        .map(
-                          (branch) => DropdownMenuItem<int>(
-                            value: branch.id,
-                            child: Text(branch.toString()),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _onBranchChanged,
-                    validator: Validators.requiredSelection('Branch'),
-                  ),
-                  DropdownButtonFormField<int>(
-                    initialValue: _locationId,
-                    decoration: const InputDecoration(labelText: 'Location'),
-                    items: _filteredLocationOptions
-                        .where((location) => location.id != null)
-                        .map(
-                          (location) => DropdownMenuItem<int>(
-                            value: location.id,
-                            child: Text(location.toString()),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _onLocationChanged,
-                    validator: Validators.requiredSelection('Location'),
-                  ),
-                  DropdownButtonFormField<int>(
-                    initialValue: _financialYearId,
-                    decoration: const InputDecoration(
-                      labelText: 'Financial Year',
-                    ),
-                    items: _filteredFinancialYearOptions
-                        .map(
-                          (fy) => DropdownMenuItem<int>(
-                            value: fy.id,
-                            child: Text(fy.yearCode),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) =>
-                        setState(() => _financialYearId = value),
-                    validator: Validators.requiredSelection('Financial Year'),
-                  ),
-                  DropdownButtonFormField<int?>(
+                  AppDropdownField<int?>.fromMapped(
                     initialValue: _documentSeriesId,
-                    decoration: const InputDecoration(
-                      labelText: 'Document Series',
-                    ),
-                    items: <DropdownMenuItem<int?>>[
-                      const DropdownMenuItem<int?>(
+                    labelText: 'Document Series',
+                    mappedItems: <AppDropdownItem<int?>>[
+                      const AppDropdownItem<int?>(
                         value: null,
-                        child: Text('Auto / None'),
+                        label: 'Auto / None',
                       ),
                       ..._filteredDocumentSeriesOptions.map(
-                        (series) => DropdownMenuItem<int?>(
+                        (series) => AppDropdownItem<int?>(
                           value: series.id,
-                          child: Text(series.toString()),
+                          label: series.toString(),
                         ),
                       ),
                     ],
                     onChanged: (value) =>
                         setState(() => _documentSeriesId = value),
                   ),
-                  DropdownButtonFormField<int>(
+                  AppDropdownField<int?>.fromMapped(
                     initialValue: _warehouseId,
-                    decoration: const InputDecoration(labelText: 'Warehouse'),
-                    items: _filteredWarehouseOptions
+                    labelText: 'Warehouse',
+                    mappedItems: _filteredWarehouseOptions
                         .where((warehouse) => warehouse.id != null)
                         .map(
-                          (warehouse) => DropdownMenuItem<int>(
+                          (warehouse) => AppDropdownItem<int?>(
                             value: warehouse.id,
-                            child: Text(warehouse.toString()),
+                            label: warehouse.toString(),
                           ),
                         )
                         .toList(growable: false),

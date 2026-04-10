@@ -46,6 +46,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
   int? _selectedRoleId;
   int? _permissionsLoadedForRoleId;
   int _roleLoadToken = 0;
+  int _activeTabIndex = 0;
 
   bool get _isNewRole => _selectedRoleId == null;
 
@@ -53,6 +54,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _activeTabIndex = _tabController.index;
     _tabController.addListener(_handleTabChanged);
     _searchController.addListener(_applyRoleFilter);
     _nameController.addListener(_syncCodeFromName);
@@ -358,6 +360,8 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       return;
     }
 
+    _activeTabIndex = _tabController.index;
+
     if (_tabController.index == 1 && _selectedRoleId != null) {
       _loadRolePermissions(_selectedRoleId!);
     }
@@ -544,7 +548,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                         ? [
                             _buildProfileTab(context),
                             _buildPermissionsTab(context),
-                          ][_tabController.index]
+                          ][_activeTabIndex]
                         : _buildProfileTab(context),
                   ),
                 ],

@@ -33,7 +33,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
   bool _saving = false;
   String? _pageError;
   String? _formError;
-  List<CompanyModel> _companies = const <CompanyModel>[];
   List<AppDropdownItem<String>> _documentTypeItems = const [
     AppDropdownItem(value: '', label: 'All'),
   ];
@@ -41,6 +40,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
   List<EmailRuleModel> _records = const <EmailRuleModel>[];
   List<EmailRuleModel> _filteredRecords = const <EmailRuleModel>[];
   EmailRuleModel? _selectedRecord;
+  int? _contextCompanyId;
   int? _companyId;
   int? _templateId;
   String _documentType = '';
@@ -110,9 +110,18 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
             ..sort();
       final templates = templatesResponse.data ?? const <EmailTemplateModel>[];
       final rules = rulesResponse.data ?? const <EmailRuleModel>[];
+      final activeCompanies =
+          companies.where((item) => item.isActive).toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
 
       setState(() {
-        _companies = companies;
+        _contextCompanyId = contextSelection.companyId;
         _documentTypeItems = [
           const AppDropdownItem(value: '', label: 'All'),
           ...documentTypes.map(
@@ -207,7 +216,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
 
   void _resetForm() {
     _selectedRecord = null;
-    _companyId = null;
+    _companyId = _contextCompanyId;
     _templateId = null;
     _codeController.clear();
     _nameController.clear();
@@ -376,15 +385,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
       );
     }
 
-    final companyItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All'),
-      ..._companies.map(
-        (company) => AppDropdownItem<int?>(
-          value: company.id,
-          label: company.legalName ?? company.code ?? 'Company',
-        ),
-      ),
-    ];
     final templateItems = _templates
         .map(
           (template) => AppDropdownItem<int>(
@@ -437,12 +437,6 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int?>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: companyItems,
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() => _companyId = value),
-                ),
                 AppFormTextField(
                   labelText: 'Rule Code',
                   controller: _codeController,

@@ -50,10 +50,10 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
   String? _formError;
   List<AccountModel> _accounts = const <AccountModel>[];
   List<AccountModel> _filteredAccounts = const <AccountModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
   List<AccountGroupModel> _groups = const <AccountGroupModel>[];
   AccountModel? _selectedAccount;
+  int? _contextCompanyId;
+  int? _contextBranchId;
   int? _companyId;
   int? _branchId;
   int? _accountGroupId;
@@ -107,14 +107,27 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
       final groups =
           (responses[3] as ApiResponse<List<AccountGroupModel>>).data ??
               const <AccountGroupModel>[];
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
+      final activeBranches = branches
+          .where((item) => item.isActive)
+          .toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: activeBranches,
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
 
       if (!mounted) return;
 
       setState(() {
         _accounts = accounts;
         _filteredAccounts = _filterAccounts(accounts, _searchController.text);
-        _companies = companies.where((item) => item.isActive).toList(growable: false);
-        _branches = branches.where((item) => item.isActive).toList(growable: false);
+        _contextCompanyId = contextSelection.companyId;
+        _contextBranchId = contextSelection.branchId;
         _groups = groups.where((item) => item.isActive).toList(growable: false);
         _initialLoading = false;
       });
@@ -163,13 +176,6 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
     });
   }
 
-  List<BranchModel> get _branchOptions {
-    if (_companyId == null) return _branches;
-    return _branches
-        .where((item) => item.companyId == null || item.companyId == _companyId)
-        .toList(growable: false);
-  }
-
   void _selectAccount(AccountModel item) {
     _selectedAccount = item;
     _companyId = item.companyId;
@@ -192,8 +198,8 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
 
   void _resetForm() {
     _selectedAccount = null;
-    _companyId = _companies.isNotEmpty ? _companies.first.id : null;
-    _branchId = null;
+    _companyId = _contextCompanyId;
+    _branchId = _contextBranchId;
     _accountCodeController.clear();
     _accountNameController.clear();
     _accountGroupId = null;
@@ -346,8 +352,7 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
           onTap: () => _selectAccount(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Column(
+      editor: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -368,42 +373,6 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
                   ],
                   SettingsFormWrap(
                     children: [
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Company',
-                        mappedItems: _companies
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: _companyId,
-                        onChanged: (value) {
-                          setState(() {
-                            _companyId = value;
-                            if (!_branchOptions.any((item) => item.id == _branchId)) {
-                              _branchId = null;
-                            }
-                          });
-                        },
-                        validator: Validators.requiredSelection('Company'),
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Branch',
-                        mappedItems: _branchOptions
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: _branchId,
-                        onChanged: (value) => setState(() => _branchId = value),
-                      ),
                       AppFormTextField(
                         labelText: 'Account Code',
                         controller: _accountCodeController,
@@ -547,7 +516,6 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
             ),
           ],
         ),
-      ),
     );
   }
 }

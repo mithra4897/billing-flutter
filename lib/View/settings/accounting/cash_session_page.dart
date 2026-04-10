@@ -39,11 +39,11 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
   String? _formError;
   List<CashSessionModel> _sessions = const <CashSessionModel>[];
   List<CashSessionModel> _filteredSessions = const <CashSessionModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<AccountModel> _cashAccounts = const <AccountModel>[];
   CashSessionModel? _selectedSession;
+  int? _contextCompanyId;
+  int? _contextBranchId;
+  int? _contextLocationId;
   int? _companyId;
   int? _branchId;
   int? _locationId;
@@ -113,15 +113,31 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
               const <BusinessLocationModel>[];
       final accounts = (responses[4] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
+      final activeBranches = branches
+          .where((item) => item.isActive)
+          .toList(growable: false);
+      final activeLocations = locations
+          .where((item) => item.isActive)
+          .toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: activeBranches,
+            locations: activeLocations,
+            financialYears: const <FinancialYearModel>[],
+          );
 
       if (!mounted) return;
 
       setState(() {
         _sessions = sessions;
         _filteredSessions = _filterSessions(sessions, _searchController.text);
-        _companies = companies.where((item) => item.isActive).toList();
-        _branches = branches.where((item) => item.isActive).toList();
-        _locations = locations.where((item) => item.isActive).toList();
+        _contextCompanyId = contextSelection.companyId;
+        _contextBranchId = contextSelection.branchId;
+        _contextLocationId = contextSelection.locationId;
         _cashAccounts = accounts.where((item) => item.isActive).toList();
         _currentUserId = int.tryParse(currentUser?['id']?.toString() ?? '');
         _currentUserLabel =
@@ -177,18 +193,14 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
     });
   }
 
-  List<BranchModel> get _branchOptions {
-    if (_companyId == null) return _branches;
-    return _branches
-        .where((item) => item.companyId == null || item.companyId == _companyId)
-        .toList(growable: false);
-  }
-
-  List<BusinessLocationModel> get _locationOptions {
-    if (_branchId == null) return _locations;
-    return _locations
-        .where((item) => item.branchId == null || item.branchId == _branchId)
-        .toList(growable: false);
+  List<AccountModel> get _cashAccountOptions {
+    return _cashAccounts.where((item) {
+      final companyMatches =
+          _companyId == null || item.companyId == null || item.companyId == _companyId;
+      final branchMatches =
+          _branchId == null || item.branchId == null || item.branchId == _branchId;
+      return companyMatches && branchMatches;
+    }).toList(growable: false);
   }
 
   void _selectSession(CashSessionModel item) {
@@ -214,10 +226,12 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
 
   void _resetOpenForm() {
     _selectedSession = null;
-    _companyId = _companies.isNotEmpty ? _companies.first.id : null;
-    _branchId = null;
-    _locationId = null;
-    _cashAccountId = _cashAccounts.isNotEmpty ? _cashAccounts.first.id : null;
+    _companyId = _contextCompanyId;
+    _branchId = _contextBranchId;
+    _locationId = _contextLocationId;
+    _cashAccountId = _cashAccountOptions.isNotEmpty
+        ? _cashAccountOptions.first.id
+        : null;
     _openingDatetimeController.text =
         DateTime.now().toIso8601String().split('.').first;
     _openingBalanceController.text = '0';
@@ -388,8 +402,7 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
           onTap: () => _selectSession(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Column(
+      editor: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_formError != null) ...[
@@ -408,52 +421,8 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
               child: SettingsFormWrap(
                 children: [
                   AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: _companies
-                        .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                        .toList(growable: false),
-                    initialValue: _companyId,
-                    onChanged: (value) {
-                      setState(() {
-                        _companyId = value;
-                        if (!_branchOptions.any((item) => item.id == _branchId)) {
-                          _branchId = null;
-                        }
-                      });
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Branch',
-                    mappedItems: _branchOptions
-                        .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                        .toList(growable: false),
-                    initialValue: _branchId,
-                    onChanged: (value) {
-                      setState(() {
-                        _branchId = value;
-                        if (!_locationOptions.any((item) => item.id == _locationId)) {
-                          _locationId = null;
-                        }
-                      });
-                    },
-                    validator: Validators.requiredSelection('Branch'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Location',
-                    mappedItems: _locationOptions
-                        .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                        .toList(growable: false),
-                    initialValue: _locationId,
-                    onChanged: (value) => setState(() => _locationId = value),
-                    validator: Validators.requiredSelection('Location'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
                     labelText: 'Cash Account',
-                    mappedItems: _cashAccounts
+                    mappedItems: _cashAccountOptions
                         .where((item) => item.id != null)
                         .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
                         .toList(growable: false),
@@ -564,7 +533,6 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
             ],
           ],
         ),
-      ),
     );
   }
 }

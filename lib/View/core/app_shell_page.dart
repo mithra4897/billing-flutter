@@ -59,6 +59,7 @@ class _AppShellPageState extends State<AppShellPage> {
   late String _currentPath;
   late Map<String, String> _currentQueryParameters;
   late final ShellPageActionsController _shellPageActionsController;
+  int _contextVersion = 0;
 
   @override
   void initState() {
@@ -67,12 +68,14 @@ class _AppShellPageState extends State<AppShellPage> {
     _currentQueryParameters = Map<String, String>.from(widget.queryParameters);
     _shellPageActionsController = ShellPageActionsController();
     AppSessionService.accessVersion.addListener(_handleAccessVersionChanged);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
     _loadShellContext();
   }
 
   @override
   void dispose() {
     AppSessionService.accessVersion.removeListener(_handleAccessVersionChanged);
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     _shellPageActionsController.dispose();
     super.dispose();
   }
@@ -114,6 +117,15 @@ class _AppShellPageState extends State<AppShellPage> {
 
   void _handleAccessVersionChanged() {
     _loadShellContext();
+  }
+
+  void _handleWorkingContextChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _contextVersion = WorkingContextService.version.value;
+    });
   }
 
   void _ensureCurrentRouteAllowed({
@@ -208,7 +220,7 @@ class _AppShellPageState extends State<AppShellPage> {
   }
 
   Widget _buildContent() {
-    final routeKey = ValueKey<String>(_buildCurrentRoute());
+    final routeKey = ValueKey<String>('${_buildCurrentRoute()}::$_contextVersion');
 
     switch (_currentPath) {
       case '/dashboard':

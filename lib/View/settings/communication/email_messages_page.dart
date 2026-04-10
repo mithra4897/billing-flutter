@@ -18,7 +18,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
   bool _initialLoading = true;
   bool _sending = false;
   String? _pageError;
-  List<CompanyModel> _companies = const <CompanyModel>[];
+  int? _contextCompanyId;
   List<AppDropdownItem<String>> _documentTypeItems = const [
     AppDropdownItem(value: '', label: 'All'),
   ];
@@ -70,9 +70,18 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
               .toList()
             ..sort();
       final messages = messagesResponse.data ?? const <EmailMessageModel>[];
+      final activeCompanies =
+          companies.where((item) => item.isActive).toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
 
       setState(() {
-        _companies = companies;
+        _contextCompanyId = contextSelection.companyId;
         _documentTypeItems = [
           const AppDropdownItem(value: '', label: 'All'),
           ...documentTypes.map(
@@ -134,7 +143,6 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
   }
 
   Future<void> _openSendDialog() async {
-    final companyIdNotifier = ValueNotifier<int?>(null);
     final moduleController = TextEditingController();
     final documentTypeController = TextEditingController();
     final documentIdController = TextEditingController();
@@ -146,16 +154,6 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     final bodyController = TextEditingController();
     final isHtmlNotifier = ValueNotifier<bool>(true);
     final formKey = GlobalKey<FormState>();
-
-    final companyItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All'),
-      ..._companies.map(
-        (company) => AppDropdownItem<int?>(
-          value: company.id,
-          label: company.legalName ?? company.code ?? 'Company',
-        ),
-      ),
-    ];
 
     final result = await showDialog<bool>(
       context: context,
@@ -172,18 +170,6 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
                   return SingleChildScrollView(
                     child: SettingsFormWrap(
                       children: [
-                        ValueListenableBuilder<int?>(
-                          valueListenable: companyIdNotifier,
-                          builder: (context, companyId, _) {
-                            return AppDropdownField<int?>.fromMapped(
-                              labelText: 'Company',
-                              mappedItems: companyItems,
-                              initialValue: companyId,
-                              onChanged: (value) =>
-                                  companyIdNotifier.value = value,
-                            );
-                          },
-                        ),
                         AppFormTextField(
                           labelText: 'Module',
                           controller: moduleController,
@@ -267,8 +253,8 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
                 try {
                   final response = await _communicationService.sendEmail(
                     EmailMessageModel({
-                      if (companyIdNotifier.value != null)
-                        'company_id': companyIdNotifier.value,
+                      if (_contextCompanyId != null)
+                        'company_id': _contextCompanyId,
                       'module': moduleController.text.trim(),
                       'document_type': nullIfEmpty(documentTypeController.text),
                       'document_id': int.tryParse(
@@ -315,7 +301,6 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
       },
     );
 
-    companyIdNotifier.dispose();
     moduleController.dispose();
     documentTypeController.dispose();
     documentIdController.dispose();

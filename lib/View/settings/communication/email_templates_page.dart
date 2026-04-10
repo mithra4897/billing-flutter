@@ -28,13 +28,13 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
   bool _saving = false;
   String? _pageError;
   String? _formError;
-  List<CompanyModel> _companies = const <CompanyModel>[];
   List<AppDropdownItem<String>> _documentTypeItems = const [
     AppDropdownItem(value: '', label: 'All'),
   ];
   List<EmailTemplateModel> _records = const <EmailTemplateModel>[];
   List<EmailTemplateModel> _filteredRecords = const <EmailTemplateModel>[];
   EmailTemplateModel? _selectedRecord;
+  int? _contextCompanyId;
   int? _companyId;
   String _documentType = '';
   bool _isHtml = true;
@@ -91,9 +91,18 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
               .toList()
             ..sort();
       final records = recordsResponse.data ?? const <EmailTemplateModel>[];
+      final activeCompanies =
+          companies.where((item) => item.isActive).toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
 
       setState(() {
-        _companies = companies;
+        _contextCompanyId = contextSelection.companyId;
         _documentTypeItems = [
           const AppDropdownItem(value: '', label: 'All'),
           ...documentTypes.map(
@@ -178,7 +187,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
 
   void _resetForm() {
     _selectedRecord = null;
-    _companyId = null;
+    _companyId = _contextCompanyId;
     _codeController.clear();
     _nameController.clear();
     _moduleController.clear();
@@ -329,16 +338,6 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
       );
     }
 
-    final companyItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All'),
-      ..._companies.map(
-        (company) => AppDropdownItem<int?>(
-          value: company.id,
-          label: company.legalName ?? company.code ?? 'Company',
-        ),
-      ),
-    ];
-
     return SettingsWorkspace(
       controller: _workspaceController,
       title: 'Email Templates',
@@ -378,12 +377,6 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int?>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: companyItems,
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() => _companyId = value),
-                ),
                 AppFormTextField(
                   labelText: 'Template Code',
                   controller: _codeController,

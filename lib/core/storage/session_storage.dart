@@ -107,6 +107,26 @@ class SessionStorage {
     }
   }
 
+  static Future<int?> getCurrentCompanyId() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getInt(currentCompanyIdKey);
+  }
+
+  static Future<int?> getCurrentBranchId() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getInt(currentBranchIdKey);
+  }
+
+  static Future<int?> getCurrentLocationId() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getInt(currentLocationIdKey);
+  }
+
+  static Future<int?> getCurrentFinancialYearId() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getInt(currentFinancialYearIdKey);
+  }
+
   static Future<void> saveBranding(PublicBrandingModel branding) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(

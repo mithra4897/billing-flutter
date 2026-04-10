@@ -218,7 +218,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   bool _canViewPartyAccounts = false;
   bool _partyAccountsAccessResolved = false;
   bool _partyCodeManuallyEdited = false;
+  final Set<String> _openDetailDrafts = <String>{};
   bool _suppressPartyCodeListener = false;
+  int _activeTabIndex = 0;
 
   @override
   void initState() {
@@ -230,9 +232,11 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           initialIndex: widget.initialTabIndex.clamp(0, 7),
         )..addListener(() {
           if (!_tabController.indexIsChanging) {
+            _activeTabIndex = _tabController.index;
             setState(() {});
           }
         });
+    _activeTabIndex = _tabController.index;
     _partyCodeController.addListener(_handlePartyCodeChanged);
     _searchController.addListener(_applySearch);
     _loadAccountingAccess();
@@ -515,7 +519,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     var nextNumber = series?.nextNumber ?? 1;
 
     for (final party in _parties) {
-      final match = pattern.firstMatch((party.partyCode ?? '').trim().toUpperCase());
+      final match = pattern.firstMatch(
+        (party.partyCode ?? '').trim().toUpperCase(),
+      );
       if (match == null) {
         continue;
       }
@@ -526,7 +532,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       }
     }
 
-    final number = nextNumber.toString().padLeft(series?.numberLength ?? 5, '0');
+    final number = nextNumber.toString().padLeft(
+      series?.numberLength ?? 5,
+      '0',
+    );
     final suffix = (series?.suffix ?? '').trim();
 
     return '$typeCode/$number$suffix';
@@ -856,6 +865,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
+      _openDetailDrafts.remove('addresses');
       _resetAddressForm();
       setState(() {});
     } catch (error) {
@@ -933,6 +943,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
+      _openDetailDrafts.remove('contacts');
       _resetContactForm();
       setState(() {});
     } catch (error) {
@@ -1026,6 +1037,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
+      _openDetailDrafts.remove('gst');
       _resetGstForm();
       setState(() {});
     } catch (error) {
@@ -1113,6 +1125,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
+      _openDetailDrafts.remove('bank');
       _resetBankForm();
       setState(() {});
     } catch (error) {
@@ -1182,6 +1195,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
+      _openDetailDrafts.remove('credit');
       _resetCreditForm();
       setState(() {});
     } catch (error) {
@@ -1265,6 +1279,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyAccounts(partyId);
+      _openDetailDrafts.remove('party_accounts');
       _resetPartyAccountForm();
       setState(() {});
     } catch (error) {
@@ -1364,6 +1379,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
+      _openDetailDrafts.remove('payment_terms');
       _resetPaymentTermForm();
       setState(() {});
     } catch (error) {
@@ -1524,7 +1540,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                   ),
                   const SizedBox(height: 20),
                   IndexedStack(
-                    index: _tabController.index,
+                    index: _activeTabIndex,
                     children: [
                       _buildPrimaryTab(context),
                       _buildAddressesTab(context),
@@ -1677,6 +1693,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   Widget _buildAddressesTab(BuildContext context) {
     return _buildDetailTab(
+      sectionKey: 'addresses',
       title: 'Addresses',
       subtitle:
           'Maintain billing, shipping, office, or factory addresses for the selected party.',
@@ -1699,6 +1716,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   Widget _buildContactsTab(BuildContext context) {
     return _buildDetailTab(
+      sectionKey: 'contacts',
       title: 'Contacts',
       subtitle:
           'Track contact persons, designations, and primary communication points.',
@@ -1731,6 +1749,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     }
 
     return _buildDetailTab<PartyGstDetailModel>(
+      sectionKey: 'gst',
       title: 'GST Details',
       subtitle:
           'Keep one or more GST registrations, legal names, and addresses linked to the party.',
@@ -1756,6 +1775,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   Widget _buildBankAccountsTab(BuildContext context) {
     return _buildDetailTab<PartyBankAccountModel>(
+      sectionKey: 'bank',
       title: 'Bank Accounts',
       subtitle:
           'Store bank, branch, account, and UPI details for settlements and reimbursements.',
@@ -1778,6 +1798,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   Widget _buildCreditLimitsTab(BuildContext context) {
     return _buildDetailTab<PartyCreditLimitModel>(
+      sectionKey: 'credit',
       title: 'Credit Limits',
       subtitle:
           'Define the credit cap, days, and effective period for this party.',
@@ -1801,6 +1822,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   Widget _buildPaymentTermsTab(BuildContext context) {
     return _buildDetailTab<PartyPaymentTermModel>(
+      sectionKey: 'payment_terms',
       title: 'Payment Terms',
       subtitle:
           'Maintain invoice due basis, days, and default payment term logic for the party.',
@@ -1839,6 +1861,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     }
 
     return _buildDetailTab<PartyAccountModel>(
+      sectionKey: 'party_accounts',
       title: 'Party Accounts',
       subtitle:
           'Link this party to the right receivable, payable, advance, or primary ledger accounts.',
@@ -1863,6 +1886,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildDetailTab<T>({
+    required String sectionKey,
     required String title,
     required String subtitle,
     required String emptyTitle,
@@ -1899,7 +1923,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             AppActionButton(
               icon: Icons.add_outlined,
               label: 'New',
-              onPressed: onNew,
+              onPressed: () {
+                onNew();
+                setState(() {
+                  _openDetailDrafts
+                    ..remove(sectionKey)
+                    ..add(sectionKey);
+                });
+              },
             ),
           ],
         ),
@@ -1915,7 +1946,25 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           AppErrorStateView.inline(message: _detailFormError!),
         ],
         const SizedBox(height: 16),
-        if (list.isEmpty)
+        if (_openDetailDrafts.contains(sectionKey)) ...[
+          SettingsExpandableTile(
+            key: ValueKey('$sectionKey-draft'),
+            title: 'New $title',
+            subtitle: subtitle,
+            expanded: true,
+            highlighted: true,
+            leadingIcon: Icons.add_outlined,
+            onToggle: () {
+              onNew();
+              setState(() {
+                _openDetailDrafts.remove(sectionKey);
+              });
+            },
+            child: form,
+          ),
+          if (list.isNotEmpty) const SizedBox(height: 8),
+        ],
+        if (list.isEmpty && !_openDetailDrafts.contains(sectionKey))
           SettingsEmptyState(
             icon: Icons.inventory_2_outlined,
             title: 'No records yet',
@@ -1931,16 +1980,27 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             separatorBuilder: (_, index) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final item = list[index];
-              return SettingsListTile(
+              final expanded = identical(item, selected);
+              return SettingsExpandableTile(
+                key: ValueKey('$sectionKey-$index-$expanded'),
                 title: itemTitle(item),
                 subtitle: itemSubtitle(item),
-                selected: identical(item, selected),
-                onTap: () => onSelect(item),
+                expanded: expanded,
+                highlighted: expanded,
+                onToggle: () {
+                  if (expanded) {
+                    onNew();
+                  } else {
+                    onSelect(item);
+                  }
+                  setState(() {
+                    _openDetailDrafts.remove(sectionKey);
+                  });
+                },
+                child: form,
               );
             },
           ),
-        const SizedBox(height: 20),
-        form,
       ],
     );
   }
@@ -2456,7 +2516,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           const SettingsEmptyState(
             icon: Icons.account_balance_outlined,
             title: 'No accounts available',
-            message: 'Create account ledgers first, then map them to parties here.',
+            message:
+                'Create account ledgers first, then map them to parties here.',
             minHeight: 180,
           )
         else ...[
@@ -2473,9 +2534,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                 labelText: 'Purpose',
                 mappedItems: _accountPurposeItems,
                 initialValue: _partyAccountPurpose,
-                onChanged: (value) => setState(
-                  () => _partyAccountPurpose = value ?? 'primary',
-                ),
+                onChanged: (value) =>
+                    setState(() => _partyAccountPurpose = value ?? 'primary'),
                 validator: Validators.requiredSelection('Purpose'),
               ),
               AppFormTextField(

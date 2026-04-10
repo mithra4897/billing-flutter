@@ -280,8 +280,7 @@ class _StateManagementPageState extends State<StateManagementPage> {
           onTap: () => _selectState(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Form(
+      editor: Form(
           key: _formKey,
           child: Column(
             children: [
@@ -357,7 +356,6 @@ class _StateManagementPageState extends State<StateManagementPage> {
             ],
           ),
         ),
-      ),
     );
   }
 }

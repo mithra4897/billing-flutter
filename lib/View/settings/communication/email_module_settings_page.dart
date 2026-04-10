@@ -25,7 +25,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
   bool _saving = false;
   String? _pageError;
   String? _formError;
-  List<CompanyModel> _companies = const <CompanyModel>[];
   List<AppDropdownItem<String>> _documentTypeItems = const [
     AppDropdownItem(value: '', label: 'All'),
   ];
@@ -33,6 +32,7 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
   List<EmailModuleSettingModel> _filteredRecords =
       const <EmailModuleSettingModel>[];
   EmailModuleSettingModel? _selectedRecord;
+  int? _contextCompanyId;
   int? _companyId;
   String _documentType = '';
   bool _autoEmailEnabled = true;
@@ -84,9 +84,18 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
               .toList()
             ..sort();
       final records = recordsResponse.data ?? const <EmailModuleSettingModel>[];
+      final activeCompanies =
+          companies.where((item) => item.isActive).toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: activeCompanies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
 
       setState(() {
-        _companies = companies;
+        _contextCompanyId = contextSelection.companyId;
         _documentTypeItems = [
           const AppDropdownItem(value: '', label: 'All'),
           ...documentTypes.map(
@@ -170,7 +179,7 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
 
   void _resetForm() {
     _selectedRecord = null;
-    _companyId = null;
+    _companyId = _contextCompanyId;
     _moduleController.clear();
     _documentType = '';
     _remarksController.clear();
@@ -281,16 +290,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
       );
     }
 
-    final companyItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All'),
-      ..._companies.map(
-        (company) => AppDropdownItem<int?>(
-          value: company.id,
-          label: company.legalName ?? company.code ?? 'Company',
-        ),
-      ),
-    ];
-
     return SettingsWorkspace(
       controller: _workspaceController,
       title: 'Module Settings',
@@ -326,12 +325,6 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int?>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: companyItems,
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() => _companyId = value),
-                ),
                 AppFormTextField(
                   labelText: 'Module',
                   controller: _moduleController,

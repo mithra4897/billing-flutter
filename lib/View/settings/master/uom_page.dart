@@ -46,6 +46,7 @@ class _UomManagementPageState extends State<UomManagementPage>
   bool _conversionActive = true;
   UomConversionModel? _selectedConversionRecord;
   bool _selectedConversionReversed = false;
+  int _activeTabIndex = 0;
 
   @override
   void initState() {
@@ -55,8 +56,10 @@ class _UomManagementPageState extends State<UomManagementPage>
       vsync: this,
       initialIndex: widget.initialTabIndex.clamp(0, 1),
     );
+    _activeTabIndex = _tabController.index;
     _tabController.addListener(() {
       if (mounted) {
+        _activeTabIndex = _tabController.index;
         setState(() {});
       }
     });
@@ -529,7 +532,7 @@ class _UomManagementPageState extends State<UomManagementPage>
               ),
               const SizedBox(height: 20),
               IndexedStack(
-                index: _tabController.index,
+                index: _activeTabIndex,
                 children: [_buildPrimaryTab(), _buildConversionsTab()],
               ),
             ],
@@ -540,81 +543,79 @@ class _UomManagementPageState extends State<UomManagementPage>
   }
 
   Widget _buildPrimaryTab() {
-    return AppSectionCard(
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
-              const SizedBox(height: 16),
-            ],
-            SettingsFormWrap(
-              children: [
-                AppFormTextField(
-                  labelText: 'UOM Code',
-                  controller: _codeController,
-                  validator: Validators.required('UOM code'),
-                ),
-                AppFormTextField(
-                  labelText: 'UOM Name',
-                  controller: _nameController,
-                  validator: Validators.required('UOM name'),
-                ),
-                AppFormTextField(
-                  labelText: 'Symbol',
-                  controller: _symbolController,
-                  validator: Validators.required('Symbol'),
-                ),
-              ],
-            ),
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_formError != null) ...[
+            AppErrorStateView.inline(message: _formError!),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              children: [
-                SizedBox(
-                  child: AppSwitchTile(
-                    label: 'Fraction Allowed',
-                    subtitle: 'Enable decimal quantity for this unit.',
-                    value: _isFractionAllowed,
-                    onChanged: (value) =>
-                        setState(() => _isFractionAllowed = value),
-                  ),
-                ),
-                SizedBox(
-                  child: AppSwitchTile(
-                    label: 'Active',
-                    subtitle: 'Inactive UOMs stay hidden from normal use.',
-                    value: _isActive,
-                    onChanged: (value) => setState(() => _isActive = value),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: _selectedUom == null ? 'Save UOM' : 'Update UOM',
-                  onPressed: _save,
-                  busy: _saving,
-                ),
-                if (_selectedUom?.id != null)
-                  AppActionButton(
-                    icon: Icons.delete_outline,
-                    label: 'Delete',
-                    onPressed: _saving ? null : _delete,
-                    filled: false,
-                  ),
-              ],
-            ),
           ],
-        ),
+          SettingsFormWrap(
+            children: [
+              AppFormTextField(
+                labelText: 'UOM Code',
+                controller: _codeController,
+                validator: Validators.required('UOM code'),
+              ),
+              AppFormTextField(
+                labelText: 'UOM Name',
+                controller: _nameController,
+                validator: Validators.required('UOM name'),
+              ),
+              AppFormTextField(
+                labelText: 'Symbol',
+                controller: _symbolController,
+                validator: Validators.required('Symbol'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                child: AppSwitchTile(
+                  label: 'Fraction Allowed',
+                  subtitle: 'Enable decimal quantity for this unit.',
+                  value: _isFractionAllowed,
+                  onChanged: (value) =>
+                      setState(() => _isFractionAllowed = value),
+                ),
+              ),
+              SizedBox(
+                child: AppSwitchTile(
+                  label: 'Active',
+                  subtitle: 'Inactive UOMs stay hidden from normal use.',
+                  value: _isActive,
+                  onChanged: (value) => setState(() => _isActive = value),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              AppActionButton(
+                icon: Icons.save_outlined,
+                label: _selectedUom == null ? 'Save UOM' : 'Update UOM',
+                onPressed: _save,
+                busy: _saving,
+              ),
+              if (_selectedUom?.id != null)
+                AppActionButton(
+                  icon: Icons.delete_outline,
+                  label: 'Delete',
+                  onPressed: _saving ? null : _delete,
+                  filled: false,
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -634,10 +635,9 @@ class _UomManagementPageState extends State<UomManagementPage>
         .where((uom) => uom.id != null && uom.id != currentUom.id)
         .toList(growable: false);
 
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
           Text(
             'Conversions for ${currentUom.uomName ?? currentUom.uomCode}',
             style: Theme.of(context).textTheme.headlineSmall,
@@ -756,8 +756,7 @@ class _UomManagementPageState extends State<UomManagementPage>
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 

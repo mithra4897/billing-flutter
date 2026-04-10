@@ -254,8 +254,7 @@ class _ModulePreferencesPageState extends State<ModulePreferencesPage> {
           onTap: () => _selectModule(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: Column(
+      editor: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_selectedModule == null)
@@ -301,7 +300,6 @@ class _ModulePreferencesPageState extends State<ModulePreferencesPage> {
             ],
           ],
         ),
-      ),
     );
   }
 }

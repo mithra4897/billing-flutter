@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app/constants/app_ui_constants.dart';
+
 class AppSwitchTile extends StatelessWidget {
   const AppSwitchTile({
     super.key,
@@ -7,7 +9,9 @@ class AppSwitchTile extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.subtitle,
-    this.contentPadding = EdgeInsets.zero,
+    this.contentPadding = const EdgeInsets.symmetric(
+      horizontal: AppUiConstants.spacingSm,
+    ),
   });
 
   final String label;

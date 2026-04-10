@@ -43,6 +43,7 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
 
   bool _initialLoading = true;
   bool _saving = false;
+  bool _showDraftTile = false;
   String? _pageError;
   String? _formError;
   List<ItemModel> _allItems = const <ItemModel>[];
@@ -307,6 +308,7 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
       _resetForm();
       return;
     }
+    _showDraftTile = false;
     _selectedPrice = item;
     _uomId = item.uomId;
     _priceType = item.priceType ?? 'sales';
@@ -359,7 +361,6 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
       final response = _selectedPrice == null
           ? await _inventoryService.createItemPrice(model)
           : await _inventoryService.updateItemPrice(_selectedPrice!.id!, model);
-      final saved = response.data;
       if (!mounted) {
         return;
       }
@@ -367,7 +368,9 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPrices(selectPriceId: saved?.id);
+      _showDraftTile = false;
+      _resetForm();
+      await _loadPrices();
     } catch (error) {
       setState(() {
         _formError = error.toString();
@@ -415,6 +418,7 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
   }
 
   void _startNew() {
+    _showDraftTile = true;
     _resetForm();
     if (widget.fixedItemId == null && !Responsive.isDesktop(context)) {
       _workspaceController.openEditor();
@@ -506,49 +510,71 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
       return const SizedBox.shrink();
     }
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_filteredPrices.isEmpty && !_showDraftTile)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+            child: Text('No price rows found for this item.'),
+          ),
+        if (_showDraftTile && _selectedPrice == null) ...[
+          SettingsExpandableTile(
+            key: const ValueKey('price-draft'),
+            title: 'New Price',
+            subtitle: 'Add a price row for this item.',
+            expanded: true,
+            highlighted: true,
+            leadingIcon: Icons.add_outlined,
+            onToggle: () {
+              setState(() {
+                _showDraftTile = false;
+              });
+              _resetForm();
+            },
+            child: _buildPriceForm(),
+          ),
+          if (_filteredPrices.isNotEmpty)
+            const SizedBox(height: AppUiConstants.spacingSm),
+        ],
+        ..._filteredPrices.map((price) {
+          final expanded = identical(price, _selectedPrice);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+            child: SettingsExpandableTile(
+              key: ValueKey('price-${price.id}-$expanded'),
+              title:
+                  '${price.priceType ?? '-'} · ${price.price?.toString() ?? '0'}',
+              subtitle: [
+                if ((price.uomName ?? '').isNotEmpty) price.uomName!,
+                if ((price.validFrom ?? '').isNotEmpty)
+                  'From ${price.validFrom}',
+                if ((price.validTo ?? '').isNotEmpty) 'To ${price.validTo}',
+                if (price.isDefault) 'Default',
+              ].join(' · '),
+              expanded: expanded,
+              highlighted: expanded,
+              onToggle: () {
+                if (expanded) {
+                  _resetForm();
+                } else {
+                  _selectPrice(price);
+                }
+              },
+              child: _buildPriceForm(),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildPriceForm() {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
-            controller: _priceSearchController,
-            decoration: const InputDecoration(
-              hintText: 'Search price rows',
-              prefixIcon: Icon(Icons.search),
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          if (_filteredPrices.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
-              child: Text('No price rows found for this item.'),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filteredPrices.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: AppUiConstants.spacingXs),
-              itemBuilder: (context, index) {
-                final price = _filteredPrices[index];
-                return SettingsListTile(
-                  title:
-                      '${price.priceType ?? '-'} · ${price.price?.toString() ?? '0'}',
-                  subtitle: [
-                    if ((price.uomName ?? '').isNotEmpty) price.uomName!,
-                    if ((price.validFrom ?? '').isNotEmpty)
-                      'From ${price.validFrom}',
-                    if ((price.validTo ?? '').isNotEmpty) 'To ${price.validTo}',
-                    if (price.isDefault) 'Default',
-                  ].join(' · '),
-                  selected: identical(price, _selectedPrice),
-                  onTap: () => _selectPrice(price),
-                );
-              },
-            ),
-          const SizedBox(height: AppUiConstants.spacingLg),
           if (_formError != null) ...[
             AppErrorStateView.inline(message: _formError!),
             const SizedBox(height: AppUiConstants.spacingSm),

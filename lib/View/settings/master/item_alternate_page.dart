@@ -31,6 +31,7 @@ class _ItemAlternateManagementPageState
 
   bool _initialLoading = true;
   bool _saving = false;
+  bool _showDraftTile = false;
   String? _pageError;
   String? _formError;
   List<ItemAlternateModel> _items = const <ItemAlternateModel>[];
@@ -216,6 +217,7 @@ class _ItemAlternateManagementPageState
       _resetForm();
       return;
     }
+    _showDraftTile = false;
     _selectedItem = item;
     _counterpartyId = _counterpartyIdFor(item);
     _priorityController.text = item.priorityOrder?.toString() ?? '1';
@@ -237,6 +239,7 @@ class _ItemAlternateManagementPageState
   }
 
   void _startNewWithCounterparty(int id) {
+    _showDraftTile = true;
     _resetForm();
     _counterpartyId = id;
     setState(() {});
@@ -268,7 +271,6 @@ class _ItemAlternateManagementPageState
               _selectedItem!.id!,
               model,
             );
-      final saved = response.data;
       if (!mounted) {
         return;
       }
@@ -276,7 +278,9 @@ class _ItemAlternateManagementPageState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadMappings(selectId: saved?.id);
+      _showDraftTile = false;
+      _resetForm();
+      await _loadMappings();
     } catch (error) {
       setState(() {
         _formError = error.toString();
@@ -462,7 +466,14 @@ class _ItemAlternateManagementPageState
     final content = _buildContent();
     final actions = <Widget>[
       AdaptiveShellActionButton(
-        onPressed: _selectedMasterId == null ? null : _resetForm,
+        onPressed: _selectedMasterId == null
+            ? null
+            : () {
+                setState(() {
+                  _showDraftTile = true;
+                });
+                _resetForm();
+              },
         icon: Icons.compare_arrows_outlined,
         label: 'Add Alternate',
       ),
@@ -544,7 +555,6 @@ class _ItemAlternateManagementPageState
   }
 
   Widget _buildEditorBody() {
-    final hasDraft = _selectedItem != null || _counterpartyId != null;
     final selectedCounterparty = _allItems.cast<ItemModel?>().firstWhere(
       (item) => item?.id == _counterpartyId,
       orElse: () => null,
@@ -553,166 +563,198 @@ class _ItemAlternateManagementPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_filteredItems.isEmpty)
+        if (_filteredItems.isEmpty && !_showDraftTile) ...[
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
             child: Text('No alternates mapped for this item.'),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _filteredItems.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(height: AppUiConstants.spacingXs),
-            itemBuilder: (context, index) {
-              final item = _filteredItems[index];
-              return SettingsListTile(
-                title: _counterpartyLabelFor(item),
-                subtitle: [
-                  if (item.priorityOrder != null)
-                    'Priority ${item.priorityOrder}',
-                  if (item.isActive) 'Active',
-                ].join(' · '),
-                selected: identical(item, _selectedItem),
-                onTap: () => _selectMapping(item),
-                trailing: IconButton(
-                  tooltip: 'Remove alternate',
-                  onPressed: _saving ? null : () => _confirmDelete(item),
-                  icon: const Icon(Icons.remove_circle_outline),
-                ),
-              );
+          ),
+        ],
+        if (_showDraftTile && _selectedItem == null) ...[
+          SettingsExpandableTile(
+            key: const ValueKey('alt-draft'),
+            title: selectedCounterparty == null
+                ? 'New Alternate Item'
+                : _itemLabel(selectedCounterparty),
+            subtitle: 'Add an alternate item for this product.',
+            expanded: true,
+            highlighted: true,
+            leadingIcon: Icons.add_outlined,
+            onToggle: () {
+              setState(() {
+                _showDraftTile = false;
+              });
+              _resetForm();
             },
-          ),
-        const SizedBox(height: AppUiConstants.spacingLg),
-        TextField(
-          controller: _addSearchController,
-          decoration: const InputDecoration(
-            hintText: 'Search alternate item to add',
-            prefixIcon: Icon(Icons.search),
-          ),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        if (_filteredAvailableCounterpartyOptions.isEmpty)
-          const Text('No more alternate items available to add.')
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _filteredAvailableCounterpartyOptions.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(height: AppUiConstants.spacingXs),
-            itemBuilder: (context, index) {
-              final option = _filteredAvailableCounterpartyOptions[index];
-              return SettingsListTile(
-                title: _itemLabel(option),
-                subtitle: '',
-                selected: option.id == _counterpartyId && _selectedItem == null,
-                onTap: () => _startNewWithCounterparty(option.id!),
-                trailing: const Icon(Icons.add_circle_outline),
-              );
-            },
-          ),
-        if (hasDraft) ...[
-          const SizedBox(height: AppUiConstants.spacingLg),
-          Form(
-            key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_formError != null) ...[
-                  AppErrorStateView.inline(message: _formError!),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                ],
-                if (widget.fixedItemId == null) ...[
-                  DropdownButtonFormField<int>(
-                    initialValue: _counterpartyId,
-                    decoration: const InputDecoration(
-                      labelText: _counterpartyLabel,
-                    ),
-                    items: _allItems
-                        .where(
-                          (item) => _dropdownCounterpartyOptions.any(
-                            (option) => option.id == item.id,
-                          ),
-                        )
-                        .map(
-                          (item) => DropdownMenuItem<int>(
-                            value: item.id,
-                            child: Text(_itemLabel(item)),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) =>
-                        setState(() => _counterpartyId = value),
-                    validator: Validators.requiredSelection(_counterpartyLabel),
+                TextField(
+                  controller: _addSearchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Search alternate item to add',
+                    prefixIcon: Icon(Icons.search),
                   ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                ] else if (selectedCounterparty != null) ...[
-                  Text(
-                    _itemLabel(selectedCounterparty),
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                ],
-                SettingsFormWrap(
-                  children: [
-                    AppFormTextField(
-                      labelText: 'Priority',
-                      controller: _priorityController,
-                      keyboardType: TextInputType.number,
-                      validator: Validators.compose([
-                        Validators.required('Priority'),
-                        Validators.optionalMinimumInteger(1, 'Priority'),
-                      ]),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Reason',
-                      controller: _remarksController,
-                      maxLines: 3,
-                      validator: Validators.optionalMaxLength(255, 'Reason'),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: AppUiConstants.spacingSm),
-                SizedBox(
-                  width: AppUiConstants.switchFieldWidth,
-                  child: AppSwitchTile(
-                    label: 'Active',
-                    value: _isActive,
-                    onChanged: (value) => setState(() => _isActive = value),
+                if (_filteredAvailableCounterpartyOptions.isEmpty)
+                  const Text('No more alternate items available to add.')
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _filteredAvailableCounterpartyOptions.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: AppUiConstants.spacingXs),
+                    itemBuilder: (context, index) {
+                      final option =
+                          _filteredAvailableCounterpartyOptions[index];
+                      return SettingsListTile(
+                        title: _itemLabel(option),
+                        subtitle: '',
+                        selected: option.id == _counterpartyId,
+                        onTap: () => _startNewWithCounterparty(option.id!),
+                        trailing: const Icon(Icons.add_circle_outline),
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(height: AppUiConstants.spacingMd),
-                Wrap(
-                  spacing: AppUiConstants.spacingSm,
-                  runSpacing: AppUiConstants.spacingSm,
-                  children: [
-                    AppActionButton(
-                      icon: Icons.save_outlined,
-                      label: _selectedItem == null
-                          ? 'Save Mapping'
-                          : 'Update Mapping',
-                      onPressed: _save,
-                      busy: _saving,
-                    ),
-                    if (_selectedItem?.id != null)
-                      AppActionButton(
-                        icon: Icons.delete_outline,
-                        label: 'Delete',
-                        onPressed: _saving ? null : _delete,
-                        filled: false,
-                      ),
-                  ],
-                ),
+                if (_counterpartyId != null) ...[
+                  const SizedBox(height: AppUiConstants.spacingLg),
+                  _buildAlternateForm(
+                    selectedCounterparty: selectedCounterparty,
+                  ),
+                ],
               ],
             ),
           ),
-        ] else ...[
-          const SizedBox(height: AppUiConstants.spacingMd),
-          const Text('Pick an alternate above to start this mapping.'),
+          if (_filteredItems.isNotEmpty)
+            const SizedBox(height: AppUiConstants.spacingSm),
         ],
+        ..._filteredItems.map((item) {
+          final expanded = identical(item, _selectedItem);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+            child: SettingsExpandableTile(
+              key: ValueKey('alt-${item.id}-$expanded'),
+              title: _counterpartyLabelFor(item),
+              subtitle: [
+                if (item.priorityOrder != null)
+                  'Priority ${item.priorityOrder}',
+                if (item.isActive) 'Active',
+              ].join(' · '),
+              expanded: expanded,
+              highlighted: expanded,
+              trailing: IconButton(
+                tooltip: 'Remove alternate',
+                onPressed: _saving ? null : () => _confirmDelete(item),
+                icon: const Icon(Icons.remove_circle_outline),
+              ),
+              onToggle: () {
+                if (expanded) {
+                  _resetForm();
+                } else {
+                  _selectMapping(item);
+                }
+              },
+              child: _buildAlternateForm(
+                selectedCounterparty: selectedCounterparty,
+              ),
+            ),
+          );
+        }),
       ],
+    );
+  }
+
+  Widget _buildAlternateForm({required ItemModel? selectedCounterparty}) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_formError != null) ...[
+            AppErrorStateView.inline(message: _formError!),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
+          if (widget.fixedItemId == null) ...[
+            DropdownButtonFormField<int>(
+              initialValue: _counterpartyId,
+              decoration: const InputDecoration(labelText: _counterpartyLabel),
+              items: _allItems
+                  .where(
+                    (item) => _dropdownCounterpartyOptions.any(
+                      (option) => option.id == item.id,
+                    ),
+                  )
+                  .map(
+                    (item) => DropdownMenuItem<int>(
+                      value: item.id,
+                      child: Text(_itemLabel(item)),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) => setState(() => _counterpartyId = value),
+              validator: Validators.requiredSelection(_counterpartyLabel),
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ] else if (selectedCounterparty != null) ...[
+            Text(
+              _itemLabel(selectedCounterparty),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
+          SettingsFormWrap(
+            children: [
+              AppFormTextField(
+                labelText: 'Priority',
+                controller: _priorityController,
+                keyboardType: TextInputType.number,
+                validator: Validators.compose([
+                  Validators.required('Priority'),
+                  Validators.optionalMinimumInteger(1, 'Priority'),
+                ]),
+              ),
+              AppFormTextField(
+                labelText: 'Reason',
+                controller: _remarksController,
+                maxLines: 3,
+                validator: Validators.optionalMaxLength(255, 'Reason'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          SizedBox(
+            width: AppUiConstants.switchFieldWidth,
+            child: AppSwitchTile(
+              label: 'Active',
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
+            children: [
+              AppActionButton(
+                icon: Icons.save_outlined,
+                label: _selectedItem == null
+                    ? 'Save Mapping'
+                    : 'Update Mapping',
+                onPressed: _save,
+                busy: _saving,
+              ),
+              if (_selectedItem?.id != null)
+                AppActionButton(
+                  icon: Icons.delete_outline,
+                  label: 'Delete',
+                  onPressed: _saving ? null : _delete,
+                  filled: false,
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

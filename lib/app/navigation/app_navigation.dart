@@ -60,13 +60,6 @@ class AppNavigation {
       icon: Icons.settings_outlined,
       children: [
         AppNavigationItem(
-          key: 'settings-document-series',
-          title: 'Document Series',
-          icon: Icons.confirmation_number_outlined,
-          path: '/settings/document-series',
-          requiredPermissions: ['document_series.view'],
-        ),
-        AppNavigationItem(
           key: 'settings-communication',
           title: 'Communication',
           icon: Icons.mail_outline,
@@ -205,6 +198,13 @@ class AppNavigation {
           icon: Icons.account_tree_outlined,
           path: '/settings/branches',
           requiredPermissions: ['branch.view'],
+        ),
+        AppNavigationItem(
+          key: 'settings-document-series',
+          title: 'Document Series',
+          icon: Icons.confirmation_number_outlined,
+          path: '/settings/document-series',
+          requiredPermissions: ['document_series.view'],
         ),
         AppNavigationItem(
           key: 'inventory-uoms',

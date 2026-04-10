@@ -46,6 +46,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
   bool _isActive = true;
   String _companyType = 'private_limited';
   late final TabController _tabController;
+  int _activeTabIndex = 0;
 
   @override
   void initState() {
@@ -55,6 +56,14 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
         widget.initialTabIndex < _tabController.length) {
       _tabController.index = widget.initialTabIndex;
     }
+    _activeTabIndex = _tabController.index;
+    _tabController.addListener(() {
+      if (!mounted || _tabController.indexIsChanging) {
+        return;
+      }
+      _activeTabIndex = _tabController.index;
+      setState(() {});
+    });
     _searchController.addListener(_applySearch);
     _loadCompanies();
   }
@@ -380,7 +389,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
               ),
               const SizedBox(height: 20),
               IndexedStack(
-                index: _tabController.index,
+                index: _activeTabIndex,
                 children: [
                   _buildPrimaryTab(context),
                   _selectedCompany?.id == null
