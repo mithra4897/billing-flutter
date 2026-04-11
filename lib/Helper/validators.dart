@@ -58,6 +58,14 @@ class Validators {
     return (value) => dateField(value, fieldName);
   }
 
+  static String? Function(String?) optionalDateTime(String fieldName) {
+    return (value) => dateTimeField(value, fieldName);
+  }
+
+  static String? Function(String?) dateTime(String fieldName) {
+    return optionalDateTime(fieldName);
+  }
+
   static String? Function(String?) date(String fieldName) {
     return optionalDate(fieldName);
   }
@@ -240,6 +248,20 @@ class Validators {
     final parsed = DateTime.tryParse(trimmed);
     if (parsed == null) {
       return '$fieldName must be a valid date';
+    }
+
+    return null;
+  }
+
+  static String? dateTimeField(String? value, String fieldName) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+
+    final parsed = DateTime.tryParse(trimmed);
+    if (parsed == null) {
+      return '$fieldName must be a valid date/time';
     }
 
     return null;

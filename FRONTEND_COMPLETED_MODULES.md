@@ -239,6 +239,38 @@ Important service note:
 
 - [communication_service.dart](/lib/service/communication/communication_service.dart) was corrected so `emailSettings()` and `emailModuleSettings()` use collection responses instead of paginated responses, matching the backend
 
+### 9. HR Foundation
+
+Completed:
+
+- departments
+- designations
+- employees
+
+Main files:
+
+- [department_page.dart](/lib/view/hr/department_page.dart)
+- [designation_page.dart](/lib/view/hr/designation_page.dart)
+- [employee_page.dart](/lib/view/hr/employee_page.dart)
+- [hr_service.dart](/lib/service/hr/hr_service.dart)
+
+How these were done:
+
+- `Departments` and `Designations` follow the standard list + editor workspace
+- `Employees` uses list + editor with tabs:
+  - `Primary`
+  - `Employee Accounts`
+  - `Salary Structures`
+  - `Salary Components`
+- `Department` and `Designation` inside Employee use inline add flow beside the dropdown, following the same pattern as Role creation in user management
+- child employee tabs follow save-first behavior, just like Companies, Branches, Parties, and Items
+- `Employee Accounts` reflects backend-generated ledgers
+- `Salary Structures` and `Salary Components` are edited through the employee update contract, matching the current HR backend design
+
+Model note:
+
+- the HR models used by these screens were converted from raw map wrappers to typed models so future HR work can build on a stable contract
+
 ### 9. Parties
 
 Completed:

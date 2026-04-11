@@ -165,16 +165,16 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
 class SettingsListCard<T> extends StatelessWidget {
   const SettingsListCard({
     super.key,
-    required this.searchController,
-    required this.searchHint,
+    this.searchController,
+    this.searchHint,
     required this.items,
     required this.selectedItem,
     required this.emptyMessage,
     required this.itemBuilder,
   });
 
-  final TextEditingController searchController;
-  final String searchHint;
+  final TextEditingController? searchController;
+  final String? searchHint;
   final List<T> items;
   final T? selectedItem;
   final String emptyMessage;
@@ -186,14 +186,16 @@ class SettingsListCard<T> extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
-            controller: searchController,
-            decoration: InputDecoration(
-              hintText: searchHint,
-              prefixIcon: const Icon(Icons.search),
+          if (searchController != null && (searchHint?.isNotEmpty ?? false)) ...[
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: searchHint,
+                prefixIcon: const Icon(Icons.search),
+              ),
             ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
+            const SizedBox(height: AppUiConstants.spacingMd),
+          ],
           if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(

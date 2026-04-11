@@ -110,8 +110,16 @@ List<BranchModel> branchesForCompany(
     return const <BranchModel>[];
   }
 
+  final seenIds = <int>{};
   return branches
       .where((branch) => branch.companyId == companyId)
+      .where((branch) {
+        final id = branch.id;
+        if (id == null) {
+          return false;
+        }
+        return seenIds.add(id);
+      })
       .toList(growable: false);
 }
 
@@ -123,7 +131,15 @@ List<BusinessLocationModel> locationsForBranch(
     return const <BusinessLocationModel>[];
   }
 
+  final seenIds = <int>{};
   return locations
       .where((location) => location.branchId == branchId)
+      .where((location) {
+        final id = location.id;
+        if (id == null) {
+          return false;
+        }
+        return seenIds.add(id);
+      })
       .toList(growable: false);
 }

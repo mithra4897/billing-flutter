@@ -161,7 +161,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       final activeCompanies = companies.where((item) => item.isActive).toList();
       final activeBranches = branches.where((item) => item.isActive).toList();
       final activeLocations = locations.where((item) => item.isActive).toList();
-      final activeFinancialYears = years.where((item) => item.isActive).toList();
+      final activeFinancialYears = years
+          .where((item) => item.isActive)
+          .toList();
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,
@@ -179,17 +181,12 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         _contextBranchId = contextSelection.branchId;
         _contextLocationId = contextSelection.locationId;
         _contextFinancialYearId = contextSelection.financialYearId;
-        _documentSeries = series
-            .where(
-              (item) =>
-                  item.isActive &&
-                  (item.documentType ?? '') == 'JOURNAL_VOUCHER',
-            )
-            .toList();
+        _documentSeries = series.where((item) => item.isActive).toList();
         _voucherTypes = voucherTypes.where((item) => item.isActive).toList();
         _accounts = accounts.where((item) => item.isActive).toList();
         _parties = parties.where((item) => item.isActive).toList();
         _initialLoading = false;
+        _syncDocumentSeriesSelection();
       });
 
       final selected = selectId != null
@@ -235,16 +232,50 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     });
   }
 
+  VoucherTypeModel? get _selectedVoucherType {
+    if (_voucherTypeId == null) {
+      return null;
+    }
+
+    for (final item in _voucherTypes) {
+      if (item.id == _voucherTypeId) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
   List<DocumentSeriesModel> get _filteredDocumentSeriesOptions {
-    return _documentSeries.where((item) {
-      final companyMatches =
-          _companyId == null || item.companyId == null || item.companyId == _companyId;
-      final financialYearMatches =
-          _financialYearId == null ||
-          item.financialYearId == null ||
-          item.financialYearId == _financialYearId;
-      return companyMatches && financialYearMatches;
-    }).toList(growable: false);
+    return _documentSeries
+        .where((item) {
+          final documentTypeMatches =
+              (_selectedVoucherType?.documentType?.trim().isEmpty ?? true) ||
+              item.documentType == _selectedVoucherType?.documentType;
+          final companyMatches =
+              _companyId == null ||
+              item.companyId == null ||
+              item.companyId == _companyId;
+          final financialYearMatches =
+              _financialYearId == null ||
+              item.financialYearId == null ||
+              item.financialYearId == _financialYearId;
+          return documentTypeMatches && companyMatches && financialYearMatches;
+        })
+        .toList(growable: false);
+  }
+
+  void _syncDocumentSeriesSelection() {
+    final options = _filteredDocumentSeriesOptions;
+    if (options.isEmpty) {
+      _documentSeriesId = null;
+      return;
+    }
+
+    final currentExists = options.any((item) => item.id == _documentSeriesId);
+    if (!currentExists) {
+      _documentSeriesId = options.first.id;
+    }
   }
 
   Future<void> _selectVoucher(VoucherModel voucher) async {
@@ -295,9 +326,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _locationId = _contextLocationId;
     _financialYearId = _contextFinancialYearId;
     _voucherTypeId = _voucherTypes.isNotEmpty ? _voucherTypes.first.id : null;
-    _documentSeriesId = _filteredDocumentSeriesOptions.isNotEmpty
-        ? _filteredDocumentSeriesOptions.first.id
-        : null;
+    _documentSeriesId = null;
+    _syncDocumentSeriesSelection();
     _voucherNoController.clear();
     _voucherDateController.text = DateTime.now()
         .toIso8601String()
@@ -331,6 +361,28 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     });
   }
 
+  double get _totalDebit {
+    double total = 0;
+    for (final line in _lines) {
+      final amount = double.tryParse(line.amountText.trim()) ?? 0;
+      if (line.entryType == 'debit') {
+        total += amount;
+      }
+    }
+    return total;
+  }
+
+  double get _totalCredit {
+    double total = 0;
+    for (final line in _lines) {
+      final amount = double.tryParse(line.amountText.trim()) ?? 0;
+      if (line.entryType == 'credit') {
+        total += amount;
+      }
+    }
+    return total;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -343,6 +395,17 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     if (hasInvalidLine) {
       setState(() {
         _formError = 'Each voucher line needs account and amount.';
+      });
+      return;
+    }
+
+    final debitTotal = _totalDebit;
+    final creditTotal = _totalCredit;
+    if ((debitTotal - creditTotal).abs() > 0.009 &&
+        _adjustmentAccountId == null) {
+      setState(() {
+        _formError =
+            'Total debit and total credit must be equal. Select an adjustment account if you want auto-balance.';
       });
       return;
     }
@@ -468,237 +531,290 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         ),
       ),
       editor: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: AppUiConstants.spacingSm),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Voucher Type',
-                    mappedItems: _voucherTypes
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _voucherTypeId,
-                    onChanged: (value) =>
-                        setState(() => _voucherTypeId = value),
-                    validator: Validators.requiredSelection('Voucher Type'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Document Series',
-                    mappedItems: _filteredDocumentSeriesOptions
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _documentSeriesId,
-                    onChanged: (value) =>
-                        setState(() => _documentSeriesId = value),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Voucher No',
-                    controller: _voucherNoController,
-                    hintText: 'Auto-generated',
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Voucher Date',
-                    controller: _voucherDateController,
-                    validator: Validators.compose([
-                      Validators.required('Voucher Date'),
-                      Validators.date('Voucher Date'),
-                    ]),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Reference No',
-                    controller: _referenceNoController,
-                    validator: Validators.optionalMaxLength(
-                      100,
-                      'Reference No',
-                    ),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Reference Date',
-                    controller: _referenceDateController,
-                    validator: Validators.optionalDate('Reference Date'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Approval Status',
-                    mappedItems: _approvalStatusItems,
-                    initialValue: _approvalStatus,
-                    onChanged: (value) =>
-                        setState(() => _approvalStatus = value ?? 'approved'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Posting Status',
-                    mappedItems: _postingStatusItems,
-                    initialValue: _postingStatus,
-                    onChanged: (value) =>
-                        setState(() => _postingStatus = value ?? 'posted'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Adjustment Account',
-                    mappedItems: _accounts
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _adjustmentAccountId,
-                    onChanged: (value) =>
-                        setState(() => _adjustmentAccountId = value),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Adjustment Remarks',
-                    controller: _adjustmentRemarksController,
-                    validator: Validators.optionalMaxLength(
-                      500,
-                      'Adjustment Remarks',
-                    ),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Narration',
-                    controller: _narrationController,
-                    maxLines: 3,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              AppSwitchTile(
-                label: 'Active',
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              const SizedBox(height: AppUiConstants.spacingLg),
-              Row(
-                children: [
-                  Text(
-                    'Voucher Lines',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                  AppActionButton(
-                    icon: Icons.add_outlined,
-                    label: 'Add Line',
-                    onPressed: _addLine,
-                    filled: false,
-                  ),
-                ],
-              ),
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
-              ...List<Widget>.generate(_lines.length, (index) {
-                final line = _lines[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: AppSectionCard(
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Line ${index + 1}',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              onPressed: _lines.length == 1
-                                  ? null
-                                  : () => _removeLine(index),
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                          ],
+            ],
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Voucher Type',
+                  mappedItems: _voucherTypes
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem(
+                          value: item.id!,
+                          label: item.toString(),
                         ),
-                        SettingsFormWrap(
-                          children: [
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Account',
-                              mappedItems: _accounts
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppDropdownItem(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.accountId,
-                              onChanged: (value) =>
-                                  setState(() => line.accountId = value),
-                            ),
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Party',
-                              mappedItems: _parties
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppDropdownItem(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.partyId,
-                              onChanged: (value) =>
-                                  setState(() => line.partyId = value),
-                            ),
-                            AppDropdownField<String>.fromMapped(
-                              labelText: 'Entry Type',
-                              mappedItems: _entryTypeItems,
-                              initialValue: line.entryType,
-                              onChanged: (value) => setState(
-                                () => line.entryType = value ?? 'debit',
-                              ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Amount',
-                              initialValue: line.amountText,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              onChanged: (value) => line.amountText = value,
-                            ),
-                            AppFormTextField(
-                              labelText: 'Line Narration',
-                              initialValue: line.narration,
-                              onChanged: (value) => line.narration = value,
-                            ),
-                          ],
+                      )
+                      .toList(growable: false),
+                  initialValue: _voucherTypeId,
+                  onChanged: (value) => setState(() {
+                    _voucherTypeId = value;
+                    _documentSeriesId = null;
+                    _syncDocumentSeriesSelection();
+                  }),
+                  validator: Validators.requiredSelection('Voucher Type'),
+                ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Document Series',
+                  mappedItems: _filteredDocumentSeriesOptions
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem(
+                          value: item.id!,
+                          label: item.toString(),
                         ),
-                      ],
+                      )
+                      .toList(growable: false),
+                  initialValue: _documentSeriesId,
+                  onChanged: (value) =>
+                      setState(() => _documentSeriesId = value),
+                  validator: (value) {
+                    final voucherNo = _voucherNoController.text.trim();
+                    if (voucherNo.isEmpty && value == null) {
+                      return 'Document Series is required';
+                    }
+                    return null;
+                  },
+                ),
+                AppFormTextField(
+                  labelText: 'Voucher No',
+                  controller: _voucherNoController,
+                  hintText: 'Auto-generated',
+                  readOnly: true,
+                  validator: Validators.optionalMaxLength(100, 'Voucher No'),
+                ),
+                AppFormTextField(
+                  labelText: 'Voucher Date',
+                  controller: _voucherDateController,
+                  validator: Validators.compose([
+                    Validators.required('Voucher Date'),
+                    Validators.date('Voucher Date'),
+                  ]),
+                ),
+                AppFormTextField(
+                  labelText: 'Reference No',
+                  controller: _referenceNoController,
+                  validator: Validators.optionalMaxLength(100, 'Reference No'),
+                ),
+                AppFormTextField(
+                  labelText: 'Reference Date',
+                  controller: _referenceDateController,
+                  validator: Validators.optionalDate('Reference Date'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Approval Status',
+                  mappedItems: _approvalStatusItems,
+                  initialValue: _approvalStatus,
+                  onChanged: (value) =>
+                      setState(() => _approvalStatus = value ?? 'approved'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Posting Status',
+                  mappedItems: _postingStatusItems,
+                  initialValue: _postingStatus,
+                  onChanged: (value) =>
+                      setState(() => _postingStatus = value ?? 'posted'),
+                ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Adjustment Account',
+                  mappedItems: _accounts
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: _adjustmentAccountId,
+                  onChanged: (value) =>
+                      setState(() => _adjustmentAccountId = value),
+                ),
+                AppFormTextField(
+                  labelText: 'Adjustment Remarks',
+                  controller: _adjustmentRemarksController,
+                  validator: Validators.optionalMaxLength(
+                    500,
+                    'Adjustment Remarks',
+                  ),
+                ),
+                AppFormTextField(
+                  labelText: 'Narration',
+                  controller: _narrationController,
+                  maxLines: 3,
+                  validator: Validators.optionalMaxLength(1000, 'Narration'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            AppSwitchTile(
+              label: 'Active',
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            AppSectionCard(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Debit: ${_totalDebit.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                );
-              }),
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: _selectedVoucher == null
-                    ? 'Save Voucher'
-                    : 'Update Voucher',
-                onPressed: _save,
-                busy: _saving,
+                  Expanded(
+                    child: Text(
+                      'Credit: ${_totalCredit.toStringAsFixed(2)}',
+                      textAlign: TextAlign.end,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Row(
+              children: [
+                Text(
+                  'Voucher Lines',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                AppActionButton(
+                  icon: Icons.add_outlined,
+                  label: 'Add Line',
+                  onPressed: _addLine,
+                  filled: false,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            ...List<Widget>.generate(_lines.length, (index) {
+              final line = _lines[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: AppSectionCard(
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Line ${index + 1}',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: _lines.length == 1
+                                ? null
+                                : () => _removeLine(index),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ],
+                      ),
+                      SettingsFormWrap(
+                        children: [
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Account',
+                            mappedItems: _accounts
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => AppDropdownItem(
+                                    value: item.id!,
+                                    label: item.toString(),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            initialValue: line.accountId,
+                            onChanged: (value) =>
+                                setState(() => line.accountId = value),
+                            validator: Validators.requiredSelection('Account'),
+                          ),
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Party',
+                            mappedItems: _parties
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => AppDropdownItem(
+                                    value: item.id!,
+                                    label: item.toString(),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            initialValue: line.partyId,
+                            onChanged: (value) =>
+                                setState(() => line.partyId = value),
+                          ),
+                          AppDropdownField<String>.fromMapped(
+                            labelText: 'Entry Type',
+                            mappedItems: _entryTypeItems,
+                            initialValue: line.entryType,
+                            onChanged: (value) => setState(
+                              () => line.entryType = value ?? 'debit',
+                            ),
+                            validator: Validators.requiredSelection(
+                              'Entry Type',
+                            ),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Amount',
+                            initialValue: line.amountText,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            onChanged: (value) => line.amountText = value,
+                            validator: Validators.compose([
+                              Validators.required('Amount'),
+                              Validators.optionalNonNegativeNumber('Amount'),
+                              (value) {
+                                final parsed = double.tryParse(
+                                  value?.trim() ?? '',
+                                );
+                                if (parsed == null || parsed <= 0) {
+                                  return 'Amount must be greater than zero';
+                                }
+                                return null;
+                              },
+                            ]),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Line Narration',
+                            initialValue: line.narration,
+                            onChanged: (value) => line.narration = value,
+                            validator: Validators.optionalMaxLength(
+                              500,
+                              'Line Narration',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            AppActionButton(
+              icon: Icons.save_outlined,
+              label: _selectedVoucher == null
+                  ? 'Save Voucher'
+                  : 'Update Voucher',
+              onPressed: _save,
+              busy: _saving,
+            ),
+          ],
         ),
+      ),
     );
   }
 }

@@ -103,15 +103,18 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
 
       final sessions =
           (responses[0] as ApiResponse<List<CashSessionModel>>).data ??
-              const <CashSessionModel>[];
-      final companies = (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          const <CashSessionModel>[];
+      final companies =
+          (responses[1] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
-      final branches = (responses[2] as PaginatedResponse<BranchModel>).data ??
+      final branches =
+          (responses[2] as PaginatedResponse<BranchModel>).data ??
           const <BranchModel>[];
       final locations =
           (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-              const <BusinessLocationModel>[];
-      final accounts = (responses[4] as ApiResponse<List<AccountModel>>).data ??
+          const <BusinessLocationModel>[];
+      final accounts =
+          (responses[4] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
       final activeCompanies = companies
           .where((item) => item.isActive)
@@ -194,13 +197,19 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
   }
 
   List<AccountModel> get _cashAccountOptions {
-    return _cashAccounts.where((item) {
-      final companyMatches =
-          _companyId == null || item.companyId == null || item.companyId == _companyId;
-      final branchMatches =
-          _branchId == null || item.branchId == null || item.branchId == _branchId;
-      return companyMatches && branchMatches;
-    }).toList(growable: false);
+    return _cashAccounts
+        .where((item) {
+          final companyMatches =
+              _companyId == null ||
+              item.companyId == null ||
+              item.companyId == _companyId;
+          final branchMatches =
+              _branchId == null ||
+              item.branchId == null ||
+              item.branchId == _branchId;
+          return companyMatches && branchMatches;
+        })
+        .toList(growable: false);
   }
 
   void _selectSession(CashSessionModel item) {
@@ -209,7 +218,8 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
     _branchId = item.branchId;
     _locationId = item.locationId;
     _cashAccountId = item.cashAccountId;
-    _openingDatetimeController.text = item.openingDatetime?.split('.').first ?? '';
+    _openingDatetimeController.text =
+        item.openingDatetime?.split('.').first ?? '';
     _openingBalanceController.text = item.openingBalance?.toString() ?? '0';
     _remarksController.text = item.remarks ?? '';
     _closingDatetimeController.text =
@@ -217,8 +227,7 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
         DateTime.now().toIso8601String().split('.').first;
     _expectedClosingController.text =
         item.expectedClosingBalance?.toString() ?? '';
-    _actualClosingController.text =
-        item.actualClosingBalance?.toString() ?? '';
+    _actualClosingController.text = item.actualClosingBalance?.toString() ?? '';
     _closingRemarksController.text = item.remarks ?? '';
     _formError = null;
     setState(() {});
@@ -232,12 +241,16 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
     _cashAccountId = _cashAccountOptions.isNotEmpty
         ? _cashAccountOptions.first.id
         : null;
-    _openingDatetimeController.text =
-        DateTime.now().toIso8601String().split('.').first;
+    _openingDatetimeController.text = DateTime.now()
+        .toIso8601String()
+        .split('.')
+        .first;
     _openingBalanceController.text = '0';
     _remarksController.clear();
-    _closingDatetimeController.text =
-        DateTime.now().toIso8601String().split('.').first;
+    _closingDatetimeController.text = DateTime.now()
+        .toIso8601String()
+        .split('.')
+        .first;
     _expectedClosingController.clear();
     _actualClosingController.clear();
     _closingRemarksController.clear();
@@ -246,7 +259,9 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
   }
 
   Future<void> _openSession() async {
-    if (!_openFormKey.currentState!.validate() || _currentUserId == null) return;
+    if (!_openFormKey.currentState!.validate() || _currentUserId == null) {
+      return;
+    }
 
     setState(() {
       _saving = true;
@@ -293,10 +308,12 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
         id,
         CashSessionModel(
           closingDatetime: _closingDatetimeController.text.trim(),
-          expectedClosingBalance:
-              double.tryParse(_expectedClosingController.text.trim()),
-          actualClosingBalance:
-              double.tryParse(_actualClosingController.text.trim()),
+          expectedClosingBalance: double.tryParse(
+            _expectedClosingController.text.trim(),
+          ),
+          actualClosingBalance: double.tryParse(
+            _actualClosingController.text.trim(),
+          ),
           remarks: nullIfEmpty(_closingRemarksController.text),
         ),
       );
@@ -403,136 +420,159 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
         ),
       ),
       editor: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
-              const SizedBox(height: AppUiConstants.spacingSm),
-            ],
-            Text(
-              'Current User',
-              style: Theme.of(context).textTheme.labelLarge,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_formError != null) ...[
+            AppErrorStateView.inline(message: _formError!),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
+          Text('Current User', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 4),
+          Text(_currentUserLabel ?? 'Unknown user'),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Form(
+            key: _openFormKey,
+            child: SettingsFormWrap(
+              children: [
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Cash Account',
+                  mappedItems: _cashAccountOptions
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: _cashAccountId,
+                  onChanged: (value) => setState(() => _cashAccountId = value),
+                  validator: Validators.requiredSelection('Cash Account'),
+                ),
+                AppFormTextField(
+                  labelText: 'Opening Datetime',
+                  controller: _openingDatetimeController,
+                  validator: Validators.compose([
+                    Validators.required('Opening Datetime'),
+                    Validators.dateTime('Opening Datetime'),
+                  ]),
+                ),
+                AppFormTextField(
+                  labelText: 'Opening Balance',
+                  controller: _openingBalanceController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.compose([
+                    Validators.required('Opening Balance'),
+                    Validators.optionalNonNegativeNumber('Opening Balance'),
+                  ]),
+                ),
+                AppFormTextField(
+                  labelText: 'Remarks',
+                  controller: _remarksController,
+                  maxLines: 3,
+                  validator: Validators.optionalMaxLength(1000, 'Remarks'),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(_currentUserLabel ?? 'Unknown user'),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          AppActionButton(
+            icon: Icons.play_circle_outline,
+            label: 'Open Session',
+            onPressed: _openSession,
+            busy: _saving,
+          ),
+          if (_selectedSession != null) ...[
+            const SizedBox(height: AppUiConstants.spacingLg),
+            Divider(color: Theme.of(context).dividerColor),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Text(
+              'Close Or Cancel Selected Session',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Form(
-              key: _openFormKey,
+              key: _closeFormKey,
               child: SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Cash Account',
-                    mappedItems: _cashAccountOptions
-                        .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                        .toList(growable: false),
-                    initialValue: _cashAccountId,
-                    onChanged: (value) => setState(() => _cashAccountId = value),
-                    validator: Validators.requiredSelection('Cash Account'),
+                  AppFormTextField(
+                    labelText: 'Closing Datetime',
+                    controller: _closingDatetimeController,
+                    validator: isOpen
+                        ? Validators.compose([
+                            Validators.required('Closing Datetime'),
+                            Validators.dateTime('Closing Datetime'),
+                          ])
+                        : null,
                   ),
                   AppFormTextField(
-                    labelText: 'Opening Datetime',
-                    controller: _openingDatetimeController,
-                    validator: Validators.required('Opening Datetime'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Opening Balance',
-                    controller: _openingBalanceController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    validator: Validators.optionalNonNegativeNumber(
-                      'Opening Balance',
+                    labelText: 'Expected Closing Balance',
+                    controller: _expectedClosingController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
+                    validator: isOpen
+                        ? Validators.compose([
+                            Validators.required('Expected Closing Balance'),
+                            Validators.optionalNonNegativeNumber(
+                              'Expected Closing Balance',
+                            ),
+                          ])
+                        : null,
+                  ),
+                  AppFormTextField(
+                    labelText: 'Actual Closing Balance',
+                    controller: _actualClosingController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: isOpen
+                        ? Validators.compose([
+                            Validators.required('Actual Closing Balance'),
+                            Validators.optionalNonNegativeNumber(
+                              'Actual Closing Balance',
+                            ),
+                          ])
+                        : null,
                   ),
                   AppFormTextField(
                     labelText: 'Remarks',
-                    controller: _remarksController,
+                    controller: _closingRemarksController,
                     maxLines: 3,
+                    validator: Validators.optionalMaxLength(1000, 'Remarks'),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            AppActionButton(
-              icon: Icons.play_circle_outline,
-              label: 'Open Session',
-              onPressed: _openSession,
-              busy: _saving,
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                if (isOpen)
+                  AppActionButton(
+                    icon: Icons.stop_circle_outlined,
+                    label: 'Close Session',
+                    onPressed: _closeSession,
+                    busy: _saving,
+                  ),
+                if ((_selectedSession?.status ?? '') != 'closed')
+                  AppActionButton(
+                    icon: Icons.cancel_outlined,
+                    label: 'Cancel Session',
+                    onPressed: _cancelSession,
+                    busy: _saving,
+                    filled: false,
+                  ),
+              ],
             ),
-            if (_selectedSession != null) ...[
-              const SizedBox(height: AppUiConstants.spacingLg),
-              Divider(color: Theme.of(context).dividerColor),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Text(
-                'Close Or Cancel Selected Session',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Form(
-                key: _closeFormKey,
-                child: SettingsFormWrap(
-                  children: [
-                    AppFormTextField(
-                      labelText: 'Closing Datetime',
-                      controller: _closingDatetimeController,
-                      validator: isOpen
-                          ? Validators.required('Closing Datetime')
-                          : null,
-                    ),
-                    AppFormTextField(
-                      labelText: 'Expected Closing Balance',
-                      controller: _expectedClosingController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: isOpen
-                          ? Validators.optionalNonNegativeNumber(
-                              'Expected Closing Balance',
-                            )
-                          : null,
-                    ),
-                    AppFormTextField(
-                      labelText: 'Actual Closing Balance',
-                      controller: _actualClosingController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: isOpen
-                          ? Validators.optionalNonNegativeNumber(
-                              'Actual Closing Balance',
-                            )
-                          : null,
-                    ),
-                    AppFormTextField(
-                      labelText: 'Remarks',
-                      controller: _closingRemarksController,
-                      maxLines: 3,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Wrap(
-                spacing: AppUiConstants.spacingSm,
-                runSpacing: AppUiConstants.spacingSm,
-                children: [
-                  if (isOpen)
-                    AppActionButton(
-                      icon: Icons.stop_circle_outlined,
-                      label: 'Close Session',
-                      onPressed: _closeSession,
-                      busy: _saving,
-                    ),
-                  if ((_selectedSession?.status ?? '') != 'closed')
-                    AppActionButton(
-                      icon: Icons.cancel_outlined,
-                      label: 'Cancel Session',
-                      onPressed: _cancelSession,
-                      busy: _saving,
-                      filled: false,
-                    ),
-                ],
-              ),
-            ],
           ],
-        ),
+        ],
+      ),
     );
   }
 }

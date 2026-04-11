@@ -14,6 +14,11 @@ import '../settings/accounting/cash_session_page.dart';
 import '../settings/accounting/financial_reports_page.dart';
 import '../settings/accounting/voucher_page.dart';
 import '../settings/accounting/voucher_type_page.dart';
+import '../hr/department_page.dart';
+import '../hr/designation_page.dart';
+import '../hr/employee_page.dart';
+import '../hr/leave_request_page.dart';
+import '../hr/leave_type_page.dart';
 import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
 import '../settings/user/role_management_page.dart';
@@ -31,7 +36,6 @@ import '../settings/master/item_supplier_map_page.dart';
 import '../settings/master/stock_balance_page.dart';
 import '../settings/master/tax_category_page.dart';
 import '../settings/master/uom_page.dart';
-import '../settings/tax/gst_registration_page.dart';
 import '../settings/tax/gst_tax_rule_page.dart';
 import '../settings/tax/state_page.dart';
 import '../settings/user/module_preferences_page.dart';
@@ -220,7 +224,9 @@ class _AppShellPageState extends State<AppShellPage> {
   }
 
   Widget _buildContent() {
-    final routeKey = ValueKey<String>('${_buildCurrentRoute()}::$_contextVersion');
+    final routeKey = ValueKey<String>(
+      '${_buildCurrentRoute()}::$_contextVersion',
+    );
 
     switch (_currentPath) {
       case '/dashboard':
@@ -256,6 +262,12 @@ class _AppShellPageState extends State<AppShellPage> {
           key: routeKey,
           embedded: true,
           initialTabIndex: 2,
+        );
+      case '/tax/gst-registrations':
+        return BranchManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialTabIndex: 3,
         );
       case '/settings/financial-years':
         return CompanyManagementPage(
@@ -306,8 +318,6 @@ class _AppShellPageState extends State<AppShellPage> {
         );
       case '/tax/states':
         return StateManagementPage(key: routeKey, embedded: true);
-      case '/tax/gst-registrations':
-        return GstRegistrationManagementPage(key: routeKey, embedded: true);
       case '/tax/gst-tax-rules':
         return GstTaxRuleManagementPage(key: routeKey, embedded: true);
       case '/communication/email-settings':
@@ -344,6 +354,16 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           initialTabIndex: 7,
         );
+      case '/hr/departments':
+        return DepartmentManagementPage(key: routeKey, embedded: true);
+      case '/hr/designations':
+        return DesignationManagementPage(key: routeKey, embedded: true);
+      case '/hr/employees':
+        return EmployeeManagementPage(key: routeKey, embedded: true);
+      case '/hr/leave-types':
+        return LeaveTypeManagementPage(key: routeKey, embedded: true);
+      case '/hr/leave-requests':
+        return LeaveRequestManagementPage(key: routeKey, embedded: true);
       case '/parties/addresses':
         return PartyManagementPage(
           key: routeKey,
