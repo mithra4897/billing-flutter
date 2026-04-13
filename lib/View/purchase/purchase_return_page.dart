@@ -2,9 +2,16 @@ import '../../screen.dart';
 import 'purchase_support.dart';
 
 class PurchaseReturnPage extends StatefulWidget {
-  const PurchaseReturnPage({super.key, this.embedded = false});
+  const PurchaseReturnPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<PurchaseReturnPage> createState() => _PurchaseReturnPageState();
@@ -70,7 +77,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
   void initState() {
     super.initState();
     _searchController.addListener(_applyFilters);
-    _loadPage();
+    _loadPage(selectId: widget.initialId);
   }
 
   @override
@@ -199,9 +206,11 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
-          : (_selectedItem == null
-                ? (_items.isNotEmpty ? _items.first : null)
-                : null);
+          : (widget.editorOnly
+                ? null
+                : (_selectedItem == null
+                      ? (_items.isNotEmpty ? _items.first : null)
+                      : null));
       if (selected != null) {
         await _selectDocument(selected);
       } else {
@@ -533,6 +542,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
               'return_no',
               'Purchase Return',
             ),
+      editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: PurchaseListCard<PurchaseReturnModel>(
         items: _filteredItems,
@@ -752,19 +762,33 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                       ),
                       SettingsFormWrap(
                         children: [
-                          AppDropdownField<int>.fromMapped(
+                          AppSearchPickerField<int>(
                             labelText: 'Purchase Invoice Line',
-                            mappedItems: _invoiceLineOptions
+                            selectedLabel: (() {
+                              final selected = _invoiceLineOptions
+                                  .cast<PurchaseInvoiceLineModel?>()
+                                  .firstWhere(
+                                    (item) =>
+                                        item?.id == line.purchaseInvoiceLineId,
+                                    orElse: () => null,
+                                  );
+                              if (selected == null) {
+                                return null;
+                              }
+                              return '${_itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
+                            })(),
+                            options: _invoiceLineOptions
                                 .where((item) => item.id != null)
                                 .map(
-                                  (item) => AppDropdownItem(
+                                  (item) => AppSearchPickerOption<int>(
                                     value: item.id!,
                                     label:
                                         '${_itemName(item.itemId)} · Qty ${item.invoicedQty}',
+                                    subtitle:
+                                        '${_warehouseName(item.warehouseId)} · ${_uomName(item.uomId)}',
                                   ),
                                 )
                                 .toList(growable: false),
-                            initialValue: line.purchaseInvoiceLineId,
                             onChanged: (value) => setState(() {
                               final selected = _invoiceLineOptions
                                   .cast<PurchaseInvoiceLineModel?>()
@@ -786,9 +810,9 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                                 selected.uomId,
                               );
                             }),
-                            validator: Validators.requiredSelection(
-                              'Purchase Invoice Line',
-                            ),
+                            validator: (_) => line.purchaseInvoiceLineId == null
+                                ? 'Purchase Invoice Line is required'
+                                : null,
                           ),
                           AppFormTextField(
                             labelText: 'Item',

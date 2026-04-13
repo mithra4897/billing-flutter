@@ -17,6 +17,7 @@ export 'components/app_error_state_view.dart';
 export 'components/app_field_box.dart';
 export 'components/app_form_text_field.dart';
 export 'components/app_loading_view.dart';
+export 'components/app_search_picker_field.dart';
 export 'components/app_section_card.dart';
 export 'components/app_standalone_shell.dart';
 export 'components/app_switch_tile.dart';

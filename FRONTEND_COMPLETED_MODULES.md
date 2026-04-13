@@ -398,6 +398,28 @@ Important ERP behavior covered:
 - Purchase Invoices support item/warehouse/UOM/qty/rate/tax-oriented line entry.
 - Purchase Returns are invoice-line driven, so return lines stay tied to the original purchase invoice lines.
 
+## Purchase UI Pattern Updated
+
+Purchase no longer follows the normal split `list + editor` master pattern.
+
+It now follows the transaction-friendly pattern:
+
+- register/list page first
+- separate editor page next by route
+
+Route style:
+
+- `/purchase/requisitions`
+- `/purchase/requisitions/new`
+- `/purchase/requisitions/{id}`
+- same pattern for orders, receipts, invoices, payments, and returns
+
+Shared frontend additions for this:
+
+- purchase register table
+- searchable picker field for high-volume selections
+- `SettingsWorkspace(editorOnly: true)` support for full editor screens
+
 ## What This File Is For
 
 Whenever we continue frontend work later, this file should help answer:

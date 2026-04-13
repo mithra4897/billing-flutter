@@ -22,6 +22,7 @@ import '../hr/leave_type_page.dart';
 import '../purchase/purchase_invoice_page.dart';
 import '../purchase/purchase_order_page.dart';
 import '../purchase/purchase_payment_page.dart';
+import '../purchase/purchase_register_screens.dart';
 import '../purchase/purchase_receipt_page.dart';
 import '../purchase/purchase_requisition_page.dart';
 import '../purchase/purchase_return_page.dart';
@@ -233,6 +234,10 @@ class _AppShellPageState extends State<AppShellPage> {
     final routeKey = ValueKey<String>(
       '${_buildCurrentRoute()}::$_contextVersion',
     );
+    final purchaseRoute = _buildPurchaseContent(routeKey);
+    if (purchaseRoute != null) {
+      return purchaseRoute;
+    }
 
     switch (_currentPath) {
       case '/dashboard':
@@ -371,17 +376,17 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/hr/leave-requests':
         return LeaveRequestManagementPage(key: routeKey, embedded: true);
       case '/purchase/requisitions':
-        return PurchaseRequisitionPage(key: routeKey, embedded: true);
+        return PurchaseRequisitionRegisterPage(key: routeKey, embedded: true);
       case '/purchase/orders':
-        return PurchaseOrderPage(key: routeKey, embedded: true);
+        return PurchaseOrderRegisterPage(key: routeKey, embedded: true);
       case '/purchase/receipts':
-        return PurchaseReceiptPage(key: routeKey, embedded: true);
+        return PurchaseReceiptRegisterPage(key: routeKey, embedded: true);
       case '/purchase/invoices':
-        return PurchaseInvoicePage(key: routeKey, embedded: true);
+        return PurchaseInvoiceRegisterPage(key: routeKey, embedded: true);
       case '/purchase/payments':
-        return PurchasePaymentPage(key: routeKey, embedded: true);
+        return PurchasePaymentRegisterPage(key: routeKey, embedded: true);
       case '/purchase/returns':
-        return PurchaseReturnPage(key: routeKey, embedded: true);
+        return PurchaseReturnRegisterPage(key: routeKey, embedded: true);
       case '/parties/addresses':
         return PartyManagementPage(
           key: routeKey,
@@ -428,6 +433,69 @@ class _AppShellPageState extends State<AppShellPage> {
     }
   }
 
+  Widget? _buildPurchaseContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'purchase') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'requisitions':
+        return PurchaseRequisitionPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'orders':
+        return PurchaseOrderPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'receipts':
+        return PurchaseReceiptPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'invoices':
+        return PurchaseInvoicePage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'payments':
+        return PurchasePaymentPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'returns':
+        return PurchaseReturnPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+    }
+    return null;
+  }
+
   String _titleForPath(String path, AuthContextModel? authContext) {
     final navigationTitle = AppNavigation.findByPath(path)?.title.trim();
     if ((navigationTitle ?? '').isNotEmpty) {
@@ -444,6 +512,24 @@ class _AppShellPageState extends State<AppShellPage> {
 
     if (path.startsWith('/parties/')) {
       return 'Parties';
+    }
+    if (path.startsWith('/purchase/requisitions/')) {
+      return 'Purchase Requisition';
+    }
+    if (path.startsWith('/purchase/orders/')) {
+      return 'Purchase Order';
+    }
+    if (path.startsWith('/purchase/receipts/')) {
+      return 'Purchase Receipt';
+    }
+    if (path.startsWith('/purchase/invoices/')) {
+      return 'Purchase Invoice';
+    }
+    if (path.startsWith('/purchase/payments/')) {
+      return 'Purchase Payment';
+    }
+    if (path.startsWith('/purchase/returns/')) {
+      return 'Purchase Return';
     }
     if (path == '/communication/send-email') {
       return 'Email Messages';

@@ -2,9 +2,16 @@ import '../../screen.dart';
 import 'purchase_support.dart';
 
 class PurchaseRequisitionPage extends StatefulWidget {
-  const PurchaseRequisitionPage({super.key, this.embedded = false});
+  const PurchaseRequisitionPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<PurchaseRequisitionPage> createState() =>
@@ -76,7 +83,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   void initState() {
     super.initState();
     _searchController.addListener(_applyFilters);
-    _loadPage();
+    _loadPage(selectId: widget.initialId);
   }
 
   @override
@@ -210,7 +217,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
-          : (_selectedItem == null
+          : (widget.editorOnly
+                ? null
+                : _selectedItem == null
                 ? (documents.isNotEmpty ? documents.first : null)
                 : documents.cast<PurchaseRequisitionModel?>().firstWhere(
                     (item) =>
@@ -440,18 +449,20 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
 
   @override
   Widget build(BuildContext context) {
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: () {
-          _resetForm();
-          if (!Responsive.isDesktop(context)) {
-            _workspaceController.openEditor();
-          }
-        },
-        icon: Icons.add_outlined,
-        label: 'New Requisition',
-      ),
-    ];
+    final actions = widget.editorOnly
+        ? const <Widget>[]
+        : <Widget>[
+            AdaptiveShellActionButton(
+              onPressed: () {
+                _resetForm();
+                if (!Responsive.isDesktop(context)) {
+                  _workspaceController.openEditor();
+                }
+              },
+              icon: Icons.add_outlined,
+              label: 'New Requisition',
+            ),
+          ];
 
     final content = _buildContent();
     if (widget.embedded) {
@@ -487,6 +498,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
               'requisition_no',
               'Purchase Requisition',
             ),
+      editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: PurchaseListCard<PurchaseRequisitionModel>(
         items: _filteredItems,
@@ -722,21 +734,29 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                       ),
                       SettingsFormWrap(
                         children: [
-                          AppDropdownField<int>.fromMapped(
+                          AppSearchPickerField<int>(
                             labelText: 'Item',
-                            mappedItems: _itemsLookup
+                            selectedLabel: _itemsLookup
+                                .cast<ItemModel?>()
+                                .firstWhere(
+                                  (item) => item?.id == line.itemId,
+                                  orElse: () => null,
+                                )
+                                ?.toString(),
+                            options: _itemsLookup
                                 .where((item) => item.id != null)
                                 .map(
-                                  (item) => AppDropdownItem(
+                                  (item) => AppSearchPickerOption<int>(
                                     value: item.id!,
                                     label: item.toString(),
+                                    subtitle: item.itemCode,
                                   ),
                                 )
                                 .toList(growable: false),
-                            initialValue: line.itemId,
                             onChanged: (value) =>
                                 setState(() => line.itemId = value),
-                            validator: Validators.requiredSelection('Item'),
+                            validator: (_) =>
+                                line.itemId == null ? 'Item is required' : null,
                           ),
                           AppDropdownField<int>.fromMapped(
                             labelText: 'UOM',

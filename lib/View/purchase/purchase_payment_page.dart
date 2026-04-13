@@ -2,9 +2,16 @@ import '../../screen.dart';
 import 'purchase_support.dart';
 
 class PurchasePaymentPage extends StatefulWidget {
-  const PurchasePaymentPage({super.key, this.embedded = false});
+  const PurchasePaymentPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<PurchasePaymentPage> createState() => _PurchasePaymentPageState();
@@ -88,7 +95,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
   void initState() {
     super.initState();
     _searchController.addListener(_applyFilters);
-    _loadPage();
+    _loadPage(selectId: widget.initialId);
   }
 
   @override
@@ -218,9 +225,11 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
-          : (_selectedItem == null
-                ? (_items.isNotEmpty ? _items.first : null)
-                : null);
+          : (widget.editorOnly
+                ? null
+                : (_selectedItem == null
+                      ? (_items.isNotEmpty ? _items.first : null)
+                      : null));
       if (selected != null) {
         await _selectDocument(selected);
       } else {
@@ -480,6 +489,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
               'payment_no',
               'Purchase Payment',
             ),
+      editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: PurchaseListCard<PurchasePaymentModel>(
         items: _filteredItems,
@@ -746,17 +756,27 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                         ),
                         SettingsFormWrap(
                           children: [
-                            AppDropdownField<int>.fromMapped(
+                            AppSearchPickerField<int>(
                               labelText: 'Purchase Invoice',
-                              mappedItems: _invoiceOptions
+                              selectedLabel: _invoiceOptions
+                                  .cast<PurchaseInvoiceModel?>()
+                                  .firstWhere(
+                                    (item) =>
+                                        item?.id ==
+                                        allocation.purchaseInvoiceId,
+                                    orElse: () => null,
+                                  )
+                                  ?.invoiceNo,
+                              options: _invoiceOptions
                                   .map(
-                                    (item) => AppDropdownItem(
+                                    (item) => AppSearchPickerOption<int>(
                                       value: item.id,
                                       label: item.invoiceNo ?? 'Invoice',
+                                      subtitle: item.raw?['supplier_name']
+                                          ?.toString(),
                                     ),
                                   )
                                   .toList(growable: false),
-                              initialValue: allocation.purchaseInvoiceId,
                               onChanged: (value) => setState(
                                 () => allocation.purchaseInvoiceId = value,
                               ),

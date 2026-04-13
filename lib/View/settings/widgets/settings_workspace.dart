@@ -41,6 +41,7 @@ class SettingsWorkspace extends StatefulWidget {
     this.listWidth = 360,
     this.editorTitle,
     this.controller,
+    this.editorOnly = false,
   });
 
   final ScrollController scrollController;
@@ -51,6 +52,7 @@ class SettingsWorkspace extends StatefulWidget {
   final String title;
   final String? editorTitle;
   final SettingsWorkspaceController? controller;
+  final bool editorOnly;
 
   @override
   State<SettingsWorkspace> createState() => _SettingsWorkspaceState();
@@ -87,7 +89,24 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
 
         return _SettingsWorkspaceScope(
           controller: _controller,
-          child: showInlineEditor
+          child: widget.editorOnly
+              ? SingleChildScrollView(
+                  controller: widget.scrollController,
+                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                  child: AppSectionCard(
+                    child: Column(
+                      children: [
+                        if (widget.editorTitle != null &&
+                            Responsive.isNotMobile(context)) ...[
+                          Text(widget.editorTitle!, style: theme.headlineSmall),
+                          const SizedBox(height: AppUiConstants.spacingXs),
+                        ],
+                        widget.editor,
+                      ],
+                    ),
+                  ),
+                )
+              : showInlineEditor
               ? SingleChildScrollView(
                   controller: widget.scrollController,
                   padding: const EdgeInsets.all(AppUiConstants.pagePadding),
@@ -186,7 +205,8 @@ class SettingsListCard<T> extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (searchController != null && (searchHint?.isNotEmpty ?? false)) ...[
+          if (searchController != null &&
+              (searchHint?.isNotEmpty ?? false)) ...[
             TextField(
               controller: searchController,
               decoration: InputDecoration(

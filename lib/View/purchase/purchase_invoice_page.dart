@@ -2,9 +2,16 @@ import '../../screen.dart';
 import 'purchase_support.dart';
 
 class PurchaseInvoicePage extends StatefulWidget {
-  const PurchaseInvoicePage({super.key, this.embedded = false});
+  const PurchaseInvoicePage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.initialId,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final int? initialId;
 
   @override
   State<PurchaseInvoicePage> createState() => _PurchaseInvoicePageState();
@@ -89,7 +96,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
   void initState() {
     super.initState();
     _searchController.addListener(_applyFilters);
-    _loadPage();
+    _loadPage(selectId: widget.initialId);
   }
 
   @override
@@ -255,9 +262,11 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               (item) => item?.id == selectId,
               orElse: () => null,
             )
-          : (_selectedItem == null
-                ? (_items.isNotEmpty ? _items.first : null)
-                : null);
+          : (widget.editorOnly
+                ? null
+                : (_selectedItem == null
+                      ? (_items.isNotEmpty ? _items.first : null)
+                      : null));
       if (selected != null) {
         await _selectDocument(selected);
       } else {
@@ -543,6 +552,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       editorTitle: _selectedItem == null
           ? 'New Purchase Invoice'
           : (_selectedItem!.invoiceNo ?? 'Purchase Invoice'),
+      editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: PurchaseListCard<PurchaseInvoiceModel>(
         items: _filteredItems,
@@ -847,23 +857,31 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                       ),
                       SettingsFormWrap(
                         children: [
-                          AppDropdownField<int>.fromMapped(
+                          AppSearchPickerField<int>(
                             labelText: 'Item',
-                            mappedItems: _itemsLookup
+                            selectedLabel: _itemsLookup
+                                .cast<ItemModel?>()
+                                .firstWhere(
+                                  (item) => item?.id == line.itemId,
+                                  orElse: () => null,
+                                )
+                                ?.toString(),
+                            options: _itemsLookup
                                 .where((item) => item.id != null)
                                 .map(
-                                  (item) => AppDropdownItem(
+                                  (item) => AppSearchPickerOption<int>(
                                     value: item.id!,
                                     label: item.toString(),
+                                    subtitle: item.itemCode,
                                   ),
                                 )
                                 .toList(growable: false),
-                            initialValue: line.itemId == 0 ? null : line.itemId,
                             onChanged: (value) => _updateLine(
                               index,
                               line.copyWith(itemId: value ?? 0),
                             ),
-                            validator: Validators.requiredSelection('Item'),
+                            validator: (_) =>
+                                line.itemId <= 0 ? 'Item is required' : null,
                           ),
                           AppDropdownField<int>.fromMapped(
                             labelText: 'Warehouse',
