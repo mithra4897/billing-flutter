@@ -31,6 +31,30 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         AppDropdownItem(value: 'credit', label: 'Credit'),
       ];
 
+  static const List<_VoucherModeOption> _voucherModeOptions =
+      <_VoucherModeOption>[
+        _VoucherModeOption(
+          category: 'payment',
+          label: 'Payment',
+          icon: Icons.payments_outlined,
+        ),
+        _VoucherModeOption(
+          category: 'receipt',
+          label: 'Receipt',
+          icon: Icons.receipt_long_outlined,
+        ),
+        _VoucherModeOption(
+          category: 'contra',
+          label: 'Contra',
+          icon: Icons.swap_horiz_outlined,
+        ),
+        _VoucherModeOption(
+          category: 'journal',
+          label: 'Journal',
+          icon: Icons.menu_book_outlined,
+        ),
+      ];
+
   final AccountsService _accountsService = AccountsService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
@@ -46,6 +70,12 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       TextEditingController();
   final TextEditingController _narrationController = TextEditingController();
   final TextEditingController _adjustmentRemarksController =
+      TextEditingController();
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _costCenterController = TextEditingController();
+  final TextEditingController _departmentController = TextEditingController();
+  final TextEditingController _projectController = TextEditingController();
+  final TextEditingController _lineNarrationController =
       TextEditingController();
 
   bool _initialLoading = true;
@@ -70,8 +100,13 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   int? _voucherTypeId;
   int? _documentSeriesId;
   int? _adjustmentAccountId;
+  int? _debitAccountId;
+  int? _creditAccountId;
+  int? _debitPartyId;
+  int? _creditPartyId;
   String _approvalStatus = 'draft';
   String _postingStatus = 'draft';
+  String _voucherMode = 'payment';
   bool _isActive = true;
   List<_VoucherLineDraft> _lines = <_VoucherLineDraft>[];
 
@@ -93,6 +128,11 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _referenceDateController.dispose();
     _narrationController.dispose();
     _adjustmentRemarksController.dispose();
+    _amountController.dispose();
+    _costCenterController.dispose();
+    _departmentController.dispose();
+    _projectController.dispose();
+    _lineNarrationController.dispose();
     super.dispose();
   }
 
@@ -182,10 +222,22 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         _contextLocationId = contextSelection.locationId;
         _contextFinancialYearId = contextSelection.financialYearId;
         _documentSeries = series.where((item) => item.isActive).toList();
-        _voucherTypes = voucherTypes.where((item) => item.isActive).toList();
+        _voucherTypes = voucherTypes
+            .where(
+              (item) =>
+                  item.isActive &&
+                  const <String>[
+                    'payment',
+                    'receipt',
+                    'contra',
+                    'journal',
+                  ].contains(item.voucherCategory),
+            )
+            .toList();
         _accounts = accounts.where((item) => item.isActive).toList();
         _parties = parties.where((item) => item.isActive).toList();
         _initialLoading = false;
+        _syncVoucherTypeWithMode();
         _syncDocumentSeriesSelection();
       });
 
@@ -246,6 +298,28 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     return null;
   }
 
+  List<VoucherTypeModel> get _voucherTypesForMode {
+    return _voucherTypes
+        .where((item) => item.voucherCategory == _voucherMode)
+        .toList(growable: false);
+  }
+
+  bool get _usesQuickEntry => _voucherMode != 'journal';
+
+  List<AccountModel> get _cashBankAccounts {
+    return _accounts
+        .where(
+          (item) => item.accountType == 'cash' || item.accountType == 'bank',
+        )
+        .toList(growable: false);
+  }
+
+  List<AccountModel> get _manualAccounts {
+    return _accounts
+        .where((item) => item.allowManualEntries || item.isSystemAccount)
+        .toList(growable: false);
+  }
+
   List<DocumentSeriesModel> get _filteredDocumentSeriesOptions {
     return _documentSeries
         .where((item) {
@@ -263,6 +337,19 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
           return documentTypeMatches && companyMatches && financialYearMatches;
         })
         .toList(growable: false);
+  }
+
+  void _syncVoucherTypeWithMode() {
+    final options = _voucherTypesForMode;
+    if (options.isEmpty) {
+      _voucherTypeId = null;
+      return;
+    }
+
+    final currentExists = options.any((item) => item.id == _voucherTypeId);
+    if (!currentExists) {
+      _voucherTypeId = options.first.id;
+    }
   }
 
   void _syncDocumentSeriesSelection() {
@@ -288,6 +375,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _locationId = full.locationId;
     _financialYearId = full.financialYearId;
     _voucherTypeId = full.voucherTypeId;
+    _voucherMode = _resolveVoucherMode(full);
     _documentSeriesId = full.documentSeriesId;
     _voucherNoController.text = full.voucherNo ?? '';
     _voucherDateController.text =
@@ -315,6 +403,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     if (_lines.isEmpty) {
       _lines = <_VoucherLineDraft>[_VoucherLineDraft()];
     }
+    _hydrateQuickEntryFromLines(full);
     _formError = null;
     setState(() {});
   }
@@ -325,7 +414,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _branchId = _contextBranchId;
     _locationId = _contextLocationId;
     _financialYearId = _contextFinancialYearId;
-    _voucherTypeId = _voucherTypes.isNotEmpty ? _voucherTypes.first.id : null;
+    _voucherMode = 'payment';
+    _syncVoucherTypeWithMode();
     _documentSeriesId = null;
     _syncDocumentSeriesSelection();
     _voucherNoController.clear();
@@ -338,12 +428,108 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _narrationController.clear();
     _adjustmentAccountId = null;
     _adjustmentRemarksController.clear();
+    _amountController.clear();
+    _costCenterController.clear();
+    _departmentController.clear();
+    _projectController.clear();
+    _lineNarrationController.clear();
+    _debitAccountId = null;
+    _creditAccountId = null;
+    _debitPartyId = null;
+    _creditPartyId = null;
     _approvalStatus = 'draft';
     _postingStatus = 'draft';
     _isActive = true;
     _lines = <_VoucherLineDraft>[_VoucherLineDraft()];
     _formError = null;
     setState(() {});
+  }
+
+  String _resolveVoucherMode(VoucherModel voucher) {
+    final category = voucher.voucherCategory?.trim().toLowerCase();
+    if (const <String>[
+      'payment',
+      'receipt',
+      'contra',
+      'journal',
+    ].contains(category)) {
+      return category!;
+    }
+    return 'journal';
+  }
+
+  void _hydrateQuickEntryFromLines(VoucherModel voucher) {
+    _amountController.clear();
+    _costCenterController.clear();
+    _departmentController.clear();
+    _projectController.clear();
+    _lineNarrationController.clear();
+    _debitAccountId = null;
+    _creditAccountId = null;
+    _debitPartyId = null;
+    _creditPartyId = null;
+
+    if (!_usesQuickEntry) {
+      return;
+    }
+
+    final debitLine = voucher.lines.cast<VoucherLineModel?>().firstWhere(
+      (item) => item?.entryType == 'debit',
+      orElse: () => null,
+    );
+    final creditLine = voucher.lines.cast<VoucherLineModel?>().firstWhere(
+      (item) => item?.entryType == 'credit',
+      orElse: () => null,
+    );
+
+    if (debitLine == null || creditLine == null) {
+      return;
+    }
+
+    _debitAccountId = debitLine.accountId;
+    _creditAccountId = creditLine.accountId;
+    _debitPartyId = debitLine.partyId;
+    _creditPartyId = creditLine.partyId;
+    _amountController.text = ((debitLine.amount ?? creditLine.amount) ?? 0)
+        .toStringAsFixed(2);
+    _costCenterController.text =
+        debitLine.costCenter ?? creditLine.costCenter ?? '';
+    _departmentController.text =
+        debitLine.department ?? creditLine.department ?? '';
+    _projectController.text = debitLine.project ?? creditLine.project ?? '';
+    _lineNarrationController.text =
+        debitLine.lineNarration ?? creditLine.lineNarration ?? '';
+  }
+
+  List<VoucherLineModel> _buildQuickEntryLines() {
+    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
+    final costCenter = nullIfEmpty(_costCenterController.text);
+    final department = nullIfEmpty(_departmentController.text);
+    final project = nullIfEmpty(_projectController.text);
+    final lineNarration = nullIfEmpty(_lineNarrationController.text);
+
+    return <VoucherLineModel>[
+      VoucherLineModel(
+        accountId: _debitAccountId,
+        partyId: _debitPartyId,
+        entryType: 'debit',
+        amount: amount,
+        costCenter: costCenter,
+        department: department,
+        project: project,
+        lineNarration: lineNarration,
+      ),
+      VoucherLineModel(
+        accountId: _creditAccountId,
+        partyId: _creditPartyId,
+        entryType: 'credit',
+        amount: amount,
+        costCenter: costCenter,
+        department: department,
+        project: project,
+        lineNarration: lineNarration,
+      ),
+    ];
   }
 
   void _addLine() {
@@ -386,12 +572,24 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final hasInvalidLine = _lines.any(
-      (line) =>
-          line.accountId == null ||
-          double.tryParse(line.amountText.trim()) == null ||
-          (double.tryParse(line.amountText.trim()) ?? 0) <= 0,
-    );
+    if (_usesQuickEntry) {
+      final amount = double.tryParse(_amountController.text.trim()) ?? 0;
+      if (_debitAccountId == null || _creditAccountId == null || amount <= 0) {
+        setState(() {
+          _formError = 'Complete both accounts and amount for this voucher.';
+        });
+        return;
+      }
+    }
+
+    final hasInvalidLine =
+        !_usesQuickEntry &&
+        _lines.any(
+          (line) =>
+              line.accountId == null ||
+              double.tryParse(line.amountText.trim()) == null ||
+              (double.tryParse(line.amountText.trim()) ?? 0) <= 0,
+        );
     if (hasInvalidLine) {
       setState(() {
         _formError = 'Each voucher line needs account and amount.';
@@ -399,8 +597,26 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       return;
     }
 
-    final debitTotal = _totalDebit;
-    final creditTotal = _totalCredit;
+    final linesForSave = _usesQuickEntry
+        ? _buildQuickEntryLines()
+        : _lines
+              .map(
+                (line) => VoucherLineModel(
+                  accountId: line.accountId,
+                  partyId: line.partyId,
+                  entryType: line.entryType,
+                  amount: double.tryParse(line.amountText.trim()),
+                  lineNarration: nullIfEmpty(line.narration),
+                ),
+              )
+              .toList(growable: false);
+
+    final debitTotal = linesForSave
+        .where((line) => line.entryType == 'debit')
+        .fold<double>(0, (sum, line) => sum + (line.amount ?? 0));
+    final creditTotal = linesForSave
+        .where((line) => line.entryType == 'credit')
+        .fold<double>(0, (sum, line) => sum + (line.amount ?? 0));
     if ((debitTotal - creditTotal).abs() > 0.009 &&
         _adjustmentAccountId == null) {
       setState(() {
@@ -433,17 +649,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       approvalStatus: _approvalStatus,
       postingStatus: _postingStatus,
       isActive: _isActive,
-      lines: _lines
-          .map(
-            (line) => VoucherLineModel(
-              accountId: line.accountId,
-              partyId: line.partyId,
-              entryType: line.entryType,
-              amount: double.tryParse(line.amountText.trim()),
-              lineNarration: nullIfEmpty(line.narration),
-            ),
-          )
-          .toList(growable: false),
+      lines: linesForSave,
     );
 
     try {
@@ -478,7 +684,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
           }
         },
         icon: Icons.add_outlined,
-        label: 'New Voucher',
+        label: 'New Entry',
       ),
     ];
 
@@ -541,9 +747,10 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             ],
             SettingsFormWrap(
               children: [
+                _buildVoucherModeField(),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Voucher Type',
-                  mappedItems: _voucherTypes
+                  mappedItems: _voucherTypesForMode
                       .where((item) => item.id != null)
                       .map(
                         (item) => AppDropdownItem(
@@ -592,6 +799,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                 AppFormTextField(
                   labelText: 'Voucher Date',
                   controller: _voucherDateController,
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
                   validator: Validators.compose([
                     Validators.required('Voucher Date'),
                     Validators.date('Voucher Date'),
@@ -605,6 +814,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                 AppFormTextField(
                   labelText: 'Reference Date',
                   controller: _referenceDateController,
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
                   validator: Validators.optionalDate('Reference Date'),
                 ),
                 AppDropdownField<String>.fromMapped(
@@ -659,151 +870,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               onChanged: (value) => setState(() => _isActive = value),
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
-            AppSectionCard(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Debit: ${_totalDebit.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Credit: ${_totalCredit.toStringAsFixed(2)}',
-                      textAlign: TextAlign.end,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            Row(
-              children: [
-                Text(
-                  'Voucher Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add Line',
-                  onPressed: _addLine,
-                  filled: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(_lines.length, (index) {
-              final line = _lines[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AppSectionCard(
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Line ${index + 1}',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _lines.length == 1
-                                ? null
-                                : () => _removeLine(index),
-                            icon: const Icon(Icons.delete_outline),
-                          ),
-                        ],
-                      ),
-                      SettingsFormWrap(
-                        children: [
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Account',
-                            mappedItems: _accounts
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.accountId,
-                            onChanged: (value) =>
-                                setState(() => line.accountId = value),
-                            validator: Validators.requiredSelection('Account'),
-                          ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Party',
-                            mappedItems: _parties
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.partyId,
-                            onChanged: (value) =>
-                                setState(() => line.partyId = value),
-                          ),
-                          AppDropdownField<String>.fromMapped(
-                            labelText: 'Entry Type',
-                            mappedItems: _entryTypeItems,
-                            initialValue: line.entryType,
-                            onChanged: (value) => setState(
-                              () => line.entryType = value ?? 'debit',
-                            ),
-                            validator: Validators.requiredSelection(
-                              'Entry Type',
-                            ),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Amount',
-                            initialValue: line.amountText,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            onChanged: (value) => line.amountText = value,
-                            validator: Validators.compose([
-                              Validators.required('Amount'),
-                              Validators.optionalNonNegativeNumber('Amount'),
-                              (value) {
-                                final parsed = double.tryParse(
-                                  value?.trim() ?? '',
-                                );
-                                if (parsed == null || parsed <= 0) {
-                                  return 'Amount must be greater than zero';
-                                }
-                                return null;
-                              },
-                            ]),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Line Narration',
-                            initialValue: line.narration,
-                            onChanged: (value) => line.narration = value,
-                            validator: Validators.optionalMaxLength(
-                              500,
-                              'Line Narration',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+            _buildEntryBody(),
             AppActionButton(
               icon: Icons.save_outlined,
               label: _selectedVoucher == null
@@ -816,6 +883,406 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildVoucherModeField() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Entry Mode', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            Wrap(
+              spacing: AppUiConstants.spacingXs,
+              runSpacing: AppUiConstants.spacingXs,
+              children: _voucherModeOptions
+                  .map((option) {
+                    return FilterChip(
+                      selected: _voucherMode == option.category,
+                      label: Text(option.label),
+                      avatar: Icon(option.icon, size: 18),
+                      onSelected: (_) {
+                        setState(() {
+                          _voucherMode = option.category;
+                          _syncVoucherTypeWithMode();
+                          _documentSeriesId = null;
+                          _syncDocumentSeriesSelection();
+                        });
+                      },
+                    );
+                  })
+                  .toList(growable: false),
+            ),
+            if (width > 0) const SizedBox.shrink(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEntryBody() {
+    final totals = _usesQuickEntry
+        ? <String, double>{
+            'debit': double.tryParse(_amountController.text.trim()) ?? 0,
+            'credit': double.tryParse(_amountController.text.trim()) ?? 0,
+          }
+        : <String, double>{'debit': _totalDebit, 'credit': _totalCredit};
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSectionCard(
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Debit: ${totals['debit']!.toStringAsFixed(2)}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Credit: ${totals['credit']!.toStringAsFixed(2)}',
+                  textAlign: TextAlign.end,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        if (_usesQuickEntry)
+          _buildQuickEntrySection()
+        else
+          _buildJournalLines(),
+      ],
+    );
+  }
+
+  Widget _buildQuickEntrySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _voucherMode == 'payment'
+              ? 'Record a payment with one debit and one credit.'
+              : _voucherMode == 'receipt'
+              ? 'Record a receipt with one debit and one credit.'
+              : 'Move money between cash / bank accounts.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        SettingsFormWrap(
+          children: [
+            AppDropdownField<int>.fromMapped(
+              labelText: _debitAccountLabel,
+              mappedItems: _debitAccountOptions
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppDropdownItem(
+                      value: item.id!,
+                      label: item.toString(),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialValue: _debitAccountId,
+              onChanged: (value) => setState(() => _debitAccountId = value),
+              validator: Validators.requiredSelection(_debitAccountLabel),
+            ),
+            AppDropdownField<int>.fromMapped(
+              labelText: _creditAccountLabel,
+              mappedItems: _creditAccountOptions
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppDropdownItem(
+                      value: item.id!,
+                      label: item.toString(),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialValue: _creditAccountId,
+              onChanged: (value) => setState(() => _creditAccountId = value),
+              validator: Validators.requiredSelection(_creditAccountLabel),
+            ),
+            AppDropdownField<int>.fromMapped(
+              labelText: _debitPartyLabel,
+              mappedItems: _parties
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppDropdownItem(
+                      value: item.id!,
+                      label: item.toString(),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialValue: _debitPartyId,
+              onChanged: (value) => setState(() => _debitPartyId = value),
+            ),
+            AppDropdownField<int>.fromMapped(
+              labelText: _creditPartyLabel,
+              mappedItems: _parties
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppDropdownItem(
+                      value: item.id!,
+                      label: item.toString(),
+                    ),
+                  )
+                  .toList(growable: false),
+              initialValue: _creditPartyId,
+              onChanged: (value) => setState(() => _creditPartyId = value),
+            ),
+            AppFormTextField(
+              labelText: 'Amount',
+              controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              validator: Validators.compose([
+                Validators.required('Amount'),
+                Validators.optionalNonNegativeNumber('Amount'),
+                (value) {
+                  final parsed = double.tryParse(value?.trim() ?? '');
+                  if (parsed == null || parsed <= 0) {
+                    return 'Amount must be greater than zero';
+                  }
+                  return null;
+                },
+              ]),
+            ),
+            AppFormTextField(
+              labelText: 'Cost Center',
+              controller: _costCenterController,
+              validator: Validators.optionalMaxLength(100, 'Cost Center'),
+            ),
+            AppFormTextField(
+              labelText: 'Department',
+              controller: _departmentController,
+              validator: Validators.optionalMaxLength(100, 'Department'),
+            ),
+            AppFormTextField(
+              labelText: 'Project',
+              controller: _projectController,
+              validator: Validators.optionalMaxLength(100, 'Project'),
+            ),
+            AppFormTextField(
+              labelText: 'Line Narration',
+              controller: _lineNarrationController,
+              maxLines: 2,
+              validator: Validators.optionalMaxLength(500, 'Line Narration'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJournalLines() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Journal Lines',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const Spacer(),
+            AppActionButton(
+              icon: Icons.add_outlined,
+              label: 'Add Line',
+              onPressed: _addLine,
+              filled: false,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        ...List<Widget>.generate(_lines.length, (index) {
+          final line = _lines[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: AppSectionCard(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Line ${index + 1}',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: _lines.length == 1
+                            ? null
+                            : () => _removeLine(index),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ),
+                  SettingsFormWrap(
+                    children: [
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Account',
+                        mappedItems: _accounts
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: line.accountId,
+                        onChanged: (value) =>
+                            setState(() => line.accountId = value),
+                        validator: Validators.requiredSelection('Account'),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Party',
+                        mappedItems: _parties
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: line.partyId,
+                        onChanged: (value) =>
+                            setState(() => line.partyId = value),
+                      ),
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Entry Type',
+                        mappedItems: _entryTypeItems,
+                        initialValue: line.entryType,
+                        onChanged: (value) =>
+                            setState(() => line.entryType = value ?? 'debit'),
+                        validator: Validators.requiredSelection('Entry Type'),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Amount',
+                        initialValue: line.amountText,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        onChanged: (value) => line.amountText = value,
+                        validator: Validators.compose([
+                          Validators.required('Amount'),
+                          Validators.optionalNonNegativeNumber('Amount'),
+                          (value) {
+                            final parsed = double.tryParse(value?.trim() ?? '');
+                            if (parsed == null || parsed <= 0) {
+                              return 'Amount must be greater than zero';
+                            }
+                            return null;
+                          },
+                        ]),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Line Narration',
+                        initialValue: line.narration,
+                        onChanged: (value) => line.narration = value,
+                        validator: Validators.optionalMaxLength(
+                          500,
+                          'Line Narration',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  String get _debitAccountLabel {
+    switch (_voucherMode) {
+      case 'payment':
+        return 'Expense / Target Account';
+      case 'receipt':
+        return 'Received In';
+      case 'contra':
+        return 'Deposit To';
+      default:
+        return 'Debit Account';
+    }
+  }
+
+  String get _creditAccountLabel {
+    switch (_voucherMode) {
+      case 'payment':
+        return 'Paid Through';
+      case 'receipt':
+        return 'Received From';
+      case 'contra':
+        return 'Withdraw From';
+      default:
+        return 'Credit Account';
+    }
+  }
+
+  String get _debitPartyLabel {
+    switch (_voucherMode) {
+      case 'payment':
+        return 'Payee Party';
+      case 'receipt':
+        return 'Cash / Bank Party';
+      case 'contra':
+        return 'Deposit Party';
+      default:
+        return 'Debit Party';
+    }
+  }
+
+  String get _creditPartyLabel {
+    switch (_voucherMode) {
+      case 'payment':
+        return 'Cash / Bank Party';
+      case 'receipt':
+        return 'Payer Party';
+      case 'contra':
+        return 'Withdraw Party';
+      default:
+        return 'Credit Party';
+    }
+  }
+
+  List<AccountModel> get _debitAccountOptions {
+    switch (_voucherMode) {
+      case 'payment':
+        return _manualAccounts;
+      case 'receipt':
+        return _cashBankAccounts;
+      case 'contra':
+        return _cashBankAccounts;
+      default:
+        return _manualAccounts;
+    }
+  }
+
+  List<AccountModel> get _creditAccountOptions {
+    switch (_voucherMode) {
+      case 'payment':
+        return _cashBankAccounts;
+      case 'receipt':
+        return _manualAccounts;
+      case 'contra':
+        return _cashBankAccounts;
+      default:
+        return _manualAccounts;
+    }
   }
 }
 
@@ -833,4 +1300,16 @@ class _VoucherLineDraft {
   String entryType;
   String amountText;
   String narration;
+}
+
+class _VoucherModeOption {
+  const _VoucherModeOption({
+    required this.category,
+    required this.label,
+    required this.icon,
+  });
+
+  final String category;
+  final String label;
+  final IconData icon;
 }

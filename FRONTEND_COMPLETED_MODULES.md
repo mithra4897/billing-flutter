@@ -361,6 +361,42 @@ These completed modules are already connected into the app shell and should not 
 - `/parties/bank-accounts`
 - `/parties/credit-limits`
 - `/parties/payment-terms`
+- `/purchase/requisitions`
+- `/purchase/orders`
+- `/purchase/receipts`
+- `/purchase/invoices`
+- `/purchase/payments`
+- `/purchase/returns`
+
+## Purchase Module Completed
+
+The purchase flow is now available as real frontend screens instead of placeholders.
+
+Completed screens:
+
+- `Purchase Requisitions`
+- `Purchase Orders`
+- `Purchase Receipts`
+- `Purchase Invoices`
+- `Purchase Payments`
+- `Purchase Returns`
+
+Pattern followed:
+
+- report-style recent list on the left
+- filter/search support
+- full create/edit form on the right
+- backend workflow actions exposed where applicable:
+  - approve
+  - post
+  - close
+  - cancel
+
+Important ERP behavior covered:
+
+- Purchase Payments support multiple invoice allocations in one payment.
+- Purchase Invoices support item/warehouse/UOM/qty/rate/tax-oriented line entry.
+- Purchase Returns are invoice-line driven, so return lines stay tied to the original purchase invoice lines.
 
 ## What This File Is For
 

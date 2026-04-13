@@ -15,6 +15,7 @@ class PurchaseInvoiceLineModel {
     this.taxCodeId,
     this.taxPercent,
     this.taxType,
+    this.cessAmount,
     this.remarks,
   });
 
@@ -33,6 +34,7 @@ class PurchaseInvoiceLineModel {
   final int? taxCodeId;
   final double? taxPercent;
   final String? taxType;
+  final double? cessAmount;
   final String? remarks;
 
   factory PurchaseInvoiceLineModel.fromJson(Map<String, dynamic> json) {
@@ -52,7 +54,49 @@ class PurchaseInvoiceLineModel {
       taxCodeId: _nullableInt(json['tax_code_id']),
       taxPercent: _nullableDouble(json['tax_percent']),
       taxType: json['tax_type']?.toString(),
+      cessAmount: _nullableDouble(json['cess_amount']),
       remarks: json['remarks']?.toString(),
+    );
+  }
+
+  PurchaseInvoiceLineModel copyWith({
+    int? id,
+    int? purchaseOrderLineId,
+    int? purchaseReceiptLineId,
+    int? itemId,
+    int? warehouseId,
+    int? uomId,
+    int? batchId,
+    int? serialId,
+    double? invoicedQty,
+    double? rate,
+    String? description,
+    double? discountPercent,
+    int? taxCodeId,
+    double? taxPercent,
+    String? taxType,
+    double? cessAmount,
+    String? remarks,
+  }) {
+    return PurchaseInvoiceLineModel(
+      id: id ?? this.id,
+      purchaseOrderLineId: purchaseOrderLineId ?? this.purchaseOrderLineId,
+      purchaseReceiptLineId:
+          purchaseReceiptLineId ?? this.purchaseReceiptLineId,
+      itemId: itemId ?? this.itemId,
+      warehouseId: warehouseId ?? this.warehouseId,
+      uomId: uomId ?? this.uomId,
+      batchId: batchId ?? this.batchId,
+      serialId: serialId ?? this.serialId,
+      invoicedQty: invoicedQty ?? this.invoicedQty,
+      rate: rate ?? this.rate,
+      description: description ?? this.description,
+      discountPercent: discountPercent ?? this.discountPercent,
+      taxCodeId: taxCodeId ?? this.taxCodeId,
+      taxPercent: taxPercent ?? this.taxPercent,
+      taxType: taxType ?? this.taxType,
+      cessAmount: cessAmount ?? this.cessAmount,
+      remarks: remarks ?? this.remarks,
     );
   }
 
@@ -74,6 +118,7 @@ class PurchaseInvoiceLineModel {
       if (taxCodeId != null) 'tax_code_id': taxCodeId,
       if (taxPercent != null) 'tax_percent': taxPercent,
       if (taxType != null) 'tax_type': taxType,
+      if (cessAmount != null) 'cess_amount': cessAmount,
       if (remarks != null) 'remarks': remarks,
     };
   }

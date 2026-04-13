@@ -19,6 +19,12 @@ import '../hr/designation_page.dart';
 import '../hr/employee_page.dart';
 import '../hr/leave_request_page.dart';
 import '../hr/leave_type_page.dart';
+import '../purchase/purchase_invoice_page.dart';
+import '../purchase/purchase_order_page.dart';
+import '../purchase/purchase_payment_page.dart';
+import '../purchase/purchase_receipt_page.dart';
+import '../purchase/purchase_requisition_page.dart';
+import '../purchase/purchase_return_page.dart';
 import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
 import '../settings/user/role_management_page.dart';
@@ -364,6 +370,18 @@ class _AppShellPageState extends State<AppShellPage> {
         return LeaveTypeManagementPage(key: routeKey, embedded: true);
       case '/hr/leave-requests':
         return LeaveRequestManagementPage(key: routeKey, embedded: true);
+      case '/purchase/requisitions':
+        return PurchaseRequisitionPage(key: routeKey, embedded: true);
+      case '/purchase/orders':
+        return PurchaseOrderPage(key: routeKey, embedded: true);
+      case '/purchase/receipts':
+        return PurchaseReceiptPage(key: routeKey, embedded: true);
+      case '/purchase/invoices':
+        return PurchaseInvoicePage(key: routeKey, embedded: true);
+      case '/purchase/payments':
+        return PurchasePaymentPage(key: routeKey, embedded: true);
+      case '/purchase/returns':
+        return PurchaseReturnPage(key: routeKey, embedded: true);
       case '/parties/addresses':
         return PartyManagementPage(
           key: routeKey,
