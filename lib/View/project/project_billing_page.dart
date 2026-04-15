@@ -225,17 +225,84 @@ class _ProjectBillingManagementPageState
         .toList(growable: false);
   }
 
-  List<AppDropdownItem<int>> get _salesInvoiceItems => _salesInvoices
-      .map(
-        (item) => AppDropdownItem<int>(
-          value: item.id,
-          label: item.invoiceNo?.trim().isNotEmpty == true
-              ? item.invoiceNo!
-              : 'Invoice #${item.id}',
-        ),
-      )
-      .where((item) => item.value != 0)
-      .toList(growable: false);
+  ProjectModel? _projectById(int? id) {
+    return _projects.cast<ProjectModel?>().firstWhere(
+      (item) => item?.id == id,
+      orElse: () => null,
+    );
+  }
+
+  SalesInvoiceModel? _salesInvoiceById(int? id) {
+    return _salesInvoices.cast<SalesInvoiceModel?>().firstWhere(
+      (item) => item?.id == id,
+      orElse: () => null,
+    );
+  }
+
+  String? _salesInvoiceLabel(int? id) {
+    final invoice = _salesInvoiceById(id);
+    if (invoice == null) {
+      return null;
+    }
+    final invoiceNo = invoice.invoiceNo?.trim();
+    if ((invoiceNo ?? '').isNotEmpty) {
+      return invoiceNo;
+    }
+    return 'Invoice #${invoice.id}';
+  }
+
+  void _openSalesInvoicePage() {
+    Navigator.of(context).pushNamed('/sales/invoices');
+  }
+
+  void _applySalesInvoice(int? invoiceId) {
+    final invoice = _salesInvoiceById(invoiceId);
+    int? resolvedProjectId = _projectId;
+    int? resolvedMilestoneId = _milestoneId;
+
+    if (invoice != null) {
+      final projectCandidates = _projects
+          .where((item) => item.customerPartyId == invoice.customerPartyId)
+          .toList(growable: false);
+      if (resolvedProjectId == null ||
+          !projectCandidates.any((item) => item.id == resolvedProjectId)) {
+        if (projectCandidates.length == 1) {
+          resolvedProjectId = projectCandidates.first.id;
+        }
+      }
+
+      final resolvedProject = _projectById(resolvedProjectId);
+      final billingAmount = invoice.totalAmount;
+      if (billingAmount != null) {
+        _amountController.text = _decimalText(billingAmount);
+      }
+      if (resolvedProject != null && billingAmount != null) {
+        final milestoneMatches = resolvedProject.milestones.where((milestone) {
+          final milestoneAmount = milestone.milestoneAmount;
+          if (milestone.id == null || milestoneAmount == null) {
+            return false;
+          }
+          return (milestoneAmount - billingAmount).abs() < 0.01;
+        }).toList(growable: false);
+        if (milestoneMatches.length == 1) {
+          resolvedMilestoneId = milestoneMatches.first.id;
+        } else if (!_milestoneItems.any((item) => item.value == resolvedMilestoneId)) {
+          resolvedMilestoneId = null;
+        }
+      }
+    }
+
+    setState(() {
+      _salesInvoiceId = invoiceId;
+      _projectId = resolvedProjectId;
+      _milestoneId = resolvedMilestoneId;
+      if (invoice != null &&
+          resolvedMilestoneId != null &&
+          _basis == 'fixed') {
+        _basis = 'milestone';
+      }
+    });
+  }
 
   double? _doubleValue(String text) => double.tryParse(text.trim());
   String _decimalText(double? value) => value == null
@@ -414,11 +481,36 @@ class _ProjectBillingManagementPageState
                     Validators.optionalNonNegativeNumber('Billing Amount'),
                   ]),
                 ),
-                AppDropdownField<int>.fromMapped(
-                  initialValue: _salesInvoiceId,
-                  labelText: 'Sales Invoice',
-                  mappedItems: _salesInvoiceItems,
-                  onChanged: (value) => setState(() => _salesInvoiceId = value),
+                InlineFieldAction(
+                  actionTooltip: 'Open sales invoices',
+                  onAddNew: _openSalesInvoicePage,
+                  field: AppSearchPickerField<int>(
+                    labelText: 'Sales Invoice',
+                    selectedLabel: _salesInvoiceLabel(_salesInvoiceId),
+                    options: _salesInvoices
+                        .map(
+                          (invoice) => AppSearchPickerOption<int>(
+                            value: invoice.id,
+                            label:
+                                _salesInvoiceLabel(invoice.id) ??
+                                'Invoice #${invoice.id}',
+                            subtitle: [
+                              invoice.invoiceDate,
+                              if (invoice.totalAmount != null)
+                                'Amount ${_decimalText(invoice.totalAmount)}',
+                            ].where((item) => item.isNotEmpty).join(' • '),
+                            searchText: [
+                              invoice.invoiceNo ?? '',
+                              invoice.invoiceDate,
+                              invoice.customerPartyId.toString(),
+                              invoice.totalAmount?.toString() ?? '',
+                            ].join(' '),
+                          ),
+                        )
+                        .toList(growable: false),
+                    hintText: 'Search sales invoice',
+                    onChanged: _applySalesInvoice,
+                  ),
                 ),
                 AppDropdownField<String>.fromMapped(
                   initialValue: _status,

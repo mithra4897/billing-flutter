@@ -245,17 +245,33 @@ class _ProjectExpenseManagementPageState
       .where((item) => item.value != 0)
       .toList(growable: false);
 
-  List<AppDropdownItem<int>> get _purchaseInvoiceItems => _purchaseInvoices
-      .map(
-        (item) => AppDropdownItem<int>(
-          value: item.id,
-          label: item.invoiceNo?.trim().isNotEmpty == true
-              ? item.invoiceNo!
-              : 'Invoice #${item.id}',
-        ),
-      )
-      .where((item) => item.value != 0)
-      .toList(growable: false);
+  PurchaseInvoiceModel? _purchaseInvoiceById(int? id) {
+    return _purchaseInvoices.cast<PurchaseInvoiceModel?>().firstWhere(
+      (item) => item?.id == id,
+      orElse: () => null,
+    );
+  }
+
+  String? _purchaseInvoiceLabel(int? id) {
+    final invoice = _purchaseInvoiceById(id);
+    if (invoice == null) {
+      return null;
+    }
+    return invoice.invoiceNo?.trim().isNotEmpty == true
+        ? invoice.invoiceNo
+        : 'Invoice #${invoice.id}';
+  }
+
+  void _applyPurchaseInvoice(int? invoiceId) {
+    final invoice = _purchaseInvoiceById(invoiceId);
+    setState(() {
+      _purchaseInvoiceId = invoiceId;
+      if (invoice != null) {
+        _supplierPartyId = invoice.supplierPartyId;
+        _amountController.text = _decimalText(invoice.totalAmount);
+      }
+    });
+  }
 
   double? _doubleValue(String text) => double.tryParse(text.trim());
   int? _intValue(String text) => int.tryParse(text.trim());
@@ -435,12 +451,31 @@ class _ProjectExpenseManagementPageState
                   onChanged: (value) =>
                       setState(() => _supplierPartyId = value),
                 ),
-                AppDropdownField<int>.fromMapped(
-                  initialValue: _purchaseInvoiceId,
+                AppSearchPickerField<int>(
                   labelText: 'Purchase Invoice',
-                  mappedItems: _purchaseInvoiceItems,
-                  onChanged: (value) =>
-                      setState(() => _purchaseInvoiceId = value),
+                  selectedLabel: _purchaseInvoiceLabel(_purchaseInvoiceId),
+                  options: _purchaseInvoices
+                      .map(
+                        (item) => AppSearchPickerOption<int>(
+                          value: item.id,
+                          label: item.invoiceNo?.trim().isNotEmpty == true
+                              ? item.invoiceNo!
+                              : 'Invoice #${item.id}',
+                          subtitle: [
+                            if (item.invoiceDate.trim().isNotEmpty)
+                              item.invoiceDate,
+                            if (item.totalAmount != null)
+                              _decimalText(item.totalAmount),
+                          ].join(' • '),
+                          searchText: [
+                            item.invoiceNo ?? '',
+                            item.invoiceDate,
+                            item.id.toString(),
+                          ].join(' '),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: _applyPurchaseInvoice,
                 ),
                 AppDropdownField<String>.fromMapped(
                   initialValue: _status,

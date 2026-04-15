@@ -38,6 +38,9 @@ class _ProjectVendorWorkManagementPageState
   bool _saving = false;
   String? _pageError;
   String? _formError;
+  int? _filterProjectId;
+  int? _filterTaskId;
+  int? _filterVendorPartyId;
   int? _projectId;
   int? _taskId;
   int? _vendorPartyId;
@@ -56,7 +59,6 @@ class _ProjectVendorWorkManagementPageState
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
     _loadData();
   }
 
@@ -137,7 +139,7 @@ class _ProjectVendorWorkManagementPageState
         _purchaseOrders = purchaseOrders;
         _purchaseInvoices = purchaseInvoices;
         _rows = rows;
-        _filteredRows = _filterRows(rows, _searchController.text);
+        _filteredRows = _filterRows(rows);
         _initialLoading = false;
       });
       final selected = selectId == null
@@ -162,13 +164,25 @@ class _ProjectVendorWorkManagementPageState
     }
   }
 
-  List<_ProjectVendorWorkRow> _filterRows(
-    List<_ProjectVendorWorkRow> rows,
-    String query,
-  ) {
-    return filterMasterList(rows, query, (row) {
+  List<_ProjectVendorWorkRow> _filterRows(List<_ProjectVendorWorkRow> rows) {
+    final scoped = rows.where((row) {
+      if (_filterProjectId != null && row.project.id != _filterProjectId) {
+        return false;
+      }
+      if (_filterTaskId != null && row.work.projectTaskId != _filterTaskId) {
+        return false;
+      }
+      if (_filterVendorPartyId != null &&
+          row.work.vendorPartyId != _filterVendorPartyId) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
+
+    return filterMasterList(scoped, _searchController.text, (row) {
       return [
         row.project.projectName ?? '',
+        _taskName(row.project, row.work.projectTaskId),
         _partyName(row.work.vendorPartyId),
         row.work.workStatus ?? '',
         row.work.workDescription ?? '',
@@ -176,9 +190,9 @@ class _ProjectVendorWorkManagementPageState
     });
   }
 
-  void _applySearch() {
+  void _applyFilters() {
     setState(() {
-      _filteredRows = _filterRows(_rows, _searchController.text);
+      _filteredRows = _filterRows(_rows);
     });
   }
 
@@ -280,6 +294,201 @@ class _ProjectVendorWorkManagementPageState
         '';
   }
 
+  String _taskName(ProjectModel project, int? id) {
+    return project.tasks
+            .cast<ProjectTaskModel?>()
+            .firstWhere((item) => item?.id == id, orElse: () => null)
+            ?.taskName ??
+        project.tasks
+            .cast<ProjectTaskModel?>()
+            .firstWhere((item) => item?.id == id, orElse: () => null)
+            ?.taskCode ??
+        '';
+  }
+
+  List<AppDropdownItem<int>> get _filterProjectItems => _projects
+      .map(
+        (item) => AppDropdownItem<int>(
+          value: item.id ?? 0,
+          label: item.projectName ?? item.projectCode ?? 'Project',
+        ),
+      )
+      .where((item) => item.value != 0)
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get _filterTaskItems {
+    final project = _projects.cast<ProjectModel?>().firstWhere(
+      (item) => item?.id == _filterProjectId,
+      orElse: () => null,
+    );
+    final source = project == null
+        ? _projects.expand((item) => item.tasks).toList(growable: false)
+        : project.tasks;
+    return source
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id ?? 0,
+            label: item.taskName ?? item.taskCode ?? 'Task',
+          ),
+        )
+        .where((item) => item.value != 0)
+        .toList(growable: false);
+  }
+
+  Future<void> _openFilterPanel() async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 20,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    dialogPadding,
+                    dialogPadding,
+                    dialogPadding,
+                    MediaQuery.of(dialogContext).viewInsets.bottom +
+                        dialogPadding,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Filter Vendor Work',
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close),
+                            color: appTheme.mutedText,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _filterBox(
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: const InputDecoration(
+                                labelText: 'Search',
+                              ),
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppDropdownField<int>.fromMapped(
+                              initialValue: _filterProjectId,
+                              labelText: 'Project',
+                              mappedItems: _filterProjectItems,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  _filterProjectId = value;
+                                  final taskExists = _filterTaskItems.any(
+                                    (item) => item.value == _filterTaskId,
+                                  );
+                                  if (!taskExists) {
+                                    _filterTaskId = null;
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppDropdownField<int>.fromMapped(
+                              initialValue: _filterTaskId,
+                              labelText: 'Task',
+                              mappedItems: _filterTaskItems,
+                              onChanged: (value) =>
+                                  setDialogState(() => _filterTaskId = value),
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppDropdownField<int>.fromMapped(
+                              initialValue: _filterVendorPartyId,
+                              labelText: 'Vendor',
+                              mappedItems: _partyItems,
+                              onChanged: (value) => setDialogState(
+                                () => _filterVendorPartyId = value,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(true),
+                            icon: const Icon(Icons.search),
+                            label: const Text('Apply Filters'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setDialogState(() {
+                                _searchController.clear();
+                                _filterProjectId = null;
+                                _filterTaskId = null;
+                                _filterVendorPartyId = null;
+                              });
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (applied == true) {
+      _applyFilters();
+    }
+  }
+
+  Widget _filterBox({required Widget child}) {
+    return SizedBox(width: 220, child: child);
+  }
+
   int? _intValue(String text) => int.tryParse(text.trim());
   double? _doubleValue(String text) => double.tryParse(text.trim());
   String _decimalText(double? value) => value == null
@@ -370,6 +579,12 @@ class _ProjectVendorWorkManagementPageState
   Widget build(BuildContext context) {
     final actions = <Widget>[
       AdaptiveShellActionButton(
+        onPressed: _openFilterPanel,
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
         onPressed: _resetForm,
         icon: Icons.handyman_outlined,
         label: 'New Vendor Work',
@@ -392,8 +607,6 @@ class _ProjectVendorWorkManagementPageState
       editorTitle: _partyName(_selectedRow?.work.vendorPartyId),
       scrollController: _pageScrollController,
       list: SettingsListCard<_ProjectVendorWorkRow>(
-        searchController: _searchController,
-        searchHint: 'Search vendor works',
         items: _filteredRows,
         selectedItem: _selectedRow,
         emptyMessage: 'No vendor works found.',
