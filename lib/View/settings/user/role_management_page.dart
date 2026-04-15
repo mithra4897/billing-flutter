@@ -404,13 +404,6 @@ class _RoleManagementPageState extends State<RoleManagementPage>
     return cleaned.length > 50 ? cleaned.substring(0, 50) : cleaned;
   }
 
-  Future<void> _logout(BuildContext context) async {
-    await AppSessionService.instance.clearSession();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final content = _initialLoading
@@ -485,7 +478,6 @@ class _RoleManagementPageState extends State<RoleManagementPage>
               label: 'New Role',
             ),
           ],
-          onLogout: () => _logout(context),
           child: content,
         );
       },

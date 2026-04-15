@@ -12,13 +12,6 @@ class ModulePlaceholderPage extends StatelessWidget {
   final Map<String, String> queryParameters;
   final bool embedded;
 
-  Future<void> _logout(BuildContext context) async {
-    await AppSessionService.instance.clearSession();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final route = AppNavigation.findByPath(path);
@@ -42,7 +35,6 @@ class ModulePlaceholderPage extends StatelessWidget {
         return AdaptiveShell(
           title: route?.title ?? 'Module',
           branding: branding,
-          onLogout: () => _logout(context),
           child: content,
         );
       },

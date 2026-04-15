@@ -5,13 +5,6 @@ class DashboardPage extends StatelessWidget {
 
   final bool embedded;
 
-  Future<void> _logout(BuildContext context) async {
-    await AppSessionService.instance.clearSession();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final content = _DashboardContent();
@@ -29,7 +22,6 @@ class DashboardPage extends StatelessWidget {
         return AdaptiveShell(
           title: 'Dashboard',
           branding: branding,
-          onLogout: () => _logout(context),
           child: content,
         );
       },

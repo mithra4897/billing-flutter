@@ -1,6 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/foundation.dart';
 
 import '../app/constants/app_ui_constants.dart';
 import '../app/navigation/app_navigation.dart';
@@ -18,7 +18,6 @@ class AdaptiveShell extends StatefulWidget {
     required this.title,
     required this.branding,
     required this.child,
-    required this.onLogout,
     this.actions = const <Widget>[],
     this.actionsListenable,
     this.scrollController,
@@ -30,7 +29,6 @@ class AdaptiveShell extends StatefulWidget {
   final String title;
   final PublicBrandingModel branding;
   final Widget child;
-  final VoidCallback onLogout;
   final List<Widget> actions;
   final ValueListenable<List<Widget>>? actionsListenable;
   final ScrollController? scrollController;
@@ -70,40 +68,37 @@ class AdaptiveShellActionButton extends StatelessWidget {
             ],
           );
 
+    final minimumSize = const Size(44, 44);
+    final padding = EdgeInsets.symmetric(
+      horizontal: compact ? 0 : 14,
+      vertical: 10,
+    );
+    final tapTargetSize = MaterialTapTargetSize.shrinkWrap;
+    final visualDensity = VisualDensity.compact;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+    );
+
     final button = filled
         ? FilledButton(
             onPressed: onPressed,
             style: FilledButton.styleFrom(
-              minimumSize: const Size(44, 44),
-              padding: EdgeInsets.symmetric(
-                horizontal: compact ? 0 : 14,
-                vertical: 10,
-              ),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  AppUiConstants.buttonRadius,
-                ),
-              ),
+              minimumSize: minimumSize,
+              padding: padding,
+              tapTargetSize: tapTargetSize,
+              visualDensity: visualDensity,
+              shape: shape,
             ),
             child: child,
           )
         : OutlinedButton(
             onPressed: onPressed,
             style: OutlinedButton.styleFrom(
-              minimumSize: const Size(44, 44),
-              padding: EdgeInsets.symmetric(
-                horizontal: compact ? 0 : 14,
-                vertical: 10,
-              ),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  AppUiConstants.buttonRadius,
-                ),
-              ),
+              minimumSize: minimumSize,
+              padding: padding,
+              tapTargetSize: tapTargetSize,
+              visualDensity: visualDensity,
+              shape: shape,
             ),
             child: child,
           );
@@ -130,64 +125,82 @@ class AdaptiveShellMenuAction<T> extends StatelessWidget {
   final bool filled;
   final String? tooltip;
 
+  void _openMenu(BuildContext context) async {
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(Offset.zero, ancestor: overlay),
+        button.localToGlobal(
+          button.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    final value = await showMenu<T>(
+      context: context,
+      position: position,
+      items: itemBuilder(context),
+    );
+
+    if (value != null) {
+      onSelected(value);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.of(context).size.width < 600;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final appTheme = theme.extension<AppThemeExtension>()!;
 
-    final child = Container(
-      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-      padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: filled ? colorScheme.primary : colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-        border: filled
-            ? null
-            : Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
-        boxShadow: filled
-            ? [
-                BoxShadow(
-                  color: appTheme.cardShadow,
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: filled ? colorScheme.onPrimary : colorScheme.onSurface,
-          ),
-          if (!compact) ...[
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: filled ? colorScheme.onPrimary : colorScheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
+    final child = compact
+        ? Icon(icon, size: 20)
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20),
+              const SizedBox(width: 8),
+              Text(label),
+            ],
+          );
+
+    final minimumSize = const Size(44, 44);
+    final padding = EdgeInsets.symmetric(
+      horizontal: compact ? 0 : 14,
+      vertical: 10,
+    );
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+    );
+
+    final button = filled
+        ? FilledButton(
+            onPressed: () => _openMenu(context),
+            style: FilledButton.styleFrom(
+              minimumSize: minimumSize,
+              padding: padding,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              shape: shape,
             ),
-          ],
-        ],
-      ),
-    );
+            child: child,
+          )
+        : OutlinedButton(
+            onPressed: () => _openMenu(context),
+            style: OutlinedButton.styleFrom(
+              minimumSize: minimumSize,
+              padding: padding,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              shape: shape,
+            ),
+            child: child,
+          );
 
-    return Tooltip(
-      message: tooltip ?? label,
-      child: PopupMenuButton<T>(
-        tooltip: tooltip ?? label,
-        onSelected: onSelected,
-        itemBuilder: itemBuilder,
-        child: child,
-      ),
-    );
+    return Tooltip(message: tooltip ?? label, child: button);
   }
 }
 
@@ -651,7 +664,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                       selected: false,
                       selectedBackground: selectedBackground,
                       selectedForeground: selectedForeground,
-                      onTap: widget.onLogout,
+                      onTap: () => _logout(context),
                     ),
                 ],
               ),
@@ -659,6 +672,13 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         ],
       ),
     );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    await AppSessionService.instance.clearSession();
+    if (context.mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    }
   }
 
   Widget _buildLeafTile({

@@ -281,81 +281,77 @@ class _StateManagementPageState extends State<StateManagementPage> {
         ),
       ),
       editor: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              if (_formError != null) ...[
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 12),
-              ],
-              TextFormField(
-                controller: _countryCodeController,
-                decoration: const InputDecoration(labelText: 'Country Code'),
-                validator: Validators.compose([
-                  Validators.required('Country Code'),
-                  Validators.optionalMaxLength(10, 'Country Code'),
-                ]),
+        key: _formKey,
+        child: SettingsFormWrap(
+          children: [
+            if (_formError != null) ...[
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _stateCodeController,
-                decoration: const InputDecoration(labelText: 'State Code'),
-                validator: Validators.compose([
-                  Validators.required('State Code'),
-                  Validators.optionalMaxLength(10, 'State Code'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _stateNameController,
-                decoration: const InputDecoration(labelText: 'State Name'),
-                validator: Validators.compose([
-                  Validators.required('State Name'),
-                  Validators.optionalMaxLength(100, 'State Name'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _gstStateCodeController,
-                decoration: const InputDecoration(labelText: 'GST State Code'),
-                validator: Validators.optionalMaxLength(10, 'GST State Code'),
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Union Territory'),
-                value: _isUnionTerritory,
-                onChanged: (value) => setState(() => _isUnionTerritory = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Active'),
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (_selectedState?.id != null)
-                    TextButton(
-                      onPressed: _saving ? null : _delete,
-                      child: const Text('Delete'),
-                    ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _save,
-                    icon: const Icon(Icons.save_outlined),
-                    label: Text(_saving ? 'Saving...' : 'Save'),
-                  ),
-                ],
-              ),
             ],
-          ),
+            AppFormTextField(
+              controller: _countryCodeController,
+              labelText: 'Country Code',
+              validator: Validators.compose([
+                Validators.required('Country Code'),
+                Validators.optionalMaxLength(10, 'Country Code'),
+              ]),
+            ),
+            AppFormTextField(
+              controller: _stateCodeController,
+              labelText: 'State Code',
+              validator: Validators.compose([
+                Validators.required('State Code'),
+                Validators.optionalMaxLength(10, 'State Code'),
+              ]),
+            ),
+            AppFormTextField(
+              controller: _stateNameController,
+              labelText: 'State Name',
+              validator: Validators.compose([
+                Validators.required('State Name'),
+                Validators.optionalMaxLength(100, 'State Name'),
+              ]),
+            ),
+            AppFormTextField(
+              controller: _gstStateCodeController,
+              labelText: 'GST State Code',
+              validator: Validators.optionalMaxLength(10, 'GST State Code'),
+            ),
+            AppSwitchTile(
+              contentPadding: EdgeInsets.zero,
+              label: 'Union Territory',
+              value: _isUnionTerritory,
+              onChanged: (value) => setState(() => _isUnionTerritory = value),
+            ),
+            AppSwitchTile(
+              contentPadding: EdgeInsets.zero,
+              label: 'Active',
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_selectedState?.id != null)
+                  TextButton(
+                    onPressed: _saving ? null : _delete,
+                    child: const Text('Delete'),
+                  ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(_saving ? 'Saving...' : 'Save'),
+                ),
+              ],
+            ),
+          ],
         ),
+      ),
     );
   }
 }

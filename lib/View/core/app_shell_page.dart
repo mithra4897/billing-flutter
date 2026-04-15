@@ -1,31 +1,12 @@
-import '../../screen.dart';
 import '../../core/navigation/app_route_state.dart';
+import '../../screen.dart';
 import '../dashboard/dashboard_page.dart';
-import '../parties/party_management_page.dart';
-import '../settings/communication/email_messages_page.dart';
-import '../settings/communication/email_module_settings_page.dart';
-import '../settings/communication/email_rules_page.dart';
-import '../settings/communication/email_settings_page.dart';
-import '../settings/communication/email_templates_page.dart';
-import '../settings/accounting/account_group_page.dart';
-import '../settings/accounting/account_page.dart';
-import '../settings/accounting/bank_reconciliation_page.dart';
-import '../settings/accounting/cash_session_page.dart';
-import '../settings/accounting/financial_reports_page.dart';
-import '../settings/accounting/voucher_page.dart';
-import '../settings/accounting/voucher_type_page.dart';
 import '../hr/department_page.dart';
 import '../hr/designation_page.dart';
 import '../hr/employee_page.dart';
 import '../hr/leave_request_page.dart';
 import '../hr/leave_type_page.dart';
-import '../purchase/purchase_invoice_page.dart';
-import '../purchase/purchase_order_page.dart';
-import '../purchase/purchase_payment_page.dart';
-import '../purchase/purchase_register_screens.dart';
-import '../purchase/purchase_receipt_page.dart';
-import '../purchase/purchase_requisition_page.dart';
-import '../purchase/purchase_return_page.dart';
+import '../parties/party_management_page.dart';
 import '../project/project_billing_page.dart';
 import '../project/project_dashboard_page.dart';
 import '../project/project_expense_page.dart';
@@ -35,26 +16,45 @@ import '../project/project_resource_usage_page.dart';
 import '../project/project_task_page.dart';
 import '../project/project_timesheet_page.dart';
 import '../project/project_vendor_work_page.dart';
-import '../settings/user/login_history_page.dart';
-import '../settings/user/profile_page.dart';
-import '../settings/user/role_management_page.dart';
-import '../settings/user/user_management_page.dart';
-import '../settings/master/brand_page.dart';
+import '../purchase/purchase_invoice_page.dart';
+import '../purchase/purchase_order_page.dart';
+import '../purchase/purchase_payment_page.dart';
+import '../purchase/purchase_receipt_page.dart';
+import '../purchase/purchase_register_screens.dart';
+import '../purchase/purchase_requisition_page.dart';
+import '../purchase/purchase_return_page.dart';
+import '../settings/accounting/account_group_page.dart';
+import '../settings/accounting/account_page.dart';
+import '../settings/accounting/bank_reconciliation_page.dart';
+import '../settings/accounting/cash_session_page.dart';
+import '../settings/accounting/financial_reports_page.dart';
+import '../settings/accounting/voucher_page.dart';
+import '../settings/accounting/voucher_type_page.dart';
+import '../settings/communication/email_messages_page.dart';
+import '../settings/communication/email_module_settings_page.dart';
+import '../settings/communication/email_rules_page.dart';
+import '../settings/communication/email_settings_page.dart';
+import '../settings/communication/email_templates_page.dart';
 import '../settings/master/branch_page.dart';
+import '../settings/master/brand_page.dart';
 import '../settings/master/company_page.dart';
 import '../settings/master/document_series_page.dart';
 import '../settings/master/item_alternate_page.dart';
 import '../settings/master/item_category_page.dart';
 import '../settings/master/item_page.dart';
 import '../settings/master/item_price_page.dart';
-import '../settings/master/physical_stock_count_page.dart';
 import '../settings/master/item_supplier_map_page.dart';
+import '../settings/master/physical_stock_count_page.dart';
 import '../settings/master/stock_balance_page.dart';
 import '../settings/master/tax_category_page.dart';
 import '../settings/master/uom_page.dart';
 import '../settings/tax/gst_tax_rule_page.dart';
 import '../settings/tax/state_page.dart';
+import '../settings/user/login_history_page.dart';
 import '../settings/user/module_preferences_page.dart';
+import '../settings/user/profile_page.dart';
+import '../settings/user/role_management_page.dart';
+import '../settings/user/user_management_page.dart';
 import 'module_placeholder_page.dart';
 
 class AppShellPage extends StatefulWidget {
@@ -189,13 +189,6 @@ class _AppShellPageState extends State<AppShellPage> {
     return false;
   }
 
-  Future<void> _logout(BuildContext context) async {
-    await AppSessionService.instance.clearSession();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-    }
-  }
-
   void _handleNavigate(String route) {
     final uri = Uri.parse(route);
     _shellPageActionsController.clearActions();
@@ -216,16 +209,18 @@ class _AppShellPageState extends State<AppShellPage> {
       currentPath: _buildCurrentRoute(),
       actionsListenable: _shellPageActionsController,
       onNavigate: _handleNavigate,
-      onLogout: () => _logout(context),
-      child: ShellPageActionsScope(
-        controller: _shellPageActionsController,
-        child: ShellRouteScope(
-          onNavigate: _handleNavigate,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 140),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeOut,
-            child: _buildContent(),
+      child: Align(
+        alignment: AlignmentGeometry.topCenter,
+        child: ShellPageActionsScope(
+          controller: _shellPageActionsController,
+          child: ShellRouteScope(
+            onNavigate: _handleNavigate,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 140),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeOut,
+              child: _buildContent(),
+            ),
           ),
         ),
       ),

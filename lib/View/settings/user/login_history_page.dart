@@ -195,13 +195,6 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
     }
   }
 
-  Future<void> _logout(BuildContext context) async {
-    await AppSessionService.instance.clearSession();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final content = _buildShellContent(context);
@@ -221,7 +214,6 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
           branding: branding,
           scrollController: _pageScrollController,
           actions: _buildShellActions(),
-          onLogout: () => _logout(context),
           child: content,
         );
       },

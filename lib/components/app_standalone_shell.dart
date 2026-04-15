@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../core/storage/session_storage.dart';
 import '../model/app/public_branding_model.dart';
-import '../service/app/app_session_service.dart';
 import 'adaptive_shell.dart';
 
 class AppStandaloneShell extends StatelessWidget {
@@ -33,14 +32,6 @@ class AppStandaloneShell extends StatelessWidget {
           branding: branding,
           scrollController: scrollController,
           actions: actions,
-          onLogout: () async {
-            await AppSessionService.instance.clearSession();
-            if (context.mounted) {
-              Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil('/login', (_) => false);
-            }
-          },
           child: child,
         );
       },

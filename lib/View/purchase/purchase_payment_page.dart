@@ -348,8 +348,10 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
 
   List<BranchModel> get _branchOptions =>
       branchesForCompany(_branches, _companyId);
+
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
+
   List<PurchaseInvoiceModel> get _invoiceOptions => _invoices
       .where(
         (invoice) =>
@@ -744,16 +746,6 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                   child: AppSectionCard(
                     child: Column(
                       children: [
-                        Row(
-                          children: [
-                            Text('Allocation ${index + 1}'),
-                            const Spacer(),
-                            IconButton(
-                              onPressed: () => _removeAllocation(index),
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                          ],
-                        ),
                         SettingsFormWrap(
                           children: [
                             AppSearchPickerField<int>(
@@ -821,6 +813,11 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                             AppFormTextField(
                               labelText: 'Remarks',
                               controller: allocation.remarksController,
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => _removeAllocation(index),
+                              icon: const Icon(Icons.delete_outline),
                             ),
                           ],
                         ),

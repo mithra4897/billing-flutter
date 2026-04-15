@@ -365,22 +365,17 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
                   labelText: 'HSN / SAC',
                   controller: _hsnSacController,
                 ),
+                AppSwitchTile(
+                  label: 'Active',
+                  value: _isActive,
+                  onChanged: (value) => setState(() => _isActive = value),
+                ),
                 AppFormTextField(
                   labelText: 'Remarks',
                   controller: _remarksController,
                   maxLines: 3,
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              child: AppSwitchTile(
-                label: 'Active',
-                subtitle:
-                    'Inactive categories stay out of normal selection lists.',
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
             ),
             const SizedBox(height: 20),
             Wrap(

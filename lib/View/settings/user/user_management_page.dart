@@ -1,4 +1,3 @@
-import '../../../helper/media_upload_helper.dart';
 import '../../../screen.dart';
 
 class UserManagementPage extends StatefulWidget {
@@ -804,13 +803,6 @@ class _UserManagementPageState extends State<UserManagementPage>
     ).showSnackBar(const SnackBar(content: Text('Role created successfully.')));
   }
 
-  Future<void> _logout(BuildContext context) async {
-    await AppSessionService.instance.clearSession();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final content = _initialLoading
@@ -885,7 +877,6 @@ class _UserManagementPageState extends State<UserManagementPage>
               label: 'New User',
             ),
           ],
-          onLogout: () => _logout(context),
           child: content,
         );
       },
@@ -905,9 +896,9 @@ class _UserManagementPageState extends State<UserManagementPage>
       itemBuilder: (user, selected) => SettingsListTile(
         title:
             user.displayName ??
-            '${user.firstName ?? ''} ${user.lastName ?? ''}'
-                .trim()
-                .ifEmpty(user.username ?? 'User'),
+            '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim().ifEmpty(
+              user.username ?? 'User',
+            ),
         subtitle: user.username ?? '',
         detail: user.status ?? 'active',
         selected: selected,
@@ -1126,9 +1117,7 @@ class _UserManagementPageState extends State<UserManagementPage>
               ],
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 24,
-              runSpacing: 12,
+            SettingsFormWrap(
               children: [
                 AppSwitchTile(
                   label: 'System User',
@@ -1150,6 +1139,18 @@ class _UserManagementPageState extends State<UserManagementPage>
                       ? null
                       : (value) => setState(() => _isSuperAdmin = value),
                 ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: _status,
+                  labelText: 'Status',
+                  mappedItems: const [
+                    AppDropdownItem(value: 'active', label: 'Active'),
+                    AppDropdownItem(value: 'inactive', label: 'Inactive'),
+                    AppDropdownItem(value: 'suspended', label: 'Suspended'),
+                    AppDropdownItem(value: 'blocked', label: 'Blocked'),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _status = value ?? 'active'),
+                ),
               ],
             ),
             if (_selectedRoleImpliesSuperAdmin()) ...[
@@ -1163,21 +1164,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                 ),
               ),
             ],
-            const SizedBox(height: 16),
-            SizedBox(
-              child: AppDropdownField<String>.fromMapped(
-                initialValue: _status,
-                labelText: 'Status',
-                mappedItems: const [
-                  AppDropdownItem(value: 'active', label: 'Active'),
-                  AppDropdownItem(value: 'inactive', label: 'Inactive'),
-                  AppDropdownItem(value: 'suspended', label: 'Suspended'),
-                  AppDropdownItem(value: 'blocked', label: 'Blocked'),
-                ],
-                onChanged: (value) =>
-                    setState(() => _status = value ?? 'active'),
-              ),
-            ),
+
             const SizedBox(height: 16),
             AppFormTextField(
               controller: _remarksController,
