@@ -1,6 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/foundation.dart';
 
 import '../app/constants/app_ui_constants.dart';
 import '../app/navigation/app_navigation.dart';
@@ -18,7 +18,6 @@ class AdaptiveShell extends StatefulWidget {
     required this.title,
     required this.branding,
     required this.child,
-    required this.onLogout,
     this.actions = const <Widget>[],
     this.actionsListenable,
     this.scrollController,
@@ -30,7 +29,6 @@ class AdaptiveShell extends StatefulWidget {
   final String title;
   final PublicBrandingModel branding;
   final Widget child;
-  final VoidCallback onLogout;
   final List<Widget> actions;
   final ValueListenable<List<Widget>>? actionsListenable;
   final ScrollController? scrollController;
@@ -651,7 +649,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                       selected: false,
                       selectedBackground: selectedBackground,
                       selectedForeground: selectedForeground,
-                      onTap: widget.onLogout,
+                      onTap: () => _logout(context),
                     ),
                 ],
               ),
@@ -659,6 +657,13 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
         ],
       ),
     );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    await AppSessionService.instance.clearSession();
+    if (context.mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    }
   }
 
   Widget _buildLeafTile({

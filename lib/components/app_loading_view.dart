@@ -13,7 +13,7 @@ class AppLoadingView extends StatelessWidget {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
 
     return Align(
-      alignment: Alignment.topLeft,
+      alignment: Alignment.center,
       child: Padding(
         padding: const EdgeInsets.all(AppUiConstants.pagePadding),
         child: Column(

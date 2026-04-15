@@ -1,4 +1,3 @@
-import '../../../helper/media_upload_helper.dart';
 import '../../../screen.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -248,13 +247,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _logout(BuildContext context) async {
-    await AppSessionService.instance.clearSession();
-    if (context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-    }
-  }
-
   void _handleDisplayNameEdited() {
     final generated = _generatedDisplayName;
     final current = _displayNameController.text.trim();
@@ -341,7 +333,6 @@ class _ProfilePageState extends State<ProfilePage> {
         return AdaptiveShell(
           title: 'Profile',
           branding: branding,
-          onLogout: () => _logout(context),
           child: content,
         );
       },
