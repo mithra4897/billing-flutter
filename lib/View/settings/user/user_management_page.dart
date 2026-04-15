@@ -1117,9 +1117,7 @@ class _UserManagementPageState extends State<UserManagementPage>
               ],
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 24,
-              runSpacing: 12,
+            SettingsFormWrap(
               children: [
                 AppSwitchTile(
                   label: 'System User',
@@ -1141,6 +1139,18 @@ class _UserManagementPageState extends State<UserManagementPage>
                       ? null
                       : (value) => setState(() => _isSuperAdmin = value),
                 ),
+                AppDropdownField<String>.fromMapped(
+                  initialValue: _status,
+                  labelText: 'Status',
+                  mappedItems: const [
+                    AppDropdownItem(value: 'active', label: 'Active'),
+                    AppDropdownItem(value: 'inactive', label: 'Inactive'),
+                    AppDropdownItem(value: 'suspended', label: 'Suspended'),
+                    AppDropdownItem(value: 'blocked', label: 'Blocked'),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _status = value ?? 'active'),
+                ),
               ],
             ),
             if (_selectedRoleImpliesSuperAdmin()) ...[
@@ -1154,21 +1164,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                 ),
               ),
             ],
-            const SizedBox(height: 16),
-            SizedBox(
-              child: AppDropdownField<String>.fromMapped(
-                initialValue: _status,
-                labelText: 'Status',
-                mappedItems: const [
-                  AppDropdownItem(value: 'active', label: 'Active'),
-                  AppDropdownItem(value: 'inactive', label: 'Inactive'),
-                  AppDropdownItem(value: 'suspended', label: 'Suspended'),
-                  AppDropdownItem(value: 'blocked', label: 'Blocked'),
-                ],
-                onChanged: (value) =>
-                    setState(() => _status = value ?? 'active'),
-              ),
-            ),
+
             const SizedBox(height: 16),
             AppFormTextField(
               controller: _remarksController,

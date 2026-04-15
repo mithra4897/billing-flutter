@@ -22,12 +22,30 @@ class AppSwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SwitchListTile(
-      contentPadding: contentPadding,
-      title: Text(label),
-      subtitle: subtitle == null ? null : Text(subtitle!),
-      value: value,
-      onChanged: onChanged,
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: EdgeInsets.all(AppUiConstants.spacingXxs),
+      padding: EdgeInsets.only(
+        left: AppUiConstants.spacingSm,
+        right: AppUiConstants.spacingXs,
+      ),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color:
+              theme.inputDecorationTheme.fillColor ??
+              theme.dividerColor.withValues(alpha: 0.24),
+        ),
+        color: theme.inputDecorationTheme.fillColor,
+        borderRadius: BorderRadius.circular(AppUiConstants.fieldRadius),
+      ),
+      child: SwitchListTile(
+        contentPadding: contentPadding,
+        title: Text(label, overflow: TextOverflow.ellipsis),
+        subtitle: subtitle == null ? null : Text(subtitle!),
+        value: value,
+        onChanged: onChanged,
+      ),
     );
   }
 }

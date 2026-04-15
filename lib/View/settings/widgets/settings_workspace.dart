@@ -360,7 +360,7 @@ class SettingsExpandableTile extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: accent ? colorScheme.primary.withValues(alpha: 0.05) : null,
+        color: accent ? colorScheme.primary.withValues(alpha: 0.01) : null,
         borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
         border: Border.all(
           color: accent

@@ -371,142 +371,134 @@ class _GstTaxRuleManagementPageState extends State<GstTaxRuleManagementPage> {
         ),
       ),
       editor: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              if (_formError != null) ...[
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 12),
-              ],
-              TextFormField(
-                controller: _codeController,
-                decoration: const InputDecoration(labelText: 'Rule Code'),
-                validator: Validators.compose([
-                  Validators.required('Rule Code'),
-                  Validators.optionalMaxLength(50, 'Rule Code'),
-                ]),
+        key: _formKey,
+        child: SettingsFormWrap(
+          children: [
+            if (_formError != null) ...[
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Rule Name'),
-                validator: Validators.compose([
-                  Validators.required('Rule Name'),
-                  Validators.optionalMaxLength(150, 'Rule Name'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _transactionType,
-                decoration: const InputDecoration(
-                  labelText: 'Transaction Type',
-                ),
-                items: _transactionTypes,
-                onChanged: (value) =>
-                    setState(() => _transactionType = value ?? 'sales'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _itemType,
-                decoration: const InputDecoration(labelText: 'Item Type'),
-                items: _itemTypes,
-                onChanged: (value) =>
-                    setState(() => _itemType = value ?? 'all'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int>(
-                initialValue: _taxCodeId,
-                decoration: const InputDecoration(labelText: 'Tax Code'),
-                items: _taxCodes
-                    .map(
-                      (taxCode) => DropdownMenuItem<int>(
-                        value: taxCode.id,
-                        child: Text(taxCode.toString()),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) => setState(() => _taxCodeId = value),
-                validator: (value) =>
-                    Validators.requiredSelectionField(value, 'Tax Code'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _placeResult,
-                decoration: const InputDecoration(
-                  labelText: 'Place Of Supply Result',
-                ),
-                items: _placeResults,
-                onChanged: (value) =>
-                    setState(() => _placeResult = value ?? 'all'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _taxApplication,
-                decoration: const InputDecoration(labelText: 'Tax Application'),
-                items: _taxApplications,
-                onChanged: (value) =>
-                    setState(() => _taxApplication = value ?? 'cgst_sgst'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _priorityController,
-                decoration: const InputDecoration(labelText: 'Priority Order'),
-                keyboardType: TextInputType.number,
-                validator: Validators.optionalNonNegativeInteger(
-                  'Priority Order',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _remarksController,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks',
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Reverse Charge Applicable'),
-                value: _reverseCharge,
-                onChanged: (value) => setState(() => _reverseCharge = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Input Tax Credit Allowed'),
-                value: _itcAllowed,
-                onChanged: (value) => setState(() => _itcAllowed = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Active'),
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (_selectedItem?.id != null)
-                    TextButton(
-                      onPressed: _saving ? null : _delete,
-                      child: const Text('Delete'),
-                    ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _save,
-                    icon: const Icon(Icons.save_outlined),
-                    label: Text(_saving ? 'Saving...' : 'Save'),
-                  ),
-                ],
-              ),
             ],
-          ),
+            AppFormTextField(
+              controller: _codeController,
+              labelText: 'Rule Code',
+              validator: Validators.compose([
+                Validators.required('Rule Code'),
+                Validators.optionalMaxLength(50, 'Rule Code'),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            AppFormTextField(
+              controller: _nameController,
+              labelText: 'Rule Name',
+              validator: Validators.compose([
+                Validators.required('Rule Name'),
+                Validators.optionalMaxLength(150, 'Rule Name'),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            AppDropdownField<String>(
+              initialValue: _transactionType,
+              labelText: 'Transaction Type',
+              items: _transactionTypes,
+              onChanged: (value) =>
+                  setState(() => _transactionType = value ?? 'sales'),
+            ),
+            const SizedBox(height: 12),
+            AppDropdownField<String>(
+              initialValue: _itemType,
+              labelText: 'Item Type',
+              items: _itemTypes,
+              onChanged: (value) => setState(() => _itemType = value ?? 'all'),
+            ),
+            const SizedBox(height: 12),
+            AppDropdownField<int>(
+              initialValue: _taxCodeId,
+              labelText: 'Tax Code',
+              items: _taxCodes
+                  .map(
+                    (taxCode) => DropdownMenuItem<int>(
+                      value: taxCode.id,
+                      child: Text(taxCode.toString()),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) => setState(() => _taxCodeId = value),
+              validator: (value) =>
+                  Validators.requiredSelectionField(value, 'Tax Code'),
+            ),
+            const SizedBox(height: 12),
+            AppDropdownField<String>(
+              initialValue: _placeResult,
+              labelText: 'Place Of Supply Result',
+              items: _placeResults,
+              onChanged: (value) =>
+                  setState(() => _placeResult = value ?? 'all'),
+            ),
+            const SizedBox(height: 12),
+            AppDropdownField<String>(
+              initialValue: _taxApplication,
+              labelText: 'Tax Application',
+              items: _taxApplications,
+              onChanged: (value) =>
+                  setState(() => _taxApplication = value ?? 'cgst_sgst'),
+            ),
+            const SizedBox(height: 12),
+            AppFormTextField(
+              controller: _priorityController,
+              labelText: 'Priority Order',
+              keyboardType: TextInputType.number,
+              validator: Validators.optionalNonNegativeInteger(
+                'Priority Order',
+              ),
+            ),
+            const SizedBox(height: 12),
+            AppFormTextField(
+              controller: _remarksController,
+              labelText: 'Remarks',
+              maxLines: 3,
+            ),
+            const SizedBox(height: 12),
+            AppSwitchTile(
+              contentPadding: EdgeInsets.zero,
+              label: 'Reverse Charge Applicable',
+              value: _reverseCharge,
+              onChanged: (value) => setState(() => _reverseCharge = value),
+            ),
+            AppSwitchTile(
+              contentPadding: EdgeInsets.zero,
+              label: 'Input Tax Credit Allowed',
+              value: _itcAllowed,
+              onChanged: (value) => setState(() => _itcAllowed = value),
+            ),
+            AppSwitchTile(
+              contentPadding: EdgeInsets.zero,
+              label: 'Active',
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_selectedItem?.id != null)
+                  TextButton(
+                    onPressed: _saving ? null : _delete,
+                    child: const Text('Delete'),
+                  ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(_saving ? 'Saving...' : 'Save'),
+                ),
+              ],
+            ),
+          ],
         ),
+      ),
     );
   }
 }

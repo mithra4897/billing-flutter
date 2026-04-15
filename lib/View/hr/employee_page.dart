@@ -1511,13 +1511,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               ),
               validator: Validators.optionalNonNegativeNumber('Net Salary'),
             ),
+            AppSwitchTile(
+              label: 'Active',
+              value: _structureIsActive,
+              onChanged: (value) => setState(() => _structureIsActive = value),
+            ),
           ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingMd),
-        AppSwitchTile(
-          label: 'Active',
-          value: _structureIsActive,
-          onChanged: (value) => setState(() => _structureIsActive = value),
         ),
         const SizedBox(height: AppUiConstants.spacingMd),
         Wrap(
