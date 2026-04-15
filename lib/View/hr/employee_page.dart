@@ -1,9 +1,14 @@
 import '../../screen.dart';
 
 class EmployeeManagementPage extends StatefulWidget {
-  const EmployeeManagementPage({super.key, this.embedded = false});
+  const EmployeeManagementPage({
+    super.key,
+    this.embedded = false,
+    this.initialEmployeeId,
+  });
 
   final bool embedded;
+  final int? initialEmployeeId;
 
   @override
   State<EmployeeManagementPage> createState() => _EmployeeManagementPageState();
@@ -123,7 +128,16 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       setState(() {});
     });
     _searchController.addListener(_applySearch);
-    _loadData();
+    _loadData(selectId: widget.initialEmployeeId);
+  }
+
+  @override
+  void didUpdateWidget(covariant EmployeeManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialEmployeeId != widget.initialEmployeeId &&
+        widget.initialEmployeeId != null) {
+      _loadData(selectId: widget.initialEmployeeId);
+    }
   }
 
   @override

@@ -27,6 +27,7 @@ import '../purchase/purchase_receipt_page.dart';
 import '../purchase/purchase_requisition_page.dart';
 import '../purchase/purchase_return_page.dart';
 import '../project/project_billing_page.dart';
+import '../project/project_dashboard_page.dart';
 import '../project/project_expense_page.dart';
 import '../project/project_milestone_page.dart';
 import '../project/project_page.dart';
@@ -381,7 +382,13 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/hr/designations':
         return DesignationManagementPage(key: routeKey, embedded: true);
       case '/hr/employees':
-        return EmployeeManagementPage(key: routeKey, embedded: true);
+        return EmployeeManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialEmployeeId: int.tryParse(
+            _currentQueryParameters['employee_id'] ?? '',
+          ),
+        );
       case '/hr/leave-types':
         return LeaveTypeManagementPage(key: routeKey, embedded: true);
       case '/hr/leave-requests':
@@ -399,8 +406,9 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/purchase/returns':
         return PurchaseReturnRegisterPage(key: routeKey, embedded: true);
       case '/projects':
-      case '/projects/dashboard':
         return ProjectManagementPage(key: routeKey, embedded: true);
+      case '/projects/dashboard':
+        return ProjectDashboardPage(key: routeKey, embedded: true);
       case '/projects/tasks':
         return ProjectTaskManagementPage(key: routeKey, embedded: true);
       case '/projects/milestones':

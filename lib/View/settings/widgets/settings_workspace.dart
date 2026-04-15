@@ -42,6 +42,7 @@ class SettingsWorkspace extends StatefulWidget {
     this.editorTitle,
     this.controller,
     this.editorOnly = false,
+    this.wrapEditorInCard = true,
   });
 
   final ScrollController scrollController;
@@ -53,6 +54,7 @@ class SettingsWorkspace extends StatefulWidget {
   final String? editorTitle;
   final SettingsWorkspaceController? controller;
   final bool editorOnly;
+  final bool wrapEditorInCard;
 
   @override
   State<SettingsWorkspace> createState() => _SettingsWorkspaceState();
@@ -86,6 +88,30 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       builder: (context, constraints) {
         final showInlineEditor = Responsive.isDesktop(context);
         final theme = Theme.of(context).textTheme;
+        final editorContent = widget.wrapEditorInCard
+            ? AppSectionCard(
+                child: Column(
+                  children: [
+                    if (widget.editorTitle != null &&
+                        Responsive.isNotMobile(context)) ...[
+                      Text(widget.editorTitle!, style: theme.headlineSmall),
+                      const SizedBox(height: AppUiConstants.spacingXs),
+                    ],
+                    widget.editor,
+                  ],
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.editorTitle != null &&
+                      Responsive.isNotMobile(context)) ...[
+                    Text(widget.editorTitle!, style: theme.headlineSmall),
+                    const SizedBox(height: AppUiConstants.spacingXs),
+                  ],
+                  widget.editor,
+                ],
+              );
 
         return _SettingsWorkspaceScope(
           controller: _controller,
@@ -93,18 +119,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
               ? SingleChildScrollView(
                   controller: widget.scrollController,
                   padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                  child: AppSectionCard(
-                    child: Column(
-                      children: [
-                        if (widget.editorTitle != null &&
-                            Responsive.isNotMobile(context)) ...[
-                          Text(widget.editorTitle!, style: theme.headlineSmall),
-                          const SizedBox(height: AppUiConstants.spacingXs),
-                        ],
-                        widget.editor,
-                      ],
-                    ),
-                  ),
+                  child: editorContent,
                 )
               : showInlineEditor
               ? SingleChildScrollView(
@@ -116,25 +131,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                       SizedBox(width: widget.listWidth, child: widget.list),
                       const SizedBox(width: AppUiConstants.spacingXl),
 
-                      Expanded(
-                        child: AppSectionCard(
-                          child: Column(
-                            children: [
-                              if (widget.editorTitle != null &&
-                                  Responsive.isNotMobile(context)) ...[
-                                Text(
-                                  widget.editorTitle!,
-                                  style: theme.headlineSmall,
-                                ),
-                                const SizedBox(
-                                  height: AppUiConstants.spacingXs,
-                                ),
-                              ],
-                              widget.editor,
-                            ],
-                          ),
-                        ),
-                      ),
+                      Expanded(child: editorContent),
                     ],
                   ),
                 )
