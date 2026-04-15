@@ -518,12 +518,14 @@ class SettingsFormWrap extends StatelessWidget {
     this.spacing = 16,
     this.runSpacing = 16,
     this.mobileBreakpoint = 640,
+    this.maxWidth = 300,
   });
 
   final List<Widget> children;
   final double spacing;
   final double runSpacing;
   final double mobileBreakpoint;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -539,12 +541,27 @@ class SettingsFormWrap extends StatelessWidget {
           spacing: spacing,
           runSpacing: runSpacing,
           children: children
-              .map(
-                (child) => SizedBox(
-                  width: itemWidth > 0 ? itemWidth : null,
-                  child: child,
-                ),
-              )
+              .map((child) {
+                if (child is AppDropdownField ||
+                    child is AppFormTextField ||
+                    child is AppSearchPickerField ||
+                    child is InlineFieldAction ||
+                    child is UploadPathField ||
+                    child is AppSwitchTile) {
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: maxWidth < itemWidth
+                          ? maxWidth
+                          : itemWidth > 0
+                          ? itemWidth
+                          : double.infinity,
+                    ),
+                    child: child,
+                  );
+                } else {
+                  return child;
+                }
+              })
               .toList(growable: false),
         );
       },
