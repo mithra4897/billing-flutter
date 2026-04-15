@@ -26,6 +26,14 @@ import '../purchase/purchase_register_screens.dart';
 import '../purchase/purchase_receipt_page.dart';
 import '../purchase/purchase_requisition_page.dart';
 import '../purchase/purchase_return_page.dart';
+import '../project/project_billing_page.dart';
+import '../project/project_expense_page.dart';
+import '../project/project_milestone_page.dart';
+import '../project/project_page.dart';
+import '../project/project_resource_usage_page.dart';
+import '../project/project_task_page.dart';
+import '../project/project_timesheet_page.dart';
+import '../project/project_vendor_work_page.dart';
 import '../settings/user/login_history_page.dart';
 import '../settings/user/profile_page.dart';
 import '../settings/user/role_management_page.dart';
@@ -210,11 +218,14 @@ class _AppShellPageState extends State<AppShellPage> {
       onLogout: () => _logout(context),
       child: ShellPageActionsScope(
         controller: _shellPageActionsController,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 140),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeOut,
-          child: _buildContent(),
+        child: ShellRouteScope(
+          onNavigate: _handleNavigate,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 140),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeOut,
+            child: _buildContent(),
+          ),
         ),
       ),
     );
@@ -387,6 +398,26 @@ class _AppShellPageState extends State<AppShellPage> {
         return PurchasePaymentRegisterPage(key: routeKey, embedded: true);
       case '/purchase/returns':
         return PurchaseReturnRegisterPage(key: routeKey, embedded: true);
+      case '/projects':
+      case '/projects/dashboard':
+        return ProjectManagementPage(key: routeKey, embedded: true);
+      case '/projects/tasks':
+        return ProjectTaskManagementPage(key: routeKey, embedded: true);
+      case '/projects/milestones':
+        return ProjectMilestoneManagementPage(key: routeKey, embedded: true);
+      case '/projects/timesheets':
+        return ProjectTimesheetManagementPage(key: routeKey, embedded: true);
+      case '/projects/expenses':
+        return ProjectExpenseManagementPage(key: routeKey, embedded: true);
+      case '/projects/resources':
+        return ProjectResourceUsageManagementPage(
+          key: routeKey,
+          embedded: true,
+        );
+      case '/projects/vendor-works':
+        return ProjectVendorWorkManagementPage(key: routeKey, embedded: true);
+      case '/projects/billings':
+        return ProjectBillingManagementPage(key: routeKey, embedded: true);
       case '/parties/addresses':
         return PartyManagementPage(
           key: routeKey,

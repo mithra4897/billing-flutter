@@ -73,6 +73,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
   List<AccountModel> _accounts = const <AccountModel>[];
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
+  List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
   List<WarehouseModel> _warehouses = const <WarehouseModel>[];
   List<TaxCodeModel> _taxCodes = const <TaxCodeModel>[];
   PurchaseInvoiceModel? _selectedItem;
@@ -158,6 +159,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         _inventoryService.uoms(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
+        _inventoryService.uomConversionsAll(
+          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
+        ),
         _masterService.warehouses(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
@@ -240,13 +244,18 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                     const <UomModel>[])
                 .where((item) => item.isActive)
                 .toList();
+        _uomConversions =
+            ((responses[13] as ApiResponse<List<UomConversionModel>>).data ??
+                    const <UomConversionModel>[])
+                .where((item) => item.isActive)
+                .toList();
         _warehouses =
-            ((responses[13] as PaginatedResponse<WarehouseModel>).data ??
+            ((responses[14] as PaginatedResponse<WarehouseModel>).data ??
                     const <WarehouseModel>[])
                 .where((item) => item.isActive)
                 .toList();
         _taxCodes =
-            ((responses[14] as PaginatedResponse<TaxCodeModel>).data ??
+            ((responses[15] as PaginatedResponse<TaxCodeModel>).data ??
                     const <TaxCodeModel>[])
                 .where((item) => item.isActive)
                 .toList();
@@ -375,6 +384,27 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           })
           .toList(growable: false);
     });
+  }
+
+  List<UomModel> _uomOptionsForItem(int? itemId) {
+    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return allowedUomsForItem(item, _uoms, _uomConversions);
+  }
+
+  int? _resolveDefaultUom(int? itemId, int? currentUomId) {
+    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return defaultUomIdForItem(
+      item,
+      _uoms,
+      _uomConversions,
+      current: currentUomId,
+    );
   }
 
   List<DocumentSeriesModel> _seriesOptions() {
@@ -878,7 +908,12 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                                 .toList(growable: false),
                             onChanged: (value) => _updateLine(
                               index,
-                              line.copyWith(itemId: value ?? 0),
+                              line.copyWith(
+                                itemId: value ?? 0,
+                                uomId:
+                                    _resolveDefaultUom(value, line.uomId) ??
+                                    line.uomId,
+                              ),
                             ),
                             validator: (_) =>
                                 line.itemId <= 0 ? 'Item is required' : null,
@@ -900,23 +935,42 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                               line.copyWith(warehouseId: value),
                             ),
                           ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'UOM',
-                            mappedItems: _uoms
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.uomId == 0 ? null : line.uomId,
-                            onChanged: (value) => _updateLine(
-                              index,
-                              line.copyWith(uomId: value ?? 0),
-                            ),
-                            validator: Validators.requiredSelection('UOM'),
+                          Builder(
+                            builder: (context) {
+                              final options = _uomOptionsForItem(line.itemId);
+                              if (options.length <= 1) {
+                                final onlyId = options.isNotEmpty
+                                    ? options.first.id
+                                    : null;
+                                if (onlyId != null && line.uomId != onlyId) {
+                                  _updateLine(
+                                    index,
+                                    line.copyWith(uomId: onlyId),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              }
+                              return AppDropdownField<int>.fromMapped(
+                                labelText: 'UOM',
+                                mappedItems: options
+                                    .where((item) => item.id != null)
+                                    .map(
+                                      (item) => AppDropdownItem(
+                                        value: item.id!,
+                                        label: item.toString(),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                                initialValue: line.uomId == 0
+                                    ? null
+                                    : line.uomId,
+                                onChanged: (value) => _updateLine(
+                                  index,
+                                  line.copyWith(uomId: value ?? 0),
+                                ),
+                                validator: Validators.requiredSelection('UOM'),
+                              );
+                            },
                           ),
                           TextFormField(
                             initialValue: line.invoicedQty.toString(),

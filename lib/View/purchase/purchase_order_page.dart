@@ -70,6 +70,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   List<PartyModel> _suppliers = const <PartyModel>[];
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
+  List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
   List<WarehouseModel> _warehouses = const <WarehouseModel>[];
   List<TaxCodeModel> _taxCodes = const <TaxCodeModel>[];
   PurchaseOrderModel? _selectedItem;
@@ -150,6 +151,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         _inventoryService.uoms(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
+        _inventoryService.uomConversionsAll(
+          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
+        ),
         _masterService.warehouses(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
@@ -227,13 +231,18 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     const <UomModel>[])
                 .where((item) => item.isActive)
                 .toList();
+        _uomConversions =
+            ((responses[11] as ApiResponse<List<UomConversionModel>>).data ??
+                    const <UomConversionModel>[])
+                .where((item) => item.isActive)
+                .toList();
         _warehouses =
-            ((responses[11] as PaginatedResponse<WarehouseModel>).data ??
+            ((responses[12] as PaginatedResponse<WarehouseModel>).data ??
                     const <WarehouseModel>[])
                 .where((item) => item.isActive)
                 .toList();
         _taxCodes =
-            ((responses[12] as PaginatedResponse<TaxCodeModel>).data ??
+            ((responses[13] as PaginatedResponse<TaxCodeModel>).data ??
                     const <TaxCodeModel>[])
                 .where((item) => item.isActive)
                 .toList();
@@ -366,6 +375,27 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           })
           .toList(growable: false);
     });
+  }
+
+  List<UomModel> _uomOptionsForItem(int? itemId) {
+    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return allowedUomsForItem(item, _uoms, _uomConversions);
+  }
+
+  int? _resolveDefaultUom(int? itemId, int? currentUomId) {
+    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return defaultUomIdForItem(
+      item,
+      _uoms,
+      _uomConversions,
+      current: currentUomId,
+    );
   }
 
   List<DocumentSeriesModel> _seriesOptions() {
@@ -824,26 +854,45 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                                   ),
                                 )
                                 .toList(growable: false),
-                            onChanged: (value) =>
-                                setState(() => line.itemId = value),
+                            onChanged: (value) => setState(() {
+                              line.itemId = value;
+                              line.uomId = _resolveDefaultUom(
+                                value,
+                                line.uomId,
+                              );
+                            }),
                             validator: (_) =>
                                 line.itemId == null ? 'Item is required' : null,
                           ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'UOM',
-                            mappedItems: _uoms
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.uomId,
-                            onChanged: (value) =>
-                                setState(() => line.uomId = value),
-                            validator: Validators.requiredSelection('UOM'),
+                          Builder(
+                            builder: (context) {
+                              final options = _uomOptionsForItem(line.itemId);
+                              if (options.length <= 1) {
+                                final onlyId = options.isNotEmpty
+                                    ? options.first.id
+                                    : null;
+                                if (line.uomId != onlyId) {
+                                  line.uomId = onlyId;
+                                }
+                                return const SizedBox.shrink();
+                              }
+                              return AppDropdownField<int>.fromMapped(
+                                labelText: 'UOM',
+                                mappedItems: options
+                                    .where((item) => item.id != null)
+                                    .map(
+                                      (item) => AppDropdownItem(
+                                        value: item.id!,
+                                        label: item.toString(),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                                initialValue: line.uomId,
+                                onChanged: (value) =>
+                                    setState(() => line.uomId = value),
+                                validator: Validators.requiredSelection('UOM'),
+                              );
+                            },
                           ),
                           AppDropdownField<int>.fromMapped(
                             labelText: 'Warehouse',

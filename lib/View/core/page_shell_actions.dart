@@ -120,3 +120,24 @@ class _ShellPageActionsState extends State<ShellPageActions> {
   @override
   Widget build(BuildContext context) => widget.child;
 }
+
+class ShellRouteScope extends InheritedWidget {
+  const ShellRouteScope({
+    super.key,
+    required this.onNavigate,
+    required super.child,
+  });
+
+  final ValueChanged<String> onNavigate;
+
+  static ValueChanged<String>? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<ShellRouteScope>()
+        ?.onNavigate;
+  }
+
+  @override
+  bool updateShouldNotify(covariant ShellRouteScope oldWidget) {
+    return oldWidget.onNavigate != onNavigate;
+  }
+}

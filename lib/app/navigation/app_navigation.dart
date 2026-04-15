@@ -1175,6 +1175,11 @@ class AppNavigation {
   static String _normalizePath(String path) {
     final uri = Uri.parse(path);
     final normalized = uri.path.isEmpty ? dashboardPath : uri.path;
-    return normalized == '/' ? dashboardPath : normalized;
+    final cleaned = normalized == '/' ? dashboardPath : normalized;
+    final parts = cleaned.split('/').where((part) => part.isNotEmpty).toList();
+    if (parts.length == 3 && parts.first == 'purchase') {
+      return '/purchase/${parts[1]}';
+    }
+    return cleaned;
   }
 }

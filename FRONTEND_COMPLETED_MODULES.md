@@ -218,6 +218,48 @@ Completed:
 - module settings
 - email templates
 - email rules
+
+### 9. Projects
+
+Completed:
+
+- projects
+- project-scoped tasks
+- project-scoped milestones
+- project-scoped timesheets
+- project-scoped expenses
+- project-scoped resource usage
+- project-scoped vendor works
+- project-scoped billing
+
+Main file:
+
+- [project_page.dart](/lib/view/project/project_page.dart)
+- [project_task_page.dart](/lib/view/project/project_task_page.dart)
+- [project_milestone_page.dart](/lib/view/project/project_milestone_page.dart)
+- [project_timesheet_page.dart](/lib/view/project/project_timesheet_page.dart)
+- [project_expense_page.dart](/lib/view/project/project_expense_page.dart)
+- [project_resource_usage_page.dart](/lib/view/project/project_resource_usage_page.dart)
+- [project_vendor_work_page.dart](/lib/view/project/project_vendor_work_page.dart)
+- [project_billing_page.dart](/lib/view/project/project_billing_page.dart)
+
+How this was done:
+
+- `Projects` is the real parent `list + editor` screen
+- editor tabs:
+  - `Primary`
+  - `Tasks`
+  - `Milestones`
+  - `Timesheets`
+  - `Expenses`
+  - `Resource Usage`
+  - `Vendor Works`
+  - `Billing`
+- all child tabs are filtered by selected `project_id`
+- child rows are edited inline with expandable tiles
+- standalone child submenu routes now use dedicated project child page files
+- in standalone child pages, only the selected child module is shown as `list + editor` content against the left-side project list
+- this follows the backend contract, where child records are project-owned and come from the project detail API rather than separate standalone list APIs
 - email messages
 - send email dialog
 

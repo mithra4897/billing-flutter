@@ -19,6 +19,8 @@ void main() {
 }
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class BillingApp extends StatelessWidget {
   const BillingApp({super.key});
@@ -27,6 +29,7 @@ class BillingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
+      scaffoldMessengerKey: appScaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       title: AppConfig.appTitle,
       theme: AppTheme.light(),

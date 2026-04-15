@@ -22,7 +22,7 @@ class SettingsEmptyState extends StatelessWidget {
       width: double.infinity,
       constraints: BoxConstraints(minHeight: minHeight),
       padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-      alignment: Alignment.center,
+      alignment: Alignment.topLeft,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 560),
         padding: const EdgeInsets.all(28),
@@ -32,12 +32,12 @@ class SettingsEmptyState extends StatelessWidget {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, size: 40, color: appTheme.mutedText),
             const SizedBox(height: 16),
             Text(
               title,
-              textAlign: TextAlign.center,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -45,7 +45,6 @@ class SettingsEmptyState extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               message,
-              textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: appTheme.mutedText,
                 height: 1.5,

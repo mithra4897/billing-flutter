@@ -28,6 +28,34 @@ class ProjectService extends ErpModuleService {
     return object('/projects/$id', fromJson: ProjectModel.fromJson);
   }
 
+  Future<String?> nextProjectCode({
+    required int companyId,
+    String prefix = 'PROJ',
+  }) async {
+    final response = await client.get<Map<String, dynamic>>(
+      '/projects/next-project-code',
+      queryParameters: <String, dynamic>{
+        'company_id': companyId,
+        if (prefix.trim().isNotEmpty) 'prefix': prefix.trim(),
+      },
+      fromData: (json) =>
+          json is Map<String, dynamic> ? json : <String, dynamic>{},
+    );
+
+    return response.data?['project_code']?.toString();
+  }
+
+  Future<String?> nextTaskCode({required int projectId}) async {
+    final response = await client.get<Map<String, dynamic>>(
+      '/projects/next-task-code',
+      queryParameters: <String, dynamic>{'project_id': projectId},
+      fromData: (json) =>
+          json is Map<String, dynamic> ? json : <String, dynamic>{},
+    );
+
+    return response.data?['task_code']?.toString();
+  }
+
   Future<ApiResponse<ProjectModel>> createProject(ProjectModel project) {
     return createModel('/projects', project, fromJson: ProjectModel.fromJson);
   }

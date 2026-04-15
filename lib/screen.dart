@@ -2,6 +2,7 @@ export 'package:flutter/foundation.dart';
 export 'package:flutter/material.dart';
 export 'package:flutter/services.dart';
 export 'package:flutter_web_plugins/url_strategy.dart';
+export 'main.dart' show appNavigatorKey, appScaffoldMessengerKey;
 
 export 'app/constants/app_config.dart';
 export 'app/constants/app_ui_constants.dart';
@@ -45,6 +46,7 @@ export 'model/admin/role_model.dart';
 export 'model/admin/user_model.dart';
 export 'model/app/public_branding_model.dart';
 export 'model/assets/cost_center_model.dart';
+export 'model/assets/asset_model.dart';
 export 'model/auth/audit_log_model.dart';
 export 'model/auth/auth_context_model.dart';
 export 'model/auth/change_password_request_model.dart';
@@ -118,6 +120,8 @@ export 'model/purchase/purchase_requisition_line_model.dart';
 export 'model/purchase/purchase_requisition_model.dart';
 export 'model/purchase/purchase_return_line_model.dart';
 export 'model/purchase/purchase_return_model.dart';
+export 'model/project/project_models.dart';
+export 'model/sales/sales_invoice_model.dart';
 export 'model/tax/gst_registration_model.dart';
 export 'model/tax/gst_tax_rule_model.dart';
 
@@ -133,7 +137,9 @@ export 'service/inventory/inventory_service.dart';
 export 'service/master/master_service.dart';
 export 'service/media/media_service.dart';
 export 'service/parties/parties_service.dart';
+export 'service/project/project_service.dart';
 export 'service/purchase/purchase_service.dart';
+export 'service/sales/sales_service.dart';
 export 'service/taxes/taxes_service.dart';
 
 export 'view/core/page_shell_actions.dart';

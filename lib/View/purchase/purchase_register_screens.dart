@@ -2,6 +2,15 @@ import '../../screen.dart';
 import 'purchase_register_page.dart';
 import 'purchase_support.dart';
 
+void _openShellRoute(BuildContext context, String route) {
+  final navigate = ShellRouteScope.maybeOf(context);
+  if (navigate != null) {
+    navigate(route);
+    return;
+  }
+  Navigator.of(context).pushNamed(route);
+}
+
 class PurchaseRequisitionRegisterPage extends StatefulWidget {
   const PurchaseRequisitionRegisterPage({super.key, this.embedded = false});
 
@@ -100,7 +109,7 @@ class _PurchaseRequisitionRegisterPageState
       actions: [
         AdaptiveShellActionButton(
           onPressed: () =>
-              Navigator.of(context).pushNamed('/purchase/requisitions/new'),
+              _openShellRoute(context, '/purchase/requisitions/new'),
           icon: Icons.add_outlined,
           label: 'New Requisition',
         ),
@@ -139,9 +148,10 @@ class _PurchaseRequisitionRegisterPageState
               stringValue(row.toJson(), 'requisition_status'),
         ),
       ],
-      onRowTap: (row) => Navigator.of(
+      onRowTap: (row) => _openShellRoute(
         context,
-      ).pushNamed('/purchase/requisitions/${intValue(row.toJson(), 'id')}'),
+        '/purchase/requisitions/${intValue(row.toJson(), 'id')}',
+      ),
     );
   }
 }
@@ -242,8 +252,7 @@ class _PurchaseOrderRegisterPageState extends State<PurchaseOrderRegisterPage> {
       emptyMessage: 'No purchase orders found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed('/purchase/orders/new'),
+          onPressed: () => _openShellRoute(context, '/purchase/orders/new'),
           icon: Icons.add_outlined,
           label: 'New Order',
         ),
@@ -282,9 +291,10 @@ class _PurchaseOrderRegisterPageState extends State<PurchaseOrderRegisterPage> {
           valueBuilder: (row) => stringValue(row.toJson(), 'order_status'),
         ),
       ],
-      onRowTap: (row) => Navigator.of(
+      onRowTap: (row) => _openShellRoute(
         context,
-      ).pushNamed('/purchase/orders/${intValue(row.toJson(), 'id')}'),
+        '/purchase/orders/${intValue(row.toJson(), 'id')}',
+      ),
     );
   }
 }
@@ -383,8 +393,7 @@ class _PurchaseReceiptRegisterPageState
       emptyMessage: 'No purchase receipts found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed('/purchase/receipts/new'),
+          onPressed: () => _openShellRoute(context, '/purchase/receipts/new'),
           icon: Icons.add_outlined,
           label: 'New Receipt',
         ),
@@ -422,9 +431,10 @@ class _PurchaseReceiptRegisterPageState
           valueBuilder: (row) => stringValue(row.toJson(), 'receipt_status'),
         ),
       ],
-      onRowTap: (row) => Navigator.of(
+      onRowTap: (row) => _openShellRoute(
         context,
-      ).pushNamed('/purchase/receipts/${intValue(row.toJson(), 'id')}'),
+        '/purchase/receipts/${intValue(row.toJson(), 'id')}',
+      ),
     );
   }
 }
@@ -523,8 +533,7 @@ class _PurchaseInvoiceRegisterPageState
       emptyMessage: 'No purchase invoices found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed('/purchase/invoices/new'),
+          onPressed: () => _openShellRoute(context, '/purchase/invoices/new'),
           icon: Icons.add_outlined,
           label: 'New Invoice',
         ),
@@ -561,7 +570,7 @@ class _PurchaseInvoiceRegisterPageState
         ),
       ],
       onRowTap: (row) =>
-          Navigator.of(context).pushNamed('/purchase/invoices/${row.id}'),
+          _openShellRoute(context, '/purchase/invoices/${row.id}'),
     );
   }
 }
@@ -661,8 +670,7 @@ class _PurchasePaymentRegisterPageState
       emptyMessage: 'No purchase payments found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed('/purchase/payments/new'),
+          onPressed: () => _openShellRoute(context, '/purchase/payments/new'),
           icon: Icons.add_outlined,
           label: 'New Payment',
         ),
@@ -699,9 +707,10 @@ class _PurchasePaymentRegisterPageState
           valueBuilder: (row) => stringValue(row.toJson(), 'payment_status'),
         ),
       ],
-      onRowTap: (row) => Navigator.of(
+      onRowTap: (row) => _openShellRoute(
         context,
-      ).pushNamed('/purchase/payments/${intValue(row.toJson(), 'id')}'),
+        '/purchase/payments/${intValue(row.toJson(), 'id')}',
+      ),
     );
   }
 }
@@ -799,8 +808,7 @@ class _PurchaseReturnRegisterPageState
       emptyMessage: 'No purchase returns found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed('/purchase/returns/new'),
+          onPressed: () => _openShellRoute(context, '/purchase/returns/new'),
           icon: Icons.add_outlined,
           label: 'New Return',
         ),
@@ -838,9 +846,10 @@ class _PurchaseReturnRegisterPageState
           valueBuilder: (row) => stringValue(row.toJson(), 'return_status'),
         ),
       ],
-      onRowTap: (row) => Navigator.of(
+      onRowTap: (row) => _openShellRoute(
         context,
-      ).pushNamed('/purchase/returns/${intValue(row.toJson(), 'id')}'),
+        '/purchase/returns/${intValue(row.toJson(), 'id')}',
+      ),
     );
   }
 }

@@ -36,6 +36,81 @@ String displayDate(String? value) {
   return value.split('T').first.split(' ').first;
 }
 
+Set<int> allowedUomIdsForItem(
+  ItemModel? item,
+  List<UomConversionModel> conversions,
+) {
+  if (item == null) {
+    return <int>{};
+  }
+
+  final seedIds = <int>{
+    if (item.baseUomId != null) item.baseUomId!,
+    if (item.purchaseUomId != null) item.purchaseUomId!,
+    if (item.salesUomId != null) item.salesUomId!,
+  };
+
+  if (seedIds.isEmpty) {
+    return <int>{};
+  }
+
+  final allowed = <int>{...seedIds};
+  for (final conversion in conversions) {
+    final fromId = conversion.fromUomId;
+    final toId = conversion.toUomId;
+    if (fromId == null || toId == null) {
+      continue;
+    }
+    if (seedIds.contains(fromId) || seedIds.contains(toId)) {
+      allowed.add(fromId);
+      allowed.add(toId);
+    }
+  }
+
+  return allowed;
+}
+
+List<UomModel> allowedUomsForItem(
+  ItemModel? item,
+  List<UomModel> uoms,
+  List<UomConversionModel> conversions,
+) {
+  final allowedIds = allowedUomIdsForItem(item, conversions);
+  if (allowedIds.isEmpty) {
+    return uoms;
+  }
+
+  return uoms
+      .where((uom) => uom.id != null && allowedIds.contains(uom.id))
+      .toList(growable: false);
+}
+
+int? defaultUomIdForItem(
+  ItemModel? item,
+  List<UomModel> uoms,
+  List<UomConversionModel> conversions, {
+  int? current,
+}) {
+  final allowedIds = allowedUomIdsForItem(item, conversions);
+  if (current != null && (allowedIds.isEmpty || allowedIds.contains(current))) {
+    return current;
+  }
+
+  final preferred = <int?>[
+    item?.purchaseUomId,
+    item?.baseUomId,
+    item?.salesUomId,
+  ];
+  for (final id in preferred) {
+    if (id != null && (allowedIds.isEmpty || allowedIds.contains(id))) {
+      return id;
+    }
+  }
+
+  final allowed = allowedUomsForItem(item, uoms, conversions);
+  return allowed.isNotEmpty ? allowed.first.id : null;
+}
+
 class PurchaseListCard<T> extends StatelessWidget {
   const PurchaseListCard({
     super.key,

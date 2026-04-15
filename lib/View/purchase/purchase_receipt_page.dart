@@ -68,6 +68,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
   List<WarehouseModel> _warehouses = const <WarehouseModel>[];
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
+  List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
   PurchaseReceiptModel? _selectedItem;
   int? _contextCompanyId;
   int? _contextBranchId;
@@ -145,6 +146,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
         _inventoryService.uoms(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
+        _inventoryService.uomConversionsAll(
+          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
+        ),
       ]);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -216,6 +220,11 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
         _uoms =
             ((responses[11] as PaginatedResponse<UomModel>).data ??
                     const <UomModel>[])
+                .where((item) => item.isActive)
+                .toList();
+        _uomConversions =
+            ((responses[12] as ApiResponse<List<UomConversionModel>>).data ??
+                    const <UomConversionModel>[])
                 .where((item) => item.isActive)
                 .toList();
         _contextCompanyId = contextSelection.companyId;
@@ -341,6 +350,27 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           })
           .toList(growable: false);
     });
+  }
+
+  List<UomModel> _uomOptionsForItem(int? itemId) {
+    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return allowedUomsForItem(item, _uoms, _uomConversions);
+  }
+
+  int? _resolveDefaultUom(int? itemId, int? currentUomId) {
+    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return defaultUomIdForItem(
+      item,
+      _uoms,
+      _uomConversions,
+      current: currentUomId,
+    );
   }
 
   List<DocumentSeriesModel> _seriesOptions() {
@@ -792,8 +822,13 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                                   ),
                                 )
                                 .toList(growable: false),
-                            onChanged: (value) =>
-                                setState(() => line.itemId = value),
+                            onChanged: (value) => setState(() {
+                              line.itemId = value;
+                              line.uomId = _resolveDefaultUom(
+                                value,
+                                line.uomId,
+                              );
+                            }),
                             validator: (_) =>
                                 line.itemId == null ? 'Item is required' : null,
                           ),
@@ -815,21 +850,35 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                               'Warehouse',
                             ),
                           ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'UOM',
-                            mappedItems: _uoms
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.uomId,
-                            onChanged: (value) =>
-                                setState(() => line.uomId = value),
-                            validator: Validators.requiredSelection('UOM'),
+                          Builder(
+                            builder: (context) {
+                              final options = _uomOptionsForItem(line.itemId);
+                              if (options.length <= 1) {
+                                final onlyId = options.isNotEmpty
+                                    ? options.first.id
+                                    : null;
+                                if (line.uomId != onlyId) {
+                                  line.uomId = onlyId;
+                                }
+                                return const SizedBox.shrink();
+                              }
+                              return AppDropdownField<int>.fromMapped(
+                                labelText: 'UOM',
+                                mappedItems: options
+                                    .where((item) => item.id != null)
+                                    .map(
+                                      (item) => AppDropdownItem(
+                                        value: item.id!,
+                                        label: item.toString(),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                                initialValue: line.uomId,
+                                onChanged: (value) =>
+                                    setState(() => line.uomId = value),
+                                validator: Validators.requiredSelection('UOM'),
+                              );
+                            },
                           ),
                           AppFormTextField(
                             labelText: 'Received Qty',
