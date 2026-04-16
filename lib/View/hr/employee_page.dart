@@ -38,6 +38,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         AppDropdownItem(value: 'hourly', label: 'Hourly'),
       ];
 
+  static const List<AppDropdownItem<String>> _addressTypeItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'present', label: 'Present'),
+        AppDropdownItem(value: 'permanent', label: 'Permanent'),
+      ];
+
   static const List<AppDropdownItem<String>> _componentTypeItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'earning', label: 'Earning'),
@@ -64,6 +70,46 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       TextEditingController();
   final TextEditingController _ifscCodeController = TextEditingController();
   final TextEditingController _profilePhotoController = TextEditingController();
+  final TextEditingController _esiNoController = TextEditingController();
+  final TextEditingController _pfUanNoController = TextEditingController();
+  final TextEditingController _pfAccountNoController = TextEditingController();
+  final TextEditingController _passportNoController = TextEditingController();
+  final TextEditingController _passportIssueDateController =
+      TextEditingController();
+  final TextEditingController _passportExpiryDateController =
+      TextEditingController();
+  final TextEditingController _passportPlaceOfIssueController =
+      TextEditingController();
+  final TextEditingController _personalInsuranceProviderController =
+      TextEditingController();
+  final TextEditingController _personalInsurancePolicyNoController =
+      TextEditingController();
+  final TextEditingController _personalInsuranceAmountController =
+      TextEditingController();
+  final TextEditingController _companyInsuranceProviderController =
+      TextEditingController();
+  final TextEditingController _companyInsurancePolicyNoController =
+      TextEditingController();
+  final TextEditingController _companyInsuranceAmountController =
+      TextEditingController();
+
+  final TextEditingController _addressLine1Controller = TextEditingController();
+  final TextEditingController _addressLine2Controller = TextEditingController();
+  final TextEditingController _addressLandmarkController =
+      TextEditingController();
+  final TextEditingController _addressCityController = TextEditingController();
+  final TextEditingController _addressStateController = TextEditingController();
+  final TextEditingController _addressPostalCodeController =
+      TextEditingController();
+  final TextEditingController _addressCountryController =
+      TextEditingController();
+  final TextEditingController _addressPhoneController = TextEditingController();
+
+  final TextEditingController _relationNameController = TextEditingController();
+  final TextEditingController _relationAgeController = TextEditingController();
+  final TextEditingController _relationPhoneController = TextEditingController();
+  final TextEditingController _relationRelationshipController =
+      TextEditingController();
 
   final TextEditingController _structureEffectiveFromController =
       TextEditingController();
@@ -86,10 +132,15 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   bool _uploadingPhoto = false;
   bool _showDraftStructureTile = false;
   bool _showDraftComponentTile = false;
+  bool _showDraftAddressTile = false;
+  bool _showDraftRelationTile = false;
   String? _pageError;
   String? _formError;
+  String? _statutoryFormError;
   String? _structureFormError;
   String? _componentFormError;
+  String? _addressFormError;
+  String? _relationFormError;
   List<EmployeeModel> _employees = const <EmployeeModel>[];
   List<EmployeeModel> _filteredEmployees = const <EmployeeModel>[];
   List<CompanyModel> _companies = const <CompanyModel>[];
@@ -97,6 +148,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   List<DesignationModel> _designations = const <DesignationModel>[];
   List<CostCenterModel> _costCenters = const <CostCenterModel>[];
   List<EmployeeAccountModel> _employeeAccounts = const <EmployeeAccountModel>[];
+  List<_EmployeeAddressDraft> _addresses = <_EmployeeAddressDraft>[];
+  List<_EmployeeRelationDraft> _relations = <_EmployeeRelationDraft>[];
   List<_EmployeeSalaryStructureDraft> _salaryStructures =
       <_EmployeeSalaryStructureDraft>[];
   EmployeeModel? _selectedEmployee;
@@ -109,6 +162,9 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   String _status = 'active';
   String _salaryMode = 'monthly';
   int _draftKeySeed = -1;
+  String _addressType = 'present';
+  int? _selectedAddressKey;
+  int? _selectedRelationKey;
   int? _selectedStructureKey;
   bool _structureIsActive = true;
   int? _selectedComponentParentKey;
@@ -118,7 +174,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _activeTabIndex = _tabController.index;
     _tabController.addListener(() {
       if (!mounted || _tabController.indexIsChanging) {
@@ -155,6 +211,31 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _bankAccountNoController.dispose();
     _ifscCodeController.dispose();
     _profilePhotoController.dispose();
+    _esiNoController.dispose();
+    _pfUanNoController.dispose();
+    _pfAccountNoController.dispose();
+    _passportNoController.dispose();
+    _passportIssueDateController.dispose();
+    _passportExpiryDateController.dispose();
+    _passportPlaceOfIssueController.dispose();
+    _personalInsuranceProviderController.dispose();
+    _personalInsurancePolicyNoController.dispose();
+    _personalInsuranceAmountController.dispose();
+    _companyInsuranceProviderController.dispose();
+    _companyInsurancePolicyNoController.dispose();
+    _companyInsuranceAmountController.dispose();
+    _addressLine1Controller.dispose();
+    _addressLine2Controller.dispose();
+    _addressLandmarkController.dispose();
+    _addressCityController.dispose();
+    _addressStateController.dispose();
+    _addressPostalCodeController.dispose();
+    _addressCountryController.dispose();
+    _addressPhoneController.dispose();
+    _relationNameController.dispose();
+    _relationAgeController.dispose();
+    _relationPhoneController.dispose();
+    _relationRelationshipController.dispose();
     _structureEffectiveFromController.dispose();
     _structureBasicSalaryController.dispose();
     _structureGrossSalaryController.dispose();
@@ -322,14 +403,44 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _bankAccountNoController.text = full.bankAccountNo ?? '';
     _ifscCodeController.text = full.ifscCode ?? '';
     _profilePhotoController.text = full.profilePhotoPath ?? '';
+    _esiNoController.text = full.esiNo ?? '';
+    _pfUanNoController.text = full.pfUanNo ?? '';
+    _pfAccountNoController.text = full.pfAccountNo ?? '';
+    _passportNoController.text = full.passportNo ?? '';
+    _passportIssueDateController.text = full.passportIssueDate ?? '';
+    _passportExpiryDateController.text = full.passportExpiryDate ?? '';
+    _passportPlaceOfIssueController.text = full.passportPlaceOfIssue ?? '';
+    _personalInsuranceProviderController.text =
+        full.personalInsuranceProvider ?? '';
+    _personalInsurancePolicyNoController.text =
+        full.personalInsurancePolicyNo ?? '';
+    _personalInsuranceAmountController.text = _decimalText(
+      full.personalInsuranceAmount,
+    );
+    _companyInsuranceProviderController.text =
+        full.companyInsuranceProvider ?? '';
+    _companyInsurancePolicyNoController.text =
+        full.companyInsurancePolicyNo ?? '';
+    _companyInsuranceAmountController.text = _decimalText(
+      full.companyInsuranceAmount,
+    );
     _costCenterId = full.costCenterId;
     _employeeAccounts = accountsResponse.data ?? const <EmployeeAccountModel>[];
+    _addresses = full.addresses
+        .map(_employeeAddressDraftFromModel)
+        .toList(growable: true);
+    _relations = full.relations
+        .map(_employeeRelationDraftFromModel)
+        .toList(growable: true);
     _salaryStructures =
         (salaryResponse.data ?? const <EmployeeSalaryStructureModel>[])
             .map(_salaryStructureDraftFromModel)
             .toList(growable: true);
+    _resetAddressEditor(silent: true);
+    _resetRelationEditor(silent: true);
     _resetStructureEditor(silent: true);
     _resetComponentEditor(silent: true);
+    _statutoryFormError = null;
     _formError = null;
     setState(() {});
   }
@@ -352,11 +463,29 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _bankAccountNoController.clear();
     _ifscCodeController.clear();
     _profilePhotoController.clear();
+    _esiNoController.clear();
+    _pfUanNoController.clear();
+    _pfAccountNoController.clear();
+    _passportNoController.clear();
+    _passportIssueDateController.clear();
+    _passportExpiryDateController.clear();
+    _passportPlaceOfIssueController.clear();
+    _personalInsuranceProviderController.clear();
+    _personalInsurancePolicyNoController.clear();
+    _personalInsuranceAmountController.clear();
+    _companyInsuranceProviderController.clear();
+    _companyInsurancePolicyNoController.clear();
+    _companyInsuranceAmountController.clear();
     _costCenterId = null;
     _employeeAccounts = const <EmployeeAccountModel>[];
+    _addresses = <_EmployeeAddressDraft>[];
+    _relations = <_EmployeeRelationDraft>[];
     _salaryStructures = <_EmployeeSalaryStructureDraft>[];
+    _resetAddressEditor(silent: true);
+    _resetRelationEditor(silent: true);
     _resetStructureEditor(silent: true);
     _resetComponentEditor(silent: true);
+    _statutoryFormError = null;
     _primeEmployeeCodeSuggestion();
     _formError = null;
     setState(() {});
@@ -425,7 +554,42 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       bankAccountNo: nullIfEmpty(_bankAccountNoController.text.trim()),
       ifscCode: nullIfEmpty(_ifscCodeController.text.trim()),
       profilePhotoPath: nullIfEmpty(_profilePhotoController.text.trim()),
+      esiNo: nullIfEmpty(_esiNoController.text.trim()),
+      pfUanNo: nullIfEmpty(_pfUanNoController.text.trim()),
+      pfAccountNo: nullIfEmpty(_pfAccountNoController.text.trim()),
+      passportNo: nullIfEmpty(_passportNoController.text.trim()),
+      passportIssueDate: nullIfEmpty(_passportIssueDateController.text.trim()),
+      passportExpiryDate: nullIfEmpty(
+        _passportExpiryDateController.text.trim(),
+      ),
+      passportPlaceOfIssue: nullIfEmpty(
+        _passportPlaceOfIssueController.text.trim(),
+      ),
+      personalInsuranceProvider: nullIfEmpty(
+        _personalInsuranceProviderController.text.trim(),
+      ),
+      personalInsurancePolicyNo: nullIfEmpty(
+        _personalInsurancePolicyNoController.text.trim(),
+      ),
+      personalInsuranceAmount: double.tryParse(
+        _personalInsuranceAmountController.text.trim(),
+      ),
+      companyInsuranceProvider: nullIfEmpty(
+        _companyInsuranceProviderController.text.trim(),
+      ),
+      companyInsurancePolicyNo: nullIfEmpty(
+        _companyInsurancePolicyNoController.text.trim(),
+      ),
+      companyInsuranceAmount: double.tryParse(
+        _companyInsuranceAmountController.text.trim(),
+      ),
       costCenterId: _costCenterId,
+      addresses: _addresses
+          .map((item) => item.toModel(employeeId: _selectedEmployee?.id))
+          .toList(growable: false),
+      relations: _relations
+          .map((item) => item.toModel(employeeId: _selectedEmployee?.id))
+          .toList(growable: false),
       salaryStructures: _salaryStructures
           .map((item) => item.toModel(employeeId: _selectedEmployee?.id))
           .toList(growable: false),
@@ -494,6 +658,41 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     }
   }
 
+  Future<void> _persistEmployeeDetails({
+    required String successMessage,
+    required void Function(String message) onError,
+  }) async {
+    final employee = _selectedEmployee;
+    if (employee?.id == null) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _formError = null;
+    });
+
+    try {
+      final response = await _hrService.updateEmployee(
+        employee!.id!,
+        _buildEmployeePayload(),
+      );
+      final saved = response.data;
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(successMessage)));
+      await _loadData(selectId: saved?.id ?? employee.id);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => onError(error.toString()));
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
   Future<void> _persistSalaryData(String successMessage) async {
     final employee = _selectedEmployee;
     if (employee?.id == null) {
@@ -532,6 +731,235 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }
 
   int _nextDraftKey() => _draftKeySeed--;
+
+  _EmployeeAddressDraft _employeeAddressDraftFromModel(
+    EmployeeAddressModel model,
+  ) {
+    return _EmployeeAddressDraft(
+      key: model.id ?? _nextDraftKey(),
+      id: model.id,
+      addressType: model.addressType ?? 'present',
+      addressLine1: model.addressLine1 ?? '',
+      addressLine2: model.addressLine2 ?? '',
+      landmark: model.landmark ?? '',
+      city: model.city ?? '',
+      stateName: model.stateName ?? '',
+      postalCode: model.postalCode ?? '',
+      country: model.country ?? '',
+      phoneNumber: model.phoneNumber ?? '',
+    );
+  }
+
+  _EmployeeRelationDraft _employeeRelationDraftFromModel(
+    EmployeeRelationModel model,
+  ) {
+    return _EmployeeRelationDraft(
+      key: model.id ?? _nextDraftKey(),
+      id: model.id,
+      relationName: model.relationName ?? '',
+      age: model.age?.toString() ?? '',
+      phoneNumber: model.phoneNumber ?? '',
+      relationship: model.relationship ?? '',
+    );
+  }
+
+  void _resetAddressEditor({bool silent = false}) {
+    _showDraftAddressTile = false;
+    _selectedAddressKey = null;
+    _addressType = 'present';
+    _addressLine1Controller.clear();
+    _addressLine2Controller.clear();
+    _addressLandmarkController.clear();
+    _addressCityController.clear();
+    _addressStateController.clear();
+    _addressPostalCodeController.clear();
+    _addressCountryController.clear();
+    _addressPhoneController.clear();
+    _addressFormError = null;
+    if (!silent && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _startNewAddress() {
+    _selectedAddressKey = null;
+    _showDraftAddressTile = true;
+    _addressType = _addresses.any((item) => item.addressType == 'present')
+        ? 'permanent'
+        : 'present';
+    _addressLine1Controller.clear();
+    _addressLine2Controller.clear();
+    _addressLandmarkController.clear();
+    _addressCityController.clear();
+    _addressStateController.clear();
+    _addressPostalCodeController.clear();
+    _addressCountryController.clear();
+    _addressPhoneController.clear();
+    _addressFormError = null;
+    setState(() {});
+  }
+
+  void _selectAddress(_EmployeeAddressDraft draft) {
+    _showDraftAddressTile = false;
+    _selectedAddressKey = draft.key;
+    _addressType = draft.addressType;
+    _addressLine1Controller.text = draft.addressLine1;
+    _addressLine2Controller.text = draft.addressLine2;
+    _addressLandmarkController.text = draft.landmark;
+    _addressCityController.text = draft.city;
+    _addressStateController.text = draft.stateName;
+    _addressPostalCodeController.text = draft.postalCode;
+    _addressCountryController.text = draft.country;
+    _addressPhoneController.text = draft.phoneNumber;
+    _addressFormError = null;
+    setState(() {});
+  }
+
+  Future<void> _saveAddress() async {
+    if (_addressLine1Controller.text.trim().isEmpty) {
+      setState(() => _addressFormError = 'Address Line 1 is required.');
+      return;
+    }
+
+    final draft = _EmployeeAddressDraft(
+      key: _selectedAddressKey ?? _nextDraftKey(),
+      id: _addresses
+          .where((item) => item.key == _selectedAddressKey)
+          .firstOrNull
+          ?.id,
+      addressType: _addressType,
+      addressLine1: _addressLine1Controller.text.trim(),
+      addressLine2: _addressLine2Controller.text.trim(),
+      landmark: _addressLandmarkController.text.trim(),
+      city: _addressCityController.text.trim(),
+      stateName: _addressStateController.text.trim(),
+      postalCode: _addressPostalCodeController.text.trim(),
+      country: _addressCountryController.text.trim(),
+      phoneNumber: _addressPhoneController.text.trim(),
+    );
+
+    setState(() {
+      var next = List<_EmployeeAddressDraft>.from(_addresses)
+        ..removeWhere((item) => item.addressType == draft.addressType);
+      final index = next.indexWhere((item) => item.key == draft.key);
+      if (index >= 0) {
+        next[index] = draft;
+      } else {
+        next.insert(0, draft);
+      }
+      _addresses = next;
+    });
+    _resetAddressEditor();
+    await _persistEmployeeDetails(
+      successMessage: 'Employee address saved successfully.',
+      onError: (message) => _addressFormError = message,
+    );
+  }
+
+  Future<void> _removeAddress(_EmployeeAddressDraft draft) async {
+    setState(() {
+      _addresses = _addresses.where((item) => item.key != draft.key).toList();
+      if (_selectedAddressKey == draft.key) {
+        _resetAddressEditor(silent: true);
+      }
+    });
+    await _persistEmployeeDetails(
+      successMessage: 'Employee address removed successfully.',
+      onError: (message) => _addressFormError = message,
+    );
+  }
+
+  void _resetRelationEditor({bool silent = false}) {
+    _showDraftRelationTile = false;
+    _selectedRelationKey = null;
+    _relationNameController.clear();
+    _relationAgeController.clear();
+    _relationPhoneController.clear();
+    _relationRelationshipController.clear();
+    _relationFormError = null;
+    if (!silent && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _startNewRelation() {
+    _selectedRelationKey = null;
+    _showDraftRelationTile = true;
+    _relationNameController.clear();
+    _relationAgeController.clear();
+    _relationPhoneController.clear();
+    _relationRelationshipController.clear();
+    _relationFormError = null;
+    setState(() {});
+  }
+
+  void _selectRelation(_EmployeeRelationDraft draft) {
+    _showDraftRelationTile = false;
+    _selectedRelationKey = draft.key;
+    _relationNameController.text = draft.relationName;
+    _relationAgeController.text = draft.age;
+    _relationPhoneController.text = draft.phoneNumber;
+    _relationRelationshipController.text = draft.relationship;
+    _relationFormError = null;
+    setState(() {});
+  }
+
+  Future<void> _saveRelation() async {
+    if (_relationNameController.text.trim().isEmpty) {
+      setState(() => _relationFormError = 'Relation Name is required.');
+      return;
+    }
+    if (_relationRelationshipController.text.trim().isEmpty) {
+      setState(() => _relationFormError = 'Relationship is required.');
+      return;
+    }
+    final ageText = _relationAgeController.text.trim();
+    if (ageText.isNotEmpty && int.tryParse(ageText) == null) {
+      setState(() => _relationFormError = 'Age must be a valid whole number.');
+      return;
+    }
+
+    final draft = _EmployeeRelationDraft(
+      key: _selectedRelationKey ?? _nextDraftKey(),
+      id: _relations
+          .where((item) => item.key == _selectedRelationKey)
+          .firstOrNull
+          ?.id,
+      relationName: _relationNameController.text.trim(),
+      age: ageText,
+      phoneNumber: _relationPhoneController.text.trim(),
+      relationship: _relationRelationshipController.text.trim(),
+    );
+
+    setState(() {
+      final next = List<_EmployeeRelationDraft>.from(_relations);
+      final index = next.indexWhere((item) => item.key == draft.key);
+      if (index >= 0) {
+        next[index] = draft;
+      } else {
+        next.insert(0, draft);
+      }
+      _relations = next;
+    });
+    _resetRelationEditor();
+    await _persistEmployeeDetails(
+      successMessage: 'Employee relation saved successfully.',
+      onError: (message) => _relationFormError = message,
+    );
+  }
+
+  Future<void> _removeRelation(_EmployeeRelationDraft draft) async {
+    setState(() {
+      _relations = _relations.where((item) => item.key != draft.key).toList();
+      if (_selectedRelationKey == draft.key) {
+        _resetRelationEditor(silent: true);
+      }
+    });
+    await _persistEmployeeDetails(
+      successMessage: 'Employee relation removed successfully.',
+      onError: (message) => _relationFormError = message,
+    );
+  }
 
   _EmployeeSalaryStructureDraft _salaryStructureDraftFromModel(
     EmployeeSalaryStructureModel model,
@@ -1091,6 +1519,9 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
             isScrollable: true,
             tabs: const [
               Tab(text: 'Primary'),
+              Tab(text: 'Statutory'),
+              Tab(text: 'Addresses'),
+              Tab(text: 'Relations'),
               Tab(text: 'Employee Accounts'),
               Tab(text: 'Salary Structures'),
               Tab(text: 'Salary Components'),
@@ -1101,6 +1532,18 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
             index: _activeTabIndex,
             children: [
               _buildPrimaryTab(),
+              _buildSaveFirstTabMessage(
+                tabLabel: 'Employee Statutory & Insurance',
+                child: _buildStatutoryTab(),
+              ),
+              _buildSaveFirstTabMessage(
+                tabLabel: 'Employee Addresses',
+                child: _buildAddressesTab(),
+              ),
+              _buildSaveFirstTabMessage(
+                tabLabel: 'Employee Relations',
+                child: _buildRelationsTab(),
+              ),
               _buildSaveFirstTabMessage(
                 tabLabel: 'Employee Accounts',
                 child: _buildAccountsTab(),
@@ -1401,6 +1844,413 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
             ),
           );
         }),
+      ],
+    );
+  }
+
+  Widget _buildStatutoryTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if ((_statutoryFormError ?? '').isNotEmpty) ...[
+          AppErrorStateView.inline(message: _statutoryFormError!),
+          const SizedBox(height: AppUiConstants.spacingSm),
+        ],
+        SettingsFormWrap(
+          children: [
+            AppFormTextField(
+              controller: _esiNoController,
+              labelText: 'ESI Number',
+              validator: Validators.optionalMaxLength(100, 'ESI Number'),
+            ),
+            AppFormTextField(
+              controller: _pfUanNoController,
+              labelText: 'PF UAN Number',
+              validator: Validators.optionalMaxLength(100, 'PF UAN Number'),
+            ),
+            AppFormTextField(
+              controller: _pfAccountNoController,
+              labelText: 'PF Account Number',
+              validator: Validators.optionalMaxLength(100, 'PF Account Number'),
+            ),
+            AppFormTextField(
+              controller: _passportNoController,
+              labelText: 'Passport Number',
+              validator: Validators.optionalMaxLength(100, 'Passport Number'),
+            ),
+            AppFormTextField(
+              controller: _passportIssueDateController,
+              labelText: 'Passport Issue Date',
+              keyboardType: TextInputType.datetime,
+              inputFormatters: const [DateInputFormatter()],
+              validator: Validators.optionalDate('Passport Issue Date'),
+            ),
+            AppFormTextField(
+              controller: _passportExpiryDateController,
+              labelText: 'Passport Expiry Date',
+              keyboardType: TextInputType.datetime,
+              inputFormatters: const [DateInputFormatter()],
+              validator: Validators.optionalDate('Passport Expiry Date'),
+            ),
+            AppFormTextField(
+              controller: _passportPlaceOfIssueController,
+              labelText: 'Passport Place of Issue',
+              validator: Validators.optionalMaxLength(
+                255,
+                'Passport Place of Issue',
+              ),
+            ),
+            AppFormTextField(
+              controller: _personalInsuranceProviderController,
+              labelText: 'Personal Insurance Provider',
+              validator: Validators.optionalMaxLength(
+                255,
+                'Personal Insurance Provider',
+              ),
+            ),
+            AppFormTextField(
+              controller: _personalInsurancePolicyNoController,
+              labelText: 'Personal Insurance Policy No',
+              validator: Validators.optionalMaxLength(
+                100,
+                'Personal Insurance Policy No',
+              ),
+            ),
+            AppFormTextField(
+              controller: _personalInsuranceAmountController,
+              labelText: 'Personal Insurance Amount',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              validator: Validators.optionalNonNegativeNumber(
+                'Personal Insurance Amount',
+              ),
+            ),
+            AppFormTextField(
+              controller: _companyInsuranceProviderController,
+              labelText: 'Company Insurance Provider',
+              validator: Validators.optionalMaxLength(
+                255,
+                'Company Insurance Provider',
+              ),
+            ),
+            AppFormTextField(
+              controller: _companyInsurancePolicyNoController,
+              labelText: 'Company Insurance Policy No',
+              validator: Validators.optionalMaxLength(
+                100,
+                'Company Insurance Policy No',
+              ),
+            ),
+            AppFormTextField(
+              controller: _companyInsuranceAmountController,
+              labelText: 'Company Insurance Amount',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              validator: Validators.optionalNonNegativeNumber(
+                'Company Insurance Amount',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        AppActionButton(
+          icon: Icons.save_outlined,
+          label: 'Save Statutory Details',
+          onPressed: () async {
+            setState(() => _statutoryFormError = null);
+            final passportIssueDate = _passportIssueDateController.text.trim();
+            final passportExpiryDate =
+                _passportExpiryDateController.text.trim();
+            final issueError = Validators.optionalDate(
+              'Passport Issue Date',
+            )(passportIssueDate);
+            if (issueError != null) {
+              setState(() => _statutoryFormError = issueError);
+              return;
+            }
+            final expiryError = Validators.optionalDate(
+              'Passport Expiry Date',
+            )(passportExpiryDate);
+            if (expiryError != null) {
+              setState(() => _statutoryFormError = expiryError);
+              return;
+            }
+            await _persistEmployeeDetails(
+              successMessage: 'Employee statutory details saved successfully.',
+              onError: (message) => _statutoryFormError = message,
+            );
+          },
+          busy: _saving,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddressesTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppActionButton(
+          onPressed: _saving ? null : _startNewAddress,
+          icon: Icons.add_outlined,
+          label: 'New Address',
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        if ((_addressFormError ?? '').isNotEmpty) ...[
+          AppErrorStateView.inline(message: _addressFormError!),
+          const SizedBox(height: AppUiConstants.spacingSm),
+        ],
+        if (_addresses.isEmpty && !_showDraftAddressTile)
+          const SettingsEmptyState(
+            icon: Icons.home_work_outlined,
+            title: 'No Employee Addresses',
+            message: 'Add present and permanent address details.',
+            minHeight: 180,
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_showDraftAddressTile) ...[
+                SettingsExpandableTile(
+                  key: const ValueKey('employee-address-draft'),
+                  title: 'New Address',
+                  subtitle: 'Create an employee address record.',
+                  expanded: true,
+                  highlighted: true,
+                  leadingIcon: Icons.add_outlined,
+                  onToggle: _resetAddressEditor,
+                  child: _buildAddressEditor(),
+                ),
+                if (_addresses.isNotEmpty)
+                  const SizedBox(height: AppUiConstants.spacingSm),
+              ],
+              ..._addresses.map((item) {
+                final expanded = item.key == _selectedAddressKey;
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
+                  child: SettingsExpandableTile(
+                    key: ValueKey('employee-address-${item.key}-$expanded'),
+                    title: item.addressType == 'permanent'
+                        ? 'Permanent Address'
+                        : 'Present Address',
+                    subtitle: [
+                      item.addressLine1,
+                      item.city,
+                      item.stateName,
+                    ].where((value) => value.isNotEmpty).join(' • '),
+                    detail: item.phoneNumber,
+                    expanded: expanded,
+                    highlighted: expanded,
+                    onToggle: () {
+                      if (expanded) {
+                        _resetAddressEditor();
+                      } else {
+                        _selectAddress(item);
+                      }
+                    },
+                    child: _buildAddressEditor(current: item),
+                  ),
+                );
+              }),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAddressEditor({_EmployeeAddressDraft? current}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SettingsFormWrap(
+          children: [
+            AppDropdownField<String>.fromMapped(
+              labelText: 'Address Type',
+              mappedItems: _addressTypeItems,
+              initialValue: _addressType,
+              onChanged: (value) =>
+                  setState(() => _addressType = value ?? _addressType),
+            ),
+            AppFormTextField(
+              controller: _addressLine1Controller,
+              labelText: 'Address Line 1',
+            ),
+            AppFormTextField(
+              controller: _addressLine2Controller,
+              labelText: 'Address Line 2',
+            ),
+            AppFormTextField(
+              controller: _addressLandmarkController,
+              labelText: 'Landmark',
+            ),
+            AppFormTextField(
+              controller: _addressCityController,
+              labelText: 'City',
+            ),
+            AppFormTextField(
+              controller: _addressStateController,
+              labelText: 'State',
+            ),
+            AppFormTextField(
+              controller: _addressPostalCodeController,
+              labelText: 'Postal Code',
+            ),
+            AppFormTextField(
+              controller: _addressCountryController,
+              labelText: 'Country',
+            ),
+            AppFormTextField(
+              controller: _addressPhoneController,
+              labelText: 'Phone Number',
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: [
+            AppActionButton(
+              icon: Icons.save_outlined,
+              label: current == null ? 'Save Address' : 'Update Address',
+              onPressed: _saveAddress,
+              busy: _saving,
+            ),
+            if (current != null)
+              AppActionButton(
+                icon: Icons.remove_circle_outline,
+                label: 'Remove',
+                onPressed: () => _removeAddress(current),
+                busy: _saving,
+                filled: false,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRelationsTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppActionButton(
+          onPressed: _saving ? null : _startNewRelation,
+          icon: Icons.add_outlined,
+          label: 'New Relation',
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        if ((_relationFormError ?? '').isNotEmpty) ...[
+          AppErrorStateView.inline(message: _relationFormError!),
+          const SizedBox(height: AppUiConstants.spacingSm),
+        ],
+        if (_relations.isEmpty && !_showDraftRelationTile)
+          const SettingsEmptyState(
+            icon: Icons.family_restroom_outlined,
+            title: 'No Employee Relations',
+            message: 'Add family or emergency relation details.',
+            minHeight: 180,
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_showDraftRelationTile) ...[
+                SettingsExpandableTile(
+                  key: const ValueKey('employee-relation-draft'),
+                  title: 'New Relation',
+                  subtitle: 'Create an employee relation record.',
+                  expanded: true,
+                  highlighted: true,
+                  leadingIcon: Icons.add_outlined,
+                  onToggle: _resetRelationEditor,
+                  child: _buildRelationEditor(),
+                ),
+                if (_relations.isNotEmpty)
+                  const SizedBox(height: AppUiConstants.spacingSm),
+              ],
+              ..._relations.map((item) {
+                final expanded = item.key == _selectedRelationKey;
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
+                  child: SettingsExpandableTile(
+                    key: ValueKey('employee-relation-${item.key}-$expanded'),
+                    title: item.relationName.isNotEmpty
+                        ? item.relationName
+                        : 'Relation',
+                    subtitle: [
+                      item.relationship,
+                      if (item.age.isNotEmpty) 'Age ${item.age}',
+                    ].where((value) => value.isNotEmpty).join(' • '),
+                    detail: item.phoneNumber,
+                    expanded: expanded,
+                    highlighted: expanded,
+                    onToggle: () {
+                      if (expanded) {
+                        _resetRelationEditor();
+                      } else {
+                        _selectRelation(item);
+                      }
+                    },
+                    child: _buildRelationEditor(current: item),
+                  ),
+                );
+              }),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRelationEditor({_EmployeeRelationDraft? current}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SettingsFormWrap(
+          children: [
+            AppFormTextField(
+              controller: _relationNameController,
+              labelText: 'Relation Name',
+            ),
+            AppFormTextField(
+              controller: _relationRelationshipController,
+              labelText: 'Relationship',
+            ),
+            AppFormTextField(
+              controller: _relationAgeController,
+              labelText: 'Age',
+              keyboardType: TextInputType.number,
+            ),
+            AppFormTextField(
+              controller: _relationPhoneController,
+              labelText: 'Phone Number',
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: [
+            AppActionButton(
+              icon: Icons.save_outlined,
+              label: current == null ? 'Save Relation' : 'Update Relation',
+              onPressed: _saveRelation,
+              busy: _saving,
+            ),
+            if (current != null)
+              AppActionButton(
+                icon: Icons.remove_circle_outline,
+                label: 'Remove',
+                onPressed: () => _removeRelation(current),
+                busy: _saving,
+                filled: false,
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -1831,6 +2681,79 @@ class _EmployeeSalaryComponentDraft {
       componentName: componentName,
       componentType: componentType,
       amount: double.tryParse(amount),
+    );
+  }
+}
+
+class _EmployeeAddressDraft {
+  _EmployeeAddressDraft({
+    required this.key,
+    this.id,
+    required this.addressType,
+    required this.addressLine1,
+    required this.addressLine2,
+    required this.landmark,
+    required this.city,
+    required this.stateName,
+    required this.postalCode,
+    required this.country,
+    required this.phoneNumber,
+  });
+
+  final int key;
+  final int? id;
+  final String addressType;
+  final String addressLine1;
+  final String addressLine2;
+  final String landmark;
+  final String city;
+  final String stateName;
+  final String postalCode;
+  final String country;
+  final String phoneNumber;
+
+  EmployeeAddressModel toModel({int? employeeId}) {
+    return EmployeeAddressModel(
+      id: id,
+      employeeId: employeeId,
+      addressType: addressType,
+      addressLine1: addressLine1,
+      addressLine2: addressLine2,
+      landmark: landmark,
+      city: city,
+      stateName: stateName,
+      postalCode: postalCode,
+      country: country,
+      phoneNumber: phoneNumber,
+    );
+  }
+}
+
+class _EmployeeRelationDraft {
+  _EmployeeRelationDraft({
+    required this.key,
+    this.id,
+    required this.relationName,
+    required this.age,
+    required this.phoneNumber,
+    required this.relationship,
+  });
+
+  final int key;
+  final int? id;
+  final String relationName;
+  final String age;
+  final String phoneNumber;
+  final String relationship;
+
+  EmployeeRelationModel toModel({int? employeeId}) {
+    return EmployeeRelationModel(
+      id: id,
+      employeeId: employeeId,
+      relationName: relationName,
+      age: int.tryParse(age),
+      phoneNumber: phoneNumber,
+      relationship: relationship,
     );
   }
 }

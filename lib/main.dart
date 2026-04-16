@@ -25,6 +25,18 @@ final GlobalKey<ScaffoldMessengerState> appScaffoldMessengerKey =
 class BillingApp extends StatelessWidget {
   const BillingApp({super.key});
 
+  String _initialRouteName() {
+    final uri = Uri.base;
+    final path = uri.path.trim().isEmpty ? '/' : uri.path;
+    if (path == '/' && uri.queryParameters.isEmpty) {
+      return '/';
+    }
+    return Uri(
+      path: path,
+      queryParameters: uri.queryParameters.isEmpty ? null : uri.queryParameters,
+    ).toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -33,7 +45,7 @@ class BillingApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: AppConfig.appTitle,
       theme: AppTheme.light(),
-      initialRoute: '/',
+      initialRoute: _initialRouteName(),
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '/');
         AppRouteState.update(uri.toString());

@@ -55,8 +55,8 @@ flutter run
 
 
 07/04/2026 4:55 pm
-Updated the frontend validation in [party_management_page.dart](/Users/buddykit/Projects/billing-flutter/lib/view/parties/party_management_page.dart) 
-and added reusable helpers in [validators.dart](/Users/buddykit/Projects/billing-flutter/lib/helper/validators.dart).
+Updated the frontend validation in [party_management_page.dart](/lib/view/parties/party_management_page.dart) 
+and added reusable helpers in [validators.dart](/lib/helper/validators.dart).
 
 The contact form now validates before submit for:
 - `contact_name` required and max `150`
