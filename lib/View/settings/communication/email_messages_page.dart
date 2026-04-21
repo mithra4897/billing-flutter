@@ -1,9 +1,16 @@
 import '../../../screen.dart';
 
 class EmailMessagesPage extends StatefulWidget {
-  const EmailMessagesPage({super.key, this.embedded = false});
+  const EmailMessagesPage({
+    super.key,
+    this.embedded = false,
+    this.openSendComposerOnInit = false,
+  });
 
   final bool embedded;
+
+  /// When true (e.g. `/communication/send-email`), opens the send dialog once after the first successful load.
+  final bool openSendComposerOnInit;
 
   @override
   State<EmailMessagesPage> createState() => _EmailMessagesPageState();
@@ -17,6 +24,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
 
   bool _initialLoading = true;
   bool _sending = false;
+  bool _openedSendComposerFromRoute = false;
   String? _pageError;
   int? _contextCompanyId;
   List<AppDropdownItem<String>> _documentTypeItems = const [
@@ -110,6 +118,17 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
       setState(() {
         _selectedMessage = selected;
       });
+
+      if (widget.openSendComposerOnInit &&
+          !_openedSendComposerFromRoute &&
+          _pageError == null) {
+        _openedSendComposerFromRoute = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _openSendDialog();
+          }
+        });
+      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -120,6 +139,9 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
       });
     }
   }
+
+  String get _pageTitle =>
+      widget.openSendComposerOnInit ? 'Send Email' : 'Email Messages';
 
   void _applySearch() {
     setState(() {
@@ -333,7 +355,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     }
 
     return AppStandaloneShell(
-      title: 'Email Messages',
+      title: _pageTitle,
       scrollController: _pageScrollController,
       actions: actions,
       child: content,
@@ -356,7 +378,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     final selectedData = _selectedMessage?.data ?? const <String, dynamic>{};
 
     return SettingsWorkspace(
-      title: 'Email Messages',
+      title: _pageTitle,
       editorTitle: _selectedMessage?.toString(),
       scrollController: _pageScrollController,
       list: SettingsListCard<EmailMessageModel>(

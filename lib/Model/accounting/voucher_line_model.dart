@@ -1,4 +1,5 @@
 import '../common/json_model.dart';
+import 'voucher_allocation_model.dart';
 
 class VoucherLineModel implements JsonModel {
   const VoucherLineModel({
@@ -22,6 +23,7 @@ class VoucherLineModel implements JsonModel {
     this.department,
     this.project,
     this.lineNarration,
+    this.allocations = const <VoucherAllocationModel>[],
     this.raw,
   });
 
@@ -45,6 +47,7 @@ class VoucherLineModel implements JsonModel {
   final String? department;
   final String? project;
   final String? lineNarration;
+  final List<VoucherAllocationModel> allocations;
   final Map<String, dynamic>? raw;
 
   @override
@@ -76,6 +79,7 @@ class VoucherLineModel implements JsonModel {
       department: json['department']?.toString(),
       project: json['project']?.toString(),
       lineNarration: json['line_narration']?.toString(),
+      allocations: _mapAllocations(json['allocations']),
       raw: json,
     );
   }
@@ -112,5 +116,15 @@ class VoucherLineModel implements JsonModel {
   static Map<String, dynamic> _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     return <String, dynamic>{};
+  }
+
+  static List<VoucherAllocationModel> _mapAllocations(dynamic value) {
+    if (value is! List) {
+      return const <VoucherAllocationModel>[];
+    }
+    return value
+        .whereType<Map<String, dynamic>>()
+        .map(VoucherAllocationModel.fromJson)
+        .toList(growable: false);
   }
 }

@@ -1,6 +1,5 @@
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
-import '../../model/common/erp_report_row_model.dart';
 import '../../model/inventory/internal_stock_receipt_model.dart';
 import '../../model/inventory/inventory_adjustment_model.dart';
 import '../../model/inventory/item_alternate_model.dart';
@@ -772,46 +771,79 @@ class InventoryService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deletePhysicalStockCount(int id) =>
       destroy('/inventory/physical-stock-counts/$id');
 
-  Future<PaginatedResponse<ErpReportRowModel>> stockSummary({
-    Map<String, dynamic>? filters,
-  }) => paginated(
+  Future<ApiResponse<dynamic>> inquiryItemStockSummary({
+    required int itemId,
+    int? companyId,
+  }) => client.get<dynamic>(
     '/inventory/inquiry/stock-summary',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: <String, dynamic>{
+      'item_id': itemId,
+      if (companyId != null) 'company_id': companyId,
+    },
+    fromData: (dynamic json) => json,
   );
-  Future<PaginatedResponse<ErpReportRowModel>> warehouseWiseStock({
-    Map<String, dynamic>? filters,
-  }) => paginated(
+
+  Future<ApiResponse<dynamic>> inquiryWarehouseWiseStock({
+    required int itemId,
+    int? companyId,
+  }) => client.get<dynamic>(
     '/inventory/inquiry/warehouse-wise-stock',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: <String, dynamic>{
+      'item_id': itemId,
+      if (companyId != null) 'company_id': companyId,
+    },
+    fromData: (dynamic json) => json,
   );
-  Future<PaginatedResponse<ErpReportRowModel>> batchWiseStock({
-    Map<String, dynamic>? filters,
-  }) => paginated(
+
+  Future<ApiResponse<dynamic>> inquiryBatchWiseStock({
+    required int itemId,
+    int? companyId,
+    int? warehouseId,
+  }) => client.get<dynamic>(
     '/inventory/inquiry/batch-wise-stock',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: <String, dynamic>{
+      'item_id': itemId,
+      if (companyId != null) 'company_id': companyId,
+      if (warehouseId != null) 'warehouse_id': warehouseId,
+    },
+    fromData: (dynamic json) => json,
   );
-  Future<PaginatedResponse<ErpReportRowModel>> availableSerials({
-    Map<String, dynamic>? filters,
-  }) => paginated(
+
+  Future<ApiResponse<dynamic>> inquiryAvailableSerials({
+    required int itemId,
+    int? warehouseId,
+    int? batchId,
+  }) => client.get<dynamic>(
     '/inventory/inquiry/available-serials',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: <String, dynamic>{
+      'item_id': itemId,
+      if (warehouseId != null) 'warehouse_id': warehouseId,
+      if (batchId != null) 'batch_id': batchId,
+    },
+    fromData: (dynamic json) => json,
   );
-  Future<PaginatedResponse<ErpReportRowModel>> stockCard({
-    Map<String, dynamic>? filters,
-  }) => paginated(
+
+  Future<ApiResponse<dynamic>> inquiryStockCard({
+    required int itemId,
+    int? companyId,
+  }) => client.get<dynamic>(
     '/inventory/inquiry/stock-card',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: <String, dynamic>{
+      'item_id': itemId,
+      if (companyId != null) 'company_id': companyId,
+    },
+    fromData: (dynamic json) => json,
   );
-  Future<PaginatedResponse<ErpReportRowModel>> reorderStatus({
-    Map<String, dynamic>? filters,
-  }) => paginated(
+
+  Future<ApiResponse<dynamic>> inquiryReorderStatus({
+    required int itemId,
+    int? companyId,
+  }) => client.get<dynamic>(
     '/inventory/inquiry/reorder-status',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
+    queryParameters: <String, dynamic>{
+      'item_id': itemId,
+      if (companyId != null) 'company_id': companyId,
+    },
+    fromData: (dynamic json) => json,
   );
 }

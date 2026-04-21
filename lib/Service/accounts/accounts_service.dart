@@ -278,6 +278,14 @@ class AccountsService extends ErpModuleService {
     fromJson: PartyAccountModel.fromJson,
   );
 
+  Future<PaginatedResponse<PartyAccountModel>> partyAccountsRegister({
+    Map<String, dynamic>? filters,
+  }) => paginated<PartyAccountModel>(
+    '/accounting/party-accounts',
+    filters: filters,
+    fromJson: PartyAccountModel.fromJson,
+  );
+
   Future<ApiResponse<PartyAccountModel>> defaultPartyAccount({
     Map<String, dynamic>? filters,
   }) => object<PartyAccountModel>(
@@ -496,6 +504,15 @@ class AccountsService extends ErpModuleService {
 
   Future<ApiResponse<dynamic>> deleteBankReconciliation(int id) =>
       destroy('/accounting/bank-reconciliation/$id');
+
+  Future<ApiResponse<AccountingReportModel>> reportDayBook({
+    Map<String, dynamic>? filters,
+  }) => client.get<AccountingReportModel>(
+    '/accounting/reports/day-book',
+    queryParameters: filters,
+    fromData: (json) =>
+        AccountingReportModel.fromJson(json as Map<String, dynamic>),
+  );
 
   Future<ApiResponse<AccountingReportModel>> reportGeneralLedger({
     Map<String, dynamic>? filters,

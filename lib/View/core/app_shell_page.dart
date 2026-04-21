@@ -9,9 +9,19 @@ import '../dashboard/dashboard_page.dart';
 import '../hr/department_page.dart';
 import '../hr/designation_page.dart';
 import '../hr/employee_page.dart';
+import '../hr/hr_registers.dart';
 import '../hr/leave_request_page.dart';
 import '../hr/leave_type_page.dart';
+import '../inventory/inventory_inquiry_page.dart';
+import '../inventory/inventory_registers.dart';
 import '../parties/party_management_page.dart';
+import '../planning/planning_registers.dart';
+import '../manufacturing/manufacturing_registers.dart';
+import '../maintenance/maintenance_registers.dart';
+import '../assets/asset_registers.dart';
+import '../jobwork/jobwork_registers.dart';
+import '../quality/quality_registers.dart';
+import '../service/service_registers.dart';
 import '../project/project_billing_page.dart';
 import '../project/project_dashboard_page.dart';
 import '../project/project_expense_page.dart';
@@ -26,17 +36,25 @@ import '../purchase/purchase_order_page.dart';
 import '../purchase/purchase_payment_page.dart';
 import '../purchase/purchase_receipt_page.dart';
 import '../purchase/purchase_register_screens.dart';
+import '../sales/sales_delivery_page.dart';
 import '../sales/sales_invoice_page.dart';
 import '../sales/sales_order_page.dart';
 import '../sales/sales_quotation_page.dart';
+import '../sales/sales_receipt_page.dart';
 import '../sales/sales_register_screens.dart';
+import '../sales/sales_return_page.dart';
 import '../purchase/purchase_requisition_page.dart';
 import '../purchase/purchase_return_page.dart';
 import '../settings/accounting/account_group_page.dart';
 import '../settings/accounting/account_page.dart';
 import '../settings/accounting/bank_reconciliation_page.dart';
+import '../settings/accounting/budget_page.dart';
 import '../settings/accounting/cash_session_page.dart';
+import '../settings/accounting/document_posting_page.dart';
 import '../settings/accounting/financial_reports_page.dart';
+import '../settings/accounting/party_account_register_page.dart';
+import '../settings/accounting/posting_rule_group_page.dart';
+import '../settings/accounting/posting_rule_page.dart';
 import '../settings/accounting/voucher_page.dart';
 import '../settings/accounting/voucher_type_page.dart';
 import '../settings/communication/email_messages_page.dart';
@@ -48,6 +66,7 @@ import '../settings/master/branch_page.dart';
 import '../settings/master/brand_page.dart';
 import '../settings/master/company_page.dart';
 import '../settings/master/document_series_page.dart';
+import '../settings/master/financial_year_page.dart';
 import '../settings/master/item_alternate_page.dart';
 import '../settings/master/item_category_page.dart';
 import '../settings/master/item_page.dart';
@@ -57,6 +76,8 @@ import '../settings/master/physical_stock_count_page.dart';
 import '../settings/master/stock_balance_page.dart';
 import '../settings/master/tax_category_page.dart';
 import '../settings/master/uom_page.dart';
+import '../settings/tax/document_tax_lines_register_page.dart';
+import '../settings/tax/gst_registration_page.dart';
 import '../settings/tax/gst_tax_rule_page.dart';
 import '../settings/tax/state_page.dart';
 import '../settings/user/login_history_page.dart';
@@ -295,17 +316,11 @@ class _AppShellPageState extends State<AppShellPage> {
           initialTabIndex: 2,
         );
       case '/tax/gst-registrations':
-        return BranchManagementPage(
-          key: routeKey,
-          embedded: true,
-          initialTabIndex: 3,
-        );
+        return GstRegistrationManagementPage(key: routeKey, embedded: true);
+      case '/tax/document-tax-lines':
+        return DocumentTaxLinesRegisterPage(key: routeKey, embedded: true);
       case '/settings/financial-years':
-        return CompanyManagementPage(
-          key: routeKey,
-          embedded: true,
-          initialTabIndex: 1,
-        );
+        return FinancialYearManagementPage(key: routeKey, embedded: true);
       case '/settings/document-series':
         return DocumentSeriesManagementPage(key: routeKey, embedded: true);
       case '/settings/module-preferences':
@@ -347,6 +362,26 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           mode: ItemSupplierMapViewMode.supplierWise,
         );
+      case '/inventory/inquiry':
+        return InventoryInquiryPage(key: routeKey, embedded: true);
+      case '/inventory/opening-stocks':
+        return OpeningStockRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/stock-issues':
+        return StockIssueRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/internal-stock-receipts':
+        return InternalStockReceiptRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/stock-transfers':
+        return StockTransferRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/stock-damage':
+        return StockDamageRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/adjustments':
+        return InventoryAdjustmentRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/stock-movements':
+        return StockMovementRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/stock-batches':
+        return StockBatchRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/stock-serials':
+        return StockSerialRegisterPage(key: routeKey, embedded: true);
       case '/tax/states':
         return StateManagementPage(key: routeKey, embedded: true);
       case '/tax/gst-tax-rules':
@@ -360,8 +395,13 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/communication/email-rules':
         return EmailRulesPage(key: routeKey, embedded: true);
       case '/communication/email-messages':
-      case '/communication/send-email':
         return EmailMessagesPage(key: routeKey, embedded: true);
+      case '/communication/send-email':
+        return EmailMessagesPage(
+          key: routeKey,
+          embedded: true,
+          openSendComposerOnInit: true,
+        );
       case '/crm/leads':
         return CrmLeadsPage(key: routeKey, embedded: true);
       case '/crm/enquiries':
@@ -400,12 +440,22 @@ class _AppShellPageState extends State<AppShellPage> {
         return FinancialReportsPage(key: routeKey, embedded: true);
       case '/accounting/voucher-types':
         return VoucherTypeManagementPage(key: routeKey, embedded: true);
+      case '/accounting/posting-rule-groups':
+        return PostingRuleGroupManagementPage(key: routeKey, embedded: true);
+      case '/accounting/posting-rules':
+        return PostingRuleManagementPage(key: routeKey, embedded: true);
+      case '/accounting/document-postings':
+        return DocumentPostingManagementPage(key: routeKey, embedded: true);
+      case '/accounting/budgets':
+        return BudgetManagementPage(key: routeKey, embedded: true);
       case '/accounting/party-accounts':
       case '/parties/accounts':
-        return PartyManagementPage(
+        return PartyAccountRegisterPage(
           key: routeKey,
           embedded: true,
-          initialTabIndex: 7,
+          initialPartyId: int.tryParse(
+            _currentQueryParameters['party_id'] ?? '',
+          ),
         );
       case '/hr/departments':
         return DepartmentManagementPage(key: routeKey, embedded: true);
@@ -423,12 +473,26 @@ class _AppShellPageState extends State<AppShellPage> {
         return LeaveTypeManagementPage(key: routeKey, embedded: true);
       case '/hr/leave-requests':
         return LeaveRequestManagementPage(key: routeKey, embedded: true);
+      case '/hr/attendance':
+        return AttendanceRegisterPage(key: routeKey, embedded: true);
+      case '/hr/expense-claims':
+        return ExpenseClaimRegisterPage(key: routeKey, embedded: true);
+      case '/hr/payroll-runs':
+        return PayrollRunRegisterPage(key: routeKey, embedded: true);
+      case '/hr/payslips':
+        return PayslipRegisterPage(key: routeKey, embedded: true);
       case '/sales/quotations':
         return SalesQuotationRegisterPage(key: routeKey, embedded: true);
       case '/sales/orders':
         return SalesOrderRegisterPage(key: routeKey, embedded: true);
       case '/sales/invoices':
         return SalesInvoiceRegisterPage(key: routeKey, embedded: true);
+      case '/sales/deliveries':
+        return SalesDeliveryRegisterPage(key: routeKey, embedded: true);
+      case '/sales/receipts':
+        return SalesReceiptRegisterPage(key: routeKey, embedded: true);
+      case '/sales/returns':
+        return SalesReturnRegisterPage(key: routeKey, embedded: true);
       case '/purchase/requisitions':
         return PurchaseRequisitionRegisterPage(key: routeKey, embedded: true);
       case '/purchase/orders':
@@ -441,6 +505,80 @@ class _AppShellPageState extends State<AppShellPage> {
         return PurchasePaymentRegisterPage(key: routeKey, embedded: true);
       case '/purchase/returns':
         return PurchaseReturnRegisterPage(key: routeKey, embedded: true);
+      case '/planning/stock-reservations':
+        return StockReservationRegisterPage(key: routeKey, embedded: true);
+      case '/planning/item-policies':
+        return ItemPlanningPolicyRegisterPage(key: routeKey, embedded: true);
+      case '/planning/calendars':
+        return PlanningCalendarRegisterPage(key: routeKey, embedded: true);
+      case '/planning/mrp-runs':
+        return MrpRunRegisterPage(key: routeKey, embedded: true);
+      case '/planning/mrp-demands':
+        return MrpDemandRegisterPage(key: routeKey, embedded: true);
+      case '/planning/mrp-supplies':
+        return MrpSupplyRegisterPage(key: routeKey, embedded: true);
+      case '/planning/mrp-net-requirements':
+        return MrpNetRequirementRegisterPage(key: routeKey, embedded: true);
+      case '/planning/mrp-recommendations':
+        return MrpRecommendationRegisterPage(key: routeKey, embedded: true);
+      case '/manufacturing/boms':
+        return BomRegisterPage(key: routeKey, embedded: true);
+      case '/manufacturing/production-orders':
+        return ProductionOrderRegisterPage(key: routeKey, embedded: true);
+      case '/manufacturing/production-material-issues':
+        return ProductionMaterialIssueRegisterPage(key: routeKey, embedded: true);
+      case '/manufacturing/production-receipts':
+        return ProductionReceiptRegisterPage(key: routeKey, embedded: true);
+      case '/jobwork/orders':
+        return JobworkOrderRegisterPage(key: routeKey, embedded: true);
+      case '/jobwork/dispatches':
+        return JobworkDispatchRegisterPage(key: routeKey, embedded: true);
+      case '/jobwork/receipts':
+        return JobworkReceiptRegisterPage(key: routeKey, embedded: true);
+      case '/jobwork/charges':
+        return JobworkChargeRegisterPage(key: routeKey, embedded: true);
+      case '/quality/qc-plans':
+        return QcPlanRegisterPage(key: routeKey, embedded: true);
+      case '/quality/qc-inspections':
+        return QcInspectionRegisterPage(key: routeKey, embedded: true);
+      case '/quality/qc-result-actions':
+        return QcResultActionRegisterPage(key: routeKey, embedded: true);
+      case '/quality/qc-non-conformance-logs':
+        return QcNonConformanceLogRegisterPage(key: routeKey, embedded: true);
+      case '/service/contracts':
+        return ServiceContractRegisterPage(key: routeKey, embedded: true);
+      case '/service/tickets':
+        return ServiceTicketRegisterPage(key: routeKey, embedded: true);
+      case '/service/warranty-claims':
+        return WarrantyClaimRegisterPage(key: routeKey, embedded: true);
+      case '/service/work-orders':
+        return ServiceWorkOrderRegisterPage(key: routeKey, embedded: true);
+      case '/service/feedbacks':
+        return ServiceFeedbackRegisterPage(key: routeKey, embedded: true);
+      case '/maintenance/plans':
+        return MaintenancePlanRegisterPage(key: routeKey, embedded: true);
+      case '/maintenance/requests':
+        return MaintenanceRequestRegisterPage(key: routeKey, embedded: true);
+      case '/maintenance/work-orders':
+        return MaintenanceWorkOrderRegisterPage(key: routeKey, embedded: true);
+      case '/maintenance/downtime-logs':
+        return AssetDowntimeLogRegisterPage(key: routeKey, embedded: true);
+      case '/maintenance/amc-contracts':
+        return AmcContractRegisterPage(key: routeKey, embedded: true);
+      case '/assets/categories':
+        return AssetCategoryRegisterPage(key: routeKey, embedded: true);
+      case '/assets/cost-centers':
+        return AssetCostCenterRegisterPage(key: routeKey, embedded: true);
+      case '/assets/register':
+        return FixedAssetRegisterPage(key: routeKey, embedded: true);
+      case '/assets/depreciation-runs':
+        return AssetDepreciationRunRegisterPage(key: routeKey, embedded: true);
+      case '/assets/transfers':
+        return AssetTransferRegisterPage(key: routeKey, embedded: true);
+      case '/assets/disposals':
+        return AssetDisposalRegisterPage(key: routeKey, embedded: true);
+      case '/assets/reports':
+        return AssetReportsHubPage(key: routeKey, embedded: true);
       case '/projects':
         return ProjectManagementPage(key: routeKey, embedded: true);
       case '/projects/dashboard':
@@ -551,6 +689,27 @@ class _AppShellPageState extends State<AppShellPage> {
           initialQuotationId: int.tryParse(
             _currentQueryParameters['quotation_id'] ?? '',
           ),
+        );
+      case 'deliveries':
+        return SalesDeliveryPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'receipts':
+        return SalesReceiptPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'returns':
+        return SalesReturnPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
         );
     }
     return null;
@@ -663,10 +822,15 @@ class _AppShellPageState extends State<AppShellPage> {
     if (path.startsWith('/sales/invoices/')) {
       return 'Sales Invoice';
     }
-    if (path == '/communication/send-email') {
-      return 'Email Messages';
+    if (path.startsWith('/sales/deliveries/')) {
+      return 'Sales Delivery';
     }
-
+    if (path.startsWith('/sales/receipts/')) {
+      return 'Sales Receipt';
+    }
+    if (path.startsWith('/sales/returns/')) {
+      return 'Sales Return';
+    }
     return 'Module';
   }
 

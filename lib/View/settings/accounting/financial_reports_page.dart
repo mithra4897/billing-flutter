@@ -1,6 +1,5 @@
-import 'dart:convert';
-
 import '../../../screen.dart';
+import 'financial_report_views.dart';
 
 class FinancialReportsPage extends StatefulWidget {
   const FinancialReportsPage({super.key, this.embedded = false});
@@ -14,6 +13,7 @@ class FinancialReportsPage extends StatefulWidget {
 class _FinancialReportsPageState extends State<FinancialReportsPage> {
   static const List<AppDropdownItem<String>> _reportItems =
       <AppDropdownItem<String>>[
+        AppDropdownItem(value: 'day_book', label: 'Day Book'),
         AppDropdownItem(value: 'general_ledger', label: 'General Ledger'),
         AppDropdownItem(
           value: 'accounts_receivable_aging',
@@ -44,11 +44,13 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
   bool _initialLoading = true;
   bool _loading = false;
   String? _error;
-  String _reportType = 'general_ledger';
+  String _reportType = 'day_book';
   int? _companyId;
   int? _accountId;
   int? _partyId;
+  int? _dayBookBranchId;
   List<AccountModel> _accounts = const <AccountModel>[];
+  List<BranchModel> _branches = const <BranchModel>[];
   List<PartyModel> _parties = const <PartyModel>[];
   AccountingReportModel? _report;
 
@@ -82,6 +84,9 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
         _accountsService.accountsAll(filters: const {'sort_by': 'account_name'}),
+        _masterService.branches(
+          filters: const {'per_page': 500, 'sort_by': 'name'},
+        ),
         _partiesService.parties(
           filters: const {'per_page': 200, 'sort_by': 'party_name'},
         ),
@@ -91,7 +96,9 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           const <CompanyModel>[];
       final accounts = (responses[1] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
-      final parties = (responses[2] as PaginatedResponse<PartyModel>).data ??
+      final branches = (responses[2] as PaginatedResponse<BranchModel>).data ??
+          const <BranchModel>[];
+      final parties = (responses[3] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
       final activeCompanies = companies
           .where((item) => item.isActive)
@@ -107,6 +114,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
       if (!mounted) return;
       setState(() {
         _accounts = accounts.where((item) => item.isActive).toList();
+        _branches = branches.where((item) => item.isActive).toList();
         _parties = parties.where((item) => item.isActive).toList();
         _companyId = contextSelection.companyId;
         _initialLoading = false;
@@ -137,6 +145,13 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
 
     final filters = <String, dynamic>{'company_id': _companyId};
     switch (_reportType) {
+      case 'day_book':
+        filters['date_from'] = _dateFromController.text.trim();
+        filters['date_to'] = _dateToController.text.trim();
+        if (_dayBookBranchId != null) {
+          filters['branch_id'] = _dayBookBranchId;
+        }
+        break;
       case 'general_ledger':
         filters['account_id'] = _accountId;
         if (_partyId != null) filters['party_id'] = _partyId;
@@ -165,6 +180,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
 
     try {
       final response = switch (_reportType) {
+        'day_book' => await _accountsService.reportDayBook(filters: filters),
         'general_ledger' => await _accountsService.reportGeneralLedger(
             filters: filters,
           ),
@@ -198,7 +214,16 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
       _reportType == 'general_ledger' ||
       _reportType == 'accounts_receivable_aging' ||
       _reportType == 'accounts_payable_aging';
+  bool get _needsDayBookBranch => _reportType == 'day_book';
+  List<BranchModel> get _branchOptions => _branches
+      .where(
+        (b) =>
+            b.isActive &&
+            (_companyId == null || b.companyId == null || b.companyId == _companyId),
+      )
+      .toList(growable: false);
   bool get _usesDateRange =>
+      _reportType == 'day_book' ||
       _reportType == 'general_ledger' ||
       _reportType == 'profit_and_loss' ||
       _reportType == 'cash_flow' ||
@@ -276,9 +301,10 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
                       OutlinedButton.icon(
                         onPressed: () {
                           setState(() {
-                            _reportType = 'general_ledger';
+                            _reportType = 'day_book';
                             _accountId = null;
                             _partyId = null;
+                            _dayBookBranchId = null;
                             final today = DateTime.now()
                                 .toIso8601String()
                                 .split('T')
@@ -307,12 +333,32 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
     }
   }
 
+  Future<void> _copyReportTsv() async {
+    if (_report == null) {
+      return;
+    }
+    final text = FinancialReportViews.toTsv(_reportType, _report!.data);
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Report copied as tab-separated text')),
+    );
+  }
+
   List<Widget> _buildShellActions() {
     return [
       AdaptiveShellActionButton(
         onPressed: _loading ? null : _openFilterPanel,
         icon: Icons.filter_alt_outlined,
         label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
+        onPressed: _loading || _report == null ? null : _copyReportTsv,
+        icon: Icons.copy_outlined,
+        label: 'Copy TSV',
         filled: false,
       ),
       AdaptiveShellActionButton(
@@ -350,10 +396,6 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
       );
     }
 
-    final prettyJson = _report == null
-        ? null
-        : const JsonEncoder.withIndent('  ').convert(_report!.data);
-
     return SingleChildScrollView(
       controller: _pageScrollController,
       child: Column(
@@ -389,21 +431,10 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
                         ),
                       ),
                       const SizedBox(height: AppUiConstants.spacingMd),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(
-                            AppUiConstants.cardRadius,
-                          ),
-                        ),
-                        child: SelectableText(
-                          prettyJson ?? '',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontFamily: 'monospace',
-                          ),
-                        ),
+                      FinancialReportViews.buildBody(
+                        context,
+                        _reportType,
+                        _report!.data,
                       ),
                     ],
                   ),
@@ -422,16 +453,33 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           initialValue: _reportType,
           onChanged: (value) => setState(
             () {
-              _reportType = value ?? 'general_ledger';
+              _reportType = value ?? 'day_book';
               if (!_needsAccount) {
                 _accountId = null;
               }
               if (!_needsParty) {
                 _partyId = null;
               }
+              if (!_needsDayBookBranch) {
+                _dayBookBranchId = null;
+              }
             },
           ),
         ),
+        if (_needsDayBookBranch)
+          AppDropdownField<int?>.fromMapped(
+            labelText: 'Branch (optional)',
+            mappedItems: <AppDropdownItem<int?>>[
+              const AppDropdownItem<int?>(value: null, label: 'All branches'),
+              ..._branchOptions
+                  .where((b) => b.id != null)
+                  .map(
+                    (b) => AppDropdownItem<int?>(value: b.id, label: b.toString()),
+                  ),
+            ],
+            initialValue: _dayBookBranchId,
+            onChanged: (value) => setState(() => _dayBookBranchId = value),
+          ),
         if (_needsAccount)
           AppDropdownField<int>.fromMapped(
             labelText: 'Account',

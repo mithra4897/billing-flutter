@@ -1,6 +1,5 @@
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
-import '../../model/common/erp_report_row_model.dart';
 import '../../model/assets/asset_book_model.dart';
 import '../../model/assets/asset_category_model.dart';
 import '../../model/assets/asset_depreciation_run_model.dart';
@@ -297,25 +296,55 @@ class AssetsService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteDisposal(int id) =>
       destroy('/assets/disposals/$id');
 
-  Future<PaginatedResponse<ErpReportRowModel>> reportRegister({
+  /// Finance reports return `{ lines: [...], ...totals }` in `data`, not pagination.
+  Future<ApiResponse<Map<String, dynamic>>> fetchAssetRegisterReport({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
-    '/assets/reports/register',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
-  );
-  Future<PaginatedResponse<ErpReportRowModel>> reportDepreciationSummary({
+  }) =>
+      client.get<Map<String, dynamic>>(
+        '/assets/reports/register',
+        queryParameters: filters,
+        fromData: (dynamic json) {
+          if (json is Map<String, dynamic>) {
+            return json;
+          }
+          if (json is Map) {
+            return Map<String, dynamic>.from(json);
+          }
+          return <String, dynamic>{};
+        },
+      );
+
+  Future<ApiResponse<Map<String, dynamic>>> fetchDepreciationSummaryReport({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
-    '/assets/reports/depreciation-summary',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
-  );
-  Future<PaginatedResponse<ErpReportRowModel>> reportDisposalSummary({
+  }) =>
+      client.get<Map<String, dynamic>>(
+        '/assets/reports/depreciation-summary',
+        queryParameters: filters,
+        fromData: (dynamic json) {
+          if (json is Map<String, dynamic>) {
+            return json;
+          }
+          if (json is Map) {
+            return Map<String, dynamic>.from(json);
+          }
+          return <String, dynamic>{};
+        },
+      );
+
+  Future<ApiResponse<Map<String, dynamic>>> fetchDisposalSummaryReport({
     Map<String, dynamic>? filters,
-  }) => paginated<ErpReportRowModel>(
-    '/assets/reports/disposal-summary',
-    filters: filters,
-    fromJson: ErpReportRowModel.fromJson,
-  );
+  }) =>
+      client.get<Map<String, dynamic>>(
+        '/assets/reports/disposal-summary',
+        queryParameters: filters,
+        fromData: (dynamic json) {
+          if (json is Map<String, dynamic>) {
+            return json;
+          }
+          if (json is Map) {
+            return Map<String, dynamic>.from(json);
+          }
+          return <String, dynamic>{};
+        },
+      );
 }

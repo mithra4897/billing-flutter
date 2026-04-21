@@ -216,4 +216,73 @@ class ServiceModuleService extends ErpModuleService {
   );
   Future<ApiResponse<dynamic>> deleteFeedback(int id) =>
       destroy('/service/feedbacks/$id');
+
+  Future<PaginatedResponse<ServiceTicketModel>> warrantyClaims({
+    Map<String, dynamic>? filters,
+  }) => paginated<ServiceTicketModel>(
+    '/service/warranty-claims',
+    filters: filters,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> warrantyClaim(int id) =>
+      object<ServiceTicketModel>(
+        '/service/warranty-claims/$id',
+        fromJson: ServiceTicketModel.fromJson,
+      );
+  Future<ApiResponse<ServiceTicketModel>> createWarrantyClaim(
+    ServiceTicketModel body,
+  ) => createModel<ServiceTicketModel>(
+    '/service/warranty-claims',
+    body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> updateWarrantyClaim(
+    int id,
+    ServiceTicketModel body,
+  ) => updateModel<ServiceTicketModel>(
+    '/service/warranty-claims/$id',
+    body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> assignWarrantyClaim(
+    int id,
+    ServiceTicketModel body,
+  ) => actionModel<ServiceTicketModel>(
+    '/service/warranty-claims/$id/assign',
+    body: body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> createWorkOrderFromWarrantyClaim(
+    int id,
+    ServiceTicketModel body,
+  ) => actionDynamic(
+    '/service/warranty-claims/$id/create-work-order',
+    body: body,
+  );
+  Future<ApiResponse<ServiceTicketModel>> resolveWarrantyClaim(
+    int id,
+    ServiceTicketModel body,
+  ) => actionModel<ServiceTicketModel>(
+    '/service/warranty-claims/$id/resolve',
+    body: body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> closeWarrantyClaim(
+    int id,
+    ServiceTicketModel body,
+  ) => actionModel<ServiceTicketModel>(
+    '/service/warranty-claims/$id/close',
+    body: body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<ServiceTicketModel>> cancelWarrantyClaim(
+    int id,
+    ServiceTicketModel body,
+  ) => actionModel<ServiceTicketModel>(
+    '/service/warranty-claims/$id/cancel',
+    body: body,
+    fromJson: ServiceTicketModel.fromJson,
+  );
+  Future<ApiResponse<dynamic>> deleteWarrantyClaim(int id) =>
+      destroy('/service/warranty-claims/$id');
 }

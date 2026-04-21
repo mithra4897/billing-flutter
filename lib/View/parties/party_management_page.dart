@@ -59,20 +59,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         AppDropdownItem(value: 'end_of_month', label: 'End Of Month'),
         AppDropdownItem(value: 'fixed_days', label: 'Fixed Days'),
       ];
-  static const List<AppDropdownItem<String>> _accountPurposeItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'primary', label: 'Primary'),
-        AppDropdownItem(value: 'receivable', label: 'Receivable'),
-        AppDropdownItem(value: 'payable', label: 'Payable'),
-        AppDropdownItem(value: 'advance', label: 'Advance'),
-        AppDropdownItem(value: 'salary', label: 'Salary'),
-        AppDropdownItem(value: 'commission', label: 'Commission'),
-        AppDropdownItem(value: 'other', label: 'Other'),
-      ];
-
   final PartiesService _partiesService = PartiesService();
   final MasterService _masterService = MasterService();
-  final AccountsService _accountsService = AccountsService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
@@ -153,9 +141,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   final TextEditingController _paymentDaysController = TextEditingController();
   final TextEditingController _paymentRemarksController =
       TextEditingController();
-  final GlobalKey<FormState> _partyAccountFormKey = GlobalKey<FormState>();
-  final TextEditingController _partyAccountRemarksController =
-      TextEditingController();
 
   bool _initialLoading = true;
   bool _partySaving = false;
@@ -208,13 +193,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   String _dueBasis = 'invoice_date';
   bool _paymentDefault = false;
   bool _paymentActive = true;
-  List<PartyAccountModel> _partyAccounts = const <PartyAccountModel>[];
-  List<AccountModel> _availableAccounts = const <AccountModel>[];
-  PartyAccountModel? _selectedPartyAccount;
-  int? _partyAccountId;
-  String _partyAccountPurpose = 'primary';
-  bool _partyAccountDefault = true;
-  bool _partyAccountActive = true;
   bool _canViewPartyAccounts = false;
   bool _partyAccountsAccessResolved = false;
   bool _partyCodeManuallyEdited = false;
@@ -239,7 +217,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _activeTabIndex = _tabController.index;
     _partyCodeController.addListener(_handlePartyCodeChanged);
     _searchController.addListener(_applySearch);
-    _loadAccountingAccess();
+    _loadPartyAccountsAccess();
     _loadPage();
   }
 
@@ -297,11 +275,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _paymentTermNameController.dispose();
     _paymentDaysController.dispose();
     _paymentRemarksController.dispose();
-    _partyAccountRemarksController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadAccountingAccess() async {
+  Future<void> _loadPartyAccountsAccess() async {
     final permissionCodes = await SessionStorage.getPermissionCodes();
     final canViewPartyAccounts = permissionCodes.contains('accounts.view');
 
@@ -313,17 +290,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       _canViewPartyAccounts = canViewPartyAccounts;
       _partyAccountsAccessResolved = true;
     });
-
-    if (!canViewPartyAccounts) {
-      return;
-    }
-
-    await _loadAvailableAccounts();
-
-    final partyId = _selectedParty?.id;
-    if (partyId != null) {
-      await _loadPartyAccounts(partyId);
-    }
   }
 
   void _handlePartyCodeChanged() {
@@ -591,7 +557,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _resetBankForm();
     _resetCreditForm();
     _resetPaymentTermForm();
-    _resetPartyAccountForm();
 
     setState(() {});
 
@@ -619,10 +584,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         _creditLimits = creditResponse.data ?? const <PartyCreditLimitModel>[];
         _paymentTerms = paymentResponse.data ?? const <PartyPaymentTermModel>[];
       });
-
-      if (_canViewPartyAccounts) {
-        await _loadPartyAccounts(partyId);
-      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -666,8 +627,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _selectedCreditLimit = null;
     _paymentTerms = const <PartyPaymentTermModel>[];
     _selectedPaymentTerm = null;
-    _partyAccounts = const <PartyAccountModel>[];
-    _selectedPartyAccount = null;
     _detailFormError = null;
     _resetAddressForm();
     _resetContactForm();
@@ -675,57 +634,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _resetBankForm();
     _resetCreditForm();
     _resetPaymentTermForm();
-    _resetPartyAccountForm();
-  }
-
-  Future<void> _loadAvailableAccounts() async {
-    try {
-      final response = await _accountsService.accountsAll(
-        filters: const {'is_active': 1, 'sort_by': 'account_name'},
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _availableAccounts = (response.data ?? const <AccountModel>[])
-            .where((item) => item.id != null && item.isActive)
-            .toList(growable: false);
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _availableAccounts = const <AccountModel>[];
-      });
-    }
-  }
-
-  Future<void> _loadPartyAccounts(int partyId) async {
-    try {
-      final response = await _accountsService.partyAccounts(
-        filters: {'party_id': partyId},
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _partyAccounts = response.data ?? const <PartyAccountModel>[];
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _detailFormError = error.toString();
-      });
-    }
   }
 
   Future<void> _saveParty() async {
@@ -1219,117 +1127,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _dueBasis = 'invoice_date';
     _paymentDefault = false;
     _paymentActive = true;
-  }
-
-  void _resetPartyAccountForm() {
-    _selectedPartyAccount = null;
-    _partyAccountId = null;
-    _partyAccountPurpose = 'primary';
-    _partyAccountDefault = true;
-    _partyAccountActive = true;
-    _partyAccountRemarksController.clear();
-  }
-
-  void _selectPartyAccount(PartyAccountModel record) {
-    _selectedPartyAccount = record;
-    _partyAccountId = record.accountId;
-    _partyAccountPurpose = record.accountPurpose ?? 'primary';
-    _partyAccountDefault = record.isDefault;
-    _partyAccountActive = record.isActive;
-    _partyAccountRemarksController.text = record.remarks ?? '';
-    setState(() {});
-  }
-
-  Future<void> _savePartyAccount() async {
-    final partyId = _selectedParty?.id;
-    if (partyId == null ||
-        !_partyAccountFormKey.currentState!.validate() ||
-        !_canViewPartyAccounts) {
-      return;
-    }
-
-    setState(() {
-      _detailSaving = true;
-      _detailFormError = null;
-    });
-
-    try {
-      final model = PartyAccountModel(
-        id: _selectedPartyAccount?.id,
-        partyId: partyId,
-        accountId: _partyAccountId,
-        accountPurpose: _partyAccountPurpose,
-        isDefault: _partyAccountDefault,
-        isActive: _partyAccountActive,
-        remarks: nullIfEmpty(_partyAccountRemarksController.text),
-      );
-
-      final response = _selectedPartyAccount == null
-          ? await _accountsService.createPartyAccount(model)
-          : await _accountsService.updatePartyAccount(
-              _selectedPartyAccount!.id!,
-              model,
-            );
-
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPartyAccounts(partyId);
-      _openDetailDrafts.remove('party_accounts');
-      _resetPartyAccountForm();
-      setState(() {});
-    } catch (error) {
-      setState(() {
-        _detailFormError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _detailSaving = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _deletePartyAccount() async {
-    final id = _selectedPartyAccount?.id;
-    final partyId = _selectedParty?.id;
-    if (id == null || partyId == null || !_canViewPartyAccounts) {
-      return;
-    }
-
-    setState(() {
-      _detailSaving = true;
-      _detailFormError = null;
-    });
-
-    try {
-      final response = await _accountsService.deletePartyAccount(id);
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPartyAccounts(partyId);
-      _resetPartyAccountForm();
-      setState(() {});
-    } catch (error) {
-      setState(() {
-        _detailFormError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _detailSaving = false;
-        });
-      }
-    }
   }
 
   void _selectPaymentTerm(PartyPaymentTermModel record) {
@@ -1855,32 +1652,56 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         icon: Icons.lock_outline,
         title: 'Accounting access required',
         message:
-            'You can manage parties here, but party-ledger mapping needs accounting permission.',
+            'Party–ledger mapping requires accounting permission. Ask an administrator for accounts access.',
         minHeight: 200,
       );
     }
 
-    return _buildDetailTab<PartyAccountModel>(
-      sectionKey: 'party_accounts',
-      title: 'Party Accounts',
-      subtitle:
-          'Link this party to the right receivable, payable, advance, or primary ledger accounts.',
-      emptyTitle: 'Select a party first',
-      emptyMessage:
-          'Choose a party from the left to manage ledger mappings for that party.',
-      onNew: _resetPartyAccountForm,
-      list: _partyAccounts,
-      selected: _selectedPartyAccount,
-      itemTitle: (item) => item.accountName ?? item.accountCode ?? 'Account',
-      itemSubtitle: (item) => [
-        item.accountPurpose ?? '',
-        item.accountType ?? '',
-        item.accountCode ?? '',
-      ].where((value) => value.isNotEmpty).join(' • '),
-      onSelect: _selectPartyAccount,
-      form: Form(
-        key: _partyAccountFormKey,
-        child: _buildPartyAccountForm(context),
+    if (_selectedParty?.id == null) {
+      return const SettingsEmptyState(
+        icon: Icons.handshake_outlined,
+        title: 'Select a party first',
+        message:
+            'Choose a party from the list, then open the Party Accounts register to create or edit ledger links.',
+      );
+    }
+
+    final partyId = _selectedParty!.id!;
+    final route =
+        '/accounting/party-accounts?party_id=${Uri.encodeComponent('$partyId')}';
+
+    return Padding(
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: AppSectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Party accounts',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            Text(
+              'Ledger mappings for ${_selectedParty!.displayName ?? _selectedParty!.partyName ?? 'this party'} are maintained on the Party account register so you have one place to add, edit, or remove links.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            FilledButton.icon(
+              onPressed: () {
+                final navigate = ShellRouteScope.maybeOf(context);
+                if (navigate != null) {
+                  navigate(route);
+                } else {
+                  Navigator.of(context).pushNamed(route);
+                }
+              },
+              icon: const Icon(Icons.open_in_new_outlined),
+              label: const Text('Open party account register'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2492,101 +2313,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           onPressed: _savePaymentTerm,
           busy: _detailSaving,
         ),
-      ],
-    );
-  }
-
-  Widget _buildPartyAccountForm(BuildContext context) {
-    final accountItems = _availableAccounts
-        .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id!,
-            label: [
-              item.accountName ?? '',
-              if ((item.accountCode ?? '').isNotEmpty) item.accountCode!,
-            ].where((value) => value.isNotEmpty).join(' · '),
-          ),
-        )
-        .toList(growable: false);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (_availableAccounts.isEmpty)
-          const SettingsEmptyState(
-            icon: Icons.account_balance_outlined,
-            title: 'No accounts available',
-            message:
-                'Create account ledgers first, then map them to parties here.',
-            minHeight: 180,
-          )
-        else ...[
-          SettingsFormWrap(
-            children: [
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Account',
-                mappedItems: accountItems,
-                initialValue: _partyAccountId,
-                onChanged: (value) => setState(() => _partyAccountId = value),
-                validator: Validators.requiredSelection('Account'),
-              ),
-              AppDropdownField<String>.fromMapped(
-                labelText: 'Purpose',
-                mappedItems: _accountPurposeItems,
-                initialValue: _partyAccountPurpose,
-                onChanged: (value) =>
-                    setState(() => _partyAccountPurpose = value ?? 'primary'),
-                validator: Validators.requiredSelection('Purpose'),
-              ),
-              AppFormTextField(
-                labelText: 'Remarks',
-                controller: _partyAccountRemarksController,
-                maxLines: 3,
-                validator: Validators.optionalMaxLength(1000, 'Remarks'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 16,
-            runSpacing: 12,
-            children: [
-              SizedBox(
-                child: AppSwitchTile(
-                  label: 'Default',
-                  value: _partyAccountDefault,
-                  onChanged: (value) =>
-                      setState(() => _partyAccountDefault = value),
-                ),
-              ),
-              SizedBox(
-                child: AppSwitchTile(
-                  label: 'Active',
-                  value: _partyAccountActive,
-                  onChanged: (value) =>
-                      setState(() => _partyAccountActive = value),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (_selectedPartyAccount?.id != null)
-                TextButton(
-                  onPressed: _detailSaving ? null : _deletePartyAccount,
-                  child: const Text('Delete'),
-                ),
-              const SizedBox(width: 12),
-              FilledButton.icon(
-                onPressed: _detailSaving ? null : _savePartyAccount,
-                icon: const Icon(Icons.save_outlined),
-                label: Text(_detailSaving ? 'Saving...' : 'Save'),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }

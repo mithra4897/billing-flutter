@@ -961,6 +961,60 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
           _buildQuickEntrySection()
         else
           _buildJournalLines(),
+        _buildSettlementsReadOnly(),
+      ],
+    );
+  }
+
+  Widget _buildSettlementsReadOnly() {
+    final voucher = _selectedVoucher;
+    if (voucher == null) {
+      return const SizedBox.shrink();
+    }
+    final tiles = <Widget>[];
+    for (final line in voucher.lines) {
+      if (line.allocations.isEmpty) {
+        continue;
+      }
+      for (final alloc in line.allocations) {
+        final m = alloc.data;
+        tiles.add(
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              'Line ${line.lineNo ?? '?'} · ${m['reference_no'] ?? ''} (${m['allocation_type'] ?? ''})',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            subtitle: Text(
+              'Amount: ${m['allocation_amount'] ?? ''} · Against voucher #${m['against_voucher_id'] ?? '—'}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        );
+      }
+    }
+    if (tiles.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      children: [
+        const SizedBox(height: AppUiConstants.spacingMd),
+        AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bill settlements',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+              ...tiles,
+            ],
+          ),
+        ),
       ],
     );
   }
