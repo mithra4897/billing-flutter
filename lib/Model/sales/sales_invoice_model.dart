@@ -30,6 +30,9 @@ class SalesInvoiceModel {
     this.invoiceStatus,
     this.notes,
     this.termsConditions,
+    this.customerReferenceNo,
+    this.customerReferenceDate,
+    this.isActive,
     this.lines = const [],
     this.voucher,
     this.raw,
@@ -62,6 +65,9 @@ class SalesInvoiceModel {
   final String? invoiceStatus;
   final String? notes;
   final String? termsConditions;
+  final String? customerReferenceNo;
+  final String? customerReferenceDate;
+  final bool? isActive;
   final List<SalesInvoiceLineModel> lines;
   final VoucherModel? voucher;
   final Map<String, dynamic>? raw;
@@ -95,6 +101,11 @@ class SalesInvoiceModel {
       invoiceStatus: json['invoice_status']?.toString(),
       notes: json['notes']?.toString(),
       termsConditions: json['terms_conditions']?.toString(),
+      customerReferenceNo: json['customer_reference_no']?.toString(),
+      customerReferenceDate: json['customer_reference_date']?.toString(),
+      isActive: json['is_active'] == null
+          ? null
+          : json['is_active'] == true || json['is_active'] == 1,
       lines: _mapLines(json['lines']),
       voucher: json['voucher'] is Map<String, dynamic>
           ? VoucherModel.fromJson(json['voucher'] as Map<String, dynamic>)
@@ -130,6 +141,12 @@ class SalesInvoiceModel {
       if (adjustmentRemarks != null) 'adjustment_remarks': adjustmentRemarks,
       if (notes != null) 'notes': notes,
       if (termsConditions != null) 'terms_conditions': termsConditions,
+      if (customerReferenceNo != null && customerReferenceNo!.isNotEmpty)
+        'customer_reference_no': customerReferenceNo,
+      if (customerReferenceDate != null &&
+          customerReferenceDate!.isNotEmpty)
+        'customer_reference_date': customerReferenceDate,
+      if (isActive != null) 'is_active': isActive,
       'lines': lines.map((line) => line.toJson()).toList(growable: false),
     };
   }

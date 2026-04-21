@@ -26,6 +26,7 @@ import '../purchase/purchase_order_page.dart';
 import '../purchase/purchase_payment_page.dart';
 import '../purchase/purchase_receipt_page.dart';
 import '../purchase/purchase_register_screens.dart';
+import '../sales/sales_invoice_page.dart';
 import '../sales/sales_quotation_page.dart';
 import '../sales/sales_register_screens.dart';
 import '../purchase/purchase_requisition_page.dart';
@@ -423,6 +424,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return LeaveRequestManagementPage(key: routeKey, embedded: true);
       case '/sales/quotations':
         return SalesQuotationRegisterPage(key: routeKey, embedded: true);
+      case '/sales/invoices':
+        return SalesInvoiceRegisterPage(key: routeKey, embedded: true);
       case '/purchase/requisitions':
         return PurchaseRequisitionRegisterPage(key: routeKey, embedded: true);
       case '/purchase/orders':
@@ -512,20 +515,29 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     final module = segments[1];
     final recordSegment = segments[2];
-    if (module != 'quotations') {
-      return null;
-    }
     final isNew = recordSegment == 'new';
     final id = int.tryParse(recordSegment);
     if (!isNew && id == null) {
       return null;
     }
-    return SalesQuotationPage(
-      key: routeKey,
-      embedded: true,
-      editorOnly: true,
-      initialId: id,
-    );
+
+    switch (module) {
+      case 'quotations':
+        return SalesQuotationPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'invoices':
+        return SalesInvoicePage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+    }
+    return null;
   }
 
   Widget? _buildPurchaseContent(ValueKey<String> routeKey) {
@@ -628,6 +640,9 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/sales/quotations/')) {
       return 'Sales Quotation';
+    }
+    if (path.startsWith('/sales/invoices/')) {
+      return 'Sales Invoice';
     }
     if (path == '/communication/send-email') {
       return 'Email Messages';
