@@ -356,8 +356,8 @@ class _FinancialYearManagementPageState
           item.fyCode ?? '',
           if (widget.fixedCompanyId == null)
             item.companyName ?? companyNameById(_companies, item.companyId),
-          item.startDate ?? '',
-          item.endDate ?? '',
+          if ((item.startDate ?? '').isNotEmpty || (item.endDate ?? '').isNotEmpty)
+            '${item.startDate ?? ''} to ${item.endDate ?? ''}'.trim(),
         ].where((value) => value.trim().isNotEmpty).join(' • '),
         selected: selected,
         trailing: SettingsStatusPill(
@@ -524,7 +524,9 @@ class _FinancialYearManagementPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
           children: [
             AppActionButton(
               icon: Icons.add_outlined,
@@ -577,8 +579,8 @@ class _FinancialYearManagementPageState
                     title: item.fyName ?? item.fyCode ?? '-',
                     subtitle: [
                       item.fyCode ?? '',
-                      item.startDate ?? '',
-                      item.endDate ?? '',
+                      if ((item.startDate ?? '').isNotEmpty || (item.endDate ?? '').isNotEmpty)
+                        '${item.startDate ?? ''} to ${item.endDate ?? ''}'.trim(),
                     ].where((value) => value.trim().isNotEmpty).join(' • '),
                     detail: item.isCurrent
                         ? 'Current'

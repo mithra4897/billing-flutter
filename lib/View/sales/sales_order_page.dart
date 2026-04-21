@@ -96,6 +96,16 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   bool _isActive = true;
   List<_OrderLineDraft> _lines = <_OrderLineDraft>[];
 
+  String _errorMessage(Object error) {
+    if (error is ApiException) {
+      return error.displayMessage;
+    }
+    if (error is ApiResponse) {
+      return error.message;
+    }
+    return error.toString();
+  }
+
   bool get _canEdit {
     if (_selectedItem == null) {
       return true;
@@ -419,7 +429,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         return;
       }
       setState(() {
-        _pageError = error.toString();
+        _pageError = _errorMessage(error);
         _initialLoading = false;
       });
     }
@@ -702,7 +712,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -728,7 +738,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     }
   }
 
@@ -750,7 +760,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     }
   }
 

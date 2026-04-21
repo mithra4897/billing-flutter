@@ -103,6 +103,16 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   bool _isActive = true;
   List<_InvoiceLineDraft> _lines = <_InvoiceLineDraft>[];
 
+  String _errorMessage(Object error) {
+    if (error is ApiException) {
+      return error.displayMessage;
+    }
+    if (error is ApiResponse) {
+      return error.message;
+    }
+    return error.toString();
+  }
+
   bool get _canEdit {
     if (_selectedItem == null) {
       return true;
@@ -708,7 +718,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         return;
       }
       setState(() {
-        _pageError = error.toString();
+        _pageError = _errorMessage(error);
         _initialLoading = false;
       });
     }
@@ -1032,7 +1042,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -1056,7 +1066,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     }
   }
 
@@ -1078,7 +1088,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     }
   }
 

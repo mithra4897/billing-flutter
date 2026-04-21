@@ -94,6 +94,16 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
   bool _isActive = true;
   List<_QuotationLineDraft> _lines = <_QuotationLineDraft>[];
 
+  String _errorMessage(Object error) {
+    if (error is ApiException) {
+      return error.displayMessage;
+    }
+    if (error is ApiResponse) {
+      return error.message;
+    }
+    return error.toString();
+  }
+
   bool get _canEdit {
     if (_selectedItem == null) {
       return true;
@@ -311,7 +321,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         return;
       }
       setState(() {
-        _pageError = error.toString();
+        _pageError = _errorMessage(error);
         _initialLoading = false;
       });
     }
@@ -520,7 +530,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -546,7 +556,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     }
   }
 
@@ -568,7 +578,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _formError = error.toString());
+      setState(() => _formError = _errorMessage(error));
     }
   }
 

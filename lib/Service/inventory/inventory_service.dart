@@ -113,9 +113,9 @@ class InventoryService extends ErpModuleService {
     filters: filters,
     fromJson: UomConversionModel.fromJson,
   );
-  Future<ApiResponse<List<UomConversionModel>>> uomConversionsAll({
+  Future<PaginatedResponse<UomConversionModel>> uomConversionsAll({
     Map<String, dynamic>? filters,
-  }) => collection<UomConversionModel>(
+  }) => paginated<UomConversionModel>(
     '/inventory/uom-conversions/all',
     filters: filters,
     fromJson: UomConversionModel.fromJson,

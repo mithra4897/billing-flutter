@@ -409,28 +409,6 @@ class _GstRegistrationManagementPageState
       );
     }
 
-    final branchOptions = branchesForCompany(_branches, _companyId)
-        .where(
-          (branch) =>
-              widget.fixedBranchId == null || branch.id == widget.fixedBranchId,
-        )
-        .toList(growable: false);
-    final locationOptions = locationsForBranch(_locations, _branchId);
-    final companyValue = _companies.any((company) => company.id == _companyId)
-        ? _companyId
-        : null;
-    final branchValue = branchOptions.any((branch) => branch.id == _branchId)
-        ? _branchId
-        : null;
-    final locationValue = locationOptions.any(
-      (location) => location.id == _locationId,
-    )
-        ? _locationId
-        : null;
-    final stateValue = _states.any((state) => state.id == _stateId)
-        ? _stateId
-        : null;
-
     return SettingsWorkspace(
       controller: _workspaceController,
       title: 'GST Registrations',
@@ -450,216 +428,7 @@ class _GstRegistrationManagementPageState
           onTap: () => _selectItem(item),
         ),
       ),
-      editor: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              if (_formError != null) ...[
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (widget.fixedCompanyId == null) ...[
-                DropdownButtonFormField<int>(
-                  initialValue: companyValue,
-                  decoration: const InputDecoration(labelText: 'Company'),
-                  items: _companies
-                      .map(
-                        (company) => DropdownMenuItem<int>(
-                          value: company.id,
-                          child: Text(company.toString()),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    setState(() {
-                      _companyId = value;
-                      final branches = branchesForCompany(_branches, value)
-                          .where(
-                            (branch) =>
-                                widget.fixedBranchId == null ||
-                                branch.id == widget.fixedBranchId,
-                          )
-                          .toList(growable: false);
-                      _branchId = branches.isNotEmpty ? branches.first.id : null;
-                      final locations = locationsForBranch(_locations, _branchId);
-                      _locationId = locations.isNotEmpty
-                          ? locations.first.id
-                          : null;
-                    });
-                  },
-                  validator: (value) =>
-                      Validators.requiredSelectionField(value, 'Company'),
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (widget.fixedBranchId == null) ...[
-                DropdownButtonFormField<int?>(
-                  initialValue: branchValue,
-                  decoration: const InputDecoration(labelText: 'Branch'),
-                  items: <DropdownMenuItem<int?>>[
-                    const DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text('None'),
-                    ),
-                    ...branchOptions.map(
-                      (branch) => DropdownMenuItem<int?>(
-                        value: branch.id,
-                        child: Text(branch.toString()),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _branchId = value;
-                      final locations = locationsForBranch(_locations, value);
-                      _locationId = locations.isNotEmpty
-                          ? locations.first.id
-                          : null;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-              ],
-              DropdownButtonFormField<int?>(
-                initialValue: locationValue,
-                decoration: const InputDecoration(labelText: 'Location'),
-                items: <DropdownMenuItem<int?>>[
-                  const DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text('None'),
-                  ),
-                  ...locationOptions.map(
-                    (location) => DropdownMenuItem<int?>(
-                      value: location.id,
-                      child: Text(location.toString()),
-                    ),
-                  ),
-                ],
-                onChanged: (value) => setState(() => _locationId = value),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Registration Name',
-                ),
-                validator: Validators.compose([
-                  Validators.required('Registration Name'),
-                  Validators.optionalMaxLength(255, 'Registration Name'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int>(
-                initialValue: stateValue,
-                decoration: const InputDecoration(labelText: 'State'),
-                items: _states
-                    .map(
-                      (state) => DropdownMenuItem<int>(
-                        value: state.id,
-                        child: Text(state.stateName),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) => setState(() => _stateId = value),
-                validator: (value) =>
-                    Validators.requiredSelectionField(value, 'State'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _registrationType,
-                decoration: const InputDecoration(
-                  labelText: 'Registration Type',
-                ),
-                items: _registrationTypes,
-                onChanged: (value) => setState(() {
-                  _registrationType = value ?? 'regular';
-                }),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _gstinController,
-                decoration: const InputDecoration(labelText: 'GSTIN'),
-                validator: Validators.optionalMaxLength(20, 'GSTIN'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _panController,
-                decoration: const InputDecoration(labelText: 'PAN No'),
-                validator: Validators.optionalMaxLength(20, 'PAN No'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _legalNameController,
-                decoration: const InputDecoration(labelText: 'Legal Name'),
-                validator: Validators.optionalMaxLength(255, 'Legal Name'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _tradeNameController,
-                decoration: const InputDecoration(labelText: 'Trade Name'),
-                validator: Validators.optionalMaxLength(255, 'Trade Name'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _effectiveFromController,
-                decoration: const InputDecoration(labelText: 'Effective From'),
-                validator: Validators.optionalDate('Effective From'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _effectiveToController,
-                decoration: const InputDecoration(labelText: 'Effective To'),
-                validator: Validators.optionalDateOnOrAfter(
-                  'Effective To',
-                  () => _effectiveFromController.text,
-                  startFieldName: 'Effective From',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _remarksController,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks',
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Default Registration'),
-                value: _isDefault,
-                onChanged: (value) => setState(() => _isDefault = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Active'),
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (_selectedItem?.id != null)
-                    TextButton(
-                      onPressed: _saving ? null : _delete,
-                      child: const Text('Delete'),
-                    ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _save,
-                    icon: const Icon(Icons.save_outlined),
-                    label: Text(_saving ? 'Saving...' : 'Save'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+      editor: _buildInlineEditor(),
     );
   }
 
@@ -781,6 +550,10 @@ class _GstRegistrationManagementPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if ((_formError ?? '').isNotEmpty) ...[
+            AppErrorStateView.inline(message: _formError!),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
           SettingsFormWrap(
             children: [
               if (widget.fixedCompanyId == null)
@@ -947,16 +720,10 @@ class _GstRegistrationManagementPageState
             labelText: 'Remarks',
             maxLines: 3,
           ),
-          if ((_formError ?? '').isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              _formError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
           const SizedBox(height: 16),
           Wrap(
             spacing: 12,
+            runSpacing: 12,
             children: [
               AppActionButton(
                 onPressed: _saving ? null : _save,
@@ -964,6 +731,13 @@ class _GstRegistrationManagementPageState
                 label: _saving ? 'Saving...' : 'Save GST Registration',
                 busy: _saving,
               ),
+              if (_selectedItem?.id != null)
+                AppActionButton(
+                  onPressed: _saving ? null : _delete,
+                  icon: Icons.delete_outline,
+                  label: 'Delete',
+                  filled: false,
+                ),
               AppActionButton(
                 onPressed: _saving ? null : _resetForm,
                 icon: Icons.refresh,

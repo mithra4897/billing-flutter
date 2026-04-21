@@ -29,4 +29,7 @@ class ApiResponse<T> {
       errors: json['errors'],
     );
   }
+
+  @override
+  String toString() => message;
 }

@@ -24,7 +24,6 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
 
   bool _initialLoading = true;
   bool _sending = false;
-  bool _openedSendComposerFromRoute = false;
   String? _pageError;
   int? _contextCompanyId;
   List<AppDropdownItem<String>> _documentTypeItems = const [
@@ -33,6 +32,16 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
   List<EmailMessageModel> _messages = const <EmailMessageModel>[];
   List<EmailMessageModel> _filteredMessages = const <EmailMessageModel>[];
   EmailMessageModel? _selectedMessage;
+
+  String _errorMessage(Object error) {
+    if (error is ApiException) {
+      return error.displayMessage;
+    }
+    if (error is ApiResponse) {
+      return error.message;
+    }
+    return error.toString();
+  }
 
   @override
   void initState() {
@@ -119,23 +128,13 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
         _selectedMessage = selected;
       });
 
-      if (widget.openSendComposerOnInit &&
-          !_openedSendComposerFromRoute &&
-          _pageError == null) {
-        _openedSendComposerFromRoute = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _openSendDialog();
-          }
-        });
-      }
     } catch (error) {
       if (!mounted) {
         return;
       }
       setState(() {
         _initialLoading = false;
-        _pageError = error.toString();
+        _pageError = _errorMessage(error);
       });
     }
   }
@@ -177,8 +176,10 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     final isHtmlNotifier = ValueNotifier<bool>(true);
     final formKey = GlobalKey<FormState>();
 
+    final dialogContext = appNavigatorKey.currentContext ?? context;
+
     final result = await showDialog<bool>(
-      context: context,
+      context: dialogContext,
       builder: (context) {
         return AlertDialog(
           insetPadding: const EdgeInsets.all(24),
@@ -305,7 +306,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
                     return;
                   }
                   scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text(error.toString())),
+                    SnackBar(content: Text(_errorMessage(error))),
                   );
                 } finally {
                   if (mounted) {
@@ -372,6 +373,32 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
         title: 'Unable to load email messages',
         message: _pageError!,
         onRetry: _loadPage,
+      );
+    }
+
+    if (widget.openSendComposerOnInit) {
+      return AppSectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Send Email',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            Text(
+              'Compose and send an email from this route-first page.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            AppActionButton(
+              onPressed: _sending ? null : _openSendDialog,
+              icon: Icons.send_outlined,
+              label: 'Open Composer',
+              busy: _sending,
+            ),
+          ],
+        ),
       );
     }
 
