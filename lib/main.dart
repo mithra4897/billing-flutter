@@ -66,6 +66,7 @@ class BillingApp extends StatelessWidget {
             final matchedRoute =
                 uri.path == '/dashboard' ||
                 uri.path.startsWith('/purchase/') ||
+                uri.path.startsWith('/sales/') ||
                 AppNavigation.findByPath(uri.path) != null ||
                 const <String>{
                   '/communication/send-email',

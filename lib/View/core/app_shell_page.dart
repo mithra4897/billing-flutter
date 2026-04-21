@@ -26,6 +26,8 @@ import '../purchase/purchase_order_page.dart';
 import '../purchase/purchase_payment_page.dart';
 import '../purchase/purchase_receipt_page.dart';
 import '../purchase/purchase_register_screens.dart';
+import '../sales/sales_quotation_page.dart';
+import '../sales/sales_register_screens.dart';
 import '../purchase/purchase_requisition_page.dart';
 import '../purchase/purchase_return_page.dart';
 import '../settings/accounting/account_group_page.dart';
@@ -246,6 +248,10 @@ class _AppShellPageState extends State<AppShellPage> {
     final routeKey = ValueKey<String>(
       '${_buildCurrentRoute()}::$_contextVersion',
     );
+    final salesRoute = _buildSalesContent(routeKey);
+    if (salesRoute != null) {
+      return salesRoute;
+    }
     final purchaseRoute = _buildPurchaseContent(routeKey);
     if (purchaseRoute != null) {
       return purchaseRoute;
@@ -415,6 +421,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return LeaveTypeManagementPage(key: routeKey, embedded: true);
       case '/hr/leave-requests':
         return LeaveRequestManagementPage(key: routeKey, embedded: true);
+      case '/sales/quotations':
+        return SalesQuotationRegisterPage(key: routeKey, embedded: true);
       case '/purchase/requisitions':
         return PurchaseRequisitionRegisterPage(key: routeKey, embedded: true);
       case '/purchase/orders':
@@ -492,6 +500,32 @@ class _AppShellPageState extends State<AppShellPage> {
           queryParameters: _currentQueryParameters,
         );
     }
+  }
+
+  Widget? _buildSalesContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'sales') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    if (module != 'quotations') {
+      return null;
+    }
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+    return SalesQuotationPage(
+      key: routeKey,
+      embedded: true,
+      editorOnly: true,
+      initialId: id,
+    );
   }
 
   Widget? _buildPurchaseContent(ValueKey<String> routeKey) {
@@ -591,6 +625,9 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/purchase/returns/')) {
       return 'Purchase Return';
+    }
+    if (path.startsWith('/sales/quotations/')) {
+      return 'Sales Quotation';
     }
     if (path == '/communication/send-email') {
       return 'Email Messages';
