@@ -33,6 +33,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   final PurchaseService _purchaseService = PurchaseService();
   final MasterService _masterService = MasterService();
   final AuthService _authService = AuthService();
+  final HrService _hrService = HrService();
   final InventoryService _inventoryService = InventoryService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
@@ -44,7 +45,6 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   final TextEditingController _requisitionDateController =
       TextEditingController();
   final TextEditingController _requiredDateController = TextEditingController();
-  final TextEditingController _departmentController = TextEditingController();
   final TextEditingController _purposeController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
@@ -62,6 +62,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<UserModel> _users = const <UserModel>[];
+  List<DepartmentModel> _departments = const <DepartmentModel>[];
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
   List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
@@ -77,8 +78,16 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   int? _financialYearId;
   int? _documentSeriesId;
   int? _requestedById;
+  String? _departmentName;
   bool _isActive = true;
   List<_RequisitionLineDraft> _lines = <_RequisitionLineDraft>[];
+
+  bool get _canEditSelectedRequisition {
+    if (_selectedItem == null) {
+      return true;
+    }
+    return stringValue(_selectedItem!.toJson(), 'requisition_status') == 'draft';
+  }
 
   @override
   void initState() {
@@ -95,9 +104,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     _requisitionNoController.dispose();
     _requisitionDateController.dispose();
     _requiredDateController.dispose();
-    _departmentController.dispose();
     _purposeController.dispose();
     _notesController.dispose();
+    _disposeLines(_lines);
     super.dispose();
   }
 
@@ -129,6 +138,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
         ),
         _authService.users(
           filters: const {'per_page': 200, 'sort_by': 'username'},
+        ),
+        _hrService.departments(
+          filters: const {'per_page': 200, 'sort_by': 'department_name'},
         ),
         _inventoryService.items(
           filters: const {'per_page': 300, 'sort_by': 'item_name'},
@@ -165,17 +177,20 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       final users =
           (responses[6] as PaginatedResponse<UserModel>).data ??
           const <UserModel>[];
+      final departments =
+          (responses[7] as PaginatedResponse<DepartmentModel>).data ??
+          const <DepartmentModel>[];
       final items =
-          (responses[7] as PaginatedResponse<ItemModel>).data ??
+          (responses[8] as PaginatedResponse<ItemModel>).data ??
           const <ItemModel>[];
       final uoms =
-          (responses[8] as PaginatedResponse<UomModel>).data ??
+          (responses[9] as PaginatedResponse<UomModel>).data ??
           const <UomModel>[];
       final conversions =
-          (responses[9] as ApiResponse<List<UomConversionModel>>).data ??
+          (responses[10] as ApiResponse<List<UomConversionModel>>).data ??
           const <UomConversionModel>[];
       final warehouses =
-          (responses[10] as PaginatedResponse<WarehouseModel>).data ??
+          (responses[11] as PaginatedResponse<WarehouseModel>).data ??
           const <WarehouseModel>[];
 
       final contextSelection = await WorkingContextService.instance
@@ -208,6 +223,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
         _users = users
             .where((item) => (item.status ?? 'active') == 'active')
             .toList();
+        _departments = departments.where((item) => item.isActive).toList();
         _itemsLookup = items.where((item) => item.isActive).toList();
         _uoms = uoms.where((item) => item.isActive).toList();
         _uomConversions = conversions.where((item) => item.isActive).toList();
@@ -264,6 +280,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
         .toList(growable: true);
 
     setState(() {
+      _disposeLines(_lines);
       _selectedItem = full;
       _companyId = intValue(data, 'company_id');
       _branchId = intValue(data, 'branch_id');
@@ -278,7 +295,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       _requiredDateController.text = displayDate(
         nullableStringValue(data, 'required_date'),
       );
-      _departmentController.text = stringValue(data, 'department');
+      _departmentName = nullableStringValue(data, 'department');
       _purposeController.text = stringValue(data, 'purpose');
       _notesController.text = stringValue(data, 'notes');
       _isActive = boolValue(data, 'is_active', fallback: true);
@@ -291,6 +308,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
 
   void _resetForm() {
     setState(() {
+      _disposeLines(_lines);
       _selectedItem = null;
       _companyId = _contextCompanyId;
       _branchId = _contextBranchId;
@@ -305,7 +323,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
           .split('T')
           .first;
       _requiredDateController.clear();
-      _departmentController.clear();
+      _departmentName = null;
       _purposeController.clear();
       _notesController.clear();
       _isActive = true;
@@ -377,6 +395,33 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       branchesForCompany(_branches, _companyId);
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
+  List<AppDropdownItem<String>> get _departmentItems {
+    final items = _departments
+        .where((item) => item.departmentName != null)
+        .map(
+          (item) => AppDropdownItem(
+            value: item.departmentName!,
+            label: item.departmentName!,
+          ),
+        )
+        .toList(growable: false);
+    final selected = _departmentName?.trim();
+    final hasSelected = selected != null && selected.isNotEmpty;
+    final exists = hasSelected && items.any((item) => item.value == selected);
+    if (hasSelected && !exists) {
+      return <AppDropdownItem<String>>[
+        AppDropdownItem(value: selected, label: selected),
+        ...items,
+      ];
+    }
+    return items;
+  }
+
+  void _disposeLines(List<_RequisitionLineDraft> lines) {
+    for (final line in lines) {
+      line.dispose();
+    }
+  }
 
   void _addLine() {
     setState(() {
@@ -387,7 +432,10 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
 
   void _removeLine(int index) {
     setState(() {
-      _lines = List<_RequisitionLineDraft>.from(_lines)..removeAt(index);
+      final updatedLines = List<_RequisitionLineDraft>.from(_lines);
+      final removed = updatedLines.removeAt(index);
+      removed.dispose();
+      _lines = updatedLines;
       if (_lines.isEmpty) {
         _lines.add(_RequisitionLineDraft());
       }
@@ -395,6 +443,13 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   }
 
   Future<void> _save() async {
+    if (!_canEditSelectedRequisition) {
+      setState(() {
+        _formError = 'Only draft purchase requisitions can be updated.';
+      });
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -425,7 +480,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       'requisition_date': _requisitionDateController.text.trim(),
       'required_date': nullIfEmpty(_requiredDateController.text),
       'requested_by': _requestedById,
-      'department': nullIfEmpty(_departmentController.text),
+      'department': _departmentName == null
+          ? null
+          : nullIfEmpty(_departmentName!),
       'purpose': nullIfEmpty(_purposeController.text),
       'notes': nullIfEmpty(_notesController.text),
       'is_active': _isActive,
@@ -698,10 +755,11 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                   initialValue: _requestedById,
                   onChanged: (value) => setState(() => _requestedById = value),
                 ),
-                AppFormTextField(
+                AppDropdownField<String>.fromMapped(
                   labelText: 'Department',
-                  controller: _departmentController,
-                  validator: Validators.optionalMaxLength(100, 'Department'),
+                  mappedItems: _departmentItems,
+                  initialValue: _departmentName,
+                  onChanged: (value) => setState(() => _departmentName = value),
                 ),
                 AppFormTextField(
                   labelText: 'Purpose',
@@ -746,141 +804,12 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
-                child: AppSectionCard(
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Text('Line ${index + 1}'),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _lines.length == 1
-                                ? null
-                                : () => _removeLine(index),
-                            icon: const Icon(Icons.delete_outline),
-                          ),
-                        ],
-                      ),
-                      SettingsFormWrap(
-                        children: [
-                          AppSearchPickerField<int>(
-                            labelText: 'Item',
-                            selectedLabel: _itemsLookup
-                                .cast<ItemModel?>()
-                                .firstWhere(
-                                  (item) => item?.id == line.itemId,
-                                  orElse: () => null,
-                                )
-                                ?.toString(),
-                            options: _itemsLookup
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppSearchPickerOption<int>(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                    subtitle: item.itemCode,
-                                  ),
-                                )
-                                .toList(growable: false),
-                            onChanged: (value) => setState(() {
-                              line.itemId = value;
-                              line.uomId = _resolveDefaultUom(
-                                value,
-                                line.uomId,
-                              );
-                            }),
-                            validator: (_) =>
-                                line.itemId == null ? 'Item is required' : null,
-                          ),
-                          Builder(
-                            builder: (context) {
-                              final options = _uomOptionsForItem(line.itemId);
-                              if (options.length <= 1) {
-                                final onlyId = options.isNotEmpty
-                                    ? options.first.id
-                                    : null;
-                                if (line.uomId != onlyId) {
-                                  line.uomId = onlyId;
-                                }
-                                return const SizedBox.shrink();
-                              }
-                              return AppDropdownField<int>.fromMapped(
-                                labelText: 'UOM',
-                                mappedItems: options
-                                    .where((item) => item.id != null)
-                                    .map(
-                                      (item) => AppDropdownItem(
-                                        value: item.id!,
-                                        label: item.toString(),
-                                      ),
-                                    )
-                                    .toList(growable: false),
-                                initialValue: line.uomId,
-                                onChanged: (value) =>
-                                    setState(() => line.uomId = value),
-                                validator: Validators.requiredSelection('UOM'),
-                              );
-                            },
-                          ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Warehouse',
-                            mappedItems: _warehouses
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.warehouseId,
-                            onChanged: (value) =>
-                                setState(() => line.warehouseId = value),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Requested Qty',
-                            controller: line.requestedQtyController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: Validators.compose([
-                              Validators.required('Requested Qty'),
-                              Validators.optionalNonNegativeNumber(
-                                'Requested Qty',
-                              ),
-                            ]),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Estimated Rate',
-                            controller: line.estimatedRateController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: Validators.optionalNonNegativeNumber(
-                              'Estimated Rate',
-                            ),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Description',
-                            controller: line.descriptionController,
-                            validator: Validators.optionalMaxLength(
-                              500,
-                              'Description',
-                            ),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Remarks',
-                            controller: line.remarksController,
-                            maxLines: 2,
-                            validator: Validators.optionalMaxLength(
-                              500,
-                              'Remarks',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                child: PurchaseCompactLineCard(
+                  index: index,
+                  total: _lines.length,
+                  removeEnabled: _lines.length > 1,
+                  onRemove: () => _removeLine(index),
+                  child: _buildLineFields(line),
                 ),
               );
             }),
@@ -894,7 +823,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                   label: _selectedItem == null
                       ? 'Save Requisition'
                       : 'Update Requisition',
-                  onPressed: _save,
+                  onPressed: _canEditSelectedRequisition ? _save : null,
                   busy: _saving,
                 ),
                 if (_selectedItem != null) ...[
@@ -939,6 +868,106 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       ),
     );
   }
+
+  Widget _buildLineFields(_RequisitionLineDraft line) {
+    final itemPicker = AppSearchPickerField<int>(
+      labelText: 'Item',
+      selectedLabel: _itemsLookup
+          .cast<ItemModel?>()
+          .firstWhere((item) => item?.id == line.itemId, orElse: () => null)
+          ?.toString(),
+      options: _itemsLookup
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppSearchPickerOption<int>(
+              value: item.id!,
+              label: item.toString(),
+              subtitle: item.itemCode,
+            ),
+          )
+          .toList(growable: false),
+      onChanged: (value) => setState(() {
+        line.itemId = value;
+        line.uomId = _resolveDefaultUom(value, line.uomId);
+      }),
+      validator: (_) => line.itemId == null ? 'Item is required' : null,
+    );
+
+    final uomOptions = _uomOptionsForItem(line.itemId);
+    if (uomOptions.length <= 1) {
+      final onlyId = uomOptions.isNotEmpty ? uomOptions.first.id : null;
+      if (line.uomId != onlyId) {
+        line.uomId = onlyId;
+      }
+    }
+
+    final Widget uomField = uomOptions.length <= 1
+        ? AppFormTextField(
+            labelText: 'UOM',
+            initialValue: uomOptions.isNotEmpty
+                ? uomOptions.first.toString()
+                : '',
+            readOnly: true,
+          )
+        : AppDropdownField<int>.fromMapped(
+            labelText: 'UOM',
+            mappedItems: uomOptions
+                .where((item) => item.id != null)
+                .map(
+                  (item) =>
+                      AppDropdownItem(value: item.id!, label: item.toString()),
+                )
+                .toList(growable: false),
+            initialValue: line.uomId,
+            onChanged: (value) => setState(() => line.uomId = value),
+            validator: Validators.requiredSelection('UOM'),
+          );
+
+    final lineFields = <Widget>[
+      itemPicker,
+      uomField,
+      AppDropdownField<int>.fromMapped(
+        labelText: 'Warehouse',
+        mappedItems: _warehouses
+            .where((item) => item.id != null)
+            .map(
+              (item) =>
+                  AppDropdownItem(value: item.id!, label: item.toString()),
+            )
+            .toList(growable: false),
+        initialValue: line.warehouseId,
+        onChanged: (value) => setState(() => line.warehouseId = value),
+      ),
+      AppFormTextField(
+        labelText: 'Requested Qty',
+        controller: line.requestedQtyController,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        validator: Validators.compose([
+          Validators.required('Requested Qty'),
+          Validators.optionalNonNegativeNumber('Requested Qty'),
+        ]),
+      ),
+      AppFormTextField(
+        labelText: 'Estimated Rate',
+        controller: line.estimatedRateController,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        validator: Validators.optionalNonNegativeNumber('Estimated Rate'),
+      ),
+      AppFormTextField(
+        labelText: 'Description',
+        controller: line.descriptionController,
+        validator: Validators.optionalMaxLength(500, 'Description'),
+      ),
+      AppFormTextField(
+        labelText: 'Remarks',
+        controller: line.remarksController,
+        maxLines: 2,
+        validator: Validators.optionalMaxLength(500, 'Remarks'),
+      ),
+    ];
+
+    return PurchaseCompactFieldGrid(children: lineFields);
+  }
 }
 
 class _RequisitionLineDraft {
@@ -976,6 +1005,13 @@ class _RequisitionLineDraft {
   final TextEditingController requestedQtyController;
   final TextEditingController estimatedRateController;
   final TextEditingController remarksController;
+
+  void dispose() {
+    descriptionController.dispose();
+    requestedQtyController.dispose();
+    estimatedRateController.dispose();
+    remarksController.dispose();
+  }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{

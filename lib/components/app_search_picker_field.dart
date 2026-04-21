@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/constants/app_ui_constants.dart';
+import 'app_field_box.dart';
 
 class AppSearchPickerOption<T> {
   const AppSearchPickerOption({
@@ -25,6 +26,7 @@ class AppSearchPickerField<T> extends StatelessWidget {
     required this.onChanged,
     this.hintText,
     this.validator,
+    this.width,
   });
 
   final String labelText;
@@ -33,29 +35,33 @@ class AppSearchPickerField<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
   final String? hintText;
   final FormFieldValidator<String>? validator;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
     final controller = TextEditingController(text: selectedLabel ?? '');
-    return TextFormField(
-      controller: controller,
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: labelText,
-        hintText: hintText ?? 'Search and select',
-        suffixIcon: const Icon(Icons.search),
+    return AppFieldBox(
+      width: width,
+      child: TextFormField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(
+          labelText: labelText,
+          hintText: hintText ?? 'Search and select',
+          suffixIcon: const Icon(Icons.search),
+        ),
+        validator: validator,
+        onTap: () async {
+          final value = await showDialog<T>(
+            context: context,
+            builder: (context) =>
+                _SearchPickerDialog<T>(title: labelText, options: options),
+          );
+          if (context.mounted) {
+            onChanged(value);
+          }
+        },
       ),
-      validator: validator,
-      onTap: () async {
-        final value = await showDialog<T>(
-          context: context,
-          builder: (context) =>
-              _SearchPickerDialog<T>(title: labelText, options: options),
-        );
-        if (context.mounted) {
-          onChanged(value);
-        }
-      },
     );
   }
 }

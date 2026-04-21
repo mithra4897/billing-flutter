@@ -85,12 +85,25 @@ class CrmService extends ErpModuleService {
         body,
         fromJson: CrmLeadModel.fromJson,
       );
-  Future<ApiResponse<CrmLeadModel>> convertLead(int id, CrmLeadModel body) =>
-      actionModel<CrmLeadModel>(
-        '/crm/leads/$id/convert',
-        body: body,
-        fromJson: CrmLeadModel.fromJson,
-      );
+  /// Backend returns `{ lead, enquiry? }`. Use [createEnquiry] to start a sales enquiry in one step.
+  Future<ApiResponse<Map<String, dynamic>>> convertLead(
+    int id, {
+    bool createEnquiry = true,
+  }) {
+    return client.post<Map<String, dynamic>>(
+      '/crm/leads/$id/convert',
+      body: <String, dynamic>{'create_enquiry': createEnquiry},
+      fromData: (dynamic json) {
+        if (json is Map<String, dynamic>) {
+          return json;
+        }
+        if (json is Map) {
+          return Map<String, dynamic>.from(json);
+        }
+        return <String, dynamic>{};
+      },
+    );
+  }
   Future<ApiResponse<dynamic>> deleteLead(int id) => destroy('/crm/leads/$id');
 
   Future<PaginatedResponse<CrmEnquiryModel>> enquiries({
@@ -119,14 +132,22 @@ class CrmService extends ErpModuleService {
     body,
     fromJson: CrmEnquiryModel.fromJson,
   );
-  Future<ApiResponse<CrmEnquiryModel>> convertEnquiry(
-    int id,
-    CrmEnquiryModel body,
-  ) => actionModel<CrmEnquiryModel>(
-    '/crm/enquiries/$id/convert',
-    body: body,
-    fromJson: CrmEnquiryModel.fromJson,
-  );
+  /// Backend returns `{ enquiry, opportunity? }` when an opportunity is created from the enquiry.
+  Future<ApiResponse<Map<String, dynamic>>> convertEnquiry(int id) {
+    return client.post<Map<String, dynamic>>(
+      '/crm/enquiries/$id/convert',
+      body: <String, dynamic>{},
+      fromData: (dynamic json) {
+        if (json is Map<String, dynamic>) {
+          return json;
+        }
+        if (json is Map) {
+          return Map<String, dynamic>.from(json);
+        }
+        return <String, dynamic>{};
+      },
+    );
+  }
   Future<ApiResponse<CrmEnquiryModel>> loseEnquiry(
     int id,
     CrmEnquiryModel body,

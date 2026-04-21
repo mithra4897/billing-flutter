@@ -743,83 +743,72 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                   padding: const EdgeInsets.only(
                     bottom: AppUiConstants.spacingSm,
                   ),
-                  child: AppSectionCard(
-                    child: Column(
+                  child: PurchaseCompactLineCard(
+                    index: index,
+                    total: _allocations.length,
+                    onRemove: () => _removeAllocation(index),
+                    child: PurchaseCompactFieldGrid(
                       children: [
-                        SettingsFormWrap(
-                          children: [
-                            AppSearchPickerField<int>(
-                              labelText: 'Purchase Invoice',
-                              selectedLabel: _invoiceOptions
-                                  .cast<PurchaseInvoiceModel?>()
-                                  .firstWhere(
-                                    (item) =>
-                                        item?.id ==
-                                        allocation.purchaseInvoiceId,
-                                    orElse: () => null,
-                                  )
-                                  ?.invoiceNo,
-                              options: _invoiceOptions
-                                  .map(
-                                    (item) => AppSearchPickerOption<int>(
-                                      value: item.id,
-                                      label: item.invoiceNo ?? 'Invoice',
-                                      subtitle: item.raw?['supplier_name']
-                                          ?.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onChanged: (value) => setState(
-                                () => allocation.purchaseInvoiceId = value,
-                              ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Allocated Amount',
-                              controller: allocation.amountController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.optionalNonNegativeNumber(
-                                'Allocated Amount',
-                              ),
-                            ),
-                            AppDropdownField<String>.fromMapped(
-                              labelText: 'Allocation Type',
-                              mappedItems: const <AppDropdownItem<String>>[
-                                AppDropdownItem(
-                                  value: 'against_invoice',
-                                  label: 'Against Invoice',
+                        AppSearchPickerField<int>(
+                          labelText: 'Purchase Invoice',
+                          selectedLabel: _invoiceOptions
+                              .cast<PurchaseInvoiceModel?>()
+                              .firstWhere(
+                                (item) =>
+                                    item?.id == allocation.purchaseInvoiceId,
+                                orElse: () => null,
+                              )
+                              ?.invoiceNo,
+                          options: _invoiceOptions
+                              .map(
+                                (item) => AppSearchPickerOption<int>(
+                                  value: item.id,
+                                  label: item.invoiceNo ?? 'Invoice',
+                                  subtitle: item.raw?['supplier_name']
+                                      ?.toString(),
                                 ),
-                                AppDropdownItem(
-                                  value: 'advance',
-                                  label: 'Advance',
-                                ),
-                                AppDropdownItem(
-                                  value: 'on_account',
-                                  label: 'On Account',
-                                ),
-                                AppDropdownItem(
-                                  value: 'adjustment',
-                                  label: 'Adjustment',
-                                ),
-                              ],
-                              initialValue: allocation.allocationType,
-                              onChanged: (value) => setState(
-                                () => allocation.allocationType =
-                                    value ?? 'against_invoice',
-                              ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) => setState(
+                            () => allocation.purchaseInvoiceId = value,
+                          ),
+                        ),
+                        AppFormTextField(
+                          labelText: 'Allocated Amount',
+                          controller: allocation.amountController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          validator: Validators.optionalNonNegativeNumber(
+                            'Allocated Amount',
+                          ),
+                        ),
+                        AppDropdownField<String>.fromMapped(
+                          labelText: 'Allocation Type',
+                          mappedItems: const <AppDropdownItem<String>>[
+                            AppDropdownItem(
+                              value: 'against_invoice',
+                              label: 'Against Invoice',
                             ),
-                            AppFormTextField(
-                              labelText: 'Remarks',
-                              controller: allocation.remarksController,
+                            AppDropdownItem(value: 'advance', label: 'Advance'),
+                            AppDropdownItem(
+                              value: 'on_account',
+                              label: 'On Account',
                             ),
-                            const Spacer(),
-                            IconButton(
-                              onPressed: () => _removeAllocation(index),
-                              icon: const Icon(Icons.delete_outline),
+                            AppDropdownItem(
+                              value: 'adjustment',
+                              label: 'Adjustment',
                             ),
                           ],
+                          initialValue: allocation.allocationType,
+                          onChanged: (value) => setState(
+                            () => allocation.allocationType =
+                                value ?? 'against_invoice',
+                          ),
+                        ),
+                        AppFormTextField(
+                          labelText: 'Remarks',
+                          controller: allocation.remarksController,
                         ),
                       ],
                     ),

@@ -15,7 +15,7 @@ class AppConfig {
       return configuredUrl;
     }
 
-    return 'http://localhost:8000';
+    return 'http://192.168.1.45:8000';
   }
 
   static String get apiBaseUrl => '$baseHost$apiPrefix';

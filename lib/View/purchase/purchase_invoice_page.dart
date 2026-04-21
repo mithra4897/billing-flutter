@@ -870,57 +870,73 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
-                child: AppSectionCard(
-                  child: Column(
+                child: PurchaseCompactLineCard(
+                  index: index,
+                  total: _lines.length,
+                  removeEnabled: _lines.length > 1,
+                  onRemove: () => _removeLine(index),
+                  child: PurchaseCompactFieldGrid(
                     children: [
-                      Row(
-                        children: [
-                          Text('Line ${index + 1}'),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _lines.length == 1
-                                ? null
-                                : () => _removeLine(index),
-                            icon: const Icon(Icons.delete_outline),
+                      AppSearchPickerField<int>(
+                        labelText: 'Item',
+                        selectedLabel: _itemsLookup
+                            .cast<ItemModel?>()
+                            .firstWhere(
+                              (item) => item?.id == line.itemId,
+                              orElse: () => null,
+                            )
+                            ?.toString(),
+                        options: _itemsLookup
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppSearchPickerOption<int>(
+                                value: item.id!,
+                                label: item.toString(),
+                                subtitle: item.itemCode,
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (value) => _updateLine(
+                          index,
+                          line.copyWith(
+                            itemId: value ?? 0,
+                            uomId:
+                                _resolveDefaultUom(value, line.uomId) ??
+                                line.uomId,
                           ),
-                        ],
+                        ),
+                        validator: (_) =>
+                            line.itemId <= 0 ? 'Item is required' : null,
                       ),
-                      SettingsFormWrap(
-                        children: [
-                          AppSearchPickerField<int>(
-                            labelText: 'Item',
-                            selectedLabel: _itemsLookup
-                                .cast<ItemModel?>()
-                                .firstWhere(
-                                  (item) => item?.id == line.itemId,
-                                  orElse: () => null,
-                                )
-                                ?.toString(),
-                            options: _itemsLookup
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppSearchPickerOption<int>(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                    subtitle: item.itemCode,
-                                  ),
-                                )
-                                .toList(growable: false),
-                            onChanged: (value) => _updateLine(
-                              index,
-                              line.copyWith(
-                                itemId: value ?? 0,
-                                uomId:
-                                    _resolveDefaultUom(value, line.uomId) ??
-                                    line.uomId,
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Warehouse',
+                        mappedItems: _warehouses
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
                               ),
-                            ),
-                            validator: (_) =>
-                                line.itemId <= 0 ? 'Item is required' : null,
-                          ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Warehouse',
-                            mappedItems: _warehouses
+                            )
+                            .toList(growable: false),
+                        initialValue: line.warehouseId,
+                        onChanged: (value) => _updateLine(
+                          index,
+                          line.copyWith(warehouseId: value),
+                        ),
+                      ),
+                      Builder(
+                        builder: (context) {
+                          final options = _uomOptionsForItem(line.itemId);
+                          if (options.length == 1) {
+                            final onlyId = options.first.id;
+                            if (line.uomId != onlyId) {
+                              _updateLine(index, line.copyWith(uomId: onlyId));
+                            }
+                          }
+                          return AppDropdownField<int>.fromMapped(
+                            labelText: 'UOM',
+                            mappedItems: options
                                 .where((item) => item.id != null)
                                 .map(
                                   (item) => AppDropdownItem(
@@ -929,151 +945,114 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                                   ),
                                 )
                                 .toList(growable: false),
-                            initialValue: line.warehouseId,
+                            initialValue: line.uomId == 0 ? null : line.uomId,
                             onChanged: (value) => _updateLine(
                               index,
-                              line.copyWith(warehouseId: value),
+                              line.copyWith(uomId: value ?? 0),
                             ),
-                          ),
-                          Builder(
-                            builder: (context) {
-                              final options = _uomOptionsForItem(line.itemId);
-                              if (options.length <= 1) {
-                                final onlyId = options.isNotEmpty
-                                    ? options.first.id
-                                    : null;
-                                if (onlyId != null && line.uomId != onlyId) {
-                                  _updateLine(
-                                    index,
-                                    line.copyWith(uomId: onlyId),
-                                  );
-                                }
-                                return const SizedBox.shrink();
+                            validator: (_) {
+                              if (line.itemId == null) {
+                                return 'Select item first';
                               }
-                              return AppDropdownField<int>.fromMapped(
-                                labelText: 'UOM',
-                                mappedItems: options
-                                    .where((item) => item.id != null)
-                                    .map(
-                                      (item) => AppDropdownItem(
-                                        value: item.id!,
-                                        label: item.toString(),
-                                      ),
-                                    )
-                                    .toList(growable: false),
-                                initialValue: line.uomId == 0
-                                    ? null
-                                    : line.uomId,
-                                onChanged: (value) => _updateLine(
-                                  index,
-                                  line.copyWith(uomId: value ?? 0),
-                                ),
-                                validator: Validators.requiredSelection('UOM'),
-                              );
+                              return (line.uomId == null || line.uomId == 0)
+                                  ? 'UOM is required'
+                                  : null;
                             },
+                          );
+                        },
+                      ),
+                      TextFormField(
+                        initialValue: line.invoicedQty.toString(),
+                        decoration: const InputDecoration(
+                          labelText: 'Invoiced Qty',
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        onChanged: (value) => _updateLine(
+                          index,
+                          line.copyWith(
+                            invoicedQty:
+                                double.tryParse(value.trim()) ??
+                                line.invoicedQty,
                           ),
-                          TextFormField(
-                            initialValue: line.invoicedQty.toString(),
-                            decoration: const InputDecoration(
-                              labelText: 'Invoiced Qty',
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            onChanged: (value) => _updateLine(
-                              index,
-                              line.copyWith(
-                                invoicedQty:
-                                    double.tryParse(value.trim()) ??
-                                    line.invoicedQty,
+                        ),
+                        validator: Validators.compose([
+                          Validators.required('Invoiced Qty'),
+                          Validators.optionalNonNegativeNumber('Invoiced Qty'),
+                        ]),
+                      ),
+                      TextFormField(
+                        initialValue: line.rate.toString(),
+                        decoration: const InputDecoration(labelText: 'Rate'),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        onChanged: (value) => _updateLine(
+                          index,
+                          line.copyWith(
+                            rate: double.tryParse(value.trim()) ?? line.rate,
+                          ),
+                        ),
+                        validator: Validators.compose([
+                          Validators.required('Rate'),
+                          Validators.optionalNonNegativeNumber('Rate'),
+                        ]),
+                      ),
+                      TextFormField(
+                        initialValue: (line.discountPercent ?? 0).toString(),
+                        decoration: const InputDecoration(
+                          labelText: 'Discount %',
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        onChanged: (value) => _updateLine(
+                          index,
+                          line.copyWith(
+                            discountPercent: nullIfEmpty(value) == null
+                                ? null
+                                : double.tryParse(value.trim()),
+                          ),
+                        ),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Tax Code',
+                        mappedItems: _taxCodes
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
                               ),
-                            ),
-                            validator: Validators.compose([
-                              Validators.required('Invoiced Qty'),
-                              Validators.optionalNonNegativeNumber(
-                                'Invoiced Qty',
-                              ),
-                            ]),
-                          ),
-                          TextFormField(
-                            initialValue: line.rate.toString(),
-                            decoration: const InputDecoration(
-                              labelText: 'Rate',
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            onChanged: (value) => _updateLine(
-                              index,
-                              line.copyWith(
-                                rate:
-                                    double.tryParse(value.trim()) ?? line.rate,
-                              ),
-                            ),
-                            validator: Validators.compose([
-                              Validators.required('Rate'),
-                              Validators.optionalNonNegativeNumber('Rate'),
-                            ]),
-                          ),
-                          TextFormField(
-                            initialValue: (line.discountPercent ?? 0)
-                                .toString(),
-                            decoration: const InputDecoration(
-                              labelText: 'Discount %',
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            onChanged: (value) => _updateLine(
-                              index,
-                              line.copyWith(
-                                discountPercent: nullIfEmpty(value) == null
-                                    ? null
-                                    : double.tryParse(value.trim()),
-                              ),
-                            ),
-                          ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Tax Code',
-                            mappedItems: _taxCodes
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.taxCodeId,
-                            onChanged: (value) => _updateLine(
-                              index,
-                              line.copyWith(taxCodeId: value),
-                            ),
-                          ),
-                          TextFormField(
-                            initialValue: line.description ?? '',
-                            decoration: const InputDecoration(
-                              labelText: 'Description',
-                            ),
-                            maxLines: 2,
-                            onChanged: (value) => _updateLine(
-                              index,
-                              line.copyWith(description: nullIfEmpty(value)),
-                            ),
-                          ),
-                          TextFormField(
-                            initialValue: line.remarks ?? '',
-                            decoration: const InputDecoration(
-                              labelText: 'Remarks',
-                              alignLabelWithHint: true,
-                            ),
-                            maxLines: 2,
-                            onChanged: (value) => _updateLine(
-                              index,
-                              line.copyWith(remarks: nullIfEmpty(value)),
-                            ),
-                          ),
-                        ],
+                            )
+                            .toList(growable: false),
+                        initialValue: line.taxCodeId,
+                        onChanged: (value) =>
+                            _updateLine(index, line.copyWith(taxCodeId: value)),
+                      ),
+                      TextFormField(
+                        initialValue: line.description ?? '',
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                        maxLines: 2,
+                        onChanged: (value) => _updateLine(
+                          index,
+                          line.copyWith(description: nullIfEmpty(value)),
+                        ),
+                      ),
+                      TextFormField(
+                        initialValue: line.remarks ?? '',
+                        decoration: const InputDecoration(
+                          labelText: 'Remarks',
+                          alignLabelWithHint: true,
+                        ),
+                        maxLines: 2,
+                        onChanged: (value) => _updateLine(
+                          index,
+                          line.copyWith(remarks: nullIfEmpty(value)),
+                        ),
                       ),
                     ],
                   ),

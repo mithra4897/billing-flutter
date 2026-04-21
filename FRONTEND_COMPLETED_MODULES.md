@@ -238,6 +238,55 @@ Main file:
 - [project_task_page.dart](/lib/view/project/project_task_page.dart)
 - [project_milestone_page.dart](/lib/view/project/project_milestone_page.dart)
 - [project_timesheet_page.dart](/lib/view/project/project_timesheet_page.dart)
+
+### 10. CRM
+
+Completed:
+
+- leads
+- enquiries
+- opportunities
+- sources
+- stages
+
+Main files:
+
+- [crm_leads_page.dart](/lib/View/crm/crm_leads_page.dart)
+- [crm_enquiries_page.dart](/lib/View/crm/crm_enquiries_page.dart)
+- [crm_opportunities_page.dart](/lib/View/crm/crm_opportunities_page.dart)
+- [crm_sources_page.dart](/lib/View/crm/crm_sources_page.dart)
+- [crm_stages_page.dart](/lib/View/crm/crm_stages_page.dart)
+- [crm_service.dart](/lib/Service/crm/crm_service.dart)
+
+How CRM was done:
+
+- route-first inside the existing persistent shell
+- menu/navigation order kept user-facing as `Leads`, `Enquiries`, `Opportunities`, `Sources`, `Stages`
+- all screens follow the existing `SettingsWorkspace` list-plus-editor pattern
+- `Sources` and `Stages` are simple master screens with left list and right editor
+- `Leads`, `Enquiries`, and `Opportunities` are tabbed working pages using the same compact, calm form style already used in other completed modules
+- child collections use the same compact line-card feel already used in purchase so activities, enquiry lines, followups, and opportunity products stay easy to edit
+- child tabs are intentionally blocked with a clear placeholder until the parent record is saved, matching the existing frontend tab rule
+- CRM pages are wired to the typed CRM service layer and existing CRM models, while the models remain lightweight wrappers around backend payloads
+
+Important CRM tab structure:
+
+- `Leads`
+  - `Primary`
+  - `Activities`
+- `Enquiries`
+  - `Primary`
+  - `Lines`
+  - `Followups`
+- `Opportunities`
+  - `Primary`
+  - `Products`
+
+Backend/frontend alignment notes:
+
+- schema/API fields were taken from `install.sql` and CRM backend controllers/services before building the pages
+- `show()` responses already provide nested child collections, so tabs load from the canonical CRM backend contract instead of extra frontend-only state
+- CRM exports were added to [screen.dart](/lib/screen.dart) so future CRM work can follow the same screen import pattern as the rest of the app
 - [project_expense_page.dart](/lib/view/project/project_expense_page.dart)
 - [project_resource_usage_page.dart](/lib/view/project/project_resource_usage_page.dart)
 - [project_vendor_work_page.dart](/lib/view/project/project_vendor_work_page.dart)

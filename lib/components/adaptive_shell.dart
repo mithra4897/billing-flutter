@@ -519,7 +519,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     required Color selectedBackground,
     required Color selectedForeground,
   }) {
-    final isSelected = item.path != null && item.path == currentPath;
+    final isSelected = item.path != null && AppNavigation.containsPath(item, currentPath);
 
     if (!item.hasChildren) {
       return _buildLeafTile(

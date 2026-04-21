@@ -10,5 +10,11 @@ class CrmSourceModel implements JsonModel {
   }
 
   @override
+  String toString() {
+    final name = data['source_name']?.toString().trim() ?? '';
+    return name.isNotEmpty ? name : 'New Source';
+  }
+
+  @override
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
 }

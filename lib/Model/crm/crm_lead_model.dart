@@ -10,5 +10,11 @@ class CrmLeadModel implements JsonModel {
   }
 
   @override
+  String toString() {
+    final name = data['lead_name']?.toString().trim() ?? '';
+    return name.isNotEmpty ? name : 'New Lead';
+  }
+
+  @override
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
 }

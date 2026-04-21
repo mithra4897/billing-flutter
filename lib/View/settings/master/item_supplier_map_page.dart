@@ -218,8 +218,10 @@ class _ItemSupplierMapManagementPageState
 
   bool _isSupplierPartyType(PartyTypeModel partyType) {
     final json = partyType.toJson();
-    final code = json['type_code']?.toString().toLowerCase().trim() ?? '';
-    final name = json['name']?.toString().toLowerCase().trim() ?? '';
+    final code =
+        (json['code'] ?? json['type_code'] ?? '').toString().toLowerCase().trim();
+    final name =
+        (json['name'] ?? json['type_name'] ?? '').toString().toLowerCase().trim();
     return code.contains('supplier') ||
         code.contains('vendor') ||
         name.contains('supplier') ||

@@ -10,5 +10,11 @@ class CrmStageModel implements JsonModel {
   }
 
   @override
+  String toString() {
+    final name = data['stage_name']?.toString().trim() ?? '';
+    return name.isNotEmpty ? name : 'New Stage';
+  }
+
+  @override
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
 }

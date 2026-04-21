@@ -1,5 +1,10 @@
 import '../../core/navigation/app_route_state.dart';
 import '../../screen.dart';
+import '../crm/crm_enquiries_page.dart';
+import '../crm/crm_leads_page.dart';
+import '../crm/crm_opportunities_page.dart';
+import '../crm/crm_sources_page.dart';
+import '../crm/crm_stages_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../hr/department_page.dart';
 import '../hr/designation_page.dart';
@@ -349,6 +354,28 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/communication/email-messages':
       case '/communication/send-email':
         return EmailMessagesPage(key: routeKey, embedded: true);
+      case '/crm/leads':
+        return CrmLeadsPage(key: routeKey, embedded: true);
+      case '/crm/enquiries':
+        return CrmEnquiriesPage(
+          key: routeKey,
+          embedded: true,
+          initialSelectId: int.tryParse(
+            _currentQueryParameters['select_id'] ?? '',
+          ),
+        );
+      case '/crm/opportunities':
+        return CrmOpportunitiesPage(
+          key: routeKey,
+          embedded: true,
+          initialSelectId: int.tryParse(
+            _currentQueryParameters['select_id'] ?? '',
+          ),
+        );
+      case '/crm/sources':
+        return CrmSourcesPage(key: routeKey, embedded: true);
+      case '/crm/stages':
+        return CrmStagesPage(key: routeKey, embedded: true);
       case '/parties':
         return PartyManagementPage(key: routeKey, embedded: true);
       case '/accounting/account-groups':

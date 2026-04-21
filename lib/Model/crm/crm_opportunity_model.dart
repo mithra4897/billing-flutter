@@ -10,5 +10,11 @@ class CrmOpportunityModel implements JsonModel {
   }
 
   @override
+  String toString() {
+    final name = data['opportunity_name']?.toString().trim() ?? '';
+    return name.isNotEmpty ? name : 'New Opportunity';
+  }
+
+  @override
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
 }

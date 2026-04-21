@@ -786,55 +786,67 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
-                child: AppSectionCard(
-                  child: Column(
+                child: PurchaseCompactLineCard(
+                  index: index,
+                  total: _lines.length,
+                  removeEnabled: _lines.length > 1,
+                  onRemove: () => _removeLine(index),
+                  child: PurchaseCompactFieldGrid(
                     children: [
-                      Row(
-                        children: [
-                          Text('Line ${index + 1}'),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _lines.length == 1
-                                ? null
-                                : () => _removeLine(index),
-                            icon: const Icon(Icons.delete_outline),
-                          ),
-                        ],
+                      AppSearchPickerField<int>(
+                        labelText: 'Item',
+                        selectedLabel: _itemsLookup
+                            .cast<ItemModel?>()
+                            .firstWhere(
+                              (item) => item?.id == line.itemId,
+                              orElse: () => null,
+                            )
+                            ?.toString(),
+                        options: _itemsLookup
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppSearchPickerOption<int>(
+                                value: item.id!,
+                                label: item.toString(),
+                                subtitle: item.itemCode,
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (value) => setState(() {
+                          line.itemId = value;
+                          line.uomId = _resolveDefaultUom(value, line.uomId);
+                        }),
+                        validator: (_) =>
+                            line.itemId == null ? 'Item is required' : null,
                       ),
-                      SettingsFormWrap(
-                        children: [
-                          AppSearchPickerField<int>(
-                            labelText: 'Item',
-                            selectedLabel: _itemsLookup
-                                .cast<ItemModel?>()
-                                .firstWhere(
-                                  (item) => item?.id == line.itemId,
-                                  orElse: () => null,
-                                )
-                                ?.toString(),
-                            options: _itemsLookup
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppSearchPickerOption<int>(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                    subtitle: item.itemCode,
-                                  ),
-                                )
-                                .toList(growable: false),
-                            onChanged: (value) => setState(() {
-                              line.itemId = value;
-                              line.uomId = _resolveDefaultUom(
-                                value,
-                                line.uomId,
-                              );
-                            }),
-                            validator: (_) =>
-                                line.itemId == null ? 'Item is required' : null,
-                          ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Warehouse',
-                            mappedItems: _warehouses
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Warehouse',
+                        mappedItems: _warehouses
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: line.warehouseId,
+                        onChanged: (value) =>
+                            setState(() => line.warehouseId = value),
+                        validator: Validators.requiredSelection('Warehouse'),
+                      ),
+                      Builder(
+                        builder: (context) {
+                          final options = _uomOptionsForItem(line.itemId);
+                          if (options.length == 1) {
+                            final onlyId = options.first.id;
+                            if (line.uomId != onlyId) {
+                              line.uomId = onlyId;
+                            }
+                          }
+                          return AppDropdownField<int>.fromMapped(
+                            labelText: 'UOM',
+                            mappedItems: options
                                 .where((item) => item.id != null)
                                 .map(
                                   (item) => AppDropdownItem(
@@ -843,96 +855,67 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                                   ),
                                 )
                                 .toList(growable: false),
-                            initialValue: line.warehouseId,
+                            initialValue: line.uomId,
                             onChanged: (value) =>
-                                setState(() => line.warehouseId = value),
-                            validator: Validators.requiredSelection(
-                              'Warehouse',
-                            ),
-                          ),
-                          Builder(
-                            builder: (context) {
-                              final options = _uomOptionsForItem(line.itemId);
-                              if (options.length <= 1) {
-                                final onlyId = options.isNotEmpty
-                                    ? options.first.id
-                                    : null;
-                                if (line.uomId != onlyId) {
-                                  line.uomId = onlyId;
-                                }
-                                return const SizedBox.shrink();
+                                setState(() => line.uomId = value),
+                            validator: (_) {
+                              if (line.itemId == null) {
+                                return 'Select item first';
                               }
-                              return AppDropdownField<int>.fromMapped(
-                                labelText: 'UOM',
-                                mappedItems: options
-                                    .where((item) => item.id != null)
-                                    .map(
-                                      (item) => AppDropdownItem(
-                                        value: item.id!,
-                                        label: item.toString(),
-                                      ),
-                                    )
-                                    .toList(growable: false),
-                                initialValue: line.uomId,
-                                onChanged: (value) =>
-                                    setState(() => line.uomId = value),
-                                validator: Validators.requiredSelection('UOM'),
-                              );
+                              return line.uomId == null
+                                  ? 'UOM is required'
+                                  : null;
                             },
-                          ),
-                          AppFormTextField(
-                            labelText: 'Received Qty',
-                            controller: line.receivedQtyController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: Validators.compose([
-                              Validators.required('Received Qty'),
-                              Validators.optionalNonNegativeNumber(
-                                'Received Qty',
-                              ),
-                            ]),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Accepted Qty',
-                            controller: line.acceptedQtyController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: Validators.optionalNonNegativeNumber(
-                              'Accepted Qty',
-                            ),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Rejected Qty',
-                            controller: line.rejectedQtyController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: Validators.optionalNonNegativeNumber(
-                              'Rejected Qty',
-                            ),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Rate',
-                            controller: line.rateController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: Validators.optionalNonNegativeNumber(
-                              'Rate',
-                            ),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Description',
-                            controller: line.descriptionController,
-                          ),
-                          AppFormTextField(
-                            labelText: 'Remarks',
-                            controller: line.remarksController,
-                            maxLines: 2,
-                          ),
-                        ],
+                          );
+                        },
+                      ),
+                      AppFormTextField(
+                        labelText: 'Received Qty',
+                        controller: line.receivedQtyController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: Validators.compose([
+                          Validators.required('Received Qty'),
+                          Validators.optionalNonNegativeNumber('Received Qty'),
+                        ]),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Accepted Qty',
+                        controller: line.acceptedQtyController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: Validators.optionalNonNegativeNumber(
+                          'Accepted Qty',
+                        ),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Rejected Qty',
+                        controller: line.rejectedQtyController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: Validators.optionalNonNegativeNumber(
+                          'Rejected Qty',
+                        ),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Rate',
+                        controller: line.rateController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: Validators.optionalNonNegativeNumber('Rate'),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Description',
+                        controller: line.descriptionController,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Remarks',
+                        controller: line.remarksController,
+                        maxLines: 2,
                       ),
                     ],
                   ),
