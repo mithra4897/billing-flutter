@@ -1,14 +1,13 @@
 import 'dart:async';
 
-import '../../model/sales/sales_delivery_model.dart';
-import '../../model/sales/sales_invoice_line_model.dart';
 import '../../model/sales/sales_order_model.dart';
+import '../../model/sales/sales_quotation_model.dart';
 import '../../screen.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
 
-class SalesInvoicePage extends StatefulWidget {
-  const SalesInvoicePage({
+class SalesOrderPage extends StatefulWidget {
+  const SalesOrderPage({
     super.key,
     this.embedded = false,
     this.editorOnly = false,
@@ -19,47 +18,46 @@ class SalesInvoicePage extends StatefulWidget {
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
-  /// Prefills a **standalone** invoice from a quotation (API has no `sales_quotation_id` on invoices).
   final int? initialQuotationId;
 
   @override
-  State<SalesInvoicePage> createState() => _SalesInvoicePageState();
+  State<SalesOrderPage> createState() => _SalesOrderPageState();
 }
 
-class _SalesInvoicePageState extends State<SalesInvoicePage> {
+class _SalesOrderPageState extends State<SalesOrderPage> {
   static const List<AppDropdownItem<String>> _listStatusFilter =
       <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(value: 'partially_paid', label: 'Partially paid'),
-    AppDropdownItem(value: 'paid', label: 'Paid'),
+    AppDropdownItem(value: 'confirmed', label: 'Confirmed'),
+    AppDropdownItem(value: 'partially_delivered', label: 'Partially delivered'),
+    AppDropdownItem(value: 'fully_delivered', label: 'Fully delivered'),
+    AppDropdownItem(value: 'partially_invoiced', label: 'Partially invoiced'),
+    AppDropdownItem(value: 'fully_invoiced', label: 'Fully invoiced'),
+    AppDropdownItem(value: 'closed', label: 'Closed'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
   final SalesService _salesService = SalesService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
-  final AccountsService _accountsService = AccountsService();
   final InventoryService _inventoryService = InventoryService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _invoiceNoController = TextEditingController();
-  final TextEditingController _invoiceDateController = TextEditingController();
-  final TextEditingController _dueDateController = TextEditingController();
+  final TextEditingController _orderNoController = TextEditingController();
+  final TextEditingController _orderDateController = TextEditingController();
+  final TextEditingController _expectedDeliveryController =
+      TextEditingController();
   final TextEditingController _customerRefNoController =
       TextEditingController();
   final TextEditingController _customerRefDateController =
       TextEditingController();
   final TextEditingController _currencyCodeController = TextEditingController();
   final TextEditingController _exchangeRateController = TextEditingController();
-  final TextEditingController _adjustmentAmountController =
-      TextEditingController();
-  final TextEditingController _adjustmentRemarksController =
-      TextEditingController();
+  final TextEditingController _roundOffController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _termsController = TextEditingController();
 
@@ -68,27 +66,21 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   String? _pageError;
   String? _formError;
   String _statusFilter = '';
-  List<SalesInvoiceModel> _items = const <SalesInvoiceModel>[];
-  List<SalesInvoiceModel> _filteredItems = const <SalesInvoiceModel>[];
+  List<SalesOrderModel> _items = const <SalesOrderModel>[];
+  List<SalesOrderModel> _filteredItems = const <SalesOrderModel>[];
+  List<SalesQuotationModel> _quotationsAll = const <SalesQuotationModel>[];
   List<CompanyModel> _companies = const <CompanyModel>[];
   List<BranchModel> _branches = const <BranchModel>[];
   List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> _customers = const <PartyModel>[];
-  List<AccountModel> _accounts = const <AccountModel>[];
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
   List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
   List<WarehouseModel> _warehouses = const <WarehouseModel>[];
   List<TaxCodeModel> _taxCodes = const <TaxCodeModel>[];
-  List<SalesOrderModel> _ordersAll = const <SalesOrderModel>[];
-  List<SalesDeliveryModel> _deliveriesAll = const <SalesDeliveryModel>[];
-  List<Map<String, dynamic>>? _orderLinesCache;
-  List<Map<String, dynamic>>? _deliveryLinesCache;
-  int? _salesOrderId;
-  int? _salesDeliveryId;
-  SalesInvoiceModel? _selectedItem;
+  SalesOrderModel? _selectedItem;
   int? _contextCompanyId;
   int? _contextBranchId;
   int? _contextLocationId;
@@ -99,31 +91,128 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   int? _financialYearId;
   int? _documentSeriesId;
   int? _customerPartyId;
-  int? _adjustmentAccountId;
+  int? _salesQuotationId;
+  List<Map<String, dynamic>>? _quotationLinesCache;
   bool _isActive = true;
-  List<_InvoiceLineDraft> _lines = <_InvoiceLineDraft>[];
+  List<_OrderLineDraft> _lines = <_OrderLineDraft>[];
 
   bool get _canEdit {
     if (_selectedItem == null) {
       return true;
     }
-    return _selectedItem!.invoiceStatus == 'draft';
+    return stringValue(_selectedItem!.toJson(), 'order_status') == 'draft';
   }
 
   String get _status =>
-      _selectedItem?.invoiceStatus ?? 'draft';
+      stringValue(_selectedItem?.toJson() ?? const {}, 'order_status', 'draft');
 
   List<BranchModel> get _branchOptions =>
       branchesForCompany(_branches, _companyId);
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
 
+  List<SalesQuotationModel> get _quotationChoices {
+    final companyId = _companyId;
+    final cust = _customerPartyId;
+    return _quotationsAll.where((q) {
+      final j = q.toJson();
+      if (companyId != null && intValue(j, 'company_id') != companyId) {
+        return false;
+      }
+      if (cust != null && intValue(j, 'customer_party_id') != cust) {
+        return false;
+      }
+      final st = stringValue(j, 'quotation_status');
+      return const {'accepted', 'sent', 'draft'}.contains(st);
+    }).toList(growable: false);
+  }
+
+  String _quotationLinePickerLabel(Map<String, dynamic> line) {
+    final itemId = intValue(line, 'item_id');
+    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+      (i) => i?.id == itemId,
+      orElse: () => null,
+    );
+    final qQty = double.tryParse(line['qty']?.toString() ?? '') ?? 0;
+    final lineNo = intValue(line, 'line_no') ?? 0;
+    final name = (item?.itemName ?? '').trim().isNotEmpty
+        ? item!.itemName
+        : 'Item $itemId';
+    return 'L$lineNo · $name · quote qty $qQty';
+  }
+
+  Future<void> _fetchQuotationLines(int quotationId) async {
+    try {
+      final r = await _salesService.quotation(quotationId);
+      final data = r.data?.toJson() ?? <String, dynamic>{};
+      final rawLines = data['lines'] as List<dynamic>?;
+      final list = rawLines
+          ?.whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _quotationLinesCache = list);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _quotationLinesCache = const <Map<String, dynamic>>[]);
+      }
+    }
+  }
+
+  Future<void> _onHeaderQuotationChanged(int? value) async {
+    if (!_canEdit) {
+      return;
+    }
+    setState(() {
+      _salesQuotationId = value;
+      _quotationLinesCache =
+          value == null ? null : const <Map<String, dynamic>>[];
+      for (final line in _lines) {
+        line.salesQuotationLineId = null;
+      }
+    });
+    if (value != null) {
+      await _fetchQuotationLines(value);
+    } else if (mounted) {
+      setState(() => _quotationLinesCache = null);
+    }
+  }
+
+  void _applyQuotationLinePick(_OrderLineDraft line, int? quotationLineId) {
+    setState(() {
+      line.salesQuotationLineId = quotationLineId;
+      if (quotationLineId == null) {
+        return;
+      }
+      Map<String, dynamic>? ql;
+      for (final m in _quotationLinesCache ?? const <Map<String, dynamic>>[]) {
+        if (intValue(m, 'id') == quotationLineId) {
+          ql = m;
+          break;
+        }
+      }
+      if (ql == null) {
+        return;
+      }
+      line.itemId = intValue(ql, 'item_id');
+      line.uomId = intValue(ql, 'uom_id');
+      line.warehouseId = intValue(ql, 'warehouse_id');
+      line.rateController.text = stringValue(ql, 'rate');
+      final qQty = double.tryParse(ql['qty']?.toString() ?? '') ?? 0;
+      if (qQty > 0) {
+        line.qtyController.text = qQty.toString();
+      }
+    });
+  }
+
   List<DocumentSeriesModel> _seriesOptions() {
     return _documentSeries
         .where((item) {
           final typeOk =
               item.documentType == null ||
-              item.documentType == 'SALES_INVOICE';
+              item.documentType == 'SALES_ORDER';
           final companyOk = _companyId == null || item.companyId == _companyId;
           final fyOk =
               _financialYearId == null ||
@@ -131,350 +220,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           return typeOk && companyOk && fyOk;
         })
         .toList(growable: false);
-  }
-
-  List<AccountModel> get _accountOptions {
-    final companyId = _companyId;
-    if (companyId == null) {
-      return _accounts;
-    }
-    return _accounts
-        .where((a) => a.companyId == null || a.companyId == companyId)
-        .toList(growable: false);
-  }
-
-  Map<String, dynamic> _rowJson(SalesInvoiceModel row) =>
-      row.raw ?? <String, dynamic>{};
-
-  List<SalesOrderModel> get _orderChoices {
-    final companyId = _companyId;
-    final cust = _customerPartyId;
-    return _ordersAll.where((o) {
-      final j = o.toJson();
-      if (companyId != null && intValue(j, 'company_id') != companyId) {
-        return false;
-      }
-      if (cust != null && intValue(j, 'customer_party_id') != cust) {
-        return false;
-      }
-      final st = stringValue(j, 'order_status');
-      return const {
-        'confirmed',
-        'partially_delivered',
-        'fully_delivered',
-        'partially_invoiced',
-      }.contains(st);
-    }).toList(growable: false);
-  }
-
-  List<SalesDeliveryModel> get _deliveryChoices {
-    final companyId = _companyId;
-    final cust = _customerPartyId;
-    final orderId = _salesOrderId;
-    return _deliveriesAll.where((d) {
-      final j = d.toJson();
-      if (companyId != null && intValue(j, 'company_id') != companyId) {
-        return false;
-      }
-      if (cust != null && intValue(j, 'customer_party_id') != cust) {
-        return false;
-      }
-      final st = stringValue(j, 'delivery_status');
-      if (!const {'posted', 'partially_invoiced'}.contains(st)) {
-        return false;
-      }
-      if (orderId != null) {
-        final dSo = intValue(j, 'sales_order_id');
-        if (dSo != null && dSo != 0 && dSo != orderId) {
-          return false;
-        }
-      }
-      return true;
-    }).toList(growable: false);
-  }
-
-  Map<String, dynamic>? _deliveryJsonById(int? id) {
-    if (id == null) {
-      return null;
-    }
-    for (final d in _deliveriesAll) {
-      final j = d.toJson();
-      if (intValue(j, 'id') == id) {
-        return j;
-      }
-    }
-    return null;
-  }
-
-  String _orderLinePickerLabel(Map<String, dynamic> line) {
-    final itemId = intValue(line, 'item_id');
-    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
-      (i) => i?.id == itemId,
-      orElse: () => null,
-    );
-    final ordered =
-        double.tryParse(line['ordered_qty']?.toString() ?? '') ?? 0;
-    final invoiced =
-        double.tryParse(line['invoiced_qty']?.toString() ?? '') ?? 0;
-    final rem = ordered - invoiced;
-    final lineNo = intValue(line, 'line_no') ?? 0;
-    final name = (item?.itemName ?? '').trim().isNotEmpty
-        ? item!.itemName
-        : 'Item $itemId';
-    return 'L$lineNo · $name · rem $rem';
-  }
-
-  String _deliveryLinePickerLabel(Map<String, dynamic> line) {
-    final itemId = intValue(line, 'item_id');
-    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
-      (i) => i?.id == itemId,
-      orElse: () => null,
-    );
-    final pend =
-        double.tryParse(line['pending_invoice_qty']?.toString() ?? '') ?? 0;
-    final lineNo = intValue(line, 'line_no') ?? 0;
-    final name = (item?.itemName ?? '').trim().isNotEmpty
-        ? item!.itemName
-        : 'Item $itemId';
-    return 'L$lineNo · $name · pending $pend';
-  }
-
-  Future<void> _reloadSourceDocumentsForCompany(int? companyId) async {
-    if (companyId == null) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _ordersAll = const <SalesOrderModel>[];
-        _deliveriesAll = const <SalesDeliveryModel>[];
-      });
-      return;
-    }
-    try {
-      final src = await Future.wait<dynamic>([
-        _salesService.ordersAll(filters: <String, dynamic>{
-          'company_id': companyId,
-          'is_active': 1,
-          'sort_by': 'order_date',
-        }),
-        _salesService.deliveriesAll(filters: <String, dynamic>{
-          'company_id': companyId,
-          'is_active': 1,
-          'sort_by': 'delivery_date',
-        }),
-      ]);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _ordersAll = (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
-            const <SalesOrderModel>[];
-        _deliveriesAll =
-            (src[1] as ApiResponse<List<SalesDeliveryModel>>).data ??
-                const <SalesDeliveryModel>[];
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _fetchOrderLines(int orderId) async {
-    try {
-      final r = await _salesService.order(orderId);
-      final j = r.data?.toJson() ?? <String, dynamic>{};
-      final rawLines = j['lines'] as List<dynamic>?;
-      final list = rawLines
-          ?.whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-      if (!mounted) {
-        return;
-      }
-      setState(() => _orderLinesCache = list);
-    } catch (_) {
-      if (mounted) {
-        setState(() => _orderLinesCache = const <Map<String, dynamic>>[]);
-      }
-    }
-  }
-
-  Future<void> _fetchDeliveryLines(int deliveryId) async {
-    try {
-      final r = await _salesService.delivery(deliveryId);
-      final j = r.data?.toJson() ?? <String, dynamic>{};
-      final rawLines = j['lines'] as List<dynamic>?;
-      final list = rawLines
-          ?.whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-      if (!mounted) {
-        return;
-      }
-      setState(() => _deliveryLinesCache = list);
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _deliveryLinesCache = const <Map<String, dynamic>>[],
-        );
-      }
-    }
-  }
-
-  Future<void> _hydrateSourceCaches() async {
-    if (_salesOrderId != null) {
-      await _fetchOrderLines(_salesOrderId!);
-    } else if (mounted) {
-      setState(() => _orderLinesCache = null);
-    }
-    if (_salesDeliveryId != null) {
-      await _fetchDeliveryLines(_salesDeliveryId!);
-    } else if (mounted) {
-      setState(() => _deliveryLinesCache = null);
-    }
-  }
-
-  void _pruneSourcesForCustomer() {
-    final cust = _customerPartyId;
-    if (_salesOrderId != null) {
-      final ok = _ordersAll.any((o) {
-        final j = o.toJson();
-        return intValue(j, 'id') == _salesOrderId &&
-            (cust == null || intValue(j, 'customer_party_id') == cust);
-      });
-      if (!ok) {
-        _salesOrderId = null;
-        _orderLinesCache = null;
-        for (final line in _lines) {
-          line.salesOrderLineId = null;
-        }
-      }
-    }
-    if (_salesDeliveryId != null) {
-      final ok = _deliveriesAll.any((d) {
-        final j = d.toJson();
-        return intValue(j, 'id') == _salesDeliveryId &&
-            (cust == null || intValue(j, 'customer_party_id') == cust);
-      });
-      if (!ok) {
-        _salesDeliveryId = null;
-        _deliveryLinesCache = null;
-        for (final line in _lines) {
-          line.salesDeliveryLineId = null;
-        }
-      }
-    }
-  }
-
-  Future<void> _onHeaderSalesOrderChanged(int? value) async {
-    if (!_canEdit) {
-      return;
-    }
-    setState(() {
-      _salesOrderId = value;
-      _orderLinesCache = value == null ? null : const <Map<String, dynamic>>[];
-      for (final line in _lines) {
-        line.salesOrderLineId = null;
-        line.salesDeliveryLineId = null;
-      }
-      if (_salesDeliveryId != null && value != null) {
-        final dj = _deliveryJsonById(_salesDeliveryId);
-        final dSo = intValue(dj ?? <String, dynamic>{}, 'sales_order_id');
-        if (dSo != null && dSo != 0 && dSo != value) {
-          _salesDeliveryId = null;
-          _deliveryLinesCache = null;
-        }
-      }
-    });
-    if (value != null) {
-      await _fetchOrderLines(value);
-    } else if (mounted) {
-      setState(() => _orderLinesCache = null);
-    }
-  }
-
-  Future<void> _onHeaderSalesDeliveryChanged(int? value) async {
-    if (!_canEdit) {
-      return;
-    }
-    setState(() {
-      _salesDeliveryId = value;
-      _deliveryLinesCache =
-          value == null ? null : const <Map<String, dynamic>>[];
-      for (final line in _lines) {
-        line.salesDeliveryLineId = null;
-      }
-    });
-    if (value != null) {
-      final dj = _deliveryJsonById(value);
-      final dOrd = intValue(dj ?? <String, dynamic>{}, 'sales_order_id');
-      if (dOrd != null && dOrd != 0 && _salesOrderId == null) {
-        setState(() => _salesOrderId = dOrd);
-        await _fetchOrderLines(dOrd);
-      }
-      await _fetchDeliveryLines(value);
-    } else if (mounted) {
-      setState(() => _deliveryLinesCache = null);
-    }
-  }
-
-  void _applyOrderLinePick(_InvoiceLineDraft line, int? orderLineId) {
-    setState(() {
-      line.salesOrderLineId = orderLineId;
-      line.salesDeliveryLineId = null;
-      if (orderLineId == null) {
-        return;
-      }
-      Map<String, dynamic>? ol;
-      for (final m in _orderLinesCache ?? const <Map<String, dynamic>>[]) {
-        if (intValue(m, 'id') == orderLineId) {
-          ol = m;
-          break;
-        }
-      }
-      if (ol == null) {
-        return;
-      }
-      line.itemId = intValue(ol, 'item_id');
-      line.uomId = intValue(ol, 'uom_id');
-      line.warehouseId = intValue(ol, 'warehouse_id');
-      line.rateController.text = stringValue(ol, 'rate');
-      final ordered =
-          double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
-      final invoiced =
-          double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
-      final rem = ordered - invoiced;
-      if (rem > 0) {
-        line.qtyController.text = rem.toString();
-      }
-    });
-  }
-
-  void _applyDeliveryLinePick(_InvoiceLineDraft line, int? deliveryLineId) {
-    setState(() {
-      line.salesDeliveryLineId = deliveryLineId;
-      if (deliveryLineId == null) {
-        return;
-      }
-      Map<String, dynamic>? dl;
-      for (final m in _deliveryLinesCache ?? const <Map<String, dynamic>>[]) {
-        if (intValue(m, 'id') == deliveryLineId) {
-          dl = m;
-          break;
-        }
-      }
-      if (dl == null) {
-        return;
-      }
-      final sol = intValue(dl, 'sales_order_line_id');
-      line.salesOrderLineId = sol == 0 ? null : sol;
-      line.itemId = intValue(dl, 'item_id');
-      line.uomId = intValue(dl, 'uom_id');
-      line.warehouseId = intValue(dl, 'warehouse_id');
-      line.rateController.text = stringValue(dl, 'rate');
-      final pend =
-          double.tryParse(dl['pending_invoice_qty']?.toString() ?? '') ?? 0;
-      if (pend > 0) {
-        line.qtyController.text = pend.toString();
-      }
-    });
   }
 
   @override
@@ -489,15 +234,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
-    _invoiceNoController.dispose();
-    _invoiceDateController.dispose();
-    _dueDateController.dispose();
+    _orderNoController.dispose();
+    _orderDateController.dispose();
+    _expectedDeliveryController.dispose();
     _customerRefNoController.dispose();
     _customerRefDateController.dispose();
     _currencyCodeController.dispose();
     _exchangeRateController.dispose();
-    _adjustmentAmountController.dispose();
-    _adjustmentRemarksController.dispose();
+    _roundOffController.dispose();
     _notesController.dispose();
     _termsController.dispose();
     for (final line in _lines) {
@@ -514,8 +258,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
     try {
       final responses = await Future.wait<dynamic>([
-        _salesService.invoices(
-          filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
+        _salesService.orders(
+          filters: const {'per_page': 200, 'sort_by': 'order_date'},
         ),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
@@ -536,9 +280,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _partiesService.parties(
           filters: const {'per_page': 400, 'sort_by': 'party_name'},
         ),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
-        ),
         _inventoryService.items(
           filters: const {'per_page': 400, 'sort_by': 'item_name'},
         ),
@@ -553,6 +294,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         ),
         _inventoryService.taxCodes(
           filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
+        _salesService.quotationsAll(
+          filters: const {'sort_by': 'quotation_date'},
         ),
       ]);
 
@@ -585,39 +329,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         return;
       }
 
-      List<SalesOrderModel> ordersAll = const <SalesOrderModel>[];
-      List<SalesDeliveryModel> deliveriesAll = const <SalesDeliveryModel>[];
-      final sourceCompanyId = contextSelection.companyId;
-      if (sourceCompanyId != null) {
-        try {
-          final src = await Future.wait<dynamic>([
-            _salesService.ordersAll(filters: <String, dynamic>{
-              'company_id': sourceCompanyId,
-              'is_active': 1,
-              'sort_by': 'order_date',
-            }),
-            _salesService.deliveriesAll(filters: <String, dynamic>{
-              'company_id': sourceCompanyId,
-              'is_active': 1,
-              'sort_by': 'delivery_date',
-            }),
-          ]);
-          ordersAll = (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
-              const <SalesOrderModel>[];
-          deliveriesAll =
-              (src[1] as ApiResponse<List<SalesDeliveryModel>>).data ??
-                  const <SalesDeliveryModel>[];
-        } catch (_) {}
-      }
-
-      if (!mounted) {
-        return;
-      }
-
       setState(() {
         _items =
-            (responses[0] as PaginatedResponse<SalesInvoiceModel>).data ??
-            const <SalesInvoiceModel>[];
+            (responses[0] as PaginatedResponse<SalesOrderModel>).data ??
+            const <SalesOrderModel>[];
         _companies =
             (responses[1] as PaginatedResponse<CompanyModel>).data ??
             const <CompanyModel>[];
@@ -643,49 +358,45 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
               const <PartyTypeModel>[],
         );
-        _accounts =
-            ((responses[8] as ApiResponse<List<AccountModel>>).data ??
-                    const <AccountModel>[])
-                .where((item) => item.isActive)
-                .toList();
         _itemsLookup =
-            ((responses[9] as PaginatedResponse<ItemModel>).data ??
+            ((responses[8] as PaginatedResponse<ItemModel>).data ??
                     const <ItemModel>[])
                 .where((item) => item.isActive)
                 .toList();
         _uoms =
-            ((responses[10] as PaginatedResponse<UomModel>).data ??
+            ((responses[9] as PaginatedResponse<UomModel>).data ??
                     const <UomModel>[])
                 .where((item) => item.isActive)
                 .toList();
         _uomConversions =
-            ((responses[11] as PaginatedResponse<UomConversionModel>).data ??
+            ((responses[10] as PaginatedResponse<UomConversionModel>).data ??
                     const <UomConversionModel>[])
                 .where((item) => item.isActive)
                 .toList();
         _warehouses =
-            ((responses[12] as PaginatedResponse<WarehouseModel>).data ??
+            ((responses[11] as PaginatedResponse<WarehouseModel>).data ??
                     const <WarehouseModel>[])
                 .where((item) => item.isActive)
                 .toList();
         _taxCodes =
-            ((responses[13] as PaginatedResponse<TaxCodeModel>).data ??
+            ((responses[12] as PaginatedResponse<TaxCodeModel>).data ??
                     const <TaxCodeModel>[])
                 .where((item) => item.isActive)
                 .toList();
+        _quotationsAll =
+            (responses[13] as ApiResponse<List<SalesQuotationModel>>).data ??
+            const <SalesQuotationModel>[];
         _contextCompanyId = contextSelection.companyId;
         _contextBranchId = contextSelection.branchId;
         _contextLocationId = contextSelection.locationId;
         _contextFinancialYearId = contextSelection.financialYearId;
-        _ordersAll = ordersAll;
-        _deliveriesAll = deliveriesAll;
         _initialLoading = false;
       });
       _applyFilters();
 
       final selected = selectId != null
-          ? _items.cast<SalesInvoiceModel?>().firstWhere(
-              (item) => item?.id == selectId,
+          ? _items.cast<SalesOrderModel?>().firstWhere(
+              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
           : (widget.editorOnly
@@ -698,9 +409,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         await _selectDocument(selected);
       } else {
         _resetForm();
-        final qPref = widget.initialQuotationId;
-        if (qPref != null && widget.editorOnly) {
-          await _prefillNewInvoiceFromQuotation(qPref);
+        final qid = widget.initialQuotationId;
+        if (qid != null && widget.editorOnly) {
+          await _prefillNewOrderFromQuotation(qid);
         }
       }
     } catch (error) {
@@ -714,7 +425,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
   }
 
-  Future<void> _prefillNewInvoiceFromQuotation(int quotationId) async {
+  Future<void> _prefillNewOrderFromQuotation(int quotationId) async {
     try {
       final r = await _salesService.quotation(quotationId);
       final q = r.data;
@@ -724,7 +435,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       final data = q.toJson();
       final lines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
-          .map(_InvoiceLineDraft.fromQuotationLine)
+          .map(_OrderLineDraft.fromQuotationLine)
           .toList(growable: true);
       for (final old in _lines) {
         old.dispose();
@@ -733,6 +444,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         return;
       }
       setState(() {
+        _salesQuotationId = quotationId;
         _companyId = intValue(data, 'company_id');
         _branchId = intValue(data, 'branch_id');
         _locationId = intValue(data, 'location_id');
@@ -741,14 +453,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _documentSeriesId =
             series.isNotEmpty ? series.first.id : intValue(data, 'document_series_id');
         _customerPartyId = intValue(data, 'customer_party_id');
-        _salesOrderId = null;
-        _salesDeliveryId = null;
-        _orderLinesCache = null;
-        _deliveryLinesCache = null;
-        _invoiceNoController.clear();
-        _invoiceDateController.text =
+        _orderNoController.clear();
+        _orderDateController.text =
             DateTime.now().toIso8601String().split('T').first;
-        _dueDateController.text = displayDate(
+        _expectedDeliveryController.text = displayDate(
           nullableStringValue(data, 'valid_until'),
         );
         _customerRefNoController.text =
@@ -760,16 +468,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             stringValue(data, 'currency_code', 'INR');
         _exchangeRateController.text =
             stringValue(data, 'exchange_rate', '1');
-        _adjustmentAmountController.clear();
-        _adjustmentRemarksController.clear();
-        _adjustmentAccountId = null;
+        _roundOffController.clear();
         _notesController.text = stringValue(data, 'notes');
         _termsController.text = stringValue(data, 'terms_conditions');
         _isActive = true;
-        _lines = lines.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : lines;
+        _lines = lines.isEmpty ? <_OrderLineDraft>[_OrderLineDraft()] : lines;
         _formError = null;
       });
-      await _reloadSourceDocumentsForCompany(_companyId);
+      await _fetchQuotationLines(quotationId);
     } catch (e) {
       if (mounted) {
         setState(() => _formError = e.toString());
@@ -777,58 +483,58 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
   }
 
-  Future<void> _selectDocument(SalesInvoiceModel item) async {
-    final id = item.id;
-    if (id == 0) {
+  Future<void> _selectDocument(SalesOrderModel item) async {
+    final id = intValue(item.toJson(), 'id');
+    if (id == null) {
       return;
     }
-    final response = await _salesService.invoice(id);
+    final response = await _salesService.order(id);
     final full = response.data ?? item;
-    final lines = full.lines
-        .map(_InvoiceLineDraft.fromLine)
+    final data = full.toJson();
+    final lines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(_OrderLineDraft.fromJson)
         .toList(growable: true);
     for (final old in _lines) {
       old.dispose();
     }
+    final qid = intValue(data, 'sales_quotation_id');
     setState(() {
       _selectedItem = full;
-      _companyId = full.companyId;
-      _branchId = full.branchId;
-      _locationId = full.locationId;
-      _financialYearId = full.financialYearId;
-      _documentSeriesId = full.documentSeriesId;
-      _customerPartyId = full.customerPartyId;
-      _salesOrderId = full.salesOrderId;
-      _salesDeliveryId = full.salesDeliveryId;
-      _orderLinesCache = null;
-      _deliveryLinesCache = null;
-      _invoiceNoController.text = full.invoiceNo ?? '';
-      _invoiceDateController.text = displayDate(
-        full.invoiceDate.isEmpty ? null : full.invoiceDate,
+      _companyId = intValue(data, 'company_id');
+      _branchId = intValue(data, 'branch_id');
+      _locationId = intValue(data, 'location_id');
+      _financialYearId = intValue(data, 'financial_year_id');
+      _documentSeriesId = intValue(data, 'document_series_id');
+      _customerPartyId = intValue(data, 'customer_party_id');
+      _salesQuotationId = qid == 0 ? null : qid;
+      _quotationLinesCache = null;
+      _orderNoController.text = stringValue(data, 'order_no');
+      _orderDateController.text = displayDate(
+        nullableStringValue(data, 'order_date'),
       );
-      _dueDateController.text = displayDate(full.dueDate);
-      _customerRefNoController.text = full.customerReferenceNo ?? '';
-      _customerRefDateController.text = displayDate(full.customerReferenceDate);
-      _currencyCodeController.text = full.currencyCode ?? 'INR';
-      _exchangeRateController.text =
-          (full.exchangeRate ?? 1).toString();
-      _adjustmentAmountController.text =
-          full.adjustmentAmount == null || full.adjustmentAmount == 0
+      _expectedDeliveryController.text = displayDate(
+        nullableStringValue(data, 'expected_delivery_date'),
+      );
+      _customerRefNoController.text = stringValue(data, 'customer_reference_no');
+      _customerRefDateController.text = displayDate(
+        nullableStringValue(data, 'customer_reference_date'),
+      );
+      _currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
+      _exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
+      _roundOffController.text =
+          stringValue(data, 'round_off_amount').trim().isEmpty
           ? ''
-          : full.adjustmentAmount.toString();
-      _adjustmentRemarksController.text = full.adjustmentRemarks ?? '';
-      _adjustmentAccountId = full.adjustmentAccountId;
-      _notesController.text = full.notes ?? '';
-      _termsController.text = full.termsConditions ?? '';
-      _isActive = full.isActive ?? true;
-      _lines = lines.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : lines;
+          : stringValue(data, 'round_off_amount');
+      _notesController.text = stringValue(data, 'notes');
+      _termsController.text = stringValue(data, 'terms_conditions');
+      _isActive = boolValue(data, 'is_active', fallback: true);
+      _lines = lines.isEmpty ? <_OrderLineDraft>[_OrderLineDraft()] : lines;
       _formError = null;
     });
-    await _hydrateSourceCaches();
-    if (!mounted) {
-      return;
+    if (_salesQuotationId != null) {
+      await _fetchQuotationLines(_salesQuotationId!);
     }
-    await _reloadSourceDocumentsForCompany(_companyId);
   }
 
   void _resetForm() {
@@ -844,27 +550,23 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       _financialYearId = _contextFinancialYearId;
       _documentSeriesId = series.isNotEmpty ? series.first.id : null;
       _customerPartyId = null;
-      _salesOrderId = null;
-      _salesDeliveryId = null;
-      _orderLinesCache = null;
-      _deliveryLinesCache = null;
-      _invoiceNoController.clear();
-      _invoiceDateController.text = DateTime.now()
+      _salesQuotationId = null;
+      _quotationLinesCache = null;
+      _orderNoController.clear();
+      _orderDateController.text = DateTime.now()
           .toIso8601String()
           .split('T')
           .first;
-      _dueDateController.clear();
+      _expectedDeliveryController.clear();
       _customerRefNoController.clear();
       _customerRefDateController.clear();
       _currencyCodeController.text = 'INR';
       _exchangeRateController.text = '1';
-      _adjustmentAmountController.clear();
-      _adjustmentRemarksController.clear();
-      _adjustmentAccountId = null;
+      _roundOffController.clear();
       _notesController.clear();
       _termsController.clear();
       _isActive = true;
-      _lines = <_InvoiceLineDraft>[_InvoiceLineDraft()];
+      _lines = <_OrderLineDraft>[_OrderLineDraft()];
       _formError = null;
     });
   }
@@ -874,16 +576,16 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     setState(() {
       _filteredItems = _items
           .where((item) {
-            final data = _rowJson(item);
-            final status = item.invoiceStatus ?? '';
+            final data = item.toJson();
             final statusOk =
-                _statusFilter.isEmpty || status == _statusFilter;
+                _statusFilter.isEmpty ||
+                stringValue(data, 'order_status') == _statusFilter;
             final cust = quotationCustomerLabel(data);
             final searchOk =
                 search.isEmpty ||
                 [
-                  item.invoiceNo ?? '',
-                  status,
+                  stringValue(data, 'order_no'),
+                  stringValue(data, 'order_status'),
                   cust,
                 ].join(' ').toLowerCase().contains(search);
             return statusOk && searchOk;
@@ -915,46 +617,22 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
   void _addLine() {
     setState(() {
-      _lines = List<_InvoiceLineDraft>.from(_lines)..add(_InvoiceLineDraft());
+      _lines = List<_OrderLineDraft>.from(_lines)..add(_OrderLineDraft());
     });
   }
 
   void _removeLine(int index) {
     setState(() {
-      final next = List<_InvoiceLineDraft>.from(_lines);
+      final next = List<_OrderLineDraft>.from(_lines);
       next.removeAt(index).dispose();
-      _lines = next.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : next;
+      _lines = next.isEmpty ? <_OrderLineDraft>[_OrderLineDraft()] : next;
     });
-  }
-
-  List<SalesInvoiceLineModel> _linesForSave() {
-    return _lines
-        .map((line) {
-          final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-          final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
-          final disc =
-              double.tryParse(line.discountController.text.trim()) ?? 0;
-          return SalesInvoiceLineModel(
-            salesOrderLineId: line.salesOrderLineId,
-            salesDeliveryLineId: line.salesDeliveryLineId,
-            itemId: line.itemId ?? 0,
-            uomId: line.uomId ?? 0,
-            invoicedQty: qty,
-            rate: rate,
-            warehouseId: line.warehouseId,
-            taxCodeId: line.taxCodeId,
-            description: nullIfEmpty(line.descriptionController.text),
-            discountPercent: disc == 0 ? null : disc,
-            remarks: nullIfEmpty(line.remarksController.text),
-          );
-        })
-        .toList(growable: false);
   }
 
   Future<void> _save() async {
     if (!_canEdit) {
       setState(() {
-        _formError = 'Only draft invoices can be updated.';
+        _formError = 'Only draft orders can be updated.';
       });
       return;
     }
@@ -975,59 +653,51 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       return;
     }
 
-    final adjAmt =
-        double.tryParse(_adjustmentAmountController.text.trim()) ?? 0;
-    if (adjAmt != 0 && _adjustmentAccountId == null) {
-      setState(
-        () => _formError =
-            'Choose an adjustment account when adjustment amount is not zero.',
-      );
-      return;
-    }
-
     setState(() {
       _saving = true;
       _formError = null;
     });
 
-    final invoice = SalesInvoiceModel(
-      id: _selectedItem?.id ?? 0,
-      companyId: _companyId ?? 0,
-      branchId: _branchId ?? 0,
-      locationId: _locationId ?? 0,
-      financialYearId: _financialYearId ?? 0,
-      customerPartyId: _customerPartyId ?? 0,
-      invoiceDate: _invoiceDateController.text.trim(),
-      documentSeriesId: _documentSeriesId,
-      salesOrderId: _salesOrderId,
-      salesDeliveryId: _salesDeliveryId,
-      invoiceNo: nullIfEmpty(_invoiceNoController.text),
-      dueDate: nullIfEmpty(_dueDateController.text),
-      currencyCode: nullIfEmpty(_currencyCodeController.text) ?? 'INR',
-      exchangeRate:
+    final payload = <String, dynamic>{
+      'company_id': _companyId,
+      'branch_id': _branchId,
+      'location_id': _locationId,
+      'financial_year_id': _financialYearId,
+      'document_series_id': _documentSeriesId,
+      'sales_quotation_id': _salesQuotationId,
+      'order_no': nullIfEmpty(_orderNoController.text),
+      'order_date': _orderDateController.text.trim(),
+      'expected_delivery_date': nullIfEmpty(_expectedDeliveryController.text),
+      'customer_party_id': _customerPartyId,
+      'customer_reference_no': nullIfEmpty(_customerRefNoController.text),
+      'customer_reference_date': nullIfEmpty(_customerRefDateController.text),
+      'currency_code': nullIfEmpty(_currencyCodeController.text) ?? 'INR',
+      'exchange_rate':
           double.tryParse(_exchangeRateController.text.trim()) ?? 1,
-      notes: nullIfEmpty(_notesController.text),
-      termsConditions: nullIfEmpty(_termsController.text),
-      customerReferenceNo: nullIfEmpty(_customerRefNoController.text),
-      customerReferenceDate: nullIfEmpty(_customerRefDateController.text),
-      isActive: _isActive,
-      adjustmentAmount: adjAmt == 0 ? null : adjAmt,
-      adjustmentAccountId: adjAmt == 0 ? null : _adjustmentAccountId,
-      adjustmentRemarks: nullIfEmpty(_adjustmentRemarksController.text),
-      lines: _linesForSave(),
-    );
+      'round_off_amount':
+          double.tryParse(_roundOffController.text.trim()) ?? 0,
+      'notes': nullIfEmpty(_notesController.text),
+      'terms_conditions': nullIfEmpty(_termsController.text),
+      'is_active': _isActive,
+      'lines': _lines.map((line) => line.toJson()).toList(growable: false),
+    };
 
     try {
       final response = _selectedItem == null
-          ? await _salesService.createInvoice(invoice)
-          : await _salesService.updateInvoice(_selectedItem!.id, invoice);
+          ? await _salesService.createOrder(SalesOrderModel(payload))
+          : await _salesService.updateOrder(
+              intValue(_selectedItem!.toJson(), 'id')!,
+              SalesOrderModel(payload),
+            );
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: response.data?.id);
+      await _loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -1041,7 +711,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   }
 
   Future<void> _docAction(
-    Future<ApiResponse<SalesInvoiceModel>> Function() action,
+    Future<ApiResponse<SalesOrderModel>> Function() action,
   ) async {
     try {
       final response = await action();
@@ -1051,7 +721,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: response.data?.id);
+      await _loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -1061,12 +733,12 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   }
 
   Future<void> _delete() async {
-    final id = _selectedItem?.id;
-    if (id == null || id == 0) {
+    final id = intValue(_selectedItem?.toJson() ?? const {}, 'id');
+    if (id == null) {
       return;
     }
     try {
-      final response = await _salesService.deleteInvoice(id);
+      final response = await _salesService.deleteOrder(id);
       if (!mounted) {
         return;
       }
@@ -1093,7 +765,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           }
         },
         icon: Icons.add_outlined,
-        label: 'New invoice',
+        label: 'New order',
       ),
     ];
     final content = _buildContent();
@@ -1101,7 +773,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       return ShellPageActions(actions: actions, child: content);
     }
     return AppStandaloneShell(
-      title: 'Sales Invoices',
+      title: 'Sales Orders',
       scrollController: _pageScrollController,
       actions: actions,
       child: content,
@@ -1110,32 +782,31 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
   Widget _buildContent() {
     if (_initialLoading) {
-      return const AppLoadingView(message: 'Loading invoices...');
+      return const AppLoadingView(message: 'Loading orders...');
     }
     if (_pageError != null) {
       return AppErrorStateView(
-        title: 'Unable to load invoices',
+        title: 'Unable to load orders',
         message: _pageError!,
         onRetry: _loadPage,
       );
     }
 
-    final totalStr = _selectedItem?.totalAmount?.toString() ?? '';
+    final sel = _selectedItem?.toJson() ?? const {};
+    final totalStr = stringValue(sel, 'total_amount');
 
     return SettingsWorkspace(
       controller: _workspaceController,
-      title: 'Sales Invoices',
+      title: 'Sales Orders',
       editorTitle: _selectedItem == null
-          ? 'New invoice'
-          : (_selectedItem!.invoiceNo?.trim().isNotEmpty == true
-                ? _selectedItem!.invoiceNo!
-                : 'Invoice #${_selectedItem!.id}'),
+          ? 'New order'
+          : stringValue(sel, 'order_no', 'Order'),
       editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
-      list: PurchaseListCard<SalesInvoiceModel>(
+      list: PurchaseListCard<SalesOrderModel>(
         items: _filteredItems,
         selectedItem: _selectedItem,
-        emptyMessage: 'No invoices yet.',
+        emptyMessage: 'No sales orders yet.',
         searchController: _searchController,
         searchHint: 'Search by number or customer',
         statusValue: _statusFilter,
@@ -1145,16 +816,12 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           _applyFilters();
         },
         itemBuilder: (item, selected) {
-          final data = _rowJson(item);
+          final data = item.toJson();
           return SettingsListTile(
-            title: (item.invoiceNo?.trim().isNotEmpty == true)
-                ? item.invoiceNo!
-                : 'Draft #${item.id}',
+            title: stringValue(data, 'order_no', 'Draft'),
             subtitle: [
-              displayDate(
-                item.invoiceDate.isEmpty ? null : item.invoiceDate,
-              ),
-              item.invoiceStatus ?? '',
+              displayDate(nullableStringValue(data, 'order_date')),
+              stringValue(data, 'order_status'),
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: quotationCustomerLabel(data),
             selected: selected,
@@ -1206,16 +873,12 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       final options = _seriesOptions();
                       _documentSeriesId =
                           options.isNotEmpty ? options.first.id : null;
-                      _salesOrderId = null;
-                      _salesDeliveryId = null;
-                      _orderLinesCache = null;
-                      _deliveryLinesCache = null;
+                      _salesQuotationId = null;
+                      _quotationLinesCache = null;
                       for (final line in _lines) {
-                        line.salesOrderLineId = null;
-                        line.salesDeliveryLineId = null;
+                        line.salesQuotationLineId = null;
                       }
                     });
-                    unawaited(_reloadSourceDocumentsForCompany(value));
                   },
                   validator: Validators.requiredSelection('Company'),
                 ),
@@ -1307,30 +970,30 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   },
                 ),
                 AppFormTextField(
-                  labelText: 'Invoice No',
-                  controller: _invoiceNoController,
+                  labelText: 'Order No',
+                  controller: _orderNoController,
                   hintText: 'Leave blank if your series fills this in',
                   enabled: _canEdit,
-                  validator: Validators.optionalMaxLength(100, 'Invoice No'),
+                  validator: Validators.optionalMaxLength(100, 'Order No'),
                 ),
                 AppFormTextField(
-                  labelText: 'Invoice Date',
-                  controller: _invoiceDateController,
+                  labelText: 'Order Date',
+                  controller: _orderDateController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   enabled: _canEdit,
                   validator: Validators.compose([
-                    Validators.required('Invoice Date'),
-                    Validators.date('Invoice Date'),
+                    Validators.required('Order Date'),
+                    Validators.date('Order Date'),
                   ]),
                 ),
                 AppFormTextField(
-                  labelText: 'Due Date',
-                  controller: _dueDateController,
+                  labelText: 'Expected delivery',
+                  controller: _expectedDeliveryController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   enabled: _canEdit,
-                  validator: Validators.optionalDate('Due Date'),
+                  validator: Validators.optionalDate('Expected delivery'),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Customer',
@@ -1350,51 +1013,40 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     }
                     setState(() {
                       _customerPartyId = value;
-                      _pruneSourcesForCustomer();
+                      if (_salesQuotationId != null) {
+                        final stillOk = _quotationChoices.any(
+                          (q) =>
+                              intValue(q.toJson(), 'id') == _salesQuotationId,
+                        );
+                        if (!stillOk) {
+                          _salesQuotationId = null;
+                          _quotationLinesCache = null;
+                          for (final line in _lines) {
+                            line.salesQuotationLineId = null;
+                          }
+                        }
+                      }
                     });
                   },
                   validator: Validators.requiredSelection('Customer'),
                 ),
                 AppDropdownField<int?>.fromMapped(
-                  labelText: 'Sales order (optional)',
+                  labelText: 'From quotation (optional)',
                   mappedItems: [
-                    const AppDropdownItem<int?>(
-                      value: null,
-                      label: 'None',
-                    ),
-                    ..._orderChoices
-                        .map((o) => o.toJson())
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
+                    ..._quotationChoices
+                        .map((q) => q.toJson())
                         .where((j) => intValue(j, 'id') != null)
                         .map(
                           (j) => AppDropdownItem<int?>(
                             value: intValue(j, 'id'),
-                            label: stringValue(j, 'order_no', 'Order'),
+                            label: stringValue(j, 'quotation_no', 'Quote'),
                           ),
                         ),
                   ],
-                  initialValue: _salesOrderId,
-                  onChanged: (value) => unawaited(_onHeaderSalesOrderChanged(value)),
-                ),
-                AppDropdownField<int?>.fromMapped(
-                  labelText: 'Sales delivery (optional)',
-                  mappedItems: [
-                    const AppDropdownItem<int?>(
-                      value: null,
-                      label: 'None',
-                    ),
-                    ..._deliveryChoices
-                        .map((d) => d.toJson())
-                        .where((j) => intValue(j, 'id') != null)
-                        .map(
-                          (j) => AppDropdownItem<int?>(
-                            value: intValue(j, 'id'),
-                            label: stringValue(j, 'delivery_no', 'Delivery'),
-                          ),
-                        ),
-                  ],
-                  initialValue: _salesDeliveryId,
+                  initialValue: _salesQuotationId,
                   onChanged: (value) =>
-                      unawaited(_onHeaderSalesDeliveryChanged(value)),
+                      unawaited(_onHeaderQuotationChanged(value)),
                 ),
                 AppFormTextField(
                   labelText: 'Customer PO / Ref',
@@ -1426,8 +1078,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   validator: Validators.optionalNonNegativeNumber('Exchange Rate'),
                 ),
                 AppFormTextField(
-                  labelText: 'Adjustment amount',
-                  controller: _adjustmentAmountController,
+                  labelText: 'Round off',
+                  controller: _roundOffController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                     signed: true,
@@ -1439,35 +1091,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       return null;
                     }
                     if (double.tryParse(trimmed) == null) {
-                      return 'Adjustment amount must be a valid number';
+                      return 'Round off must be a valid number';
                     }
                     return null;
                   },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Adjustment account',
-                  mappedItems: _accountOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _adjustmentAccountId,
-                  onChanged: (value) {
-                    if (!_canEdit) {
-                      return;
-                    }
-                    setState(() => _adjustmentAccountId = value);
-                  },
-                ),
-                AppFormTextField(
-                  labelText: 'Adjustment remarks',
-                  controller: _adjustmentRemarksController,
-                  enabled: _canEdit,
-                  maxLines: 2,
                 ),
                 AppFormTextField(
                   labelText: 'Notes (shown to customer)',
@@ -1523,56 +1150,30 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   onRemove: _canEdit ? () => _removeLine(index) : null,
                   child: PurchaseCompactFieldGrid(
                     children: [
-                      if (_salesOrderId != null &&
-                          (_orderLinesCache != null &&
-                              _orderLinesCache!.isNotEmpty))
+                      if (_salesQuotationId != null &&
+                          (_quotationLinesCache != null &&
+                              _quotationLinesCache!.isNotEmpty))
                         AppDropdownField<int?>.fromMapped(
-                          labelText: 'Order line',
+                          labelText: 'Quotation line',
                           mappedItems: [
                             const AppDropdownItem<int?>(
                               value: null,
                               label: 'None',
                             ),
-                            ..._orderLinesCache!.map((ol) {
-                              final id = intValue(ol, 'id');
+                            ..._quotationLinesCache!.map((ql) {
+                              final lid = intValue(ql, 'id');
                               return AppDropdownItem<int?>(
-                                value: id,
-                                label: _orderLinePickerLabel(ol),
+                                value: lid,
+                                label: _quotationLinePickerLabel(ql),
                               );
                             }).where((it) => it.value != null),
                           ],
-                          initialValue: line.salesOrderLineId,
+                          initialValue: line.salesQuotationLineId,
                           onChanged: (value) {
                             if (!_canEdit) {
                               return;
                             }
-                            _applyOrderLinePick(line, value);
-                          },
-                        ),
-                      if (_salesDeliveryId != null &&
-                          (_deliveryLinesCache != null &&
-                              _deliveryLinesCache!.isNotEmpty))
-                        AppDropdownField<int?>.fromMapped(
-                          labelText: 'Delivery line',
-                          mappedItems: [
-                            const AppDropdownItem<int?>(
-                              value: null,
-                              label: 'None',
-                            ),
-                            ..._deliveryLinesCache!.map((dl) {
-                              final id = intValue(dl, 'id');
-                              return AppDropdownItem<int?>(
-                                value: id,
-                                label: _deliveryLinePickerLabel(dl),
-                              );
-                            }).where((it) => it.value != null),
-                          ],
-                          initialValue: line.salesDeliveryLineId,
-                          onChanged: (value) {
-                            if (!_canEdit) {
-                              return;
-                            }
-                            _applyDeliveryLinePick(line, value);
+                            _applyQuotationLinePick(line, value);
                           },
                         ),
                       AppSearchPickerField<int>(
@@ -1600,8 +1201,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           }
                           setState(() {
                             line.itemId = value;
-                            line.salesOrderLineId = null;
-                            line.salesDeliveryLineId = null;
+                            line.salesQuotationLineId = null;
                             line.uomId = _resolveDefaultUom(
                               value,
                               line.uomId,
@@ -1669,15 +1269,15 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         },
                       ),
                       AppFormTextField(
-                        labelText: 'Qty',
+                        labelText: 'Order qty',
                         controller: line.qtyController,
                         enabled: _canEdit,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                         validator: Validators.compose([
-                          Validators.required('Qty'),
-                          Validators.optionalNonNegativeNumber('Qty'),
+                          Validators.required('Order qty'),
+                          Validators.optionalNonNegativeNumber('Order qty'),
                         ]),
                       ),
                       AppFormTextField(
@@ -1745,18 +1345,21 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               children: [
                 AppActionButton(
                   icon: Icons.save_outlined,
-                  label: _selectedItem == null ? 'Save invoice' : 'Update invoice',
+                  label: _selectedItem == null ? 'Save order' : 'Update order',
                   onPressed: _canEdit ? _save : null,
                   busy: _saving,
                 ),
                 if (_selectedItem != null) ...[
                   if (_status == 'draft') ...[
                     AppActionButton(
-                      icon: Icons.publish_outlined,
-                      label: 'Post',
+                      icon: Icons.check_circle_outline,
+                      label: 'Confirm order',
                       filled: false,
                       onPressed: () => _docAction(
-                        () => _salesService.postInvoice(_selectedItem!.id),
+                        () => _salesService.confirmOrder(
+                          intValue(_selectedItem!.toJson(), 'id')!,
+                          SalesOrderModel(const <String, dynamic>{}),
+                        ),
                       ),
                     ),
                     AppActionButton(
@@ -1765,15 +1368,40 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       filled: false,
                       onPressed: _delete,
                     ),
+                  ],
+                  if (const {
+                    'draft',
+                    'confirmed',
+                    'partially_delivered',
+                    'partially_invoiced',
+                  }.contains(_status))
                     AppActionButton(
                       icon: Icons.block_outlined,
-                      label: 'Cancel invoice',
+                      label: 'Cancel order',
                       filled: false,
                       onPressed: () => _docAction(
-                        () => _salesService.cancelInvoice(_selectedItem!.id),
+                        () => _salesService.cancelOrder(
+                          intValue(_selectedItem!.toJson(), 'id')!,
+                          SalesOrderModel(const <String, dynamic>{}),
+                        ),
                       ),
                     ),
-                  ],
+                  if (const {
+                    'confirmed',
+                    'partially_delivered',
+                    'partially_invoiced',
+                  }.contains(_status))
+                    AppActionButton(
+                      icon: Icons.lock_outline,
+                      label: 'Close order',
+                      filled: false,
+                      onPressed: () => _docAction(
+                        () => _salesService.closeOrder(
+                          intValue(_selectedItem!.toJson(), 'id')!,
+                          SalesOrderModel(const <String, dynamic>{}),
+                        ),
+                      ),
+                    ),
                 ],
               ],
             ),
@@ -1784,10 +1412,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   }
 }
 
-class _InvoiceLineDraft {
-  _InvoiceLineDraft({
-    this.salesOrderLineId,
-    this.salesDeliveryLineId,
+class _OrderLineDraft {
+  _OrderLineDraft({
+    this.salesQuotationLineId,
     this.itemId,
     this.warehouseId,
     this.uomId,
@@ -1803,27 +1430,10 @@ class _InvoiceLineDraft {
        discountController = TextEditingController(text: discountPercent ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
 
-  factory _InvoiceLineDraft.fromLine(SalesInvoiceLineModel line) {
-    return _InvoiceLineDraft(
-      salesOrderLineId: line.salesOrderLineId,
-      salesDeliveryLineId: line.salesDeliveryLineId,
-      itemId: line.itemId,
-      warehouseId: line.warehouseId,
-      uomId: line.uomId,
-      taxCodeId: line.taxCodeId,
-      description: line.description,
-      qty: line.invoicedQty == 0 ? '' : line.invoicedQty.toString(),
-      rate: line.rate == 0 ? '' : line.rate.toString(),
-      discountPercent: line.discountPercent == null || line.discountPercent == 0
-          ? ''
-          : line.discountPercent.toString(),
-      remarks: line.remarks,
-    );
-  }
-
-  factory _InvoiceLineDraft.fromQuotationLine(Map<String, dynamic> json) {
-    final q = json['qty'];
-    return _InvoiceLineDraft(
+  factory _OrderLineDraft.fromJson(Map<String, dynamic> json) {
+    final q = json['ordered_qty'] ?? json['qty'];
+    return _OrderLineDraft(
+      salesQuotationLineId: intValue(json, 'sales_quotation_line_id'),
       itemId: intValue(json, 'item_id'),
       warehouseId: intValue(json, 'warehouse_id'),
       uomId: intValue(json, 'uom_id'),
@@ -1836,8 +1446,23 @@ class _InvoiceLineDraft {
     );
   }
 
-  int? salesOrderLineId;
-  int? salesDeliveryLineId;
+  factory _OrderLineDraft.fromQuotationLine(Map<String, dynamic> json) {
+    final q = json['qty'];
+    return _OrderLineDraft(
+      salesQuotationLineId: intValue(json, 'id'),
+      itemId: intValue(json, 'item_id'),
+      warehouseId: intValue(json, 'warehouse_id'),
+      uomId: intValue(json, 'uom_id'),
+      taxCodeId: intValue(json, 'tax_code_id'),
+      description: stringValue(json, 'description'),
+      qty: q?.toString() ?? '',
+      rate: stringValue(json, 'rate'),
+      discountPercent: stringValue(json, 'discount_percent'),
+      remarks: stringValue(json, 'remarks'),
+    );
+  }
+
+  int? salesQuotationLineId;
   int? itemId;
   int? warehouseId;
   int? uomId;
@@ -1847,6 +1472,22 @@ class _InvoiceLineDraft {
   final TextEditingController rateController;
   final TextEditingController discountController;
   final TextEditingController remarksController;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      if (salesQuotationLineId != null)
+        'sales_quotation_line_id': salesQuotationLineId,
+      'item_id': itemId,
+      'warehouse_id': warehouseId,
+      'uom_id': uomId,
+      'tax_code_id': taxCodeId,
+      'description': nullIfEmpty(descriptionController.text),
+      'ordered_qty': double.tryParse(qtyController.text.trim()) ?? 0,
+      'rate': double.tryParse(rateController.text.trim()) ?? 0,
+      'discount_percent': double.tryParse(discountController.text.trim()) ?? 0,
+      'remarks': nullIfEmpty(remarksController.text),
+    };
+  }
 
   void dispose() {
     descriptionController.dispose();

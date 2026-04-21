@@ -3,6 +3,15 @@ import '../../screen.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
 
+void _openSalesShellRoute(BuildContext context, String route) {
+  final navigate = ShellRouteScope.maybeOf(context);
+  if (navigate != null) {
+    navigate(route);
+    return;
+  }
+  Navigator.of(context).pushNamed(route);
+}
+
 class SalesQuotationPage extends StatefulWidget {
   const SalesQuotationPage({
     super.key,
@@ -1074,6 +1083,40 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   onPressed: _canEdit ? _save : null,
                   busy: _saving,
                 ),
+                if (_selectedItem != null &&
+                    !const {'rejected', 'expired', 'cancelled'}
+                        .contains(_status)) ...[
+                  AppActionButton(
+                    icon: Icons.shopping_cart_outlined,
+                    label: 'Sales order',
+                    filled: false,
+                    onPressed: () {
+                      final id = intValue(_selectedItem!.toJson(), 'id');
+                      if (id == null) {
+                        return;
+                      }
+                      _openSalesShellRoute(
+                        context,
+                        '/sales/orders/new?quotation_id=$id',
+                      );
+                    },
+                  ),
+                  AppActionButton(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Invoice',
+                    filled: false,
+                    onPressed: () {
+                      final id = intValue(_selectedItem!.toJson(), 'id');
+                      if (id == null) {
+                        return;
+                      }
+                      _openSalesShellRoute(
+                        context,
+                        '/sales/invoices/new?quotation_id=$id',
+                      );
+                    },
+                  ),
+                ],
                 if (_selectedItem != null) ...[
                   if (_status == 'draft') ...[
                     AppActionButton(

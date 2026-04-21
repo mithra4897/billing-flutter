@@ -27,6 +27,7 @@ import '../purchase/purchase_payment_page.dart';
 import '../purchase/purchase_receipt_page.dart';
 import '../purchase/purchase_register_screens.dart';
 import '../sales/sales_invoice_page.dart';
+import '../sales/sales_order_page.dart';
 import '../sales/sales_quotation_page.dart';
 import '../sales/sales_register_screens.dart';
 import '../purchase/purchase_requisition_page.dart';
@@ -424,6 +425,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return LeaveRequestManagementPage(key: routeKey, embedded: true);
       case '/sales/quotations':
         return SalesQuotationRegisterPage(key: routeKey, embedded: true);
+      case '/sales/orders':
+        return SalesOrderRegisterPage(key: routeKey, embedded: true);
       case '/sales/invoices':
         return SalesInvoiceRegisterPage(key: routeKey, embedded: true);
       case '/purchase/requisitions':
@@ -529,12 +532,25 @@ class _AppShellPageState extends State<AppShellPage> {
           editorOnly: true,
           initialId: id,
         );
+      case 'orders':
+        return SalesOrderPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialQuotationId: int.tryParse(
+            _currentQueryParameters['quotation_id'] ?? '',
+          ),
+        );
       case 'invoices':
         return SalesInvoicePage(
           key: routeKey,
           embedded: true,
           editorOnly: true,
           initialId: id,
+          initialQuotationId: int.tryParse(
+            _currentQueryParameters['quotation_id'] ?? '',
+          ),
         );
     }
     return null;
@@ -640,6 +656,9 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/sales/quotations/')) {
       return 'Sales Quotation';
+    }
+    if (path.startsWith('/sales/orders/')) {
+      return 'Sales Order';
     }
     if (path.startsWith('/sales/invoices/')) {
       return 'Sales Invoice';
