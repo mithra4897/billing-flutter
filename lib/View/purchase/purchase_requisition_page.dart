@@ -739,7 +739,14 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                   controller: _requiredDateController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.optionalDate('Required Date'),
+                  validator: Validators.compose([
+                    Validators.optionalDate('Required Date'),
+                    Validators.optionalDateOnOrAfter(
+                      'Required Date',
+                      () => _requisitionDateController.text.trim(),
+                      startFieldName: 'Requisition Date',
+                    ),
+                  ]),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Requested By',

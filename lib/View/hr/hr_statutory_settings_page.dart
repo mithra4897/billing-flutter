@@ -90,6 +90,7 @@ class HrStatutorySettingsPage extends StatefulWidget {
 }
 
 class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
+  final GlobalKey<FormState> _profileFormKey = GlobalKey<FormState>();
   final HrService _hr = HrService();
   final MasterService _master = MasterService();
   final ScrollController _scroll = ScrollController();
@@ -392,8 +393,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
     if (_companyId == null) {
       return;
     }
-    if (_effFromCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Effective from date is required.');
+    if (_profileFormKey.currentState?.validate() != true) {
       return;
     }
     setState(() {
@@ -491,9 +491,11 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
         : SingleChildScrollView(
             controller: _scroll,
             padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: Form(
+              key: _profileFormKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(
@@ -574,22 +576,39 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                       AppFormTextField(
                         controller: _nameCtrl,
                         labelText: 'Profile name',
+                        validator: Validators.optionalMaxLength(
+                          100,
+                          'Profile name',
+                        ),
                       ),
                       AppFormTextField(
                         controller: _effFromCtrl,
                         labelText: 'Effective from',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.compose([
+                          Validators.required('Effective from'),
+                          Validators.date('Effective from'),
+                        ]),
                       ),
                       AppFormTextField(
                         controller: _effToCtrl,
                         labelText: 'Effective to (optional)',
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.compose([
+                          Validators.optionalDate('Effective to'),
+                          Validators.optionalDateOnOrAfter(
+                            'Effective to',
+                            () => _effFromCtrl.text.trim(),
+                            startFieldName: 'Effective from',
+                          ),
+                        ]),
                       ),
                       AppFormTextField(
                         controller: _remarksCtrl,
                         labelText: 'Remarks (optional)',
+                        validator: Validators.optionalMaxLength(500, 'Remarks'),
                       ),
                       AppDropdownField<String>.fromMapped(
                         labelText: 'Professional tax — state / UT',
@@ -599,6 +618,10 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                             : _professionalTaxStateCode,
                         onChanged: (String? v) => setState(
                           () => _professionalTaxStateCode = v ?? '',
+                        ),
+                        validator: Validators.optionalMaxLength(
+                          64,
+                          'Professional tax state',
                         ),
                       ),
                       AppSwitchTile(
@@ -632,6 +655,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        validator: percentField0To100Optional('Employee %'),
                       ),
                       AppFormTextField(
                         controller: _pfErCtrl,
@@ -639,12 +663,16 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        validator: percentField0To100Optional('Employer %'),
                       ),
                       AppFormTextField(
                         controller: _pfCeilCtrl,
                         labelText: 'Wage ceiling (optional, e.g. 15000)',
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
+                        ),
+                        validator: Validators.optionalNonNegativeNumber(
+                          'Wage ceiling',
                         ),
                       ),
                     ],
@@ -673,6 +701,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        validator: percentField0To100Optional('Employee %'),
                       ),
                       AppFormTextField(
                         controller: _esiErCtrl,
@@ -680,12 +709,16 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        validator: percentField0To100Optional('Employer %'),
                       ),
                       AppFormTextField(
                         controller: _esiCeilCtrl,
                         labelText: 'Gross ceiling (optional, e.g. 21000)',
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
+                        ),
+                        validator: Validators.optionalNonNegativeNumber(
+                          'Gross ceiling',
                         ),
                       ),
                     ],
@@ -739,6 +772,9 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
+                                  validator: Validators.optionalNonNegativeNumber(
+                                    'Gross from',
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: AppUiConstants.spacingSm),
@@ -750,6 +786,9 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
+                                  validator: Validators.optionalNonNegativeNumber(
+                                    'Gross to',
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: AppUiConstants.spacingSm),
@@ -761,6 +800,9 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
+                                  validator: Validators.optionalNonNegativeNumber(
+                                    'Employee PT',
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: AppUiConstants.spacingSm),
@@ -772,6 +814,9 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
+                                  validator: Validators.optionalNonNegativeNumber(
+                                    'Employer PT',
+                                  ),
                                 ),
                               ),
                               IconButton(
@@ -818,6 +863,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                   ],
                 ),
               ],
+            ),
             ),
           );
 

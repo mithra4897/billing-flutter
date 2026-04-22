@@ -136,10 +136,12 @@ class ApiEndpoints {
   static const String crmLeads = '$_crm/leads';
   static const String crmEnquiries = '$_crm/enquiries';
   static const String crmOpportunities = '$_crm/opportunities';
+  static const String crmSalesChain = '$_crm/sales-chain';
 
   // --- Sales (partial; extend as services migrate) ---
   static const String _sales = '/sales';
 
+  static const String salesSalesChain = '$_sales/sales-chain';
   static const String salesInvoices = '$_sales/invoices';
   static const String salesOrders = '$_sales/orders';
   static const String salesQuotations = '$_sales/quotations';

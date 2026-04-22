@@ -263,7 +263,7 @@ class AppNavigation {
           ],
         ),
         AppNavigationItem(
-          key: 'crm',
+          key: 'settings-crm',
           title: 'CRM',
           icon: Icons.support_agent_outlined,
           children: [

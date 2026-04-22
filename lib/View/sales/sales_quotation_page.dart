@@ -1,5 +1,6 @@
 import '../../model/sales/sales_quotation_model.dart';
 import '../../screen.dart';
+import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
 
@@ -18,11 +19,14 @@ class SalesQuotationPage extends StatefulWidget {
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
+    this.initialCrmOpportunityId,
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+  /// From `/sales/quotations/new?crm_opportunity_id=…` when opened from CRM.
+  final int? initialCrmOpportunityId;
 
   @override
   State<SalesQuotationPage> createState() => _SalesQuotationPageState();
@@ -41,6 +45,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
   ];
 
   final SalesService _salesService = SalesService();
+  final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
@@ -92,6 +97,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
   int? _documentSeriesId;
   int? _customerPartyId;
   bool _isActive = true;
+  int? _crmOpportunityId;
+  Map<String, dynamic>? _salesChain;
   List<_QuotationLineDraft> _lines = <_QuotationLineDraft>[];
 
   String _errorMessage(Object error) {
@@ -315,6 +322,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         await _selectDocument(selected);
       } else {
         _resetForm();
+        final bootstrapOpp = widget.initialCrmOpportunityId;
+        if (bootstrapOpp != null) {
+          await _applyOpportunityBootstrap(bootstrapOpp);
+        }
       }
     } catch (error) {
       if (!mounted) {
@@ -366,9 +377,11 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       _notesController.text = stringValue(data, 'notes');
       _termsController.text = stringValue(data, 'terms_conditions');
       _isActive = boolValue(data, 'is_active', fallback: true);
+      _crmOpportunityId = intValue(data, 'crm_opportunity_id');
       _lines = lines.isEmpty ? <_QuotationLineDraft>[_QuotationLineDraft()] : lines;
       _formError = null;
     });
+    await _refreshSalesChain();
   }
 
   void _resetForm() {
@@ -399,7 +412,76 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       _isActive = true;
       _lines = <_QuotationLineDraft>[_QuotationLineDraft()];
       _formError = null;
+      _crmOpportunityId = null;
+      _salesChain = null;
     });
+  }
+
+  Future<void> _refreshSalesChain() async {
+    final savedId = intValue(_selectedItem?.toJson() ?? const {}, 'id');
+    try {
+      if (savedId != null) {
+        final r = await _crmService.salesChain(quotationId: savedId);
+        if (!mounted) {
+          return;
+        }
+        setState(() => _salesChain = r.data);
+        return;
+      }
+      if (_crmOpportunityId != null) {
+        final r = await _crmService.salesChain(
+          opportunityId: _crmOpportunityId,
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() => _salesChain = r.data);
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    }
+  }
+
+  Future<void> _applyOpportunityBootstrap(int opportunityId) async {
+    try {
+      final response = await _crmService.opportunity(opportunityId);
+      if (!mounted || response.data == null) {
+        return;
+      }
+      final od = response.data!.toJson();
+      final enq = od['enquiry'];
+      if (enq is! Map) {
+        return;
+      }
+      final e = Map<String, dynamic>.from(enq);
+      final cid = intValue(e, 'company_id');
+      final partyId = intValue(e, 'customer_party_id');
+      setState(() {
+        _crmOpportunityId = opportunityId;
+        if (cid != null) {
+          _companyId = cid;
+        }
+        if (partyId != null) {
+          _customerPartyId = partyId;
+        }
+        final note =
+            'Linked CRM opportunity: ${stringValue(od, 'opportunity_name')}'.trim();
+        if (note.isNotEmpty && _notesController.text.trim().isEmpty) {
+          _notesController.text = note;
+        }
+      });
+      await _refreshSalesChain();
+    } catch (_) {
+      /* optional bootstrap */
+    }
   }
 
   void _applyFilters() {
@@ -431,19 +513,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       orElse: () => null,
     );
     return allowedUomsForItem(item, _uoms, _uomConversions);
-  }
-
-  int? _resolveDefaultUom(int? itemId, int? currentUomId) {
-    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return defaultSalesUomIdForItem(
-      item,
-      _uoms,
-      _uomConversions,
-      current: currentUomId,
-    );
   }
 
   void _addLine() {
@@ -509,6 +578,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       'is_active': _isActive,
       'lines': _lines.map((line) => line.toJson()).toList(growable: false),
     };
+    if (_crmOpportunityId != null) {
+      payload['crm_opportunity_id'] = _crmOpportunityId;
+    }
 
     try {
       final response = _selectedItem == null
@@ -666,6 +738,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            CrmSalesPipelineBar(data: _salesChain),
             if (_selectedItem != null && totalStr.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
@@ -816,7 +889,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   enabled: _canEdit,
-                  validator: Validators.optionalDate('Valid Until'),
+                  validator: Validators.compose([
+                    Validators.optionalDate('Valid Until'),
+                    Validators.optionalDateOnOrAfter(
+                      'Valid Until',
+                      () => _quotationDateController.text.trim(),
+                      startFieldName: 'Quotation Date',
+                    ),
+                  ]),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Customer',
@@ -946,9 +1026,23 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                           }
                           setState(() {
                             line.itemId = value;
-                            line.uomId = _resolveDefaultUom(
-                              value,
-                              line.uomId,
+                            final item = _itemsLookup
+                                .cast<ItemModel?>()
+                                .firstWhere(
+                                  (e) => e?.id == value,
+                                  orElse: () => null,
+                                );
+                            applySalesLineDefaultsFromItemMaster(
+                              item: item,
+                              uoms: _uoms,
+                              conversions: _uomConversions,
+                              rateController: line.rateController,
+                              setUom: (u) => line.uomId = u,
+                              currentUomId: line.uomId,
+                              setTaxCodeId: (t) => line.taxCodeId = t,
+                              setWarehouseId: (w) => line.warehouseId = w,
+                              currentWarehouseId: line.warehouseId,
+                              warehouses: _warehouses,
                             );
                           });
                         },

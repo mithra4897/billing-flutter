@@ -389,6 +389,7 @@ Future<void> openAttendanceRecordEditor(
                         initialValue: status,
                         onChanged: (v) =>
                             setDialogState(() => status = v ?? 'present'),
+                        validator: Validators.required('Status'),
                       ),
                       AppFormTextField(
                         controller: checkInCtrl,
@@ -1349,19 +1350,28 @@ Future<void> showExpenseClaimDetailDialog(
                     ),
                     FilledButton.tonal(
                       onPressed: () async {
-                        final res = await hr.approveExpenseClaim(
-                          id,
-                          ExpenseClaimModel(<String, dynamic>{}),
-                        );
-                        if (!ctx.mounted) {
-                          return;
-                        }
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(res.message)),
-                        );
-                        if (res.success == true) {
-                          Navigator.pop(ctx);
-                          onChanged();
+                        try {
+                          final res = await hr.approveExpenseClaim(
+                            id,
+                            ExpenseClaimModel(<String, dynamic>{}),
+                          );
+                          if (!ctx.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+                            SnackBar(content: Text(res.message)),
+                          );
+                          if (res.success == true) {
+                            Navigator.pop(ctx);
+                            onChanged();
+                          }
+                        } on ApiException catch (e) {
+                          if (!ctx.mounted) {
+                            return;
+                          }
+                          ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
+                            SnackBar(content: Text(e.displayMessage)),
+                          );
                         }
                       },
                       child: const Text('Approve'),

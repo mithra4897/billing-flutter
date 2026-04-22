@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import '../../model/sales/sales_delivery_model.dart';
 import '../../model/sales/sales_order_model.dart';
 import '../../screen.dart';
+import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
 
@@ -35,6 +38,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   ];
 
   final SalesService _salesService = SalesService();
+  final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
@@ -83,6 +87,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   int? _customerPartyId;
   int? _transporterPartyId;
   bool _isActive = true;
+  Map<String, dynamic>? _salesChain;
   List<_SalesDeliveryLineDraft> _lines = <_SalesDeliveryLineDraft>[];
 
   @override
@@ -294,6 +299,30 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           : lines;
       _formError = null;
     });
+    await _refreshSalesChain();
+  }
+
+  Future<void> _refreshSalesChain() async {
+    final oid = _salesOrderId;
+    try {
+      if (oid != null) {
+        final r = await _crmService.salesChain(orderId: oid);
+        if (!mounted) {
+          return;
+        }
+        setState(() => _salesChain = r.data);
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    }
   }
 
   void _resetForm() {
@@ -320,6 +349,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       _isActive = true;
       _lines = <_SalesDeliveryLineDraft>[_SalesDeliveryLineDraft()];
       _formError = null;
+      _salesChain = null;
     });
   }
 
@@ -351,19 +381,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       orElse: () => null,
     );
     return allowedUomsForItem(item, _uoms, _uomConversions);
-  }
-
-  int? _resolveDefaultUom(int? itemId, int? currentUomId) {
-    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return defaultUomIdForItem(
-      item,
-      _uoms,
-      _uomConversions,
-      current: currentUomId,
-    );
   }
 
   List<DocumentSeriesModel> _seriesOptions() {
@@ -559,6 +576,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
               AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            CrmSalesPipelineBar(data: _salesChain),
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
@@ -701,8 +719,10 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                       )
                       .toList(growable: false),
                   initialValue: _salesOrderId,
-                  onChanged: (value) =>
-                      setState(() => _salesOrderId = value),
+                  onChanged: (value) {
+                    setState(() => _salesOrderId = value);
+                    unawaited(_refreshSalesChain());
+                  },
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Transporter',
@@ -800,7 +820,23 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                             .toList(growable: false),
                         onChanged: (value) => setState(() {
                           line.itemId = value;
-                          line.uomId = _resolveDefaultUom(value, line.uomId);
+                          final item = _itemsLookup
+                              .cast<ItemModel?>()
+                              .firstWhere(
+                                (e) => e?.id == value,
+                                orElse: () => null,
+                              );
+                          applySalesLineDefaultsFromItemMaster(
+                            item: item,
+                            uoms: _uoms,
+                            conversions: _uomConversions,
+                            rateController: line.rateController,
+                            setUom: (u) => line.uomId = u,
+                            currentUomId: line.uomId,
+                            setWarehouseId: (w) => line.warehouseId = w,
+                            currentWarehouseId: line.warehouseId,
+                            warehouses: _warehouses,
+                          );
                         }),
                         validator: (_) =>
                             line.itemId == null ? 'Item is required' : null,

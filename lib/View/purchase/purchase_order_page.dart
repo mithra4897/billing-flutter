@@ -1354,7 +1354,14 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                   controller: _expectedReceiptDateController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.optionalDate('Expected Receipt Date'),
+                  validator: Validators.compose([
+                    Validators.optionalDate('Expected Receipt Date'),
+                    Validators.optionalDateOnOrAfter(
+                      'Expected Receipt Date',
+                      () => _orderDateController.text.trim(),
+                      startFieldName: 'Order Date',
+                    ),
+                  ]),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Supplier',

@@ -11,6 +11,8 @@ class FinancialReportsPage extends StatefulWidget {
 }
 
 class _FinancialReportsPageState extends State<FinancialReportsPage> {
+  final GlobalKey<FormState> _reportFilterFormKey = GlobalKey<FormState>();
+
   static const List<AppDropdownItem<String>> _reportItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'day_book', label: 'Day Book'),
@@ -235,6 +237,10 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
       _reportType == 'balance_sheet' ||
       _reportType == 'financial_statement_pack';
 
+  /// Day book / general ledger: API requires `date_from` and `date_to` ≥ `date_from` when set.
+  bool get _usesStrictReportDateRange =>
+      _reportType == 'day_book' || _reportType == 'general_ledger';
+
   Future<void> _openFilterPanel() async {
     final screenWidth = MediaQuery.of(context).size.width;
     final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
@@ -258,46 +264,54 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 760),
-            child: SingleChildScrollView(
+              child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 dialogPadding,
                 dialogPadding,
                 dialogPadding,
                 MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Filter Financial Reports',
-                          style: Theme.of(dialogContext).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w700),
+              child: Form(
+                key: _reportFilterFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Filter Financial Reports',
+                            style: Theme.of(dialogContext).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        tooltip: 'Close',
-                        icon: const Icon(Icons.close),
-                        color: appTheme.mutedText,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFilterFields(dialogContext),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        icon: const Icon(Icons.play_arrow_outlined),
-                        label: const Text('Run Report'),
-                      ),
+                        IconButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(false),
+                          tooltip: 'Close',
+                          icon: const Icon(Icons.close),
+                          color: appTheme.mutedText,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFilterFields(dialogContext),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () {
+                            if (_reportFilterFormKey.currentState?.validate() !=
+                                true) {
+                              return;
+                            }
+                            Navigator.of(dialogContext).pop(true);
+                          },
+                          icon: const Icon(Icons.play_arrow_outlined),
+                          label: const Text('Run Report'),
+                        ),
                       OutlinedButton.icon(
                         onPressed: () {
                           setState(() {
@@ -321,6 +335,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
                     ],
                   ),
                 ],
+                ),
               ),
             ),
           ),
@@ -514,18 +529,36 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           AppFormTextField(
             labelText: 'Date From',
             controller: _dateFromController,
-            validator: Validators.optionalDate('Date From'),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: _usesStrictReportDateRange
+                ? Validators.compose([
+                    Validators.required('Date From'),
+                    Validators.date('Date From'),
+                  ])
+                : Validators.optionalDate('Date From'),
           ),
         if (_usesDateRange)
           AppFormTextField(
             labelText: 'Date To',
             controller: _dateToController,
-            validator: Validators.optionalDate('Date To'),
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+            validator: Validators.compose([
+              Validators.optionalDate('Date To'),
+              Validators.optionalDateOnOrAfter(
+                'Date To',
+                () => _dateFromController.text.trim(),
+                startFieldName: 'Date From',
+              ),
+            ]),
           ),
         if (_usesAsOfDate)
           AppFormTextField(
             labelText: 'As Of Date',
             controller: _asOfDateController,
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
             validator: Validators.optionalDate('As Of Date'),
           ),
       ],

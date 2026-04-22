@@ -13,10 +13,10 @@ class LeaveTypeManagementPage extends StatefulWidget {
 class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
   final HrService _hrService = HrService();
   final ScrollController _pageScrollController = ScrollController();
+  final GlobalKey<FormState> _leaveTypeFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _leaveNameController = TextEditingController();
   final TextEditingController _maxDaysController = TextEditingController();
 
@@ -139,7 +139,10 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    final FormState? form = _leaveTypeFormKey.currentState;
+    if (form == null || !form.validate()) {
+      return;
+    }
 
     setState(() {
       _saving = true;
@@ -263,66 +266,66 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
         ),
       ),
       editor: Form(
-        key: _formKey,
+        key: _leaveTypeFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
-              const SizedBox(height: AppUiConstants.spacingSm),
-            ],
-            SettingsFormWrap(
-              children: [
-                AppFormTextField(
-                  labelText: 'Leave Name',
-                  controller: _leaveNameController,
-                  validator: Validators.compose([
-                    Validators.required('Leave Name'),
-                    Validators.optionalMaxLength(100, 'Leave Name'),
-                  ]),
+                if (_formError != null) ...[
+                  AppErrorStateView.inline(message: _formError!),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                ],
+                SettingsFormWrap(
+                  children: [
+                    AppFormTextField(
+                      labelText: 'Leave Name',
+                      controller: _leaveNameController,
+                      validator: Validators.compose([
+                        Validators.required('Leave Name'),
+                        Validators.optionalMaxLength(100, 'Leave Name'),
+                      ]),
+                    ),
+                    AppFormTextField(
+                      labelText: 'Max Days Per Year',
+                      controller: _maxDaysController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Max Days Per Year',
+                      ),
+                    ),
+                  ],
                 ),
-                AppFormTextField(
-                  labelText: 'Max Days Per Year',
-                  controller: _maxDaysController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: Validators.optionalNonNegativeNumber(
-                    'Max Days Per Year',
-                  ),
+                const SizedBox(height: AppUiConstants.spacingMd),
+                AppSwitchTile(
+                  label: 'Paid Leave',
+                  value: _isPaid,
+                  onChanged: (value) => setState(() => _isPaid = value),
+                ),
+                const SizedBox(height: AppUiConstants.spacingLg),
+                Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingSm,
+                  children: [
+                    AppActionButton(
+                      icon: Icons.save_outlined,
+                      label: _selectedLeaveType == null
+                          ? 'Save Leave Type'
+                          : 'Update Leave Type',
+                      onPressed: _saving ? null : _save,
+                      busy: _saving,
+                    ),
+                    if (_selectedLeaveType?.id != null)
+                      AppActionButton(
+                        icon: Icons.delete_outline,
+                        label: 'Delete',
+                        onPressed: _delete,
+                        busy: _saving,
+                        filled: false,
+                      ),
+                  ],
                 ),
               ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            AppSwitchTile(
-              label: 'Paid Leave',
-              value: _isPaid,
-              onChanged: (value) => setState(() => _isPaid = value),
-            ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: _selectedLeaveType == null
-                      ? 'Save Leave Type'
-                      : 'Update Leave Type',
-                  onPressed: _save,
-                  busy: _saving,
-                ),
-                if (_selectedLeaveType?.id != null)
-                  AppActionButton(
-                    icon: Icons.delete_outline,
-                    label: 'Delete',
-                    onPressed: _delete,
-                    busy: _saving,
-                    filled: false,
-                  ),
-              ],
-            ),
-          ],
         ),
       ),
     );

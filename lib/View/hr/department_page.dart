@@ -13,10 +13,10 @@ class DepartmentManagementPage extends StatefulWidget {
 class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
   final HrService _hrService = HrService();
   final ScrollController _pageScrollController = ScrollController();
+  final GlobalKey<FormState> _departmentFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
 
   bool _initialLoading = true;
@@ -157,7 +157,8 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
+    final FormState? form = _departmentFormKey.currentState;
+    if (form == null || !form.validate()) {
       return;
     }
 
@@ -287,57 +288,61 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
         children: [
           AppSectionCard(
             child: Form(
-              key: _formKey,
+              key: _departmentFormKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_formError != null) ...[
-                    AppErrorStateView.inline(message: _formError!),
-                    const SizedBox(height: AppUiConstants.spacingSm),
-                  ],
-                  SettingsFormWrap(
-                    children: [
-                      AppFormTextField(
-                        labelText: 'Department Name',
-                        controller: _nameController,
-                        validator: Validators.compose([
-                          Validators.required('Department Name'),
-                          Validators.optionalMaxLength(100, 'Department Name'),
-                        ]),
+                      if (_formError != null) ...[
+                        AppErrorStateView.inline(message: _formError!),
+                        const SizedBox(height: AppUiConstants.spacingSm),
+                      ],
+                      SettingsFormWrap(
+                        children: [
+                          AppFormTextField(
+                            labelText: 'Department Name',
+                            controller: _nameController,
+                            validator: Validators.compose([
+                              Validators.required('Department Name'),
+                              Validators.optionalMaxLength(
+                                100,
+                                'Department Name',
+                              ),
+                            ]),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingMd),
+                      AppSwitchTile(
+                        label: 'Active',
+                        value: _isActive,
+                        onChanged: (value) =>
+                            setState(() => _isActive = value),
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingLg),
+                      Wrap(
+                        spacing: AppUiConstants.spacingSm,
+                        runSpacing: AppUiConstants.spacingSm,
+                        children: [
+                          AppActionButton(
+                            icon: Icons.save_outlined,
+                            label: _selectedDepartment == null
+                                ? 'Save Department'
+                                : 'Update Department',
+                            onPressed: _saving ? null : _save,
+                            busy: _saving,
+                          ),
+                          if (_selectedDepartment?.id != null)
+                            AppActionButton(
+                              icon: Icons.delete_outline,
+                              label: 'Delete',
+                              onPressed: _delete,
+                              busy: _saving,
+                              filled: false,
+                            ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppUiConstants.spacingMd),
-                  AppSwitchTile(
-                    label: 'Active',
-                    value: _isActive,
-                    onChanged: (value) => setState(() => _isActive = value),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingLg),
-                  Wrap(
-                    spacing: AppUiConstants.spacingSm,
-                    runSpacing: AppUiConstants.spacingSm,
-                    children: [
-                      AppActionButton(
-                        icon: Icons.save_outlined,
-                        label: _selectedDepartment == null
-                            ? 'Save Department'
-                            : 'Update Department',
-                        onPressed: _save,
-                        busy: _saving,
-                      ),
-                      if (_selectedDepartment?.id != null)
-                        AppActionButton(
-                          icon: Icons.delete_outline,
-                          label: 'Delete',
-                          onPressed: _delete,
-                          busy: _saving,
-                          filled: false,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ),
           const SizedBox(height: AppUiConstants.spacingLg),

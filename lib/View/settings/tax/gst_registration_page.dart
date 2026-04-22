@@ -35,7 +35,7 @@ class _GstRegistrationManagementPageState
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _searchController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _gstinController = TextEditingController();
   final TextEditingController _panController = TextEditingController();
@@ -72,6 +72,7 @@ class _GstRegistrationManagementPageState
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_applySearch);
     _loadData();
   }
 
@@ -89,6 +90,7 @@ class _GstRegistrationManagementPageState
   void dispose() {
     _pageScrollController.dispose();
     _workspaceController.dispose();
+    _searchController.dispose();
     _nameController.dispose();
     _gstinController.dispose();
     _panController.dispose();
@@ -194,12 +196,14 @@ class _GstRegistrationManagementPageState
     }
   }
 
-  List<GstRegistrationModel> _filterItems(List<GstRegistrationModel> items) {
+  List<GstRegistrationModel> _scopedItems(List<GstRegistrationModel> items) {
     return items
         .where((item) {
           final companyId = widget.fixedCompanyId ?? _contextCompanyId;
           final branchId = widget.fixedBranchId ?? _contextBranchId;
-          final locationId = widget.fixedBranchId == null ? _contextLocationId : null;
+          final locationId = widget.fixedBranchId == null
+              ? _contextLocationId
+              : null;
 
           if (companyId != null && item.companyId != companyId) {
             return false;
@@ -216,6 +220,32 @@ class _GstRegistrationManagementPageState
           return true;
         })
         .toList(growable: false);
+  }
+
+  List<GstRegistrationModel> _filterItems(List<GstRegistrationModel> items) {
+    final scoped = _scopedItems(items);
+    if (widget.embedded &&
+        (widget.fixedCompanyId != null || widget.fixedBranchId != null)) {
+      return scoped;
+    }
+    return filterMasterList(scoped, _searchController.text, (item) {
+      return [
+        item.registrationName,
+        item.gstin,
+        companyNameById(_companies, item.companyId),
+        locationNameById(_locations, item.locationId),
+      ];
+    });
+  }
+
+  void _applySearch() {
+    if (widget.embedded &&
+        (widget.fixedCompanyId != null || widget.fixedBranchId != null)) {
+      return;
+    }
+    setState(() {
+      _filteredItems = _filterItems(_items);
+    });
   }
 
   void _selectItem(GstRegistrationModel item) {
@@ -273,8 +303,9 @@ class _GstRegistrationManagementPageState
     setState(() {});
   }
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> _save(BuildContext formContext) async {
+    final formState = Form.maybeOf(formContext);
+    if (formState == null || !formState.validate()) {
       return;
     }
 
@@ -368,39 +399,133 @@ class _GstRegistrationManagementPageState
   void _startNew() {
     _showDraftTile = true;
     _resetForm();
-    if (!Responsive.isDesktop(context)) {
+    if (!widget.embedded && !Responsive.isDesktop(context)) {
       _workspaceController.openEditor();
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final content = _buildContent();
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _startNew,
-        icon: Icons.assignment_ind_outlined,
-        label: 'New GST Registration',
+  Widget _buildListCard() {
+    return SettingsListCard<GstRegistrationModel>(
+      searchController: _searchController,
+      searchHint: 'Search GST registrations',
+      items: _filteredItems,
+      selectedItem: _selectedItem,
+      emptyMessage: 'No GST registrations found.',
+      itemBuilder: (item, selected) => SettingsListTile(
+        title: item.registrationName,
+        subtitle: [
+          item.gstin,
+          companyNameById(_companies, item.companyId),
+        ].where((part) => part.trim().isNotEmpty).join(' · '),
+        selected: selected,
+        trailing: SettingsStatusPill(
+          label: item.isActive ? 'Active' : 'Inactive',
+          active: item.isActive,
+        ),
+        onTap: () => _selectItem(item),
       ),
-    ];
-
-    if (widget.embedded) {
-      return _buildEmbeddedContent(context);
-    }
-
-    return AppStandaloneShell(
-      title: 'GST Registrations',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildEmbeddedContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
+            children: [
+              AppActionButton(
+                icon: Icons.add_outlined,
+                label: 'New GST Registration',
+                onPressed: _saving ? null : _startNew,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_filteredItems.isEmpty &&
+              !_showDraftTile &&
+              _selectedItem == null)
+            const SettingsEmptyState(
+              icon: Icons.assignment_ind_outlined,
+              title: 'No GST Registrations',
+              message: 'No GST registrations found.',
+              minHeight: 160,
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_showDraftTile && _selectedItem == null) ...[
+                  SettingsExpandableTile(
+                    key: const ValueKey('gst-registration-draft'),
+                    title: 'New GST Registration',
+                    subtitle: 'Create a branch-associated GST registration.',
+                    expanded: true,
+                    highlighted: true,
+                    leadingIcon: Icons.add_outlined,
+                    onToggle: () {
+                      setState(() {
+                        _showDraftTile = false;
+                      });
+                      _resetForm();
+                    },
+                    child: _buildInlineEditor(),
+                  ),
+                  if (_filteredItems.isNotEmpty)
+                    const SizedBox(height: AppUiConstants.spacingSm),
+                ],
+                ..._filteredItems.map((item) {
+                  final expanded = identical(item, _selectedItem);
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacingSm,
+                    ),
+                    child: SettingsExpandableTile(
+                      key: ValueKey('gst-registration-${item.id}-$expanded'),
+                      title: item.registrationName.isNotEmpty
+                          ? item.registrationName
+                          : (item.gstin.isNotEmpty ? item.gstin : '-'),
+                      subtitle: [
+                        item.gstin,
+                        locationNameById(_locations, item.locationId),
+                        item.registrationType.replaceAll('_', ' '),
+                      ].where((value) => value.trim().isNotEmpty).join(' • '),
+                      detail: [
+                        if (item.isDefault) 'Default',
+                        if (item.isActive) 'Active',
+                      ].join(' • '),
+                      expanded: expanded,
+                      highlighted: expanded,
+                      trailing: SettingsStatusPill(
+                        label: item.isActive ? 'Active' : 'Inactive',
+                        active: item.isActive,
+                      ),
+                      onToggle: () {
+                        if (expanded) {
+                          _resetForm();
+                        } else {
+                          _selectItem(item);
+                        }
+                      },
+                      child: _buildInlineEditor(),
+                    ),
+                  );
+                }),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     if (_initialLoading) {
       return const AppLoadingView(message: 'Loading GST registrations...');
     }
-
     if (_pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load GST registrations',
@@ -409,116 +534,28 @@ class _GstRegistrationManagementPageState
       );
     }
 
-    return SettingsWorkspace(
-      controller: _workspaceController,
+    if (widget.embedded) {
+      return _buildEmbeddedContent();
+    }
+
+    return AppStandaloneShell(
       title: 'GST Registrations',
-      editorTitle: _selectedItem?.toString(),
       scrollController: _pageScrollController,
-      list: SettingsListCard<GstRegistrationModel>(
-        items: _filteredItems,
-        selectedItem: _selectedItem,
-        emptyMessage: 'No GST registrations found.',
-        itemBuilder: (item, selected) => SettingsListTile(
-          title: item.registrationName,
-          subtitle: [
-            item.gstin,
-            companyNameById(_companies, item.companyId),
-          ].where((part) => part.trim().isNotEmpty).join(' · '),
-          selected: selected,
-          onTap: () => _selectItem(item),
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: _startNew,
+          icon: Icons.add_outlined,
+          label: 'New GST Registration',
         ),
-      ),
-      editor: _buildInlineEditor(),
-    );
-  }
-
-  Widget _buildEmbeddedContent(BuildContext context) {
-    if (_initialLoading) {
-      return const AppLoadingView(message: 'Loading GST registrations...');
-    }
-    if (_pageError != null) {
-      return AppErrorStateView.inline(message: _pageError!);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            AppActionButton(
-              onPressed: _saving ? null : _startNew,
-              icon: Icons.assignment_ind_outlined,
-              label: 'New GST Registration',
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (_filteredItems.isEmpty && !_showDraftTile && _selectedItem == null)
-          const SettingsEmptyState(
-            icon: Icons.assignment_ind_outlined,
-            title: 'No GST Registrations',
-            message: 'No GST registrations found.',
-            minHeight: 160,
-          )
-        else
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_showDraftTile && _selectedItem == null) ...[
-                SettingsExpandableTile(
-                  key: const ValueKey('gst-registration-draft'),
-                  title: 'New GST Registration',
-                  subtitle: 'Create a branch-associated GST registration.',
-                  expanded: true,
-                  highlighted: true,
-                  leadingIcon: Icons.add_outlined,
-                  onToggle: () {
-                    setState(() {
-                      _showDraftTile = false;
-                    });
-                    _resetForm();
-                  },
-                  child: _buildInlineEditor(),
-                ),
-                if (_filteredItems.isNotEmpty)
-                  const SizedBox(height: AppUiConstants.spacingSm),
-              ],
-              ..._filteredItems.map((item) {
-                final expanded = identical(item, _selectedItem);
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: SettingsExpandableTile(
-                    key: ValueKey('gst-registration-${item.id}-$expanded'),
-                    title: item.registrationName.isNotEmpty
-                        ? item.registrationName
-                        : (item.gstin.isNotEmpty ? item.gstin : '-'),
-                    subtitle: [
-                      item.gstin,
-                      locationNameById(_locations, item.locationId),
-                      item.registrationType.replaceAll('_', ' '),
-                    ].where((value) => value.trim().isNotEmpty).join(' • '),
-                    detail: [
-                      if (item.isDefault) 'Default',
-                      if (item.isActive) 'Active',
-                    ].join(' • '),
-                    expanded: expanded,
-                    highlighted: expanded,
-                    onToggle: () {
-                      if (expanded) {
-                        _resetForm();
-                      } else {
-                        _selectItem(item);
-                      }
-                    },
-                    child: _buildInlineEditor(),
-                  ),
-                );
-              }),
-            ],
-          ),
       ],
+      child: SettingsWorkspace(
+        controller: _workspaceController,
+        title: 'GST Registrations',
+        editorTitle: _selectedItem?.toString(),
+        scrollController: _pageScrollController,
+        list: _buildListCard(),
+        editor: _buildInlineEditor(),
+      ),
     );
   }
 
@@ -536,218 +573,234 @@ class _GstRegistrationManagementPageState
     final branchValue = branchOptions.any((branch) => branch.id == _branchId)
         ? _branchId
         : null;
-    final locationValue = locationOptions.any(
-      (location) => location.id == _locationId,
-    )
+    final locationValue =
+        locationOptions.any((location) => location.id == _locationId)
         ? _locationId
         : null;
     final stateValue = _states.any((state) => state.id == _stateId)
         ? _stateId
         : null;
 
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if ((_formError ?? '').isNotEmpty) ...[
-            AppErrorStateView.inline(message: _formError!),
-            const SizedBox(height: AppUiConstants.spacingSm),
-          ],
-          SettingsFormWrap(
+    return Builder(
+      builder: (BuildContext formContext) {
+        return Form(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (widget.fixedCompanyId == null)
-                AppDropdownField<int>.fromMapped(
-                  initialValue: companyValue,
-                  labelText: 'Company',
-                  mappedItems: _companies
-                      .where((company) => company.id != null)
-                      .map(
-                        (company) => AppDropdownItem<int>(
-                          value: company.id!,
-                          label: company.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    setState(() {
-                      _companyId = value;
-                      final branches = branchesForCompany(_branches, value)
-                          .where(
-                            (branch) =>
-                                widget.fixedBranchId == null ||
-                                branch.id == widget.fixedBranchId,
+              if ((_formError ?? '').isNotEmpty) ...[
+                AppErrorStateView.inline(message: _formError!),
+                const SizedBox(height: 16),
+              ],
+              SettingsFormWrap(
+                children: [
+                  if (widget.fixedCompanyId == null)
+                    AppDropdownField<int>.fromMapped(
+                      initialValue: companyValue,
+                      labelText: 'Company',
+                      mappedItems: _companies
+                          .where((company) => company.id != null)
+                          .map(
+                            (company) => AppDropdownItem<int>(
+                              value: company.id!,
+                              label: company.toString(),
+                            ),
                           )
-                          .toList(growable: false);
-                      _branchId = branches.isNotEmpty ? branches.first.id : null;
-                      final locations = locationsForBranch(_locations, _branchId);
-                      _locationId = locations.isNotEmpty
-                          ? locations.first.id
-                          : null;
-                    });
-                  },
-                  validator: (value) =>
-                      Validators.requiredSelectionField(value, 'Company'),
-                ),
-              if (widget.fixedBranchId == null)
-                AppDropdownField<int?>.fromMapped(
-                  initialValue: branchValue,
-                  labelText: 'Branch',
-                  mappedItems: [
-                    const AppDropdownItem<int?>(value: null, label: 'None'),
-                    ...branchOptions
-                        .where((branch) => branch.id != null)
-                        .map(
-                          (branch) => AppDropdownItem<int?>(
-                            value: branch.id!,
-                            label: branch.toString(),
+                          .toList(growable: false),
+                      onChanged: (value) {
+                        setState(() {
+                          _companyId = value;
+                          final branches = branchesForCompany(_branches, value)
+                              .where(
+                                (branch) =>
+                                    widget.fixedBranchId == null ||
+                                    branch.id == widget.fixedBranchId,
+                              )
+                              .toList(growable: false);
+                          _branchId = branches.isNotEmpty
+                              ? branches.first.id
+                              : null;
+                          final locations = locationsForBranch(
+                            _locations,
+                            _branchId,
+                          );
+                          _locationId = locations.isNotEmpty
+                              ? locations.first.id
+                              : null;
+                        });
+                      },
+                      validator: (value) =>
+                          Validators.requiredSelectionField(value, 'Company'),
+                    ),
+                  if (widget.fixedBranchId == null)
+                    AppDropdownField<int?>.fromMapped(
+                      initialValue: branchValue,
+                      labelText: 'Branch',
+                      mappedItems: [
+                        const AppDropdownItem<int?>(value: null, label: 'None'),
+                        ...branchOptions
+                            .where((branch) => branch.id != null)
+                            .map(
+                              (branch) => AppDropdownItem<int?>(
+                                value: branch.id!,
+                                label: branch.toString(),
+                              ),
+                            ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _branchId = value;
+                          final locations = locationsForBranch(
+                            _locations,
+                            value,
+                          );
+                          _locationId = locations.isNotEmpty
+                              ? locations.first.id
+                              : null;
+                        });
+                      },
+                    ),
+                  AppDropdownField<int?>.fromMapped(
+                    initialValue: locationValue,
+                    labelText: 'Location',
+                    mappedItems: [
+                      const AppDropdownItem<int?>(value: null, label: 'None'),
+                      ...locationOptions
+                          .where((location) => location.id != null)
+                          .map(
+                            (location) => AppDropdownItem<int?>(
+                              value: location.id!,
+                              label: location.toString(),
+                            ),
                           ),
-                        ),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _branchId = value;
-                      final locations = locationsForBranch(_locations, value);
-                      _locationId = locations.isNotEmpty
-                          ? locations.first.id
-                          : null;
-                    });
-                  },
-                ),
-              AppDropdownField<int?>.fromMapped(
-                initialValue: locationValue,
-                labelText: 'Location',
-                mappedItems: [
-                  const AppDropdownItem<int?>(value: null, label: 'None'),
-                  ...locationOptions
-                      .where((location) => location.id != null)
-                      .map(
-                        (location) => AppDropdownItem<int?>(
-                          value: location.id!,
-                          label: location.toString(),
-                        ),
-                      ),
+                    ],
+                    onChanged: (value) => setState(() => _locationId = value),
+                  ),
+                  AppFormTextField(
+                    controller: _nameController,
+                    labelText: 'Registration Name',
+                    validator: Validators.compose([
+                      Validators.required('Registration Name'),
+                      Validators.optionalMaxLength(255, 'Registration Name'),
+                    ]),
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: stateValue,
+                    labelText: 'State',
+                    mappedItems: _states
+                        .where((state) => state.id != null)
+                        .map(
+                          (state) => AppDropdownItem<int>(
+                            value: state.id!,
+                            label: state.stateName,
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) => setState(() => _stateId = value),
+                    validator: (value) =>
+                        Validators.requiredSelectionField(value, 'State'),
+                  ),
+                  AppDropdownField<String>.fromMapped(
+                    initialValue: _registrationType,
+                    labelText: 'Registration Type',
+                    mappedItems: _registrationTypes
+                        .map(
+                          (item) => AppDropdownItem<String>(
+                            value: item.value!,
+                            label: (item.child as Text).data ?? item.value!,
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) => setState(() {
+                      _registrationType = value ?? 'regular';
+                    }),
+                    validator: (value) =>
+                        Validators.requiredSelectionField(value, 'Registration Type'),
+                  ),
+                  AppFormTextField(
+                    controller: _gstinController,
+                    labelText: 'GSTIN',
+                    validator: Validators.optionalMaxLength(20, 'GSTIN'),
+                  ),
+                  AppFormTextField(
+                    controller: _panController,
+                    labelText: 'PAN No',
+                    validator: Validators.optionalMaxLength(20, 'PAN No'),
+                  ),
+                  AppFormTextField(
+                    controller: _legalNameController,
+                    labelText: 'Legal Name',
+                    validator: Validators.optionalMaxLength(255, 'Legal Name'),
+                  ),
+                  AppFormTextField(
+                    controller: _tradeNameController,
+                    labelText: 'Trade Name',
+                    validator: Validators.optionalMaxLength(255, 'Trade Name'),
+                  ),
+                  AppFormTextField(
+                    controller: _effectiveFromController,
+                    labelText: 'Effective From',
+                    validator: Validators.optionalDate('Effective From'),
+                  ),
+                  AppFormTextField(
+                    controller: _effectiveToController,
+                    labelText: 'Effective To',
+                    validator: Validators.optionalDateOnOrAfter(
+                      'Effective To',
+                      () => _effectiveFromController.text,
+                      startFieldName: 'Effective From',
+                    ),
+                  ),
                 ],
-                onChanged: (value) => setState(() => _locationId = value),
+              ),
+              AppSwitchTile(
+                label: 'Default Registration',
+                value: _isDefault,
+                onChanged: (value) => setState(() => _isDefault = value),
+              ),
+              AppSwitchTile(
+                label: 'Active',
+                value: _isActive,
+                onChanged: (value) => setState(() => _isActive = value),
               ),
               AppFormTextField(
-                controller: _nameController,
-                labelText: 'Registration Name',
-                validator: Validators.compose([
-                  Validators.required('Registration Name'),
-                  Validators.optionalMaxLength(255, 'Registration Name'),
-                ]),
+                controller: _remarksController,
+                labelText: 'Remarks',
+                maxLines: 3,
               ),
-              AppDropdownField<int>.fromMapped(
-                initialValue: stateValue,
-                labelText: 'State',
-                mappedItems: _states
-                    .where((state) => state.id != null)
-                    .map(
-                      (state) => AppDropdownItem<int>(
-                        value: state.id!,
-                        label: state.stateName,
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) => setState(() => _stateId = value),
-                validator: (value) =>
-                    Validators.requiredSelectionField(value, 'State'),
-              ),
-              AppDropdownField<String>.fromMapped(
-                initialValue: _registrationType,
-                labelText: 'Registration Type',
-                mappedItems: _registrationTypes
-                    .map(
-                      (item) => AppDropdownItem<String>(
-                        value: item.value!,
-                        label: (item.child as Text).data ?? item.value!,
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) => setState(() {
-                  _registrationType = value ?? 'regular';
-                }),
-              ),
-              AppFormTextField(
-                controller: _gstinController,
-                labelText: 'GSTIN',
-                validator: Validators.optionalMaxLength(20, 'GSTIN'),
-              ),
-              AppFormTextField(
-                controller: _panController,
-                labelText: 'PAN No',
-                validator: Validators.optionalMaxLength(20, 'PAN No'),
-              ),
-              AppFormTextField(
-                controller: _legalNameController,
-                labelText: 'Legal Name',
-                validator: Validators.optionalMaxLength(255, 'Legal Name'),
-              ),
-              AppFormTextField(
-                controller: _tradeNameController,
-                labelText: 'Trade Name',
-                validator: Validators.optionalMaxLength(255, 'Trade Name'),
-              ),
-              AppFormTextField(
-                controller: _effectiveFromController,
-                labelText: 'Effective From',
-                validator: Validators.optionalDate('Effective From'),
-              ),
-              AppFormTextField(
-                controller: _effectiveToController,
-                labelText: 'Effective To',
-                validator: Validators.optionalDateOnOrAfter(
-                  'Effective To',
-                  () => _effectiveFromController.text,
-                  startFieldName: 'Effective From',
-                ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  AppActionButton(
+                    icon: _selectedItem == null
+                        ? Icons.add_outlined
+                        : Icons.save_outlined,
+                    label: _selectedItem == null
+                        ? 'Create GST Registration'
+                        : 'Update GST Registration',
+                    onPressed: _saving ? null : () => _save(formContext),
+                    busy: _saving,
+                  ),
+                  if (_selectedItem?.id != null)
+                    AppActionButton(
+                      onPressed: _saving ? null : _delete,
+                      icon: Icons.delete_outline,
+                      label: 'Delete',
+                      filled: false,
+                    ),
+                  AppActionButton(
+                    onPressed: _saving ? null : _resetForm,
+                    icon: Icons.refresh,
+                    label: 'Reset',
+                    filled: false,
+                  ),
+                ],
               ),
             ],
           ),
-          AppSwitchTile(
-            label: 'Default Registration',
-            value: _isDefault,
-            onChanged: (value) => setState(() => _isDefault = value),
-          ),
-          AppSwitchTile(
-            label: 'Active',
-            value: _isActive,
-            onChanged: (value) => setState(() => _isActive = value),
-          ),
-          AppFormTextField(
-            controller: _remarksController,
-            labelText: 'Remarks',
-            maxLines: 3,
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                onPressed: _saving ? null : _save,
-                icon: _selectedItem == null ? Icons.add : Icons.save,
-                label: _saving ? 'Saving...' : 'Save GST Registration',
-                busy: _saving,
-              ),
-              if (_selectedItem?.id != null)
-                AppActionButton(
-                  onPressed: _saving ? null : _delete,
-                  icon: Icons.delete_outline,
-                  label: 'Delete',
-                  filled: false,
-                ),
-              AppActionButton(
-                onPressed: _saving ? null : _resetForm,
-                icon: Icons.refresh,
-                label: 'Reset',
-                filled: false,
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

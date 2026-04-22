@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../model/sales/sales_order_model.dart';
 import '../../model/sales/sales_quotation_model.dart';
 import '../../screen.dart';
+import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
 
@@ -39,6 +40,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   ];
 
   final SalesService _salesService = SalesService();
+  final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
@@ -93,6 +95,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   int? _customerPartyId;
   int? _salesQuotationId;
   List<Map<String, dynamic>>? _quotationLinesCache;
+  Map<String, dynamic>? _salesChain;
   bool _isActive = true;
   List<_OrderLineDraft> _lines = <_OrderLineDraft>[];
 
@@ -187,6 +190,39 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       await _fetchQuotationLines(value);
     } else if (mounted) {
       setState(() => _quotationLinesCache = null);
+    }
+    await _refreshSalesChain();
+  }
+
+  Future<void> _refreshSalesChain() async {
+    final oid = intValue(_selectedItem?.toJson() ?? const {}, 'id');
+    final qid = _salesQuotationId;
+    try {
+      if (oid != null) {
+        final r = await _crmService.salesChain(orderId: oid);
+        if (!mounted) {
+          return;
+        }
+        setState(() => _salesChain = r.data);
+        return;
+      }
+      if (qid != null) {
+        final r = await _crmService.salesChain(quotationId: qid);
+        if (!mounted) {
+          return;
+        }
+        setState(() => _salesChain = r.data);
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
     }
   }
 
@@ -486,6 +522,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         _formError = null;
       });
       await _fetchQuotationLines(quotationId);
+      await _refreshSalesChain();
     } catch (e) {
       if (mounted) {
         setState(() => _formError = e.toString());
@@ -545,6 +582,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     if (_salesQuotationId != null) {
       await _fetchQuotationLines(_salesQuotationId!);
     }
+    await _refreshSalesChain();
   }
 
   void _resetForm() {
@@ -578,6 +616,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       _isActive = true;
       _lines = <_OrderLineDraft>[_OrderLineDraft()];
       _formError = null;
+      _salesChain = null;
     });
   }
 
@@ -610,19 +649,6 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       orElse: () => null,
     );
     return allowedUomsForItem(item, _uoms, _uomConversions);
-  }
-
-  int? _resolveDefaultUom(int? itemId, int? currentUomId) {
-    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return defaultSalesUomIdForItem(
-      item,
-      _uoms,
-      _uomConversions,
-      current: currentUomId,
-    );
   }
 
   void _addLine() {
@@ -848,6 +874,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            CrmSalesPipelineBar(data: _salesChain),
             if (_selectedItem != null && totalStr.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
@@ -1003,7 +1030,14 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   enabled: _canEdit,
-                  validator: Validators.optionalDate('Expected delivery'),
+                  validator: Validators.compose([
+                    Validators.optionalDate('Expected delivery'),
+                    Validators.optionalDateOnOrAfter(
+                      'Expected delivery',
+                      () => _orderDateController.text.trim(),
+                      startFieldName: 'Order Date',
+                    ),
+                  ]),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Customer',
@@ -1212,9 +1246,23 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                           setState(() {
                             line.itemId = value;
                             line.salesQuotationLineId = null;
-                            line.uomId = _resolveDefaultUom(
-                              value,
-                              line.uomId,
+                            final item = _itemsLookup
+                                .cast<ItemModel?>()
+                                .firstWhere(
+                                  (e) => e?.id == value,
+                                  orElse: () => null,
+                                );
+                            applySalesLineDefaultsFromItemMaster(
+                              item: item,
+                              uoms: _uoms,
+                              conversions: _uomConversions,
+                              rateController: line.rateController,
+                              setUom: (u) => line.uomId = u,
+                              currentUomId: line.uomId,
+                              setTaxCodeId: (t) => line.taxCodeId = t,
+                              setWarehouseId: (w) => line.warehouseId = w,
+                              currentWarehouseId: line.warehouseId,
+                              warehouses: _warehouses,
                             );
                           });
                         },

@@ -1,5 +1,6 @@
 import '../../screen.dart';
 import '../purchase/purchase_support.dart';
+import 'crm_sales_pipeline_bar.dart';
 
 void _openCrmShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -81,6 +82,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   List<_FollowupDraft> _followups = <_FollowupDraft>[];
   int? _expandedLineIndex;
   int? _expandedFollowupIndex;
+  Map<String, dynamic>? _salesChain;
 
   String _normalizedStageType(CrmStageModel stage) {
     return stringValue(stage.toJson(), 'stage_type').trim().toLowerCase();
@@ -300,6 +302,30 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       _expandedFollowupIndex = null;
       _formError = null;
     });
+    await _refreshSalesChainForEnquiry(id);
+  }
+
+  int? _pipelineOpportunityId() {
+    final raw = _salesChain?['opportunity'];
+    if (raw is Map) {
+      return intValue(Map<String, dynamic>.from(raw), 'id');
+    }
+    return null;
+  }
+
+  Future<void> _refreshSalesChainForEnquiry(int enquiryId) async {
+    try {
+      final response = await _crmService.salesChain(enquiryId: enquiryId);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = response.data);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    }
   }
 
   void _resetForm() {
@@ -326,6 +352,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       _formError = null;
       _tabController.index = 0;
       _activeTabIndex = 0;
+      _salesChain = null;
     });
   }
 
@@ -651,6 +678,21 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             AppErrorStateView.inline(message: _formError!),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
+          if (intValue(_selectedItem?.toJson() ?? const {}, 'id') != null) ...[
+            CrmSalesPipelineBar(data: _salesChain),
+            if (_pipelineOpportunityId() != null) ...[
+              AppActionButton(
+                icon: Icons.request_quote_outlined,
+                label: 'New quotation (this deal)',
+                filled: false,
+                onPressed: () => openModuleShellRoute(
+                  context,
+                  '/sales/quotations/new?crm_opportunity_id=${_pipelineOpportunityId()}',
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+          ],
           SettingsFormWrap(
             children: [
               AppDropdownField<int>.fromMapped(
@@ -766,7 +808,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   icon: Icons.auto_graph_outlined,
                   label: 'Start deal',
                   filled: false,
-                  onPressed: _convert,
+                  onPressed: (_pipelineOpportunityId() != null ||
+                          _enquiryStatus == 'converted')
+                      ? null
+                      : _convert,
                 ),
                 AppActionButton(
                   icon: Icons.cancel_outlined,

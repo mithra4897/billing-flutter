@@ -13,10 +13,10 @@ class DesignationManagementPage extends StatefulWidget {
 class _DesignationManagementPageState extends State<DesignationManagementPage> {
   final HrService _hrService = HrService();
   final ScrollController _pageScrollController = ScrollController();
+  final GlobalKey<FormState> _designationFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
 
   bool _initialLoading = true;
@@ -157,7 +157,8 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
+    final FormState? form = _designationFormKey.currentState;
+    if (form == null || !form.validate()) {
       return;
     }
 
@@ -290,57 +291,61 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
         children: [
           AppSectionCard(
             child: Form(
-              key: _formKey,
+              key: _designationFormKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_formError != null) ...[
-                    AppErrorStateView.inline(message: _formError!),
-                    const SizedBox(height: AppUiConstants.spacingSm),
-                  ],
-                  SettingsFormWrap(
-                    children: [
-                      AppFormTextField(
-                        labelText: 'Designation Name',
-                        controller: _nameController,
-                        validator: Validators.compose([
-                          Validators.required('Designation Name'),
-                          Validators.optionalMaxLength(100, 'Designation Name'),
-                        ]),
+                      if (_formError != null) ...[
+                        AppErrorStateView.inline(message: _formError!),
+                        const SizedBox(height: AppUiConstants.spacingSm),
+                      ],
+                      SettingsFormWrap(
+                        children: [
+                          AppFormTextField(
+                            labelText: 'Designation Name',
+                            controller: _nameController,
+                            validator: Validators.compose([
+                              Validators.required('Designation Name'),
+                              Validators.optionalMaxLength(
+                                100,
+                                'Designation Name',
+                              ),
+                            ]),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingMd),
+                      AppSwitchTile(
+                        label: 'Active',
+                        value: _isActive,
+                        onChanged: (value) =>
+                            setState(() => _isActive = value),
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingLg),
+                      Wrap(
+                        spacing: AppUiConstants.spacingSm,
+                        runSpacing: AppUiConstants.spacingSm,
+                        children: [
+                          AppActionButton(
+                            icon: Icons.save_outlined,
+                            label: _selectedDesignation == null
+                                ? 'Save Designation'
+                                : 'Update Designation',
+                            onPressed: _saving ? null : _save,
+                            busy: _saving,
+                          ),
+                          if (_selectedDesignation?.id != null)
+                            AppActionButton(
+                              icon: Icons.delete_outline,
+                              label: 'Delete',
+                              onPressed: _delete,
+                              busy: _saving,
+                              filled: false,
+                            ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppUiConstants.spacingMd),
-                  AppSwitchTile(
-                    label: 'Active',
-                    value: _isActive,
-                    onChanged: (value) => setState(() => _isActive = value),
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingLg),
-                  Wrap(
-                    spacing: AppUiConstants.spacingSm,
-                    runSpacing: AppUiConstants.spacingSm,
-                    children: [
-                      AppActionButton(
-                        icon: Icons.save_outlined,
-                        label: _selectedDesignation == null
-                            ? 'Save Designation'
-                            : 'Update Designation',
-                        onPressed: _save,
-                        busy: _saving,
-                      ),
-                      if (_selectedDesignation?.id != null)
-                        AppActionButton(
-                          icon: Icons.delete_outline,
-                          label: 'Delete',
-                          onPressed: _delete,
-                          busy: _saving,
-                          filled: false,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ),
           const SizedBox(height: AppUiConstants.spacingLg),

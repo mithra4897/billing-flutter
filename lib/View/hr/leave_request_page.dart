@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import 'hr_list_filter_helpers.dart';
 import 'hr_workflow_dialogs.dart';
 
 class LeaveRequestManagementPage extends StatefulWidget {
@@ -30,10 +31,10 @@ class _LeaveRequestManagementPageState
 
   final HrService _hrService = HrService();
   final ScrollController _pageScrollController = ScrollController();
+  final GlobalKey<FormState> _leaveRequestFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _fromDateController = TextEditingController();
   final TextEditingController _toDateController = TextEditingController();
   final TextEditingController _reasonController = TextEditingController();
@@ -440,7 +441,10 @@ class _LeaveRequestManagementPageState
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    final FormState? form = _leaveRequestFormKey.currentState;
+    if (form == null || !form.validate()) {
+      return;
+    }
 
     setState(() {
       _saving = true;
@@ -511,10 +515,136 @@ class _LeaveRequestManagementPageState
     }
   }
 
+  String _leaveListSelectedEmployeeLabel() {
+    if (_listFilterEmployeeId == null) {
+      return '';
+    }
+    for (final EmployeeModel e in _employees) {
+      if (e.id == _listFilterEmployeeId) {
+        return e.toString();
+      }
+    }
+    return 'Employee #$_listFilterEmployeeId';
+  }
+
+  List<String> _leaveListAppliedFilterChips() {
+    return <String>[
+      if (_companyBanner != null) 'Company: $_companyBanner',
+      if (_searchController.text.trim().isNotEmpty)
+        'Search: ${_searchController.text.trim()}',
+      if (_canViewAllHr && _listFilterEmployeeId != null)
+        'Employee: ${_leaveListSelectedEmployeeLabel()}',
+      if (_canViewAllHr &&
+          (_listFilterStatus ?? '').isNotEmpty)
+        'Status: ${hrDropdownLabel(_listStatusFilterItems, _listFilterStatus)}',
+      if (_listDateFromController.text.trim().isNotEmpty)
+        'From: ${_listDateFromController.text.trim()}',
+      if (_listDateToController.text.trim().isNotEmpty)
+        'To: ${_listDateToController.text.trim()}',
+    ];
+  }
+
+  void _clearLeaveListFilters() {
+    setState(() {
+      _searchController.clear();
+      _listFilterEmployeeId = null;
+      _listFilterStatus = null;
+      _listDateFromController.clear();
+      _listDateToController.clear();
+    });
+  }
+
+  Future<void> _openLeaveListFilterPanel() async {
+    final applied = await showHrListFilterDialog(
+      context: context,
+      title: 'Filter Leave Requests',
+      header: _companyBanner == null
+          ? null
+          : Text(
+              'Session company: $_companyBanner. Change via the header '
+              'session button.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+      filterFields: [
+        hrListFilterBox(
+          child: AppFormTextField(
+            controller: _searchController,
+            labelText: 'Search',
+            hintText: 'Search leave requests',
+          ),
+        ),
+        if (_canViewAllHr) ...[
+          hrListFilterBox(
+            child: AppDropdownField<int?>.fromMapped(
+              labelText: 'Employee filter',
+              mappedItems: <AppDropdownItem<int?>>[
+                const AppDropdownItem<int?>(
+                  value: null,
+                  label: 'All employees',
+                ),
+                ..._employees
+                    .where(
+                      (e) =>
+                          e.companyId == _sessionCompanyId && e.id != null,
+                    )
+                    .map(
+                      (e) => AppDropdownItem<int?>(
+                        value: e.id,
+                        label: e.toString(),
+                      ),
+                    ),
+              ],
+              initialValue: _listFilterEmployeeId,
+              onChanged: (int? v) =>
+                  setState(() => _listFilterEmployeeId = v),
+            ),
+          ),
+          hrListFilterBox(
+            child: AppDropdownField<String?>.fromMapped(
+              labelText: 'Status filter',
+              mappedItems: _listStatusFilterItems,
+              initialValue: _listFilterStatus,
+              onChanged: (String? v) =>
+                  setState(() => _listFilterStatus = v),
+            ),
+          ),
+        ],
+        hrListFilterBox(
+          child: AppFormTextField(
+            controller: _listDateFromController,
+            labelText: 'List from date',
+            hintText: 'Filter overlapping from…',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+          ),
+        ),
+        hrListFilterBox(
+          child: AppFormTextField(
+            controller: _listDateToController,
+            labelText: 'List to date',
+            hintText: 'Filter overlapping to…',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+          ),
+        ),
+      ],
+      onClear: _clearLeaveListFilters,
+    );
+    if (applied == true && mounted) {
+      await _loadData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = _buildContent();
     final actions = <Widget>[
+      AdaptiveShellActionButton(
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+        onPressed: _openLeaveListFilterPanel,
+      ),
       AdaptiveShellActionButton(
         onPressed: _startNew,
         icon: Icons.event_available_outlined,
@@ -555,90 +685,12 @@ class _LeaveRequestManagementPageState
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_companyBanner != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.apartment_outlined,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: AppUiConstants.spacingSm),
-                  Expanded(
-                    child: Text(
-                      'Session company: $_companyBanner',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (_canViewAllHr) ...[
-            AppDropdownField<int?>.fromMapped(
-              labelText: 'Employee filter',
-              mappedItems: <AppDropdownItem<int?>>[
-                const AppDropdownItem<int?>(value: null, label: 'All employees'),
-                ..._employees
-                    .where(
-                      (e) =>
-                          e.companyId == _sessionCompanyId && e.id != null,
-                    )
-                    .map(
-                      (e) => AppDropdownItem<int?>(
-                        value: e.id,
-                        label: e.toString(),
-                      ),
-                    ),
-              ],
-              initialValue: _listFilterEmployeeId,
-              onChanged: (int? v) {
-                setState(() => _listFilterEmployeeId = v);
-                _loadData();
-              },
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            AppDropdownField<String?>.fromMapped(
-              labelText: 'Status filter',
-              mappedItems: _listStatusFilterItems,
-              initialValue: _listFilterStatus,
-              onChanged: (String? v) {
-                setState(() => _listFilterStatus = v);
-                _loadData();
-              },
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-          ],
-          AppFormTextField(
-            controller: _listDateFromController,
-            labelText: 'List from date',
-            hintText: 'Filter overlapping from…',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          AppFormTextField(
-            controller: _listDateToController,
-            labelText: 'List to date',
-            hintText: 'Filter overlapping to…',
-            keyboardType: TextInputType.datetime,
-            inputFormatters: const [DateInputFormatter()],
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: _loadData,
-              icon: const Icon(Icons.filter_alt_outlined, size: 20),
-              label: const Text('Apply date filters'),
-            ),
-          ),
+          hrListAppliedFiltersCard(context, _leaveListAppliedFilterChips()),
           const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<LeaveRequestModel>(
             searchController: _searchController,
             searchHint: 'Search leave requests',
+            showSearchBar: false,
             items: _filteredLeaveRequests,
             selectedItem: _selectedLeaveRequest,
             emptyMessage: 'No leave requests found.',
@@ -659,7 +711,7 @@ class _LeaveRequestManagementPageState
         ],
       ),
       editor: Form(
-        key: _formKey,
+        key: _leaveRequestFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -774,7 +826,7 @@ class _LeaveRequestManagementPageState
                   label: _selectedLeaveRequest == null
                       ? 'Save Leave Request'
                       : 'Update Leave Request',
-                  onPressed: _save,
+                  onPressed: _saving ? null : _save,
                   busy: _saving,
                 ),
                 if (_selectedLeaveRequest?.id != null)

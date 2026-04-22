@@ -172,6 +172,13 @@ editorTitle: _selectedItem?.toString(),
 
 Do not hand-build repeated title strings unless the screen truly needs custom wording.
 
+### Editor `Form` and avoiding duplicate `GlobalKey`
+
+- Do **not** attach one shared `GlobalKey<FormState>` to the `Form` you pass as `SettingsWorkspace.editor`.
+- On non-desktop, that editor can appear on a **pushed route**; on desktop it is **inline**. After a **resize** across the breakpoint (or during transitions), the same editor subtree can exist **twice** in the tree, which triggers **“Multiple widgets used the same GlobalKey”** if both `Form`s share one key.
+- **Preferred pattern:** wrap the editor body in a `Builder`, use a plain `Form` (no key), and validate with `Form.of(formContext).validate()` from save handlers (pass the builder’s `context`, e.g. `onPressed: () => _save(formContext)`).
+- For **expandable** lists that embed the same form template in multiple tiles, the same rule applies: avoid one static `GlobalKey` for every tile—use `Form.of` from a `Builder` scoped to each expanded panel, or an equivalent pattern so only one keyed ancestor applies per mounted subtree.
+
 ## Shell Rule
 
 - drawer/menu stays persistent

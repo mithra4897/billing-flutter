@@ -673,6 +673,9 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           editorOnly: true,
           initialId: id,
+          initialCrmOpportunityId: int.tryParse(
+            _currentQueryParameters['crm_opportunity_id'] ?? '',
+          ),
         );
       case 'orders':
         return SalesOrderPage(

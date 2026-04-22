@@ -560,12 +560,27 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
                 AppFormTextField(
                   labelText: 'Date from',
                   controller: _dateFromController,
-                  validator: Validators.optionalDate('Date from'),
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.compose([
+                    Validators.required('Date from'),
+                    Validators.date('Date from'),
+                  ]),
                 ),
                 AppFormTextField(
                   labelText: 'Date to',
                   controller: _dateToController,
-                  validator: Validators.optionalDate('Date to'),
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
+                  validator: Validators.compose([
+                    Validators.required('Date to'),
+                    Validators.date('Date to'),
+                    Validators.optionalDateOnOrAfter(
+                      'Date to',
+                      () => _dateFromController.text.trim(),
+                      startFieldName: 'Date from',
+                    ),
+                  ]),
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Status',

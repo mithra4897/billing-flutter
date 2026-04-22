@@ -204,6 +204,58 @@ class AdaptiveShellMenuAction<T> extends StatelessWidget {
   }
 }
 
+/// Compact search field for the shell header row ([ShellPageActions] / [AdaptiveShell]).
+class AdaptiveShellSearchField extends StatelessWidget {
+  const AdaptiveShellSearchField({
+    super.key,
+    required this.controller,
+    required this.hintText,
+    this.width = 240,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return SizedBox(
+      width: width,
+      height: 44,
+      child: TextField(
+        controller: controller,
+        style: theme.textTheme.bodyMedium,
+        decoration: InputDecoration(
+          hintText: hintText,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 10,
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 40,
+            minHeight: 40,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+          ),
+          filled: true,
+          fillColor: colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.4,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AdaptiveShellState extends State<AdaptiveShell> {
   bool _drawerExpanded = true;
   bool _isSuperAdmin = false;
@@ -403,7 +455,16 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                     ),
                   ),
                 ),
-                Expanded(child: widget.child),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: showPermanentDrawer
+                          ? AppUiConstants.spacingMd
+                          : 0,
+                    ),
+                    child: widget.child,
+                  ),
+                ),
               ],
             ),
           ),

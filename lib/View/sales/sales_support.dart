@@ -57,6 +57,58 @@ String quotationCustomerLabel(Map<String, dynamic> data) {
   return stringValue(data, 'customer_name');
 }
 
+/// Selling price from item master for defaulting document lines (standard rate, else MRP).
+String? formattedStandardSellingRate(ItemModel item) {
+  final p = item.standardSellingPrice ?? item.mrp;
+  if (p == null) {
+    return null;
+  }
+  if (p == 0) {
+    return '0';
+  }
+  if (p == p.roundToDouble()) {
+    return p.round().toString();
+  }
+  return p.toString();
+}
+
+/// When the user picks an item, fill rate / UOM / tax (and optionally single-warehouse) from master.
+void applySalesLineDefaultsFromItemMaster({
+  required ItemModel? item,
+  required List<UomModel> uoms,
+  required List<UomConversionModel> conversions,
+  required TextEditingController rateController,
+  required void Function(int? uomId) setUom,
+  int? currentUomId,
+  void Function(int? taxCodeId)? setTaxCodeId,
+  void Function(int? warehouseId)? setWarehouseId,
+  int? currentWarehouseId,
+  List<WarehouseModel>? warehouses,
+}) {
+  if (item == null) {
+    return;
+  }
+  setUom(
+    defaultSalesUomIdForItem(
+      item,
+      uoms,
+      conversions,
+      current: currentUomId,
+    ),
+  );
+  setTaxCodeId?.call(item.taxCodeId);
+  final rate = formattedStandardSellingRate(item);
+  if (rate != null) {
+    rateController.text = rate;
+  }
+  if (setWarehouseId != null &&
+      warehouses != null &&
+      warehouses.length == 1 &&
+      currentWarehouseId == null) {
+    setWarehouseId(warehouses.first.id);
+  }
+}
+
 int? defaultSalesUomIdForItem(
   ItemModel? item,
   List<UomModel> uoms,

@@ -732,7 +732,14 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                   controller: _dueDateController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.optionalDate('Due Date'),
+                  validator: Validators.compose([
+                    Validators.optionalDate('Due Date'),
+                    Validators.optionalDateOnOrAfter(
+                      'Due Date',
+                      () => _invoiceDateController.text.trim(),
+                      startFieldName: 'Invoice Date',
+                    ),
+                  ]),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Supplier',

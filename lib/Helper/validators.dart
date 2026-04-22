@@ -316,3 +316,22 @@ class Validators {
     return null;
   }
 }
+
+/// Optional 0–100 (inclusive), for percentage fields aligned with Laravel `numeric|min:0|max:100`.
+/// Top-level so it is always visible alongside [Validators] (same library as `screen.dart` export).
+String? Function(String?) percentField0To100Optional(String fieldName) {
+  return (String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final parsed = double.tryParse(trimmed);
+    if (parsed == null) {
+      return '$fieldName must be a valid number';
+    }
+    if (parsed < 0 || parsed > 100) {
+      return '$fieldName must be between 0 and 100';
+    }
+    return null;
+  };
+}

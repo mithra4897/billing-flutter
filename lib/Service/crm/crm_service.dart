@@ -6,6 +6,7 @@ import '../../model/crm/crm_opportunity_model.dart';
 import '../../model/crm/crm_source_model.dart';
 import '../../model/crm/crm_stage_model.dart';
 import '../../core/api/api_endpoints.dart';
+import '../../core/error/api_exception.dart';
 import '../base/erp_module_service.dart';
 
 class CrmService extends ErpModuleService {
@@ -205,4 +206,51 @@ class CrmService extends ErpModuleService {
   );
   Future<ApiResponse<dynamic>> deleteOpportunity(int id) =>
       destroy('${ApiEndpoints.crmOpportunities}/$id');
+
+  /// Resolves lead → enquiry → opportunity → quotations → orders → invoices → receipts.
+  /// Uses CRM route when permitted; falls back to [ApiEndpoints.salesSalesChain] for sales-only users.
+  Future<ApiResponse<Map<String, dynamic>>> salesChain({
+    int? leadId,
+    int? enquiryId,
+    int? opportunityId,
+    int? quotationId,
+    int? orderId,
+    int? invoiceId,
+    int? receiptId,
+  }) async {
+    final query = <String, dynamic>{
+      if (leadId != null) 'lead_id': leadId,
+      if (enquiryId != null) 'enquiry_id': enquiryId,
+      if (opportunityId != null) 'opportunity_id': opportunityId,
+      if (quotationId != null) 'quotation_id': quotationId,
+      if (orderId != null) 'order_id': orderId,
+      if (invoiceId != null) 'invoice_id': invoiceId,
+      if (receiptId != null) 'receipt_id': receiptId,
+    };
+
+    Future<ApiResponse<Map<String, dynamic>>> fetch(String endpoint) {
+      return client.get<Map<String, dynamic>>(
+        endpoint,
+        queryParameters: query,
+        fromData: (dynamic json) {
+          if (json is Map<String, dynamic>) {
+            return json;
+          }
+          if (json is Map) {
+            return Map<String, dynamic>.from(json);
+          }
+          return <String, dynamic>{};
+        },
+      );
+    }
+
+    try {
+      return await fetch(ApiEndpoints.crmSalesChain);
+    } on ApiException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        return fetch(ApiEndpoints.salesSalesChain);
+      }
+      rethrow;
+    }
+  }
 }

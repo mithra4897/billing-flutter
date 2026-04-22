@@ -22,7 +22,6 @@ class _FinancialYearManagementPageState
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _fyCodeController = TextEditingController();
   final TextEditingController _fyNameController = TextEditingController();
   final TextEditingController _startDateController = TextEditingController();
@@ -243,8 +242,8 @@ class _FinancialYearManagementPageState
     setState(() {});
   }
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> _save(BuildContext formContext) async {
+    if (!Form.of(formContext).validate()) {
       return;
     }
 
@@ -372,241 +371,254 @@ class _FinancialYearManagementPageState
   }
 
   Widget _buildEditor() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_formError != null) ...[
-            AppErrorStateView.inline(message: _formError!),
-            const SizedBox(height: 16),
-          ],
-          SettingsFormWrap(
+    return Builder(
+      builder: (BuildContext formContext) {
+        return Form(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (widget.fixedCompanyId == null)
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  initialValue: _companyId,
-                  mappedItems: _companies
-                      .where((company) => company.id != null)
-                      .map(
-                        (company) => AppDropdownItem<int>(
-                          value: company.id!,
-                          label: company.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: (value) => setState(() => _companyId = value),
-                  validator: Validators.requiredSelection('Company'),
-                ),
-              AppFormTextField(
-                controller: _fyCodeController,
-                labelText: 'FY Code',
-                readOnly: true,
-                validator: Validators.compose([
-                  Validators.required('FY code'),
-                  Validators.optionalMaxLength(20, 'FY code'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: _fyNameController,
-                labelText: 'FY Name',
-                readOnly: true,
-                validator: Validators.compose([
-                  Validators.required('FY name'),
-                  Validators.optionalMaxLength(50, 'FY name'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: _startDateController,
-                labelText: 'Start Date',
-                hintText: 'YYYY-MM-DD',
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.compose([
-                  Validators.required('Start date'),
-                  Validators.optionalDate('Start date'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: _endDateController,
-                labelText: 'End Date',
-                hintText: 'YYYY-MM-DD',
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.compose([
-                  Validators.required('End date'),
-                  Validators.optionalDateOnOrAfter(
-                    'End date',
-                    () => _startDateController.text,
-                    startFieldName: 'Start date',
+              if (_formError != null) ...[
+                AppErrorStateView.inline(message: _formError!),
+                const SizedBox(height: 16),
+              ],
+              SettingsFormWrap(
+                children: [
+                  if (widget.fixedCompanyId == null)
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Company',
+                      initialValue: _companyId,
+                      mappedItems: _companies
+                          .where((company) => company.id != null)
+                          .map(
+                            (company) => AppDropdownItem<int>(
+                              value: company.id!,
+                              label: company.toString(),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) =>
+                          setState(() => _companyId = value),
+                      validator: Validators.requiredSelection('Company'),
+                    ),
+                  AppFormTextField(
+                    controller: _fyCodeController,
+                    labelText: 'FY Code',
+                    readOnly: true,
+                    validator: Validators.compose([
+                      Validators.required('FY code'),
+                      Validators.optionalMaxLength(20, 'FY code'),
+                    ]),
                   ),
-                ]),
+                  AppFormTextField(
+                    controller: _fyNameController,
+                    labelText: 'FY Name',
+                    readOnly: true,
+                    validator: Validators.compose([
+                      Validators.required('FY name'),
+                      Validators.optionalMaxLength(50, 'FY name'),
+                    ]),
+                  ),
+                  AppFormTextField(
+                    controller: _startDateController,
+                    labelText: 'Start Date',
+                    hintText: 'YYYY-MM-DD',
+                    inputFormatters: const [DateInputFormatter()],
+                    validator: Validators.compose([
+                      Validators.required('Start date'),
+                      Validators.optionalDate('Start date'),
+                    ]),
+                  ),
+                  AppFormTextField(
+                    controller: _endDateController,
+                    labelText: 'End Date',
+                    hintText: 'YYYY-MM-DD',
+                    inputFormatters: const [DateInputFormatter()],
+                    validator: Validators.compose([
+                      Validators.required('End date'),
+                      Validators.optionalDateOnOrAfter(
+                        'End date',
+                        () => _startDateController.text,
+                        startFieldName: 'Start date',
+                      ),
+                    ]),
+                  ),
+                  AppFormTextField(
+                    controller: _lockDateController,
+                    labelText: 'Lock Date',
+                    hintText: 'YYYY-MM-DD',
+                    inputFormatters: const [DateInputFormatter()],
+                    validator: Validators.optionalDate('Lock date'),
+                  ),
+                  AppFormTextField(
+                    controller: _remarksController,
+                    labelText: 'Remarks',
+                    maxLines: 3,
+                    validator: Validators.optionalMaxLength(1000, 'Remarks'),
+                  ),
+                ],
               ),
-              AppFormTextField(
-                controller: _lockDateController,
-                labelText: 'Lock Date',
-                hintText: 'YYYY-MM-DD',
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.optionalDate('Lock date'),
+              AppSwitchTile(
+                label: 'Current Financial Year',
+                subtitle:
+                    'Only one financial year can stay current per company.',
+                value: _isCurrent,
+                onChanged: (value) {
+                  setState(() {
+                    _isCurrent = value;
+                    if (value) {
+                      _isActive = true;
+                    }
+                  });
+                },
               ),
-              AppFormTextField(
-                controller: _remarksController,
-                labelText: 'Remarks',
-                maxLines: 3,
-                validator: Validators.optionalMaxLength(1000, 'Remarks'),
+              AppSwitchTile(
+                label: 'Locked',
+                subtitle: 'Use this when entries should no longer be posted.',
+                value: _isLocked,
+                onChanged: (value) {
+                  setState(() {
+                    _isLocked = value;
+                    if (!value) {
+                      _lockDateController.clear();
+                    } else if (_lockDateController.text.trim().isEmpty) {
+                      _lockDateController.text =
+                          _endDateController.text.trim();
+                    }
+                  });
+                },
+              ),
+              AppSwitchTile(
+                label: 'Active',
+                value: _isCurrent ? true : _isActive,
+                onChanged: _isCurrent
+                    ? null
+                    : (value) => setState(() => _isActive = value),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: _selectedFinancialYear == null
+                        ? 'Create Financial Year'
+                        : 'Update Financial Year',
+                    onPressed: _saving
+                        ? null
+                        : () => _save(formContext),
+                    busy: _saving,
+                  ),
+                  if (_selectedFinancialYear?.id != null &&
+                      _selectedFinancialYear?.isCurrent != true)
+                    AppActionButton(
+                      icon: Icons.check_circle_outline,
+                      label: 'Set Current',
+                      onPressed: _activating ? null : _setAsCurrent,
+                      busy: _activating,
+                      filled: false,
+                    ),
+                ],
               ),
             ],
           ),
-          AppSwitchTile(
-            label: 'Current Financial Year',
-            subtitle: 'Only one financial year can stay current per company.',
-            value: _isCurrent,
-            onChanged: (value) {
-              setState(() {
-                _isCurrent = value;
-                if (value) {
-                  _isActive = true;
-                }
-              });
-            },
-          ),
-          AppSwitchTile(
-            label: 'Locked',
-            subtitle: 'Use this when entries should no longer be posted.',
-            value: _isLocked,
-            onChanged: (value) {
-              setState(() {
-                _isLocked = value;
-                if (!value) {
-                  _lockDateController.clear();
-                } else if (_lockDateController.text.trim().isEmpty) {
-                  _lockDateController.text = _endDateController.text.trim();
-                }
-              });
-            },
-          ),
-          AppSwitchTile(
-            label: 'Active',
-            value: _isCurrent ? true : _isActive,
-            onChanged: _isCurrent
-                ? null
-                : (value) => setState(() => _isActive = value),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: _selectedFinancialYear == null
-                    ? 'Create Financial Year'
-                    : 'Update Financial Year',
-                onPressed: _saving ? null : _save,
-                busy: _saving,
-              ),
-              if (_selectedFinancialYear?.id != null &&
-                  _selectedFinancialYear?.isCurrent != true)
-                AppActionButton(
-                  icon: Icons.check_circle_outline,
-                  label: 'Set Current',
-                  onPressed: _activating ? null : _setAsCurrent,
-                  busy: _activating,
-                  filled: false,
-                ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildEmbeddedContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: AppUiConstants.spacingSm,
-          runSpacing: AppUiConstants.spacingSm,
-          children: [
-            AppActionButton(
-              icon: Icons.add_outlined,
-              label: 'New Financial Year',
-              onPressed: _startNewFinancialYear,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (_filteredFinancialYears.isEmpty &&
-            !_showDraftTile &&
-            _selectedFinancialYear == null)
-          const SettingsEmptyState(
-            icon: Icons.calendar_month_outlined,
-            title: 'No Financial Years',
-            message: 'No financial years found for this company yet.',
-            minHeight: 160,
-          )
-        else
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
             children: [
-              if (_showDraftTile && _selectedFinancialYear == null) ...[
-                SettingsExpandableTile(
-                  key: const ValueKey('fy-draft'),
-                  title: 'New Financial Year',
-                  subtitle: 'Create a financial year for this company.',
-                  expanded: true,
-                  highlighted: true,
-                  leadingIcon: Icons.add_outlined,
-                  onToggle: () {
-                    setState(() {
-                      _showDraftTile = false;
-                    });
-                    _resetForm();
-                  },
-                  child: _buildEditor(),
-                ),
-                if (_filteredFinancialYears.isNotEmpty)
-                  const SizedBox(height: AppUiConstants.spacingSm),
-              ],
-              ..._filteredFinancialYears.map((item) {
-                final expanded = identical(item, _selectedFinancialYear);
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: SettingsExpandableTile(
-                    key: ValueKey('fy-${item.id}-$expanded'),
-                    title: item.fyName ?? item.fyCode ?? '-',
-                    subtitle: [
-                      item.fyCode ?? '',
-                      if ((item.startDate ?? '').isNotEmpty || (item.endDate ?? '').isNotEmpty)
-                        '${item.startDate ?? ''} to ${item.endDate ?? ''}'.trim(),
-                    ].where((value) => value.trim().isNotEmpty).join(' • '),
-                    detail: item.isCurrent
-                        ? 'Current'
-                        : (item.isActive ? 'Active' : 'Inactive'),
-                    expanded: expanded,
-                    highlighted: expanded,
-                    trailing: SettingsStatusPill(
-                      label: item.isCurrent
-                          ? 'Current'
-                          : (item.isActive ? 'Active' : 'Inactive'),
-                      active: item.isCurrent || item.isActive,
-                    ),
+              AppActionButton(
+                icon: Icons.add_outlined,
+                label: 'New Financial Year',
+                onPressed: _startNewFinancialYear,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_filteredFinancialYears.isEmpty &&
+              !_showDraftTile &&
+              _selectedFinancialYear == null)
+            const SettingsEmptyState(
+              icon: Icons.calendar_month_outlined,
+              title: 'No Financial Years',
+              message: 'No financial years found for this company yet.',
+              minHeight: 160,
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_showDraftTile && _selectedFinancialYear == null) ...[
+                  SettingsExpandableTile(
+                    key: const ValueKey('fy-draft'),
+                    title: 'New Financial Year',
+                    subtitle: 'Create a financial year for this company.',
+                    expanded: true,
+                    highlighted: true,
+                    leadingIcon: Icons.add_outlined,
                     onToggle: () {
-                      if (expanded) {
-                        _resetForm();
-                      } else {
-                        _selectFinancialYear(item);
-                      }
+                      setState(() {
+                        _showDraftTile = false;
+                      });
+                      _resetForm();
                     },
                     child: _buildEditor(),
                   ),
-                );
-              }),
-            ],
-          ),
-      ],
+                  if (_filteredFinancialYears.isNotEmpty)
+                    const SizedBox(height: AppUiConstants.spacingSm),
+                ],
+                ..._filteredFinancialYears.map((item) {
+                  final expanded = identical(item, _selectedFinancialYear);
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacingSm,
+                    ),
+                    child: SettingsExpandableTile(
+                      key: ValueKey('fy-${item.id}-$expanded'),
+                      title: item.fyName ?? item.fyCode ?? '-',
+                      subtitle: [
+                        item.fyCode ?? '',
+                        if ((item.startDate ?? '').isNotEmpty ||
+                            (item.endDate ?? '').isNotEmpty)
+                          '${item.startDate ?? ''} to ${item.endDate ?? ''}'
+                              .trim(),
+                      ].where((value) => value.trim().isNotEmpty).join(' • '),
+                      detail: item.isCurrent
+                          ? 'Current'
+                          : (item.isActive ? 'Active' : 'Inactive'),
+                      expanded: expanded,
+                      highlighted: expanded,
+                      trailing: SettingsStatusPill(
+                        label: item.isCurrent
+                            ? 'Current'
+                            : (item.isActive ? 'Active' : 'Inactive'),
+                        active: item.isCurrent || item.isActive,
+                      ),
+                      onToggle: () {
+                        if (expanded) {
+                          _resetForm();
+                        } else {
+                          _selectFinancialYear(item);
+                        }
+                      },
+                      child: _buildEditor(),
+                    ),
+                  );
+                }),
+              ],
+            ),
+        ],
+      ),
     );
   }
 

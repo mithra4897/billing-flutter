@@ -60,6 +60,26 @@ class SettingsWorkspace extends StatefulWidget {
   State<SettingsWorkspace> createState() => _SettingsWorkspaceState();
 }
 
+/// Shown in the main workspace while the same editor is presented on a pushed
+/// route, so [SettingsWorkspace] never mounts [SettingsWorkspace.editor] twice.
+class _EditorRoutePlaceholder extends StatelessWidget {
+  const _EditorRoutePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Text(
+          'This form is open in a full-screen page. Close it to continue here.',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ),
+    );
+  }
+}
+
 class _SettingsWorkspaceState extends State<SettingsWorkspace> {
   late final SettingsWorkspaceController _controller;
   late final bool _ownsController;
@@ -88,6 +108,9 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       builder: (context, constraints) {
         final showInlineEditor = Responsive.isDesktop(context);
         final theme = Theme.of(context).textTheme;
+        final editorBody = _editorRouteOpen
+            ? const _EditorRoutePlaceholder()
+            : widget.editor;
         final editorContent = widget.wrapEditorInCard
             ? AppSectionCard(
                 child: Column(
@@ -97,7 +120,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                       Text(widget.editorTitle!, style: theme.headlineSmall),
                       const SizedBox(height: AppUiConstants.spacingXs),
                     ],
-                    widget.editor,
+                    editorBody,
                   ],
                 ),
               )
@@ -109,7 +132,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
                     Text(widget.editorTitle!, style: theme.headlineSmall),
                     const SizedBox(height: AppUiConstants.spacingXs),
                   ],
-                  widget.editor,
+                  editorBody,
                 ],
               );
 
@@ -150,7 +173,9 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       return;
     }
 
-    _editorRouteOpen = true;
+    setState(() {
+      _editorRouteOpen = true;
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
@@ -183,6 +208,7 @@ class SettingsListCard<T> extends StatelessWidget {
     super.key,
     this.searchController,
     this.searchHint,
+    this.showSearchBar = true,
     required this.items,
     required this.selectedItem,
     required this.emptyMessage,
@@ -191,6 +217,9 @@ class SettingsListCard<T> extends StatelessWidget {
 
   final TextEditingController? searchController;
   final String? searchHint;
+
+  /// When false, the search field is not shown (e.g. search lives in the shell header).
+  final bool showSearchBar;
   final List<T> items;
   final T? selectedItem;
   final String emptyMessage;
@@ -202,7 +231,8 @@ class SettingsListCard<T> extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (searchController != null &&
+          if (showSearchBar &&
+              searchController != null &&
               (searchHint?.isNotEmpty ?? false)) ...[
             TextField(
               controller: searchController,

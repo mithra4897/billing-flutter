@@ -56,10 +56,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   final AssetsService _assetsService = AssetsService();
   final MediaService _mediaService = MediaService();
   final ScrollController _pageScrollController = ScrollController();
+  final GlobalKey<FormState> _primaryEmployeeFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _primaryFormKey = GlobalKey<FormState>();
   final TextEditingController _employeeCodeController = TextEditingController();
   final TextEditingController _employeeNameController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
@@ -131,7 +131,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       TextEditingController();
 
   late final TabController _tabController;
-  int _activeTabIndex = 0;
+  /// Rebuilds only the active tab body (not the whole [TabBar]). On web/desktop the
+  /// editor is inline; a full [IndexedStack] was rebuilding all seven heavy tabs on every
+  /// [_selectEmployee] / save and freezing the UI. The pushed route (narrow) also uses
+  /// this for a smaller subtree when the notifier bumps.
+  final ValueNotifier<int> _employeeEditorRouteRevision = ValueNotifier<int>(0);
+  bool _employeeEditorRouteBumpScheduled = false;
   bool _initialLoading = true;
   bool _saving = false;
   bool _uploadingPhoto = false;
@@ -197,13 +202,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
-    _activeTabIndex = _tabController.index;
     _tabController.addListener(() {
       if (!mounted || _tabController.indexIsChanging) {
         return;
       }
-      _activeTabIndex = _tabController.index;
       setState(() {});
+      _bumpEmployeeEditorRoute();
     });
     _searchController.addListener(_applySearch);
     _loadData(selectId: widget.initialEmployeeId);
@@ -220,6 +224,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
   @override
   void dispose() {
+    _employeeEditorRouteRevision.dispose();
     _tabController.dispose();
     _pageScrollController.dispose();
     _workspaceController.dispose();
@@ -267,6 +272,20 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _componentAmountController.dispose();
     _componentPercentController.dispose();
     super.dispose();
+  }
+
+  void _bumpEmployeeEditorRoute() {
+    if (_employeeEditorRouteBumpScheduled) {
+      return;
+    }
+    _employeeEditorRouteBumpScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _employeeEditorRouteBumpScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      _employeeEditorRouteRevision.value++;
+    });
   }
 
   Future<void> _loadData({int? selectId}) async {
@@ -378,6 +397,63 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     }
   }
 
+  /// Refresh employee rows after save with a single list fetch (not full [_loadData]).
+  ///
+  /// When [reloadDetail] is true (desktop inline editor), loads full employee + tabs via
+  /// [_selectEmployee]. When false (e.g. before closing the mobile fullscreen editor),
+  /// only updates the list and [selectedEmployee] from list row — avoids heavy async work
+  /// on top of [Navigator] while the pushed route is still visible (which caused freezes).
+  Future<void> _reloadEmployeeListAndSelect(
+    int employeeId, {
+    bool reloadDetail = true,
+  }) async {
+    try {
+      final employeesResp = await _hrService.employees(
+        filters: const {'per_page': 200, 'sort_by': 'employee_name'},
+      );
+      if (!mounted) return;
+      final employees = employeesResp.data ?? const <EmployeeModel>[];
+      final idx = employees.indexWhere((EmployeeModel e) => e.id == employeeId);
+      final EmployeeModel? row = idx >= 0 ? employees[idx] : null;
+
+      setState(() {
+        _employees = employees;
+        _filteredEmployees = _filterEmployees(employees, _searchController.text);
+        if (row != null &&
+            !_filteredEmployees.any((EmployeeModel e) => e.id == employeeId)) {
+          _filteredEmployees = <EmployeeModel>[row, ..._filteredEmployees];
+        }
+        if (row != null && !reloadDetail) {
+          _selectedEmployee = row;
+        }
+      });
+
+      if (!mounted) return;
+      if (reloadDetail && row != null) {
+        _bumpEmployeeEditorRoute();
+        await _selectEmployee(row);
+      }
+    } catch (_) {
+      if (mounted) {
+        await _loadData(selectId: employeeId);
+      }
+    }
+  }
+
+  /// Full-screen editor (narrow layout): return to list after save/delete.
+  void _popEmployeeEditorIfFullscreen() {
+    if (!mounted) {
+      return;
+    }
+    if (Responsive.isDesktop(context)) {
+      return;
+    }
+    final NavigatorState nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+    }
+  }
+
   List<EmployeeModel> _filterEmployees(
     List<EmployeeModel> source,
     String query,
@@ -404,10 +480,16 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }
 
   Future<void> _selectEmployee(EmployeeModel employee) async {
-    final detailResponse = await _hrService.employee(employee.id!);
-    final salaryResponse = await _hrService.employeeSalaryStructures(
-      employee.id!,
-    );
+    final int employeeId = employee.id!;
+    final List<dynamic> detailAndSalary = await Future.wait<dynamic>(<Future<dynamic>>[
+      _hrService.employee(employeeId),
+      _hrService.employeeSalaryStructures(employeeId),
+    ]);
+    final ApiResponse<EmployeeModel> detailResponse =
+        detailAndSalary[0] as ApiResponse<EmployeeModel>;
+    final ApiResponse<List<EmployeeSalaryStructureModel>> salaryResponse =
+        detailAndSalary[1]
+            as ApiResponse<List<EmployeeSalaryStructureModel>>;
     final full = detailResponse.data ?? employee;
 
     _selectedEmployee = full;
@@ -482,6 +564,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _statutoryFormError = null;
     _formError = null;
     setState(() {});
+    _bumpEmployeeEditorRoute();
   }
 
   void _resetForm() {
@@ -529,6 +612,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _primeEmployeeCodeSuggestion();
     _formError = null;
     setState(() {});
+    _bumpEmployeeEditorRoute();
   }
 
   bool get _isNewEmployee => _selectedEmployee?.id == null;
@@ -637,7 +721,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }
 
   Future<void> _savePrimary() async {
-    if (!_primaryFormKey.currentState!.validate()) {
+    final FormState? primaryForm = _primaryEmployeeFormKey.currentState;
+    if (primaryForm == null || !primaryForm.validate()) {
       return;
     }
 
@@ -661,13 +746,23 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData(selectId: saved.id);
+      final int? sid = saved.id;
+      if (sid == null) {
+        await _loadData();
+      } else if (Responsive.isDesktop(context)) {
+        await _reloadEmployeeListAndSelect(sid);
+      } else {
+        await _reloadEmployeeListAndSelect(sid, reloadDetail: false);
+        _popEmployeeEditorIfFullscreen();
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _formError = error.toString());
+      _bumpEmployeeEditorRoute();
     } finally {
       if (mounted) {
         setState(() => _saving = false);
+        _bumpEmployeeEditorRoute();
       }
     }
   }
@@ -688,12 +783,15 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadData();
+      _popEmployeeEditorIfFullscreen();
     } catch (error) {
       if (!mounted) return;
       setState(() => _formError = error.toString());
+      _bumpEmployeeEditorRoute();
     } finally {
       if (mounted) {
         setState(() => _saving = false);
+        _bumpEmployeeEditorRoute();
       }
     }
   }
@@ -722,13 +820,21 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(successMessage)));
-      await _loadData(selectId: saved?.id ?? employee.id);
+      final int sid = saved?.id ?? employee.id!;
+      if (Responsive.isDesktop(context)) {
+        await _reloadEmployeeListAndSelect(sid);
+      } else {
+        await _reloadEmployeeListAndSelect(sid, reloadDetail: false);
+        _popEmployeeEditorIfFullscreen();
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() => onError(error.toString()));
+      _bumpEmployeeEditorRoute();
     } finally {
       if (mounted) {
         setState(() => _saving = false);
+        _bumpEmployeeEditorRoute();
       }
     }
   }
@@ -756,16 +862,24 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(successMessage)));
-      await _loadData(selectId: saved?.id ?? employee.id);
+      final int sid = saved?.id ?? employee.id!;
+      if (Responsive.isDesktop(context)) {
+        await _reloadEmployeeListAndSelect(sid);
+      } else {
+        await _reloadEmployeeListAndSelect(sid, reloadDetail: false);
+        _popEmployeeEditorIfFullscreen();
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _structureFormError = error.toString();
         _componentFormError = error.toString();
       });
+      _bumpEmployeeEditorRoute();
     } finally {
       if (mounted) {
         setState(() => _saving = false);
+        _bumpEmployeeEditorRoute();
       }
     }
   }
@@ -1592,55 +1706,76 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           onTap: () => _selectEmployee(item),
         ),
       ),
-      editor: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabs: const [
-              Tab(text: 'Primary'),
-              Tab(text: 'Statutory'),
-              Tab(text: 'Addresses'),
-              Tab(text: 'Relations'),
-              Tab(text: 'Claims & pay'),
-              Tab(text: 'Salary Structures'),
-              Tab(text: 'Salary Components'),
-            ],
-          ),
-          const SizedBox(height: AppUiConstants.spacingLg),
-          IndexedStack(
-            index: _activeTabIndex,
-            children: [
-              _buildPrimaryTab(),
-              _buildSaveFirstTabMessage(
-                tabLabel: 'Employee Statutory & Insurance',
-                child: _buildStatutoryTab(),
-              ),
-              _buildSaveFirstTabMessage(
-                tabLabel: 'Employee Addresses',
-                child: _buildAddressesTab(),
-              ),
-              _buildSaveFirstTabMessage(
-                tabLabel: 'Employee Relations',
-                child: _buildRelationsTab(),
-              ),
-              _buildSaveFirstTabMessage(
-                tabLabel: 'Claims & reimbursements',
-                child: _buildExpenseClaimsTab(),
-              ),
-              _buildSaveFirstTabMessage(
-                tabLabel: 'Employee Salary Structures',
-                child: _buildSalaryStructuresTab(),
-              ),
-              _buildSaveFirstTabMessage(
-                tabLabel: 'Employee Salary Components',
-                child: _buildSalaryComponentsTab(),
-              ),
-            ],
-          ),
-        ],
-      ),
+      editor: _buildEmployeeWorkspaceEditor(),
+    );
+  }
+
+  /// Only the visible tab is built. [IndexedStack] kept all seven forms alive and
+  /// rebuilt them together after each [_selectEmployee], which froze web/desktop.
+  Widget _buildEmployeeEditorTabBody(int index) {
+    switch (index) {
+      case 0:
+        return _buildPrimaryTab();
+      case 1:
+        return _buildSaveFirstTabMessage(
+          tabLabel: 'Employee Statutory & Insurance',
+          child: _buildStatutoryTab(),
+        );
+      case 2:
+        return _buildSaveFirstTabMessage(
+          tabLabel: 'Employee Addresses',
+          child: _buildAddressesTab(),
+        );
+      case 3:
+        return _buildSaveFirstTabMessage(
+          tabLabel: 'Employee Relations',
+          child: _buildRelationsTab(),
+        );
+      case 4:
+        return _buildSaveFirstTabMessage(
+          tabLabel: 'Claims & reimbursements',
+          child: _buildExpenseClaimsTab(),
+        );
+      case 5:
+        return _buildSaveFirstTabMessage(
+          tabLabel: 'Employee Salary Structures',
+          child: _buildSalaryStructuresTab(),
+        );
+      case 6:
+        return _buildSaveFirstTabMessage(
+          tabLabel: 'Employee Salary Components',
+          child: _buildSalaryComponentsTab(),
+        );
+      default:
+        return _buildPrimaryTab();
+    }
+  }
+
+  Widget _buildEmployeeWorkspaceEditor() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: 'Primary'),
+            Tab(text: 'Statutory'),
+            Tab(text: 'Addresses'),
+            Tab(text: 'Relations'),
+            Tab(text: 'Claims & pay'),
+            Tab(text: 'Salary Structures'),
+            Tab(text: 'Salary Components'),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingLg),
+        AnimatedBuilder(
+          animation: _employeeEditorRouteRevision,
+          builder: (BuildContext context, Widget? _) {
+            return _buildEmployeeEditorTabBody(_tabController.index);
+          },
+        ),
+      ],
     );
   }
 
@@ -1661,16 +1796,16 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
   Widget _buildPrimaryTab() {
     return Form(
-      key: _primaryFormKey,
+      key: _primaryEmployeeFormKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_formError != null) ...[
-            AppErrorStateView.inline(message: _formError!),
-            const SizedBox(height: AppUiConstants.spacingSm),
-          ],
-          SettingsFormWrap(
-            children: [
+              if (_formError != null) ...[
+                AppErrorStateView.inline(message: _formError!),
+                const SizedBox(height: AppUiConstants.spacingSm),
+              ],
+              SettingsFormWrap(
+                children: [
               AppDropdownField<int>.fromMapped(
                 labelText: 'Company',
                 mappedItems: _activeCompanies
@@ -1835,33 +1970,33 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                 ),
                 previewIcon: Icons.person_outline,
               ),
-            ],
-          ),
-          const SizedBox(height: AppUiConstants.spacingLg),
-          Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
-            children: [
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: _selectedEmployee == null
-                    ? 'Save Employee'
-                    : 'Update Employee',
-                onPressed: _savePrimary,
-                busy: _saving,
+                ],
               ),
-              if (_selectedEmployee?.id != null)
-                AppActionButton(
-                  icon: Icons.delete_outline,
-                  label: 'Delete',
-                  onPressed: _deleteEmployee,
-                  busy: _saving,
-                  filled: false,
-                ),
+              const SizedBox(height: AppUiConstants.spacingLg),
+              Wrap(
+                spacing: AppUiConstants.spacingSm,
+                runSpacing: AppUiConstants.spacingSm,
+                children: [
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: _selectedEmployee == null
+                        ? 'Save Employee'
+                        : 'Update Employee',
+                    onPressed: _saving ? null : _savePrimary,
+                    busy: _saving,
+                  ),
+                  if (_selectedEmployee?.id != null)
+                    AppActionButton(
+                      icon: Icons.delete_outline,
+                      label: 'Delete',
+                      onPressed: _deleteEmployee,
+                      busy: _saving,
+                      filled: false,
+                    ),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
     );
   }
 
@@ -1875,10 +2010,11 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     for (final ExpenseClaimModel row in _employeeExpenseClaims) {
       final data = row.toJson();
       final st = stringValue(data, 'claim_status').toLowerCase();
-      final reimbId = intValue(data, 'reimbursement_voucher_id');
+      final reimbursementVoucherId =
+          intValue(data, 'reimbursement_voucher_id');
       if (st == 'draft') {
         counts['draft'] = (counts['draft'] ?? 0) + 1;
-      } else if (st == 'approved' && reimbId == null) {
+      } else if (st == 'approved' && reimbursementVoucherId == null) {
         counts['approved_unpaid'] = (counts['approved_unpaid'] ?? 0) + 1;
       } else if (st == 'reimbursed') {
         counts['reimbursed'] = (counts['reimbursed'] ?? 0) + 1;
@@ -1963,9 +2099,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           final date = displayDate(nullableStringValue(data, 'claim_date'));
           final st = stringValue(data, 'claim_status');
           final amount = stringValue(data, 'total_amount');
-          final reimbId = intValue(data, 'reimbursement_voucher_id');
+          final reimbursementVoucherId =
+              intValue(data, 'reimbursement_voucher_id');
           String payHint = '';
-          if (st == 'approved' && reimbId == null) {
+          if (st == 'approved' && reimbursementVoucherId == null) {
             payHint = ' · Awaiting reimbursement';
           } else if (st == 'reimbursed') {
             payHint = ' · Paid';

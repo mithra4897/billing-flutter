@@ -1,5 +1,6 @@
 import '../../screen.dart';
 import '../purchase/purchase_support.dart';
+import 'crm_sales_pipeline_bar.dart';
 
 class CrmOpportunitiesPage extends StatefulWidget {
   const CrmOpportunitiesPage({
@@ -56,6 +57,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   String _status = 'open';
   List<_OpportunityProductDraft> _products = <_OpportunityProductDraft>[];
   int? _expandedProductIndex;
+  Map<String, dynamic>? _salesChain;
 
   String _normalizedStageType(CrmStageModel stage) {
     return stringValue(stage.toJson(), 'stage_type').trim().toLowerCase();
@@ -235,6 +237,26 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       _expandedProductIndex = null;
       _formError = null;
     });
+    await _refreshSalesChainForOpportunity(id);
+  }
+
+  int? _selectedOpportunityId() =>
+      intValue(_selectedItem?.toJson() ?? const {}, 'id');
+
+  Future<void> _refreshSalesChainForOpportunity(int opportunityId) async {
+    try {
+      final response =
+          await _crmService.salesChain(opportunityId: opportunityId);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = response.data);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    }
   }
 
   void _resetForm() {
@@ -253,6 +275,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       _formError = null;
       _tabController.index = 0;
       _activeTabIndex = 0;
+      _salesChain = null;
     });
   }
 
@@ -516,6 +539,19 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         children: [
           if (_formError != null) ...[
             AppErrorStateView.inline(message: _formError!),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
+          if (_selectedOpportunityId() != null) ...[
+            CrmSalesPipelineBar(data: _salesChain),
+            AppActionButton(
+              icon: Icons.request_quote_outlined,
+              label: 'New quotation (this deal)',
+              filled: false,
+              onPressed: () => openModuleShellRoute(
+                context,
+                '/sales/quotations/new?crm_opportunity_id=${_selectedOpportunityId()}',
+              ),
+            ),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
           SettingsFormWrap(

@@ -4,6 +4,7 @@ import '../../model/sales/sales_delivery_model.dart';
 import '../../model/sales/sales_invoice_line_model.dart';
 import '../../model/sales/sales_order_model.dart';
 import '../../screen.dart';
+import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
 
@@ -38,6 +39,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   ];
 
   final SalesService _salesService = SalesService();
+  final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final AccountsService _accountsService = AccountsService();
@@ -101,6 +103,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   int? _customerPartyId;
   int? _adjustmentAccountId;
   bool _isActive = true;
+  Map<String, dynamic>? _salesChain;
   List<_InvoiceLineDraft> _lines = <_InvoiceLineDraft>[];
 
   String _errorMessage(Object error) {
@@ -258,6 +261,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _ordersAll = const <SalesOrderModel>[];
         _deliveriesAll = const <SalesDeliveryModel>[];
       });
+      await _refreshSalesChain();
       return;
     }
     try {
@@ -283,6 +287,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             (src[1] as ApiResponse<List<SalesDeliveryModel>>).data ??
                 const <SalesDeliveryModel>[];
       });
+      await _refreshSalesChain();
     } catch (_) {}
   }
 
@@ -325,6 +330,60 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           () => _deliveryLinesCache = const <Map<String, dynamic>>[],
         );
       }
+    }
+  }
+
+  int? _orderIdForSalesChain() {
+    if (_salesOrderId != null) {
+      return _salesOrderId;
+    }
+    if (_salesDeliveryId != null) {
+      final dj = _deliveryJsonById(_salesDeliveryId);
+      final o = intValue(dj ?? const <String, dynamic>{}, 'sales_order_id');
+      if (o != null && o != 0) {
+        return o;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _refreshSalesChain({int? quotationId}) async {
+    final iid = _selectedItem?.id;
+    final oid = _orderIdForSalesChain();
+    try {
+      if (iid != null && iid != 0) {
+        final r = await _crmService.salesChain(invoiceId: iid);
+        if (!mounted) {
+          return;
+        }
+        setState(() => _salesChain = r.data);
+        return;
+      }
+      if (oid != null) {
+        final r = await _crmService.salesChain(orderId: oid);
+        if (!mounted) {
+          return;
+        }
+        setState(() => _salesChain = r.data);
+        return;
+      }
+      if (quotationId != null) {
+        final r = await _crmService.salesChain(quotationId: quotationId);
+        if (!mounted) {
+          return;
+        }
+        setState(() => _salesChain = r.data);
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
     }
   }
 
@@ -398,6 +457,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     } else if (mounted) {
       setState(() => _orderLinesCache = null);
     }
+    await _refreshSalesChain();
   }
 
   Future<void> _onHeaderSalesDeliveryChanged(int? value) async {
@@ -423,6 +483,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     } else if (mounted) {
       setState(() => _deliveryLinesCache = null);
     }
+    await _refreshSalesChain();
   }
 
   void _applyOrderLinePick(_InvoiceLineDraft line, int? orderLineId) {
@@ -780,6 +841,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _formError = null;
       });
       await _reloadSourceDocumentsForCompany(_companyId);
+      await _refreshSalesChain(quotationId: quotationId);
     } catch (e) {
       if (mounted) {
         setState(() => _formError = e.toString());
@@ -839,6 +901,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       return;
     }
     await _reloadSourceDocumentsForCompany(_companyId);
+    await _refreshSalesChain();
   }
 
   void _resetForm() {
@@ -876,6 +939,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       _isActive = true;
       _lines = <_InvoiceLineDraft>[_InvoiceLineDraft()];
       _formError = null;
+      _salesChain = null;
     });
   }
 
@@ -908,19 +972,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       orElse: () => null,
     );
     return allowedUomsForItem(item, _uoms, _uomConversions);
-  }
-
-  int? _resolveDefaultUom(int? itemId, int? currentUomId) {
-    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return defaultSalesUomIdForItem(
-      item,
-      _uoms,
-      _uomConversions,
-      current: currentUomId,
-    );
   }
 
   void _addLine() {
@@ -1181,6 +1232,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            CrmSalesPipelineBar(data: _salesChain),
             if (_selectedItem != null && totalStr.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
@@ -1340,7 +1392,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   enabled: _canEdit,
-                  validator: Validators.optionalDate('Due Date'),
+                  validator: Validators.compose([
+                    Validators.optionalDate('Due Date'),
+                    Validators.optionalDateOnOrAfter(
+                      'Due Date',
+                      () => _invoiceDateController.text.trim(),
+                      startFieldName: 'Invoice Date',
+                    ),
+                  ]),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Customer',
@@ -1612,9 +1671,23 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                             line.itemId = value;
                             line.salesOrderLineId = null;
                             line.salesDeliveryLineId = null;
-                            line.uomId = _resolveDefaultUom(
-                              value,
-                              line.uomId,
+                            final item = _itemsLookup
+                                .cast<ItemModel?>()
+                                .firstWhere(
+                                  (e) => e?.id == value,
+                                  orElse: () => null,
+                                );
+                            applySalesLineDefaultsFromItemMaster(
+                              item: item,
+                              uoms: _uoms,
+                              conversions: _uomConversions,
+                              rateController: line.rateController,
+                              setUom: (u) => line.uomId = u,
+                              currentUomId: line.uomId,
+                              setTaxCodeId: (t) => line.taxCodeId = t,
+                              setWarehouseId: (w) => line.warehouseId = w,
+                              currentWarehouseId: line.warehouseId,
+                              warehouses: _warehouses,
                             );
                           });
                         },

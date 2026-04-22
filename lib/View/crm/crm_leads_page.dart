@@ -1,5 +1,6 @@
 import '../../screen.dart';
 import '../purchase/purchase_support.dart';
+import 'crm_sales_pipeline_bar.dart';
 
 void _openCrmShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -72,6 +73,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   String _leadStatus = 'new';
   List<_LeadActivityDraft> _activities = <_LeadActivityDraft>[];
   int? _expandedActivityIndex;
+  Map<String, dynamic>? _salesChain;
 
   @override
   void initState() {
@@ -230,6 +232,22 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       _expandedActivityIndex = null;
       _formError = null;
     });
+    await _refreshSalesChainForLead(id);
+  }
+
+  Future<void> _refreshSalesChainForLead(int leadId) async {
+    try {
+      final response = await _crmService.salesChain(leadId: leadId);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = response.data);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _salesChain = null);
+    }
   }
 
   void _resetForm() {
@@ -517,6 +535,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             AppErrorStateView.inline(message: _formError!),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
+          if (intValue(_selectedItem?.toJson() ?? const {}, 'id') != null)
+            CrmSalesPipelineBar(data: _salesChain),
           SettingsFormWrap(
             children: [
               AppDropdownField<int>.fromMapped(
@@ -537,7 +557,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               AppFormTextField(
                 controller: _leadNameController,
                 labelText: 'Lead Name',
-                validator: Validators.required('Lead Name'),
+                validator: Validators.compose([
+                  Validators.required('Lead Name'),
+                  Validators.optionalMaxLength(255, 'Lead Name'),
+                ]),
               ),
               AppFormTextField(
                 controller: _companyNameController,
