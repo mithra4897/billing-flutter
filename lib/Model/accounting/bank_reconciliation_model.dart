@@ -4,6 +4,7 @@ class BankReconciliationModel implements JsonModel {
   const BankReconciliationModel({
     this.id,
     this.accountId,
+    this.voucherId,
     this.voucherLineId,
     this.bankDate,
     this.clearedDate,
@@ -25,6 +26,7 @@ class BankReconciliationModel implements JsonModel {
 
   final int? id;
   final int? accountId;
+  final int? voucherId;
   final int? voucherLineId;
   final String? bankDate;
   final String? clearedDate;
@@ -55,6 +57,9 @@ class BankReconciliationModel implements JsonModel {
     return BankReconciliationModel(
       id: _nullableInt(json['id']),
       accountId: _nullableInt(json['account_id'] ?? account['id']),
+      voucherId: _nullableInt(
+        voucher['id'] ?? voucherLine['voucher_id'],
+      ),
       voucherLineId: _nullableInt(json['voucher_line_id'] ?? voucherLine['id']),
       bankDate: json['bank_date']?.toString(),
       clearedDate: json['cleared_date']?.toString(),

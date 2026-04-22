@@ -188,7 +188,7 @@ class _BankReconciliationManagementPageState
   void _selectRecord(BankReconciliationModel item) {
     _selectedRecord = item;
     _accountId = item.accountId;
-    _voucherId = null;
+    _voucherId = item.voucherId;
     _voucherLineId = item.voucherLineId;
     _status = item.reconciliationStatus ?? 'pending';
     _bankDateController.text = item.bankDate?.split('T').first.split(' ').first ?? '';
@@ -198,6 +198,7 @@ class _BankReconciliationManagementPageState
     _formError = null;
     _voucherLineOptions = const <VoucherLineModel>[];
     setState(() {});
+    _loadVoucherLinesForSelection();
   }
 
   void _resetForm() {
@@ -382,6 +383,16 @@ class _BankReconciliationManagementPageState
                     onChanged: (value) =>
                         setState(() => _status = value ?? 'pending'),
                   ),
+                  if (_status == 'bounced' || _status == 'cancelled') ...[
+                    const SizedBox(height: AppUiConstants.spacingSm),
+                    Text(
+                      'Bounced/cancelled here only updates this reconciliation row. '
+                      'It does not reverse GL vouchers or change sales/purchase payment status—post dishonour/reversal entries and update source documents separately.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                    ),
+                  ],
                   AppFormTextField(
                     labelText: 'Bank Date',
                     controller: _bankDateController,
@@ -404,6 +415,14 @@ class _BankReconciliationManagementPageState
                     labelText: 'Remarks',
                     controller: _remarksController,
                     maxLines: 3,
+                    validator: (value) {
+                      if (_status == 'bounced' || _status == 'cancelled') {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Remarks required for bounced or cancelled';
+                        }
+                      }
+                      return null;
+                    },
                   ),
                 ],
               ),
