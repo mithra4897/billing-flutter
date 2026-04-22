@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import 'hr_workflow_dialogs.dart';
 
 class LeaveRequestManagementPage extends StatefulWidget {
   const LeaveRequestManagementPage({super.key, this.embedded = false});
@@ -19,6 +20,14 @@ class _LeaveRequestManagementPageState
         AppDropdownItem(value: 'rejected', label: 'Rejected'),
       ];
 
+  static const List<AppDropdownItem<String?>> _listStatusFilterItems =
+      <AppDropdownItem<String?>>[
+        AppDropdownItem<String?>(value: null, label: 'All statuses'),
+        AppDropdownItem<String?>(value: 'pending', label: 'Pending'),
+        AppDropdownItem<String?>(value: 'approved', label: 'Approved'),
+        AppDropdownItem<String?>(value: 'rejected', label: 'Rejected'),
+      ];
+
   final HrService _hrService = HrService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
@@ -28,17 +37,24 @@ class _LeaveRequestManagementPageState
   final TextEditingController _fromDateController = TextEditingController();
   final TextEditingController _toDateController = TextEditingController();
   final TextEditingController _reasonController = TextEditingController();
+  final TextEditingController _listDateFromController = TextEditingController();
+  final TextEditingController _listDateToController = TextEditingController();
 
   bool _initialLoading = true;
   bool _saving = false;
   String? _pageError;
   String? _formError;
+  String? _companyBanner;
+  int? _sessionCompanyId;
+  bool _canViewAllHr = false;
+  int? _linkedEmployeeId;
+  int? _listFilterEmployeeId;
+  String? _listFilterStatus;
   List<LeaveRequestModel> _leaveRequests = const <LeaveRequestModel>[];
   List<LeaveRequestModel> _filteredLeaveRequests = const <LeaveRequestModel>[];
   List<EmployeeModel> _employees = const <EmployeeModel>[];
   List<LeaveTypeModel> _leaveTypes = const <LeaveTypeModel>[];
   LeaveRequestModel? _selectedLeaveRequest;
-  int? _contextCompanyId;
   int? _employeeId;
   int? _leaveTypeId;
   String _status = 'pending';
@@ -46,19 +62,27 @@ class _LeaveRequestManagementPageState
   @override
   void initState() {
     super.initState();
+    WorkingContextService.version.addListener(_onWorkingContextChanged);
     _searchController.addListener(_applySearch);
     _loadData();
   }
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_onWorkingContextChanged);
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
     _fromDateController.dispose();
     _toDateController.dispose();
     _reasonController.dispose();
+    _listDateFromController.dispose();
+    _listDateToController.dispose();
     super.dispose();
+  }
+
+  void _onWorkingContextChanged() {
+    _loadData();
   }
 
   Future<void> _loadData({int? selectId}) async {
@@ -68,16 +92,89 @@ class _LeaveRequestManagementPageState
     });
 
     try {
+      final info = await hrSessionCompanyInfo();
+      final cid = info.companyId;
+      if (cid == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _companyBanner = info.banner;
+          _sessionCompanyId = null;
+          _canViewAllHr = false;
+          _linkedEmployeeId = null;
+          _leaveRequests = const <LeaveRequestModel>[];
+          _filteredLeaveRequests = const <LeaveRequestModel>[];
+          _initialLoading = false;
+          _pageError = 'Select a session company to load leave requests.';
+        });
+        _resetForm();
+        return;
+      }
+
+      final ctxRes = await _hrService.expenseClaimsLinkedEmployee(
+        companyId: cid,
+      );
+      final ctx = ctxRes.data ?? const <String, dynamic>{};
+      final viewAll =
+          ctx['can_view_all_hr_records'] == true ||
+          ctx['can_view_all_hr_records'] == 1 ||
+          ctx['can_view_all_claims'] == true ||
+          ctx['can_view_all_claims'] == 1;
+      final linked = intValue(ctx, 'employee_id');
+
+      if (!viewAll && linked == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _companyBanner = info.banner;
+          _sessionCompanyId = cid;
+          _canViewAllHr = false;
+          _linkedEmployeeId = null;
+          _leaveRequests = const <LeaveRequestModel>[];
+          _filteredLeaveRequests = const <LeaveRequestModel>[];
+          _initialLoading = false;
+          _pageError =
+              'No employee record is linked to your user for this company. '
+              'Your user employee code must match an employee in HR.';
+        });
+        _resetForm();
+        return;
+      }
+
+      final filters = <String, dynamic>{
+        'company_id': cid,
+        'per_page': 200,
+      };
+      if (viewAll && _listFilterEmployeeId != null) {
+        filters['employee_id'] = _listFilterEmployeeId;
+      }
+      if (viewAll &&
+          _listFilterStatus != null &&
+          _listFilterStatus!.isNotEmpty) {
+        filters['status'] = _listFilterStatus;
+      }
+      final dateFrom = _listDateFromController.text.trim();
+      final dateTo = _listDateToController.text.trim();
+      if (dateFrom.isNotEmpty) {
+        filters['date_from'] = dateFrom;
+      }
+      if (dateTo.isNotEmpty) {
+        filters['date_to'] = dateTo;
+      }
+
       final responses = await Future.wait<dynamic>([
-        _hrService.leaveRequests(filters: const {'per_page': 200}),
+        _hrService.leaveRequests(filters: filters),
         _hrService.leaveTypes(
           filters: const {'per_page': 200, 'sort_by': 'leave_name'},
         ),
         _hrService.employees(
-          filters: const {'per_page': 200, 'sort_by': 'employee_name'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
+          filters: <String, dynamic>{
+            'per_page': 500,
+            'sort_by': 'employee_name',
+            'company_id': cid,
+          },
         ),
       ]);
 
@@ -90,23 +187,16 @@ class _LeaveRequestManagementPageState
       final employees =
           (responses[2] as PaginatedResponse<EmployeeModel>).data ??
           const <EmployeeModel>[];
-      final companies =
-          (responses[3] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
 
-      final activeCompanies = companies.where((item) => item.isActive).toList();
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies: activeCompanies,
-            branches: const <BranchModel>[],
-            locations: const <BusinessLocationModel>[],
-            financialYears: const <FinancialYearModel>[],
-          );
-
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
-        _contextCompanyId = contextSelection.companyId;
+        _companyBanner = info.banner;
+        _sessionCompanyId = cid;
+        _canViewAllHr = viewAll;
+        _linkedEmployeeId = linked;
         _leaveRequests = leaveRequests;
         _leaveTypes = leaveTypes;
         _employees = employees;
@@ -115,6 +205,7 @@ class _LeaveRequestManagementPageState
           _searchController.text,
         );
         _initialLoading = false;
+        _pageError = null;
       });
 
       final selected = selectId != null
@@ -139,7 +230,9 @@ class _LeaveRequestManagementPageState
         _resetForm();
       }
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _pageError = error.toString();
         _initialLoading = false;
@@ -147,14 +240,23 @@ class _LeaveRequestManagementPageState
     }
   }
 
-  final MasterService _masterService = MasterService();
-
-  List<EmployeeModel> get _scopedEmployees {
-    return _employees
-        .where((item) {
-          return _contextCompanyId == null ||
-              item.companyId == _contextCompanyId;
-        })
+  List<EmployeeModel> get _formEmployees {
+    if (_sessionCompanyId == null) {
+      return const <EmployeeModel>[];
+    }
+    final base = _employees
+        .where(
+          (item) => item.companyId == _sessionCompanyId && item.id != null,
+        )
+        .toList(growable: false);
+    if (_canViewAllHr) {
+      return base;
+    }
+    if (_linkedEmployeeId == null) {
+      return base;
+    }
+    return base
+        .where((item) => item.id == _linkedEmployeeId)
         .toList(growable: false);
   }
 
@@ -183,21 +285,7 @@ class _LeaveRequestManagementPageState
     List<LeaveRequestModel> source,
     String query,
   ) {
-    final allowedEmployeeIds = _scopedEmployees
-        .map((item) => item.id)
-        .whereType<int>()
-        .toSet();
-    final scoped = _contextCompanyId == null
-        ? source
-        : source
-              .where(
-                (item) =>
-                    item.employeeId == null ||
-                    allowedEmployeeIds.contains(item.employeeId),
-              )
-              .toList(growable: false);
-
-    return filterMasterList(scoped, query, (item) {
+    return filterMasterList(source, query, (LeaveRequestModel item) {
       return [
         item.employeeCode ?? '',
         item.employeeName ?? '',
@@ -231,7 +319,8 @@ class _LeaveRequestManagementPageState
 
   void _resetForm() {
     _selectedLeaveRequest = null;
-    _employeeId = null;
+    _employeeId =
+        (!_canViewAllHr && _linkedEmployeeId != null) ? _linkedEmployeeId : null;
     _leaveTypeId = null;
     _fromDateController.clear();
     _toDateController.clear();
@@ -463,24 +552,111 @@ class _LeaveRequestManagementPageState
       title: 'Leave Requests',
       editorTitle: _selectedLeaveRequest?.toString(),
       scrollController: _pageScrollController,
-      list: SettingsListCard<LeaveRequestModel>(
-        searchController: _searchController,
-        searchHint: 'Search leave requests',
-        items: _filteredLeaveRequests,
-        selectedItem: _selectedLeaveRequest,
-        emptyMessage: 'No leave requests found.',
-        itemBuilder: (item, selected) => SettingsListTile(
-          title: item.employeeName ?? item.employeeCode ?? '-',
-          subtitle: [
-            item.leaveTypeName ?? '',
-            item.fromDate ?? '',
-            item.toDate ?? '',
-            item.status ?? '',
-          ].where((value) => value.isNotEmpty).join(' • '),
-          detail: item.reason ?? '',
-          selected: selected,
-          onTap: () => _selectLeaveRequest(item),
-        ),
+      list: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_companyBanner != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.apartment_outlined,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: AppUiConstants.spacingSm),
+                  Expanded(
+                    child: Text(
+                      'Session company: $_companyBanner',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (_canViewAllHr) ...[
+            AppDropdownField<int?>.fromMapped(
+              labelText: 'Employee filter',
+              mappedItems: <AppDropdownItem<int?>>[
+                const AppDropdownItem<int?>(value: null, label: 'All employees'),
+                ..._employees
+                    .where(
+                      (e) =>
+                          e.companyId == _sessionCompanyId && e.id != null,
+                    )
+                    .map(
+                      (e) => AppDropdownItem<int?>(
+                        value: e.id,
+                        label: e.toString(),
+                      ),
+                    ),
+              ],
+              initialValue: _listFilterEmployeeId,
+              onChanged: (int? v) {
+                setState(() => _listFilterEmployeeId = v);
+                _loadData();
+              },
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            AppDropdownField<String?>.fromMapped(
+              labelText: 'Status filter',
+              mappedItems: _listStatusFilterItems,
+              initialValue: _listFilterStatus,
+              onChanged: (String? v) {
+                setState(() => _listFilterStatus = v);
+                _loadData();
+              },
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
+          AppFormTextField(
+            controller: _listDateFromController,
+            labelText: 'List from date',
+            hintText: 'Filter overlapping from…',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppFormTextField(
+            controller: _listDateToController,
+            labelText: 'List to date',
+            hintText: 'Filter overlapping to…',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _loadData,
+              icon: const Icon(Icons.filter_alt_outlined, size: 20),
+              label: const Text('Apply date filters'),
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          SettingsListCard<LeaveRequestModel>(
+            searchController: _searchController,
+            searchHint: 'Search leave requests',
+            items: _filteredLeaveRequests,
+            selectedItem: _selectedLeaveRequest,
+            emptyMessage: 'No leave requests found.',
+            itemBuilder: (LeaveRequestModel item, bool selected) =>
+                SettingsListTile(
+              title: item.employeeName ?? item.employeeCode ?? '-',
+              subtitle: [
+                item.leaveTypeName ?? '',
+                item.fromDate ?? '',
+                item.toDate ?? '',
+                item.status ?? '',
+              ].where((String value) => value.isNotEmpty).join(' • '),
+              detail: item.reason ?? '',
+              selected: selected,
+              onTap: () => _selectLeaveRequest(item),
+            ),
+          ),
+        ],
       ),
       editor: Form(
         key: _formKey,
@@ -495,17 +671,17 @@ class _LeaveRequestManagementPageState
               children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Employee',
-                  mappedItems: _scopedEmployees
-                      .where((item) => item.id != null)
+                  mappedItems: _formEmployees
+                      .where((EmployeeModel item) => item.id != null)
                       .map(
-                        (item) => AppDropdownItem(
+                        (EmployeeModel item) => AppDropdownItem<int>(
                           value: item.id!,
                           label: item.toString(),
                         ),
                       )
                       .toList(growable: false),
                   initialValue: _employeeId,
-                  onChanged: (value) => setState(() => _employeeId = value),
+                  onChanged: (int? value) => setState(() => _employeeId = value),
                   validator: Validators.requiredSelection('Employee'),
                 ),
                 InlineFieldAction(

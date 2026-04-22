@@ -9,6 +9,7 @@ class EmployeeSalaryStructureModel implements JsonModel {
     this.basicSalary,
     this.grossSalary,
     this.netSalary,
+    this.ctcMonthly,
     this.isActive = true,
     this.components = const <EmployeeSalaryComponentModel>[],
     this.raw,
@@ -20,6 +21,7 @@ class EmployeeSalaryStructureModel implements JsonModel {
   final double? basicSalary;
   final double? grossSalary;
   final double? netSalary;
+  final double? ctcMonthly;
   final bool isActive;
   final List<EmployeeSalaryComponentModel> components;
   final Map<String, dynamic>? raw;
@@ -38,6 +40,7 @@ class EmployeeSalaryStructureModel implements JsonModel {
       basicSalary: _double(json['basic_salary']),
       grossSalary: _double(json['gross_salary']),
       netSalary: _double(json['net_salary']),
+      ctcMonthly: _double(json['ctc_monthly']),
       isActive: _bool(json['is_active'], fallback: true),
       components: components,
       raw: json,
@@ -53,6 +56,7 @@ class EmployeeSalaryStructureModel implements JsonModel {
       if (basicSalary != null) 'basic_salary': basicSalary,
       if (grossSalary != null) 'gross_salary': grossSalary,
       if (netSalary != null) 'net_salary': netSalary,
+      if (ctcMonthly != null) 'ctc_monthly': ctcMonthly,
       'is_active': isActive,
       'components': components.map((item) => item.toJson()).toList(),
     };
@@ -65,6 +69,7 @@ class EmployeeSalaryStructureModel implements JsonModel {
     double? basicSalary,
     double? grossSalary,
     double? netSalary,
+    double? ctcMonthly,
     bool? isActive,
     List<EmployeeSalaryComponentModel>? components,
   }) {
@@ -75,6 +80,7 @@ class EmployeeSalaryStructureModel implements JsonModel {
       basicSalary: basicSalary ?? this.basicSalary,
       grossSalary: grossSalary ?? this.grossSalary,
       netSalary: netSalary ?? this.netSalary,
+      ctcMonthly: ctcMonthly ?? this.ctcMonthly,
       isActive: isActive ?? this.isActive,
       components: components ?? this.components,
       raw: raw,

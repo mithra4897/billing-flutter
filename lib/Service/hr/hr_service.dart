@@ -1,5 +1,6 @@
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
+import '../../model/common/erp_record_model.dart';
 import '../../model/hr/attendance_record_model.dart';
 import '../../model/hr/department_model.dart';
 import '../../model/hr/designation_model.dart';
@@ -15,6 +16,43 @@ import '../base/erp_module_service.dart';
 
 class HrService extends ErpModuleService {
   HrService({super.apiClient});
+
+  Future<PaginatedResponse<ErpRecordModel>> statutoryProfiles({
+    Map<String, dynamic>? filters,
+  }) =>
+      paginated<ErpRecordModel>(
+        '/hr/statutory-profiles',
+        filters: filters,
+        fromJson: ErpRecordModel.fromJson,
+      );
+
+  Future<ApiResponse<ErpRecordModel>> statutoryProfile(int id) =>
+      object<ErpRecordModel>(
+        '/hr/statutory-profiles/$id',
+        fromJson: ErpRecordModel.fromJson,
+      );
+
+  Future<ApiResponse<ErpRecordModel>> createStatutoryProfile(
+    Map<String, dynamic> body,
+  ) =>
+      createModel<ErpRecordModel>(
+        '/hr/statutory-profiles',
+        body,
+        fromJson: ErpRecordModel.fromJson,
+      );
+
+  Future<ApiResponse<ErpRecordModel>> updateStatutoryProfile(
+    int id,
+    Map<String, dynamic> body,
+  ) =>
+      updateModel<ErpRecordModel>(
+        '/hr/statutory-profiles/$id',
+        body,
+        fromJson: ErpRecordModel.fromJson,
+      );
+
+  Future<ApiResponse<dynamic>> deleteStatutoryProfile(int id) =>
+      destroy('/hr/statutory-profiles/$id');
 
   Future<PaginatedResponse<DepartmentModel>> departments({
     Map<String, dynamic>? filters,
@@ -320,7 +358,7 @@ class HrService extends ErpModuleService {
     required int companyId,
   }) =>
       client.get<Map<String, dynamic>>(
-        '/hr/expense-claims/linked-employee',
+        '/hr/linked-employee',
         queryParameters: <String, dynamic>{'company_id': companyId},
         fromData: (dynamic json) {
           if (json is Map<String, dynamic>) {

@@ -1,5 +1,4 @@
 import '../../../screen.dart';
-import '../../../model/inventory/opening_stock_model.dart';
 import 'item_alternate_page.dart';
 import 'item_price_page.dart';
 import 'item_supplier_map_page.dart';

@@ -11,6 +11,7 @@ import '../hr/designation_page.dart';
 import '../hr/employee_page.dart';
 import '../hr/expense_claims_page.dart';
 import '../hr/hr_registers.dart';
+import '../hr/hr_statutory_settings_page.dart';
 import '../hr/leave_request_page.dart';
 import '../hr/leave_type_page.dart';
 import '../inventory/inventory_inquiry_page.dart';
@@ -472,6 +473,8 @@ class _AppShellPageState extends State<AppShellPage> {
         );
       case '/hr/leave-types':
         return LeaveTypeManagementPage(key: routeKey, embedded: true);
+      case '/hr/statutory-settings':
+        return HrStatutorySettingsPage(key: routeKey, embedded: true);
       case '/hr/leave-requests':
         return LeaveRequestManagementPage(key: routeKey, embedded: true);
       case '/hr/attendance':

@@ -167,10 +167,6 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
   int? _linkedEmployeeId;
   bool _canViewAllClaims = false;
 
-  bool _canApprove = false;
-  bool _canUpdateHr = false;
-  bool _canDelete = false;
-
   List<EmployeeModel> _employees = const <EmployeeModel>[];
   int? _employeeId;
 
@@ -202,7 +198,6 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
     super.initState();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
     _searchController.addListener(() => setState(() {}));
-    _loadPermissions();
     _loadPage();
   }
 
@@ -221,21 +216,6 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
 
   void _onWorkingContextChanged() {
     _loadPage();
-  }
-
-  Future<void> _loadPermissions() async {
-    final codes = await SessionStorage.getPermissionCodes();
-    final user = await SessionStorage.getCurrentUser();
-    if (!mounted) {
-      return;
-    }
-    final superAdmin =
-        user?['is_super_admin'] == true || user?['is_super_admin'] == 1;
-    setState(() {
-      _canApprove = superAdmin || codes.contains('hr.approve');
-      _canUpdateHr = superAdmin || codes.contains('hr.update');
-      _canDelete = superAdmin || codes.contains('hr.delete');
-    });
   }
 
   void _disposeLineEditors() {
@@ -310,7 +290,10 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
       final ctxRes = await _hr.expenseClaimsLinkedEmployee(companyId: cid);
       final ctx = ctxRes.data ?? const <String, dynamic>{};
       final viewAll =
-          ctx['can_view_all_claims'] == true || ctx['can_view_all_claims'] == 1;
+          ctx['can_view_all_claims'] == true ||
+          ctx['can_view_all_claims'] == 1 ||
+          ctx['can_view_all_hr_records'] == true ||
+          ctx['can_view_all_hr_records'] == 1;
       final linked = intValue(ctx, 'employee_id');
 
       final empResp = await _hr.employees(
@@ -736,8 +719,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                   _selectedListRow!.toJson(),
                   'reimbursement_voucher_id',
                 ));
-    final showReimburse =
-        status == 'approved' && reimbId == null && _canUpdateHr;
+    final showReimburse = status == 'approved' && reimbId == null;
     final showSaveDraft =
         _editorEditable && (_isNewClaim || status == 'draft' || status == null);
 
@@ -934,7 +916,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                if (status == 'draft' && _canApprove) ...[
+                if (status == 'draft') ...[
                   FilledButton.tonal(
                     onPressed: () async {
                       final res = await _hr.approveExpenseClaim(
@@ -965,7 +947,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                     child: const Text('Reject'),
                   ),
                 ],
-                if (status == 'draft' && _canUpdateHr) ...[
+                if (status == 'draft') ...[
                   FilledButton.tonal(
                     onPressed: () async {
                       await openExpenseClaimCancelDialog(
@@ -978,7 +960,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                     child: const Text('Cancel draft'),
                   ),
                 ],
-                if (status == 'draft' && _canDelete)
+                if (status == 'draft')
                   FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.error,

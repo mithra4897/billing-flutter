@@ -144,6 +144,16 @@ class _HrCompanyContextFilters extends StatelessWidget {
   }
 }
 
+const List<AppDropdownItem<String?>> _hrAttendanceStatusFilterItems =
+    <AppDropdownItem<String?>>[
+  AppDropdownItem<String?>(value: null, label: 'All statuses'),
+  AppDropdownItem<String?>(value: 'present', label: 'Present'),
+  AppDropdownItem<String?>(value: 'absent', label: 'Absent'),
+  AppDropdownItem<String?>(value: 'leave', label: 'Leave'),
+  AppDropdownItem<String?>(value: 'half_day', label: 'Half day'),
+  AppDropdownItem<String?>(value: 'holiday', label: 'Holiday'),
+];
+
 String _payrollPeriodLabel(Map<String, dynamic> data) {
   final y = stringValue(data, 'payroll_year');
   final m = stringValue(data, 'payroll_month');
@@ -151,28 +161,6 @@ String _payrollPeriodLabel(Map<String, dynamic> data) {
     return '';
   }
   return '$y-${m.padLeft(2, '0')}';
-}
-
-int? _attendanceRowCompanyId(AttendanceRecordModel row) {
-  final emp = _asJsonMap(row.toJson()['employee']);
-  if (emp == null) {
-    return null;
-  }
-  return intValue(emp, 'company_id');
-}
-
-int? _payslipRowCompanyId(PayslipModel row) {
-  final data = row.toJson();
-  final line =
-      _asJsonMap(data['payroll_line']) ?? _asJsonMap(data['payrollLine']);
-  if (line == null) {
-    return null;
-  }
-  final emp = _asJsonMap(line['employee']);
-  if (emp == null) {
-    return null;
-  }
-  return intValue(emp, 'company_id');
 }
 
 class AttendanceRegisterPage extends StatefulWidget {
@@ -188,9 +176,16 @@ class AttendanceRegisterPage extends StatefulWidget {
 class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
   final HrService _service = HrService();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
   bool _loading = true;
   String? _error;
   String? _companyBanner;
+  int? _sessionCompanyId;
+  bool _canViewAllHr = false;
+  int? _filterEmployeeId;
+  String? _filterAttendanceStatus;
+  List<EmployeeModel> _employees = const <EmployeeModel>[];
   List<AttendanceRecordModel> _rows = const <AttendanceRecordModel>[];
 
   @override
@@ -205,6 +200,8 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
   void dispose() {
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     _searchController.dispose();
+    _dateFromController.dispose();
+    _dateToController.dispose();
     super.dispose();
   }
 
@@ -219,23 +216,97 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
     });
     try {
       final info = await hrSessionCompanyInfo();
-      final response = await _service.attendance(
-        filters: const {'per_page': 200},
+      final cid = info.companyId;
+      if (cid == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _companyBanner = info.banner;
+          _sessionCompanyId = null;
+          _canViewAllHr = false;
+          _employees = const <EmployeeModel>[];
+          _rows = const <AttendanceRecordModel>[];
+          _loading = false;
+          _error = 'Select a session company to load attendance records.';
+        });
+        return;
+      }
+
+      final ctxRes = await _service.expenseClaimsLinkedEmployee(
+        companyId: cid,
       );
+      final ctx = ctxRes.data ?? const <String, dynamic>{};
+      final viewAll =
+          ctx['can_view_all_hr_records'] == true ||
+          ctx['can_view_all_hr_records'] == 1 ||
+          ctx['can_view_all_claims'] == true ||
+          ctx['can_view_all_claims'] == 1;
+      final linked = intValue(ctx, 'employee_id');
+
+      if (!viewAll && linked == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _companyBanner = info.banner;
+          _sessionCompanyId = cid;
+          _canViewAllHr = false;
+          _employees = const <EmployeeModel>[];
+          _rows = const <AttendanceRecordModel>[];
+          _loading = false;
+          _error =
+              'No employee record is linked to your user for this company. '
+              'Your user employee code must match an employee in HR.';
+        });
+        return;
+      }
+
+      var employees = const <EmployeeModel>[];
+      if (viewAll) {
+        final empResp = await _service.employees(
+          filters: <String, dynamic>{
+            'company_id': cid,
+            'per_page': 500,
+            'sort_by': 'employee_name',
+          },
+        );
+        employees = empResp.data ?? const <EmployeeModel>[];
+      }
+
+      final filters = <String, dynamic>{
+        'company_id': cid,
+        'per_page': 200,
+      };
+      if (viewAll && _filterEmployeeId != null) {
+        filters['employee_id'] = _filterEmployeeId;
+      }
+      if (viewAll &&
+          _filterAttendanceStatus != null &&
+          _filterAttendanceStatus!.isNotEmpty) {
+        filters['status'] = _filterAttendanceStatus;
+      }
+      final dateFrom = _dateFromController.text.trim();
+      final dateTo = _dateToController.text.trim();
+      if (dateFrom.isNotEmpty) {
+        filters['date_from'] = dateFrom;
+      }
+      if (dateTo.isNotEmpty) {
+        filters['date_to'] = dateTo;
+      }
+
+      final response = await _service.attendance(filters: filters);
       if (!mounted) {
         return;
       }
-      var rows = response.data ?? const <AttendanceRecordModel>[];
-      final cid = info.companyId;
-      if (cid != null) {
-        rows = rows
-            .where((r) => _attendanceRowCompanyId(r) == cid)
-            .toList(growable: false);
-      }
       setState(() {
         _companyBanner = info.banner;
-        _rows = rows;
+        _sessionCompanyId = cid;
+        _canViewAllHr = viewAll;
+        _employees = employees;
+        _rows = response.data ?? const <AttendanceRecordModel>[];
         _loading = false;
+        _error = null;
       });
     } catch (error) {
       if (!mounted) {
@@ -302,10 +373,76 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
           },
         ),
       ],
-      filters: _HrCompanyContextFilters(
-        companyBanner: _companyBanner,
-        controller: _searchController,
-        hint: 'Employee, date, status…',
+      filters: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _HrCompanyContextFilters(
+            companyBanner: _companyBanner,
+            controller: _searchController,
+            hint: 'Employee, date, status…',
+          ),
+          if (_canViewAllHr) ...[
+            const SizedBox(height: AppUiConstants.spacingSm),
+            AppDropdownField<int?>.fromMapped(
+              labelText: 'Employee filter',
+              mappedItems: <AppDropdownItem<int?>>[
+                const AppDropdownItem<int?>(
+                  value: null,
+                  label: 'All employees',
+                ),
+                ..._employees
+                    .where(
+                      (EmployeeModel e) =>
+                          e.companyId == _sessionCompanyId && e.id != null,
+                    )
+                    .map(
+                      (EmployeeModel e) => AppDropdownItem<int?>(
+                        value: e.id,
+                        label: e.toString(),
+                      ),
+                    ),
+              ],
+              initialValue: _filterEmployeeId,
+              onChanged: (int? v) {
+                setState(() => _filterEmployeeId = v);
+                _load();
+              },
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            AppDropdownField<String?>.fromMapped(
+              labelText: 'Status',
+              mappedItems: _hrAttendanceStatusFilterItems,
+              initialValue: _filterAttendanceStatus,
+              onChanged: (String? v) {
+                setState(() => _filterAttendanceStatus = v);
+                _load();
+              },
+            ),
+          ],
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppFormTextField(
+            controller: _dateFromController,
+            labelText: 'From date',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppFormTextField(
+            controller: _dateToController,
+            labelText: 'To date',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.filter_alt_outlined, size: 20),
+              label: const Text('Apply date filters'),
+            ),
+          ),
+        ],
       ),
       rows: _filtered,
       columns: [
@@ -541,9 +678,15 @@ class PayslipRegisterPage extends StatefulWidget {
 class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
   final HrService _service = HrService();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
   bool _loading = true;
   String? _error;
   String? _companyBanner;
+  int? _sessionCompanyId;
+  bool _canViewAllHr = false;
+  int? _filterEmployeeId;
+  List<EmployeeModel> _employees = const <EmployeeModel>[];
   List<PayslipModel> _rows = const <PayslipModel>[];
 
   @override
@@ -558,6 +701,8 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
   void dispose() {
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     _searchController.dispose();
+    _dateFromController.dispose();
+    _dateToController.dispose();
     super.dispose();
   }
 
@@ -572,23 +717,92 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
     });
     try {
       final info = await hrSessionCompanyInfo();
-      final response = await _service.payslips(
-        filters: const {'per_page': 200},
+      final cid = info.companyId;
+      if (cid == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _companyBanner = info.banner;
+          _sessionCompanyId = null;
+          _canViewAllHr = false;
+          _employees = const <EmployeeModel>[];
+          _rows = const <PayslipModel>[];
+          _loading = false;
+          _error = 'Select a session company to load payslips.';
+        });
+        return;
+      }
+
+      final ctxRes = await _service.expenseClaimsLinkedEmployee(
+        companyId: cid,
       );
+      final ctx = ctxRes.data ?? const <String, dynamic>{};
+      final viewAll =
+          ctx['can_view_all_hr_records'] == true ||
+          ctx['can_view_all_hr_records'] == 1 ||
+          ctx['can_view_all_claims'] == true ||
+          ctx['can_view_all_claims'] == 1;
+      final linked = intValue(ctx, 'employee_id');
+
+      if (!viewAll && linked == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _companyBanner = info.banner;
+          _sessionCompanyId = cid;
+          _canViewAllHr = false;
+          _employees = const <EmployeeModel>[];
+          _rows = const <PayslipModel>[];
+          _loading = false;
+          _error =
+              'No employee record is linked to your user for this company. '
+              'Your user employee code must match an employee in HR.';
+        });
+        return;
+      }
+
+      var employees = const <EmployeeModel>[];
+      if (viewAll) {
+        final empResp = await _service.employees(
+          filters: <String, dynamic>{
+            'company_id': cid,
+            'per_page': 500,
+            'sort_by': 'employee_name',
+          },
+        );
+        employees = empResp.data ?? const <EmployeeModel>[];
+      }
+
+      final filters = <String, dynamic>{
+        'company_id': cid,
+        'per_page': 200,
+      };
+      if (viewAll && _filterEmployeeId != null) {
+        filters['employee_id'] = _filterEmployeeId;
+      }
+      final dateFrom = _dateFromController.text.trim();
+      final dateTo = _dateToController.text.trim();
+      if (dateFrom.isNotEmpty) {
+        filters['date_from'] = dateFrom;
+      }
+      if (dateTo.isNotEmpty) {
+        filters['date_to'] = dateTo;
+      }
+
+      final response = await _service.payslips(filters: filters);
       if (!mounted) {
         return;
       }
-      var rows = response.data ?? const <PayslipModel>[];
-      final cid = info.companyId;
-      if (cid != null) {
-        rows = rows
-            .where((r) => _payslipRowCompanyId(r) == cid)
-            .toList(growable: false);
-      }
       setState(() {
         _companyBanner = info.banner;
-        _rows = rows;
+        _sessionCompanyId = cid;
+        _canViewAllHr = viewAll;
+        _employees = employees;
+        _rows = response.data ?? const <PayslipModel>[];
         _loading = false;
+        _error = null;
       });
     } catch (error) {
       if (!mounted) {
@@ -630,10 +844,66 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
       onRetry: _load,
       emptyMessage: 'No payslips found.',
       actions: const <Widget>[],
-      filters: _HrCompanyContextFilters(
-        companyBanner: _companyBanner,
-        controller: _searchController,
-        hint: 'Employee, period, date…',
+      filters: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _HrCompanyContextFilters(
+            companyBanner: _companyBanner,
+            controller: _searchController,
+            hint: 'Employee, period, date…',
+          ),
+          if (_canViewAllHr) ...[
+            const SizedBox(height: AppUiConstants.spacingSm),
+            AppDropdownField<int?>.fromMapped(
+              labelText: 'Employee filter',
+              mappedItems: <AppDropdownItem<int?>>[
+                const AppDropdownItem<int?>(
+                  value: null,
+                  label: 'All employees',
+                ),
+                ..._employees
+                    .where(
+                      (EmployeeModel e) =>
+                          e.companyId == _sessionCompanyId && e.id != null,
+                    )
+                    .map(
+                      (EmployeeModel e) => AppDropdownItem<int?>(
+                        value: e.id,
+                        label: e.toString(),
+                      ),
+                    ),
+              ],
+              initialValue: _filterEmployeeId,
+              onChanged: (int? v) {
+                setState(() => _filterEmployeeId = v);
+                _load();
+              },
+            ),
+          ],
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppFormTextField(
+            controller: _dateFromController,
+            labelText: 'Payslip from date',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppFormTextField(
+            controller: _dateToController,
+            labelText: 'Payslip to date',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.filter_alt_outlined, size: 20),
+              label: const Text('Apply date filters'),
+            ),
+          ),
+        ],
       ),
       rows: _filtered,
       columns: [

@@ -253,6 +253,13 @@ class AppNavigation {
               path: '/hr/leave-types',
               requiredPermissions: ['hr.view'],
             ),
+            AppNavigationItem(
+              key: 'hr-statutory-settings',
+              title: 'PF, ESI & PT',
+              icon: Icons.calculate_outlined,
+              path: '/hr/statutory-settings',
+              requiredPermissions: ['hr.view'],
+            ),
           ],
         ),
         AppNavigationItem(

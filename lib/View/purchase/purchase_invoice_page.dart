@@ -424,6 +424,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
 
   List<BranchModel> get _branchOptions =>
       branchesForCompany(_branches, _companyId);
+
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
 
@@ -951,10 +952,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                               line.copyWith(uomId: value ?? 0),
                             ),
                             validator: (_) {
-                              if (line.itemId == null) {
-                                return 'Select item first';
-                              }
-                              return (line.uomId == null || line.uomId == 0)
+                              return (line.uomId == 0)
                                   ? 'UOM is required'
                                   : null;
                             },

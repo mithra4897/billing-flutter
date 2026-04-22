@@ -779,7 +779,7 @@ class InventoryService extends ErpModuleService {
     ApiEndpoints.inquiryStockSummary,
     queryParameters: <String, dynamic>{
       'item_id': itemId,
-      if (companyId != null) 'company_id': companyId,
+      'company_id': ?companyId,
     },
     fromData: (dynamic json) => json,
   );
@@ -791,7 +791,7 @@ class InventoryService extends ErpModuleService {
     ApiEndpoints.inquiryWarehouseWiseStock,
     queryParameters: <String, dynamic>{
       'item_id': itemId,
-      if (companyId != null) 'company_id': companyId,
+      'company_id': ?companyId,
     },
     fromData: (dynamic json) => json,
   );
@@ -804,8 +804,8 @@ class InventoryService extends ErpModuleService {
     ApiEndpoints.inquiryBatchWiseStock,
     queryParameters: <String, dynamic>{
       'item_id': itemId,
-      if (companyId != null) 'company_id': companyId,
-      if (warehouseId != null) 'warehouse_id': warehouseId,
+      'company_id': ?companyId,
+      'warehouse_id': ?warehouseId,
     },
     fromData: (dynamic json) => json,
   );
@@ -818,8 +818,8 @@ class InventoryService extends ErpModuleService {
     ApiEndpoints.inquiryAvailableSerials,
     queryParameters: <String, dynamic>{
       'item_id': itemId,
-      if (warehouseId != null) 'warehouse_id': warehouseId,
-      if (batchId != null) 'batch_id': batchId,
+      'warehouse_id': ?warehouseId,
+      'batch_id': ?batchId,
     },
     fromData: (dynamic json) => json,
   );
@@ -831,7 +831,7 @@ class InventoryService extends ErpModuleService {
     ApiEndpoints.inquiryStockCard,
     queryParameters: <String, dynamic>{
       'item_id': itemId,
-      if (companyId != null) 'company_id': companyId,
+      'company_id': ?companyId,
     },
     fromData: (dynamic json) => json,
   );
@@ -843,7 +843,7 @@ class InventoryService extends ErpModuleService {
     ApiEndpoints.inquiryReorderStatus,
     queryParameters: <String, dynamic>{
       'item_id': itemId,
-      if (companyId != null) 'company_id': companyId,
+      'company_id': ?companyId,
     },
     fromData: (dynamic json) => json,
   );

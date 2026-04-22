@@ -7,6 +7,9 @@ class EmployeeSalaryComponentModel implements JsonModel {
     this.componentName,
     this.componentType,
     this.amount,
+    this.calculationBasis,
+    this.percentValue,
+    this.contributionRole,
     this.raw,
   });
 
@@ -15,6 +18,9 @@ class EmployeeSalaryComponentModel implements JsonModel {
   final String? componentName;
   final String? componentType;
   final double? amount;
+  final String? calculationBasis;
+  final double? percentValue;
+  final String? contributionRole;
   final Map<String, dynamic>? raw;
 
   @override
@@ -27,6 +33,9 @@ class EmployeeSalaryComponentModel implements JsonModel {
       componentName: json['component_name']?.toString(),
       componentType: json['component_type']?.toString(),
       amount: _double(json['amount']),
+      calculationBasis: json['calculation_basis']?.toString(),
+      percentValue: _double(json['percent_value']),
+      contributionRole: json['contribution_role']?.toString(),
       raw: json,
     );
   }
@@ -39,6 +48,9 @@ class EmployeeSalaryComponentModel implements JsonModel {
       if (componentName != null) 'component_name': componentName,
       if (componentType != null) 'component_type': componentType,
       if (amount != null) 'amount': amount,
+      if (calculationBasis != null) 'calculation_basis': calculationBasis,
+      if (percentValue != null) 'percent_value': percentValue,
+      if (contributionRole != null) 'contribution_role': contributionRole,
     };
   }
 

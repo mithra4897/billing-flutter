@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../purchase/purchase_support.dart';
 
 class EmployeeManagementPage extends StatefulWidget {
   const EmployeeManagementPage({
@@ -119,10 +120,14 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       TextEditingController();
   final TextEditingController _structureNetSalaryController =
       TextEditingController();
+  final TextEditingController _structureCtcMonthlyController =
+      TextEditingController();
 
   final TextEditingController _componentNameController =
       TextEditingController();
   final TextEditingController _componentAmountController =
+      TextEditingController();
+  final TextEditingController _componentPercentController =
       TextEditingController();
 
   late final TabController _tabController;
@@ -147,7 +152,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   List<DepartmentModel> _departments = const <DepartmentModel>[];
   List<DesignationModel> _designations = const <DesignationModel>[];
   List<CostCenterModel> _costCenters = const <CostCenterModel>[];
-  List<EmployeeAccountModel> _employeeAccounts = const <EmployeeAccountModel>[];
+  List<ExpenseClaimModel> _employeeExpenseClaims = const <ExpenseClaimModel>[];
+  String? _employeeClaimsLoadError;
   List<_EmployeeAddressDraft> _addresses = <_EmployeeAddressDraft>[];
   List<_EmployeeRelationDraft> _relations = <_EmployeeRelationDraft>[];
   List<_EmployeeSalaryStructureDraft> _salaryStructures =
@@ -170,6 +176,22 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   int? _selectedComponentParentKey;
   int? _selectedComponentKey;
   String _componentType = 'earning';
+  String _componentCalculationBasis = 'fixed';
+  String _componentContributionRole = 'employee';
+
+  static const List<AppDropdownItem<String>> _componentCalculationItems =
+      <AppDropdownItem<String>>[
+    AppDropdownItem(value: 'fixed', label: 'Fixed amount'),
+    AppDropdownItem(value: 'percent_basic', label: '% of basic'),
+    AppDropdownItem(value: 'percent_gross', label: '% of gross'),
+    AppDropdownItem(value: 'percent_ctc', label: '% of CTC'),
+  ];
+
+  static const List<AppDropdownItem<String>> _contributionRoleItems =
+      <AppDropdownItem<String>>[
+    AppDropdownItem(value: 'employee', label: 'Employee (payslip)'),
+    AppDropdownItem(value: 'employer', label: 'Employer (CTC cost)'),
+  ];
 
   @override
   void initState() {
@@ -240,8 +262,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureBasicSalaryController.dispose();
     _structureGrossSalaryController.dispose();
     _structureNetSalaryController.dispose();
+    _structureCtcMonthlyController.dispose();
     _componentNameController.dispose();
     _componentAmountController.dispose();
+    _componentPercentController.dispose();
     super.dispose();
   }
 
@@ -381,7 +405,6 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
   Future<void> _selectEmployee(EmployeeModel employee) async {
     final detailResponse = await _hrService.employee(employee.id!);
-    final accountsResponse = await _hrService.employeeAccounts(employee.id!);
     final salaryResponse = await _hrService.employeeSalaryStructures(
       employee.id!,
     );
@@ -425,7 +448,23 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       full.companyInsuranceAmount,
     );
     _costCenterId = full.costCenterId;
-    _employeeAccounts = accountsResponse.data ?? const <EmployeeAccountModel>[];
+    _employeeExpenseClaims = const <ExpenseClaimModel>[];
+    _employeeClaimsLoadError = null;
+    if (full.companyId != null && employee.id != null) {
+      try {
+        final claimsPage = await _hrService.expenseClaims(
+          filters: <String, dynamic>{
+            'company_id': full.companyId!,
+            'employee_id': employee.id!,
+            'per_page': 100,
+          },
+        );
+        _employeeExpenseClaims =
+            claimsPage.data ?? const <ExpenseClaimModel>[];
+      } catch (error) {
+        _employeeClaimsLoadError = error.toString();
+      }
+    }
     _addresses = full.addresses
         .map(_employeeAddressDraftFromModel)
         .toList(growable: true);
@@ -477,7 +516,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _companyInsurancePolicyNoController.clear();
     _companyInsuranceAmountController.clear();
     _costCenterId = null;
-    _employeeAccounts = const <EmployeeAccountModel>[];
+    _employeeExpenseClaims = const <ExpenseClaimModel>[];
+    _employeeClaimsLoadError = null;
     _addresses = <_EmployeeAddressDraft>[];
     _relations = <_EmployeeRelationDraft>[];
     _salaryStructures = <_EmployeeSalaryStructureDraft>[];
@@ -971,6 +1011,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       basicSalary: _decimalText(model.basicSalary),
       grossSalary: _decimalText(model.grossSalary),
       netSalary: _decimalText(model.netSalary),
+      ctcMonthly: _decimalText(model.ctcMonthly),
       isActive: model.isActive,
       components: model.components
           .map(
@@ -980,6 +1021,9 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               componentName: item.componentName ?? '',
               componentType: item.componentType ?? 'earning',
               amount: _decimalText(item.amount),
+              calculationBasis: item.calculationBasis ?? 'fixed',
+              percentValue: _decimalText(item.percentValue),
+              contributionRole: item.contributionRole ?? 'employee',
             ),
           )
           .toList(growable: true),
@@ -993,6 +1037,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureBasicSalaryController.clear();
     _structureGrossSalaryController.clear();
     _structureNetSalaryController.clear();
+    _structureCtcMonthlyController.clear();
     _structureIsActive = true;
     _structureFormError = null;
     if (!silent && mounted) {
@@ -1008,6 +1053,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureBasicSalaryController.clear();
     _structureGrossSalaryController.clear();
     _structureNetSalaryController.clear();
+    _structureCtcMonthlyController.clear();
     _structureIsActive = true;
     _structureFormError = null;
     setState(() {});
@@ -1020,6 +1066,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureBasicSalaryController.text = draft.basicSalary;
     _structureGrossSalaryController.text = draft.grossSalary;
     _structureNetSalaryController.text = draft.netSalary;
+    _structureCtcMonthlyController.text = draft.ctcMonthly;
     _structureIsActive = draft.isActive;
     _structureFormError = null;
     _resetComponentEditor(silent: true);
@@ -1049,6 +1096,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       basicSalary: _structureBasicSalaryController.text.trim(),
       grossSalary: _structureGrossSalaryController.text.trim(),
       netSalary: _structureNetSalaryController.text.trim(),
+      ctcMonthly: _structureCtcMonthlyController.text.trim(),
       isActive: _structureIsActive,
       components: _selectedStructureKey == null
           ? <_EmployeeSalaryComponentDraft>[]
@@ -1096,7 +1144,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _selectedComponentParentKey = null;
     _componentNameController.clear();
     _componentAmountController.clear();
+    _componentPercentController.clear();
     _componentType = 'earning';
+    _componentCalculationBasis = 'fixed';
+    _componentContributionRole = 'employee';
     _componentFormError = null;
     if (!silent && mounted) {
       setState(() {});
@@ -1109,7 +1160,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _selectedComponentParentKey = _salaryStructures.firstOrNull?.key;
     _componentNameController.clear();
     _componentAmountController.clear();
+    _componentPercentController.clear();
     _componentType = 'earning';
+    _componentCalculationBasis = 'fixed';
+    _componentContributionRole = 'employee';
     _componentFormError = null;
     setState(() {});
   }
@@ -1123,7 +1177,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _selectedComponentKey = component.key;
     _componentNameController.text = component.componentName;
     _componentAmountController.text = component.amount;
+    _componentPercentController.text = component.percentValue;
     _componentType = component.componentType;
+    _componentCalculationBasis = component.calculationBasis;
+    _componentContributionRole = component.contributionRole;
     _componentFormError = null;
     setState(() {});
   }
@@ -1138,11 +1195,29 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       return;
     }
     final amountText = _componentAmountController.text.trim();
-    if (amountText.isEmpty ||
-        double.tryParse(amountText) == null ||
-        (double.tryParse(amountText) ?? 0) < 0) {
-      setState(() => _componentFormError = 'Amount must be a valid number.');
-      return;
+    final percentText = _componentPercentController.text.trim();
+    if (_componentCalculationBasis == 'fixed') {
+      if (amountText.isEmpty ||
+          double.tryParse(amountText) == null ||
+          (double.tryParse(amountText) ?? 0) < 0) {
+        setState(() => _componentFormError = 'Amount must be a valid number.');
+        return;
+      }
+    } else {
+      if (percentText.isEmpty ||
+          double.tryParse(percentText) == null ||
+          (double.tryParse(percentText) ?? 0) < 0) {
+        setState(
+          () => _componentFormError = 'Percentage must be a valid number.',
+        );
+        return;
+      }
+      if (amountText.isNotEmpty &&
+          (double.tryParse(amountText) == null ||
+              (double.tryParse(amountText) ?? 0) < 0)) {
+        setState(() => _componentFormError = 'Amount must be a valid number.');
+        return;
+      }
     }
 
     final parentIndex = _salaryStructures.indexWhere(
@@ -1170,7 +1245,13 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           ?.id,
       componentName: _componentNameController.text.trim(),
       componentType: _componentType,
-      amount: amountText,
+      amount: _componentCalculationBasis == 'fixed'
+          ? amountText
+          : (amountText.isEmpty ? '0' : amountText),
+      calculationBasis: _componentCalculationBasis,
+      percentValue:
+          _componentCalculationBasis == 'fixed' ? '' : percentText,
+      contributionRole: _componentContributionRole,
     );
     final componentIndex = nextComponents.indexWhere(
       (item) => item.key == draft.key,
@@ -1522,7 +1603,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               Tab(text: 'Statutory'),
               Tab(text: 'Addresses'),
               Tab(text: 'Relations'),
-              Tab(text: 'Employee Accounts'),
+              Tab(text: 'Claims & pay'),
               Tab(text: 'Salary Structures'),
               Tab(text: 'Salary Components'),
             ],
@@ -1545,8 +1626,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                 child: _buildRelationsTab(),
               ),
               _buildSaveFirstTabMessage(
-                tabLabel: 'Employee Accounts',
-                child: _buildAccountsTab(),
+                tabLabel: 'Claims & reimbursements',
+                child: _buildExpenseClaimsTab(),
               ),
               _buildSaveFirstTabMessage(
                 tabLabel: 'Employee Salary Structures',
@@ -1735,12 +1816,13 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               ),
               AppFormTextField(
                 controller: _bankAccountNoController,
-                labelText: 'Bank Account No',
+                labelText: 'Bank account no. (payout / salary)',
+                hintText: 'Employee bank a/c for transfers — not a GL ledger',
                 validator: Validators.optionalMaxLength(100, 'Bank Account No'),
               ),
               AppFormTextField(
                 controller: _ifscCodeController,
-                labelText: 'IFSC Code',
+                labelText: 'IFSC code',
                 validator: Validators.optionalMaxLength(50, 'IFSC Code'),
               ),
               UploadPathField(
@@ -1783,14 +1865,59 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  Widget _buildAccountsTab() {
-    if (_employeeAccounts.isEmpty) {
-      return const SettingsEmptyState(
-        icon: Icons.account_balance_outlined,
-        title: 'No Employee Accounts',
+  Map<String, int> _expenseClaimStatusCounts() {
+    final counts = <String, int>{
+      'draft': 0,
+      'approved_unpaid': 0,
+      'reimbursed': 0,
+      'other': 0,
+    };
+    for (final ExpenseClaimModel row in _employeeExpenseClaims) {
+      final data = row.toJson();
+      final st = stringValue(data, 'claim_status').toLowerCase();
+      final reimbId = intValue(data, 'reimbursement_voucher_id');
+      if (st == 'draft') {
+        counts['draft'] = (counts['draft'] ?? 0) + 1;
+      } else if (st == 'approved' && reimbId == null) {
+        counts['approved_unpaid'] = (counts['approved_unpaid'] ?? 0) + 1;
+      } else if (st == 'reimbursed') {
+        counts['reimbursed'] = (counts['reimbursed'] ?? 0) + 1;
+      } else {
+        counts['other'] = (counts['other'] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  Widget _buildExpenseClaimsTab() {
+    final theme = Theme.of(context);
+    if (_employeeClaimsLoadError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppErrorStateView.inline(message: _employeeClaimsLoadError!),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Text(
+            'Expense claims for this employee could not be loaded. You need '
+            'permission to view all HR records (or open Expense claims and '
+            'filter by this employee).',
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      );
+    }
+
+    final counts = _expenseClaimStatusCounts();
+    if (_employeeExpenseClaims.isEmpty) {
+      return SettingsEmptyState(
+        icon: Icons.receipt_long_outlined,
+        title: 'No expense claims',
         message:
-            'Employee ledgers will appear here after the employee is saved.',
-        minHeight: 180,
+            'There are no expense claims recorded for this employee in this '
+            'company. Salary payables and payslips are handled under Payroll.\n\n'
+            'Employee advances or other balances would appear in Accounting when '
+            'that module is linked to this employee.',
+        minHeight: 200,
       );
     }
 
@@ -1798,49 +1925,61 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'These accounts are generated by the backend from the employee profile.',
-          style: Theme.of(context).textTheme.bodySmall,
+          'Expense reimbursements for this employee (from HR). '
+          'Draft / submitted claims, approved amounts waiting for payment, and '
+          'reimbursed (paid) items are summarized below.',
+          style: theme.textTheme.bodySmall,
         ),
         const SizedBox(height: AppUiConstants.spacingMd),
-        ..._employeeAccounts.map((item) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-            child: SettingsExpandableTile(
-              title: item.accountName ?? item.accountCode ?? '-',
-              subtitle: [
-                item.accountPurpose ?? '',
-                item.accountCode ?? '',
-              ].where((value) => value.isNotEmpty).join(' • '),
-              detail: [
-                if (item.isDefault) 'Default',
-                if (item.isActive) 'Active',
-              ].join(' • '),
-              expanded: false,
-              onToggle: () {},
-              child: SettingsFormWrap(
-                children: [
-                  AppFormTextField(
-                    labelText: 'Account Purpose',
-                    initialValue: item.accountPurpose ?? '',
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Account Code',
-                    initialValue: item.accountCode ?? '',
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Account Name',
-                    initialValue: item.accountName ?? '',
-                    readOnly: true,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Purpose',
-                    initialValue: item.accountPurpose ?? '',
-                    readOnly: true,
-                  ),
-                ],
+        Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: [
+            Chip(
+              label: Text('Draft: ${counts['draft'] ?? 0}'),
+            ),
+            Chip(
+              label: Text(
+                'Approved (unpaid): ${counts['approved_unpaid'] ?? 0}',
               ),
+            ),
+            Chip(
+              label: Text('Reimbursed: ${counts['reimbursed'] ?? 0}'),
+            ),
+            if ((counts['other'] ?? 0) > 0)
+              Chip(
+                label: Text('Other: ${counts['other'] ?? 0}'),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        ..._employeeExpenseClaims.map((ExpenseClaimModel row) {
+          final data = row.toJson();
+          final id = intValue(data, 'id');
+          final claimNo = stringValue(data, 'claim_no');
+          final title = claimNo.isEmpty
+              ? (id != null ? 'Claim #$id' : 'Claim')
+              : claimNo;
+          final date = displayDate(nullableStringValue(data, 'claim_date'));
+          final st = stringValue(data, 'claim_status');
+          final amount = stringValue(data, 'total_amount');
+          final reimbId = intValue(data, 'reimbursement_voucher_id');
+          String payHint = '';
+          if (st == 'approved' && reimbId == null) {
+            payHint = ' · Awaiting reimbursement';
+          } else if (st == 'reimbursed') {
+            payHint = ' · Paid';
+          }
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingXs),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(title),
+              subtitle: Text(
+                [date, st, amount].where((String s) => s.isNotEmpty).join(' · ') +
+                    payHint,
+              ),
+              dense: true,
             ),
           );
         }),
@@ -2315,6 +2454,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                       if (item.grossSalary.isNotEmpty)
                         'Gross ${item.grossSalary}',
                       if (item.netSalary.isNotEmpty) 'Net ${item.netSalary}',
+                      if (item.ctcMonthly.isNotEmpty) 'CTC ${item.ctcMonthly}',
                     ].join(' • '),
                     detail: [
                       '${item.components.length} Components',
@@ -2374,6 +2514,14 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                 decimal: true,
               ),
               validator: Validators.optionalNonNegativeNumber('Net Salary'),
+            ),
+            AppFormTextField(
+              controller: _structureCtcMonthlyController,
+              labelText: 'CTC (monthly)',
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              validator: Validators.optionalNonNegativeNumber('CTC (monthly)'),
             ),
             AppSwitchTile(
               label: 'Active',
@@ -2485,8 +2633,11 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                     subtitle: [
                       item.structure.effectiveFrom,
                       item.component.componentType,
+                      item.component.contributionRole == 'employer'
+                          ? 'Employer'
+                          : 'Employee',
                     ].where((value) => value.isNotEmpty).join(' • '),
-                    detail: item.component.amount,
+                    detail: item.component.listDetailLine,
                     expanded: expanded,
                     highlighted: expanded,
                     onToggle: () {
@@ -2550,16 +2701,51 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               onChanged: (value) =>
                   setState(() => _componentType = value ?? 'earning'),
             ),
+            AppDropdownField<String>.fromMapped(
+              labelText: 'Calculation',
+              mappedItems: _componentCalculationItems,
+              initialValue: _componentCalculationBasis,
+              onChanged: (value) => setState(() {
+                _componentCalculationBasis = value ?? 'fixed';
+                if (_componentCalculationBasis == 'fixed') {
+                  _componentPercentController.clear();
+                }
+              }),
+            ),
+            AppDropdownField<String>.fromMapped(
+              labelText: 'Contribution',
+              mappedItems: _contributionRoleItems,
+              initialValue: _componentContributionRole,
+              onChanged: (value) => setState(
+                () => _componentContributionRole = value ?? 'employee',
+              ),
+            ),
+            if (_componentCalculationBasis != 'fixed')
+              AppFormTextField(
+                controller: _componentPercentController,
+                labelText: 'Percentage',
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: Validators.compose([
+                  Validators.required('Percentage'),
+                  Validators.optionalNonNegativeNumber('Percentage'),
+                ]),
+              ),
             AppFormTextField(
               controller: _componentAmountController,
-              labelText: 'Amount',
+              labelText: _componentCalculationBasis == 'fixed'
+                  ? 'Amount'
+                  : 'Amount (optional; 0 = computed on payroll)',
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              validator: Validators.compose([
-                Validators.required('Amount'),
-                Validators.optionalNonNegativeNumber('Amount'),
-              ]),
+              validator: _componentCalculationBasis == 'fixed'
+                  ? Validators.compose([
+                      Validators.required('Amount'),
+                      Validators.optionalNonNegativeNumber('Amount'),
+                    ])
+                  : Validators.optionalNonNegativeNumber('Amount'),
             ),
           ],
         ),
@@ -2599,6 +2785,7 @@ class _EmployeeSalaryStructureDraft {
     required this.basicSalary,
     required this.grossSalary,
     required this.netSalary,
+    required this.ctcMonthly,
     required this.isActive,
     required this.components,
   });
@@ -2609,6 +2796,7 @@ class _EmployeeSalaryStructureDraft {
   final String basicSalary;
   final String grossSalary;
   final String netSalary;
+  final String ctcMonthly;
   final bool isActive;
   final List<_EmployeeSalaryComponentDraft> components;
 
@@ -2619,6 +2807,7 @@ class _EmployeeSalaryStructureDraft {
     String? basicSalary,
     String? grossSalary,
     String? netSalary,
+    String? ctcMonthly,
     bool? isActive,
     List<_EmployeeSalaryComponentDraft>? components,
   }) {
@@ -2629,12 +2818,14 @@ class _EmployeeSalaryStructureDraft {
       basicSalary: basicSalary ?? this.basicSalary,
       grossSalary: grossSalary ?? this.grossSalary,
       netSalary: netSalary ?? this.netSalary,
+      ctcMonthly: ctcMonthly ?? this.ctcMonthly,
       isActive: isActive ?? this.isActive,
       components: components ?? this.components,
     );
   }
 
   EmployeeSalaryStructureModel toModel({int? employeeId}) {
+    final ctc = ctcMonthly.trim();
     return EmployeeSalaryStructureModel(
       id: id,
       employeeId: employeeId,
@@ -2642,6 +2833,7 @@ class _EmployeeSalaryStructureDraft {
       basicSalary: double.tryParse(basicSalary),
       grossSalary: double.tryParse(grossSalary),
       netSalary: double.tryParse(netSalary),
+      ctcMonthly: ctc.isEmpty ? null : double.tryParse(ctc),
       isActive: isActive,
       components: components
           .map((item) => item.toModel())
@@ -2657,6 +2849,9 @@ class _EmployeeSalaryComponentDraft {
     required this.componentName,
     required this.componentType,
     required this.amount,
+    required this.calculationBasis,
+    required this.percentValue,
+    required this.contributionRole,
   });
 
   final int key;
@@ -2664,6 +2859,25 @@ class _EmployeeSalaryComponentDraft {
   final String componentName;
   final String componentType;
   final String amount;
+  final String calculationBasis;
+  final String percentValue;
+  final String contributionRole;
+
+  String get listDetailLine {
+    if (calculationBasis == 'fixed') {
+      return amount;
+    }
+    final basisLabel = switch (calculationBasis) {
+      'percent_basic' => 'basic',
+      'percent_gross' => 'gross',
+      'percent_ctc' => 'CTC',
+      _ => calculationBasis,
+    };
+    final pct = percentValue;
+    final amt = amount.trim();
+    final amtPart = amt.isNotEmpty && amt != '0' ? ' • Amt $amt' : '';
+    return '$pct% of $basisLabel$amtPart';
+  }
 
   _EmployeeSalaryComponentDraft copy() {
     return _EmployeeSalaryComponentDraft(
@@ -2672,15 +2886,23 @@ class _EmployeeSalaryComponentDraft {
       componentName: componentName,
       componentType: componentType,
       amount: amount,
+      calculationBasis: calculationBasis,
+      percentValue: percentValue,
+      contributionRole: contributionRole,
     );
   }
 
   EmployeeSalaryComponentModel toModel() {
+    final pct = percentValue.trim();
     return EmployeeSalaryComponentModel(
       id: id,
       componentName: componentName,
       componentType: componentType,
       amount: double.tryParse(amount),
+      calculationBasis: calculationBasis,
+      percentValue:
+          calculationBasis == 'fixed' || pct.isEmpty ? null : double.tryParse(pct),
+      contributionRole: contributionRole,
     );
   }
 }

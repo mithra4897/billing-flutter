@@ -43,6 +43,7 @@ export 'helper/media_upload_helper.dart';
 export 'helper/responsive.dart';
 
 export 'model/common/json_model.dart';
+export 'model/common/erp_record_model.dart';
 
 export 'model/admin/permission_model.dart';
 export 'model/admin/role_model.dart';
