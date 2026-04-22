@@ -3,26 +3,54 @@ import 'dart:convert';
 import '../../screen.dart';
 import '../purchase/purchase_support.dart';
 
-/// Resolves the company saved in session (header). Returns null if none saved.
-Future<({int? companyId, String? banner})> hrSessionCompanyInfo() async {
-  final storedId = await SessionStorage.getCurrentCompanyId();
-  if (storedId == null) {
-    return (companyId: null, banner: null);
+/// When no company is stored but the user has exactly one active company, persist it
+/// so HR screens behave like the rest of the app without an extra header step.
+Future<int?> _ensureStoredCompanyWhenSingleTenant(
+  List<CompanyModel> activeCompanies,
+) async {
+  if (activeCompanies.length != 1) {
+    return null;
   }
+  final onlyId = activeCompanies.first.id;
+  if (onlyId == null) {
+    return null;
+  }
+  await SessionStorage.saveSelectedContext(companyId: onlyId);
+  WorkingContextService.version.value++;
+  return onlyId;
+}
+
+/// Resolves the company saved in session (header). If nothing is stored but there
+/// is only one active company, selects it automatically.
+Future<({int? companyId, String? banner})> hrSessionCompanyInfo() async {
   final master = MasterService();
   try {
     final companiesResp = await master.companies(
       filters: const {'per_page': 200, 'sort_by': 'legal_name'},
     );
     final companies = companiesResp.data ?? const <CompanyModel>[];
-    for (final c in companies) {
+    final active =
+        companies.where((CompanyModel c) => c.isActive).toList(growable: false);
+
+    var storedId = await SessionStorage.getCurrentCompanyId();
+    storedId ??= await _ensureStoredCompanyWhenSingleTenant(active);
+    if (storedId == null) {
+      return (companyId: null, banner: null);
+    }
+
+    CompanyModel? match;
+    for (final c in active) {
       if (c.id == storedId) {
-        return (companyId: storedId, banner: c.toString());
+        match = c;
+        break;
       }
     }
-    return (companyId: storedId, banner: 'Company #$storedId');
+    if (match == null) {
+      return (companyId: null, banner: null);
+    }
+    return (companyId: storedId, banner: match.toString());
   } catch (_) {
-    return (companyId: storedId, banner: 'Company #$storedId');
+    return (companyId: null, banner: null);
   }
 }
 
@@ -122,12 +150,9 @@ const List<AppDropdownItem<String>> _attendanceStatusItems =
       AppDropdownItem(value: 'holiday', label: 'Holiday'),
     ];
 
-/// Requires a company already saved from the header session control.
+/// Resolves working-context company. Uses session storage, or auto-selects when
+/// there is exactly one active company.
 Future<int?> hrResolveCompanyId(BuildContext context) async {
-  final storedId = await SessionStorage.getCurrentCompanyId();
-  if (storedId == null) {
-    return null;
-  }
   final master = MasterService();
   try {
     final companiesResp = await master.companies(
@@ -137,6 +162,11 @@ Future<int?> hrResolveCompanyId(BuildContext context) async {
         .where((c) => c.isActive)
         .toList();
     if (active.isEmpty) {
+      return null;
+    }
+    var storedId = await SessionStorage.getCurrentCompanyId();
+    storedId ??= await _ensureStoredCompanyWhenSingleTenant(active);
+    if (storedId == null) {
       return null;
     }
     final ctx = await WorkingContextService.instance.resolveSelection(
@@ -940,7 +970,152 @@ Future<void> openExpenseClaimEditor(
   }
 }
 
-Future<void> _openReimburseDialog(
+Future<void> openExpenseClaimRejectDialog(
+  BuildContext context, {
+  required HrService hr,
+  required int claimId,
+  required VoidCallback onChanged,
+}) async {
+  final notes = TextEditingController();
+  try {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Reject claim'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Declines this draft. No vouchers are posted (requires hr.approve).',
+                  style: Theme.of(dialogContext).textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppUiConstants.spacingSm),
+                TextField(
+                  controller: notes,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason (optional)',
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Back'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+              ),
+              onPressed: () async {
+                final t = notes.text.trim();
+                final res = await hr.rejectExpenseClaim(
+                  claimId,
+                  ExpenseClaimModel(<String, dynamic>{
+                    if (t.isNotEmpty) 'notes': t,
+                  }),
+                );
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text(res.message)),
+                );
+                if (res.success == true) {
+                  Navigator.pop(dialogContext);
+                  onChanged();
+                }
+              },
+              child: const Text('Reject'),
+            ),
+          ],
+        );
+      },
+    );
+  } finally {
+    notes.dispose();
+  }
+}
+
+Future<void> openExpenseClaimCancelDialog(
+  BuildContext context, {
+  required HrService hr,
+  required int claimId,
+  required VoidCallback onChanged,
+}) async {
+  final notes = TextEditingController();
+  try {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Cancel claim'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Withdraws this draft without deleting the record (requires hr.update). '
+                  'No vouchers are posted.',
+                  style: Theme.of(dialogContext).textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppUiConstants.spacingSm),
+                TextField(
+                  controller: notes,
+                  decoration: const InputDecoration(
+                    labelText: 'Note (optional)',
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Back'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final t = notes.text.trim();
+                final res = await hr.cancelExpenseClaim(
+                  claimId,
+                  ExpenseClaimModel(<String, dynamic>{
+                    if (t.isNotEmpty) 'notes': t,
+                  }),
+                );
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text(res.message)),
+                );
+                if (res.success == true) {
+                  Navigator.pop(dialogContext);
+                  onChanged();
+                }
+              },
+              child: const Text('Cancel claim'),
+            ),
+          ],
+        );
+      },
+    );
+  } finally {
+    notes.dispose();
+  }
+}
+
+Future<void> openExpenseClaimReimburseDialog(
   BuildContext context, {
   required HrService hr,
   required AccountsService accountsService,
@@ -1134,10 +1309,10 @@ Future<void> showExpenseClaimDetailDialog(
                     bottom: AppUiConstants.spacingSm,
                   ),
                   child: Text(
-                    'Approve creates a posted Journal (needs OTHEXP001 expense '
-                    'ledger, Journal voucher type, and the employee’s active '
-                    'reimbursement account on HR → Employees → Accounts). '
-                    'Reimburse then pays from a bank/cash ledger via a Payment voucher.',
+                    'Approve (hr.approve) posts a Journal: expense OTHEXP001 vs '
+                    'employee reimbursement payable. Reject (hr.approve) or '
+                    'Cancel draft (hr.update) — no GL. After approval, Reimburse '
+                    '(hr.update) pays bank/cash via a Payment voucher.',
                     style: Theme.of(ctx).textTheme.bodySmall,
                   ),
                 ),
@@ -1149,9 +1324,8 @@ Future<void> showExpenseClaimDetailDialog(
                     bottom: AppUiConstants.spacingSm,
                   ),
                   child: Text(
-                    'Next: Reimburse records payment from a Bank or Cash ledger '
-                    '(Payment voucher type must exist). Employee reimbursement '
-                    'payable was set at approve time.',
+                    'Reimburse (hr.update): payment from Bank or Cash; Payment '
+                    'voucher type required. Payable was booked at approve time.',
                     style: Theme.of(ctx).textTheme.bodySmall,
                   ),
                 ),
@@ -1192,6 +1366,30 @@ Future<void> showExpenseClaimDetailDialog(
                       },
                       child: const Text('Approve'),
                     ),
+                    FilledButton.tonal(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await openExpenseClaimRejectDialog(
+                          context,
+                          hr: hr,
+                          claimId: id,
+                          onChanged: onChanged,
+                        );
+                      },
+                      child: const Text('Reject'),
+                    ),
+                    FilledButton.tonal(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await openExpenseClaimCancelDialog(
+                          context,
+                          hr: hr,
+                          claimId: id,
+                          onChanged: onChanged,
+                        );
+                      },
+                      child: const Text('Cancel draft'),
+                    ),
                     FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: Theme.of(ctx).colorScheme.error,
@@ -1226,7 +1424,7 @@ Future<void> showExpenseClaimDetailDialog(
                     FilledButton(
                       onPressed: () async {
                         Navigator.pop(ctx);
-                        await _openReimburseDialog(
+                        await openExpenseClaimReimburseDialog(
                           context,
                           hr: hr,
                           accountsService: accountsService,

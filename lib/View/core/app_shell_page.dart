@@ -9,6 +9,7 @@ import '../dashboard/dashboard_page.dart';
 import '../hr/department_page.dart';
 import '../hr/designation_page.dart';
 import '../hr/employee_page.dart';
+import '../hr/expense_claims_page.dart';
 import '../hr/hr_registers.dart';
 import '../hr/leave_request_page.dart';
 import '../hr/leave_type_page.dart';
@@ -476,7 +477,7 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/hr/attendance':
         return AttendanceRegisterPage(key: routeKey, embedded: true);
       case '/hr/expense-claims':
-        return ExpenseClaimRegisterPage(key: routeKey, embedded: true);
+        return ExpenseClaimsManagementPage(key: routeKey, embedded: true);
       case '/hr/payroll-runs':
         return PayrollRunRegisterPage(key: routeKey, embedded: true);
       case '/hr/payslips':

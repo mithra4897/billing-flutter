@@ -316,6 +316,23 @@ class HrService extends ErpModuleService {
     fromJson: ExpenseClaimModel.fromJson,
   );
 
+  Future<ApiResponse<Map<String, dynamic>>> expenseClaimsLinkedEmployee({
+    required int companyId,
+  }) =>
+      client.get<Map<String, dynamic>>(
+        '/hr/expense-claims/linked-employee',
+        queryParameters: <String, dynamic>{'company_id': companyId},
+        fromData: (dynamic json) {
+          if (json is Map<String, dynamic>) {
+            return json;
+          }
+          if (json is Map) {
+            return Map<String, dynamic>.from(json);
+          }
+          return <String, dynamic>{};
+        },
+      );
+
   Future<ApiResponse<ExpenseClaimModel>> expenseClaim(int id) =>
       object<ExpenseClaimModel>(
         '/hr/expense-claims/$id',
@@ -344,6 +361,24 @@ class HrService extends ErpModuleService {
     ExpenseClaimModel body,
   ) => actionModel<ExpenseClaimModel>(
     '/hr/expense-claims/$id/approve',
+    body: body,
+    fromJson: ExpenseClaimModel.fromJson,
+  );
+
+  Future<ApiResponse<ExpenseClaimModel>> rejectExpenseClaim(
+    int id,
+    ExpenseClaimModel body,
+  ) => actionModel<ExpenseClaimModel>(
+    '/hr/expense-claims/$id/reject',
+    body: body,
+    fromJson: ExpenseClaimModel.fromJson,
+  );
+
+  Future<ApiResponse<ExpenseClaimModel>> cancelExpenseClaim(
+    int id,
+    ExpenseClaimModel body,
+  ) => actionModel<ExpenseClaimModel>(
+    '/hr/expense-claims/$id/cancel',
     body: body,
     fromJson: ExpenseClaimModel.fromJson,
   );

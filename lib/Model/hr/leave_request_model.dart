@@ -8,6 +8,8 @@ class LeaveRequestModel implements JsonModel {
     this.fromDate,
     this.toDate,
     this.reason,
+    this.clApprovedDays,
+    this.lopDays,
     this.status,
     this.approvedBy,
     this.employeeCode,
@@ -23,6 +25,8 @@ class LeaveRequestModel implements JsonModel {
   final String? fromDate;
   final String? toDate;
   final String? reason;
+  final double? clApprovedDays;
+  final double? lopDays;
   final String? status;
   final int? approvedBy;
   final String? employeeCode;
@@ -45,6 +49,8 @@ class LeaveRequestModel implements JsonModel {
       fromDate: _dateString(json['from_date']),
       toDate: _dateString(json['to_date']),
       reason: json['reason']?.toString(),
+      clApprovedDays: _double(json['cl_approved_days']),
+      lopDays: _double(json['lop_days']),
       status: json['status']?.toString(),
       approvedBy: _nullableInt(json['approved_by'] ?? approver['id']),
       employeeCode: employee['employee_code']?.toString(),
@@ -73,6 +79,13 @@ class LeaveRequestModel implements JsonModel {
 
   static int? _nullableInt(dynamic value) =>
       int.tryParse(value?.toString() ?? '');
+
+  static double? _double(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    return double.tryParse(value.toString());
+  }
 
   static String? _dateString(dynamic value) =>
       value?.toString().split('T').first.split(' ').first;

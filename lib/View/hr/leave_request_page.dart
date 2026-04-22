@@ -158,6 +158,27 @@ class _LeaveRequestManagementPageState
         .toList(growable: false);
   }
 
+  LeaveTypeModel? get _activeLeaveType {
+    for (final t in _leaveTypes) {
+      if (t.id == _leaveTypeId) {
+        return t;
+      }
+    }
+    return null;
+  }
+
+  bool _isCasualLeaveType(LeaveTypeModel? type) {
+    if (type == null) {
+      return false;
+    }
+    final code = (type.leaveCode ?? '').toUpperCase().trim();
+    if (code == 'CL') {
+      return true;
+    }
+    final name = (type.leaveName ?? '').toLowerCase();
+    return name == 'casual leave' || name.contains('casual');
+  }
+
   List<LeaveRequestModel> _filterLeaveRequests(
     List<LeaveRequestModel> source,
     String query,
@@ -544,6 +565,27 @@ class _LeaveRequestManagementPageState
                   maxLines: 3,
                   validator: Validators.optionalMaxLength(1000, 'Reason'),
                 ),
+                if (_isCasualLeaveType(_activeLeaveType)) ...[
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  Text(
+                    'Casual leave uses 1 accrued CL day per elapsed month in the '
+                    'calendar year (max 12). Any days above your CL balance are '
+                    'recorded as LOP (unpaid). Split is calculated when you save '
+                    'and recalculated again when HR approves (using balances as of '
+                    'that day). Payroll deducts LOP when the monthly run is processed.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+                if (_selectedLeaveRequest != null &&
+                    ((_selectedLeaveRequest!.clApprovedDays ?? 0) > 0 ||
+                        (_selectedLeaveRequest!.lopDays ?? 0) > 0)) ...[
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  Text(
+                    'CL days (paid): ${_selectedLeaveRequest!.clApprovedDays ?? 0} · '
+                    'LOP days (unpaid): ${_selectedLeaveRequest!.lopDays ?? 0}',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingLg),

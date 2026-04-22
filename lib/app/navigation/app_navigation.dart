@@ -195,7 +195,7 @@ class AppNavigation {
         AppNavigationItem(
           key: 'settings-accounts',
           title: "Accounts",
-          icon: Icons.account_tree_outlined,
+          icon: Icons.account_balance_wallet_outlined,
           children: [
             AppNavigationItem(
               key: 'account-groups',
@@ -224,6 +224,34 @@ class AppNavigation {
               icon: Icons.rule_folder_outlined,
               path: '/accounting/posting-rules',
               requiredPermissions: ['accounts.view'],
+            ),
+          ],
+        ),
+        AppNavigationItem(
+          key: 'settings-hr',
+          title: 'HR',
+          icon: Icons.badge_outlined,
+          children: [
+            AppNavigationItem(
+              key: 'hr-departments',
+              title: 'Departments',
+              icon: Icons.apartment_outlined,
+              path: '/hr/departments',
+              requiredPermissions: ['hr.view'],
+            ),
+            AppNavigationItem(
+              key: 'hr-designations',
+              title: 'Designations',
+              icon: Icons.workspace_premium_outlined,
+              path: '/hr/designations',
+              requiredPermissions: ['hr.view'],
+            ),
+            AppNavigationItem(
+              key: 'hr-leave-types',
+              title: 'Leave Types',
+              icon: Icons.beach_access_outlined,
+              path: '/hr/leave-types',
+              requiredPermissions: ['hr.view'],
             ),
           ],
         ),
@@ -460,13 +488,6 @@ class AppNavigation {
           requiredPermissions: ['hr.view'],
         ),
         AppNavigationItem(
-          key: 'hr-leave-types',
-          title: 'Leave Types',
-          icon: Icons.beach_access_outlined,
-          path: '/hr/leave-types',
-          requiredPermissions: ['hr.view'],
-        ),
-        AppNavigationItem(
           key: 'hr-leave-requests',
           title: 'Leave Requests',
           icon: Icons.event_available_outlined,
@@ -492,20 +513,6 @@ class AppNavigation {
           title: 'Employees',
           icon: Icons.groups_2_outlined,
           path: '/hr/employees',
-          requiredPermissions: ['hr.view'],
-        ),
-        AppNavigationItem(
-          key: 'hr-departments',
-          title: 'Departments',
-          icon: Icons.apartment_outlined,
-          path: '/hr/departments',
-          requiredPermissions: ['hr.view'],
-        ),
-        AppNavigationItem(
-          key: 'hr-designations',
-          title: 'Designations',
-          icon: Icons.workspace_premium_outlined,
-          path: '/hr/designations',
           requiredPermissions: ['hr.view'],
         ),
       ],

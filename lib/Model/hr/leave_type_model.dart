@@ -4,6 +4,7 @@ class LeaveTypeModel implements JsonModel {
   const LeaveTypeModel({
     this.id,
     this.leaveName,
+    this.leaveCode,
     this.maxDaysPerYear,
     this.isPaid = true,
     this.raw,
@@ -11,6 +12,7 @@ class LeaveTypeModel implements JsonModel {
 
   final int? id;
   final String? leaveName;
+  final String? leaveCode;
   final double? maxDaysPerYear;
   final bool isPaid;
   final Map<String, dynamic>? raw;
@@ -22,6 +24,7 @@ class LeaveTypeModel implements JsonModel {
     return LeaveTypeModel(
       id: _nullableInt(json['id']),
       leaveName: json['leave_name']?.toString(),
+      leaveCode: json['leave_code']?.toString(),
       maxDaysPerYear: _double(json['max_days_per_year']),
       isPaid: _bool(json['is_paid'], fallback: true),
       raw: json,
@@ -33,6 +36,7 @@ class LeaveTypeModel implements JsonModel {
     return {
       if (id != null) 'id': id,
       if (leaveName != null) 'leave_name': leaveName,
+      if (leaveCode != null) 'leave_code': leaveCode,
       if (maxDaysPerYear != null) 'max_days_per_year': maxDaysPerYear,
       'is_paid': isPaid,
     };
