@@ -291,7 +291,77 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     } catch (_) {}
   }
 
-  Future<void> _fetchOrderLines(int orderId) async {
+  int? _invoiceDocumentSeriesIdFrom(Map<String, dynamic> j) {
+    final sid = intValue(j, 'document_series_id');
+    if (sid != 0) {
+      return sid;
+    }
+    final opts = _seriesOptions();
+    return opts.isNotEmpty ? opts.first.id : null;
+  }
+
+  void _applyInvoiceHeaderFromOrderJson(Map<String, dynamic> j) {
+    _companyId = intValue(j, 'company_id');
+    _branchId = intValue(j, 'branch_id');
+    _locationId = intValue(j, 'location_id');
+    _financialYearId = intValue(j, 'financial_year_id');
+    _documentSeriesId = _invoiceDocumentSeriesIdFrom(j);
+    final cust = intValue(j, 'customer_party_id');
+    _customerPartyId = cust == 0 ? null : cust;
+    _currencyCodeController.text = stringValue(j, 'currency_code', 'INR');
+    _exchangeRateController.text = stringValue(j, 'exchange_rate', '1');
+    _customerRefNoController.text = stringValue(j, 'customer_reference_no');
+    _customerRefDateController.text = displayDate(
+      nullableStringValue(j, 'customer_reference_date'),
+    );
+    _notesController.text = stringValue(j, 'notes');
+    _termsController.text = stringValue(j, 'terms_conditions');
+    _dueDateController.text = displayDate(
+      nullableStringValue(j, 'expected_delivery_date'),
+    );
+    _adjustmentAmountController.clear();
+    _adjustmentRemarksController.clear();
+    _adjustmentAccountId = null;
+  }
+
+  void _applyInvoiceHeaderFromQuotationJson(Map<String, dynamic> j) {
+    _companyId = intValue(j, 'company_id');
+    _branchId = intValue(j, 'branch_id');
+    _locationId = intValue(j, 'location_id');
+    _financialYearId = intValue(j, 'financial_year_id');
+    _documentSeriesId = _invoiceDocumentSeriesIdFrom(j);
+    final cust = intValue(j, 'customer_party_id');
+    _customerPartyId = cust == 0 ? null : cust;
+    _currencyCodeController.text = stringValue(j, 'currency_code', 'INR');
+    _exchangeRateController.text = stringValue(j, 'exchange_rate', '1');
+    _customerRefNoController.text = stringValue(j, 'customer_reference_no');
+    _customerRefDateController.text = displayDate(
+      nullableStringValue(j, 'customer_reference_date'),
+    );
+    _notesController.text = stringValue(j, 'notes');
+    _termsController.text = stringValue(j, 'terms_conditions');
+    _dueDateController.text =
+        displayDate(nullableStringValue(j, 'valid_until'));
+    final adj = double.tryParse(j['adjustment_amount']?.toString() ?? '') ?? 0;
+    _adjustmentAmountController.text =
+        adj == 0 ? '' : adj.toString();
+    final adjAcc = intValue(j, 'adjustment_account_id');
+    _adjustmentAccountId = adjAcc == 0 ? null : adjAcc;
+    _adjustmentRemarksController.text = stringValue(j, 'adjustment_remarks');
+  }
+
+  void _applyInvoiceHeaderFromDeliveryJson(Map<String, dynamic> j) {
+    _companyId = intValue(j, 'company_id');
+    _branchId = intValue(j, 'branch_id');
+    _locationId = intValue(j, 'location_id');
+    _financialYearId = intValue(j, 'financial_year_id');
+    _documentSeriesId = _invoiceDocumentSeriesIdFrom(j);
+    final cust = intValue(j, 'customer_party_id');
+    _customerPartyId = cust == 0 ? null : cust;
+    _notesController.text = stringValue(j, 'notes');
+  }
+
+  Future<Map<String, dynamic>?> _fetchOrderDetail(int orderId) async {
     try {
       final r = await _salesService.order(orderId);
       final j = r.data?.toJson() ?? <String, dynamic>{};
@@ -301,17 +371,21 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
       if (!mounted) {
-        return;
+        return null;
       }
-      setState(() => _orderLinesCache = list);
+      setState(() {
+        _orderLinesCache = list ?? const <Map<String, dynamic>>[];
+      });
+      return j;
     } catch (_) {
       if (mounted) {
         setState(() => _orderLinesCache = const <Map<String, dynamic>>[]);
       }
+      return null;
     }
   }
 
-  Future<void> _fetchDeliveryLines(int deliveryId) async {
+  Future<Map<String, dynamic>?> _fetchDeliveryDetail(int deliveryId) async {
     try {
       final r = await _salesService.delivery(deliveryId);
       final j = r.data?.toJson() ?? <String, dynamic>{};
@@ -321,15 +395,19 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
       if (!mounted) {
-        return;
+        return null;
       }
-      setState(() => _deliveryLinesCache = list);
+      setState(() {
+        _deliveryLinesCache = list ?? const <Map<String, dynamic>>[];
+      });
+      return j;
     } catch (_) {
       if (mounted) {
         setState(
           () => _deliveryLinesCache = const <Map<String, dynamic>>[],
         );
       }
+      return null;
     }
   }
 
@@ -389,12 +467,12 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
   Future<void> _hydrateSourceCaches() async {
     if (_salesOrderId != null) {
-      await _fetchOrderLines(_salesOrderId!);
+      await _fetchOrderDetail(_salesOrderId!);
     } else if (mounted) {
       setState(() => _orderLinesCache = null);
     }
     if (_salesDeliveryId != null) {
-      await _fetchDeliveryLines(_salesDeliveryId!);
+      await _fetchDeliveryDetail(_salesDeliveryId!);
     } else if (mounted) {
       setState(() => _deliveryLinesCache = null);
     }
@@ -439,10 +517,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     setState(() {
       _salesOrderId = value;
       _orderLinesCache = value == null ? null : const <Map<String, dynamic>>[];
-      for (final line in _lines) {
-        line.salesOrderLineId = null;
-        line.salesDeliveryLineId = null;
-      }
       if (_salesDeliveryId != null && value != null) {
         final dj = _deliveryJsonById(_salesDeliveryId);
         final dSo = intValue(dj ?? <String, dynamic>{}, 'sales_order_id');
@@ -453,9 +527,28 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       }
     });
     if (value != null) {
-      await _fetchOrderLines(value);
-    } else if (mounted) {
-      setState(() => _orderLinesCache = null);
+      final orderJson = await _fetchOrderDetail(value);
+      if (!mounted || !_canEdit) {
+        await _refreshSalesChain();
+        return;
+      }
+      setState(() {
+        if (orderJson != null) {
+          _applyInvoiceHeaderFromOrderJson(orderJson);
+        }
+        _applyAutoInvoiceLinesFromSources();
+      });
+      await _reloadSourceDocumentsForCompany(_companyId);
+    } else {
+      if (mounted) {
+        setState(() => _orderLinesCache = null);
+      }
+      if (mounted && _canEdit) {
+        setState(() {
+          _disposeAllInvoiceLineDrafts();
+          _lines = <_InvoiceLineDraft>[_InvoiceLineDraft()];
+        });
+      }
     }
     await _refreshSalesChain();
   }
@@ -468,20 +561,61 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       _salesDeliveryId = value;
       _deliveryLinesCache =
           value == null ? null : const <Map<String, dynamic>>[];
-      for (final line in _lines) {
-        line.salesDeliveryLineId = null;
-      }
     });
     if (value != null) {
-      final dj = _deliveryJsonById(value);
-      final dOrd = intValue(dj ?? <String, dynamic>{}, 'sales_order_id');
-      if (dOrd != null && dOrd != 0 && _salesOrderId == null) {
-        setState(() => _salesOrderId = dOrd);
-        await _fetchOrderLines(dOrd);
+      final dJson = await _fetchDeliveryDetail(value);
+      final dOrd = intValue(dJson ?? <String, dynamic>{}, 'sales_order_id');
+      Map<String, dynamic>? orderJson;
+      if (dOrd != null && dOrd != 0) {
+        if (_salesOrderId == null) {
+          setState(() => _salesOrderId = dOrd);
+        }
+        orderJson = await _fetchOrderDetail(dOrd);
+      } else if (_salesOrderId != null) {
+        orderJson = await _fetchOrderDetail(_salesOrderId!);
       }
-      await _fetchDeliveryLines(value);
-    } else if (mounted) {
-      setState(() => _deliveryLinesCache = null);
+      if (!mounted || !_canEdit) {
+        await _refreshSalesChain();
+        return;
+      }
+      setState(() {
+        if (orderJson != null) {
+          _applyInvoiceHeaderFromOrderJson(orderJson);
+        } else if (dJson != null) {
+          _applyInvoiceHeaderFromDeliveryJson(dJson);
+          _currencyCodeController.text = 'INR';
+          _exchangeRateController.text = '1';
+          _termsController.clear();
+          _customerRefNoController.clear();
+          _customerRefDateController.clear();
+        }
+        _applyAutoInvoiceLinesFromSources();
+      });
+      await _reloadSourceDocumentsForCompany(_companyId);
+    } else {
+      if (mounted) {
+        setState(() => _deliveryLinesCache = null);
+      }
+      if (mounted && _canEdit && _salesOrderId != null) {
+        await _fetchOrderDetail(_salesOrderId!);
+        if (!mounted) {
+          await _refreshSalesChain();
+          return;
+        }
+        setState(() {
+          if (_orderLinesCache != null && _orderLinesCache!.isNotEmpty) {
+            _applyLinesFromOrderCache();
+          } else {
+            _disposeAllInvoiceLineDrafts();
+            _lines = <_InvoiceLineDraft>[_InvoiceLineDraft()];
+          }
+        });
+      } else if (mounted && _canEdit) {
+        setState(() {
+          _disposeAllInvoiceLineDrafts();
+          _lines = <_InvoiceLineDraft>[_InvoiceLineDraft()];
+        });
+      }
     }
     await _refreshSalesChain();
   }
@@ -546,6 +680,83 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         line.qtyController.text = pend.toString();
       }
     });
+  }
+
+  void _disposeAllInvoiceLineDrafts() {
+    for (final line in _lines) {
+      line.dispose();
+    }
+  }
+
+  void _applyLinesFromOrderCache() {
+    final cache = _orderLinesCache;
+    if (cache == null || cache.isEmpty) {
+      return;
+    }
+    final drafts = <_InvoiceLineDraft>[];
+    for (final ol in cache) {
+      final ordered =
+          double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
+      final invoiced =
+          double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
+      if (ordered - invoiced <= 0) {
+        continue;
+      }
+      drafts.add(_InvoiceLineDraft.fromOrderLineMap(ol));
+    }
+    _disposeAllInvoiceLineDrafts();
+    _lines = drafts.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : drafts;
+  }
+
+  void _applyLinesFromDeliveryCache() {
+    final cache = _deliveryLinesCache;
+    if (cache == null || cache.isEmpty) {
+      return;
+    }
+    final drafts = <_InvoiceLineDraft>[];
+    for (final dl in cache) {
+      final pend =
+          double.tryParse(dl['pending_invoice_qty']?.toString() ?? '') ?? 0;
+      if (pend <= 0) {
+        continue;
+      }
+      int? taxId;
+      final sol = intValue(dl, 'sales_order_line_id');
+      if (sol != null && sol != 0) {
+        for (final ol in _orderLinesCache ?? const <Map<String, dynamic>>[]) {
+          if (intValue(ol, 'id') == sol) {
+            taxId = intValue(ol, 'tax_code_id');
+            break;
+          }
+        }
+      }
+      drafts.add(
+        _InvoiceLineDraft.fromDeliveryLineMap(dl, taxCodeId: taxId),
+      );
+    }
+    _disposeAllInvoiceLineDrafts();
+    _lines = drafts.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : drafts;
+  }
+
+  void _applyAutoInvoiceLinesFromSources() {
+    if (!_canEdit) {
+      return;
+    }
+    if (_salesDeliveryId != null &&
+        (_deliveryLinesCache != null && _deliveryLinesCache!.isNotEmpty)) {
+      _applyLinesFromDeliveryCache();
+    } else if (_salesOrderId != null &&
+        (_orderLinesCache != null && _orderLinesCache!.isNotEmpty)) {
+      _applyLinesFromOrderCache();
+    }
+  }
+
+  double _outstandingBalanceForSelectedInvoice() {
+    if (_selectedItem == null) {
+      return 0;
+    }
+    final d = _rowJson(_selectedItem!);
+    return double.tryParse(d['balance_amount']?.toString() ?? '') ?? 0;
   }
 
   @override
@@ -804,14 +1015,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         return;
       }
       setState(() {
-        _companyId = intValue(data, 'company_id');
-        _branchId = intValue(data, 'branch_id');
-        _locationId = intValue(data, 'location_id');
-        _financialYearId = intValue(data, 'financial_year_id');
-        final series = _seriesOptions();
-        _documentSeriesId =
-            series.isNotEmpty ? series.first.id : intValue(data, 'document_series_id');
-        _customerPartyId = intValue(data, 'customer_party_id');
+        _applyInvoiceHeaderFromQuotationJson(data);
         _salesOrderId = null;
         _salesDeliveryId = null;
         _orderLinesCache = null;
@@ -819,23 +1023,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _invoiceNoController.clear();
         _invoiceDateController.text =
             DateTime.now().toIso8601String().split('T').first;
-        _dueDateController.text = displayDate(
-          nullableStringValue(data, 'valid_until'),
-        );
-        _customerRefNoController.text =
-            stringValue(data, 'customer_reference_no');
-        _customerRefDateController.text = displayDate(
-          nullableStringValue(data, 'customer_reference_date'),
-        );
-        _currencyCodeController.text =
-            stringValue(data, 'currency_code', 'INR');
-        _exchangeRateController.text =
-            stringValue(data, 'exchange_rate', '1');
-        _adjustmentAmountController.clear();
-        _adjustmentRemarksController.clear();
-        _adjustmentAccountId = null;
-        _notesController.text = stringValue(data, 'notes');
-        _termsController.text = stringValue(data, 'terms_conditions');
         _isActive = true;
         _lines = lines.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : lines;
         _formError = null;
@@ -1207,6 +1394,13 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         },
         itemBuilder: (item, selected) {
           final data = _rowJson(item);
+          final st = item.invoiceStatus ?? '';
+          final bal =
+              double.tryParse(data['balance_amount']?.toString() ?? '') ?? 0;
+          final outLabel =
+              !const {'draft', 'cancelled'}.contains(st) && bal > 0.000001
+              ? 'Due ${bal.toStringAsFixed(2)}'
+              : '';
           return SettingsListTile(
             title: (item.invoiceNo?.trim().isNotEmpty == true)
                 ? item.invoiceNo!
@@ -1216,6 +1410,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                 item.invoiceDate.isEmpty ? null : item.invoiceDate,
               ),
               item.invoiceStatus ?? '',
+              outLabel,
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: quotationCustomerLabel(data),
             selected: selected,
@@ -1241,6 +1436,36 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
+                ),
+              ),
+            if (_selectedItem != null &&
+                !const {'draft', 'cancelled'}.contains(_status) &&
+                _outstandingBalanceForSelectedInvoice() > 0.000001)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Outstanding: ${_outstandingBalanceForSelectedInvoice().toStringAsFixed(2)} '
+                        '${_currencyCodeController.text.trim().isEmpty ? 'INR' : _currencyCodeController.text.trim()}',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    AppActionButton(
+                      icon: Icons.payments_outlined,
+                      label: 'Receive payment',
+                      filled: false,
+                      onPressed: () => openModuleShellRoute(
+                        context,
+                        '/sales/receipts/new?invoice_id=${_selectedItem!.id}',
+                      ),
+                    ),
+                  ],
                 ),
               ),
             SettingsFormWrap(
@@ -1910,13 +2135,66 @@ class _InvoiceLineDraft {
       itemId: intValue(json, 'item_id'),
       warehouseId: intValue(json, 'warehouse_id'),
       uomId: intValue(json, 'uom_id'),
-      taxCodeId: intValue(json, 'tax_code_id'),
+      taxCodeId: _nullableIntKey(json, 'tax_code_id'),
       description: stringValue(json, 'description'),
       qty: q?.toString() ?? '',
       rate: stringValue(json, 'rate'),
       discountPercent: stringValue(json, 'discount_percent'),
       remarks: stringValue(json, 'remarks'),
     );
+  }
+
+  factory _InvoiceLineDraft.fromOrderLineMap(Map<String, dynamic> ol) {
+    final ordered =
+        double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
+    final invoiced =
+        double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
+    final rem = ordered - invoiced;
+    return _InvoiceLineDraft(
+      salesOrderLineId: intValue(ol, 'id'),
+      itemId: intValue(ol, 'item_id'),
+      warehouseId: intValue(ol, 'warehouse_id'),
+      uomId: intValue(ol, 'uom_id'),
+      taxCodeId: _nullableIntKey(ol, 'tax_code_id'),
+      description: stringValue(ol, 'description'),
+      qty: rem > 0 ? rem.toString() : '',
+      rate: stringValue(ol, 'rate'),
+      discountPercent: stringValue(ol, 'discount_percent'),
+      remarks: stringValue(ol, 'remarks'),
+    );
+  }
+
+  factory _InvoiceLineDraft.fromDeliveryLineMap(
+    Map<String, dynamic> dl, {
+    int? taxCodeId,
+  }) {
+    final pend =
+        double.tryParse(dl['pending_invoice_qty']?.toString() ?? '') ?? 0;
+    final sol = intValue(dl, 'sales_order_line_id');
+    return _InvoiceLineDraft(
+      salesDeliveryLineId: intValue(dl, 'id'),
+      salesOrderLineId: sol == 0 ? null : sol,
+      itemId: intValue(dl, 'item_id'),
+      warehouseId: intValue(dl, 'warehouse_id'),
+      uomId: intValue(dl, 'uom_id'),
+      taxCodeId: taxCodeId ?? _nullableIntKey(dl, 'tax_code_id'),
+      description: stringValue(dl, 'description'),
+      qty: pend > 0 ? pend.toString() : '',
+      rate: stringValue(dl, 'rate'),
+      remarks: stringValue(dl, 'remarks'),
+    );
+  }
+
+  static int? _nullableIntKey(Map<String, dynamic> m, String key) {
+    final v = m[key];
+    if (v == null) {
+      return null;
+    }
+    final i = int.tryParse(v.toString());
+    if (i == null || i == 0) {
+      return null;
+    }
+    return i;
   }
 
   int? salesOrderLineId;

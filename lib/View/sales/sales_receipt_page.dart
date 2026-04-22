@@ -9,11 +9,14 @@ class SalesReceiptPage extends StatefulWidget {
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
+    this.initialSalesInvoiceId,
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+  /// From `/sales/receipts/new?invoice_id=…` — prefills customer, amount, allocation.
+  final int? initialSalesInvoiceId;
 
   @override
   State<SalesReceiptPage> createState() => _SalesReceiptPageState();
@@ -31,18 +34,6 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
     ),
     AppDropdownItem(value: 'fully_allocated', label: 'Fully Allocated'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-  ];
-
-  static const List<AppDropdownItem<String>> _paymentModeItems =
-      <AppDropdownItem<String>>[
-    AppDropdownItem(value: 'cash', label: 'Cash'),
-    AppDropdownItem(value: 'bank', label: 'Bank'),
-    AppDropdownItem(value: 'upi', label: 'UPI'),
-    AppDropdownItem(value: 'cheque', label: 'Cheque'),
-    AppDropdownItem(value: 'card', label: 'Card'),
-    AppDropdownItem(value: 'wallet', label: 'Wallet'),
-    AppDropdownItem(value: 'adjustment', label: 'Adjustment'),
-    AppDropdownItem(value: 'other', label: 'Other'),
   ];
 
   final SalesService _salesService = SalesService();
@@ -113,7 +104,47 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
     _paymentReferenceDateController.dispose();
     _paidAmountController.dispose();
     _notesController.dispose();
+    for (final a in _allocations) {
+      a.dispose();
+    }
     super.dispose();
+  }
+
+  List<AppDropdownItem<String>> _paymentModeDropdownItems() {
+    const core = <AppDropdownItem<String>>[
+      AppDropdownItem(value: 'cash', label: 'Cash'),
+      AppDropdownItem(value: 'bank', label: 'Bank'),
+    ];
+    final mode = _paymentMode.toLowerCase();
+    if (mode != 'cash' && mode != 'bank') {
+      final raw = _paymentMode;
+      final label = raw.isEmpty
+          ? 'Other (legacy)'
+          : '${raw[0].toUpperCase()}${raw.length > 1 ? raw.substring(1) : ''} (legacy)';
+      return <AppDropdownItem<String>>[...core, AppDropdownItem(value: raw, label: label)];
+    }
+    return core;
+  }
+
+  bool _accountEligibleForReceipt(AccountModel a) {
+    final t = (a.accountType ?? '').toLowerCase();
+    if (t != 'cash' && t != 'bank') return false;
+    if (_companyId != null && a.companyId != _companyId) return false;
+    final mode = _paymentMode.toLowerCase();
+    if (mode == 'cash') return t == 'cash';
+    if (mode == 'bank') return t == 'bank';
+    return true;
+  }
+
+  List<AccountModel> get _receiptLedgerOptions =>
+      _accounts.where(_accountEligibleForReceipt).toList(growable: false);
+
+  void _clearAccountIfInvalidForReceipt() {
+    final id = _accountId;
+    if (id == null) return;
+    if (!_receiptLedgerOptions.any((a) => a.id == id)) {
+      _accountId = null;
+    }
   }
 
   Future<void> _loadPage({int? selectId}) async {
@@ -238,6 +269,10 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
         await _selectDocument(selected);
       } else {
         _resetForm();
+        final invBoot = widget.initialSalesInvoiceId;
+        if (invBoot != null && widget.editorOnly) {
+          await _bootstrapNewReceiptFromInvoice(invBoot);
+        }
       }
     } catch (error) {
       if (!mounted) return;
@@ -259,6 +294,9 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
             .whereType<Map<String, dynamic>>()
             .map(_SalesReceiptAllocationDraft.fromJson)
             .toList(growable: true);
+    for (final a in _allocations) {
+      a.dispose();
+    }
     setState(() {
       _selectedItem = full;
       _companyId = intValue(data, 'company_id');
@@ -288,6 +326,9 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
 
   void _resetForm() {
     final series = _seriesOptions();
+    for (final a in _allocations) {
+      a.dispose();
+    }
     setState(() {
       _selectedItem = null;
       _companyId = _contextCompanyId;
@@ -311,6 +352,64 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       _allocations = <_SalesReceiptAllocationDraft>[];
       _formError = null;
     });
+  }
+
+  Future<void> _bootstrapNewReceiptFromInvoice(int invoiceId) async {
+    try {
+      final r = await _salesService.invoice(invoiceId);
+      final inv = r.data;
+      if (inv == null || !mounted) {
+        return;
+      }
+      final data = inv.raw ?? <String, dynamic>{};
+      final balance =
+          double.tryParse(data['balance_amount']?.toString() ?? '') ?? 0;
+      if (balance <= 0) {
+        if (mounted) {
+          setState(
+            () => _formError =
+                'This invoice has no outstanding balance to receive.',
+          );
+        }
+        return;
+      }
+      final allocAmount = balance == balance.roundToDouble()
+          ? balance.round().toString()
+          : balance.toStringAsFixed(2);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _companyId = inv.companyId;
+        _branchId = inv.branchId;
+        _locationId = inv.locationId;
+        _financialYearId = inv.financialYearId;
+        final series = _seriesOptions();
+        _documentSeriesId = inv.documentSeriesId ??
+            (series.isNotEmpty ? series.first.id : null);
+        _customerPartyId = inv.customerPartyId;
+        _paidAmountController.text = allocAmount;
+        if (!_invoices.any((e) => e.id == inv.id)) {
+          _invoices = <SalesInvoiceModel>[inv, ..._invoices];
+        }
+        for (final a in _allocations) {
+          a.dispose();
+        }
+        _allocations = <_SalesReceiptAllocationDraft>[
+          _SalesReceiptAllocationDraft(
+            salesInvoiceId: inv.id,
+            allocationType: 'against_invoice',
+            allocatedAmount: allocAmount,
+            remarks: 'Against ${inv.invoiceNo ?? 'invoice #${inv.id}'}',
+          ),
+        ];
+        _formError = null;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _formError = e.toString());
+      }
+    }
   }
 
   void _applyFilters() {
@@ -375,8 +474,9 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
 
   void _removeAllocation(int index) {
     setState(() {
-      _allocations = List<_SalesReceiptAllocationDraft>.from(_allocations)
-        ..removeAt(index);
+      final next = List<_SalesReceiptAllocationDraft>.from(_allocations);
+      next.removeAt(index).dispose();
+      _allocations = next;
     });
   }
 
@@ -556,6 +656,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                     _documentSeriesId = series.isNotEmpty
                         ? series.first.id
                         : null;
+                    _clearAccountIfInvalidForReceipt();
                   }),
                   validator: Validators.requiredSelection('Company'),
                 ),
@@ -662,15 +763,17 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Payment Mode',
-                  mappedItems: _paymentModeItems,
+                  mappedItems: _paymentModeDropdownItems(),
                   initialValue: _paymentMode,
-                  onChanged: (value) =>
-                      setState(() => _paymentMode = value ?? 'bank'),
+                  onChanged: (value) => setState(() {
+                    _paymentMode = value ?? 'bank';
+                    _clearAccountIfInvalidForReceipt();
+                  }),
                   validator: Validators.requiredSelection('Payment Mode'),
                 ),
                 AppDropdownField<int>.fromMapped(
-                  labelText: 'Account',
-                  mappedItems: _accounts
+                  labelText: 'Cash / bank ledger',
+                  mappedItems: _receiptLedgerOptions
                       .where((item) => item.id != null)
                       .map(
                         (item) => AppDropdownItem(
@@ -681,7 +784,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                       .toList(growable: false),
                   initialValue: _accountId,
                   onChanged: (value) => setState(() => _accountId = value),
-                  validator: Validators.requiredSelection('Account'),
+                  validator: Validators.requiredSelection('Cash / bank ledger'),
                 ),
                 AppFormTextField(
                   labelText: 'Payment Reference No',
@@ -718,6 +821,8 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             AppSwitchTile(
               label: 'Active',
+              subtitle:
+                  'Turn off to mark this receipt inactive. Inactive records are kept for audit but excluded from normal lists and day-to-day use.',
               value: _isActive,
               onChanged: (value) => setState(() => _isActive = value),
             ),
@@ -899,5 +1004,10 @@ class _SalesReceiptAllocationDraft {
       'allocation_type': allocationType,
       'remarks': nullIfEmpty(remarksController.text),
     };
+  }
+
+  void dispose() {
+    amountController.dispose();
+    remarksController.dispose();
   }
 }

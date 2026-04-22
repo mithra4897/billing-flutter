@@ -710,6 +710,9 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           editorOnly: true,
           initialId: id,
+          initialSalesInvoiceId: int.tryParse(
+            _currentQueryParameters['invoice_id'] ?? '',
+          ),
         );
       case 'returns':
         return SalesReturnPage(
