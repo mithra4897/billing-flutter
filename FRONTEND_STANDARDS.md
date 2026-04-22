@@ -44,6 +44,13 @@ Use it before building or changing any frontend module. It is written to be shar
 
 If table, API, and frontend disagree, the database and real API contract win. Do not invent new field names in Flutter.
 
+## Sensitive forms — audit trail UI (thumb rule)
+
+Screens that edit **sensitive** data (financial vouchers and documents, inventory that affects valuation, payroll, grants/revokes access, etc.) should eventually offer a way to see **server-side audit history** for the **open record only** (when `id != null`), backed by `audit_logs` / entity trail APIs.
+
+- Keep the control **low profile**: prefer a small, muted text action (e.g. “Activity log”) at the end of the form—not a large or floating button that competes with primary actions.
+- When you **update or add** another sensitive form, add the same pairing: backend audit writes + this style of discreet viewer unless the product owner explicitly defers it.
+
 ## Source Of Truth Order
 
 For frontend work, trust sources in this order:

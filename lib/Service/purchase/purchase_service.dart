@@ -15,26 +15,26 @@ class PurchaseService extends ErpModuleService {
   Future<PaginatedResponse<PurchaseRequisitionModel>> requisitions({
     Map<String, dynamic>? filters,
   }) => paginated<PurchaseRequisitionModel>(
-    '/purchase/requisitions',
+    ApiEndpoints.purchaseRequisitions,
     filters: filters,
     fromJson: PurchaseRequisitionModel.fromJson,
   );
   Future<ApiResponse<List<PurchaseRequisitionModel>>> requisitionsAll({
     Map<String, dynamic>? filters,
   }) => collection<PurchaseRequisitionModel>(
-    '/purchase/requisitions/all',
+    ApiEndpoints.purchaseRequisitionsAll,
     filters: filters,
     fromJson: PurchaseRequisitionModel.fromJson,
   );
   Future<ApiResponse<PurchaseRequisitionModel>> requisition(int id) =>
       object<PurchaseRequisitionModel>(
-        '/purchase/requisitions/$id',
+        '${ApiEndpoints.purchaseRequisitions}/$id',
         fromJson: PurchaseRequisitionModel.fromJson,
       );
   Future<ApiResponse<PurchaseRequisitionModel>> createRequisition(
     PurchaseRequisitionModel body,
   ) => createModel<PurchaseRequisitionModel>(
-    '/purchase/requisitions',
+    ApiEndpoints.purchaseRequisitions,
     body,
     fromJson: PurchaseRequisitionModel.fromJson,
   );
@@ -42,17 +42,17 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseRequisitionModel body,
   ) => updateModel<PurchaseRequisitionModel>(
-    '/purchase/requisitions/$id',
+    '${ApiEndpoints.purchaseRequisitions}/$id',
     body,
     fromJson: PurchaseRequisitionModel.fromJson,
   );
   Future<ApiResponse<dynamic>> deleteRequisition(int id) =>
-      destroy('/purchase/requisitions/$id');
+      destroy('${ApiEndpoints.purchaseRequisitions}/$id');
   Future<ApiResponse<PurchaseRequisitionModel>> approveRequisition(
     int id,
     PurchaseRequisitionModel body,
   ) => actionModel<PurchaseRequisitionModel>(
-    '/purchase/requisitions/$id/approve',
+    '${ApiEndpoints.purchaseRequisitions}/$id/approve',
     body: body,
     fromJson: PurchaseRequisitionModel.fromJson,
   );
@@ -60,7 +60,7 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseRequisitionModel body,
   ) => actionModel<PurchaseRequisitionModel>(
-    '/purchase/requisitions/$id/cancel',
+    '${ApiEndpoints.purchaseRequisitions}/$id/cancel',
     body: body,
     fromJson: PurchaseRequisitionModel.fromJson,
   );
@@ -68,7 +68,7 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseRequisitionModel body,
   ) => actionModel<PurchaseRequisitionModel>(
-    '/purchase/requisitions/$id/close',
+    '${ApiEndpoints.purchaseRequisitions}/$id/close',
     body: body,
     fromJson: PurchaseRequisitionModel.fromJson,
   );
@@ -76,26 +76,26 @@ class PurchaseService extends ErpModuleService {
   Future<PaginatedResponse<PurchaseOrderModel>> orders({
     Map<String, dynamic>? filters,
   }) => paginated<PurchaseOrderModel>(
-    '/purchase/orders',
+    ApiEndpoints.purchaseOrders,
     filters: filters,
     fromJson: PurchaseOrderModel.fromJson,
   );
   Future<ApiResponse<List<PurchaseOrderModel>>> ordersAll({
     Map<String, dynamic>? filters,
   }) => collection<PurchaseOrderModel>(
-    '/purchase/orders/all',
+    ApiEndpoints.purchaseOrdersAll,
     filters: filters,
     fromJson: PurchaseOrderModel.fromJson,
   );
   Future<ApiResponse<PurchaseOrderModel>> order(int id) =>
       object<PurchaseOrderModel>(
-        '/purchase/orders/$id',
+        '${ApiEndpoints.purchaseOrders}/$id',
         fromJson: PurchaseOrderModel.fromJson,
       );
   Future<ApiResponse<PurchaseOrderModel>> createOrder(
     PurchaseOrderModel body,
   ) => createModel<PurchaseOrderModel>(
-    '/purchase/orders',
+    ApiEndpoints.purchaseOrders,
     body,
     fromJson: PurchaseOrderModel.fromJson,
   );
@@ -103,17 +103,17 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseOrderModel body,
   ) => updateModel<PurchaseOrderModel>(
-    '/purchase/orders/$id',
+    '${ApiEndpoints.purchaseOrders}/$id',
     body,
     fromJson: PurchaseOrderModel.fromJson,
   );
   Future<ApiResponse<dynamic>> deleteOrder(int id) =>
-      destroy('/purchase/orders/$id');
+      destroy('${ApiEndpoints.purchaseOrders}/$id');
   Future<ApiResponse<PurchaseOrderModel>> postOrder(
     int id,
     PurchaseOrderModel body,
   ) => actionModel<PurchaseOrderModel>(
-    '/purchase/orders/$id/post',
+    '${ApiEndpoints.purchaseOrders}/$id/post',
     body: body,
     fromJson: PurchaseOrderModel.fromJson,
   );
@@ -121,7 +121,7 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseOrderModel body,
   ) => actionModel<PurchaseOrderModel>(
-    '/purchase/orders/$id/cancel',
+    '${ApiEndpoints.purchaseOrders}/$id/cancel',
     body: body,
     fromJson: PurchaseOrderModel.fromJson,
   );
@@ -129,7 +129,7 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseOrderModel body,
   ) => actionModel<PurchaseOrderModel>(
-    '/purchase/orders/$id/close',
+    '${ApiEndpoints.purchaseOrders}/$id/close',
     body: body,
     fromJson: PurchaseOrderModel.fromJson,
   );
@@ -137,26 +137,26 @@ class PurchaseService extends ErpModuleService {
   Future<PaginatedResponse<PurchaseReceiptModel>> receipts({
     Map<String, dynamic>? filters,
   }) => paginated<PurchaseReceiptModel>(
-    '/purchase/receipts',
+    ApiEndpoints.purchaseReceipts,
     filters: filters,
     fromJson: PurchaseReceiptModel.fromJson,
   );
   Future<ApiResponse<List<PurchaseReceiptModel>>> receiptsAll({
     Map<String, dynamic>? filters,
   }) => collection<PurchaseReceiptModel>(
-    '/purchase/receipts/all',
+    ApiEndpoints.purchaseReceiptsAll,
     filters: filters,
     fromJson: PurchaseReceiptModel.fromJson,
   );
   Future<ApiResponse<PurchaseReceiptModel>> receipt(int id) =>
       object<PurchaseReceiptModel>(
-        '/purchase/receipts/$id',
+        '${ApiEndpoints.purchaseReceipts}/$id',
         fromJson: PurchaseReceiptModel.fromJson,
       );
   Future<ApiResponse<PurchaseReceiptModel>> createReceipt(
     PurchaseReceiptModel body,
   ) => createModel<PurchaseReceiptModel>(
-    '/purchase/receipts',
+    ApiEndpoints.purchaseReceipts,
     body,
     fromJson: PurchaseReceiptModel.fromJson,
   );
@@ -164,17 +164,17 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseReceiptModel body,
   ) => updateModel<PurchaseReceiptModel>(
-    '/purchase/receipts/$id',
+    '${ApiEndpoints.purchaseReceipts}/$id',
     body,
     fromJson: PurchaseReceiptModel.fromJson,
   );
   Future<ApiResponse<dynamic>> deleteReceipt(int id) =>
-      destroy('/purchase/receipts/$id');
+      destroy('${ApiEndpoints.purchaseReceipts}/$id');
   Future<ApiResponse<PurchaseReceiptModel>> postReceipt(
     int id,
     PurchaseReceiptModel body,
   ) => actionModel<PurchaseReceiptModel>(
-    '/purchase/receipts/$id/post',
+    '${ApiEndpoints.purchaseReceipts}/$id/post',
     body: body,
     fromJson: PurchaseReceiptModel.fromJson,
   );
@@ -182,7 +182,7 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseReceiptModel body,
   ) => actionModel<PurchaseReceiptModel>(
-    '/purchase/receipts/$id/cancel',
+    '${ApiEndpoints.purchaseReceipts}/$id/cancel',
     body: body,
     fromJson: PurchaseReceiptModel.fromJson,
   );
@@ -235,7 +235,7 @@ class PurchaseService extends ErpModuleService {
   }
 
   Future<ApiResponse<dynamic>> deleteInvoice(int id) =>
-      destroy('/purchase/invoices/$id');
+      destroy('${ApiEndpoints.purchaseInvoices}/$id');
 
   Future<ApiResponse<PurchaseInvoiceModel>> postInvoice(int id) {
     return client.post<PurchaseInvoiceModel>(
@@ -256,26 +256,26 @@ class PurchaseService extends ErpModuleService {
   Future<PaginatedResponse<PurchasePaymentModel>> payments({
     Map<String, dynamic>? filters,
   }) => paginated<PurchasePaymentModel>(
-    '/purchase/payments',
+    ApiEndpoints.purchasePayments,
     filters: filters,
     fromJson: PurchasePaymentModel.fromJson,
   );
   Future<ApiResponse<List<PurchasePaymentModel>>> paymentsAll({
     Map<String, dynamic>? filters,
   }) => collection<PurchasePaymentModel>(
-    '/purchase/payments/all',
+    ApiEndpoints.purchasePaymentsAll,
     filters: filters,
     fromJson: PurchasePaymentModel.fromJson,
   );
   Future<ApiResponse<PurchasePaymentModel>> payment(int id) =>
       object<PurchasePaymentModel>(
-        '/purchase/payments/$id',
+        '${ApiEndpoints.purchasePayments}/$id',
         fromJson: PurchasePaymentModel.fromJson,
       );
   Future<ApiResponse<PurchasePaymentModel>> createPayment(
     PurchasePaymentModel body,
   ) => createModel<PurchasePaymentModel>(
-    '/purchase/payments',
+    ApiEndpoints.purchasePayments,
     body,
     fromJson: PurchasePaymentModel.fromJson,
   );
@@ -283,17 +283,17 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchasePaymentModel body,
   ) => updateModel<PurchasePaymentModel>(
-    '/purchase/payments/$id',
+    '${ApiEndpoints.purchasePayments}/$id',
     body,
     fromJson: PurchasePaymentModel.fromJson,
   );
   Future<ApiResponse<dynamic>> deletePayment(int id) =>
-      destroy('/purchase/payments/$id');
+      destroy('${ApiEndpoints.purchasePayments}/$id');
   Future<ApiResponse<PurchasePaymentModel>> postPayment(
     int id,
     PurchasePaymentModel body,
   ) => actionModel<PurchasePaymentModel>(
-    '/purchase/payments/$id/post',
+    '${ApiEndpoints.purchasePayments}/$id/post',
     body: body,
     fromJson: PurchasePaymentModel.fromJson,
   );
@@ -301,7 +301,7 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchasePaymentModel body,
   ) => actionModel<PurchasePaymentModel>(
-    '/purchase/payments/$id/cancel',
+    '${ApiEndpoints.purchasePayments}/$id/cancel',
     body: body,
     fromJson: PurchasePaymentModel.fromJson,
   );
@@ -309,26 +309,26 @@ class PurchaseService extends ErpModuleService {
   Future<PaginatedResponse<PurchaseReturnModel>> returns({
     Map<String, dynamic>? filters,
   }) => paginated<PurchaseReturnModel>(
-    '/purchase/returns',
+    ApiEndpoints.purchaseReturns,
     filters: filters,
     fromJson: PurchaseReturnModel.fromJson,
   );
   Future<ApiResponse<List<PurchaseReturnModel>>> returnsAll({
     Map<String, dynamic>? filters,
   }) => collection<PurchaseReturnModel>(
-    '/purchase/returns/all',
+    ApiEndpoints.purchaseReturnsAll,
     filters: filters,
     fromJson: PurchaseReturnModel.fromJson,
   );
   Future<ApiResponse<PurchaseReturnModel>> returnDoc(int id) =>
       object<PurchaseReturnModel>(
-        '/purchase/returns/$id',
+        '${ApiEndpoints.purchaseReturns}/$id',
         fromJson: PurchaseReturnModel.fromJson,
       );
   Future<ApiResponse<PurchaseReturnModel>> createReturn(
     PurchaseReturnModel body,
   ) => createModel<PurchaseReturnModel>(
-    '/purchase/returns',
+    ApiEndpoints.purchaseReturns,
     body,
     fromJson: PurchaseReturnModel.fromJson,
   );
@@ -336,17 +336,17 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseReturnModel body,
   ) => updateModel<PurchaseReturnModel>(
-    '/purchase/returns/$id',
+    '${ApiEndpoints.purchaseReturns}/$id',
     body,
     fromJson: PurchaseReturnModel.fromJson,
   );
   Future<ApiResponse<dynamic>> deleteReturn(int id) =>
-      destroy('/purchase/returns/$id');
+      destroy('${ApiEndpoints.purchaseReturns}/$id');
   Future<ApiResponse<PurchaseReturnModel>> postReturn(
     int id,
     PurchaseReturnModel body,
   ) => actionModel<PurchaseReturnModel>(
-    '/purchase/returns/$id/post',
+    '${ApiEndpoints.purchaseReturns}/$id/post',
     body: body,
     fromJson: PurchaseReturnModel.fromJson,
   );
@@ -354,7 +354,7 @@ class PurchaseService extends ErpModuleService {
     int id,
     PurchaseReturnModel body,
   ) => actionModel<PurchaseReturnModel>(
-    '/purchase/returns/$id/cancel',
+    '${ApiEndpoints.purchaseReturns}/$id/cancel',
     body: body,
     fromJson: PurchaseReturnModel.fromJson,
   );

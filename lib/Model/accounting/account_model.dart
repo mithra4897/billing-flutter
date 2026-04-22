@@ -24,6 +24,8 @@ class AccountModel implements JsonModel {
     this.branchName,
     this.accountGroupCode,
     this.accountGroupName,
+    this.accountGroupNature,
+    this.accountGroupCategory,
     this.raw,
   });
 
@@ -49,6 +51,8 @@ class AccountModel implements JsonModel {
   final String? branchName;
   final String? accountGroupCode;
   final String? accountGroupName;
+  final String? accountGroupNature;
+  final String? accountGroupCategory;
   final Map<String, dynamic>? raw;
 
   @override
@@ -86,6 +90,8 @@ class AccountModel implements JsonModel {
       branchName: branch['name']?.toString(),
       accountGroupCode: accountGroup['group_code']?.toString(),
       accountGroupName: accountGroup['group_name']?.toString(),
+      accountGroupNature: accountGroup['group_nature']?.toString(),
+      accountGroupCategory: accountGroup['group_category']?.toString(),
       raw: json,
     );
   }

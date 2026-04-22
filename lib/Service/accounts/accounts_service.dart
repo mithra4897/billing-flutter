@@ -23,7 +23,7 @@ class AccountsService extends ErpModuleService {
   Future<PaginatedResponse<AccountGroupModel>> accountGroups({
     Map<String, dynamic>? filters,
   }) => paginated<AccountGroupModel>(
-    '/accounting/account-groups',
+    ApiEndpoints.accountGroups,
     filters: filters,
     fromJson: AccountGroupModel.fromJson,
   );
@@ -31,21 +31,21 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<List<AccountGroupModel>>> accountGroupsAll({
     Map<String, dynamic>? filters,
   }) => collection<AccountGroupModel>(
-    '/accounting/account-groups/list/all',
+    ApiEndpoints.accountGroupsListAll,
     filters: filters,
     fromJson: AccountGroupModel.fromJson,
   );
 
   Future<ApiResponse<AccountGroupModel>> accountGroup(int id) =>
       object<AccountGroupModel>(
-        '/accounting/account-groups/$id',
+        '${ApiEndpoints.accountGroups}/$id',
         fromJson: AccountGroupModel.fromJson,
       );
 
   Future<ApiResponse<AccountGroupModel>> createAccountGroup(
     AccountGroupModel body,
   ) => createModel<AccountGroupModel>(
-    '/accounting/account-groups',
+    ApiEndpoints.accountGroups,
     body,
     fromJson: AccountGroupModel.fromJson,
   );
@@ -54,19 +54,19 @@ class AccountsService extends ErpModuleService {
     int id,
     AccountGroupModel body,
   ) => updateModel<AccountGroupModel>(
-    '/accounting/account-groups/$id',
+    '${ApiEndpoints.accountGroups}/$id',
     body,
     fromJson: AccountGroupModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deleteAccountGroup(int id) =>
-      destroy('/accounting/account-groups/$id');
+      destroy('${ApiEndpoints.accountGroups}/$id');
 
   Future<PaginatedResponse<AccountModel>> accounts({
     Map<String, dynamic>? filters,
   }) {
     return client.getPaginated<AccountModel>(
-      '/accounting/accounts',
+      ApiEndpoints.accounts,
       queryParameters: filters,
       itemFromJson: AccountModel.fromJson,
     );
@@ -75,37 +75,37 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<List<AccountModel>>> accountsAll({
     Map<String, dynamic>? filters,
   }) => collection<AccountModel>(
-    '/accounting/accounts/list/all',
+    ApiEndpoints.accountsListAll,
     filters: filters,
     fromJson: AccountModel.fromJson,
   );
 
   Future<ApiResponse<AccountModel>> account(int id) => object<AccountModel>(
-    '/accounting/accounts/$id',
+    '${ApiEndpoints.accounts}/$id',
     fromJson: AccountModel.fromJson,
   );
 
   Future<ApiResponse<AccountModel>> createAccount(AccountModel body) =>
       createModel<AccountModel>(
-        '/accounting/accounts',
+        ApiEndpoints.accounts,
         body,
         fromJson: AccountModel.fromJson,
       );
 
   Future<ApiResponse<AccountModel>> updateAccount(int id, AccountModel body) =>
       updateModel<AccountModel>(
-        '/accounting/accounts/$id',
+        '${ApiEndpoints.accounts}/$id',
         body,
         fromJson: AccountModel.fromJson,
       );
 
   Future<ApiResponse<dynamic>> deleteAccount(int id) =>
-      destroy('/accounting/accounts/$id');
+      destroy('${ApiEndpoints.accounts}/$id');
 
   Future<PaginatedResponse<VoucherTypeModel>> voucherTypes({
     Map<String, dynamic>? filters,
   }) => paginated<VoucherTypeModel>(
-    '/accounting/voucher-types',
+    ApiEndpoints.voucherTypes,
     filters: filters,
     fromJson: VoucherTypeModel.fromJson,
   );
@@ -113,21 +113,21 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<List<VoucherTypeModel>>> voucherTypesAll({
     Map<String, dynamic>? filters,
   }) => collection<VoucherTypeModel>(
-    '/accounting/voucher-types/list/all',
+    ApiEndpoints.voucherTypesListAll,
     filters: filters,
     fromJson: VoucherTypeModel.fromJson,
   );
 
   Future<ApiResponse<VoucherTypeModel>> voucherType(int id) =>
       object<VoucherTypeModel>(
-        '/accounting/voucher-types/$id',
+        '${ApiEndpoints.voucherTypes}/$id',
         fromJson: VoucherTypeModel.fromJson,
       );
 
   Future<ApiResponse<VoucherTypeModel>> createVoucherType(
     VoucherTypeModel body,
   ) => createModel<VoucherTypeModel>(
-    '/accounting/voucher-types',
+    ApiEndpoints.voucherTypes,
     body,
     fromJson: VoucherTypeModel.fromJson,
   );
@@ -136,18 +136,18 @@ class AccountsService extends ErpModuleService {
     int id,
     VoucherTypeModel body,
   ) => updateModel<VoucherTypeModel>(
-    '/accounting/voucher-types/$id',
+    '${ApiEndpoints.voucherTypes}/$id',
     body,
     fromJson: VoucherTypeModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deleteVoucherType(int id) =>
-      destroy('/accounting/voucher-types/$id');
+      destroy('${ApiEndpoints.voucherTypes}/$id');
 
   Future<PaginatedResponse<PostingRuleGroupModel>> postingRuleGroups({
     Map<String, dynamic>? filters,
   }) => paginated<PostingRuleGroupModel>(
-    '/accounting/posting-rule-groups',
+    ApiEndpoints.postingRuleGroups,
     filters: filters,
     fromJson: PostingRuleGroupModel.fromJson,
   );
@@ -155,21 +155,21 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<List<PostingRuleGroupModel>>> postingRuleGroupsAll({
     Map<String, dynamic>? filters,
   }) => collection<PostingRuleGroupModel>(
-    '/accounting/posting-rule-groups/list/all',
+    ApiEndpoints.postingRuleGroupsListAll,
     filters: filters,
     fromJson: PostingRuleGroupModel.fromJson,
   );
 
   Future<ApiResponse<PostingRuleGroupModel>> postingRuleGroup(int id) =>
       object<PostingRuleGroupModel>(
-        '/accounting/posting-rule-groups/$id',
+        '${ApiEndpoints.postingRuleGroups}/$id',
         fromJson: PostingRuleGroupModel.fromJson,
       );
 
   Future<ApiResponse<PostingRuleGroupModel>> createPostingRuleGroup(
     PostingRuleGroupModel body,
   ) => createModel<PostingRuleGroupModel>(
-    '/accounting/posting-rule-groups',
+    ApiEndpoints.postingRuleGroups,
     body,
     fromJson: PostingRuleGroupModel.fromJson,
   );
@@ -178,18 +178,18 @@ class AccountsService extends ErpModuleService {
     int id,
     PostingRuleGroupModel body,
   ) => updateModel<PostingRuleGroupModel>(
-    '/accounting/posting-rule-groups/$id',
+    '${ApiEndpoints.postingRuleGroups}/$id',
     body,
     fromJson: PostingRuleGroupModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deletePostingRuleGroup(int id) =>
-      destroy('/accounting/posting-rule-groups/$id');
+      destroy('${ApiEndpoints.postingRuleGroups}/$id');
 
   Future<PaginatedResponse<PostingRuleModel>> postingRules({
     Map<String, dynamic>? filters,
   }) => paginated<PostingRuleModel>(
-    '/accounting/posting-rules',
+    ApiEndpoints.postingRules,
     filters: filters,
     fromJson: PostingRuleModel.fromJson,
   );
@@ -197,21 +197,21 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<List<PostingRuleModel>>> postingRulesAll({
     Map<String, dynamic>? filters,
   }) => collection<PostingRuleModel>(
-    '/accounting/posting-rules/list/all',
+    ApiEndpoints.postingRulesListAll,
     filters: filters,
     fromJson: PostingRuleModel.fromJson,
   );
 
   Future<ApiResponse<PostingRuleModel>> postingRule(int id) =>
       object<PostingRuleModel>(
-        '/accounting/posting-rules/$id',
+        '${ApiEndpoints.postingRules}/$id',
         fromJson: PostingRuleModel.fromJson,
       );
 
   Future<ApiResponse<PostingRuleModel>> createPostingRule(
     PostingRuleModel body,
   ) => createModel<PostingRuleModel>(
-    '/accounting/posting-rules',
+    ApiEndpoints.postingRules,
     body,
     fromJson: PostingRuleModel.fromJson,
   );
@@ -220,18 +220,18 @@ class AccountsService extends ErpModuleService {
     int id,
     PostingRuleModel body,
   ) => updateModel<PostingRuleModel>(
-    '/accounting/posting-rules/$id',
+    '${ApiEndpoints.postingRules}/$id',
     body,
     fromJson: PostingRuleModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deletePostingRule(int id) =>
-      destroy('/accounting/posting-rules/$id');
+      destroy('${ApiEndpoints.postingRules}/$id');
 
   Future<PaginatedResponse<DocumentPostingModel>> documentPostings({
     Map<String, dynamic>? filters,
   }) => paginated<DocumentPostingModel>(
-    '/accounting/document-postings',
+    ApiEndpoints.documentPostings,
     filters: filters,
     fromJson: DocumentPostingModel.fromJson,
   );
@@ -239,21 +239,21 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<List<DocumentPostingModel>>> documentPostingsAll({
     Map<String, dynamic>? filters,
   }) => collection<DocumentPostingModel>(
-    '/accounting/document-postings/list/all',
+    ApiEndpoints.documentPostingsListAll,
     filters: filters,
     fromJson: DocumentPostingModel.fromJson,
   );
 
   Future<ApiResponse<DocumentPostingModel>> documentPosting(int id) =>
       object<DocumentPostingModel>(
-        '/accounting/document-postings/$id',
+        '${ApiEndpoints.documentPostings}/$id',
         fromJson: DocumentPostingModel.fromJson,
       );
 
   Future<ApiResponse<DocumentPostingModel>> createDocumentPosting(
     DocumentPostingModel body,
   ) => createModel<DocumentPostingModel>(
-    '/accounting/document-postings',
+    ApiEndpoints.documentPostings,
     body,
     fromJson: DocumentPostingModel.fromJson,
   );
@@ -262,18 +262,18 @@ class AccountsService extends ErpModuleService {
     int id,
     DocumentPostingModel body,
   ) => updateModel<DocumentPostingModel>(
-    '/accounting/document-postings/$id',
+    '${ApiEndpoints.documentPostings}/$id',
     body,
     fromJson: DocumentPostingModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deleteDocumentPosting(int id) =>
-      destroy('/accounting/document-postings/$id');
+      destroy('${ApiEndpoints.documentPostings}/$id');
 
   Future<ApiResponse<List<PartyAccountModel>>> partyAccounts({
     Map<String, dynamic>? filters,
   }) => collection<PartyAccountModel>(
-    '/accounting/party-accounts',
+    ApiEndpoints.partyAccounts,
     filters: filters,
     fromJson: PartyAccountModel.fromJson,
   );
@@ -281,7 +281,7 @@ class AccountsService extends ErpModuleService {
   Future<PaginatedResponse<PartyAccountModel>> partyAccountsRegister({
     Map<String, dynamic>? filters,
   }) => paginated<PartyAccountModel>(
-    '/accounting/party-accounts',
+    ApiEndpoints.partyAccounts,
     filters: filters,
     fromJson: PartyAccountModel.fromJson,
   );
@@ -289,20 +289,20 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<PartyAccountModel>> defaultPartyAccount({
     Map<String, dynamic>? filters,
   }) => object<PartyAccountModel>(
-    '/accounting/party-accounts/default',
+    ApiEndpoints.partyAccountsDefault,
     fromJson: PartyAccountModel.fromJson,
   );
 
   Future<ApiResponse<PartyAccountModel>> partyAccount(int id) =>
       object<PartyAccountModel>(
-        '/accounting/party-accounts/$id',
+        '${ApiEndpoints.partyAccounts}/$id',
         fromJson: PartyAccountModel.fromJson,
       );
 
   Future<ApiResponse<PartyAccountModel>> createPartyAccount(
     PartyAccountModel body,
   ) => createModel<PartyAccountModel>(
-    '/accounting/party-accounts',
+    ApiEndpoints.partyAccounts,
     body,
     fromJson: PartyAccountModel.fromJson,
   );
@@ -311,49 +311,49 @@ class AccountsService extends ErpModuleService {
     int id,
     PartyAccountModel body,
   ) => updateModel<PartyAccountModel>(
-    '/accounting/party-accounts/$id',
+    '${ApiEndpoints.partyAccounts}/$id',
     body,
     fromJson: PartyAccountModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deletePartyAccount(int id) =>
-      destroy('/accounting/party-accounts/$id');
+      destroy('${ApiEndpoints.partyAccounts}/$id');
 
   Future<PaginatedResponse<BudgetModel>> budgets({
     Map<String, dynamic>? filters,
   }) => paginated<BudgetModel>(
-    '/accounting/budgets',
+    ApiEndpoints.budgets,
     filters: filters,
     fromJson: BudgetModel.fromJson,
   );
 
   Future<ApiResponse<BudgetModel>> budget(int id) => object<BudgetModel>(
-    '/accounting/budgets/$id',
+    '${ApiEndpoints.budgets}/$id',
     fromJson: BudgetModel.fromJson,
   );
 
   Future<ApiResponse<BudgetModel>> createBudget(BudgetModel body) =>
       createModel<BudgetModel>(
-        '/accounting/budgets',
+        ApiEndpoints.budgets,
         body,
         fromJson: BudgetModel.fromJson,
       );
 
   Future<ApiResponse<BudgetModel>> updateBudget(int id, BudgetModel body) =>
       updateModel<BudgetModel>(
-        '/accounting/budgets/$id',
+        '${ApiEndpoints.budgets}/$id',
         body,
         fromJson: BudgetModel.fromJson,
       );
 
   Future<ApiResponse<dynamic>> deleteBudget(int id) =>
-      destroy('/accounting/budgets/$id');
+      destroy('${ApiEndpoints.budgets}/$id');
 
   Future<ApiResponse<BudgetVsActualModel>> budgetVsActual(
     int id, {
     Map<String, dynamic>? filters,
   }) => object<BudgetVsActualModel>(
-    '/accounting/budgets/$id/vs-actual',
+    '${ApiEndpoints.budgets}/$id/vs-actual',
     fromJson: BudgetVsActualModel.fromJson,
   );
 
@@ -370,7 +370,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<List<VoucherModel>>> vouchersAll({
     Map<String, dynamic>? filters,
   }) => collection<VoucherModel>(
-    '/accounting/vouchers/list/all',
+    ApiEndpoints.vouchersListAll,
     filters: filters,
     fromJson: VoucherModel.fromJson,
   );
@@ -382,38 +382,61 @@ class AccountsService extends ErpModuleService {
     );
   }
 
+  Future<ApiResponse<List<Map<String, dynamic>>>> voucherAuditTrail(int id) {
+    return client.get<List<Map<String, dynamic>>>(
+      '${ApiEndpoints.vouchers}/$id/audit-trail',
+      fromData: (dynamic json) {
+        if (json is! List) {
+          return <Map<String, dynamic>>[];
+        }
+        return json.map((dynamic e) {
+          if (e is Map<String, dynamic>) {
+            return e;
+          }
+          if (e is Map) {
+            return Map<String, dynamic>.from(e);
+          }
+          return <String, dynamic>{};
+        }).where((m) => m.isNotEmpty).toList();
+      },
+    );
+  }
+
   Future<ApiResponse<VoucherModel>> createVoucher(VoucherModel body) =>
       createModel<VoucherModel>(
-        '/accounting/vouchers',
+        ApiEndpoints.vouchers,
         body,
         fromJson: VoucherModel.fromJson,
       );
 
   Future<ApiResponse<VoucherModel>> updateVoucher(int id, VoucherModel body) =>
       updateModel<VoucherModel>(
-        '/accounting/vouchers/$id',
+        '${ApiEndpoints.vouchers}/$id',
         body,
         fromJson: VoucherModel.fromJson,
       );
 
+  Future<ApiResponse<dynamic>> deleteVoucher(int id) =>
+      destroy('${ApiEndpoints.vouchers}/$id');
+
   Future<PaginatedResponse<VoucherAllocationModel>> voucherAllocations({
     Map<String, dynamic>? filters,
   }) => paginated<VoucherAllocationModel>(
-    '/accounting/voucher-allocations',
+    ApiEndpoints.voucherAllocations,
     filters: filters,
     fromJson: VoucherAllocationModel.fromJson,
   );
 
   Future<ApiResponse<VoucherAllocationModel>> voucherAllocation(int id) =>
       object<VoucherAllocationModel>(
-        '/accounting/voucher-allocations/$id',
+        '${ApiEndpoints.voucherAllocations}/$id',
         fromJson: VoucherAllocationModel.fromJson,
       );
 
   Future<ApiResponse<VoucherAllocationModel>> createVoucherAllocation(
     VoucherAllocationModel body,
   ) => createModel<VoucherAllocationModel>(
-    '/accounting/voucher-allocations',
+    ApiEndpoints.voucherAllocations,
     body,
     fromJson: VoucherAllocationModel.fromJson,
   );
@@ -422,32 +445,32 @@ class AccountsService extends ErpModuleService {
     int id,
     VoucherAllocationModel body,
   ) => updateModel<VoucherAllocationModel>(
-    '/accounting/voucher-allocations/$id',
+    '${ApiEndpoints.voucherAllocations}/$id',
     body,
     fromJson: VoucherAllocationModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deleteVoucherAllocation(int id) =>
-      destroy('/accounting/voucher-allocations/$id');
+      destroy('${ApiEndpoints.voucherAllocations}/$id');
 
   Future<ApiResponse<List<CashSessionModel>>> cashSessions({
     Map<String, dynamic>? filters,
   }) => collection<CashSessionModel>(
-    '/accounting/cash-sessions',
+    ApiEndpoints.cashSessions,
     filters: filters,
     fromJson: CashSessionModel.fromJson,
   );
 
   Future<ApiResponse<CashSessionModel>> cashSession(int id) =>
       object<CashSessionModel>(
-        '/accounting/cash-sessions/$id',
+        '${ApiEndpoints.cashSessions}/$id',
         fromJson: CashSessionModel.fromJson,
       );
 
   Future<ApiResponse<CashSessionModel>> openCashSession(
     CashSessionModel body,
   ) => actionModel<CashSessionModel>(
-    '/accounting/cash-sessions/open',
+    ApiEndpoints.cashSessionsOpen,
     body: body,
     fromJson: CashSessionModel.fromJson,
   );
@@ -456,7 +479,7 @@ class AccountsService extends ErpModuleService {
     int id,
     CashSessionModel body,
   ) => actionModel<CashSessionModel>(
-    '/accounting/cash-sessions/$id/close',
+    '${ApiEndpoints.cashSessions}/$id/close',
     body: body,
     fromJson: CashSessionModel.fromJson,
   );
@@ -465,7 +488,7 @@ class AccountsService extends ErpModuleService {
     int id,
     CashSessionModel body,
   ) => actionModel<CashSessionModel>(
-    '/accounting/cash-sessions/$id/cancel',
+    '${ApiEndpoints.cashSessions}/$id/cancel',
     body: body,
     fromJson: CashSessionModel.fromJson,
   );
@@ -473,7 +496,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<List<BankReconciliationModel>>> bankReconciliation({
     Map<String, dynamic>? filters,
   }) => collection<BankReconciliationModel>(
-    '/accounting/bank-reconciliation',
+    ApiEndpoints.bankReconciliation,
     filters: filters,
     fromJson: BankReconciliationModel.fromJson,
   );
@@ -481,14 +504,14 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<BankReconciliationModel>> bankReconciliationEntry(
     int id,
   ) => object<BankReconciliationModel>(
-    '/accounting/bank-reconciliation/$id',
+    '${ApiEndpoints.bankReconciliation}/$id',
     fromJson: BankReconciliationModel.fromJson,
   );
 
   Future<ApiResponse<BankReconciliationModel>> createBankReconciliation(
     BankReconciliationModel body,
   ) => createModel<BankReconciliationModel>(
-    '/accounting/bank-reconciliation',
+    ApiEndpoints.bankReconciliation,
     body,
     fromJson: BankReconciliationModel.fromJson,
   );
@@ -497,18 +520,18 @@ class AccountsService extends ErpModuleService {
     int id,
     BankReconciliationModel body,
   ) => updateModel<BankReconciliationModel>(
-    '/accounting/bank-reconciliation/$id',
+    '${ApiEndpoints.bankReconciliation}/$id',
     body,
     fromJson: BankReconciliationModel.fromJson,
   );
 
   Future<ApiResponse<dynamic>> deleteBankReconciliation(int id) =>
-      destroy('/accounting/bank-reconciliation/$id');
+      destroy('${ApiEndpoints.bankReconciliation}/$id');
 
   Future<ApiResponse<AccountingReportModel>> reportDayBook({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/day-book',
+    ApiEndpoints.reportsDayBook,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),
@@ -517,7 +540,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<AccountingReportModel>> reportGeneralLedger({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/general-ledger',
+    ApiEndpoints.reportsGeneralLedger,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),
@@ -526,7 +549,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<AccountingReportModel>> reportAccountsReceivableAging({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/accounts-receivable-aging',
+    ApiEndpoints.reportsAccountsReceivableAging,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),
@@ -535,7 +558,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<AccountingReportModel>> reportAccountsPayableAging({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/accounts-payable-aging',
+    ApiEndpoints.reportsAccountsPayableAging,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),
@@ -544,7 +567,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<AccountingReportModel>> reportBalanceSheet({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/balance-sheet',
+    ApiEndpoints.reportsBalanceSheet,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),
@@ -553,7 +576,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<AccountingReportModel>> reportProfitAndLoss({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/profit-loss',
+    ApiEndpoints.reportsProfitLoss,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),
@@ -562,7 +585,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<AccountingReportModel>> reportTrialBalance({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/trial-balance',
+    ApiEndpoints.reportsTrialBalance,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),
@@ -571,7 +594,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<AccountingReportModel>> reportCashFlow({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/cash-flow',
+    ApiEndpoints.reportsCashFlow,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),
@@ -580,7 +603,7 @@ class AccountsService extends ErpModuleService {
   Future<ApiResponse<AccountingReportModel>> reportFinancialStatements({
     Map<String, dynamic>? filters,
   }) => client.get<AccountingReportModel>(
-    '/accounting/reports/financial-statements',
+    ApiEndpoints.reportsFinancialStatements,
     queryParameters: filters,
     fromData: (json) =>
         AccountingReportModel.fromJson(json as Map<String, dynamic>),

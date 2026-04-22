@@ -15,6 +15,7 @@ import '../storage/session_storage.dart';
 import 'api_cache_store.dart';
 import '../../main.dart';
 import '../../service/app/app_session_service.dart';
+import 'api_endpoints.dart';
 
 class ApiClient {
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
@@ -31,8 +32,8 @@ class ApiClient {
     '/masters/financial-years',
     '/masters/document-series',
     '/masters/party-types',
-    '/inventory/uoms',
-    '/inventory/tax-codes',
+    ApiEndpoints.uoms,
+    ApiEndpoints.taxCodes,
   };
   static const Map<String, Set<String>> _cacheInvalidationMap =
       <String, Set<String>>{
@@ -55,8 +56,8 @@ class ApiClient {
         '/masters/financial-years': <String>{'/masters/financial-years'},
         '/masters/document-series': <String>{'/masters/document-series'},
         '/masters/party-types': <String>{'/masters/party-types'},
-        '/inventory/uoms': <String>{'/inventory/uoms'},
-        '/inventory/tax-codes': <String>{'/inventory/tax-codes'},
+        ApiEndpoints.uoms: <String>{ApiEndpoints.uoms},
+        ApiEndpoints.taxCodes: <String>{ApiEndpoints.taxCodes},
       };
 
   Future<ApiResponse<T>> get<T>(

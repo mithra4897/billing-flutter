@@ -35,22 +35,26 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       <_VoucherModeOption>[
         _VoucherModeOption(
           category: 'payment',
-          label: 'Payment',
+          label: 'Expense',
+          subtitle: 'Cash / bank → expense ledger',
           icon: Icons.payments_outlined,
         ),
         _VoucherModeOption(
           category: 'receipt',
           label: 'Receipt',
+          subtitle: 'Indirect income → cash / bank',
           icon: Icons.receipt_long_outlined,
         ),
         _VoucherModeOption(
           category: 'contra',
           label: 'Contra',
+          subtitle: 'Cash / bank transfers',
           icon: Icons.swap_horiz_outlined,
         ),
         _VoucherModeOption(
           category: 'journal',
           label: 'Journal',
+          subtitle: 'Multi-line entries',
           icon: Icons.menu_book_outlined,
         ),
       ];
@@ -108,6 +112,13 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   String _postingStatus = 'draft';
   String _voucherMode = 'payment';
   bool _isActive = true;
+
+  /// Hides reference, parties, cost dimensions, approvals — keeps ERP-grade doubles.
+  bool _simpleEntryMode = true;
+  Set<String> _permissionCodes = {};
+  bool _isSuperAdmin = false;
+  bool _deleting = false;
+  bool _auditLogLoading = false;
   List<_VoucherLineDraft> _lines = <_VoucherLineDraft>[];
 
   @override
@@ -143,6 +154,11 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     });
 
     try {
+      final permissionCodes = await SessionStorage.getPermissionCodes();
+      final currentUser = await SessionStorage.getCurrentUser();
+      final isSuperAdmin = currentUser?['is_super_admin'] == true ||
+          currentUser?['is_super_admin'] == 1;
+
       final responses = await Future.wait<dynamic>([
         _accountsService.vouchers(
           filters: const {'per_page': 200, 'sort_by': 'voucher_date'},
@@ -163,9 +179,6 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
           filters: const {'per_page': 200, 'sort_by': 'series_name'},
         ),
         _accountsService.voucherTypesAll(filters: const {'sort_by': 'name'}),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
-        ),
         _partiesService.parties(
           filters: const {'per_page': 200, 'sort_by': 'party_name'},
         ),
@@ -192,11 +205,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       final voucherTypes =
           (responses[6] as ApiResponse<List<VoucherTypeModel>>).data ??
           const <VoucherTypeModel>[];
-      final accounts =
-          (responses[7] as ApiResponse<List<AccountModel>>).data ??
-          const <AccountModel>[];
       final parties =
-          (responses[8] as PaginatedResponse<PartyModel>).data ??
+          (responses[7] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
       final activeCompanies = companies.where((item) => item.isActive).toList();
       final activeBranches = branches.where((item) => item.isActive).toList();
@@ -214,7 +224,20 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
 
       if (!mounted) return;
 
+      final accountsResponse = await _accountsService.accountsAll(
+        filters: <String, dynamic>{
+          'sort_by': 'account_name',
+          if (contextSelection.companyId != null)
+            'company_id': contextSelection.companyId,
+        },
+      );
+      final accounts = accountsResponse.data ?? const <AccountModel>[];
+
+      if (!mounted) return;
+
       setState(() {
+        _permissionCodes = permissionCodes.toSet();
+        _isSuperAdmin = isSuperAdmin;
         _vouchers = vouchers;
         _filteredVouchers = _filterVouchers(vouchers, _searchController.text);
         _contextCompanyId = contextSelection.companyId;
@@ -241,20 +264,26 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         _syncDocumentSeriesSelection();
       });
 
-      final selected = selectId != null
-          ? vouchers.cast<VoucherModel?>().firstWhere(
-              (item) => item?.id == selectId,
-              orElse: () => null,
-            )
-          : (_selectedVoucher == null
-                ? (vouchers.isNotEmpty ? vouchers.first : null)
-                : vouchers.cast<VoucherModel?>().firstWhere(
-                    (item) => item?.id == _selectedVoucher?.id,
-                    orElse: () => vouchers.isNotEmpty ? vouchers.first : null,
-                  ));
-
-      if (selected != null) {
-        await _selectVoucher(selected);
+      if (selectId != null) {
+        final selected = vouchers.cast<VoucherModel?>().firstWhere(
+          (item) => item?.id == selectId,
+          orElse: () => null,
+        );
+        if (selected != null) {
+          await _selectVoucher(selected);
+        } else {
+          _resetForm();
+        }
+      } else if (_selectedVoucher?.id != null) {
+        final reselect = vouchers.cast<VoucherModel?>().firstWhere(
+          (item) => item?.id == _selectedVoucher?.id,
+          orElse: () => null,
+        );
+        if (reselect != null) {
+          await _selectVoucher(reselect);
+        } else {
+          _resetForm();
+        }
       } else {
         _resetForm();
       }
@@ -306,8 +335,54 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
 
   bool get _usesQuickEntry => _voucherMode != 'journal';
 
-  List<AccountModel> get _cashBankAccounts {
+  bool get _hasAccountsUpdate =>
+      _isSuperAdmin || _permissionCodes.contains('accounts.update');
+
+  bool get _hasAccountsDelete =>
+      _isSuperAdmin || _permissionCodes.contains('accounts.delete');
+
+  /// Posted manual vouchers stay editable when the role has accounts.update (or super admin).
+  /// Super admin may also edit system-generated vouchers (API enforces the same).
+  bool get _canEditSelectedVoucher {
+    final v = _selectedVoucher;
+    if (v == null) {
+      return true;
+    }
+    if ((v.postingStatus ?? '').toLowerCase() == 'cancelled') {
+      return false;
+    }
+    if (v.isSystemGenerated && !_isSuperAdmin) {
+      return false;
+    }
+    return _hasAccountsUpdate;
+  }
+
+  bool get _canDeleteSelectedVoucher {
+    final v = _selectedVoucher;
+    if (v?.id == null) {
+      return false;
+    }
+    if ((v!.postingStatus ?? '').toLowerCase() == 'cancelled') {
+      return false;
+    }
+    if (v.isSystemGenerated && !_isSuperAdmin) {
+      return false;
+    }
+    return _hasAccountsDelete;
+  }
+
+  List<AccountModel> get _accountsScoped {
+    final cid = _companyId ?? _contextCompanyId;
+    if (cid == null) {
+      return _accounts;
+    }
     return _accounts
+        .where((item) => item.companyId == cid)
+        .toList(growable: false);
+  }
+
+  List<AccountModel> get _cashBankAccounts {
+    return _accountsScoped
         .where(
           (item) => item.accountType == 'cash' || item.accountType == 'bank',
         )
@@ -315,17 +390,83 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   }
 
   List<AccountModel> get _manualAccounts {
-    return _accounts
+    return _accountsScoped
         .where((item) => item.allowManualEntries || item.isSystemAccount)
+        .toList(growable: false);
+  }
+
+  Map<String, dynamic>? _accountGroupJson(AccountModel a) {
+    final m = a.raw;
+    if (m == null) {
+      return null;
+    }
+    final g = m['account_group'] ?? m['accountGroup'];
+    if (g is Map<String, dynamic>) {
+      return g;
+    }
+    if (g is Map) {
+      return Map<String, dynamic>.from(g);
+    }
+    return null;
+  }
+
+  /// Chart classification from API (`account_group` on ledger JSON / `raw`).
+  String? _accountGroupNatureOf(AccountModel a) =>
+      _accountGroupJson(a)?['group_nature']?.toString();
+
+  String? _accountGroupCategoryOf(AccountModel a) =>
+      _accountGroupJson(a)?['group_category']?.toString();
+
+  /// Expense / payment: debit side (chart groups with expense nature or expense categories).
+  List<AccountModel> get _expenseLedgerOptions {
+    bool isExpenseLedger(AccountModel a) {
+      final nature = _accountGroupNatureOf(a)?.toLowerCase();
+      final cat = _accountGroupCategoryOf(a)?.toLowerCase();
+      if (nature == 'expense') {
+        return true;
+      }
+      if (cat == 'direct_expense' || cat == 'indirect_expense') {
+        return true;
+      }
+      return false;
+    }
+
+    final scoped = _manualAccounts.where(isExpenseLedger).toList();
+    if (scoped.isNotEmpty) {
+      return scoped;
+    }
+    return _manualAccounts
+        .where((a) => a.accountType != 'cash' && a.accountType != 'bank')
+        .toList(growable: false);
+  }
+
+  /// Misc receipt: credit side — prefer indirect income per chart of accounts.
+  List<AccountModel> get _indirectIncomeLedgerOptions {
+    final scoped = _manualAccounts
+        .where(
+          (a) => _accountGroupCategoryOf(a)?.toLowerCase() == 'indirect_income',
+        )
+        .toList();
+    if (scoped.isNotEmpty) {
+      return scoped;
+    }
+    return _manualAccounts
+        .where((a) => _accountGroupNatureOf(a)?.toLowerCase() == 'income')
         .toList(growable: false);
   }
 
   List<DocumentSeriesModel> get _filteredDocumentSeriesOptions {
     return _documentSeries
         .where((item) {
-          final documentTypeMatches =
-              (_selectedVoucherType?.documentType?.trim().isEmpty ?? true) ||
-              item.documentType == _selectedVoucherType?.documentType;
+          final vdt = _selectedVoucherType?.documentType?.trim() ?? '';
+          final documentTypeMatches = vdt.isNotEmpty
+              ? item.documentType == vdt
+              : <String>{
+                  'PAYMENT_VOUCHER',
+                  'RECEIPT_VOUCHER',
+                  'CONTRA_VOUCHER',
+                  'JOURNAL_VOUCHER',
+                }.contains(item.documentType);
           final companyMatches =
               _companyId == null ||
               item.companyId == null ||
@@ -405,6 +546,12 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     }
     _hydrateQuickEntryFromLines(full);
     _formError = null;
+    final mode = _resolveVoucherMode(full);
+    _simpleEntryMode =
+        mode != 'journal' &&
+        full.lines.length <= 2 &&
+        (full.referenceNo == null || full.referenceNo!.trim().isEmpty) &&
+        full.adjustmentAccountId == null;
     setState(() {});
   }
 
@@ -437,8 +584,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     _creditAccountId = null;
     _debitPartyId = null;
     _creditPartyId = null;
-    _approvalStatus = 'draft';
-    _postingStatus = 'draft';
+    _approvalStatus = _simpleEntryMode ? 'approved' : 'draft';
+    _postingStatus = _simpleEntryMode ? 'posted' : 'draft';
     _isActive = true;
     _lines = <_VoucherLineDraft>[_VoucherLineDraft()];
     _formError = null;
@@ -506,7 +653,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     final costCenter = nullIfEmpty(_costCenterController.text);
     final department = nullIfEmpty(_departmentController.text);
     final project = nullIfEmpty(_projectController.text);
-    final lineNarration = nullIfEmpty(_lineNarrationController.text);
+    final lineNarration =
+        nullIfEmpty(_lineNarrationController.text) ??
+        (_simpleEntryMode ? nullIfEmpty(_narrationController.text) : null);
 
     return <VoucherLineModel>[
       VoucherLineModel(
@@ -580,6 +729,13 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         });
         return;
       }
+      if (_voucherMode == 'contra' && _debitAccountId == _creditAccountId) {
+        setState(() {
+          _formError =
+              'Contra needs two different cash / bank ledgers (e.g. bank → cash).';
+        });
+        return;
+      }
     }
 
     final hasInvalidLine =
@@ -626,10 +782,32 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       return;
     }
 
+    _syncDocumentSeriesSelection();
+    final seriesOptions = _filteredDocumentSeriesOptions;
+    if (seriesOptions.isEmpty) {
+      final vdt = _selectedVoucherType?.documentType?.trim() ?? '';
+      setState(() {
+        _formError = vdt.isEmpty
+            ? 'No document series for accounting vouchers. In Settings → Document series, add rows for PAYMENT_VOUCHER, RECEIPT_VOUCHER, CONTRA_VOUCHER (and JOURNAL_VOUCHER) for this company and financial year.'
+            : 'No document series for $vdt. Create one under Settings → Document series for this financial year.';
+      });
+      return;
+    }
+    if (_documentSeriesId != null &&
+        !seriesOptions.any((s) => s.id == _documentSeriesId)) {
+      setState(() {
+        _formError =
+            'Document series no longer matches this voucher type. Pick a series from the list again.';
+      });
+      return;
+    }
+
     setState(() {
       _saving = true;
       _formError = null;
     });
+
+    final wasCreate = _selectedVoucher == null;
 
     final model = VoucherModel(
       id: _selectedVoucher?.id,
@@ -653,21 +831,233 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     );
 
     try {
-      final response = _selectedVoucher == null
+      final response = wasCreate
           ? await _accountsService.createVoucher(model)
           : await _accountsService.updateVoucher(_selectedVoucher!.id!, model);
       final saved = response.data;
       if (!mounted) return;
+      final okMsg = response.message.isNotEmpty
+          ? response.message
+          : (wasCreate ? 'Voucher saved' : 'Voucher updated');
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: saved?.id);
+      ).showSnackBar(SnackBar(content: Text(okMsg)));
+      if (wasCreate) {
+        await _loadPage();
+        if (!mounted) return;
+        _resetForm();
+      } else {
+        await _loadPage(selectId: saved?.id);
+      }
     } catch (error) {
       if (!mounted) return;
-      setState(() => _formError = error.toString());
+      final msg = error is ApiException
+          ? error.displayMessage
+          : error.toString();
+      setState(() => _formError = msg);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _saving = false);
+      }
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final id = _selectedVoucher?.id;
+    if (id == null || !_canDeleteSelectedVoucher) {
+      return;
+    }
+    final code = _selectedVoucher?.voucherNo ?? '$id';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete voucher'),
+        content: Text(
+          'Permanently remove voucher $code? This cannot be undone. '
+          'Only users with accounts delete permission see this action.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) {
+      return;
+    }
+    setState(() {
+      _deleting = true;
+      _formError = null;
+    });
+    try {
+      final response = await _accountsService.deleteVoucher(id);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            response.message.isNotEmpty ? response.message : 'Voucher deleted',
+          ),
+        ),
+      );
+      await _loadPage();
+      if (!mounted) {
+        return;
+      }
+      _resetForm();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final msg = error is ApiException
+          ? error.displayMessage
+          : error.toString();
+      setState(() => _formError = msg);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _deleting = false);
+      }
+    }
+  }
+
+  Future<void> _openVoucherAuditLog() async {
+    final id = _selectedVoucher?.id;
+    if (id == null || !mounted) {
+      return;
+    }
+    setState(() => _auditLogLoading = true);
+    try {
+      final response = await _accountsService.voucherAuditTrail(id);
+      if (!mounted) {
+        return;
+      }
+      if (!response.success) {
+        final msg = response.message.isNotEmpty
+            ? response.message
+            : 'Could not load activity log';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        return;
+      }
+      final rows = response.data ?? const <Map<String, dynamic>>[];
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (ctx) {
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.45,
+            minChildSize: 0.28,
+            maxChildSize: 0.92,
+            builder: (sheetCtx, scrollController) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppUiConstants.spacingMd,
+                    ),
+                    child: Text(
+                      'Activity — ${_selectedVoucher?.voucherNo ?? '$id'}',
+                      style: Theme.of(sheetCtx).textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  Expanded(
+                    child: rows.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(AppUiConstants.spacingLg),
+                              child: Text(
+                                'No logged actions yet for this voucher.',
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppUiConstants.spacingMd,
+                            ),
+                            itemCount: rows.length,
+                            separatorBuilder: (context, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final row = rows[index];
+                              final action = row['action']?.toString() ?? '';
+                              final desc =
+                                  row['description']?.toString() ?? '';
+                              final who =
+                                  row['user_display']?.toString() ?? '';
+                              final when =
+                                  row['created_at']?.toString() ?? '';
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  desc.isNotEmpty ? desc : action,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text(
+                                  [
+                                    who,
+                                    when,
+                                  ].where((s) => s.isNotEmpty).join(' · '),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final msg = error is ApiException
+          ? error.displayMessage
+          : error.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _auditLogLoading = false);
       }
     }
   }
@@ -745,6 +1135,14 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            AppSwitchTile(
+              label: 'Simple entry (recommended)',
+              subtitle:
+                  'Fewer fields — use full options for references, parties, approvals.',
+              value: _simpleEntryMode,
+              onChanged: (value) => setState(() => _simpleEntryMode = value),
+            ),
+            SizedBox(height: AppUiConstants.spacingSm),
             SettingsFormWrap(
               children: [
                 _buildVoucherModeField(),
@@ -806,55 +1204,60 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     Validators.date('Voucher Date'),
                   ]),
                 ),
-                AppFormTextField(
-                  labelText: 'Reference No',
-                  controller: _referenceNoController,
-                  validator: Validators.optionalMaxLength(100, 'Reference No'),
-                ),
-                AppFormTextField(
-                  labelText: 'Reference Date',
-                  controller: _referenceDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.optionalDate('Reference Date'),
-                ),
-                AppDropdownField<String>.fromMapped(
-                  labelText: 'Approval Status',
-                  mappedItems: _approvalStatusItems,
-                  initialValue: _approvalStatus,
-                  onChanged: (value) =>
-                      setState(() => _approvalStatus = value ?? 'approved'),
-                ),
-                AppDropdownField<String>.fromMapped(
-                  labelText: 'Posting Status',
-                  mappedItems: _postingStatusItems,
-                  initialValue: _postingStatus,
-                  onChanged: (value) =>
-                      setState(() => _postingStatus = value ?? 'posted'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Adjustment Account',
-                  mappedItems: _accounts
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _adjustmentAccountId,
-                  onChanged: (value) =>
-                      setState(() => _adjustmentAccountId = value),
-                ),
-                AppFormTextField(
-                  labelText: 'Adjustment Remarks',
-                  controller: _adjustmentRemarksController,
-                  validator: Validators.optionalMaxLength(
-                    500,
-                    'Adjustment Remarks',
+                if (!_simpleEntryMode) ...[
+                  AppFormTextField(
+                    labelText: 'Reference No',
+                    controller: _referenceNoController,
+                    validator: Validators.optionalMaxLength(
+                      100,
+                      'Reference No',
+                    ),
                   ),
-                ),
+                  AppFormTextField(
+                    labelText: 'Reference Date',
+                    controller: _referenceDateController,
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: const [DateInputFormatter()],
+                    validator: Validators.optionalDate('Reference Date'),
+                  ),
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Approval Status',
+                    mappedItems: _approvalStatusItems,
+                    initialValue: _approvalStatus,
+                    onChanged: (value) =>
+                        setState(() => _approvalStatus = value ?? 'approved'),
+                  ),
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Posting Status',
+                    mappedItems: _postingStatusItems,
+                    initialValue: _postingStatus,
+                    onChanged: (value) =>
+                        setState(() => _postingStatus = value ?? 'posted'),
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Adjustment Account',
+                    mappedItems: _accountsScoped
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: _adjustmentAccountId,
+                    onChanged: (value) =>
+                        setState(() => _adjustmentAccountId = value),
+                  ),
+                  AppFormTextField(
+                    labelText: 'Adjustment Remarks',
+                    controller: _adjustmentRemarksController,
+                    validator: Validators.optionalMaxLength(
+                      500,
+                      'Adjustment Remarks',
+                    ),
+                  ),
+                ],
                 AppFormTextField(
                   labelText: 'Narration',
                   controller: _narrationController,
@@ -871,14 +1274,99 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
             _buildEntryBody(),
-            AppActionButton(
-              icon: Icons.save_outlined,
-              label: _selectedVoucher == null
-                  ? 'Save Voucher'
-                  : 'Update Voucher',
-              onPressed: _save,
-              busy: _saving,
+            if (_selectedVoucher != null) ...[
+              if ((_selectedVoucher!.postingStatus ?? '').toLowerCase() ==
+                  'cancelled') ...[
+                Text(
+                  'Cancelled vouchers cannot be edited or deleted here.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ] else if (_selectedVoucher!.isSystemGenerated && !_isSuperAdmin) ...[
+                Text(
+                  'This voucher was created by the system from another module. '
+                  'It cannot be edited or deleted on this screen unless you are a super admin.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ] else if (_selectedVoucher!.isSystemGenerated && _isSuperAdmin) ...[
+                Text(
+                  'Super admin: you may edit or delete this system-generated voucher. '
+                  'Source documents may no longer match the books.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.tertiary,
+                  ),
+                ),
+              ] else if (_hasAccountsUpdate) ...[
+                Text(
+                  'Manual vouchers remain editable after posting when you have accounts update (or super admin). '
+                  'Review books after changes.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: _selectedVoucher == null
+                        ? 'Save Voucher'
+                        : 'Update Voucher',
+                    onPressed:
+                        (_selectedVoucher == null || _canEditSelectedVoucher)
+                        ? _save
+                        : null,
+                    busy: _saving,
+                  ),
+                ),
+                if (_canDeleteSelectedVoucher) ...[
+                  const SizedBox(width: AppUiConstants.spacingSm),
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    filled: false,
+                    onPressed: _deleting ? null : _confirmDelete,
+                    busy: _deleting,
+                  ),
+                ],
+              ],
             ),
+            if (_selectedVoucher?.id != null) ...[
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppUiConstants.spacingSm,
+                      vertical: 2,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: Theme.of(context)
+                        .colorScheme
+                        .onSurfaceVariant
+                        .withValues(alpha: 0.85),
+                  ),
+                  onPressed: _auditLogLoading ? null : _openVoucherAuditLog,
+                  child: _auditLogLoading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          'Activity log',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -899,19 +1387,27 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               runSpacing: AppUiConstants.spacingXs,
               children: _voucherModeOptions
                   .map((option) {
-                    return FilterChip(
+                    final chip = FilterChip(
                       selected: _voucherMode == option.category,
                       label: Text(option.label),
                       avatar: Icon(option.icon, size: 18),
                       onSelected: (_) {
                         setState(() {
                           _voucherMode = option.category;
+                          if (option.category == 'journal') {
+                            _simpleEntryMode = false;
+                          }
                           _syncVoucherTypeWithMode();
                           _documentSeriesId = null;
                           _syncDocumentSeriesSelection();
                         });
                       },
                     );
+                    final hint = option.subtitle;
+                    if (hint == null || hint.isEmpty) {
+                      return chip;
+                    }
+                    return Tooltip(message: hint, child: chip);
                   })
                   .toList(growable: false),
             ),
@@ -1006,9 +1502,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             children: [
               Text(
                 'Bill settlements',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
               ...tiles,
@@ -1025,12 +1521,41 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       children: [
         Text(
           _voucherMode == 'payment'
-              ? 'Record a payment with one debit and one credit.'
+              ? 'Record spend: expense ledger is debited, cash or bank is credited.'
               : _voucherMode == 'receipt'
-              ? 'Record a receipt with one debit and one credit.'
-              : 'Move money between cash / bank accounts.',
+              ? 'Miscellaneous receipt: bank/cash is debited, indirect income is credited (customer receipts stay in Sales).'
+              : 'Transfer only between cash and bank ledgers — same amount on both sides.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
+        if (_voucherMode == 'payment' && _expenseLedgerOptions.isEmpty) ...[
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Text(
+            'No expense ledgers match your chart (group nature “expense” or categories direct/indirect expense). '
+            'Until those exist, all non-cash/bank ledgers are listed below.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.tertiary,
+            ),
+          ),
+        ],
+        if (_voucherMode == 'receipt' &&
+            _indirectIncomeLedgerOptions.isEmpty) ...[
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Text(
+            'No “indirect income” group found — showing all income ledgers. Tag account groups as indirect income for a tighter list.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.tertiary,
+            ),
+          ),
+        ],
+        if (_voucherMode == 'contra' && _cashBankAccounts.length < 2) ...[
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Text(
+            'You need at least two active cash/bank ledgers for transfers.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+        ],
         const SizedBox(height: AppUiConstants.spacingSm),
         SettingsFormWrap(
           children: [
@@ -1064,34 +1589,36 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               onChanged: (value) => setState(() => _creditAccountId = value),
               validator: Validators.requiredSelection(_creditAccountLabel),
             ),
-            AppDropdownField<int>.fromMapped(
-              labelText: _debitPartyLabel,
-              mappedItems: _parties
-                  .where((item) => item.id != null)
-                  .map(
-                    (item) => AppDropdownItem(
-                      value: item.id!,
-                      label: item.toString(),
-                    ),
-                  )
-                  .toList(growable: false),
-              initialValue: _debitPartyId,
-              onChanged: (value) => setState(() => _debitPartyId = value),
-            ),
-            AppDropdownField<int>.fromMapped(
-              labelText: _creditPartyLabel,
-              mappedItems: _parties
-                  .where((item) => item.id != null)
-                  .map(
-                    (item) => AppDropdownItem(
-                      value: item.id!,
-                      label: item.toString(),
-                    ),
-                  )
-                  .toList(growable: false),
-              initialValue: _creditPartyId,
-              onChanged: (value) => setState(() => _creditPartyId = value),
-            ),
+            if (!_simpleEntryMode) ...[
+              AppDropdownField<int>.fromMapped(
+                labelText: _debitPartyLabel,
+                mappedItems: _parties
+                    .where((item) => item.id != null)
+                    .map(
+                      (item) => AppDropdownItem(
+                        value: item.id!,
+                        label: item.toString(),
+                      ),
+                    )
+                    .toList(growable: false),
+                initialValue: _debitPartyId,
+                onChanged: (value) => setState(() => _debitPartyId = value),
+              ),
+              AppDropdownField<int>.fromMapped(
+                labelText: _creditPartyLabel,
+                mappedItems: _parties
+                    .where((item) => item.id != null)
+                    .map(
+                      (item) => AppDropdownItem(
+                        value: item.id!,
+                        label: item.toString(),
+                      ),
+                    )
+                    .toList(growable: false),
+                initialValue: _creditPartyId,
+                onChanged: (value) => setState(() => _creditPartyId = value),
+              ),
+            ],
             AppFormTextField(
               labelText: 'Amount',
               controller: _amountController,
@@ -1110,27 +1637,29 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                 },
               ]),
             ),
-            AppFormTextField(
-              labelText: 'Cost Center',
-              controller: _costCenterController,
-              validator: Validators.optionalMaxLength(100, 'Cost Center'),
-            ),
-            AppFormTextField(
-              labelText: 'Department',
-              controller: _departmentController,
-              validator: Validators.optionalMaxLength(100, 'Department'),
-            ),
-            AppFormTextField(
-              labelText: 'Project',
-              controller: _projectController,
-              validator: Validators.optionalMaxLength(100, 'Project'),
-            ),
-            AppFormTextField(
-              labelText: 'Line Narration',
-              controller: _lineNarrationController,
-              maxLines: 2,
-              validator: Validators.optionalMaxLength(500, 'Line Narration'),
-            ),
+            if (!_simpleEntryMode) ...[
+              AppFormTextField(
+                labelText: 'Cost Center',
+                controller: _costCenterController,
+                validator: Validators.optionalMaxLength(100, 'Cost Center'),
+              ),
+              AppFormTextField(
+                labelText: 'Department',
+                controller: _departmentController,
+                validator: Validators.optionalMaxLength(100, 'Department'),
+              ),
+              AppFormTextField(
+                labelText: 'Project',
+                controller: _projectController,
+                validator: Validators.optionalMaxLength(100, 'Project'),
+              ),
+              AppFormTextField(
+                labelText: 'Line Narration',
+                controller: _lineNarrationController,
+                maxLines: 2,
+                validator: Validators.optionalMaxLength(500, 'Line Narration'),
+              ),
+            ],
           ],
         ),
       ],
@@ -1185,7 +1714,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     children: [
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Account',
-                        mappedItems: _accounts
+                        mappedItems: _accountsScoped
                             .where((item) => item.id != null)
                             .map(
                               (item) => AppDropdownItem(
@@ -1264,11 +1793,11 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   String get _debitAccountLabel {
     switch (_voucherMode) {
       case 'payment':
-        return 'Expense / Target Account';
+        return 'Expense ledger (debit)';
       case 'receipt':
-        return 'Received In';
+        return 'Deposit to (cash / bank)';
       case 'contra':
-        return 'Deposit To';
+        return 'To account (debit)';
       default:
         return 'Debit Account';
     }
@@ -1277,11 +1806,11 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   String get _creditAccountLabel {
     switch (_voucherMode) {
       case 'payment':
-        return 'Paid Through';
+        return 'Pay from (cash / bank)';
       case 'receipt':
-        return 'Received From';
+        return 'Indirect income ledger (credit)';
       case 'contra':
-        return 'Withdraw From';
+        return 'From account (credit)';
       default:
         return 'Credit Account';
     }
@@ -1316,7 +1845,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   List<AccountModel> get _debitAccountOptions {
     switch (_voucherMode) {
       case 'payment':
-        return _manualAccounts;
+        return _expenseLedgerOptions;
       case 'receipt':
         return _cashBankAccounts;
       case 'contra':
@@ -1331,7 +1860,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       case 'payment':
         return _cashBankAccounts;
       case 'receipt':
-        return _manualAccounts;
+        return _indirectIncomeLedgerOptions;
       case 'contra':
         return _cashBankAccounts;
       default:
@@ -1360,10 +1889,12 @@ class _VoucherModeOption {
   const _VoucherModeOption({
     required this.category,
     required this.label,
+    this.subtitle,
     required this.icon,
   });
 
   final String category;
   final String label;
+  final String? subtitle;
   final IconData icon;
 }

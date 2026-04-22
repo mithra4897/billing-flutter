@@ -17,6 +17,8 @@ This app works with the sibling backend project:
 
 - [billing-api](/billing-api)
 
+If you change backend schema or **`install.sql` / `sample_erp.sql`**, keep **`billing-api/README.md`** and the repo-root **`todo.md`** in sync when those edits affect setup, seeds, or module coverage.
+
 Key shell/auth endpoints currently used:
 
 - `GET /api/v1/public/branding`
