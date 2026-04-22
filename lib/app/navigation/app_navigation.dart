@@ -263,6 +263,27 @@ class AppNavigation {
           ],
         ),
         AppNavigationItem(
+          key: 'crm',
+          title: 'CRM',
+          icon: Icons.support_agent_outlined,
+          children: [
+            AppNavigationItem(
+              key: 'crm-sources',
+              title: 'Sources',
+              icon: Icons.input_outlined,
+              path: '/crm/sources',
+              requiredPermissions: ['crm.view'],
+            ),
+            AppNavigationItem(
+              key: 'crm-stages',
+              title: 'Stages',
+              icon: Icons.stacked_line_chart_outlined,
+              path: '/crm/stages',
+              requiredPermissions: ['crm.view'],
+            ),
+          ],
+        ),
+        AppNavigationItem(
           key: 'settings-media',
           title: 'Media Files',
           path: '/media/files',
@@ -457,20 +478,6 @@ class AppNavigation {
           title: 'Opportunities',
           icon: Icons.auto_graph_outlined,
           path: '/crm/opportunities',
-          requiredPermissions: ['crm.view'],
-        ),
-        AppNavigationItem(
-          key: 'crm-sources',
-          title: 'Sources',
-          icon: Icons.input_outlined,
-          path: '/crm/sources',
-          requiredPermissions: ['crm.view'],
-        ),
-        AppNavigationItem(
-          key: 'crm-stages',
-          title: 'Stages',
-          icon: Icons.stacked_line_chart_outlined,
-          path: '/crm/stages',
           requiredPermissions: ['crm.view'],
         ),
       ],
