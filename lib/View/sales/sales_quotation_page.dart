@@ -25,6 +25,7 @@ class SalesQuotationPage extends StatefulWidget {
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+
   /// From `/sales/quotations/new?crm_opportunity_id=…` when opened from CRM.
   final int? initialCrmOpportunityId;
 
@@ -35,14 +36,14 @@ class SalesQuotationPage extends StatefulWidget {
 class _SalesQuotationPageState extends State<SalesQuotationPage> {
   static const List<AppDropdownItem<String>> _listStatusFilter =
       <AppDropdownItem<String>>[
-    AppDropdownItem(value: '', label: 'All'),
-    AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'sent', label: 'Sent'),
-    AppDropdownItem(value: 'accepted', label: 'Accepted'),
-    AppDropdownItem(value: 'rejected', label: 'Rejected'),
-    AppDropdownItem(value: 'expired', label: 'Expired'),
-    AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-  ];
+        AppDropdownItem(value: '', label: 'All'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'sent', label: 'Sent'),
+        AppDropdownItem(value: 'accepted', label: 'Accepted'),
+        AppDropdownItem(value: 'rejected', label: 'Rejected'),
+        AppDropdownItem(value: 'expired', label: 'Expired'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
 
   final SalesService _salesService = SalesService();
   final CrmService _crmService = CrmService();
@@ -115,15 +116,18 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     if (_selectedItem == null) {
       return true;
     }
-    return stringValue(_selectedItem!.toJson(), 'quotation_status') ==
-        'draft';
+    return stringValue(_selectedItem!.toJson(), 'quotation_status') == 'draft';
   }
 
-  String get _status =>
-      stringValue(_selectedItem?.toJson() ?? const {}, 'quotation_status', 'draft');
+  String get _status => stringValue(
+    _selectedItem?.toJson() ?? const {},
+    'quotation_status',
+    'draft',
+  );
 
   List<BranchModel> get _branchOptions =>
       branchesForCompany(_branches, _companyId);
+
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
 
@@ -368,7 +372,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       _validUntilController.text = displayDate(
         nullableStringValue(data, 'valid_until'),
       );
-      _customerRefNoController.text = stringValue(data, 'customer_reference_no');
+      _customerRefNoController.text = stringValue(
+        data,
+        'customer_reference_no',
+      );
       _customerRefDateController.text = displayDate(
         nullableStringValue(data, 'customer_reference_date'),
       );
@@ -378,7 +385,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       _termsController.text = stringValue(data, 'terms_conditions');
       _isActive = boolValue(data, 'is_active', fallback: true);
       _crmOpportunityId = intValue(data, 'crm_opportunity_id');
-      _lines = lines.isEmpty ? <_QuotationLineDraft>[_QuotationLineDraft()] : lines;
+      _lines = lines.isEmpty
+          ? <_QuotationLineDraft>[_QuotationLineDraft()]
+          : lines;
       _formError = null;
     });
     await _refreshSalesChain();
@@ -473,7 +482,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           _customerPartyId = partyId;
         }
         final note =
-            'Linked CRM opportunity: ${stringValue(od, 'opportunity_name')}'.trim();
+            'Linked CRM opportunity: ${stringValue(od, 'opportunity_name')}'
+                .trim();
         if (note.isNotEmpty && _notesController.text.trim().isEmpty) {
           _notesController.text = note;
         }
@@ -517,7 +527,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
   void _addLine() {
     setState(() {
-      _lines = List<_QuotationLineDraft>.from(_lines)..add(_QuotationLineDraft());
+      _lines = List<_QuotationLineDraft>.from(_lines)
+        ..add(_QuotationLineDraft());
     });
   }
 
@@ -525,7 +536,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     setState(() {
       final next = List<_QuotationLineDraft>.from(_lines);
       next.removeAt(index).dispose();
-      _lines = next.isEmpty ? <_QuotationLineDraft>[_QuotationLineDraft()] : next;
+      _lines = next.isEmpty
+          ? <_QuotationLineDraft>[_QuotationLineDraft()]
+          : next;
     });
   }
 
@@ -547,9 +560,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           line.uomId == null ||
           (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
     )) {
-      setState(
-        () => _formError = 'Each line needs item, UOM, and quantity.',
-      );
+      setState(() => _formError = 'Each line needs item, UOM, and quantity.');
       return;
     }
 
@@ -741,12 +752,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             CrmSalesPipelineBar(data: _salesChain),
             if (_selectedItem != null && totalStr.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: Text(
                   'Total: $totalStr ${_currencyCodeController.text.trim().isEmpty ? 'INR' : _currencyCodeController.text.trim()} · Status: ${_status.toUpperCase()}',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             SettingsFormWrap(
@@ -772,8 +785,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       _branchId = null;
                       _locationId = null;
                       final options = _seriesOptions();
-                      _documentSeriesId =
-                          options.isNotEmpty ? options.first.id : null;
+                      _documentSeriesId = options.isNotEmpty
+                          ? options.first.id
+                          : null;
                     });
                   },
                   validator: Validators.requiredSelection('Company'),
@@ -840,8 +854,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     setState(() {
                       _financialYearId = value;
                       final options = _seriesOptions();
-                      _documentSeriesId =
-                          options.isNotEmpty ? options.first.id : null;
+                      _documentSeriesId = options.isNotEmpty
+                          ? options.first.id
+                          : null;
                     });
                   },
                   validator: Validators.requiredSelection('Financial Year'),
@@ -945,7 +960,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     decimal: true,
                   ),
                   enabled: _canEdit,
-                  validator: Validators.optionalNonNegativeNumber('Exchange Rate'),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Exchange Rate',
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Notes (shown to customer)',
@@ -1188,8 +1205,11 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   busy: _saving,
                 ),
                 if (_selectedItem != null &&
-                    !const {'rejected', 'expired', 'cancelled'}
-                        .contains(_status)) ...[
+                    !const {
+                      'rejected',
+                      'expired',
+                      'cancelled',
+                    }.contains(_status)) ...[
                   AppActionButton(
                     icon: Icons.shopping_cart_outlined,
                     label: 'Sales order',

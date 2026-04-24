@@ -250,6 +250,33 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     }
   }
 
+  bool get _isSelectedLeadReadOnly =>
+      _selectedItem != null && _leadStatus == 'converted';
+
+  int? _enquiryIdFromSalesChain() {
+    final chain = _salesChain;
+    if (chain == null) {
+      return null;
+    }
+    final raw = chain['enquiry'];
+    if (raw is! Map) {
+      return null;
+    }
+    return intValue(Map<String, dynamic>.from(raw), 'id');
+  }
+
+  Future<void> _handleEnquiryFromLead() async {
+    final enquiryId = _enquiryIdFromSalesChain();
+    if (enquiryId != null) {
+      _openCrmShellRoute(
+        context,
+        '/crm/enquiries?select_id=$enquiryId',
+      );
+      return;
+    }
+    await _convert(createEnquiry: true);
+  }
+
   void _resetForm() {
     _disposeActivities(_activities);
     setState(() {
@@ -537,101 +564,124 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
           ],
           if (intValue(_selectedItem?.toJson() ?? const {}, 'id') != null)
             CrmSalesPipelineBar(data: _salesChain),
-          SettingsFormWrap(
-            children: [
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Company',
-                mappedItems: _companies
-                    .where((item) => item.id != null)
-                    .map(
-                      (item) => AppDropdownItem(
-                        value: item.id!,
-                        label: item.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
-                initialValue: _companyId,
-                onChanged: (value) => setState(() => _companyId = value),
-                validator: Validators.requiredSelection('Company'),
+          if (_isSelectedLeadReadOnly) ...[
+            Text(
+              'This lead is converted. Details are read-only. Use Open enquiry if one exists, or delete the lead if needed.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
+          IgnorePointer(
+            ignoring: _isSelectedLeadReadOnly,
+            child: Opacity(
+              opacity: _isSelectedLeadReadOnly ? 0.65 : 1,
+              child: SettingsFormWrap(
+                children: [
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Company',
+                    mappedItems: _companies
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: _companyId,
+                    onChanged: (value) => setState(() => _companyId = value),
+                    validator: Validators.requiredSelection('Company'),
+                  ),
+                  AppFormTextField(
+                    controller: _leadNameController,
+                    labelText: 'Lead Name',
+                    enabled: !_isSelectedLeadReadOnly,
+                    validator: Validators.compose([
+                      Validators.required('Lead Name'),
+                      Validators.optionalMaxLength(255, 'Lead Name'),
+                    ]),
+                  ),
+                  AppFormTextField(
+                    controller: _companyNameController,
+                    labelText: 'Company Name',
+                    enabled: !_isSelectedLeadReadOnly,
+                  ),
+                  AppFormTextField(
+                    controller: _mobileController,
+                    labelText: 'Mobile',
+                    enabled: !_isSelectedLeadReadOnly,
+                  ),
+                  AppFormTextField(
+                    controller: _emailController,
+                    labelText: 'Email',
+                    enabled: !_isSelectedLeadReadOnly,
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Source',
+                    mappedItems: _sources
+                        .where((item) => intValue(item.toJson(), 'id') != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: intValue(item.toJson(), 'id')!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: _sourceId,
+                    onChanged: (value) => setState(() => _sourceId = value),
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Assigned To',
+                    mappedItems: _users
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.displayName ?? item.username ?? '',
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: _assignedTo,
+                    onChanged: (value) => setState(() => _assignedTo = value),
+                  ),
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Status',
+                    mappedItems: _leadStatuses,
+                    initialValue: _leadStatus,
+                    onChanged: (value) =>
+                        setState(() => _leadStatus = value ?? _leadStatus),
+                  ),
+                  AppFormTextField(
+                    controller: _remarksController,
+                    labelText: 'Remarks',
+                    maxLines: 3,
+                    enabled: !_isSelectedLeadReadOnly,
+                  ),
+                ],
               ),
-              AppFormTextField(
-                controller: _leadNameController,
-                labelText: 'Lead Name',
-                validator: Validators.compose([
-                  Validators.required('Lead Name'),
-                  Validators.optionalMaxLength(255, 'Lead Name'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: _companyNameController,
-                labelText: 'Company Name',
-              ),
-              AppFormTextField(
-                controller: _mobileController,
-                labelText: 'Mobile',
-              ),
-              AppFormTextField(
-                controller: _emailController,
-                labelText: 'Email',
-              ),
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Source',
-                mappedItems: _sources
-                    .where((item) => intValue(item.toJson(), 'id') != null)
-                    .map(
-                      (item) => AppDropdownItem(
-                        value: intValue(item.toJson(), 'id')!,
-                        label: item.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
-                initialValue: _sourceId,
-                onChanged: (value) => setState(() => _sourceId = value),
-              ),
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Assigned To',
-                mappedItems: _users
-                    .where((item) => item.id != null)
-                    .map(
-                      (item) => AppDropdownItem(
-                        value: item.id!,
-                        label: item.displayName ?? item.username ?? '',
-                      ),
-                    )
-                    .toList(growable: false),
-                initialValue: _assignedTo,
-                onChanged: (value) => setState(() => _assignedTo = value),
-              ),
-              AppDropdownField<String>.fromMapped(
-                labelText: 'Status',
-                mappedItems: _leadStatuses,
-                initialValue: _leadStatus,
-                onChanged: (value) =>
-                    setState(() => _leadStatus = value ?? _leadStatus),
-              ),
-              AppFormTextField(
-                controller: _remarksController,
-                labelText: 'Remarks',
-                maxLines: 3,
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
           Wrap(
             spacing: AppUiConstants.spacingSm,
             runSpacing: AppUiConstants.spacingSm,
             children: [
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: _selectedItem == null ? 'Save Lead' : 'Update Lead',
-                onPressed: _save,
-                busy: _saving,
-              ),
-              if (_selectedItem != null) ...[
+              if (!_isSelectedLeadReadOnly)
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedItem == null ? 'Save Lead' : 'Update Lead',
+                  onPressed: _save,
+                  busy: _saving,
+                ),
+              if (_selectedItem != null && !_isSelectedLeadReadOnly) ...[
                 AppActionButton(
                   icon: Icons.forward_outlined,
-                  label: 'Create enquiry',
-                  onPressed: () => _convert(createEnquiry: true),
+                  label: _enquiryIdFromSalesChain() != null
+                      ? 'Open enquiry'
+                      : 'Create enquiry',
+                  onPressed: _handleEnquiryFromLead,
                 ),
                 AppActionButton(
                   icon: Icons.check_circle_outline,
@@ -639,13 +689,25 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   filled: false,
                   onPressed: () => _convert(createEnquiry: false),
                 ),
+              ],
+              if (_selectedItem != null &&
+                  _isSelectedLeadReadOnly &&
+                  _enquiryIdFromSalesChain() != null)
+                AppActionButton(
+                  icon: Icons.open_in_new_outlined,
+                  label: 'Open enquiry',
+                  onPressed: () => _openCrmShellRoute(
+                    context,
+                    '/crm/enquiries?select_id=${_enquiryIdFromSalesChain()}',
+                  ),
+                ),
+              if (_selectedItem != null)
                 AppActionButton(
                   icon: Icons.delete_outline,
                   label: 'Delete',
                   filled: false,
                   onPressed: _delete,
                 ),
-              ],
             ],
           ),
         ],
@@ -670,7 +732,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               icon: Icons.add_outlined,
               label: 'Add Activity',
               filled: false,
-              onPressed: _addActivity,
+              onPressed: _isSelectedLeadReadOnly ? null : _addActivity,
             ),
           ],
         ),
@@ -699,7 +761,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 highlighted: expanded,
                 leadingIcon: Icons.event_note_outlined,
                 trailing: IconButton(
-                  onPressed: () => _removeActivity(index),
+                  onPressed: _isSelectedLeadReadOnly
+                      ? null
+                      : () => _removeActivity(index),
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -708,54 +772,65 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                     _expandedActivityIndex = expanded ? null : index;
                   });
                 },
-                child: PurchaseCompactFieldGrid(
-                  children: [
-                    AppDropdownField<String>.fromMapped(
-                      labelText: 'Type',
-                      mappedItems: _activityTypes,
-                      initialValue: activity.activityType,
-                      onChanged: (value) => setState(
-                        () => activity.activityType =
-                            value ?? activity.activityType,
-                      ),
+                child: IgnorePointer(
+                  ignoring: _isSelectedLeadReadOnly,
+                  child: Opacity(
+                    opacity: _isSelectedLeadReadOnly ? 0.65 : 1,
+                    child: PurchaseCompactFieldGrid(
+                      children: [
+                        AppDropdownField<String>.fromMapped(
+                          labelText: 'Type',
+                          mappedItems: _activityTypes,
+                          initialValue: activity.activityType,
+                          onChanged: (value) => setState(
+                            () => activity.activityType =
+                                value ?? activity.activityType,
+                          ),
+                        ),
+                        AppFormTextField(
+                          controller: activity.activityDateTimeController,
+                          labelText: 'Activity Date Time',
+                          hintText: 'YYYY-MM-DD HH:MM:SS',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: const [DateTimeInputFormatter()],
+                          enabled: !_isSelectedLeadReadOnly,
+                        ),
+                        AppFormTextField(
+                          controller: activity.nextFollowupController,
+                          labelText: 'Next Follow-up',
+                          hintText: 'YYYY-MM-DD HH:MM:SS',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: const [DateTimeInputFormatter()],
+                          enabled: !_isSelectedLeadReadOnly,
+                        ),
+                        AppFormTextField(
+                          controller: activity.notesController,
+                          labelText: 'Notes',
+                          maxLines: 2,
+                          enabled: !_isSelectedLeadReadOnly,
+                        ),
+                      ],
                     ),
-                    AppFormTextField(
-                      controller: activity.activityDateTimeController,
-                      labelText: 'Activity Date Time',
-                      hintText: 'YYYY-MM-DD HH:MM:SS',
-                      keyboardType: TextInputType.datetime,
-                      inputFormatters: const [DateTimeInputFormatter()],
-                    ),
-                    AppFormTextField(
-                      controller: activity.nextFollowupController,
-                      labelText: 'Next Follow-up',
-                      hintText: 'YYYY-MM-DD HH:MM:SS',
-                      keyboardType: TextInputType.datetime,
-                      inputFormatters: const [DateTimeInputFormatter()],
-                    ),
-                    AppFormTextField(
-                      controller: activity.notesController,
-                      labelText: 'Notes',
-                      maxLines: 2,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
           }),
-        const SizedBox(height: AppUiConstants.spacingMd),
-        Wrap(
-          spacing: AppUiConstants.spacingSm,
-          runSpacing: AppUiConstants.spacingSm,
-          children: [
-            AppActionButton(
-              icon: Icons.save_outlined,
-              label: _selectedItem == null ? 'Save Lead' : 'Update Lead',
-              onPressed: _save,
-              busy: _saving,
-            ),
-          ],
-        ),
+        if (!_isSelectedLeadReadOnly) ...[
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
+            children: [
+              AppActionButton(
+                icon: Icons.save_outlined,
+                label: _selectedItem == null ? 'Save Lead' : 'Update Lead',
+                onPressed: _save,
+                busy: _saving,
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

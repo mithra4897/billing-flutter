@@ -19,16 +19,19 @@ class CrmService extends ErpModuleService {
     filters: filters,
     fromJson: CrmSourceModel.fromJson,
   );
+
   Future<ApiResponse<CrmSourceModel>> source(int id) => object<CrmSourceModel>(
     '${ApiEndpoints.crmSources}/$id',
     fromJson: CrmSourceModel.fromJson,
   );
+
   Future<ApiResponse<CrmSourceModel>> createSource(CrmSourceModel body) =>
       createModel<CrmSourceModel>(
         ApiEndpoints.crmSources,
         body,
         fromJson: CrmSourceModel.fromJson,
       );
+
   Future<ApiResponse<CrmSourceModel>> updateSource(
     int id,
     CrmSourceModel body,
@@ -37,6 +40,7 @@ class CrmService extends ErpModuleService {
     body,
     fromJson: CrmSourceModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteSource(int id) =>
       destroy('${ApiEndpoints.crmSources}/$id');
 
@@ -47,22 +51,26 @@ class CrmService extends ErpModuleService {
     filters: filters,
     fromJson: CrmStageModel.fromJson,
   );
+
   Future<ApiResponse<CrmStageModel>> stage(int id) => object<CrmStageModel>(
     '${ApiEndpoints.crmStages}/$id',
     fromJson: CrmStageModel.fromJson,
   );
+
   Future<ApiResponse<CrmStageModel>> createStage(CrmStageModel body) =>
       createModel<CrmStageModel>(
         ApiEndpoints.crmStages,
         body,
         fromJson: CrmStageModel.fromJson,
       );
+
   Future<ApiResponse<CrmStageModel>> updateStage(int id, CrmStageModel body) =>
       updateModel<CrmStageModel>(
         '${ApiEndpoints.crmStages}/$id',
         body,
         fromJson: CrmStageModel.fromJson,
       );
+
   Future<ApiResponse<dynamic>> deleteStage(int id) =>
       destroy('${ApiEndpoints.crmStages}/$id');
 
@@ -73,20 +81,26 @@ class CrmService extends ErpModuleService {
     filters: filters,
     fromJson: CrmLeadModel.fromJson,
   );
-  Future<ApiResponse<CrmLeadModel>> lead(int id) =>
-      object<CrmLeadModel>('${ApiEndpoints.crmLeads}/$id', fromJson: CrmLeadModel.fromJson);
+
+  Future<ApiResponse<CrmLeadModel>> lead(int id) => object<CrmLeadModel>(
+    '${ApiEndpoints.crmLeads}/$id',
+    fromJson: CrmLeadModel.fromJson,
+  );
+
   Future<ApiResponse<CrmLeadModel>> createLead(CrmLeadModel body) =>
       createModel<CrmLeadModel>(
         ApiEndpoints.crmLeads,
         body,
         fromJson: CrmLeadModel.fromJson,
       );
+
   Future<ApiResponse<CrmLeadModel>> updateLead(int id, CrmLeadModel body) =>
       updateModel<CrmLeadModel>(
         '${ApiEndpoints.crmLeads}/$id',
         body,
         fromJson: CrmLeadModel.fromJson,
       );
+
   /// Backend returns `{ lead, enquiry? }`. Use [createEnquiry] to start a sales enquiry in one step.
   Future<ApiResponse<Map<String, dynamic>>> convertLead(
     int id, {
@@ -106,7 +120,9 @@ class CrmService extends ErpModuleService {
       },
     );
   }
-  Future<ApiResponse<dynamic>> deleteLead(int id) => destroy('${ApiEndpoints.crmLeads}/$id');
+
+  Future<ApiResponse<dynamic>> deleteLead(int id) =>
+      destroy('${ApiEndpoints.crmLeads}/$id');
 
   Future<PaginatedResponse<CrmEnquiryModel>> enquiries({
     Map<String, dynamic>? filters,
@@ -115,17 +131,20 @@ class CrmService extends ErpModuleService {
     filters: filters,
     fromJson: CrmEnquiryModel.fromJson,
   );
+
   Future<ApiResponse<CrmEnquiryModel>> enquiry(int id) =>
       object<CrmEnquiryModel>(
         '${ApiEndpoints.crmEnquiries}/$id',
         fromJson: CrmEnquiryModel.fromJson,
       );
+
   Future<ApiResponse<CrmEnquiryModel>> createEnquiry(CrmEnquiryModel body) =>
       createModel<CrmEnquiryModel>(
         ApiEndpoints.crmEnquiries,
         body,
         fromJson: CrmEnquiryModel.fromJson,
       );
+
   Future<ApiResponse<CrmEnquiryModel>> updateEnquiry(
     int id,
     CrmEnquiryModel body,
@@ -134,6 +153,7 @@ class CrmService extends ErpModuleService {
     body,
     fromJson: CrmEnquiryModel.fromJson,
   );
+
   /// Backend returns `{ enquiry, opportunity? }` when an opportunity is created from the enquiry.
   Future<ApiResponse<Map<String, dynamic>>> convertEnquiry(int id) {
     return client.post<Map<String, dynamic>>(
@@ -150,6 +170,7 @@ class CrmService extends ErpModuleService {
       },
     );
   }
+
   Future<ApiResponse<CrmEnquiryModel>> loseEnquiry(
     int id,
     CrmEnquiryModel body,
@@ -158,6 +179,7 @@ class CrmService extends ErpModuleService {
     body: body,
     fromJson: CrmEnquiryModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteEnquiry(int id) =>
       destroy('${ApiEndpoints.crmEnquiries}/$id');
 
@@ -168,11 +190,13 @@ class CrmService extends ErpModuleService {
     filters: filters,
     fromJson: CrmOpportunityModel.fromJson,
   );
+
   Future<ApiResponse<CrmOpportunityModel>> opportunity(int id) =>
       object<CrmOpportunityModel>(
         '${ApiEndpoints.crmOpportunities}/$id',
         fromJson: CrmOpportunityModel.fromJson,
       );
+
   Future<ApiResponse<CrmOpportunityModel>> createOpportunity(
     CrmOpportunityModel body,
   ) => createModel<CrmOpportunityModel>(
@@ -180,6 +204,7 @@ class CrmService extends ErpModuleService {
     body,
     fromJson: CrmOpportunityModel.fromJson,
   );
+
   Future<ApiResponse<CrmOpportunityModel>> updateOpportunity(
     int id,
     CrmOpportunityModel body,
@@ -188,6 +213,7 @@ class CrmService extends ErpModuleService {
     body,
     fromJson: CrmOpportunityModel.fromJson,
   );
+
   Future<ApiResponse<CrmOpportunityModel>> winOpportunity(
     int id,
     CrmOpportunityModel body,
@@ -196,6 +222,7 @@ class CrmService extends ErpModuleService {
     body: body,
     fromJson: CrmOpportunityModel.fromJson,
   );
+
   Future<ApiResponse<CrmOpportunityModel>> loseOpportunity(
     int id,
     CrmOpportunityModel body,
@@ -204,6 +231,7 @@ class CrmService extends ErpModuleService {
     body: body,
     fromJson: CrmOpportunityModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteOpportunity(int id) =>
       destroy('${ApiEndpoints.crmOpportunities}/$id');
 
@@ -219,13 +247,13 @@ class CrmService extends ErpModuleService {
     int? receiptId,
   }) async {
     final query = <String, dynamic>{
-      if (leadId != null) 'lead_id': leadId,
-      if (enquiryId != null) 'enquiry_id': enquiryId,
-      if (opportunityId != null) 'opportunity_id': opportunityId,
-      if (quotationId != null) 'quotation_id': quotationId,
-      if (orderId != null) 'order_id': orderId,
-      if (invoiceId != null) 'invoice_id': invoiceId,
-      if (receiptId != null) 'receipt_id': receiptId,
+      'lead_id': ?leadId,
+      'enquiry_id': ?enquiryId,
+      'opportunity_id': ?opportunityId,
+      'quotation_id': ?quotationId,
+      'order_id': ?orderId,
+      'invoice_id': ?invoiceId,
+      'receipt_id': ?receiptId,
     };
 
     Future<ApiResponse<Map<String, dynamic>>> fetch(String endpoint) {
