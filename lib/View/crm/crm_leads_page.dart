@@ -401,6 +401,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     if (id == null) {
       return;
     }
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final shellNavigate = ShellRouteScope.maybeOf(context);
+    final navigator = Navigator.of(context);
     try {
       final response = await _crmService.convertLead(
         id,
@@ -424,22 +427,39 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       }
 
       if (enquiryId != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger?.clearSnackBars();
+        messenger?.showSnackBar(
           SnackBar(
-            content: Text(response.message),
-            action: SnackBarAction(
-              label: 'Open enquiry',
-              onPressed: () => _openCrmShellRoute(
-                context,
-                '/crm/enquiries?select_id=$enquiryId',
-              ),
+            content: Row(
+              children: [
+                Expanded(child: Text(response.message)),
+                TextButton(
+                  onPressed: () {
+                    messenger.hideCurrentSnackBar();
+                    final route = '/crm/enquiries?select_id=$enquiryId';
+                    if (shellNavigate != null) {
+                      shellNavigate(route);
+                      return;
+                    }
+                    if (navigator.mounted) {
+                      navigator.pushNamed(route);
+                    }
+                  },
+                  child: const Text('Open enquiry'),
+                ),
+              ],
             ),
+            duration: const Duration(seconds: 3),
           ),
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
+        messenger?.clearSnackBars();
+        messenger?.showSnackBar(
+          SnackBar(
+            content: Text(response.message),
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     } catch (error) {
       if (!mounted) {
