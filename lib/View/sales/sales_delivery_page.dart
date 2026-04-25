@@ -388,7 +388,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         .where((item) {
           final typeOk =
               item.documentType == null ||
-              item.documentType == 'DELIVERY_CHALLAN';
+              item.documentType == 'SALES_DELIVERY';
           final companyOk = _companyId == null || item.companyId == _companyId;
           final fyOk =
               _financialYearId == null ||
@@ -402,6 +402,84 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       branchesForCompany(_branches, _companyId);
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
+
+  int? _deliveryDocumentSeriesIdFrom(Map<String, dynamic> data) {
+    final sid = intValue(data, 'document_series_id');
+    if (sid != 0) {
+      return sid;
+    }
+    final series = _seriesOptions();
+    return series.isNotEmpty ? series.first.id : null;
+  }
+
+  void _applyDeliveryHeaderFromOrderJson(Map<String, dynamic> data) {
+    _companyId = intValue(data, 'company_id');
+    _branchId = intValue(data, 'branch_id');
+    _locationId = intValue(data, 'location_id');
+    _financialYearId = intValue(data, 'financial_year_id');
+    _documentSeriesId = _deliveryDocumentSeriesIdFrom(data);
+    final customerId = intValue(data, 'customer_party_id');
+    _customerPartyId = customerId == 0 ? null : customerId;
+    _notesController.text = stringValue(data, 'notes');
+  }
+
+  void _applyLinesFromOrderJson(Map<String, dynamic> data) {
+    final drafts = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map((line) {
+          final ordered =
+              double.tryParse(line['ordered_qty']?.toString() ?? '') ?? 0;
+          final delivered =
+              double.tryParse(line['delivered_qty']?.toString() ?? '') ?? 0;
+          final pending = ordered - delivered;
+          return _SalesDeliveryLineDraft(
+            salesOrderLineId: intValue(line, 'id'),
+            itemId: intValue(line, 'item_id'),
+            warehouseId: intValue(line, 'warehouse_id'),
+            uomId: intValue(line, 'uom_id'),
+            description: stringValue(line, 'description'),
+            deliveredQty: pending > 0 ? pending.toString() : '',
+            rate: stringValue(line, 'rate'),
+            remarks: stringValue(line, 'remarks'),
+          );
+        })
+        .where((line) {
+          final qty =
+              double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
+          return qty > 0;
+        })
+        .toList(growable: true);
+
+    _lines = drafts.isEmpty
+        ? <_SalesDeliveryLineDraft>[_SalesDeliveryLineDraft()]
+        : drafts;
+  }
+
+  Future<void> _applySalesOrderSelection(int? orderId) async {
+    setState(() => _salesOrderId = orderId);
+    if (orderId == null) {
+      await _refreshSalesChain();
+      return;
+    }
+    try {
+      final response = await _salesService.order(orderId);
+      final data = response.data?.toJson() ?? <String, dynamic>{};
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _applyDeliveryHeaderFromOrderJson(data);
+        _applyLinesFromOrderJson(data);
+        _formError = null;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _formError = error.toString());
+    }
+    await _refreshSalesChain();
+  }
 
   void _addLine() => setState(
     () =>
@@ -720,8 +798,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                       .toList(growable: false),
                   initialValue: _salesOrderId,
                   onChanged: (value) {
-                    setState(() => _salesOrderId = value);
-                    unawaited(_refreshSalesChain());
+                    unawaited(_applySalesOrderSelection(value));
                   },
                 ),
                 AppDropdownField<int>.fromMapped(

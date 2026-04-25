@@ -88,6 +88,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   List<SalesDeliveryModel> _deliveriesAll = const <SalesDeliveryModel>[];
   List<Map<String, dynamic>>? _orderLinesCache;
   List<Map<String, dynamic>>? _deliveryLinesCache;
+  final Map<int, Set<int>> _allowedWarehouseIdsByItem = <int, Set<int>>{};
+  final Set<int> _warehouseOptionsLoadingItemIds = <int>{};
+  final Map<String, List<Map<String, dynamic>>> _availableSerialsByItemWarehouse =
+      <String, List<Map<String, dynamic>>>{};
+  final Set<String> _serialOptionsLoadingKeys = <String>{};
   int? _salesOrderId;
   int? _salesDeliveryId;
   SalesInvoiceModel? _selectedItem;
@@ -158,6 +163,211 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
   Map<String, dynamic> _rowJson(SalesInvoiceModel row) =>
       row.raw ?? <String, dynamic>{};
+
+  ItemModel? _itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    return _itemsLookup.cast<ItemModel?>().firstWhere(
+      (item) => item?.id == itemId,
+      orElse: () => null,
+    );
+  }
+
+  bool _isSerialManagedItem(int? itemId) => _itemById(itemId)?.hasSerial == true;
+
+  String _serialCacheKey(int? itemId, int? warehouseId) =>
+      '${itemId ?? 0}:${warehouseId ?? 0}';
+
+  List<WarehouseModel> _warehouseOptionsForLine(_InvoiceLineDraft line) {
+    final itemId = line.itemId;
+    if (itemId == null) {
+      return _warehouses;
+    }
+    final allowedWarehouseIds = _allowedWarehouseIdsByItem[itemId];
+    if (allowedWarehouseIds == null) {
+      return _warehouses;
+    }
+    return _warehouses
+        .where((warehouse) => warehouse.id != null)
+        .where((warehouse) => allowedWarehouseIds.contains(warehouse.id))
+        .toList(growable: false);
+  }
+
+  bool _applyAllowedWarehousesToLine(
+    _InvoiceLineDraft line,
+    Set<int> allowedWarehouseIds,
+  ) {
+    if (line.warehouseId != null &&
+        !allowedWarehouseIds.contains(line.warehouseId)) {
+      line.warehouseId =
+          allowedWarehouseIds.length == 1 ? allowedWarehouseIds.first : null;
+      line.serialId = null;
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _syncWarehouseOptionsForLine(_InvoiceLineDraft line) async {
+    final itemId = line.itemId;
+    if (itemId == null) {
+      return;
+    }
+    final cachedWarehouseIds = _allowedWarehouseIdsByItem[itemId];
+    if (cachedWarehouseIds != null) {
+      if (!mounted) {
+        return;
+      }
+      if (_applyAllowedWarehousesToLine(line, cachedWarehouseIds)) {
+        setState(() {});
+      }
+      return;
+    }
+    if (_warehouseOptionsLoadingItemIds.contains(itemId)) {
+      return;
+    }
+    _warehouseOptionsLoadingItemIds.add(itemId);
+    try {
+      final raw = _isSerialManagedItem(itemId)
+          ? (await _inventoryService.inquiryAvailableSerials(itemId: itemId)).data
+          : (await _inventoryService.inquiryWarehouseWiseStock(
+              itemId: itemId,
+              companyId: _companyId,
+            ))
+              .data;
+      final rows = raw is List
+          ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e))
+          : const Iterable<Map<String, dynamic>>.empty();
+      final allowedWarehouseIds = rows
+          .where((row) {
+            if (_isSerialManagedItem(itemId)) {
+              return true;
+            }
+            final qty = double.tryParse(row['qty_available']?.toString() ?? '') ?? 0;
+            return qty > 0;
+          })
+          .map((row) => int.tryParse(row['warehouse_id']?.toString() ?? ''))
+          .whereType<int>()
+          .toSet();
+      if (!mounted) {
+        return;
+      }
+      _applyAllowedWarehousesToLine(line, allowedWarehouseIds);
+      setState(() {
+        _allowedWarehouseIdsByItem[itemId] = allowedWarehouseIds;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _allowedWarehouseIdsByItem[itemId] = <int>{});
+    } finally {
+      _warehouseOptionsLoadingItemIds.remove(itemId);
+    }
+  }
+
+  void _syncWarehouseOptionsForLines(Iterable<_InvoiceLineDraft> lines) {
+    for (final line in lines) {
+      unawaited(_syncWarehouseOptionsForLine(line));
+    }
+  }
+
+  List<Map<String, dynamic>> _serialOptionsForLine(_InvoiceLineDraft line) {
+    if (!_isSerialManagedItem(line.itemId) ||
+        line.itemId == null ||
+        line.warehouseId == null) {
+      return const <Map<String, dynamic>>[];
+    }
+    return _availableSerialsByItemWarehouse[
+            _serialCacheKey(line.itemId, line.warehouseId)] ??
+        const <Map<String, dynamic>>[];
+  }
+
+  Future<void> _syncSerialOptionsForLine(_InvoiceLineDraft line) async {
+    final itemId = line.itemId;
+    final warehouseId = line.warehouseId;
+    if (itemId == null ||
+        warehouseId == null ||
+        !_isSerialManagedItem(itemId)) {
+      return;
+    }
+    final cacheKey = _serialCacheKey(itemId, warehouseId);
+    final cachedSerials = _availableSerialsByItemWarehouse[cacheKey];
+    if (cachedSerials != null) {
+      if (!mounted) {
+        return;
+      }
+      final hasSelectedSerial = cachedSerials.any(
+        (serial) =>
+            int.tryParse(serial['serial_id']?.toString() ?? '') == line.serialId,
+      );
+      if ((line.serialId != null && !hasSelectedSerial) ||
+          (line.serialId == null && cachedSerials.length == 1)) {
+        setState(() {
+          line.serialId = cachedSerials.length == 1
+              ? int.tryParse(cachedSerials.first['serial_id']?.toString() ?? '')
+              : null;
+        });
+      }
+      return;
+    }
+    if (_serialOptionsLoadingKeys.contains(cacheKey)) {
+      return;
+    }
+    _serialOptionsLoadingKeys.add(cacheKey);
+    try {
+      final response = await _inventoryService.inquiryAvailableSerials(
+        itemId: itemId,
+        warehouseId: warehouseId,
+      );
+      final raw = response.data;
+      final serials = raw is List
+          ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+          : const <Map<String, dynamic>>[];
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _availableSerialsByItemWarehouse[cacheKey] = serials;
+        final hasSelectedSerial = serials.any(
+          (serial) =>
+              int.tryParse(serial['serial_id']?.toString() ?? '') == line.serialId,
+        );
+        if (line.itemId == itemId &&
+            line.warehouseId == warehouseId &&
+            line.serialId != null &&
+            !hasSelectedSerial) {
+          line.serialId = serials.length == 1
+              ? int.tryParse(serials.first['serial_id']?.toString() ?? '')
+              : null;
+        } else if (line.itemId == itemId &&
+            line.warehouseId == warehouseId &&
+            line.serialId == null &&
+            serials.length == 1) {
+          line.serialId =
+              int.tryParse(serials.first['serial_id']?.toString() ?? '');
+        }
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _availableSerialsByItemWarehouse[cacheKey] = const <Map<String, dynamic>>[];
+        if (line.itemId == itemId && line.warehouseId == warehouseId) {
+          line.serialId = null;
+        }
+      });
+    } finally {
+      _serialOptionsLoadingKeys.remove(cacheKey);
+    }
+  }
+
+  void _syncSerialOptionsForLines(Iterable<_InvoiceLineDraft> lines) {
+    for (final line in lines) {
+      unawaited(_syncSerialOptionsForLine(line));
+    }
+  }
 
   List<SalesOrderModel> get _orderChoices {
     final companyId = _companyId;
@@ -788,6 +998,68 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     super.dispose();
   }
 
+  Future<void> _loadReferenceDataInBackground() async {
+    try {
+      final responses = await Future.wait<dynamic>([
+        _accountsService.accountsAll(
+          filters: const {'sort_by': 'account_name'},
+        ),
+        _inventoryService.items(
+          filters: const {'per_page': 400, 'sort_by': 'item_name'},
+        ),
+        _inventoryService.uoms(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
+        _inventoryService.uomConversionsAll(
+          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
+        ),
+        _masterService.warehouses(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
+        _inventoryService.taxCodes(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _accounts =
+            ((responses[0] as ApiResponse<List<AccountModel>>).data ??
+                    const <AccountModel>[])
+                .where((item) => item.isActive)
+                .toList();
+        _itemsLookup =
+            ((responses[1] as PaginatedResponse<ItemModel>).data ??
+                    const <ItemModel>[])
+                .where((item) => item.isActive)
+                .toList();
+        _uoms =
+            ((responses[2] as PaginatedResponse<UomModel>).data ??
+                    const <UomModel>[])
+                .where((item) => item.isActive)
+                .toList();
+        _uomConversions =
+            ((responses[3] as PaginatedResponse<UomConversionModel>).data ??
+                    const <UomConversionModel>[])
+                .where((item) => item.isActive)
+                .toList();
+        _warehouses =
+            ((responses[4] as PaginatedResponse<WarehouseModel>).data ??
+                    const <WarehouseModel>[])
+                .where((item) => item.isActive)
+                .toList();
+        _taxCodes =
+            ((responses[5] as PaginatedResponse<TaxCodeModel>).data ??
+                    const <TaxCodeModel>[])
+                .where((item) => item.isActive)
+                .toList();
+      });
+    } catch (_) {}
+  }
+
   Future<void> _loadPage({int? selectId}) async {
     setState(() {
       _initialLoading = _items.isEmpty;
@@ -817,24 +1089,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _partiesService.partyTypes(filters: const {'per_page': 100}),
         _partiesService.parties(
           filters: const {'per_page': 400, 'sort_by': 'party_name'},
-        ),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
-        ),
-        _inventoryService.items(
-          filters: const {'per_page': 400, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _masterService.warehouses(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.taxCodes(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
       ]);
 
@@ -925,36 +1179,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
               const <PartyTypeModel>[],
         );
-        _accounts =
-            ((responses[8] as ApiResponse<List<AccountModel>>).data ??
-                    const <AccountModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _itemsLookup =
-            ((responses[9] as PaginatedResponse<ItemModel>).data ??
-                    const <ItemModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _uoms =
-            ((responses[10] as PaginatedResponse<UomModel>).data ??
-                    const <UomModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _uomConversions =
-            ((responses[11] as PaginatedResponse<UomConversionModel>).data ??
-                    const <UomConversionModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _warehouses =
-            ((responses[12] as PaginatedResponse<WarehouseModel>).data ??
-                    const <WarehouseModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _taxCodes =
-            ((responses[13] as PaginatedResponse<TaxCodeModel>).data ??
-                    const <TaxCodeModel>[])
-                .where((item) => item.isActive)
-                .toList();
         _contextCompanyId = contextSelection.companyId;
         _contextBranchId = contextSelection.branchId;
         _contextLocationId = contextSelection.locationId;
@@ -985,6 +1209,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           await _prefillNewInvoiceFromQuotation(qPref);
         }
       }
+
+      unawaited(_loadReferenceDataInBackground());
     } catch (error) {
       if (!mounted) {
         return;
@@ -1083,6 +1309,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       _lines = lines.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : lines;
       _formError = null;
     });
+    _syncWarehouseOptionsForLines(_lines);
+    _syncSerialOptionsForLines(_lines);
     await _hydrateSourceCaches();
     if (!mounted) {
       return;
@@ -1182,16 +1410,17 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
           final disc =
               double.tryParse(line.discountController.text.trim()) ?? 0;
-          return SalesInvoiceLineModel(
-            salesOrderLineId: line.salesOrderLineId,
-            salesDeliveryLineId: line.salesDeliveryLineId,
-            itemId: line.itemId ?? 0,
-            uomId: line.uomId ?? 0,
-            invoicedQty: qty,
-            rate: rate,
-            warehouseId: line.warehouseId,
-            taxCodeId: line.taxCodeId,
-            description: nullIfEmpty(line.descriptionController.text),
+      return SalesInvoiceLineModel(
+        salesOrderLineId: line.salesOrderLineId,
+        salesDeliveryLineId: line.salesDeliveryLineId,
+        itemId: line.itemId ?? 0,
+        uomId: line.uomId ?? 0,
+        invoicedQty: qty,
+        rate: rate,
+        warehouseId: line.warehouseId,
+        serialId: line.serialId,
+        taxCodeId: line.taxCodeId,
+        description: nullIfEmpty(line.descriptionController.text),
             discountPercent: disc == 0 ? null : disc,
             remarks: nullIfEmpty(line.remarksController.text),
           );
@@ -1896,6 +2125,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                             line.itemId = value;
                             line.salesOrderLineId = null;
                             line.salesDeliveryLineId = null;
+                            line.warehouseId = null;
+                            line.serialId = null;
                             final item = _itemsLookup
                                 .cast<ItemModel?>()
                                 .firstWhere(
@@ -1915,6 +2146,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                               warehouses: _warehouses,
                             );
                           });
+                          unawaited(_syncWarehouseOptionsForLine(line));
+                          unawaited(_syncSerialOptionsForLine(line));
                         },
                         validator: (_) =>
                             line.itemId == null ? 'Item is required' : null,
@@ -1959,7 +2192,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Warehouse',
-                        mappedItems: _warehouses
+                        mappedItems: _warehouseOptionsForLine(line)
                             .where((item) => item.id != null)
                             .map(
                               (item) => AppDropdownItem(
@@ -1973,9 +2206,62 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           if (!_canEdit) {
                             return;
                           }
-                          setState(() => line.warehouseId = value);
+                          setState(() {
+                            line.warehouseId = value;
+                            line.serialId = null;
+                          });
+                          unawaited(_syncSerialOptionsForLine(line));
+                        },
+                        validator: (_) {
+                          if (line.itemId == null) {
+                            return 'Select item first';
+                          }
+                          if (_warehouseOptionsForLine(line).isEmpty) {
+                            return 'No valid warehouse available for this item';
+                          }
+                          return line.warehouseId == null
+                              ? 'Warehouse is required'
+                              : null;
                         },
                       ),
+                      if (_isSerialManagedItem(line.itemId))
+                        Builder(
+                          builder: (context) {
+                            final serialOptions = _serialOptionsForLine(line);
+                            return AppDropdownField<int>.fromMapped(
+                              labelText: 'Serial Number',
+                              mappedItems: serialOptions
+                                  .map(
+                                    (serial) => AppDropdownItem(
+                                      value: int.tryParse(
+                                        serial['serial_id']?.toString() ?? '',
+                                      )!,
+                                      label:
+                                          serial['serial_no']?.toString() ?? '',
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              initialValue: line.serialId,
+                              onChanged: (value) {
+                                if (!_canEdit) {
+                                  return;
+                                }
+                                setState(() => line.serialId = value);
+                              },
+                              validator: (_) {
+                                if (line.warehouseId == null) {
+                                  return 'Select warehouse first';
+                                }
+                                if (serialOptions.isEmpty) {
+                                  return 'No serial is available for the selected warehouse';
+                                }
+                                return line.serialId == null
+                                    ? 'Serial number is required'
+                                    : null;
+                              },
+                            );
+                          },
+                        ),
                       AppFormTextField(
                         labelText: 'Qty',
                         controller: line.qtyController,
@@ -1983,10 +2269,23 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        validator: Validators.compose([
-                          Validators.required('Qty'),
-                          Validators.optionalNonNegativeNumber('Qty'),
-                        ]),
+                        validator: (_) {
+                          final text = line.qtyController.text.trim();
+                          if (text.isEmpty) {
+                            return 'Qty is required';
+                          }
+                          final qty = double.tryParse(text);
+                          if (qty == null || qty < 0) {
+                            return 'Qty must be a valid non-negative number';
+                          }
+                          if (qty <= 0) {
+                            return 'Qty must be greater than zero';
+                          }
+                          if (_isSerialManagedItem(line.itemId) && qty != 1) {
+                            return 'Serial-managed item quantity must be exactly 1';
+                          }
+                          return null;
+                        },
                       ),
                       AppFormTextField(
                         labelText: 'Rate',
@@ -2098,6 +2397,7 @@ class _InvoiceLineDraft {
     this.salesDeliveryLineId,
     this.itemId,
     this.warehouseId,
+    this.serialId,
     this.uomId,
     this.taxCodeId,
     String? description,
@@ -2117,6 +2417,7 @@ class _InvoiceLineDraft {
       salesDeliveryLineId: line.salesDeliveryLineId,
       itemId: line.itemId,
       warehouseId: line.warehouseId,
+      serialId: line.serialId,
       uomId: line.uomId,
       taxCodeId: line.taxCodeId,
       description: line.description,
@@ -2154,6 +2455,7 @@ class _InvoiceLineDraft {
       salesOrderLineId: intValue(ol, 'id'),
       itemId: intValue(ol, 'item_id'),
       warehouseId: intValue(ol, 'warehouse_id'),
+      serialId: _nullableIntKey(ol, 'serial_id'),
       uomId: intValue(ol, 'uom_id'),
       taxCodeId: _nullableIntKey(ol, 'tax_code_id'),
       description: stringValue(ol, 'description'),
@@ -2176,6 +2478,7 @@ class _InvoiceLineDraft {
       salesOrderLineId: sol == 0 ? null : sol,
       itemId: intValue(dl, 'item_id'),
       warehouseId: intValue(dl, 'warehouse_id'),
+      serialId: _nullableIntKey(dl, 'serial_id'),
       uomId: intValue(dl, 'uom_id'),
       taxCodeId: taxCodeId ?? _nullableIntKey(dl, 'tax_code_id'),
       description: stringValue(dl, 'description'),
@@ -2201,6 +2504,7 @@ class _InvoiceLineDraft {
   int? salesDeliveryLineId;
   int? itemId;
   int? warehouseId;
+  int? serialId;
   int? uomId;
   int? taxCodeId;
   final TextEditingController descriptionController;

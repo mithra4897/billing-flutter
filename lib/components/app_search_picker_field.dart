@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../app/constants/app_ui_constants.dart';
 import 'app_field_box.dart';
@@ -17,7 +18,7 @@ class AppSearchPickerOption<T> {
   final String? searchText;
 }
 
-class AppSearchPickerField<T> extends StatelessWidget {
+class AppSearchPickerField<T> extends StatefulWidget {
   const AppSearchPickerField({
     super.key,
     required this.labelText,
@@ -38,27 +39,69 @@ class AppSearchPickerField<T> extends StatelessWidget {
   final double? width;
 
   @override
+  State<AppSearchPickerField<T>> createState() => _AppSearchPickerFieldState<T>();
+}
+
+class _AppSearchPickerFieldState<T> extends State<AppSearchPickerField<T>> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.selectedLabel ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant AppSearchPickerField<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextText = widget.selectedLabel ?? '';
+    if (_controller.text != nextText) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        if (_controller.text == nextText) {
+          return;
+        }
+        _controller.value = _controller.value.copyWith(
+          text: nextText,
+          selection: TextSelection.collapsed(offset: nextText.length),
+          composing: TextRange.empty,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = TextEditingController(text: selectedLabel ?? '');
     return AppFieldBox(
-      width: width,
+      width: widget.width,
       child: TextFormField(
-        controller: controller,
+        controller: _controller,
         readOnly: true,
         decoration: InputDecoration(
-          labelText: labelText,
-          hintText: hintText ?? 'Search and select',
+          labelText: widget.labelText,
+          hintText: widget.hintText ?? 'Search and select',
           suffixIcon: const Icon(Icons.search),
         ),
-        validator: validator,
+        validator: widget.validator,
         onTap: () async {
           final value = await showDialog<T>(
             context: context,
             builder: (context) =>
-                _SearchPickerDialog<T>(title: labelText, options: options),
+                _SearchPickerDialog<T>(
+                  title: widget.labelText,
+                  options: widget.options,
+                ),
           );
           if (context.mounted) {
-            onChanged(value);
+            widget.onChanged(value);
           }
         },
       ),

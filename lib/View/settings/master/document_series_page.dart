@@ -18,7 +18,6 @@ class _DocumentSeriesManagementPageState
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _codeController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _documentTypeController = TextEditingController();
   final TextEditingController _prefixController = TextEditingController();
@@ -54,7 +53,6 @@ class _DocumentSeriesManagementPageState
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
-    _codeController.dispose();
     _nameController.dispose();
     _documentTypeController.dispose();
     _prefixController.dispose();
@@ -175,7 +173,6 @@ class _DocumentSeriesManagementPageState
     _selectedSeries = series;
     _companyId = series.companyId;
     _financialYearId = series.financialYearId;
-    _codeController.text = series.seriesCode ?? '';
     _nameController.text = series.seriesName ?? '';
     _documentTypeController.text = series.documentType ?? '';
     _prefixController.text = series.prefix ?? '';
@@ -193,7 +190,6 @@ class _DocumentSeriesManagementPageState
     _selectedSeries = null;
     _companyId = _contextCompanyId;
     _financialYearId = _contextFinancialYearId;
-    _codeController.clear();
     _nameController.clear();
     _documentTypeController.clear();
     _prefixController.clear();
@@ -221,7 +217,6 @@ class _DocumentSeriesManagementPageState
       id: _selectedSeries?.id,
       companyId: _companyId,
       financialYearId: _financialYearId,
-      seriesCode: _codeController.text.trim(),
       seriesName: _nameController.text.trim(),
       documentType: _documentTypeController.text.trim(),
       prefix: nullIfEmpty(_prefixController.text),
@@ -342,15 +337,6 @@ class _DocumentSeriesManagementPageState
                 ),
                 const SizedBox(height: 12),
               ],
-              TextFormField(
-                controller: _codeController,
-                decoration: const InputDecoration(labelText: 'Series Code'),
-                validator: Validators.compose([
-                  Validators.required('Series Code'),
-                  Validators.optionalMaxLength(50, 'Series Code'),
-                ]),
-              ),
-              const SizedBox(height: 12),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Series Name'),
