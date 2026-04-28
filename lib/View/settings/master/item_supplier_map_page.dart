@@ -31,7 +31,6 @@ class _ItemSupplierMapManagementPageState
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _masterSearchController = TextEditingController();
-  final TextEditingController _addSearchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _supplierItemCodeController =
       TextEditingController();
@@ -74,7 +73,6 @@ class _ItemSupplierMapManagementPageState
   void initState() {
     super.initState();
     _masterSearchController.addListener(_applyMasterSearch);
-    _addSearchController.addListener(_refreshAddSearch);
     _loadData();
   }
 
@@ -83,7 +81,6 @@ class _ItemSupplierMapManagementPageState
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _masterSearchController.dispose();
-    _addSearchController.dispose();
     _supplierItemCodeController.dispose();
     _supplierItemNameController.dispose();
     _supplierRateController.dispose();
@@ -329,12 +326,6 @@ class _ItemSupplierMapManagementPageState
     });
   }
 
-  void _refreshAddSearch() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   void _selectMapping(ItemSupplierMapModel item) {
     if (_selectedItem?.id == item.id) {
       _resetForm();
@@ -368,7 +359,6 @@ class _ItemSupplierMapManagementPageState
     _remarksController.clear();
     _isPrimarySupplier = false;
     _isActive = true;
-    _addSearchController.clear();
     _formError = null;
     setState(() {});
   }
@@ -387,6 +377,7 @@ class _ItemSupplierMapManagementPageState
       orElse: () => null,
     );
   }
+
 
   Set<int> _allowedUomIdsForItem(ItemModel? item) {
     final seedIds = <int>{
@@ -592,19 +583,6 @@ class _ItemSupplierMapManagementPageState
     _loadMappings();
   }
 
-  void _startNewWithCounterparty(int id) {
-    _showDraftTile = true;
-    _resetForm();
-    _counterpartyId = id;
-    if (!_allowedUomIdsForItem(
-      _currentItemForUomRules,
-    ).contains(_purchaseUomId)) {
-      _purchaseUomId = _defaultPurchaseUomId;
-    }
-    _formError = null;
-    setState(() {});
-  }
-
   String _itemLabel(ItemModel item) {
     final name = item.itemName.trim();
     final code = item.itemCode.trim();
@@ -621,6 +599,22 @@ class _ItemSupplierMapManagementPageState
       return '$code - $name';
     }
     return name.isNotEmpty ? name : code;
+  }
+
+  String _itemSubtitle(ItemModel item) {
+    return [
+      item.itemType ?? '',
+      item.categoryName ?? item.categoryCode ?? '',
+      item.baseUomSymbol ?? item.baseUomCode ?? '',
+    ].where((value) => value.trim().isNotEmpty).join(' · ');
+  }
+
+  String _supplierSubtitle(PartyModel party) {
+    return [
+      party.partyType ?? '',
+      party.defaultCurrency ?? '',
+      party.pan ?? '',
+    ].where((value) => value.trim().isNotEmpty).join(' · ');
   }
 
   String get _selectedMasterTitle {
@@ -657,24 +651,6 @@ class _ItemSupplierMapManagementPageState
 
     return _allItems
         .where((item) => !selectedIds.contains(item.id))
-        .toList(growable: false);
-  }
-
-  List<dynamic> get _filteredAvailableCounterpartyOptions {
-    final query = _addSearchController.text.trim().toLowerCase();
-    final options = _availableCounterpartyOptions;
-    if (query.isEmpty) {
-      return options.take(8).toList(growable: false);
-    }
-
-    return options
-        .where((option) {
-          final text = _isItemWise
-              ? _supplierLabel(option as PartyModel).toLowerCase()
-              : _itemLabel(option as ItemModel).toLowerCase();
-          return text.contains(query);
-        })
-        .take(8)
         .toList(growable: false);
   }
 
@@ -852,58 +828,7 @@ class _ItemSupplierMapManagementPageState
               });
               _resetForm();
             },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _addSearchController,
-                  decoration: InputDecoration(
-                    hintText: _isItemWise
-                        ? 'Search supplier to add to this item'
-                        : 'Search item to add for this supplier',
-                    prefixIcon: const Icon(Icons.search),
-                  ),
-                ),
-                const SizedBox(height: AppUiConstants.spacingSm),
-                if (_filteredAvailableCounterpartyOptions.isEmpty)
-                  Text(
-                    _isItemWise
-                        ? 'No more suppliers available to add.'
-                        : 'No more items available to add.',
-                  )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _filteredAvailableCounterpartyOptions.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: AppUiConstants.spacingXs),
-                    itemBuilder: (context, index) {
-                      final option =
-                          _filteredAvailableCounterpartyOptions[index];
-                      final optionId = _isItemWise
-                          ? (option as PartyModel).id
-                          : (option as ItemModel).id;
-                      if (optionId == null) {
-                        return const SizedBox.shrink();
-                      }
-                      return SettingsListTile(
-                        title: _isItemWise
-                            ? _supplierLabel(option as PartyModel)
-                            : _itemLabel(option as ItemModel),
-                        subtitle: '',
-                        selected: optionId == _counterpartyId,
-                        onTap: () => _startNewWithCounterparty(optionId),
-                        trailing: const Icon(Icons.add_circle_outline),
-                      );
-                    },
-                  ),
-                if (_counterpartyId != null) ...[
-                  const SizedBox(height: AppUiConstants.spacingLg),
-                  _buildMappingForm(),
-                ],
-              ],
-            ),
+            child: _buildMappingForm(),
           ),
           if (_filteredItems.isNotEmpty)
             const SizedBox(height: AppUiConstants.spacingSm),
@@ -966,6 +891,18 @@ class _ItemSupplierMapManagementPageState
   }
 
   Widget _buildMappingForm() {
+    final dynamic selectedCounterparty = _counterpartyId == null
+        ? null
+        : (_isItemWise
+              ? _allSuppliers.cast<PartyModel?>().firstWhere(
+                  (entry) => entry?.id == _counterpartyId,
+                  orElse: () => null,
+                )
+              : _allItems.cast<ItemModel?>().firstWhere(
+                  (entry) => entry?.id == _counterpartyId,
+                  orElse: () => null,
+                ));
+
     return Form(
       key: _formKey,
       child: Column(
@@ -975,35 +912,96 @@ class _ItemSupplierMapManagementPageState
             AppErrorStateView.inline(message: _formError!),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
-          DropdownButtonFormField<int>(
-            initialValue: _counterpartyId,
-            decoration: InputDecoration(labelText: _counterpartyLabel),
-            items: _dropdownCounterpartyOptions
-                .where((entry) => entry.id != null)
-                .map(
-                  (entry) => DropdownMenuItem<int>(
-                    value: entry.id as int,
-                    child: Text(
-                      _isItemWise
+          if (widget.fixedItemId != null && _selectedItem == null)
+            AppSearchPickerField<int>(
+              labelText: _counterpartyLabel,
+              selectedLabel: selectedCounterparty == null
+                  ? null
+                  : (_isItemWise
+                        ? _supplierLabel(selectedCounterparty as PartyModel)
+                        : _itemLabel(selectedCounterparty as ItemModel)),
+              hintText: _isItemWise
+                  ? 'Search supplier to add to this item'
+                  : 'Search item to add for this supplier',
+              options: _availableCounterpartyOptions
+                  .where((entry) => entry.id != null)
+                  .map(
+                    (entry) => AppSearchPickerOption<int>(
+                      value: entry.id as int,
+                      label: _isItemWise
                           ? _supplierLabel(entry as PartyModel)
                           : _itemLabel(entry as ItemModel),
+                      subtitle: _isItemWise
+                          ? _supplierSubtitle(entry as PartyModel)
+                          : _itemSubtitle(entry as ItemModel),
+                      searchText: _isItemWise
+                          ? [
+                              (entry as PartyModel).partyName ?? '',
+                              entry.website ?? '',
+                              entry.remarks ?? '',
+                            ].join(' ')
+                          : [
+                              (entry as ItemModel).sku ?? '',
+                              entry.hsnSacCode ?? '',
+                              entry.brandName ?? entry.brandCode ?? '',
+                            ].join(' '),
                     ),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: (value) {
-              setState(() {
-                _counterpartyId = value;
-                if (!_allowedUomIdsForItem(
-                  _currentItemForUomRules,
-                ).contains(_purchaseUomId)) {
-                  _purchaseUomId = _defaultPurchaseUomId;
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value == null) {
+                  return;
                 }
-              });
-            },
-            validator: (value) =>
-                Validators.requiredSelectionField(value, _counterpartyLabel),
-          ),
+                setState(() {
+                  _counterpartyId = value;
+                  if (!_allowedUomIdsForItem(
+                    _currentItemForUomRules,
+                  ).contains(_purchaseUomId)) {
+                    _purchaseUomId = _defaultPurchaseUomId;
+                  }
+                });
+              },
+              validator: (_) => _counterpartyId == null
+                  ? '$_counterpartyLabel is required'
+                  : null,
+            )
+          else if (widget.fixedItemId != null && selectedCounterparty != null)
+            Text(
+              _isItemWise
+                  ? _supplierLabel(selectedCounterparty as PartyModel)
+                  : _itemLabel(selectedCounterparty as ItemModel),
+              style: Theme.of(context).textTheme.titleMedium,
+            )
+          else
+            DropdownButtonFormField<int>(
+              initialValue: _counterpartyId,
+              decoration: InputDecoration(labelText: _counterpartyLabel),
+              items: _dropdownCounterpartyOptions
+                  .where((entry) => entry.id != null)
+                  .map(
+                    (entry) => DropdownMenuItem<int>(
+                      value: entry.id as int,
+                      child: Text(
+                        _isItemWise
+                            ? _supplierLabel(entry as PartyModel)
+                            : _itemLabel(entry as ItemModel),
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                setState(() {
+                  _counterpartyId = value;
+                  if (!_allowedUomIdsForItem(
+                    _currentItemForUomRules,
+                  ).contains(_purchaseUomId)) {
+                    _purchaseUomId = _defaultPurchaseUomId;
+                  }
+                });
+              },
+              validator: (value) =>
+                  Validators.requiredSelectionField(value, _counterpartyLabel),
+            ),
           const SizedBox(height: 12),
           SettingsFormWrap(
             children: [

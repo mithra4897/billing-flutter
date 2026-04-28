@@ -24,7 +24,6 @@ class _ItemAlternateManagementPageState
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _masterSearchController = TextEditingController();
-  final TextEditingController _addSearchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _priorityController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
@@ -50,7 +49,6 @@ class _ItemAlternateManagementPageState
   void initState() {
     super.initState();
     _masterSearchController.addListener(_applyMasterSearch);
-    _addSearchController.addListener(_refreshAddSearch);
     _loadData();
   }
 
@@ -59,7 +57,6 @@ class _ItemAlternateManagementPageState
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _masterSearchController.dispose();
-    _addSearchController.dispose();
     _priorityController.dispose();
     _remarksController.dispose();
     super.dispose();
@@ -199,12 +196,6 @@ class _ItemAlternateManagementPageState
     });
   }
 
-  void _refreshAddSearch() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   void _selectMaster(int id) {
     setState(() {
       _selectedMasterId = id;
@@ -232,16 +223,8 @@ class _ItemAlternateManagementPageState
     _counterpartyId = null;
     _priorityController.text = '1';
     _remarksController.clear();
-    _addSearchController.clear();
     _isActive = true;
     _formError = null;
-    setState(() {});
-  }
-
-  void _startNewWithCounterparty(int id) {
-    _showDraftTile = true;
-    _resetForm();
-    _counterpartyId = id;
     setState(() {});
   }
 
@@ -392,6 +375,14 @@ class _ItemAlternateManagementPageState
     return name.isNotEmpty ? name : code;
   }
 
+  String _itemSubtitle(ItemModel item) {
+    return [
+      item.itemType ?? '',
+      item.categoryName ?? item.categoryCode ?? '',
+      item.baseUomSymbol ?? item.baseUomCode ?? '',
+    ].where((value) => value.trim().isNotEmpty).join(' · ');
+  }
+
   String get _selectedMasterTitle {
     final selected = _allItems.cast<ItemModel?>().firstWhere(
       (item) => item?.id == _selectedMasterId,
@@ -430,26 +421,6 @@ class _ItemAlternateManagementPageState
               item.id != _selectedMasterId &&
               !selectedIds.contains(item.id),
         )
-        .toList(growable: false);
-  }
-
-  List<ItemModel> get _filteredAvailableCounterpartyOptions {
-    final query = _addSearchController.text.trim().toLowerCase();
-    final options = _availableCounterpartyOptions;
-    if (query.isEmpty) {
-      return options.take(8).toList(growable: false);
-    }
-
-    return options
-        .where((item) {
-          return [
-            _itemLabel(item),
-            _itemSubtitle(item),
-            item.sku ?? '',
-            item.hsnSacCode ?? '',
-          ].join(' ').toLowerCase().contains(query);
-        })
-        .take(8)
         .toList(growable: false);
   }
 
@@ -610,45 +581,8 @@ class _ItemAlternateManagementPageState
               });
               _resetForm();
             },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _addSearchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Search alternate item to add',
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                ),
-                const SizedBox(height: AppUiConstants.spacingSm),
-                if (_filteredAvailableCounterpartyOptions.isEmpty)
-                  const Text('No more alternate items available to add.')
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _filteredAvailableCounterpartyOptions.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: AppUiConstants.spacingXs),
-                    itemBuilder: (context, index) {
-                      final option =
-                          _filteredAvailableCounterpartyOptions[index];
-                      return SettingsListTile(
-                        title: _itemLabel(option),
-                        subtitle: _itemSubtitle(option),
-                        selected: option.id == _counterpartyId,
-                        onTap: () => _startNewWithCounterparty(option.id!),
-                        trailing: const Icon(Icons.add_circle_outline),
-                      );
-                    },
-                  ),
-                if (_counterpartyId != null) ...[
-                  const SizedBox(height: AppUiConstants.spacingLg),
-                  _buildAlternateForm(
-                    selectedCounterparty: selectedCounterparty,
-                  ),
-                ],
-              ],
+            child: _buildAlternateForm(
+              selectedCounterparty: selectedCounterparty,
             ),
           ),
           if (_filteredItems.isNotEmpty)
@@ -719,6 +653,38 @@ class _ItemAlternateManagementPageState
                   .toList(growable: false),
               onChanged: (value) => setState(() => _counterpartyId = value),
               validator: Validators.requiredSelection(_counterpartyLabel),
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ] else if (_selectedItem == null) ...[
+            AppSearchPickerField<int>(
+              labelText: _counterpartyLabel,
+              selectedLabel: selectedCounterparty == null
+                  ? null
+                  : _itemLabel(selectedCounterparty),
+              hintText: 'Search alternate item to add',
+              options: _availableCounterpartyOptions
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppSearchPickerOption<int>(
+                      value: item.id!,
+                      label: _itemLabel(item),
+                      subtitle: _itemSubtitle(item),
+                      searchText: [
+                        item.sku ?? '',
+                        item.hsnSacCode ?? '',
+                        item.brandName ?? item.brandCode ?? '',
+                      ].join(' '),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() => _counterpartyId = value);
+              },
+              validator: (_) =>
+                  _counterpartyId == null ? 'Alternate Item is required' : null,
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
           ] else if (selectedCounterparty != null) ...[
