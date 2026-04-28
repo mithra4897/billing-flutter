@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../screen.dart';
 import 'purchase_support.dart';
 
@@ -331,6 +333,12 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           : boolValue(full.raw!, 'is_active', fallback: true);
       _formError = null;
     });
+    final enrichReceiptId = full.purchaseReceiptId;
+    if (enrichReceiptId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_enrichLinesFromReceiptHeader(enrichReceiptId));
+      });
+    }
   }
 
   void _resetForm() {
@@ -420,6 +428,276 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           return typeOk && companyOk && fyOk;
         })
         .toList(growable: false);
+  }
+
+  int? _defaultSeriesIdFor({
+    required int? companyId,
+    required int? financialYearId,
+  }) {
+    final options = _documentSeries
+        .where((item) {
+          final typeOk =
+              item.documentType == null ||
+              item.documentType == 'PURCHASE_INVOICE';
+          final companyOk = companyId == null || item.companyId == companyId;
+          final fyOk =
+              financialYearId == null || item.financialYearId == financialYearId;
+          return typeOk && companyOk && fyOk;
+        })
+        .toList(growable: false);
+    return options.isNotEmpty ? options.first.id : null;
+  }
+
+  double _pendingInvoiceQtyForOrderLine(Map<String, dynamic> line) {
+    final orderedQty = double.tryParse(stringValue(line, 'ordered_qty')) ?? 0;
+    final invoicedQty = double.tryParse(stringValue(line, 'invoiced_qty')) ?? 0;
+    return (orderedQty - invoicedQty).clamp(0, double.infinity).toDouble();
+  }
+
+  List<PurchaseInvoiceLineModel> _buildInvoiceLinesFromOrder(
+    PurchaseOrderModel order,
+  ) {
+    final orderLines = (order.toJson()['lines'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>();
+
+    final lines = orderLines
+        .map((line) {
+          final pendingQty = _pendingInvoiceQtyForOrderLine(line);
+          if (pendingQty <= 0) {
+            return null;
+          }
+
+          return PurchaseInvoiceLineModel(
+            purchaseOrderLineId: intValue(line, 'id'),
+            itemId: intValue(line, 'item_id') ?? 0,
+            warehouseId: intValue(line, 'warehouse_id'),
+            uomId: intValue(line, 'uom_id') ?? 0,
+            invoicedQty: pendingQty,
+            rate: double.tryParse(stringValue(line, 'rate')) ?? 0,
+            description: nullableStringValue(line, 'description'),
+            discountPercent:
+                double.tryParse(stringValue(line, 'discount_percent')) ?? 0,
+            taxCodeId: intValue(line, 'tax_code_id'),
+            remarks: nullableStringValue(line, 'remarks'),
+          );
+        })
+        .whereType<PurchaseInvoiceLineModel>()
+        .toList(growable: false);
+
+    return lines.isEmpty
+        ? <PurchaseInvoiceLineModel>[
+            PurchaseInvoiceLineModel(itemId: 0, uomId: 0, invoicedQty: 0, rate: 0),
+          ]
+        : lines;
+  }
+
+  /// Maps invoice lines to receipt lines and caps qty to each receipt line's
+  /// [pending_invoice_qty] so posting can satisfy receipt validation and the
+  /// API can treat GRN-backed lines as receipt-first when the PO is already fully invoiced.
+  List<PurchaseInvoiceLineModel> _mergeInvoiceLinesWithReceiptLines(
+    PurchaseReceiptModel receipt,
+    List<PurchaseInvoiceLineModel> lines,
+  ) {
+    final receiptLines = (receipt.toJson()['lines'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+
+    final pendingLeft = <int, double>{};
+    for (final rl in receiptLines) {
+      final id = intValue(rl, 'id');
+      if (id == null) {
+        continue;
+      }
+      pendingLeft[id] =
+          double.tryParse(stringValue(rl, 'pending_invoice_qty')) ?? 0;
+    }
+
+    return lines
+        .map((line) {
+          if (line.itemId <= 0 || line.purchaseOrderLineId == null) {
+            return line.copyWith(purchaseReceiptLineId: null);
+          }
+          final candidates = receiptLines
+              .where(
+                (rl) =>
+                    intValue(rl, 'purchase_order_line_id') ==
+                        line.purchaseOrderLineId &&
+                    intValue(rl, 'item_id') == line.itemId,
+              )
+              .map((rl) => intValue(rl, 'id'))
+              .whereType<int>()
+              .toList()
+            ..sort();
+
+          int? chosenId;
+          for (final id in candidates) {
+            if ((pendingLeft[id] ?? 0) > 0) {
+              chosenId = id;
+              break;
+            }
+          }
+
+          if (chosenId == null) {
+            return line.copyWith(purchaseReceiptLineId: null);
+          }
+
+          var qty = line.invoicedQty;
+          final cap = pendingLeft[chosenId] ?? 0;
+          if (qty > cap) {
+            qty = cap;
+          }
+          pendingLeft[chosenId] = (pendingLeft[chosenId] ?? 0) - qty;
+
+          return line.copyWith(
+            purchaseReceiptLineId: chosenId,
+            invoicedQty: qty,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  Future<void> _enrichLinesFromReceiptHeader(int receiptId) async {
+    if (!mounted) {
+      return;
+    }
+    final needs = _lines.any(
+      (l) =>
+          l.purchaseOrderLineId != null &&
+          l.itemId > 0 &&
+          l.purchaseReceiptLineId == null,
+    );
+    if (!needs) {
+      return;
+    }
+    final response = await _purchaseService.receipt(receiptId);
+    if (!mounted || response.data == null) {
+      return;
+    }
+    final next = _mergeInvoiceLinesWithReceiptLines(response.data!, _lines);
+    var changed = false;
+    if (_lines.length != next.length) {
+      changed = true;
+    } else {
+      for (var i = 0; i < _lines.length; i++) {
+        final a = _lines[i];
+        final b = next[i];
+        if (a.purchaseReceiptLineId != b.purchaseReceiptLineId ||
+            a.invoicedQty != b.invoicedQty) {
+          changed = true;
+          break;
+        }
+      }
+    }
+    if (!changed) {
+      return;
+    }
+    setState(() => _lines = next);
+    if (mounted && _selectedItem != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Receipt line links were applied. Save the draft before posting.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handlePurchaseReceiptChanged(int? receiptId) async {
+    if (receiptId == null) {
+      setState(() {
+        _purchaseReceiptId = null;
+        _lines = _lines
+            .map((l) => l.copyWith(purchaseReceiptLineId: null))
+            .toList(growable: false);
+        _formError = null;
+      });
+      return;
+    }
+
+    setState(() => _purchaseReceiptId = receiptId);
+
+    final response = await _purchaseService.receipt(receiptId);
+    if (!mounted || response.data == null) {
+      return;
+    }
+    final receipt = response.data!;
+    final receiptPoId = intValue(receipt.toJson(), 'purchase_order_id');
+    if (_purchaseOrderId != null &&
+        receiptPoId != null &&
+        receiptPoId != _purchaseOrderId) {
+      setState(() {
+        _purchaseReceiptId = null;
+        _lines = _lines
+            .map((l) => l.copyWith(purchaseReceiptLineId: null))
+            .toList(growable: false);
+        _formError =
+            'Purchase receipt does not belong to the selected purchase order.';
+      });
+      return;
+    }
+
+    setState(() {
+      _lines = _mergeInvoiceLinesWithReceiptLines(receipt, _lines);
+      _formError = null;
+    });
+  }
+
+  Future<void> _handlePurchaseOrderChanged(int? orderId) async {
+    if (orderId == null) {
+      setState(() {
+        _purchaseOrderId = null;
+        _purchaseReceiptId = null;
+        _supplierPartyId = null;
+        _lines = <PurchaseInvoiceLineModel>[
+          PurchaseInvoiceLineModel(itemId: 0, uomId: 0, invoicedQty: 0, rate: 0),
+        ];
+        _formError = null;
+      });
+      return;
+    }
+
+    final response = await _purchaseService.order(orderId);
+    final order = response.data;
+    if (!mounted || order == null) return;
+
+    final data = order.toJson();
+    final lines = _buildInvoiceLinesFromOrder(order);
+    final companyId = intValue(data, 'company_id');
+    final financialYearId = intValue(data, 'financial_year_id');
+
+    setState(() {
+      _purchaseOrderId = orderId;
+      _purchaseReceiptId = null;
+      _companyId = companyId;
+      _branchId = intValue(data, 'branch_id');
+      _locationId = intValue(data, 'location_id');
+      _financialYearId = financialYearId;
+      _documentSeriesId = _defaultSeriesIdFor(
+        companyId: companyId,
+        financialYearId: financialYearId,
+      );
+      _supplierPartyId = intValue(data, 'supplier_party_id');
+      _invoiceNoController.clear();
+      _dueDateController.text = displayDate(
+        nullableStringValue(data, 'expected_receipt_date'),
+      );
+      _supplierReferenceNoController.text = stringValue(
+        data,
+        'supplier_reference_no',
+      );
+      _supplierReferenceDateController.text = displayDate(
+        nullableStringValue(data, 'supplier_reference_date'),
+      );
+      _currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
+      _exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
+      _notesController.text = stringValue(data, 'notes');
+      _termsController.text = stringValue(data, 'terms_conditions');
+      _lines = lines;
+      _formError = lines.length == 1 && lines.first.itemId == 0
+          ? 'Selected purchase order has no pending invoice quantity.'
+          : null;
+    });
   }
 
   List<BranchModel> get _branchOptions =>
@@ -773,8 +1051,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                       )
                       .toList(growable: false),
                   initialValue: _purchaseOrderId,
-                  onChanged: (value) =>
-                      setState(() => _purchaseOrderId = value),
+                  onChanged: (value) async {
+                    await _handlePurchaseOrderChanged(value);
+                  },
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Purchase Receipt',
@@ -792,8 +1071,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                       )
                       .toList(growable: false),
                   initialValue: _purchaseReceiptId,
-                  onChanged: (value) =>
-                      setState(() => _purchaseReceiptId = value),
+                  onChanged: (value) async {
+                    await _handlePurchaseReceiptChanged(value);
+                  },
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Adjustment Account',
@@ -875,6 +1155,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
             ...List<Widget>.generate(_lines.length, (index) {
               final line = _lines[index];
               return Padding(
+                key: ValueKey<String>(
+                  '${line.itemId}_${line.purchaseOrderLineId}_${line.purchaseReceiptLineId}_${line.invoicedQty}_$index',
+                ),
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
@@ -1078,6 +1361,33 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                   busy: _saving,
                 ),
                 if (_selectedItem != null) ...[
+                  if ((() {
+                    final status = (_selectedItem!.invoiceStatus ?? '')
+                        .toLowerCase();
+                    final balance = double.tryParse(
+                          _selectedItem!.raw?['balance_amount']?.toString() ??
+                              '',
+                        ) ??
+                        0;
+                    return status != 'draft' &&
+                        status != 'cancelled' &&
+                        balance > 0;
+                  })())
+                    AppActionButton(
+                      icon: Icons.payments_outlined,
+                      label: 'Make payment',
+                      filled: false,
+                      onPressed: () {
+                        final navigate = ShellRouteScope.maybeOf(context);
+                        final route =
+                            '/purchase/payments/new?invoice_id=${_selectedItem!.id}';
+                        if (navigate != null) {
+                          navigate(route);
+                          return;
+                        }
+                        Navigator.of(context).pushNamed(route);
+                      },
+                    ),
                   AppActionButton(
                     icon: Icons.publish_outlined,
                     label: 'Post',

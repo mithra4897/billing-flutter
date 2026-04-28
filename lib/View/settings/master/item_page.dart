@@ -1472,6 +1472,24 @@ class _ItemOpeningStockSectionState extends State<_ItemOpeningStockSection> {
           'Opening stock history for ${widget.item.itemName}',
           style: Theme.of(context).textTheme.titleMedium,
         ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        Align(
+          alignment: Alignment.centerRight,
+          child: AppActionButton(
+            icon: Icons.add_business_outlined,
+            label: 'Add Opening Stock',
+            onPressed: () {
+              final route =
+                  '/inventory/opening-stocks?item_id=${widget.item.id}';
+              final shellNavigate = ShellRouteScope.maybeOf(context);
+              if (shellNavigate != null) {
+                shellNavigate(route);
+                return;
+              }
+              Navigator.of(context).pushNamed(route);
+            },
+          ),
+        ),
         const SizedBox(height: 12),
         if (_entries.isEmpty)
           const Text('No opening stock entries found for this item.')

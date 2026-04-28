@@ -304,8 +304,7 @@ class _GstRegistrationManagementPageState
   }
 
   Future<void> _save(BuildContext formContext) async {
-    final formState = Form.maybeOf(formContext);
-    if (formState == null || !formState.validate()) {
+    if (!Form.of(formContext).validate()) {
       return;
     }
 
@@ -581,10 +580,10 @@ class _GstRegistrationManagementPageState
         ? _stateId
         : null;
 
-    return Builder(
-      builder: (BuildContext formContext) {
-        return Form(
-          child: Column(
+    return Form(
+      child: Builder(
+        builder: (formContext) {
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if ((_formError ?? '').isNotEmpty) ...[
@@ -798,9 +797,9 @@ class _GstRegistrationManagementPageState
                 ],
               ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

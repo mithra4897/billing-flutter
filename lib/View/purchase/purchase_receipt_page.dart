@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../screen.dart';
 import 'purchase_support.dart';
 
@@ -69,6 +71,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
   List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
+  final Map<String, List<StockSerialModel>> _serialOptionsByItemWarehouse =
+      <String, List<StockSerialModel>>{};
+  final Set<String> _serialOptionsLoadingKeys = <String>{};
   PurchaseReceiptModel? _selectedItem;
   int? _contextCompanyId;
   int? _contextBranchId;
@@ -300,6 +305,15 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           : lines;
       _formError = null;
     });
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final line in _lines) {
+        if (_isSerialManagedItem(line.itemId)) {
+          unawaited(_syncSerialOptionsForLine(line));
+        }
+      }
+    });
   }
 
   void _resetForm() {
@@ -373,6 +387,101 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
     );
   }
 
+  bool _isSerialManagedItem(int? itemId) {
+    if (itemId == null) {
+      return false;
+    }
+    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return item?.hasSerial ?? false;
+  }
+
+  String _serialCacheKey(int? itemId, int? warehouseId) =>
+      '${itemId ?? 0}:${warehouseId ?? 0}';
+
+  List<StockSerialModel> _serialOptionsForLine(_PurchaseReceiptLineDraft line) {
+    if (!_isSerialManagedItem(line.itemId) ||
+        line.itemId == null ||
+        line.warehouseId == null) {
+      return const <StockSerialModel>[];
+    }
+    return _serialOptionsByItemWarehouse[
+            _serialCacheKey(line.itemId, line.warehouseId)] ??
+        const <StockSerialModel>[];
+  }
+
+  Future<void> _syncSerialOptionsForLine(_PurchaseReceiptLineDraft line) async {
+    final itemId = line.itemId;
+    final warehouseId = line.warehouseId;
+    if (itemId == null ||
+        warehouseId == null ||
+        !_isSerialManagedItem(itemId)) {
+      return;
+    }
+
+    final cacheKey = _serialCacheKey(itemId, warehouseId);
+    final cached = _serialOptionsByItemWarehouse[cacheKey];
+    if (cached != null) {
+      if (!mounted) return;
+      final hasSelected = cached.any(
+        (serial) => intValue(serial.toJson(), 'id') == line.serialId,
+      );
+      if ((line.serialId != null && !hasSelected) ||
+          (line.serialId == null && cached.length == 1)) {
+        setState(() {
+          line.serialId =
+              cached.length == 1 ? intValue(cached.first.toJson(), 'id') : null;
+        });
+      }
+      return;
+    }
+
+    if (_serialOptionsLoadingKeys.contains(cacheKey)) {
+      return;
+    }
+    _serialOptionsLoadingKeys.add(cacheKey);
+    try {
+      final response = await _inventoryService.stockSerialsDropdown(
+        filters: <String, dynamic>{
+          'item_id': itemId,
+          'warehouse_id': warehouseId,
+        },
+      );
+      final serials = response.data ?? const <StockSerialModel>[];
+      if (!mounted) return;
+      setState(() {
+        _serialOptionsByItemWarehouse[cacheKey] = serials;
+        final hasSelected = serials.any(
+          (serial) => intValue(serial.toJson(), 'id') == line.serialId,
+        );
+        if (line.itemId == itemId &&
+            line.warehouseId == warehouseId &&
+            line.serialId != null &&
+            !hasSelected) {
+          line.serialId =
+              serials.length == 1 ? intValue(serials.first.toJson(), 'id') : null;
+        } else if (line.itemId == itemId &&
+            line.warehouseId == warehouseId &&
+            line.serialId == null &&
+            serials.length == 1) {
+          line.serialId = intValue(serials.first.toJson(), 'id');
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _serialOptionsByItemWarehouse[cacheKey] = const <StockSerialModel>[];
+        if (line.itemId == itemId && line.warehouseId == warehouseId) {
+          line.serialId = null;
+        }
+      });
+    } finally {
+      _serialOptionsLoadingKeys.remove(cacheKey);
+    }
+  }
+
   List<DocumentSeriesModel> _seriesOptions() {
     return _documentSeries
         .where((item) {
@@ -386,6 +495,145 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           return typeOk && companyOk && fyOk;
         })
         .toList(growable: false);
+  }
+
+  int? _defaultSeriesIdFor({
+    required int? companyId,
+    required int? financialYearId,
+  }) {
+    final options = _documentSeries
+        .where((item) {
+          final typeOk =
+              item.documentType == null ||
+              item.documentType == 'PURCHASE_RECEIPT';
+          final companyOk = companyId == null || item.companyId == companyId;
+          final fyOk =
+              financialYearId == null || item.financialYearId == financialYearId;
+          return typeOk && companyOk && fyOk;
+        })
+        .toList(growable: false);
+    return options.isNotEmpty ? options.first.id : null;
+  }
+
+  double _pendingReceiptQtyForOrderLine(Map<String, dynamic> line) {
+    final orderedQty = double.tryParse(stringValue(line, 'ordered_qty')) ?? 0;
+    final receivedQty = double.tryParse(stringValue(line, 'received_qty')) ?? 0;
+    return (orderedQty - receivedQty).clamp(0, double.infinity).toDouble();
+  }
+
+  List<_PurchaseReceiptLineDraft> _buildReceiptLinesFromOrder(
+    PurchaseOrderModel order,
+  ) {
+    final orderLines = (order.toJson()['lines'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>();
+
+    final drafts = orderLines
+        .expand((line) {
+          final pendingQty = _pendingReceiptQtyForOrderLine(line);
+          if (pendingQty <= 0) {
+            return const <_PurchaseReceiptLineDraft>[];
+          }
+          final itemId = intValue(line, 'item_id');
+          if (_isSerialManagedItem(itemId)) {
+            final units = pendingQty.floor();
+            return List<_PurchaseReceiptLineDraft>.generate(
+              units > 0 ? units : 1,
+              (_) => _PurchaseReceiptLineDraft(
+                purchaseOrderLineId: intValue(line, 'id'),
+                itemId: itemId,
+                warehouseId: intValue(line, 'warehouse_id'),
+                uomId: intValue(line, 'uom_id'),
+                description: stringValue(line, 'description'),
+                receivedQty: '1',
+                acceptedQty: '1',
+                rejectedQty: '0',
+                rate: stringValue(line, 'rate'),
+                remarks: stringValue(line, 'remarks'),
+              ),
+              growable: false,
+            );
+          }
+
+          return <_PurchaseReceiptLineDraft>[
+            _PurchaseReceiptLineDraft(
+              purchaseOrderLineId: intValue(line, 'id'),
+              itemId: itemId,
+              warehouseId: intValue(line, 'warehouse_id'),
+              uomId: intValue(line, 'uom_id'),
+              description: stringValue(line, 'description'),
+              receivedQty: pendingQty.toString(),
+              acceptedQty: pendingQty.toString(),
+              rejectedQty: '0',
+              rate: stringValue(line, 'rate'),
+              remarks: stringValue(line, 'remarks'),
+            ),
+          ];
+        })
+        .toList(growable: false);
+
+    return drafts.isEmpty
+        ? <_PurchaseReceiptLineDraft>[_PurchaseReceiptLineDraft()]
+        : drafts;
+  }
+
+  Future<void> _handlePurchaseOrderChanged(int? orderId) async {
+    if (orderId == null) {
+      setState(() {
+        _purchaseOrderId = null;
+        _supplierPartyId = null;
+        _warehouseId = null;
+        _lines = <_PurchaseReceiptLineDraft>[_PurchaseReceiptLineDraft()];
+        _formError = null;
+      });
+      return;
+    }
+
+    final response = await _purchaseService.order(orderId);
+    final order = response.data;
+    if (!mounted || order == null) return;
+
+    final data = order.toJson();
+    final lines = _buildReceiptLinesFromOrder(order);
+    final defaultWarehouseId = lines
+        .map((line) => line.warehouseId)
+        .whereType<int>()
+        .cast<int?>()
+        .firstWhere((value) => value != null, orElse: () => null);
+    final companyId = intValue(data, 'company_id');
+    final financialYearId = intValue(data, 'financial_year_id');
+
+    setState(() {
+      _purchaseOrderId = orderId;
+      _companyId = companyId;
+      _branchId = intValue(data, 'branch_id');
+      _locationId = intValue(data, 'location_id');
+      _financialYearId = financialYearId;
+      _documentSeriesId = _defaultSeriesIdFor(
+        companyId: companyId,
+        financialYearId: financialYearId,
+      );
+      _supplierPartyId = intValue(data, 'supplier_party_id');
+      _warehouseId = defaultWarehouseId;
+      _receiptNoController.clear();
+      _supplierInvoiceNoController.clear();
+      _supplierInvoiceDateController.clear();
+      _supplierDcNoController.clear();
+      _supplierDcDateController.clear();
+      _notesController.text = stringValue(data, 'notes');
+      _lines = lines;
+      _formError = lines.length == 1 && lines.first.itemId == null
+          ? 'Selected purchase order has no pending receipt quantity.'
+          : null;
+    });
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final line in _lines) {
+        if (_isSerialManagedItem(line.itemId)) {
+          unawaited(_syncSerialOptionsForLine(line));
+        }
+      }
+    });
   }
 
   List<BranchModel> get _branchOptions =>
@@ -413,13 +661,30 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           line.itemId == null ||
           line.uomId == null ||
           line.warehouseId == null ||
+          (_isSerialManagedItem(line.itemId) && line.serialId == null) ||
           (double.tryParse(line.receivedQtyController.text.trim()) ?? 0) <= 0,
     )) {
       setState(
         () => _formError =
-            'Each line needs item, warehouse, UOM, and received quantity.',
+            'Each line needs item, warehouse, UOM, received quantity, and serial for serial-managed items.',
       );
       return;
+    }
+    for (var index = 0; index < _lines.length; index++) {
+      final line = _lines[index];
+      if (_isSerialManagedItem(line.itemId)) {
+        final receivedQty =
+            double.tryParse(line.receivedQtyController.text.trim()) ?? 0;
+        final acceptedQty =
+            double.tryParse(line.acceptedQtyController.text.trim()) ?? 0;
+        if (receivedQty != 1 || acceptedQty != 1) {
+          setState(
+            () => _formError =
+                'Serial-managed receipt lines must have received qty 1 and accepted qty 1 at line ${index + 1}.',
+          );
+          return;
+        }
+      }
     }
     setState(() {
       _saving = true;
@@ -708,8 +973,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                       )
                       .toList(growable: false),
                   initialValue: _purchaseOrderId,
-                  onChanged: (value) =>
-                      setState(() => _purchaseOrderId = value),
+                  onChanged: (value) async {
+                    await _handlePurchaseOrderChanged(value);
+                  },
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Warehouse',
@@ -812,10 +1078,14 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                               ),
                             )
                             .toList(growable: false),
-                        onChanged: (value) => setState(() {
-                          line.itemId = value;
-                          line.uomId = _resolveDefaultUom(value, line.uomId);
-                        }),
+                        onChanged: (value) {
+                          setState(() {
+                            line.itemId = value;
+                            line.uomId = _resolveDefaultUom(value, line.uomId);
+                            line.serialId = null;
+                          });
+                          unawaited(_syncSerialOptionsForLine(line));
+                        },
                         validator: (_) =>
                             line.itemId == null ? 'Item is required' : null,
                       ),
@@ -831,10 +1101,54 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                             )
                             .toList(growable: false),
                         initialValue: line.warehouseId,
-                        onChanged: (value) =>
-                            setState(() => line.warehouseId = value),
+                        onChanged: (value) {
+                          setState(() {
+                            line.warehouseId = value;
+                            line.serialId = null;
+                          });
+                          unawaited(_syncSerialOptionsForLine(line));
+                        },
                         validator: Validators.requiredSelection('Warehouse'),
                       ),
+                      if (_isSerialManagedItem(line.itemId))
+                        Builder(
+                          builder: (context) {
+                            final serialOptions = _serialOptionsForLine(line);
+                            return AppDropdownField<int>.fromMapped(
+                              labelText: 'Serial Number',
+                              mappedItems: serialOptions
+                                  .where(
+                                    (serial) =>
+                                        intValue(serial.toJson(), 'id') !=
+                                        null,
+                                  )
+                                  .map(
+                                    (serial) => AppDropdownItem<int>(
+                                      value: intValue(serial.toJson(), 'id')!,
+                                      label: stringValue(
+                                        serial.toJson(),
+                                        'serial_no',
+                                      ),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              initialValue: line.serialId,
+                              onChanged: (value) =>
+                                  setState(() => line.serialId = value),
+                              validator: (_) {
+                                if (line.warehouseId == null) {
+                                  return 'Select warehouse first';
+                                }
+                                if (serialOptions.isEmpty) {
+                                  return 'No serial is available for the selected warehouse';
+                                }
+                                return line.serialId == null
+                                    ? 'Serial number is required'
+                                    : null;
+                              },
+                            );
+                          },
+                        ),
                       Builder(
                         builder: (context) {
                           final options = _uomOptionsForItem(line.itemId);
@@ -970,9 +1284,11 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
 
 class _PurchaseReceiptLineDraft {
   _PurchaseReceiptLineDraft({
+    this.purchaseOrderLineId,
     this.itemId,
     this.warehouseId,
     this.uomId,
+    this.serialId,
     String? description,
     String? receivedQty,
     String? acceptedQty,
@@ -988,9 +1304,11 @@ class _PurchaseReceiptLineDraft {
 
   factory _PurchaseReceiptLineDraft.fromJson(Map<String, dynamic> json) {
     return _PurchaseReceiptLineDraft(
+      purchaseOrderLineId: intValue(json, 'purchase_order_line_id'),
       itemId: intValue(json, 'item_id'),
       warehouseId: intValue(json, 'warehouse_id'),
       uomId: intValue(json, 'uom_id'),
+      serialId: intValue(json, 'serial_id'),
       description: stringValue(json, 'description'),
       receivedQty: stringValue(json, 'received_qty'),
       acceptedQty: stringValue(json, 'accepted_qty'),
@@ -1000,9 +1318,11 @@ class _PurchaseReceiptLineDraft {
     );
   }
 
+  int? purchaseOrderLineId;
   int? itemId;
   int? warehouseId;
   int? uomId;
+  int? serialId;
   final TextEditingController descriptionController;
   final TextEditingController receivedQtyController;
   final TextEditingController acceptedQtyController;
@@ -1012,9 +1332,11 @@ class _PurchaseReceiptLineDraft {
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'purchase_order_line_id': purchaseOrderLineId,
       'item_id': itemId,
       'warehouse_id': warehouseId,
       'uom_id': uomId,
+      'serial_id': serialId,
       'description': nullIfEmpty(descriptionController.text),
       'received_qty': double.tryParse(receivedQtyController.text.trim()) ?? 0,
       'accepted_qty': double.tryParse(acceptedQtyController.text.trim()) ?? 0,

@@ -664,34 +664,44 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                     AppUiConstants.buttonRadius,
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      item.icon,
-                      size: 20,
-                      color: containsCurrentPath
-                          ? selectedForeground
-                          : foregroundColor,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        item.title,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 140;
+                    return Row(
+                      children: [
+                        Icon(
+                          item.icon,
+                          size: 20,
                           color: containsCurrentPath
                               ? selectedForeground
                               : foregroundColor,
-                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                    ),
-                    Icon(
-                      isExpanded ? Icons.expand_less : Icons.expand_more,
-                      color: containsCurrentPath
-                          ? selectedForeground
-                          : mutedColor,
-                    ),
-                  ],
+                        if (!compact) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: containsCurrentPath
+                                        ? selectedForeground
+                                        : foregroundColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                          Icon(
+                            isExpanded ? Icons.expand_less : Icons.expand_more,
+                            color: containsCurrentPath
+                                ? selectedForeground
+                                : mutedColor,
+                          ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -776,28 +786,34 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               color: selected ? selectedBackground : null,
               borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
             ),
-            child: Row(
-              children: [
-                Icon(icon, size: dense ? 18 : 20, color: color),
-                if (!collapsed) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: color,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = collapsed || constraints.maxWidth < 140;
+                return Row(
+                  children: [
+                    Icon(icon, size: dense ? 18 : 20, color: color),
+                    if (!compact) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: color,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-                if (collapsed)
-                  const SizedBox(width: 0, height: 0)
-                else if (dense)
-                  Icon(Icons.chevron_right, size: 16, color: mutedColor),
-              ],
+                    ],
+                    if (!compact && dense)
+                      Icon(Icons.chevron_right, size: 16, color: mutedColor),
+                  ],
+                );
+              },
             ),
           ),
         ),

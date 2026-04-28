@@ -336,10 +336,46 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
   List<SalesInvoiceModel> get _invoiceOptions => _invoices
-      .where((item) => (_companyId == null || item.companyId == _companyId))
+      .where((item) {
+        if (item.id == _salesInvoiceId) {
+          return true;
+        }
+        final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+        final statusOk = status == 'partially_paid' || status == 'paid';
+        final companyOk = _companyId == null || item.companyId == _companyId;
+        final branchOk = _branchId == null || item.branchId == _branchId;
+        final locationOk =
+            _locationId == null || item.locationId == _locationId;
+        final customerOk =
+            _customerPartyId == null || item.customerPartyId == _customerPartyId;
+        final returnableOk = item.lines.any(_invoiceLineIsReturnable);
+        return statusOk &&
+            companyOk &&
+            branchOk &&
+            locationOk &&
+            customerOk &&
+            returnableOk;
+      })
       .toList(growable: false);
 
-  List<SalesInvoiceLineModel> get _invoiceLineOptions => _invoiceLines;
+  List<SalesInvoiceLineModel> get _invoiceLineOptions => _invoiceLines
+      .where((item) {
+        if (item.id == null || _selectedInvoiceLineIds.contains(item.id)) {
+          return true;
+        }
+        return _invoiceLineIsReturnable(item);
+      })
+      .toList(growable: false);
+
+  Set<int> get _selectedInvoiceLineIds => _lines
+      .map((line) => line.salesInvoiceLineId)
+      .whereType<int>()
+      .toSet();
+
+  bool _invoiceLineIsReturnable(SalesInvoiceLineModel line) {
+    final returnedQty = line.returnedQty ?? 0;
+    return line.invoicedQty > returnedQty;
+  }
 
   String _itemName(int? id) {
     if (id == null) {
@@ -401,6 +437,13 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     _syncLineDisplayNames();
   }
 
+  void _clearInvoiceSelection() {
+    _salesInvoiceId = null;
+    _customerPartyId = null;
+    _invoiceLines = const <SalesInvoiceLineModel>[];
+    _lines = <_SalesReturnLineDraft>[_SalesReturnLineDraft()];
+  }
+
   void _syncLineDisplayNames() {
     for (final line in _lines) {
       line.itemNameController.text = _itemName(line.itemId);
@@ -442,7 +485,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       _saving = true;
       _formError = null;
     });
-    final invoice = _invoiceOptions.cast<SalesInvoiceModel?>().firstWhere(
+    final invoice = _invoices.cast<SalesInvoiceModel?>().firstWhere(
       (item) => item?.id == _salesInvoiceId,
       orElse: () => null,
     );
@@ -601,6 +644,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                     _companyId = value;
                     _branchId = null;
                     _locationId = null;
+                    _clearInvoiceSelection();
                     final series = _seriesOptions();
                     _documentSeriesId = series.isNotEmpty
                         ? series.first.id
@@ -623,6 +667,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                   onChanged: (value) => setState(() {
                     _branchId = value;
                     _locationId = null;
+                    _clearInvoiceSelection();
                   }),
                   validator: Validators.requiredSelection('Branch'),
                 ),
@@ -638,7 +683,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                       )
                       .toList(growable: false),
                   initialValue: _locationId,
-                  onChanged: (value) => setState(() => _locationId = value),
+                  onChanged: (value) => setState(() {
+                    _locationId = value;
+                    _clearInvoiceSelection();
+                  }),
                   validator: Validators.requiredSelection('Location'),
                 ),
                 AppDropdownField<int>.fromMapped(
@@ -693,19 +741,39 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                     Validators.date('Return Date'),
                   ]),
                 ),
-                AppDropdownField<int>.fromMapped(
+                AppSearchPickerField<int>(
                   labelText: 'Sales Invoice',
-                  mappedItems: _invoiceOptions
+                  selectedLabel: _invoiceOptions
+                      .cast<SalesInvoiceModel?>()
+                      .firstWhere(
+                        (item) => item?.id == _salesInvoiceId,
+                        orElse: () => null,
+                      )
+                      ?.invoiceNo,
+                  options: _invoiceOptions
                       .map(
-                        (item) => AppDropdownItem(
+                        (item) => AppSearchPickerOption<int>(
                           value: item.id,
                           label: item.invoiceNo ?? 'Invoice',
+                          subtitle: [
+                            displayDate(
+                              item.invoiceDate.isEmpty ? null : item.invoiceDate,
+                            ),
+                            item.invoiceStatus ?? '',
+                            item.totalAmount == null
+                                ? ''
+                                : item.totalAmount!.toStringAsFixed(2),
+                          ].where((part) => part.isNotEmpty).join(' · '),
+                          searchText: [
+                            item.invoiceNo ?? '',
+                            item.invoiceStatus ?? '',
+                            item.totalAmount?.toString() ?? '',
+                          ].join(' '),
                         ),
                       )
                       .toList(growable: false),
-                  initialValue: _salesInvoiceId,
                   onChanged: _handleInvoiceChanged,
-                  validator: Validators.requiredSelection('Sales Invoice'),
+                  validator: Validators.required('Sales Invoice'),
                 ),
                 AppFormTextField(
                   labelText: 'Reason',

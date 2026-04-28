@@ -1624,24 +1624,55 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         itemBuilder: (item, selected) {
           final data = _rowJson(item);
           final st = item.invoiceStatus ?? '';
+          final currency =
+              (item.currencyCode?.trim().isNotEmpty == true)
+              ? item.currencyCode!.trim()
+              : 'INR';
+          final total =
+              item.totalAmount ??
+              double.tryParse(data['total_amount']?.toString() ?? '') ??
+              0;
           final bal =
-              double.tryParse(data['balance_amount']?.toString() ?? '') ?? 0;
-          final outLabel =
-              !const {'draft', 'cancelled'}.contains(st) && bal > 0.000001
-              ? 'Due ${bal.toStringAsFixed(2)}'
-              : '';
+              item.balanceAmount ??
+              double.tryParse(data['balance_amount']?.toString() ?? '') ??
+              0;
           return SettingsListTile(
             title: (item.invoiceNo?.trim().isNotEmpty == true)
                 ? item.invoiceNo!
                 : 'Draft #${item.id}',
             subtitle: [
-              displayDate(
-                item.invoiceDate.isEmpty ? null : item.invoiceDate,
-              ),
-              item.invoiceStatus ?? '',
-              outLabel,
+              'Date ${displayDate(item.invoiceDate.isEmpty ? null : item.invoiceDate)}',
+              if (st.isNotEmpty) 'Status ${st.toUpperCase()}',
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: quotationCustomerLabel(data),
+            trailing: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'Total ${total.toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  currency,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context)
+                        .extension<AppThemeExtension>()!
+                        .mutedText,
+                  ),
+                ),
+                if (!const {'draft', 'cancelled'}.contains(st))
+                  Text(
+                    'Outstanding ${bal.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
             selected: selected,
             onTap: () => _selectDocument(item),
           );

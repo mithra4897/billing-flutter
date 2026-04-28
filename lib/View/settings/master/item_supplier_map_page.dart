@@ -218,10 +218,14 @@ class _ItemSupplierMapManagementPageState
 
   bool _isSupplierPartyType(PartyTypeModel partyType) {
     final json = partyType.toJson();
-    final code =
-        (json['code'] ?? json['type_code'] ?? '').toString().toLowerCase().trim();
-    final name =
-        (json['name'] ?? json['type_name'] ?? '').toString().toLowerCase().trim();
+    final code = (json['code'] ?? json['type_code'] ?? '')
+        .toString()
+        .toLowerCase()
+        .trim();
+    final name = (json['name'] ?? json['type_name'] ?? '')
+        .toString()
+        .toLowerCase()
+        .trim();
     return code.contains('supplier') ||
         code.contains('vendor') ||
         name.contains('supplier') ||
@@ -807,6 +811,17 @@ class _ItemSupplierMapManagementPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (widget.fixedItemId != null) ...[
+          Align(
+            alignment: Alignment.centerRight,
+            child: AppActionButton(
+              icon: Icons.local_shipping_outlined,
+              label: 'Add Supplier',
+              onPressed: _selectedMasterId == null ? null : _startNew,
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+        ],
         if (_filteredItems.isEmpty && !_showDraftTile) ...[
           Padding(
             padding: const EdgeInsets.symmetric(

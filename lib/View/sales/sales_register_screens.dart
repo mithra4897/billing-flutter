@@ -486,7 +486,11 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Total',
-          valueBuilder: (row) => row.totalAmount?.toString() ?? '',
+          valueBuilder: (row) => row.totalAmount?.toStringAsFixed(2) ?? '',
+        ),
+        PurchaseRegisterColumn(
+          label: 'Outstanding',
+          valueBuilder: (row) => row.balanceAmount?.toStringAsFixed(2) ?? '',
         ),
       ],
       onRowTap: (row) => _openSalesShellRoute(

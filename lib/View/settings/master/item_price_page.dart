@@ -513,6 +513,17 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (widget.fixedItemId != null) ...[
+          Align(
+            alignment: Alignment.centerRight,
+            child: AppActionButton(
+              icon: Icons.price_change_outlined,
+              label: 'New Price',
+              onPressed: _startNew,
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+        ],
         if (_filteredPrices.isEmpty && !_showDraftTile)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),

@@ -312,13 +312,6 @@ class AppNavigation {
           requiredPermissions: ['document_series.view'],
         ),
         AppNavigationItem(
-          key: 'settings-financial-years',
-          title: 'Financial Years',
-          icon: Icons.date_range_outlined,
-          path: '/settings/financial-years',
-          requiredPermissions: ['financial_year.view'],
-        ),
-        AppNavigationItem(
           key: 'inventory-uoms',
           title: 'UOMs',
           icon: Icons.straighten_outlined,

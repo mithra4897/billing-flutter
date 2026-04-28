@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import '../../../screen.dart';
 import 'business_location_page.dart';
 import 'warehouse_page.dart';
@@ -27,7 +29,6 @@ class _BranchManagementPageState extends State<BranchManagementPage>
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
-
   bool _initialLoading = true;
   bool _saving = false;
   String? _pageError;
@@ -76,26 +77,18 @@ class _BranchManagementPageState extends State<BranchManagementPage>
     super.dispose();
   }
 
-  Future<void> _loadData({int? selectId}) async {
+  Future<void> _loadData({int? selectId, int? companyIdHint}) async {
     setState(() {
       _initialLoading = _branches.isEmpty;
       _pageError = null;
     });
 
     try {
-      final responses = await Future.wait([
-        _masterService.branches(
-          filters: const {'per_page': 100, 'sort_by': 'name'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-      ]);
-
-      final branches =
-          responses[0].data as List<BranchModel>? ?? const <BranchModel>[];
+      final companiesResponse = await _masterService.companies(
+        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
+      );
       final companies =
-          responses[1].data as List<CompanyModel>? ?? const <CompanyModel>[];
+          companiesResponse.data ?? const <CompanyModel>[];
       final activeCompanies = companies
           .where((company) => company.isActive)
           .toList(growable: false);
@@ -106,6 +99,49 @@ class _BranchManagementPageState extends State<BranchManagementPage>
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
+
+      final filterCompanyId =
+          companyIdHint ?? contextSelection.companyId;
+      final branchFilters = <String, dynamic>{
+        'per_page': 500,
+        'sort_by': 'name',
+      };
+      if (filterCompanyId != null) {
+        branchFilters['company_id'] = filterCompanyId;
+      }
+
+      final branchesResponse = await _masterService.branches(
+        filters: branchFilters,
+      );
+      List<BranchModel> branches =
+          branchesResponse.data ?? const <BranchModel>[];
+
+      BranchModel? selectTarget;
+      if (selectId != null) {
+        for (final b in branches) {
+          if (b.id == selectId) {
+            selectTarget = b;
+            break;
+          }
+        }
+        if (selectTarget == null) {
+          try {
+            final detailResp = await _masterService.branch(selectId);
+            final detail = detailResp.data;
+            if (!mounted) {
+              return;
+            }
+            if (detail != null) {
+              branches = [...branches, detail];
+              selectTarget = detail;
+            }
+          } catch (_) {}
+        }
+      }
+      final resolvedContextCompanyId = selectTarget?.companyId ??
+          companyIdHint ??
+          contextSelection.companyId;
+
       if (!mounted) {
         return;
       }
@@ -113,7 +149,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
       setState(() {
         _branches = branches;
         _companies = activeCompanies;
-        _contextCompanyId = contextSelection.companyId;
+        _contextCompanyId = resolvedContextCompanyId;
         _filteredBranches = _filterBranches(branches);
         _initialLoading = false;
       });
@@ -195,58 +231,10 @@ class _BranchManagementPageState extends State<BranchManagementPage>
     _remarksController.clear();
     _formError = null;
     setState(() {});
-    _primeCodeSuggestion();
+    unawaited(_primeCodeSuggestion());
   }
 
   bool get _isNewBranch => _selectedBranch?.id == null;
-
-  String _branchTypeCode() {
-    switch (_branchType) {
-      case 'head_office':
-        return 'HO';
-      case 'factory':
-        return 'FAC';
-      case 'warehouse_office':
-        return 'WHO';
-      case 'retail_outlet':
-        return 'RTL';
-      case 'service_center':
-        return 'SVC';
-      case 'other':
-        return 'OTH';
-      case 'branch_office':
-      default:
-        return 'BR';
-    }
-  }
-
-  String _generateBranchCode() {
-    if (_companyId == null) {
-      return '';
-    }
-
-    final prefix = _branchTypeCode();
-    final pattern = RegExp('^${RegExp.escape(prefix)}/(\\d+)\$');
-    var nextNumber = 1;
-
-    for (final branch in _branches.where(
-      (item) => item.companyId == _companyId,
-    )) {
-      final match = pattern.firstMatch(
-        (branch.code ?? '').trim().toUpperCase(),
-      );
-      if (match == null) {
-        continue;
-      }
-
-      final value = int.tryParse(match.group(1) ?? '');
-      if (value != null && value >= nextNumber) {
-        nextNumber = value + 1;
-      }
-    }
-
-    return '$prefix/${nextNumber.toString().padLeft(5, '0')}';
-  }
 
   void _setCode(String value, {bool autoGenerated = false}) {
     _codeController.value = _codeController.value.copyWith(
@@ -255,16 +243,29 @@ class _BranchManagementPageState extends State<BranchManagementPage>
     );
   }
 
-  void _primeCodeSuggestion() {
+  Future<void> _primeCodeSuggestion() async {
     if (!_isNewBranch || _companyId == null) {
       return;
     }
 
-    final code = _generateBranchCode();
-    if (code.trim().isNotEmpty) {
-      _setCode(code.trim(), autoGenerated: true);
-      setState(() {});
-    }
+    final companyId = _companyId!;
+    final branchType = _branchType;
+    try {
+      final code = await _masterService.nextBranchCode(
+        companyId: companyId,
+        branchType: branchType,
+      );
+      if (!mounted ||
+          !_isNewBranch ||
+          _companyId != companyId ||
+          _branchType != branchType) {
+        return;
+      }
+      if (code != null && code.trim().isNotEmpty) {
+        _setCode(code.trim(), autoGenerated: true);
+        setState(() {});
+      }
+    } catch (_) {}
   }
 
   void _refreshAutoGeneratedCode() {
@@ -273,12 +274,11 @@ class _BranchManagementPageState extends State<BranchManagementPage>
     }
 
     _setCode('', autoGenerated: true);
-    _primeCodeSuggestion();
+    unawaited(_primeCodeSuggestion());
   }
 
   Future<void> _save(BuildContext formContext) async {
-    final formState = Form.maybeOf(formContext);
-    if (formState == null || !formState.validate()) {
+    if (!Form.of(formContext).validate()) {
       return;
     }
 
@@ -313,7 +313,10 @@ class _BranchManagementPageState extends State<BranchManagementPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData(selectId: saved.id);
+      await _loadData(
+        selectId: saved.id,
+        companyIdHint: saved.companyId,
+      );
     } catch (error) {
       setState(() => _formError = error.toString());
     } finally {
@@ -461,10 +464,10 @@ class _BranchManagementPageState extends State<BranchManagementPage>
   }
 
   Widget _buildPrimaryTab(BuildContext context) {
-    return Builder(
-      builder: (BuildContext formContext) {
-        return Form(
-          child: Column(
+    return Form(
+      child: Builder(
+        builder: (formContext) {
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SettingsFormWrap(
@@ -560,7 +563,9 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                 const SizedBox(height: 12),
                 Text(
                   _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
               ],
               const SizedBox(height: 16),
@@ -568,7 +573,9 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                 spacing: 12,
                 children: [
                   AppActionButton(
-                    onPressed: _saving ? null : () => _save(formContext),
+                    onPressed: _saving
+                        ? null
+                        : () => _save(formContext),
                     icon: _selectedBranch == null ? Icons.add : Icons.save,
                     label: _saving ? 'Saving...' : 'Save Branch',
                     busy: _saving,
@@ -582,9 +589,9 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                 ],
               ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

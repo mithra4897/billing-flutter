@@ -371,10 +371,10 @@ class _FinancialYearManagementPageState
   }
 
   Widget _buildEditor() {
-    return Builder(
-      builder: (BuildContext formContext) {
-        return Form(
-          child: Column(
+    return Form(
+      child: Builder(
+        builder: (formContext) {
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_formError != null) ...[
@@ -504,9 +504,7 @@ class _FinancialYearManagementPageState
                     label: _selectedFinancialYear == null
                         ? 'Create Financial Year'
                         : 'Update Financial Year',
-                    onPressed: _saving
-                        ? null
-                        : () => _save(formContext),
+                    onPressed: _saving ? null : () => _save(formContext),
                     busy: _saving,
                   ),
                   if (_selectedFinancialYear?.id != null &&
@@ -521,9 +519,9 @@ class _FinancialYearManagementPageState
                 ],
               ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

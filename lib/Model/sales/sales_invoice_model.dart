@@ -27,6 +27,7 @@ class SalesInvoiceModel {
     this.adjustmentAccountId,
     this.adjustmentRemarks,
     this.totalAmount,
+    this.balanceAmount,
     this.invoiceStatus,
     this.notes,
     this.termsConditions,
@@ -62,6 +63,7 @@ class SalesInvoiceModel {
   final int? adjustmentAccountId;
   final String? adjustmentRemarks;
   final double? totalAmount;
+  final double? balanceAmount;
   final String? invoiceStatus;
   final String? notes;
   final String? termsConditions;
@@ -98,6 +100,7 @@ class SalesInvoiceModel {
       adjustmentAccountId: _nullableInt(json['adjustment_account_id']),
       adjustmentRemarks: json['adjustment_remarks']?.toString(),
       totalAmount: _nullableDouble(json['total_amount']),
+      balanceAmount: _nullableDouble(json['balance_amount']),
       invoiceStatus: json['invoice_status']?.toString(),
       notes: json['notes']?.toString(),
       termsConditions: json['terms_conditions']?.toString(),

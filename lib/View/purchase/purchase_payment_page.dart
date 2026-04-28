@@ -7,11 +7,13 @@ class PurchasePaymentPage extends StatefulWidget {
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
+    this.initialPurchaseInvoiceId,
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+  final int? initialPurchaseInvoiceId;
 
   @override
   State<PurchasePaymentPage> createState() => _PurchasePaymentPageState();
@@ -234,6 +236,10 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
         await _selectDocument(selected);
       } else {
         _resetForm();
+        final invoiceBoot = widget.initialPurchaseInvoiceId;
+        if (invoiceBoot != null && widget.editorOnly) {
+          await _bootstrapNewPaymentFromInvoice(invoiceBoot);
+        }
       }
     } catch (error) {
       if (!mounted) return;
@@ -308,6 +314,63 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
     });
   }
 
+  Future<void> _bootstrapNewPaymentFromInvoice(int invoiceId) async {
+    try {
+      final response = await _purchaseService.invoice(invoiceId);
+      final invoice = response.data;
+      if (invoice == null || !mounted) {
+        return;
+      }
+
+      final outstanding = _invoiceOutstanding(invoice);
+      if (outstanding <= 0) {
+        if (mounted) {
+          setState(() {
+            _formError =
+                'This purchase invoice has no outstanding balance to pay.';
+          });
+        }
+        return;
+      }
+
+      final allocAmount = outstanding == outstanding.roundToDouble()
+          ? outstanding.round().toString()
+          : outstanding.toStringAsFixed(2);
+
+      setState(() {
+        _companyId = invoice.companyId;
+        _branchId = invoice.branchId;
+        _locationId = invoice.locationId;
+        _financialYearId = invoice.financialYearId;
+        _documentSeriesId = _defaultSeriesIdFor(
+          companyId: invoice.companyId,
+          financialYearId: invoice.financialYearId,
+        );
+        _supplierPartyId = invoice.supplierPartyId;
+        _referenceNoController.text = invoice.invoiceNo ?? '';
+        _referenceDateController.text = displayDate(invoice.invoiceDate);
+        _paidAmountController.text = allocAmount;
+        _notesController.text = invoice.notes ?? '';
+        if (!_invoices.any((entry) => entry.id == invoice.id)) {
+          _invoices = <PurchaseInvoiceModel>[invoice, ..._invoices];
+        }
+        _allocations = <_PaymentAllocationDraft>[
+          _PaymentAllocationDraft(
+            purchaseInvoiceId: invoice.id,
+            allocationType: 'against_invoice',
+            allocatedAmount: allocAmount,
+            remarks: 'Against ${invoice.invoiceNo ?? 'invoice #${invoice.id}'}',
+          ),
+        ];
+        _formError = null;
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() => _formError = error.toString());
+      }
+    }
+  }
+
   void _applyFilters() {
     final search = _searchController.text.trim().toLowerCase();
     setState(() {
@@ -344,6 +407,123 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
           return typeOk && companyOk && fyOk;
         })
         .toList(growable: false);
+  }
+
+  int? _defaultSeriesIdFor({
+    required int? companyId,
+    required int? financialYearId,
+  }) {
+    final options = _documentSeries
+        .where((item) {
+          final typeOk =
+              item.documentType == null ||
+              item.documentType == 'PURCHASE_PAYMENT';
+          final companyOk = companyId == null || item.companyId == companyId;
+          final fyOk =
+              financialYearId == null || item.financialYearId == financialYearId;
+          return typeOk && companyOk && fyOk;
+        })
+        .toList(growable: false);
+    return options.isNotEmpty ? options.first.id : null;
+  }
+
+  double _invoiceOutstanding(PurchaseInvoiceModel invoice) {
+    final rawBalance = invoice.raw?['balance_amount'];
+    final balance = double.tryParse(rawBalance?.toString() ?? '');
+    if (balance != null) {
+      return balance;
+    }
+
+    final rawTotal = invoice.raw?['total_amount'];
+    if (rawTotal is num) {
+      return rawTotal.toDouble();
+    }
+
+    return double.tryParse(rawTotal?.toString() ?? '') ?? 0;
+  }
+
+  String _nestedInvoiceSubtitle(PurchaseInvoiceModel invoice) {
+    final supplierName =
+        invoice.raw?['supplier_name']?.toString() ??
+        ((invoice.raw?['supplier'] is Map<String, dynamic>)
+            ? stringValue(
+                invoice.raw!['supplier'] as Map<String, dynamic>,
+                'party_name',
+              )
+            : '');
+    final outstanding = _invoiceOutstanding(invoice);
+    final parts = <String>[
+      if (supplierName.trim().isNotEmpty) supplierName.trim(),
+      if (outstanding > 0) 'Outstanding ${outstanding.toStringAsFixed(2)}',
+    ];
+    return parts.join(' · ');
+  }
+
+  void _syncPaidAmountFromAllocations() {
+    final total = _allocations.fold<double>(
+      0,
+      (sum, allocation) =>
+          sum + (double.tryParse(allocation.amountController.text.trim()) ?? 0),
+    );
+    _paidAmountController.text = total > 0 ? total.toStringAsFixed(2) : '';
+  }
+
+  Future<void> _handleAllocationInvoiceChanged(
+    int index,
+    int? purchaseInvoiceId,
+  ) async {
+    if (index < 0 || index >= _allocations.length) {
+      return;
+    }
+
+    if (purchaseInvoiceId == null) {
+      setState(() {
+        _allocations[index].purchaseInvoiceId = null;
+        _allocations[index].amountController.clear();
+        _syncPaidAmountFromAllocations();
+      });
+      return;
+    }
+
+    final response = await _purchaseService.invoice(purchaseInvoiceId);
+    final invoice = response.data;
+    if (!mounted || invoice == null) return;
+
+    final outstanding = _invoiceOutstanding(invoice);
+    setState(() {
+      _allocations[index].purchaseInvoiceId = purchaseInvoiceId;
+      _allocations[index].allocationType = 'against_invoice';
+      if (_allocations[index].amountController.text.trim().isEmpty ||
+          (double.tryParse(_allocations[index].amountController.text.trim()) ??
+                  0) <=
+              0) {
+        _allocations[index].amountController.text = outstanding > 0
+            ? outstanding.toStringAsFixed(2)
+            : '';
+      }
+      _companyId = invoice.companyId;
+      _branchId = invoice.branchId;
+      _locationId = invoice.locationId;
+      _financialYearId = invoice.financialYearId;
+      _documentSeriesId = _defaultSeriesIdFor(
+        companyId: invoice.companyId,
+        financialYearId: invoice.financialYearId,
+      );
+      _supplierPartyId = invoice.supplierPartyId;
+      _referenceNoController.text =
+          _referenceNoController.text.trim().isEmpty
+          ? (invoice.invoiceNo ?? '')
+          : _referenceNoController.text;
+      _referenceDateController.text =
+          _referenceDateController.text.trim().isEmpty
+          ? displayDate(invoice.invoiceDate)
+          : _referenceDateController.text;
+      _notesController.text = _notesController.text.trim().isEmpty
+          ? (invoice.notes ?? '')
+          : _notesController.text;
+      _syncPaidAmountFromAllocations();
+      _formError = null;
+    });
   }
 
   List<BranchModel> get _branchOptions =>
@@ -764,14 +944,16 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                                 (item) => AppSearchPickerOption<int>(
                                   value: item.id,
                                   label: item.invoiceNo ?? 'Invoice',
-                                  subtitle: item.raw?['supplier_name']
-                                      ?.toString(),
+                                  subtitle: _nestedInvoiceSubtitle(item),
                                 ),
                               )
                               .toList(growable: false),
-                          onChanged: (value) => setState(
-                            () => allocation.purchaseInvoiceId = value,
-                          ),
+                          onChanged: (value) async {
+                            await _handleAllocationInvoiceChanged(
+                              index,
+                              value,
+                            );
+                          },
                         ),
                         AppFormTextField(
                           labelText: 'Allocated Amount',

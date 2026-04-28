@@ -14,6 +14,7 @@ class SalesInvoiceLineModel {
     this.taxableAmount,
     this.lineTotal,
     this.remarks,
+    this.returnedQty,
     this.salesOrderLineId,
     this.salesDeliveryLineId,
     this.serialId,
@@ -36,6 +37,7 @@ class SalesInvoiceLineModel {
   final double? taxableAmount;
   final double? lineTotal;
   final String? remarks;
+  final double? returnedQty;
 
   factory SalesInvoiceLineModel.fromJson(Map<String, dynamic> json) {
     return SalesInvoiceLineModel(
@@ -56,6 +58,7 @@ class SalesInvoiceLineModel {
       taxableAmount: _nullableDouble(json['taxable_amount']),
       lineTotal: _nullableDouble(json['line_total']),
       remarks: json['remarks']?.toString(),
+      returnedQty: _nullableDouble(json['returned_qty']),
     );
   }
 

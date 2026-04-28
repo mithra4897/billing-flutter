@@ -11,6 +11,23 @@ void _openShellRoute(BuildContext context, String route) {
   Navigator.of(context).pushNamed(route);
 }
 
+String _nestedName(
+  Map<String, dynamic> data,
+  String flatKey,
+  String relationKey,
+  String nestedKey,
+) {
+  final flat = stringValue(data, flatKey);
+  if (flat.isNotEmpty) {
+    return flat;
+  }
+  final relation = data[relationKey];
+  if (relation is Map<String, dynamic>) {
+    return stringValue(relation, nestedKey);
+  }
+  return '';
+}
+
 class PurchaseRequisitionRegisterPage extends StatefulWidget {
   const PurchaseRequisitionRegisterPage({super.key, this.embedded = false});
 
@@ -278,7 +295,12 @@ class _PurchaseOrderRegisterPageState extends State<PurchaseOrderRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Supplier',
           flex: 3,
-          valueBuilder: (row) => stringValue(row.toJson(), 'supplier_name'),
+          valueBuilder: (row) => _nestedName(
+            row.toJson(),
+            'supplier_name',
+            'supplier',
+            'party_name',
+          ),
         ),
         PurchaseRegisterColumn(
           label: 'Expected Receipt',
@@ -419,7 +441,12 @@ class _PurchaseReceiptRegisterPageState
         PurchaseRegisterColumn(
           label: 'Supplier',
           flex: 3,
-          valueBuilder: (row) => stringValue(row.toJson(), 'supplier_name'),
+          valueBuilder: (row) => _nestedName(
+            row.toJson(),
+            'supplier_name',
+            'supplier',
+            'party_name',
+          ),
         ),
         PurchaseRegisterColumn(
           label: 'Supplier Invoice',
@@ -515,7 +542,12 @@ class _PurchaseInvoiceRegisterPageState
               [
                 row.invoiceNo ?? '',
                 row.invoiceStatus ?? '',
-                row.raw?['supplier_name']?.toString() ?? '',
+                _nestedName(
+                  row.raw ?? const <String, dynamic>{},
+                  'supplier_name',
+                  'supplier',
+                  'party_name',
+                ),
               ].join(' ').toLowerCase().contains(query);
           return statusOk && searchOk;
         })
@@ -558,7 +590,12 @@ class _PurchaseInvoiceRegisterPageState
         PurchaseRegisterColumn(
           label: 'Supplier',
           flex: 3,
-          valueBuilder: (row) => row.raw?['supplier_name']?.toString() ?? '',
+          valueBuilder: (row) => _nestedName(
+            row.raw ?? const <String, dynamic>{},
+            'supplier_name',
+            'supplier',
+            'party_name',
+          ),
         ),
         PurchaseRegisterColumn(
           label: 'Due',
@@ -696,7 +733,12 @@ class _PurchasePaymentRegisterPageState
         PurchaseRegisterColumn(
           label: 'Supplier',
           flex: 3,
-          valueBuilder: (row) => stringValue(row.toJson(), 'supplier_name'),
+          valueBuilder: (row) => _nestedName(
+            row.toJson(),
+            'supplier_name',
+            'supplier',
+            'party_name',
+          ),
         ),
         PurchaseRegisterColumn(
           label: 'Mode',
@@ -833,8 +875,12 @@ class _PurchaseReturnRegisterPageState
         ),
         PurchaseRegisterColumn(
           label: 'Purchase Invoice',
-          valueBuilder: (row) =>
-              stringValue(row.toJson(), 'purchase_invoice_no'),
+          valueBuilder: (row) => _nestedName(
+            row.toJson(),
+            'purchase_invoice_no',
+            'purchase_invoice',
+            'invoice_no',
+          ),
         ),
         PurchaseRegisterColumn(
           label: 'Reason',

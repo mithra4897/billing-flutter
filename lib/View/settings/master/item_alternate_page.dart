@@ -441,7 +441,14 @@ class _ItemAlternateManagementPageState
     }
 
     return options
-        .where((item) => _itemLabel(item).toLowerCase().contains(query))
+        .where((item) {
+          return [
+            _itemLabel(item),
+            _itemSubtitle(item),
+            item.sku ?? '',
+            item.hsnSacCode ?? '',
+          ].join(' ').toLowerCase().contains(query);
+        })
         .take(8)
         .toList(growable: false);
   }
@@ -563,6 +570,24 @@ class _ItemAlternateManagementPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (widget.fixedItemId != null) ...[
+          Align(
+            alignment: Alignment.centerRight,
+            child: AppActionButton(
+              icon: Icons.compare_arrows_outlined,
+              label: 'Add Alternate',
+              onPressed: _selectedMasterId == null
+                  ? null
+                  : () {
+                      setState(() {
+                        _showDraftTile = true;
+                      });
+                      _resetForm();
+                    },
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+        ],
         if (_filteredItems.isEmpty && !_showDraftTile) ...[
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
@@ -610,7 +635,7 @@ class _ItemAlternateManagementPageState
                           _filteredAvailableCounterpartyOptions[index];
                       return SettingsListTile(
                         title: _itemLabel(option),
-                        subtitle: '',
+                        subtitle: _itemSubtitle(option),
                         selected: option.id == _counterpartyId,
                         onTap: () => _startNewWithCounterparty(option.id!),
                         trailing: const Icon(Icons.add_circle_outline),

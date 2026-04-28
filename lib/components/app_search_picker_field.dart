@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 import '../app/constants/app_ui_constants.dart';
 import 'app_field_box.dart';
@@ -18,7 +17,7 @@ class AppSearchPickerOption<T> {
   final String? searchText;
 }
 
-class AppSearchPickerField<T> extends StatefulWidget {
+class AppSearchPickerField<T> extends StatelessWidget {
   const AppSearchPickerField({
     super.key,
     required this.labelText,
@@ -39,70 +38,65 @@ class AppSearchPickerField<T> extends StatefulWidget {
   final double? width;
 
   @override
-  State<AppSearchPickerField<T>> createState() => _AppSearchPickerFieldState<T>();
-}
-
-class _AppSearchPickerFieldState<T> extends State<AppSearchPickerField<T>> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.selectedLabel ?? '');
-  }
-
-  @override
-  void didUpdateWidget(covariant AppSearchPickerField<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final nextText = widget.selectedLabel ?? '';
-    if (_controller.text != nextText) {
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-        if (_controller.text == nextText) {
-          return;
-        }
-        _controller.value = _controller.value.copyWith(
-          text: nextText,
-          selection: TextSelection.collapsed(offset: nextText.length),
-          composing: TextRange.empty,
-        );
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return AppFieldBox(
-      width: widget.width,
-      child: TextFormField(
-        controller: _controller,
-        readOnly: true,
-        decoration: InputDecoration(
-          labelText: widget.labelText,
-          hintText: widget.hintText ?? 'Search and select',
-          suffixIcon: const Icon(Icons.search),
-        ),
-        validator: widget.validator,
-        onTap: () async {
-          final value = await showDialog<T>(
-            context: context,
-            builder: (context) =>
-                _SearchPickerDialog<T>(
-                  title: widget.labelText,
-                  options: widget.options,
-                ),
+      width: width,
+      child: FormField<String>(
+        key: ValueKey<String>('$labelText:${selectedLabel ?? ''}'),
+        initialValue: selectedLabel ?? '',
+        validator: validator,
+        builder: (field) {
+          final theme = Theme.of(context);
+          final hasValue = (selectedLabel ?? '').trim().isNotEmpty;
+          final textStyle = theme.textTheme.bodyLarge?.copyWith(
+            color: hasValue
+                ? theme.colorScheme.onSurface
+                : theme.hintColor,
           );
-          if (context.mounted) {
-            widget.onChanged(value);
-          }
+
+          return InkWell(
+            onTap: () async {
+              FocusScope.of(context).unfocus();
+              final value = await showDialog<T>(
+                context: context,
+                builder: (context) => _SearchPickerDialog<T>(
+                  title: labelText,
+                  options: options,
+                ),
+              );
+              if (!context.mounted) {
+                return;
+              }
+              onChanged(value);
+              final selectedOption = value == null
+                  ? null
+                  : options.cast<AppSearchPickerOption<T>?>().firstWhere(
+                        (option) => option?.value == value,
+                        orElse: () => null,
+                      );
+              field.didChange(selectedOption?.label ?? '');
+            },
+            borderRadius: BorderRadius.circular(4),
+            child: InputDecorator(
+              isEmpty: !hasValue,
+              decoration: InputDecoration(
+                labelText: labelText,
+                hintText: hintText ?? 'Search and select',
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                contentPadding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+                suffixIcon: const Icon(Icons.search),
+                errorText: field.errorText,
+              ),
+              child: Text(
+                hasValue
+                    ? selectedLabel!
+                    : (hintText ?? 'Search and select'),
+                style: textStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          );
         },
       ),
     );
