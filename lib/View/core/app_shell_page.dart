@@ -15,6 +15,15 @@ import '../hr/hr_statutory_settings_page.dart';
 import '../hr/leave_request_page.dart';
 import '../hr/leave_type_page.dart';
 import '../inventory/inventory_inquiry_page.dart';
+import '../inventory/opening_stock_page.dart';
+import '../inventory/stock_issue_page.dart';
+import '../inventory/internal_stock_receipt_page.dart';
+import '../inventory/stock_transfer_page.dart';
+import '../inventory/stock_damage_page.dart';
+import '../inventory/inventory_adjustment_page.dart';
+import '../inventory/stock_movement_page.dart';
+import '../inventory/stock_batch_page.dart';
+import '../inventory/stock_serial_page.dart';
 import '../inventory/inventory_registers.dart';
 import '../parties/party_management_page.dart';
 import '../planning/planning_registers.dart';
@@ -260,8 +269,26 @@ class _AppShellPageState extends State<AppShellPage> {
   }
 
   String _buildCurrentRoute() {
+    // Normalize "list + editor" routes so the drawer can highlight the parent module.
+    // Example: `/inventory/opening-stock/new` => `/inventory/opening-stock`
+    //          `/inventory/opening-stock/123` => `/inventory/opening-stock`
+    var normalizedPath = _currentPath;
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length == 3 &&
+        (segments.first == 'inventory' ||
+            segments.first == 'purchase' ||
+            segments.first == 'sales')) {
+      final recordSegment = segments[2];
+      if (recordSegment == 'new' || int.tryParse(recordSegment) != null) {
+        normalizedPath = '/${segments[0]}/${segments[1]}';
+      }
+    }
+
     final uri = Uri(
-      path: _currentPath,
+      path: normalizedPath,
       queryParameters: _currentQueryParameters.isEmpty
           ? null
           : _currentQueryParameters,
@@ -280,6 +307,10 @@ class _AppShellPageState extends State<AppShellPage> {
     final purchaseRoute = _buildPurchaseContent(routeKey);
     if (purchaseRoute != null) {
       return purchaseRoute;
+    }
+    final inventoryRoute = _buildInventoryContent(routeKey);
+    if (inventoryRoute != null) {
+      return inventoryRoute;
     }
 
     switch (_currentPath) {
@@ -379,11 +410,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/inventory/adjustments':
         return InventoryAdjustmentRegisterPage(key: routeKey, embedded: true);
       case '/inventory/stock-movements':
-        return StockMovementRegisterPage(key: routeKey, embedded: true);
+        return StockMovementPage(key: routeKey, embedded: true);
       case '/inventory/stock-batches':
-        return StockBatchRegisterPage(key: routeKey, embedded: true);
+        return StockBatchPage(key: routeKey, embedded: true);
       case '/inventory/stock-serials':
-        return StockSerialRegisterPage(key: routeKey, embedded: true);
+        return StockSerialPage(key: routeKey, embedded: true);
       case '/tax/states':
         return StateManagementPage(key: routeKey, embedded: true);
       case '/tax/gst-tax-rules':
@@ -791,6 +822,99 @@ class _AppShellPageState extends State<AppShellPage> {
     return null;
   }
 
+  Widget? _buildInventoryContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'inventory') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'opening-stocks':
+        return OpeningStockPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'stock-issues':
+        return StockIssuePage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'internal-stock-receipts':
+        return InternalStockReceiptPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'stock-transfers':
+        return StockTransferPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'stock-damage':
+        return StockDamagePage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'adjustments':
+        return InventoryAdjustmentPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'stock-movements':
+        return StockMovementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'stock-batches':
+        return StockBatchPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'stock-serials':
+        return StockSerialPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+          initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+    }
+    return null;
+  }
+
   String _titleForPath(String path, AuthContextModel? authContext) {
     final navigationTitle = AppNavigation.findByPath(path)?.title.trim();
     if ((navigationTitle ?? '').isNotEmpty) {
@@ -843,6 +967,33 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/sales/returns/')) {
       return 'Sales Return';
+    }
+    if (path.startsWith('/inventory/opening-stocks/')) {
+      return 'Opening Stock';
+    }
+    if (path.startsWith('/inventory/stock-issues/')) {
+      return 'Stock Issue';
+    }
+    if (path.startsWith('/inventory/internal-stock-receipts/')) {
+      return 'Internal Stock Receipt';
+    }
+    if (path.startsWith('/inventory/stock-transfers/')) {
+      return 'Stock Transfer';
+    }
+    if (path.startsWith('/inventory/stock-damage/')) {
+      return 'Stock Damage';
+    }
+    if (path.startsWith('/inventory/adjustments/')) {
+      return 'Inventory Adjustment';
+    }
+    if (path.startsWith('/inventory/stock-movements/')) {
+      return 'Stock Movement';
+    }
+    if (path.startsWith('/inventory/stock-batches/')) {
+      return 'Stock Batch';
+    }
+    if (path.startsWith('/inventory/stock-serials/')) {
+      return 'Stock Serial';
     }
     return 'Module';
   }

@@ -11,4 +11,17 @@ class StockMovementModel implements JsonModel {
 
   @override
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+
+  @override
+  String toString() {
+    final refNo = data['reference_no']?.toString().trim();
+    if (refNo != null && refNo.isNotEmpty) {
+      return refNo;
+    }
+    final id = data['id'];
+    if (id != null) {
+      return 'Movement #$id';
+    }
+    return 'New stock movement';
+  }
 }

@@ -705,7 +705,9 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
                         _selectWarehouse(item);
                       }
                     },
-                    child: _buildInlineEditor(),
+                    child: expanded
+                        ? _buildInlineEditor()
+                        : const SizedBox.shrink(),
                   ),
                 );
               }),

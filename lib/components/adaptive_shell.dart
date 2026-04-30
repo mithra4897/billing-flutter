@@ -823,13 +823,20 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
 
   void _handleRouteTap(String route, {required bool showPermanentDrawer}) {
     final currentName = ModalRoute.of(context)?.settings.name;
-    final currentUri = (widget.currentPath ?? '').isNotEmpty
+    // Important:
+    // `widget.currentPath` is also used for drawer selection/highlighting, and in
+    // our shell it may be normalized (e.g. editor -> list route).
+    // For navigation, we must compare against the *actual* rendered route
+    // (`ModalRoute`) so drawer taps still navigate correctly.
+    final currentUri = currentName != null ? Uri.parse(currentName) : null;
+    final fallbackUri = (widget.currentPath ?? '').isNotEmpty
         ? Uri.parse(widget.currentPath!)
-        : (currentName == null ? null : Uri.parse(currentName));
+        : null;
+    final effectiveCurrentUri = currentUri ?? fallbackUri;
     final targetUri = Uri.parse(route);
     final isSameRoute =
-        currentUri?.path == targetUri.path &&
-        currentUri?.query == targetUri.query;
+        effectiveCurrentUri?.path == targetUri.path &&
+        effectiveCurrentUri?.query == targetUri.query;
 
     _syncExpandedParentsForRoute(targetUri.path);
 
@@ -837,12 +844,12 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
       Navigator.of(context).pop();
     }
 
-    if (isSameRoute) {
+    if (widget.onNavigate != null) {
+      widget.onNavigate!(route);
       return;
     }
 
-    if (widget.onNavigate != null) {
-      widget.onNavigate!(route);
+    if (isSameRoute) {
       return;
     }
 

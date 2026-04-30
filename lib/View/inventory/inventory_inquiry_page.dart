@@ -240,16 +240,6 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
         )
         .toList(growable: false);
 
-    final itemItems = _items
-        .where((ItemModel i) => i.id != null)
-        .map(
-          (ItemModel i) => AppDropdownItem<int>(
-            value: i.id!,
-            label: i.toString(),
-          ),
-        )
-        .toList(growable: false);
-
     final warehouseItems = <AppDropdownItem<int?>>[
       const AppDropdownItem<int?>(value: null, label: 'All warehouses'),
       ..._warehouses.map(
@@ -311,10 +301,25 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
                       width: 260,
                       onChanged: (value) => setState(() => _companyId = value),
                     ),
-                    AppDropdownField<int>.fromMapped(
+                    AppSearchPickerField<int>(
                       labelText: 'Item',
-                      mappedItems: itemItems,
-                      initialValue: _itemId,
+                      selectedLabel: _items
+                          .cast<ItemModel?>()
+                          .firstWhere(
+                            (item) => item?.id == _itemId,
+                            orElse: () => null,
+                          )
+                          ?.toString(),
+                      options: _items
+                          .where((item) => item.id != null)
+                          .map(
+                            (item) => AppSearchPickerOption<int>(
+                              value: item.id!,
+                              label: item.toString(),
+                              subtitle: item.itemCode,
+                            ),
+                          )
+                          .toList(growable: false),
                       width: 320,
                       onChanged: (value) => setState(() => _itemId = value),
                     ),

@@ -696,7 +696,9 @@ class _BusinessLocationManagementPageState
                         _selectLocation(item);
                       }
                     },
-                    child: _buildInlineEditor(),
+                    child: expanded
+                        ? _buildInlineEditor()
+                        : const SizedBox.shrink(),
                   ),
                 );
               }),

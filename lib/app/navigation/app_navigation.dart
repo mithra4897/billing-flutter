@@ -634,13 +634,6 @@ class AppNavigation {
           path: '/inventory/stock-batches',
           requiredPermissions: ['inventory.view'],
         ),
-        AppNavigationItem(
-          key: 'inventory-stock-serials',
-          title: 'Stock Serials',
-          icon: Icons.qr_code_outlined,
-          path: '/inventory/stock-serials',
-          requiredPermissions: ['inventory.view'],
-        ),
       ],
     ),
     const AppNavigationItem(

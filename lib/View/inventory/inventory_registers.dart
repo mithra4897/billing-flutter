@@ -1,52 +1,6 @@
-import 'dart:convert';
-
 import '../../screen.dart';
 import '../purchase/purchase_register_page.dart';
 import '../purchase/purchase_support.dart';
-
-Future<void> _showJsonModelDialog<T extends JsonModel>(
-  BuildContext context,
-  String title,
-  Future<ApiResponse<T>> Function() fetch,
-) async {
-  try {
-    final response = await fetch();
-    if (!context.mounted) {
-      return;
-    }
-    if (response.success != true || response.data == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response.message)),
-      );
-      return;
-    }
-    final text = const JsonEncoder.withIndent(
-      '  ',
-    ).convert(response.data!.toJson());
-    await showDialog<void>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(title),
-        content: SizedBox(
-          width: 560,
-          child: SingleChildScrollView(child: SelectableText(text)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  } catch (error) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
-    }
-  }
-}
 
 class OpeningStockRegisterPage extends StatefulWidget {
   const OpeningStockRegisterPage({super.key, this.embedded = false});
@@ -131,7 +85,20 @@ class _OpeningStockRegisterPageState extends State<OpeningStockRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No opening stock documents found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/opening-stocks/new');
+              return;
+            }
+            Navigator.of(context).pushNamed('/inventory/opening-stocks/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Opening Stock',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search opening stock',
@@ -163,11 +130,13 @@ class _OpeningStockRegisterPageState extends State<OpeningStockRegisterPage> {
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<OpeningStockModel>(
-          context,
-          'Opening stock #$id',
-          () => _service.openingStock(id),
-        );
+        final route = '/inventory/opening-stocks/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }
@@ -294,7 +263,20 @@ class _StockIssueRegisterPageState extends State<StockIssueRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No stock issues found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/stock-issues/new');
+              return;
+            }
+            Navigator.of(context).pushNamed('/inventory/stock-issues/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Stock Issue',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search issues',
@@ -331,11 +313,13 @@ class _StockIssueRegisterPageState extends State<StockIssueRegisterPage> {
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<StockIssueModel>(
-          context,
-          'Stock issue #$id',
-          () => _service.stockIssue(id),
-        );
+        final route = '/inventory/stock-issues/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }
@@ -425,7 +409,21 @@ class _InternalStockReceiptRegisterPageState
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No internal receipts found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/internal-stock-receipts/new');
+              return;
+            }
+            Navigator.of(context)
+                .pushNamed('/inventory/internal-stock-receipts/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Internal Receipt',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search receipts',
@@ -457,11 +455,13 @@ class _InternalStockReceiptRegisterPageState
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<InternalStockReceiptModel>(
-          context,
-          'Internal receipt #$id',
-          () => _service.internalStockReceipt(id),
-        );
+        final route = '/inventory/internal-stock-receipts/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }
@@ -549,7 +549,20 @@ class _StockTransferRegisterPageState extends State<StockTransferRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No stock transfers found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/stock-transfers/new');
+              return;
+            }
+            Navigator.of(context).pushNamed('/inventory/stock-transfers/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Stock Transfer',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search transfers',
@@ -581,11 +594,13 @@ class _StockTransferRegisterPageState extends State<StockTransferRegisterPage> {
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<StockTransferModel>(
-          context,
-          'Stock transfer #$id',
-          () => _service.stockTransfer(id),
-        );
+        final route = '/inventory/stock-transfers/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }
@@ -674,7 +689,20 @@ class _StockDamageRegisterPageState extends State<StockDamageRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No stock damage entries found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/stock-damage/new');
+              return;
+            }
+            Navigator.of(context).pushNamed('/inventory/stock-damage/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Stock Damage',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search damage entries',
@@ -711,11 +739,13 @@ class _StockDamageRegisterPageState extends State<StockDamageRegisterPage> {
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<StockDamageEntryModel>(
-          context,
-          'Stock damage #$id',
-          () => _service.stockDamageEntry(id),
-        );
+        final route = '/inventory/stock-damage/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }
@@ -806,7 +836,20 @@ class _InventoryAdjustmentRegisterPageState
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No inventory adjustments found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/adjustments/new');
+              return;
+            }
+            Navigator.of(context).pushNamed('/inventory/adjustments/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Adjustment',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search adjustments',
@@ -843,11 +886,13 @@ class _InventoryAdjustmentRegisterPageState
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<InventoryAdjustmentModel>(
-          context,
-          'Adjustment #$id',
-          () => _service.inventoryAdjustment(id),
-        );
+        final route = '/inventory/adjustments/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }
@@ -936,7 +981,20 @@ class _StockMovementRegisterPageState extends State<StockMovementRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No stock movements found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/stock-movements/new');
+              return;
+            }
+            Navigator.of(context).pushNamed('/inventory/stock-movements/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Stock Movement',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search movements',
@@ -975,11 +1033,13 @@ class _StockMovementRegisterPageState extends State<StockMovementRegisterPage> {
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<StockMovementModel>(
-          context,
-          'Movement #$id',
-          () => _service.stockMovement(id),
-        );
+        final route = '/inventory/stock-movements/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }
@@ -1067,7 +1127,20 @@ class _StockBatchRegisterPageState extends State<StockBatchRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No stock batches found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/stock-batches/new');
+              return;
+            }
+            Navigator.of(context).pushNamed('/inventory/stock-batches/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Stock Batch',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search batches',
@@ -1099,11 +1172,13 @@ class _StockBatchRegisterPageState extends State<StockBatchRegisterPage> {
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<StockBatchModel>(
-          context,
-          'Batch #$id',
-          () => _service.stockBatch(id),
-        );
+        final route = '/inventory/stock-batches/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }
@@ -1191,7 +1266,20 @@ class _StockSerialRegisterPageState extends State<StockSerialRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No stock serials found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () {
+            final navigate = ShellRouteScope.maybeOf(context);
+            if (navigate != null) {
+              navigate('/inventory/stock-serials/new');
+              return;
+            }
+            Navigator.of(context).pushNamed('/inventory/stock-serials/new');
+          },
+          icon: Icons.add_outlined,
+          label: 'New Stock Serial',
+        ),
+      ],
       filters: _RegisterFilters(
         searchController: _searchController,
         searchHint: 'Search serials',
@@ -1222,11 +1310,13 @@ class _StockSerialRegisterPageState extends State<StockSerialRegisterPage> {
         if (id == null) {
           return;
         }
-        _showJsonModelDialog<StockSerialModel>(
-          context,
-          'Serial #$id',
-          () => _service.stockSerial(id),
-        );
+        final route = '/inventory/stock-serials/$id';
+        final navigate = ShellRouteScope.maybeOf(context);
+        if (navigate != null) {
+          navigate(route);
+          return;
+        }
+        Navigator.of(context).pushNamed(route);
       },
     );
   }

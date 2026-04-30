@@ -11,4 +11,17 @@ class InternalStockReceiptModel implements JsonModel {
 
   @override
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+
+  @override
+  String toString() {
+    final no = data['receipt_no']?.toString().trim();
+    if (no != null && no.isNotEmpty) {
+      return no;
+    }
+    final id = data['id'];
+    if (id != null) {
+      return 'Receipt #$id';
+    }
+    return 'New internal receipt';
+  }
 }

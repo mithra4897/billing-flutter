@@ -102,6 +102,24 @@ class Validators {
     };
   }
 
+  /// Required numeric field that must parse and be strictly greater than zero.
+  static String? Function(String?) requiredPositiveNumber(String fieldName) {
+    return (value) {
+      final text = (value ?? '').trim();
+      if (text.isEmpty) {
+        return '$fieldName is required';
+      }
+      final parsed = double.tryParse(text);
+      if (parsed == null) {
+        return '$fieldName must be a valid number';
+      }
+      if (parsed <= 0) {
+        return '$fieldName must be greater than zero';
+      }
+      return null;
+    };
+  }
+
   static String? requiredField(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
       return '$fieldName is required';
