@@ -5,6 +5,15 @@ import '../hr/hr_workflow_dialogs.dart';
 import '../purchase/purchase_register_page.dart';
 import '../purchase/purchase_support.dart';
 
+void _openManufacturingShellRoute(BuildContext context, String route) {
+  final navigate = ShellRouteScope.maybeOf(context);
+  if (navigate != null) {
+    navigate(route);
+    return;
+  }
+  Navigator.of(context).pushNamed(route);
+}
+
 Map<String, dynamic>? _asJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
     return value;
@@ -1158,7 +1167,14 @@ class _BomRegisterPageState extends State<BomRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No BOMs found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () =>
+              _openManufacturingShellRoute(context, '/manufacturing/boms/new'),
+          icon: Icons.add_outlined,
+          label: 'New BOM',
+        ),
+      ],
       filters: _MfgFilters(
         searchController: _searchController,
         searchHint: 'Search code, name, output item, status',
@@ -1191,14 +1207,7 @@ class _BomRegisterPageState extends State<BomRegisterPage> {
         if (id == null) {
           return;
         }
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => _BomDetailDialog(bomId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        _openManufacturingShellRoute(context, '/manufacturing/boms/$id');
       },
     );
   }
@@ -1297,7 +1306,16 @@ class _ProductionOrderRegisterPageState
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No production orders found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () => _openManufacturingShellRoute(
+            context,
+            '/manufacturing/production-orders/new',
+          ),
+          icon: Icons.add_outlined,
+          label: 'New production order',
+        ),
+      ],
       filters: _MfgFilters(
         searchController: _searchController,
         searchHint: 'Search document no., status, output item',
@@ -1333,14 +1351,7 @@ class _ProductionOrderRegisterPageState
         if (id == null) {
           return;
         }
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => _ProductionOrderDetailDialog(orderId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        _openManufacturingShellRoute(context, '/manufacturing/production-orders/$id');
       },
     );
   }
@@ -1442,7 +1453,16 @@ class _ProductionMaterialIssueRegisterPageState
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No material issues found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () => _openManufacturingShellRoute(
+            context,
+            '/manufacturing/production-material-issues/new',
+          ),
+          icon: Icons.add_outlined,
+          label: 'New material issue',
+        ),
+      ],
       filters: _MfgFilters(
         searchController: _searchController,
         searchHint: 'Search issue no., status, production order',
@@ -1478,14 +1498,10 @@ class _ProductionMaterialIssueRegisterPageState
         if (id == null) {
           return;
         }
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => _MaterialIssueDetailDialog(issueId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        _openManufacturingShellRoute(
+          context,
+          '/manufacturing/production-material-issues/$id',
+        );
       },
     );
   }
@@ -1584,7 +1600,16 @@ class _ProductionReceiptRegisterPageState
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No production receipts found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () => _openManufacturingShellRoute(
+            context,
+            '/manufacturing/production-receipts/new',
+          ),
+          icon: Icons.add_outlined,
+          label: 'New production receipt',
+        ),
+      ],
       filters: _MfgFilters(
         searchController: _searchController,
         searchHint: 'Search receipt no., status, production order',
@@ -1620,14 +1645,10 @@ class _ProductionReceiptRegisterPageState
         if (id == null) {
           return;
         }
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => _ProductionReceiptDetailDialog(receiptId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        _openManufacturingShellRoute(
+          context,
+          '/manufacturing/production-receipts/$id',
+        );
       },
     );
   }

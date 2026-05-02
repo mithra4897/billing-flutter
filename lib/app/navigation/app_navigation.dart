@@ -1267,6 +1267,12 @@ class AppNavigation {
     if (parts.length == 3 && parts.first == 'sales') {
       return '/sales/${parts[1]}';
     }
+    if (parts.length == 3 && parts.first == 'manufacturing') {
+      return '/manufacturing/${parts[1]}';
+    }
+    if (parts.length == 3 && parts.first == 'planning') {
+      return '/planning/${parts[1]}';
+    }
     return cleaned;
   }
 }

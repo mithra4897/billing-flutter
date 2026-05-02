@@ -26,13 +26,17 @@ import '../inventory/stock_batch_page.dart';
 import '../inventory/stock_serial_page.dart';
 import '../inventory/inventory_registers.dart';
 import '../parties/party_management_page.dart';
-import '../planning/planning_registers.dart';
+import '../planning/planning_pages.dart';
 import '../manufacturing/manufacturing_registers.dart';
 import '../maintenance/maintenance_registers.dart';
 import '../assets/asset_registers.dart';
 import '../jobwork/jobwork_registers.dart';
 import '../quality/quality_registers.dart';
 import '../service/service_registers.dart';
+import '../manufacturing/bom_page.dart';
+import '../manufacturing/production_order_page.dart';
+import '../manufacturing/production_material_issue_page.dart';
+import '../manufacturing/production_receipt_page.dart';
 import '../project/project_billing_page.dart';
 import '../project/project_dashboard_page.dart';
 import '../project/project_expense_page.dart';
@@ -280,7 +284,8 @@ class _AppShellPageState extends State<AppShellPage> {
     if (segments.length == 3 &&
         (segments.first == 'inventory' ||
             segments.first == 'purchase' ||
-            segments.first == 'sales')) {
+            segments.first == 'sales' ||
+            segments.first == 'manufacturing')) {
       final recordSegment = segments[2];
       if (recordSegment == 'new' || int.tryParse(recordSegment) != null) {
         normalizedPath = '/${segments[0]}/${segments[1]}';
@@ -311,6 +316,14 @@ class _AppShellPageState extends State<AppShellPage> {
     final inventoryRoute = _buildInventoryContent(routeKey);
     if (inventoryRoute != null) {
       return inventoryRoute;
+    }
+    final manufacturingRoute = _buildManufacturingContent(routeKey);
+    if (manufacturingRoute != null) {
+      return manufacturingRoute;
+    }
+    final planningRoute = _buildPlanningContent(routeKey);
+    if (planningRoute != null) {
+      return planningRoute;
     }
 
     switch (_currentPath) {
@@ -541,25 +554,49 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/purchase/returns':
         return PurchaseReturnRegisterPage(key: routeKey, embedded: true);
       case '/planning/stock-reservations':
-        return StockReservationRegisterPage(key: routeKey, embedded: true);
+        return StockReservationPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/planning/item-policies':
-        return ItemPlanningPolicyRegisterPage(key: routeKey, embedded: true);
+        return ItemPlanningPolicyPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/planning/calendars':
-        return PlanningCalendarRegisterPage(key: routeKey, embedded: true);
+        return PlanningCalendarPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/planning/mrp-runs':
-        return MrpRunRegisterPage(key: routeKey, embedded: true);
+        return MrpRunPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/planning/mrp-demands':
-        return MrpDemandRegisterPage(key: routeKey, embedded: true);
+        return MrpDemandPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/planning/mrp-supplies':
-        return MrpSupplyRegisterPage(key: routeKey, embedded: true);
+        return MrpSupplyPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/planning/mrp-net-requirements':
-        return MrpNetRequirementRegisterPage(key: routeKey, embedded: true);
+        return MrpNetRequirementPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/planning/mrp-recommendations':
-        return MrpRecommendationRegisterPage(key: routeKey, embedded: true);
+        return MrpRecommendationPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/manufacturing/boms':
         return BomRegisterPage(key: routeKey, embedded: true);
       case '/manufacturing/production-orders':
-        return ProductionOrderRegisterPage(key: routeKey, embedded: true);
+        return ProductionOrderPage(key: routeKey, embedded: true);
       case '/manufacturing/production-material-issues':
         return ProductionMaterialIssueRegisterPage(key: routeKey, embedded: true);
       case '/manufacturing/production-receipts':
@@ -915,6 +952,132 @@ class _AppShellPageState extends State<AppShellPage> {
     return null;
   }
 
+  Widget? _buildManufacturingContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'manufacturing') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'boms':
+        return BomPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'production-orders':
+        return ProductionOrderPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'production-material-issues':
+        return ProductionMaterialIssuePage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'production-receipts':
+        return ProductionReceiptPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+    }
+    return null;
+  }
+
+  Widget? _buildPlanningContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'planning') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'stock-reservations':
+        return StockReservationPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'item-policies':
+        return ItemPlanningPolicyPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'calendars':
+        return PlanningCalendarPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'mrp-runs':
+        return MrpRunPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'mrp-demands':
+        return MrpDemandPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'mrp-supplies':
+        return MrpSupplyPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'mrp-net-requirements':
+        return MrpNetRequirementPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'mrp-recommendations':
+        return MrpRecommendationPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+    }
+    return null;
+  }
+
   String _titleForPath(String path, AuthContextModel? authContext) {
     final navigationTitle = AppNavigation.findByPath(path)?.title.trim();
     if ((navigationTitle ?? '').isNotEmpty) {
@@ -994,6 +1157,42 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/inventory/stock-serials/')) {
       return 'Stock Serial';
+    }
+    if (path.startsWith('/manufacturing/boms/')) {
+      return 'BOM';
+    }
+    if (path.startsWith('/manufacturing/production-orders/')) {
+      return 'Production Order';
+    }
+    if (path.startsWith('/manufacturing/production-material-issues/')) {
+      return 'Production Material Issue';
+    }
+    if (path.startsWith('/manufacturing/production-receipts/')) {
+      return 'Production Receipt';
+    }
+    if (path.startsWith('/planning/stock-reservations/')) {
+      return 'Stock Reservation';
+    }
+    if (path.startsWith('/planning/item-policies/')) {
+      return 'Item Planning Policy';
+    }
+    if (path.startsWith('/planning/calendars/')) {
+      return 'Planning Calendar';
+    }
+    if (path.startsWith('/planning/mrp-runs/')) {
+      return 'MRP Run';
+    }
+    if (path.startsWith('/planning/mrp-demands/')) {
+      return 'MRP Demand';
+    }
+    if (path.startsWith('/planning/mrp-supplies/')) {
+      return 'MRP Supply';
+    }
+    if (path.startsWith('/planning/mrp-net-requirements/')) {
+      return 'MRP Net Requirement';
+    }
+    if (path.startsWith('/planning/mrp-recommendations/')) {
+      return 'MRP Recommendation';
     }
     return 'Module';
   }
