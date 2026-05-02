@@ -29,36 +29,27 @@ class JobworkService extends ErpModuleService {
       );
   Future<ApiResponse<JobworkOrderModel>> updateOrder(
     int id,
-    JobworkOrderModel body,
+    dynamic body,
   ) => updateModel<JobworkOrderModel>(
     '/jobwork/orders/$id',
     body,
     fromJson: JobworkOrderModel.fromJson,
   );
-  Future<ApiResponse<JobworkOrderModel>> releaseOrder(
-    int id,
-    JobworkOrderModel body,
-  ) => actionModel<JobworkOrderModel>(
-    '/jobwork/orders/$id/release',
-    body: body,
-    fromJson: JobworkOrderModel.fromJson,
-  );
-  Future<ApiResponse<JobworkOrderModel>> closeOrder(
-    int id,
-    JobworkOrderModel body,
-  ) => actionModel<JobworkOrderModel>(
-    '/jobwork/orders/$id/close',
-    body: body,
-    fromJson: JobworkOrderModel.fromJson,
-  );
-  Future<ApiResponse<JobworkOrderModel>> cancelOrder(
-    int id,
-    JobworkOrderModel body,
-  ) => actionModel<JobworkOrderModel>(
-    '/jobwork/orders/$id/cancel',
-    body: body,
-    fromJson: JobworkOrderModel.fromJson,
-  );
+  Future<ApiResponse<JobworkOrderModel>> releaseOrder(int id) =>
+      actionModel<JobworkOrderModel>(
+        '/jobwork/orders/$id/release',
+        fromJson: JobworkOrderModel.fromJson,
+      );
+  Future<ApiResponse<JobworkOrderModel>> closeOrder(int id) =>
+      actionModel<JobworkOrderModel>(
+        '/jobwork/orders/$id/close',
+        fromJson: JobworkOrderModel.fromJson,
+      );
+  Future<ApiResponse<JobworkOrderModel>> cancelOrder(int id) =>
+      actionModel<JobworkOrderModel>(
+        '/jobwork/orders/$id/cancel',
+        fromJson: JobworkOrderModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteOrder(int id) =>
       destroy('/jobwork/orders/$id');
 
@@ -83,28 +74,22 @@ class JobworkService extends ErpModuleService {
   );
   Future<ApiResponse<JobworkDispatchModel>> updateDispatch(
     int id,
-    JobworkDispatchModel body,
+    dynamic body,
   ) => updateModel<JobworkDispatchModel>(
     '/jobwork/dispatches/$id',
     body,
     fromJson: JobworkDispatchModel.fromJson,
   );
-  Future<ApiResponse<JobworkDispatchModel>> postDispatch(
-    int id,
-    JobworkDispatchModel body,
-  ) => actionModel<JobworkDispatchModel>(
-    '/jobwork/dispatches/$id/post',
-    body: body,
-    fromJson: JobworkDispatchModel.fromJson,
-  );
-  Future<ApiResponse<JobworkDispatchModel>> cancelDispatch(
-    int id,
-    JobworkDispatchModel body,
-  ) => actionModel<JobworkDispatchModel>(
-    '/jobwork/dispatches/$id/cancel',
-    body: body,
-    fromJson: JobworkDispatchModel.fromJson,
-  );
+  Future<ApiResponse<JobworkDispatchModel>> postDispatch(int id) =>
+      actionModel<JobworkDispatchModel>(
+        '/jobwork/dispatches/$id/post',
+        fromJson: JobworkDispatchModel.fromJson,
+      );
+  Future<ApiResponse<JobworkDispatchModel>> cancelDispatch(int id) =>
+      actionModel<JobworkDispatchModel>(
+        '/jobwork/dispatches/$id/cancel',
+        fromJson: JobworkDispatchModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteDispatch(int id) =>
       destroy('/jobwork/dispatches/$id');
 
@@ -129,28 +114,22 @@ class JobworkService extends ErpModuleService {
   );
   Future<ApiResponse<JobworkReceiptModel>> updateReceipt(
     int id,
-    JobworkReceiptModel body,
+    dynamic body,
   ) => updateModel<JobworkReceiptModel>(
     '/jobwork/receipts/$id',
     body,
     fromJson: JobworkReceiptModel.fromJson,
   );
-  Future<ApiResponse<JobworkReceiptModel>> postReceipt(
-    int id,
-    JobworkReceiptModel body,
-  ) => actionModel<JobworkReceiptModel>(
-    '/jobwork/receipts/$id/post',
-    body: body,
-    fromJson: JobworkReceiptModel.fromJson,
-  );
-  Future<ApiResponse<JobworkReceiptModel>> cancelReceipt(
-    int id,
-    JobworkReceiptModel body,
-  ) => actionModel<JobworkReceiptModel>(
-    '/jobwork/receipts/$id/cancel',
-    body: body,
-    fromJson: JobworkReceiptModel.fromJson,
-  );
+  Future<ApiResponse<JobworkReceiptModel>> postReceipt(int id) =>
+      actionModel<JobworkReceiptModel>(
+        '/jobwork/receipts/$id/post',
+        fromJson: JobworkReceiptModel.fromJson,
+      );
+  Future<ApiResponse<JobworkReceiptModel>> cancelReceipt(int id) =>
+      actionModel<JobworkReceiptModel>(
+        '/jobwork/receipts/$id/cancel',
+        fromJson: JobworkReceiptModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteReceipt(int id) =>
       destroy('/jobwork/receipts/$id');
 
@@ -175,28 +154,22 @@ class JobworkService extends ErpModuleService {
   );
   Future<ApiResponse<JobworkChargeModel>> updateCharge(
     int id,
-    JobworkChargeModel body,
+    dynamic body,
   ) => updateModel<JobworkChargeModel>(
     '/jobwork/charges/$id',
     body,
     fromJson: JobworkChargeModel.fromJson,
   );
-  Future<ApiResponse<JobworkChargeModel>> postCharge(
-    int id,
-    JobworkChargeModel body,
-  ) => actionModel<JobworkChargeModel>(
-    '/jobwork/charges/$id/post',
-    body: body,
-    fromJson: JobworkChargeModel.fromJson,
-  );
-  Future<ApiResponse<JobworkChargeModel>> cancelCharge(
-    int id,
-    JobworkChargeModel body,
-  ) => actionModel<JobworkChargeModel>(
-    '/jobwork/charges/$id/cancel',
-    body: body,
-    fromJson: JobworkChargeModel.fromJson,
-  );
+  Future<ApiResponse<JobworkChargeModel>> postCharge(int id) =>
+      actionModel<JobworkChargeModel>(
+        '/jobwork/charges/$id/post',
+        fromJson: JobworkChargeModel.fromJson,
+      );
+  Future<ApiResponse<JobworkChargeModel>> cancelCharge(int id) =>
+      actionModel<JobworkChargeModel>(
+        '/jobwork/charges/$id/cancel',
+        fromJson: JobworkChargeModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteCharge(int id) =>
       destroy('/jobwork/charges/$id');
 }

@@ -30,6 +30,10 @@ import '../planning/planning_pages.dart';
 import '../manufacturing/manufacturing_registers.dart';
 import '../maintenance/maintenance_registers.dart';
 import '../assets/asset_registers.dart';
+import '../jobwork/jobwork_charge_page.dart';
+import '../jobwork/jobwork_dispatch_page.dart';
+import '../jobwork/jobwork_order_page.dart';
+import '../jobwork/jobwork_receipt_page.dart';
 import '../jobwork/jobwork_registers.dart';
 import '../quality/quality_registers.dart';
 import '../service/service_registers.dart';
@@ -285,7 +289,8 @@ class _AppShellPageState extends State<AppShellPage> {
         (segments.first == 'inventory' ||
             segments.first == 'purchase' ||
             segments.first == 'sales' ||
-            segments.first == 'manufacturing')) {
+            segments.first == 'manufacturing' ||
+            segments.first == 'jobwork')) {
       final recordSegment = segments[2];
       if (recordSegment == 'new' || int.tryParse(recordSegment) != null) {
         normalizedPath = '/${segments[0]}/${segments[1]}';
@@ -320,6 +325,10 @@ class _AppShellPageState extends State<AppShellPage> {
     final manufacturingRoute = _buildManufacturingContent(routeKey);
     if (manufacturingRoute != null) {
       return manufacturingRoute;
+    }
+    final jobworkRoute = _buildJobworkContent(routeKey);
+    if (jobworkRoute != null) {
+      return jobworkRoute;
     }
     final planningRoute = _buildPlanningContent(routeKey);
     if (planningRoute != null) {
@@ -1001,6 +1010,56 @@ class _AppShellPageState extends State<AppShellPage> {
     return null;
   }
 
+  Widget? _buildJobworkContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'jobwork') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'orders':
+        return JobworkOrderPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'dispatches':
+        return JobworkDispatchPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'receipts':
+        return JobworkReceiptPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'charges':
+        return JobworkChargePage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      default:
+        return null;
+    }
+  }
+
   Widget? _buildPlanningContent(ValueKey<String> routeKey) {
     final segments = _currentPath
         .split('/')
@@ -1163,6 +1222,18 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/manufacturing/production-orders/')) {
       return 'Production Order';
+    }
+    if (path.startsWith('/jobwork/orders/')) {
+      return 'Jobwork Order';
+    }
+    if (path.startsWith('/jobwork/dispatches/')) {
+      return 'Jobwork Dispatch';
+    }
+    if (path.startsWith('/jobwork/receipts/')) {
+      return 'Jobwork Receipt';
+    }
+    if (path.startsWith('/jobwork/charges/')) {
+      return 'Jobwork Charge';
     }
     if (path.startsWith('/manufacturing/production-material-issues/')) {
       return 'Production Material Issue';
