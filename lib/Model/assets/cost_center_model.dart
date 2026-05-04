@@ -34,6 +34,7 @@ class CostCenterModel implements JsonModel {
   @override
   Map<String, dynamic> toJson() {
     return {
+      ...?raw,
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
       if (costCenterCode != null) 'cost_center_code': costCenterCode,

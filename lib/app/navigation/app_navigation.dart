@@ -1273,6 +1273,15 @@ class AppNavigation {
     if (parts.length == 3 && parts.first == 'planning') {
       return '/planning/${parts[1]}';
     }
+    if (parts.length == 3 && parts.first == 'service') {
+      return '/service/${parts[1]}';
+    }
+    if (parts.length == 3 && parts.first == 'maintenance') {
+      return '/maintenance/${parts[1]}';
+    }
+    if (parts.length == 3 && parts.first == 'assets') {
+      return '/assets/${parts[1]}';
+    }
     return cleaned;
   }
 }

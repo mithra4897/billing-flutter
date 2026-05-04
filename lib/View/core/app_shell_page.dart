@@ -28,15 +28,34 @@ import '../inventory/inventory_registers.dart';
 import '../parties/party_management_page.dart';
 import '../planning/planning_pages.dart';
 import '../manufacturing/manufacturing_registers.dart';
+import '../maintenance/amc_contract_page.dart';
+import '../maintenance/asset_downtime_log_page.dart';
+import '../maintenance/maintenance_plan_page.dart';
+import '../maintenance/maintenance_request_page.dart';
 import '../maintenance/maintenance_registers.dart';
+import '../maintenance/maintenance_work_order_page.dart';
+import '../assets/asset_cost_center_page.dart';
+import '../assets/asset_category_page.dart';
+import '../assets/asset_depreciation_run_page.dart';
+import '../assets/asset_disposal_page.dart';
+import '../assets/fixed_asset_page.dart';
 import '../assets/asset_registers.dart';
+import '../assets/asset_transfer_page.dart';
 import '../jobwork/jobwork_charge_page.dart';
 import '../jobwork/jobwork_dispatch_page.dart';
 import '../jobwork/jobwork_order_page.dart';
 import '../jobwork/jobwork_receipt_page.dart';
 import '../jobwork/jobwork_registers.dart';
+import '../quality/qc_inspection_page.dart';
+import '../quality/qc_non_conformance_log_page.dart';
+import '../quality/qc_plan_page.dart';
+import '../quality/qc_result_action_page.dart';
 import '../quality/quality_registers.dart';
-import '../service/service_registers.dart';
+import '../service/service_contract_page.dart';
+import '../service/service_feedback_page.dart';
+import '../service/service_ticket_page.dart';
+import '../service/warranty_claim_page.dart';
+import '../service/service_work_order_page.dart';
 import '../manufacturing/bom_page.dart';
 import '../manufacturing/production_order_page.dart';
 import '../manufacturing/production_material_issue_page.dart';
@@ -290,7 +309,11 @@ class _AppShellPageState extends State<AppShellPage> {
             segments.first == 'purchase' ||
             segments.first == 'sales' ||
             segments.first == 'manufacturing' ||
-            segments.first == 'jobwork')) {
+            segments.first == 'jobwork' ||
+            segments.first == 'quality' ||
+            segments.first == 'service' ||
+            segments.first == 'maintenance' ||
+            segments.first == 'assets')) {
       final recordSegment = segments[2];
       if (recordSegment == 'new' || int.tryParse(recordSegment) != null) {
         normalizedPath = '/${segments[0]}/${segments[1]}';
@@ -329,6 +352,22 @@ class _AppShellPageState extends State<AppShellPage> {
     final jobworkRoute = _buildJobworkContent(routeKey);
     if (jobworkRoute != null) {
       return jobworkRoute;
+    }
+    final qualityRoute = _buildQualityContent(routeKey);
+    if (qualityRoute != null) {
+      return qualityRoute;
+    }
+    final serviceRoute = _buildServiceContent(routeKey);
+    if (serviceRoute != null) {
+      return serviceRoute;
+    }
+    final maintenanceRoute = _buildMaintenanceContent(routeKey);
+    if (maintenanceRoute != null) {
+      return maintenanceRoute;
+    }
+    final assetsRoute = _buildAssetsContent(routeKey);
+    if (assetsRoute != null) {
+      return assetsRoute;
     }
     final planningRoute = _buildPlanningContent(routeKey);
     if (planningRoute != null) {
@@ -563,51 +602,30 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/purchase/returns':
         return PurchaseReturnRegisterPage(key: routeKey, embedded: true);
       case '/planning/stock-reservations':
-        return StockReservationPage(
-          key: routeKey,
-          embedded: true,
-        );
+        return StockReservationPage(key: routeKey, embedded: true);
       case '/planning/item-policies':
-        return ItemPlanningPolicyPage(
-          key: routeKey,
-          embedded: true,
-        );
+        return ItemPlanningPolicyPage(key: routeKey, embedded: true);
       case '/planning/calendars':
-        return PlanningCalendarPage(
-          key: routeKey,
-          embedded: true,
-        );
+        return PlanningCalendarPage(key: routeKey, embedded: true);
       case '/planning/mrp-runs':
-        return MrpRunPage(
-          key: routeKey,
-          embedded: true,
-        );
+        return MrpRunPage(key: routeKey, embedded: true);
       case '/planning/mrp-demands':
-        return MrpDemandPage(
-          key: routeKey,
-          embedded: true,
-        );
+        return MrpDemandPage(key: routeKey, embedded: true);
       case '/planning/mrp-supplies':
-        return MrpSupplyPage(
-          key: routeKey,
-          embedded: true,
-        );
+        return MrpSupplyPage(key: routeKey, embedded: true);
       case '/planning/mrp-net-requirements':
-        return MrpNetRequirementPage(
-          key: routeKey,
-          embedded: true,
-        );
+        return MrpNetRequirementPage(key: routeKey, embedded: true);
       case '/planning/mrp-recommendations':
-        return MrpRecommendationPage(
-          key: routeKey,
-          embedded: true,
-        );
+        return MrpRecommendationPage(key: routeKey, embedded: true);
       case '/manufacturing/boms':
         return BomRegisterPage(key: routeKey, embedded: true);
       case '/manufacturing/production-orders':
         return ProductionOrderPage(key: routeKey, embedded: true);
       case '/manufacturing/production-material-issues':
-        return ProductionMaterialIssueRegisterPage(key: routeKey, embedded: true);
+        return ProductionMaterialIssueRegisterPage(
+          key: routeKey,
+          embedded: true,
+        );
       case '/manufacturing/production-receipts':
         return ProductionReceiptRegisterPage(key: routeKey, embedded: true);
       case '/jobwork/orders':
@@ -623,41 +641,41 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/quality/qc-inspections':
         return QcInspectionRegisterPage(key: routeKey, embedded: true);
       case '/quality/qc-result-actions':
-        return QcResultActionRegisterPage(key: routeKey, embedded: true);
+        return QcResultActionPage(key: routeKey, embedded: true);
       case '/quality/qc-non-conformance-logs':
-        return QcNonConformanceLogRegisterPage(key: routeKey, embedded: true);
+        return QcNonConformanceLogPage(key: routeKey, embedded: true);
       case '/service/contracts':
-        return ServiceContractRegisterPage(key: routeKey, embedded: true);
+        return ServiceContractPage(key: routeKey, embedded: true);
       case '/service/tickets':
-        return ServiceTicketRegisterPage(key: routeKey, embedded: true);
+        return ServiceTicketPage(key: routeKey, embedded: true);
       case '/service/warranty-claims':
-        return WarrantyClaimRegisterPage(key: routeKey, embedded: true);
+        return WarrantyClaimPage(key: routeKey, embedded: true);
       case '/service/work-orders':
-        return ServiceWorkOrderRegisterPage(key: routeKey, embedded: true);
+        return ServiceWorkOrderPage(key: routeKey, embedded: true);
       case '/service/feedbacks':
-        return ServiceFeedbackRegisterPage(key: routeKey, embedded: true);
+        return ServiceFeedbackPage(key: routeKey, embedded: true);
       case '/maintenance/plans':
-        return MaintenancePlanRegisterPage(key: routeKey, embedded: true);
+        return MaintenancePlanPage(key: routeKey, embedded: true);
       case '/maintenance/requests':
-        return MaintenanceRequestRegisterPage(key: routeKey, embedded: true);
+        return MaintenanceRequestPage(key: routeKey, embedded: true);
       case '/maintenance/work-orders':
         return MaintenanceWorkOrderRegisterPage(key: routeKey, embedded: true);
       case '/maintenance/downtime-logs':
-        return AssetDowntimeLogRegisterPage(key: routeKey, embedded: true);
+        return AssetDowntimeLogPage(key: routeKey, embedded: true);
       case '/maintenance/amc-contracts':
-        return AmcContractRegisterPage(key: routeKey, embedded: true);
+        return AmcContractPage(key: routeKey, embedded: true);
       case '/assets/categories':
-        return AssetCategoryRegisterPage(key: routeKey, embedded: true);
+        return AssetCategoryPage(key: routeKey, embedded: true);
       case '/assets/cost-centers':
-        return AssetCostCenterRegisterPage(key: routeKey, embedded: true);
+        return AssetCostCenterPage(key: routeKey, embedded: true);
       case '/assets/register':
-        return FixedAssetRegisterPage(key: routeKey, embedded: true);
+        return FixedAssetPage(key: routeKey, embedded: true);
       case '/assets/depreciation-runs':
         return AssetDepreciationRunRegisterPage(key: routeKey, embedded: true);
       case '/assets/transfers':
         return AssetTransferRegisterPage(key: routeKey, embedded: true);
       case '/assets/disposals':
-        return AssetDisposalRegisterPage(key: routeKey, embedded: true);
+        return AssetDisposalPage(key: routeKey, embedded: true);
       case '/assets/reports':
         return AssetReportsHubPage(key: routeKey, embedded: true);
       case '/projects':
@@ -1060,6 +1078,234 @@ class _AppShellPageState extends State<AppShellPage> {
     }
   }
 
+  Widget? _buildQualityContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'quality') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'qc-plans':
+        return QcPlanPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'qc-inspections':
+        return QcInspectionPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'qc-result-actions':
+        return QcResultActionPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'qc-non-conformance-logs':
+        return QcNonConformanceLogPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      default:
+        return null;
+    }
+  }
+
+  Widget? _buildServiceContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'service') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'contracts':
+        return ServiceContractPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'tickets':
+        return ServiceTicketPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'warranty-claims':
+        return WarrantyClaimPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'work-orders':
+        return ServiceWorkOrderPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'feedbacks':
+        return ServiceFeedbackPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      default:
+        return null;
+    }
+  }
+
+  Widget? _buildMaintenanceContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'maintenance') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'plans':
+        return MaintenancePlanPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'requests':
+        return MaintenanceRequestPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'downtime-logs':
+        return AssetDowntimeLogPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'amc-contracts':
+        return AmcContractPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'work-orders':
+        return MaintenanceWorkOrderPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      default:
+        return null;
+    }
+  }
+
+  Widget? _buildAssetsContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'assets') {
+      return null;
+    }
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'categories':
+        return AssetCategoryPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: isNew ? null : id,
+        );
+      case 'cost-centers':
+        return AssetCostCenterPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: isNew ? null : id,
+        );
+      case 'register':
+        return FixedAssetPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: isNew ? null : id,
+        );
+      case 'depreciation-runs':
+        return AssetDepreciationRunPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: isNew ? null : id,
+        );
+      case 'transfers':
+        return AssetTransferPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: isNew ? null : id,
+        );
+      case 'disposals':
+        return AssetDisposalPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: isNew ? null : id,
+        );
+      default:
+        return null;
+    }
+  }
+
   Widget? _buildPlanningContent(ValueKey<String> routeKey) {
     final segments = _currentPath
         .split('/')
@@ -1234,6 +1480,66 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/jobwork/charges/')) {
       return 'Jobwork Charge';
+    }
+    if (path.startsWith('/quality/qc-plans/')) {
+      return 'QC Plan';
+    }
+    if (path.startsWith('/quality/qc-inspections/')) {
+      return 'QC Inspection';
+    }
+    if (path.startsWith('/quality/qc-result-actions/')) {
+      return 'QC Result Action';
+    }
+    if (path.startsWith('/quality/qc-non-conformance-logs/')) {
+      return 'Non-conformance Log';
+    }
+    if (path.startsWith('/service/contracts/')) {
+      return 'Service Contract';
+    }
+    if (path.startsWith('/service/tickets/')) {
+      return 'Service Ticket';
+    }
+    if (path.startsWith('/service/warranty-claims/')) {
+      return 'Warranty Claim';
+    }
+    if (path.startsWith('/service/work-orders/')) {
+      return 'Service Work Order';
+    }
+    if (path.startsWith('/service/feedbacks/')) {
+      return 'Service Feedback';
+    }
+    if (path.startsWith('/maintenance/plans/')) {
+      return 'Maintenance Plan';
+    }
+    if (path.startsWith('/maintenance/requests/')) {
+      return 'Maintenance Request';
+    }
+    if (path.startsWith('/maintenance/downtime-logs/')) {
+      return 'Downtime Log';
+    }
+    if (path.startsWith('/maintenance/amc-contracts/')) {
+      return 'AMC Contract';
+    }
+    if (path.startsWith('/maintenance/work-orders/')) {
+      return 'Maintenance Work Order';
+    }
+    if (path.startsWith('/assets/categories/')) {
+      return 'Asset Category';
+    }
+    if (path.startsWith('/assets/cost-centers/')) {
+      return 'Cost Center';
+    }
+    if (path.startsWith('/assets/register/')) {
+      return 'Asset';
+    }
+    if (path.startsWith('/assets/depreciation-runs/')) {
+      return 'Depreciation Run';
+    }
+    if (path.startsWith('/assets/transfers/')) {
+      return 'Asset Transfer';
+    }
+    if (path.startsWith('/assets/disposals/')) {
+      return 'Asset Disposal';
     }
     if (path.startsWith('/manufacturing/production-material-issues/')) {
       return 'Production Material Issue';

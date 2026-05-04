@@ -36,30 +36,21 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceContractModel.fromJson,
   );
-  Future<ApiResponse<ServiceContractModel>> approveContract(
-    int id,
-    ServiceContractModel body,
-  ) => actionModel<ServiceContractModel>(
-    '/service/contracts/$id/approve',
-    body: body,
-    fromJson: ServiceContractModel.fromJson,
-  );
-  Future<ApiResponse<ServiceContractModel>> terminateContract(
-    int id,
-    ServiceContractModel body,
-  ) => actionModel<ServiceContractModel>(
-    '/service/contracts/$id/terminate',
-    body: body,
-    fromJson: ServiceContractModel.fromJson,
-  );
-  Future<ApiResponse<ServiceContractModel>> cancelContract(
-    int id,
-    ServiceContractModel body,
-  ) => actionModel<ServiceContractModel>(
-    '/service/contracts/$id/cancel',
-    body: body,
-    fromJson: ServiceContractModel.fromJson,
-  );
+  Future<ApiResponse<ServiceContractModel>> approveContract(int id) =>
+      actionModel<ServiceContractModel>(
+        '/service/contracts/$id/approve',
+        fromJson: ServiceContractModel.fromJson,
+      );
+  Future<ApiResponse<ServiceContractModel>> terminateContract(int id) =>
+      actionModel<ServiceContractModel>(
+        '/service/contracts/$id/terminate',
+        fromJson: ServiceContractModel.fromJson,
+      );
+  Future<ApiResponse<ServiceContractModel>> cancelContract(int id) =>
+      actionModel<ServiceContractModel>(
+        '/service/contracts/$id/cancel',
+        fromJson: ServiceContractModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteContract(int id) =>
       destroy('/service/contracts/$id');
 
@@ -90,38 +81,34 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceTicketModel.fromJson,
   );
+
+  /// [assignedToUserId] null = assign to current user (API default).
   Future<ApiResponse<ServiceTicketModel>> assignTicket(
-    int id,
-    ServiceTicketModel body,
-  ) => actionModel<ServiceTicketModel>(
+    int id, {
+    int? assignedToUserId,
+  }) => actionModel<ServiceTicketModel>(
     '/service/tickets/$id/assign',
-    body: body,
+    body: assignedToUserId != null
+        ? <String, dynamic>{'assigned_to_user_id': assignedToUserId}
+        : null,
     fromJson: ServiceTicketModel.fromJson,
   );
-  Future<ApiResponse<ServiceTicketModel>> resolveTicket(
-    int id,
-    ServiceTicketModel body,
-  ) => actionModel<ServiceTicketModel>(
-    '/service/tickets/$id/resolve',
-    body: body,
-    fromJson: ServiceTicketModel.fromJson,
-  );
-  Future<ApiResponse<ServiceTicketModel>> closeTicket(
-    int id,
-    ServiceTicketModel body,
-  ) => actionModel<ServiceTicketModel>(
-    '/service/tickets/$id/close',
-    body: body,
-    fromJson: ServiceTicketModel.fromJson,
-  );
-  Future<ApiResponse<ServiceTicketModel>> cancelTicket(
-    int id,
-    ServiceTicketModel body,
-  ) => actionModel<ServiceTicketModel>(
-    '/service/tickets/$id/cancel',
-    body: body,
-    fromJson: ServiceTicketModel.fromJson,
-  );
+
+  Future<ApiResponse<ServiceTicketModel>> resolveTicket(int id) =>
+      actionModel<ServiceTicketModel>(
+        '/service/tickets/$id/resolve',
+        fromJson: ServiceTicketModel.fromJson,
+      );
+  Future<ApiResponse<ServiceTicketModel>> closeTicket(int id) =>
+      actionModel<ServiceTicketModel>(
+        '/service/tickets/$id/close',
+        fromJson: ServiceTicketModel.fromJson,
+      );
+  Future<ApiResponse<ServiceTicketModel>> cancelTicket(int id) =>
+      actionModel<ServiceTicketModel>(
+        '/service/tickets/$id/cancel',
+        fromJson: ServiceTicketModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteTicket(int id) =>
       destroy('/service/tickets/$id');
 
@@ -152,38 +139,26 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceWorkOrderModel.fromJson,
   );
-  Future<ApiResponse<ServiceWorkOrderModel>> startWorkOrder(
-    int id,
-    ServiceWorkOrderModel body,
-  ) => actionModel<ServiceWorkOrderModel>(
-    '/service/work-orders/$id/start',
-    body: body,
-    fromJson: ServiceWorkOrderModel.fromJson,
-  );
-  Future<ApiResponse<ServiceWorkOrderModel>> completeWorkOrder(
-    int id,
-    ServiceWorkOrderModel body,
-  ) => actionModel<ServiceWorkOrderModel>(
-    '/service/work-orders/$id/complete',
-    body: body,
-    fromJson: ServiceWorkOrderModel.fromJson,
-  );
-  Future<ApiResponse<ServiceWorkOrderModel>> closeWorkOrder(
-    int id,
-    ServiceWorkOrderModel body,
-  ) => actionModel<ServiceWorkOrderModel>(
-    '/service/work-orders/$id/close',
-    body: body,
-    fromJson: ServiceWorkOrderModel.fromJson,
-  );
-  Future<ApiResponse<ServiceWorkOrderModel>> cancelWorkOrder(
-    int id,
-    ServiceWorkOrderModel body,
-  ) => actionModel<ServiceWorkOrderModel>(
-    '/service/work-orders/$id/cancel',
-    body: body,
-    fromJson: ServiceWorkOrderModel.fromJson,
-  );
+  Future<ApiResponse<ServiceWorkOrderModel>> startWorkOrder(int id) =>
+      actionModel<ServiceWorkOrderModel>(
+        '/service/work-orders/$id/start',
+        fromJson: ServiceWorkOrderModel.fromJson,
+      );
+  Future<ApiResponse<ServiceWorkOrderModel>> completeWorkOrder(int id) =>
+      actionModel<ServiceWorkOrderModel>(
+        '/service/work-orders/$id/complete',
+        fromJson: ServiceWorkOrderModel.fromJson,
+      );
+  Future<ApiResponse<ServiceWorkOrderModel>> closeWorkOrder(int id) =>
+      actionModel<ServiceWorkOrderModel>(
+        '/service/work-orders/$id/close',
+        fromJson: ServiceWorkOrderModel.fromJson,
+      );
+  Future<ApiResponse<ServiceWorkOrderModel>> cancelWorkOrder(int id) =>
+      actionModel<ServiceWorkOrderModel>(
+        '/service/work-orders/$id/cancel',
+        fromJson: ServiceWorkOrderModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteWorkOrder(int id) =>
       destroy('/service/work-orders/$id');
 
@@ -244,45 +219,41 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceTicketModel.fromJson,
   );
+
   Future<ApiResponse<ServiceTicketModel>> assignWarrantyClaim(
-    int id,
-    ServiceTicketModel body,
-  ) => actionModel<ServiceTicketModel>(
+    int id, {
+    int? assignedToUserId,
+  }) => actionModel<ServiceTicketModel>(
     '/service/warranty-claims/$id/assign',
-    body: body,
+    body: assignedToUserId != null
+        ? <String, dynamic>{'assigned_to_user_id': assignedToUserId}
+        : null,
     fromJson: ServiceTicketModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> createWorkOrderFromWarrantyClaim(
-    int id,
-    ServiceTicketModel body,
-  ) => actionDynamic(
+    int id, {
+    Map<String, dynamic>? body,
+  }) => actionDynamic(
     '/service/warranty-claims/$id/create-work-order',
-    body: body,
+    body: body ?? const <String, dynamic>{},
   );
-  Future<ApiResponse<ServiceTicketModel>> resolveWarrantyClaim(
-    int id,
-    ServiceTicketModel body,
-  ) => actionModel<ServiceTicketModel>(
-    '/service/warranty-claims/$id/resolve',
-    body: body,
-    fromJson: ServiceTicketModel.fromJson,
-  );
-  Future<ApiResponse<ServiceTicketModel>> closeWarrantyClaim(
-    int id,
-    ServiceTicketModel body,
-  ) => actionModel<ServiceTicketModel>(
-    '/service/warranty-claims/$id/close',
-    body: body,
-    fromJson: ServiceTicketModel.fromJson,
-  );
-  Future<ApiResponse<ServiceTicketModel>> cancelWarrantyClaim(
-    int id,
-    ServiceTicketModel body,
-  ) => actionModel<ServiceTicketModel>(
-    '/service/warranty-claims/$id/cancel',
-    body: body,
-    fromJson: ServiceTicketModel.fromJson,
-  );
+
+  Future<ApiResponse<ServiceTicketModel>> resolveWarrantyClaim(int id) =>
+      actionModel<ServiceTicketModel>(
+        '/service/warranty-claims/$id/resolve',
+        fromJson: ServiceTicketModel.fromJson,
+      );
+  Future<ApiResponse<ServiceTicketModel>> closeWarrantyClaim(int id) =>
+      actionModel<ServiceTicketModel>(
+        '/service/warranty-claims/$id/close',
+        fromJson: ServiceTicketModel.fromJson,
+      );
+  Future<ApiResponse<ServiceTicketModel>> cancelWarrantyClaim(int id) =>
+      actionModel<ServiceTicketModel>(
+        '/service/warranty-claims/$id/cancel',
+        fromJson: ServiceTicketModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteWarrantyClaim(int id) =>
       destroy('/service/warranty-claims/$id');
 }

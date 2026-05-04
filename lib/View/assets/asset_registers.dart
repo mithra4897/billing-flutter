@@ -4,6 +4,7 @@ import '../../screen.dart';
 import '../hr/hr_workflow_dialogs.dart';
 import '../purchase/purchase_register_page.dart';
 import '../purchase/purchase_support.dart';
+import 'asset_shell_route.dart';
 
 Map<String, dynamic>? _asJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -173,182 +174,6 @@ class _AssetFilters extends StatelessWidget {
           labelText: 'Search',
           controller: searchController,
           hintText: searchHint,
-        ),
-      ],
-    );
-  }
-}
-
-// --- Category ----------------------------------------------------------
-
-class _AssetCategoryDetailDialog extends StatefulWidget {
-  const _AssetCategoryDetailDialog({required this.categoryId});
-
-  final int categoryId;
-
-  @override
-  State<_AssetCategoryDetailDialog> createState() =>
-      _AssetCategoryDetailDialogState();
-}
-
-class _AssetCategoryDetailDialogState extends State<_AssetCategoryDetailDialog> {
-  final AssetsService _api = AssetsService();
-  bool _loading = true;
-  String? _error;
-  AssetCategoryModel? _model;
-  bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _api.category(widget.categoryId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete category'),
-        content: const Text(
-          'Only categories without assets or child categories can be deleted.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _api.deleteCategory(widget.categoryId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Category deleted.')),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Asset category'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final text =
-        const JsonEncoder.withIndent('  ').convert(_model!.toJson());
-
-    return AlertDialog(
-      title: Text('Category #${widget.categoryId}'),
-      content: SizedBox(
-        width: 560,
-        height: 440,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              children: [
-                OutlinedButton(
-                  onPressed: _busy ? null : _delete,
-                  child: const Text('Delete'),
-                ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
         ),
       ],
     );
@@ -908,756 +733,6 @@ class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
   }
 }
 
-// --- Depreciation run --------------------------------------------------
-
-class _DepreciationRunDetailDialog extends StatefulWidget {
-  const _DepreciationRunDetailDialog({required this.runId});
-
-  final int runId;
-
-  @override
-  State<_DepreciationRunDetailDialog> createState() =>
-      _DepreciationRunDetailDialogState();
-}
-
-class _DepreciationRunDetailDialogState
-    extends State<_DepreciationRunDetailDialog> {
-  final AssetsService _api = AssetsService();
-  bool _loading = true;
-  String? _error;
-  AssetDepreciationRunModel? _model;
-  bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _api.depreciationRun(widget.runId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _act(
-    Future<ApiResponse<AssetDepreciationRunModel>> Function() fn,
-  ) async {
-    setState(() => _busy = true);
-    try {
-      final response = await fn();
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Run updated.')),
-      );
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete depreciation run'),
-        content: const Text(
-          'Only draft, failed, or cancelled runs can be deleted.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _api.deleteDepreciationRun(widget.runId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Run deleted.')),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Depreciation run'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final data = _model!.toJson();
-    final st = stringValue(data, 'run_status');
-    final empty = AssetDepreciationRunModel(<String, dynamic>{});
-    final vid = intValue(data, 'voucher_id');
-    final canProcess = st == 'draft' || st == 'failed';
-    final canPost = st == 'completed' && (vid == null || vid == 0);
-    final canCancel = st != 'posted';
-    final canDelete =
-        st == 'draft' || st == 'failed' || st == 'cancelled';
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-
-    return AlertDialog(
-      title: Text('Depreciation run #${widget.runId}'),
-      content: SizedBox(
-        width: 560,
-        height: 440,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (canProcess)
-                  FilledButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.processDepreciationRun(
-                                widget.runId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Process'),
-                  ),
-                if (canPost)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.postDepreciationRun(
-                                widget.runId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Post'),
-                  ),
-                if (canCancel)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.cancelDepreciationRun(
-                                widget.runId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Cancel run'),
-                  ),
-                if (canDelete)
-                  OutlinedButton(
-                    onPressed: _busy ? null : _delete,
-                    child: const Text('Delete'),
-                  ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
-
-// --- Transfer ----------------------------------------------------------
-
-class _AssetTransferDetailDialog extends StatefulWidget {
-  const _AssetTransferDetailDialog({required this.transferId});
-
-  final int transferId;
-
-  @override
-  State<_AssetTransferDetailDialog> createState() =>
-      _AssetTransferDetailDialogState();
-}
-
-class _AssetTransferDetailDialogState extends State<_AssetTransferDetailDialog> {
-  final AssetsService _api = AssetsService();
-  bool _loading = true;
-  String? _error;
-  AssetTransferModel? _model;
-  bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _api.transfer(widget.transferId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _act(Future<ApiResponse<AssetTransferModel>> Function() fn) async {
-    setState(() => _busy = true);
-    try {
-      final response = await fn();
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transfer updated.')),
-      );
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete transfer'),
-        content: const Text('Only draft transfers can be deleted.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _api.deleteTransfer(widget.transferId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transfer deleted.')),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Asset transfer'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final data = _model!.toJson();
-    final st = stringValue(data, 'transfer_status');
-    final empty = AssetTransferModel(<String, dynamic>{});
-    final canApprove = st == 'draft';
-    final canComplete = st == 'draft' || st == 'approved';
-    final canCancel = st != 'completed' && st != 'cancelled';
-    final canDelete = st == 'draft';
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-
-    return AlertDialog(
-      title: Text('Transfer #${widget.transferId}'),
-      content: SizedBox(
-        width: 560,
-        height: 440,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (canApprove)
-                  FilledButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.approveTransfer(
-                                widget.transferId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Approve'),
-                  ),
-                if (canComplete)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.completeTransfer(
-                                widget.transferId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Complete'),
-                  ),
-                if (canCancel)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.cancelTransfer(
-                                widget.transferId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Cancel'),
-                  ),
-                if (canDelete)
-                  OutlinedButton(
-                    onPressed: _busy ? null : _delete,
-                    child: const Text('Delete'),
-                  ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
-
-// --- Disposal ----------------------------------------------------------
-
-class _AssetDisposalDetailDialog extends StatefulWidget {
-  const _AssetDisposalDetailDialog({required this.disposalId});
-
-  final int disposalId;
-
-  @override
-  State<_AssetDisposalDetailDialog> createState() =>
-      _AssetDisposalDetailDialogState();
-}
-
-class _AssetDisposalDetailDialogState extends State<_AssetDisposalDetailDialog> {
-  final AssetsService _api = AssetsService();
-  bool _loading = true;
-  String? _error;
-  AssetDisposalModel? _model;
-  bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _api.disposal(widget.disposalId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _act(Future<ApiResponse<AssetDisposalModel>> Function() fn) async {
-    setState(() => _busy = true);
-    try {
-      final response = await fn();
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Disposal updated.')),
-      );
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete disposal'),
-        content: const Text('Only draft disposals can be deleted.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _api.deleteDisposal(widget.disposalId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Disposal deleted.')),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Asset disposal'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final data = _model!.toJson();
-    final st = stringValue(data, 'disposal_status');
-    final empty = AssetDisposalModel(<String, dynamic>{});
-    final canApprove = st == 'draft';
-    final canPost = st == 'draft' || st == 'approved';
-    final canCancel = st != 'posted';
-    final canDelete = st == 'draft';
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-
-    return AlertDialog(
-      title: Text('Disposal #${widget.disposalId}'),
-      content: SizedBox(
-        width: 560,
-        height: 440,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (canApprove)
-                  FilledButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.approveDisposal(
-                                widget.disposalId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Approve'),
-                  ),
-                if (canPost)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.postDisposal(
-                                widget.disposalId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Post'),
-                  ),
-                if (canCancel)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                              () => _api.cancelDisposal(
-                                widget.disposalId,
-                                empty,
-                              ),
-                            ),
-                    child: const Text('Cancel'),
-                  ),
-                if (canDelete)
-                  OutlinedButton(
-                    onPressed: _busy ? null : _delete,
-                    child: const Text('Delete'),
-                  ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
 
 // --- Reports hub -------------------------------------------------------
 
@@ -1993,7 +1068,14 @@ class _AssetCategoryRegisterPageState extends State<AssetCategoryRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No categories found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () =>
+              openAssetShellRoute(context, '/assets/categories/new'),
+          icon: Icons.add_outlined,
+          label: 'New category',
+        ),
+      ],
       filters: _AssetFilters(
         searchController: _searchController,
         searchHint: 'Search code, name, type, parent',
@@ -2029,14 +1111,7 @@ class _AssetCategoryRegisterPageState extends State<AssetCategoryRegisterPage> {
         if (id == null) {
           return;
         }
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => _AssetCategoryDetailDialog(categoryId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        openAssetShellRoute(context, '/assets/categories/$id');
       },
     );
   }
@@ -2421,7 +1496,16 @@ class _AssetDepreciationRunRegisterPageState
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No depreciation runs found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () => openAssetShellRoute(
+            context,
+            '/assets/depreciation-runs/new',
+          ),
+          icon: Icons.add_outlined,
+          label: 'New depreciation run',
+        ),
+      ],
       filters: _AssetFilters(
         searchController: _searchController,
         searchHint: 'Search run no., status, book type',
@@ -2457,14 +1541,7 @@ class _AssetDepreciationRunRegisterPageState
         if (id == null) {
           return;
         }
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => _DepreciationRunDetailDialog(runId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        openAssetShellRoute(context, '/assets/depreciation-runs/$id');
       },
     );
   }
@@ -2562,7 +1639,14 @@ class _AssetTransferRegisterPageState extends State<AssetTransferRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No transfers found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () =>
+              openAssetShellRoute(context, '/assets/transfers/new'),
+          icon: Icons.add_outlined,
+          label: 'New transfer',
+        ),
+      ],
       filters: _AssetFilters(
         searchController: _searchController,
         searchHint: 'Search no., branches, status',
@@ -2599,14 +1683,7 @@ class _AssetTransferRegisterPageState extends State<AssetTransferRegisterPage> {
         if (id == null) {
           return;
         }
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => _AssetTransferDetailDialog(transferId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        openAssetShellRoute(context, '/assets/transfers/$id');
       },
     );
   }
@@ -2718,7 +1795,14 @@ class _AssetDisposalRegisterPageState extends State<AssetDisposalRegisterPage> {
       errorMessage: _error,
       onRetry: _load,
       emptyMessage: 'No disposals found.',
-      actions: const <Widget>[],
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () =>
+              openAssetShellRoute(context, '/assets/disposals/new'),
+          icon: Icons.add_outlined,
+          label: 'New disposal',
+        ),
+      ],
       filters: _AssetFilters(
         searchController: _searchController,
         searchHint: 'Search no., asset, party, status',
@@ -2755,14 +1839,7 @@ class _AssetDisposalRegisterPageState extends State<AssetDisposalRegisterPage> {
         if (id == null) {
           return;
         }
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => _AssetDisposalDetailDialog(disposalId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        openAssetShellRoute(context, '/assets/disposals/$id');
       },
     );
   }

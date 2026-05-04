@@ -26,28 +26,25 @@ class QualityService extends ErpModuleService {
         body,
         fromJson: QcPlanModel.fromJson,
       );
-  Future<ApiResponse<QcPlanModel>> updateQcPlan(int id, QcPlanModel body) =>
+  Future<ApiResponse<QcPlanModel>> updateQcPlan(int id, dynamic body) =>
       updateModel<QcPlanModel>(
         '/quality/qc-plans/$id',
         body,
         fromJson: QcPlanModel.fromJson,
       );
-  Future<ApiResponse<QcPlanModel>> approveQcPlan(int id, QcPlanModel body) =>
+  Future<ApiResponse<QcPlanModel>> approveQcPlan(int id) =>
       actionModel<QcPlanModel>(
         '/quality/qc-plans/$id/approve',
-        body: body,
         fromJson: QcPlanModel.fromJson,
       );
-  Future<ApiResponse<QcPlanModel>> deactivateQcPlan(int id, QcPlanModel body) =>
+  Future<ApiResponse<QcPlanModel>> deactivateQcPlan(int id) =>
       actionModel<QcPlanModel>(
         '/quality/qc-plans/$id/deactivate',
-        body: body,
         fromJson: QcPlanModel.fromJson,
       );
-  Future<ApiResponse<QcPlanModel>> obsoleteQcPlan(int id, QcPlanModel body) =>
+  Future<ApiResponse<QcPlanModel>> obsoleteQcPlan(int id) =>
       actionModel<QcPlanModel>(
         '/quality/qc-plans/$id/obsolete',
-        body: body,
         fromJson: QcPlanModel.fromJson,
       );
   Future<ApiResponse<dynamic>> deleteQcPlan(int id) =>
@@ -80,46 +77,31 @@ class QualityService extends ErpModuleService {
     body,
     fromJson: QcInspectionModel.fromJson,
   );
-  Future<ApiResponse<QcInspectionModel>> startQcInspection(
-    int id,
-    QcInspectionModel body,
-  ) => actionModel<QcInspectionModel>(
-    '/quality/qc-inspections/$id/start',
-    body: body,
-    fromJson: QcInspectionModel.fromJson,
-  );
-  Future<ApiResponse<QcInspectionModel>> completeQcInspection(
-    int id,
-    QcInspectionModel body,
-  ) => actionModel<QcInspectionModel>(
-    '/quality/qc-inspections/$id/complete',
-    body: body,
-    fromJson: QcInspectionModel.fromJson,
-  );
-  Future<ApiResponse<QcInspectionModel>> approveQcInspection(
-    int id,
-    QcInspectionModel body,
-  ) => actionModel<QcInspectionModel>(
-    '/quality/qc-inspections/$id/approve',
-    body: body,
-    fromJson: QcInspectionModel.fromJson,
-  );
-  Future<ApiResponse<QcInspectionModel>> rejectQcInspection(
-    int id,
-    QcInspectionModel body,
-  ) => actionModel<QcInspectionModel>(
-    '/quality/qc-inspections/$id/reject',
-    body: body,
-    fromJson: QcInspectionModel.fromJson,
-  );
-  Future<ApiResponse<QcInspectionModel>> cancelQcInspection(
-    int id,
-    QcInspectionModel body,
-  ) => actionModel<QcInspectionModel>(
-    '/quality/qc-inspections/$id/cancel',
-    body: body,
-    fromJson: QcInspectionModel.fromJson,
-  );
+  Future<ApiResponse<QcInspectionModel>> startQcInspection(int id) =>
+      actionModel<QcInspectionModel>(
+        '/quality/qc-inspections/$id/start',
+        fromJson: QcInspectionModel.fromJson,
+      );
+  Future<ApiResponse<QcInspectionModel>> completeQcInspection(int id) =>
+      actionModel<QcInspectionModel>(
+        '/quality/qc-inspections/$id/complete',
+        fromJson: QcInspectionModel.fromJson,
+      );
+  Future<ApiResponse<QcInspectionModel>> approveQcInspection(int id) =>
+      actionModel<QcInspectionModel>(
+        '/quality/qc-inspections/$id/approve',
+        fromJson: QcInspectionModel.fromJson,
+      );
+  Future<ApiResponse<QcInspectionModel>> rejectQcInspection(int id) =>
+      actionModel<QcInspectionModel>(
+        '/quality/qc-inspections/$id/reject',
+        fromJson: QcInspectionModel.fromJson,
+      );
+  Future<ApiResponse<QcInspectionModel>> cancelQcInspection(int id) =>
+      actionModel<QcInspectionModel>(
+        '/quality/qc-inspections/$id/cancel',
+        fromJson: QcInspectionModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteQcInspection(int id) =>
       destroy('/quality/qc-inspections/$id');
 
@@ -150,22 +132,16 @@ class QualityService extends ErpModuleService {
     body,
     fromJson: QcResultActionModel.fromJson,
   );
-  Future<ApiResponse<QcResultActionModel>> completeQcResultAction(
-    int id,
-    QcResultActionModel body,
-  ) => actionModel<QcResultActionModel>(
-    '/quality/qc-result-actions/$id/complete',
-    body: body,
-    fromJson: QcResultActionModel.fromJson,
-  );
-  Future<ApiResponse<QcResultActionModel>> cancelQcResultAction(
-    int id,
-    QcResultActionModel body,
-  ) => actionModel<QcResultActionModel>(
-    '/quality/qc-result-actions/$id/cancel',
-    body: body,
-    fromJson: QcResultActionModel.fromJson,
-  );
+  Future<ApiResponse<QcResultActionModel>> completeQcResultAction(int id) =>
+      actionModel<QcResultActionModel>(
+        '/quality/qc-result-actions/$id/complete',
+        fromJson: QcResultActionModel.fromJson,
+      );
+  Future<ApiResponse<QcResultActionModel>> cancelQcResultAction(int id) =>
+      actionModel<QcResultActionModel>(
+        '/quality/qc-result-actions/$id/cancel',
+        fromJson: QcResultActionModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteQcResultAction(int id) =>
       destroy('/quality/qc-result-actions/$id');
 
@@ -198,20 +174,18 @@ class QualityService extends ErpModuleService {
   );
   Future<ApiResponse<QcNonConformanceLogModel>> closeQcNonConformanceLog(
     int id,
-    QcNonConformanceLogModel body,
-  ) => actionModel<QcNonConformanceLogModel>(
-    '/quality/qc-non-conformance-logs/$id/close',
-    body: body,
-    fromJson: QcNonConformanceLogModel.fromJson,
-  );
+  ) =>
+      actionModel<QcNonConformanceLogModel>(
+        '/quality/qc-non-conformance-logs/$id/close',
+        fromJson: QcNonConformanceLogModel.fromJson,
+      );
   Future<ApiResponse<QcNonConformanceLogModel>> waiveQcNonConformanceLog(
     int id,
-    QcNonConformanceLogModel body,
-  ) => actionModel<QcNonConformanceLogModel>(
-    '/quality/qc-non-conformance-logs/$id/waive',
-    body: body,
-    fromJson: QcNonConformanceLogModel.fromJson,
-  );
+  ) =>
+      actionModel<QcNonConformanceLogModel>(
+        '/quality/qc-non-conformance-logs/$id/waive',
+        fromJson: QcNonConformanceLogModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteQcNonConformanceLog(int id) =>
       destroy('/quality/qc-non-conformance-logs/$id');
 }
