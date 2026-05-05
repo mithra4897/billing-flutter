@@ -50,7 +50,9 @@ class _BomPageState extends State<BomPage> {
   void _showActionSnackBar() {
     final message = _viewModel.consumeActionMessage();
     if (!mounted || message == null || message.trim().isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -273,14 +275,14 @@ class _BomEditor extends StatelessWidget {
                 ),
                 AppSearchPickerField<int>(
                   labelText: 'Output Item',
-                  selectedLabel: vm.items
+                  selectedLabel: vm.outputItemOptions
                       .cast<ItemModel?>()
                       .firstWhere(
                         (item) => item?.id == vm.outputItemId,
                         orElse: () => null,
                       )
                       ?.toString(),
-                  options: vm.items
+                  options: vm.outputItemOptions
                       .where((item) => item.id != null)
                       .map(
                         (item) => AppSearchPickerOption<int>(
@@ -292,6 +294,10 @@ class _BomEditor extends StatelessWidget {
                       .toList(growable: false),
                   validator: (_) => vm.outputItemId == null
                       ? 'Output Item is required'
+                      : vm.outputItemOptions.every(
+                          (item) => item.id != vm.outputItemId,
+                        )
+                      ? 'Choose a manufacturable output item'
                       : null,
                   onChanged: (value) {
                     vm.setOutputItemId(value);
@@ -299,7 +305,8 @@ class _BomEditor extends StatelessWidget {
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Output UOM',
-                  mappedItems: vm.uomOptionsForItem(vm.outputItemId)
+                  mappedItems: vm
+                      .uomOptionsForItem(vm.outputItemId)
                       .where((item) => item.id != null)
                       .map(
                         (item) => AppDropdownItem<int>(
@@ -351,9 +358,9 @@ class _BomEditor extends StatelessWidget {
               children: [
                 Text(
                   'Lines',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const Spacer(),
                 AppActionButton(
@@ -368,7 +375,9 @@ class _BomEditor extends StatelessWidget {
             ...List<Widget>.generate(vm.lines.length, (index) {
               final line = vm.lines[index];
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: PurchaseCompactLineCard(
                   index: index,
                   total: vm.lines.length,
@@ -401,7 +410,8 @@ class _BomEditor extends StatelessWidget {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'UOM',
-                        mappedItems: vm.uomOptionsForItem(line.itemId)
+                        mappedItems: vm
+                            .uomOptionsForItem(line.itemId)
                             .where((item) => item.id != null)
                             .map(
                               (item) => AppDropdownItem<int>(

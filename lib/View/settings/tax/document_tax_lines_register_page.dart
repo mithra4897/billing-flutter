@@ -241,11 +241,201 @@ class _DocumentTaxLinesRegisterPageState
   List<Widget> _buildShellActions() {
     return [
       AdaptiveShellActionButton(
+        onPressed: _loading ? null : _openFilterPanel,
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
         onPressed: _loading ? null : () => _fetch(resetPage: true),
         icon: Icons.refresh_outlined,
         label: 'Refresh',
       ),
     ];
+  }
+
+  Future<void> _openFilterPanel() async {
+    final companyItems = _companies
+        .map(
+          (CompanyModel c) => AppDropdownItem<int?>(
+            value: c.id,
+            label: c.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final branchItems = <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All branches'),
+      ..._branchOptions.map(
+        (BranchModel b) =>
+            AppDropdownItem<int?>(value: b.id, label: b.name ?? 'Branch'),
+      ),
+    ];
+
+    final fyItems = <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All financial years'),
+      ..._financialYearOptions.map(
+        (FinancialYearModel y) => AppDropdownItem<int?>(
+          value: y.id,
+          label: y.fyName?.isNotEmpty == true ? y.fyName! : (y.fyCode ?? 'FY'),
+        ),
+      ),
+    ];
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                dialogPadding,
+                dialogPadding,
+                dialogPadding,
+                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
+              ),
+              child: StatefulBuilder(
+                builder: (context, setDialogState) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Filter Document Tax Lines',
+                              style: Theme.of(dialogContext).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close),
+                            color: appTheme.mutedText,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _filterBox(
+                            child: AppDropdownField<int?>.fromMapped(
+                              labelText: 'Company',
+                              mappedItems: companyItems,
+                              initialValue: _companyId,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  _companyId = value;
+                                  _branchId = null;
+                                  _financialYearId = null;
+                                });
+                              },
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppDropdownField<int?>.fromMapped(
+                              labelText: 'Branch',
+                              mappedItems: branchItems,
+                              initialValue: _branchId,
+                              onChanged: (value) =>
+                                  setDialogState(() => _branchId = value),
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppDropdownField<int?>.fromMapped(
+                              labelText: 'Financial year',
+                              mappedItems: fyItems,
+                              initialValue: _financialYearId,
+                              onChanged: (value) => setDialogState(
+                                () => _financialYearId = value,
+                              ),
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppFormTextField(
+                              controller: _dateFromController,
+                              labelText: 'From',
+                              hintText: 'YYYY-MM-DD',
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppFormTextField(
+                              controller: _dateToController,
+                              labelText: 'To',
+                              hintText: 'YYYY-MM-DD',
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppFormTextField(
+                              controller: _searchController,
+                              labelText: 'Search',
+                              hintText: 'Document no. / HSN',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(true),
+                            icon: const Icon(Icons.search),
+                            label: const Text('Apply Filters'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _branchId = null;
+                                _financialYearId = null;
+                                _dateFromController.clear();
+                                _dateToController.clear();
+                                _searchController.clear();
+                              });
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (applied == true) {
+      _fetch(resetPage: true);
+    }
   }
 
   @override
@@ -274,32 +464,6 @@ class _DocumentTaxLinesRegisterPageState
       );
     }
 
-    final companyItems = _companies
-        .map(
-          (CompanyModel c) => AppDropdownItem<int?>(
-            value: c.id,
-            label: c.toString(),
-          ),
-        )
-        .toList(growable: false);
-
-    final branchItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All branches'),
-      ..._branchOptions.map(
-        (BranchModel b) => AppDropdownItem<int?>(value: b.id, label: b.name ?? 'Branch'),
-      ),
-    ];
-
-    final fyItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All financial years'),
-      ..._financialYearOptions.map(
-        (FinancialYearModel y) => AppDropdownItem<int?>(
-          value: y.id,
-          label: y.fyName?.isNotEmpty == true ? y.fyName! : (y.fyCode ?? 'FY'),
-        ),
-      ),
-    ];
-
     return SingleChildScrollView(
       controller: _pageScrollController,
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
@@ -310,85 +474,6 @@ class _DocumentTaxLinesRegisterPageState
             AppErrorStateView.inline(message: _pageError!),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
-          AppSectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Filters', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: AppUiConstants.spacingMd),
-                Text(
-                  'Posted tax breakup per document line. GST rules and tax codes drive how these lines are created when documents are saved.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: AppUiConstants.spacingMd),
-                Wrap(
-                  spacing: AppUiConstants.spacingMd,
-                  runSpacing: AppUiConstants.spacingMd,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    AppDropdownField<int?>.fromMapped(
-                      labelText: 'Company',
-                      mappedItems: companyItems,
-                      initialValue: _companyId,
-                      width: 260,
-                      onChanged: (value) {
-                        setState(() {
-                          _companyId = value;
-                          _branchId = null;
-                          _financialYearId = null;
-                        });
-                      },
-                    ),
-                    AppDropdownField<int?>.fromMapped(
-                      labelText: 'Branch',
-                      mappedItems: branchItems,
-                      initialValue: _branchId,
-                      width: 240,
-                      onChanged: (value) => setState(() => _branchId = value),
-                    ),
-                    AppDropdownField<int?>.fromMapped(
-                      labelText: 'Financial year',
-                      mappedItems: fyItems,
-                      initialValue: _financialYearId,
-                      width: 240,
-                      onChanged: (value) =>
-                          setState(() => _financialYearId = value),
-                    ),
-                    SizedBox(
-                      width: 140,
-                      child: AppFormTextField(
-                        controller: _dateFromController,
-                        labelText: 'From',
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                    ),
-                    SizedBox(
-                      width: 140,
-                      child: AppFormTextField(
-                        controller: _dateToController,
-                        labelText: 'To',
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                    ),
-                    SizedBox(
-                      width: 220,
-                      child: AppFormTextField(
-                        controller: _searchController,
-                        labelText: 'Search',
-                        hintText: 'Document no. / HSN',
-                      ),
-                    ),
-                    FilledButton.icon(
-                      onPressed: _loading ? null : () => _fetch(resetPage: true),
-                      icon: const Icon(Icons.search),
-                      label: const Text('Apply'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
           ReportPaginationBar(
             meta: _effectiveMeta,
             onPerPageChanged: (value) {
@@ -460,5 +545,9 @@ class _DocumentTaxLinesRegisterPageState
         ],
       ),
     );
+  }
+
+  Widget _filterBox({required Widget child}) {
+    return SizedBox(width: 240, child: child);
   }
 }

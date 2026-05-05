@@ -26,6 +26,23 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
         AppDropdownItem(value: 'commission', label: 'Commission'),
         AppDropdownItem(value: 'other', label: 'Other'),
       ];
+  static const List<AppDropdownItem<String?>> _accountPurposeFilterItems =
+      <AppDropdownItem<String?>>[
+        AppDropdownItem<String?>(value: null, label: 'All purposes'),
+        AppDropdownItem<String?>(value: 'primary', label: 'Primary'),
+        AppDropdownItem<String?>(value: 'receivable', label: 'Receivable'),
+        AppDropdownItem<String?>(value: 'payable', label: 'Payable'),
+        AppDropdownItem<String?>(value: 'advance', label: 'Advance'),
+        AppDropdownItem<String?>(value: 'salary', label: 'Salary'),
+        AppDropdownItem<String?>(value: 'commission', label: 'Commission'),
+        AppDropdownItem<String?>(value: 'other', label: 'Other'),
+      ];
+  static const List<AppDropdownItem<bool?>> _activeFilterItems =
+      <AppDropdownItem<bool?>>[
+        AppDropdownItem<bool?>(value: null, label: 'All statuses'),
+        AppDropdownItem<bool?>(value: true, label: 'Active'),
+        AppDropdownItem<bool?>(value: false, label: 'Inactive'),
+      ];
 
   final AccountsService _accountsService = AccountsService();
   final MasterService _masterService = MasterService();
@@ -49,6 +66,8 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
   List<PartyModel> _parties = const <PartyModel>[];
   List<AccountModel> _accounts = const <AccountModel>[];
   int? _companyId;
+  String? _filterPurpose;
+  bool? _filterActive;
 
   PartyAccountModel? _editing;
   int? _formPartyId;
@@ -195,6 +214,12 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
       };
       if (_companyId != null) {
         filters['company_id'] = _companyId;
+      }
+      if ((_filterPurpose ?? '').isNotEmpty) {
+        filters['account_purpose'] = _filterPurpose;
+      }
+      if (_filterActive != null) {
+        filters['is_active'] = _filterActive! ? 1 : 0;
       }
       final q = _searchController.text.trim();
       if (q.isNotEmpty) {
@@ -352,6 +377,12 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
   List<Widget> _buildShellActions() {
     return [
       AdaptiveShellActionButton(
+        onPressed: _loading ? null : _openFilterPanel,
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
         onPressed: _saving ? null : _newMapping,
         icon: Icons.add_outlined,
         label: 'New mapping',
@@ -380,6 +411,157 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
     );
   }
 
+  Future<void> _openFilterPanel() async {
+    final companyItems = <AppDropdownItem<int?>>[
+      const AppDropdownItem<int?>(value: null, label: 'All companies'),
+      ..._companies.map(
+        (CompanyModel c) => AppDropdownItem<int?>(
+          value: c.id,
+          label: c.toString(),
+        ),
+      ),
+    ];
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                dialogPadding,
+                dialogPadding,
+                dialogPadding,
+                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
+              ),
+              child: StatefulBuilder(
+                builder: (context, setDialogState) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Filter Party Accounts',
+                              style: Theme.of(dialogContext).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close),
+                            color: appTheme.mutedText,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _filterBox(
+                            child: AppDropdownField<int?>.fromMapped(
+                              labelText: 'Company',
+                              mappedItems: companyItems,
+                              initialValue: _companyId,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  _companyId = value;
+                                });
+                              },
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppFormTextField(
+                              controller: _searchController,
+                              labelText: 'Search',
+                              hintText: 'Party or account',
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppDropdownField<String?>.fromMapped(
+                              labelText: 'Purpose',
+                              mappedItems: _accountPurposeFilterItems,
+                              initialValue: _filterPurpose,
+                              onChanged: (value) => setDialogState(
+                                () => _filterPurpose = value,
+                              ),
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppDropdownField<bool?>.fromMapped(
+                              labelText: 'Active',
+                              mappedItems: _activeFilterItems,
+                              initialValue: _filterActive,
+                              onChanged: (value) => setDialogState(
+                                () => _filterActive = value,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(true),
+                            icon: const Icon(Icons.search),
+                            label: const Text('Apply Filters'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _filterPurpose = null;
+                                _filterActive = null;
+                              });
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (applied == true) {
+      await _loadAccountsForCompany();
+      await _fetch(resetPage: true);
+    }
+  }
+
   Widget _buildContent(BuildContext context) {
     if (_initialLoading) {
       return const AppLoadingView(message: 'Loading party accounts...');
@@ -391,16 +573,6 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
         onRetry: _bootstrap,
       );
     }
-
-    final companyItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All companies'),
-      ..._companies.map(
-        (CompanyModel c) => AppDropdownItem<int?>(
-          value: c.id,
-          label: c.toString(),
-        ),
-      ),
-    ];
 
     final partyItems = _parties
         .where((PartyModel p) => p.id != null)
@@ -441,47 +613,6 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
             AppErrorStateView.inline(message: _pageError!),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
-          AppSectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Filters', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: AppUiConstants.spacingMd),
-                Wrap(
-                  spacing: AppUiConstants.spacingMd,
-                  runSpacing: AppUiConstants.spacingMd,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    AppDropdownField<int?>.fromMapped(
-                      labelText: 'Company',
-                      mappedItems: companyItems,
-                      initialValue: _companyId,
-                      width: 280,
-                      onChanged: (value) async {
-                        setState(() => _companyId = value);
-                        await _loadAccountsForCompany();
-                        await _fetch(resetPage: true);
-                      },
-                    ),
-                    SizedBox(
-                      width: 280,
-                      child: AppFormTextField(
-                        controller: _searchController,
-                        labelText: 'Search',
-                        hintText: 'Party or account',
-                      ),
-                    ),
-                    FilledButton.icon(
-                      onPressed: _loading ? null : () => _fetch(resetPage: true),
-                      icon: const Icon(Icons.search),
-                      label: const Text('Apply'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
           AppSectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -673,5 +804,9 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
         ],
       ),
     );
+  }
+
+  Widget _filterBox({required Widget child}) {
+    return SizedBox(width: 240, child: child);
   }
 }

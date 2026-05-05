@@ -38,15 +38,6 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
     super.dispose();
   }
 
-  void _openRoute(String route) {
-    final navigate = ShellRouteScope.maybeOf(context);
-    if (navigate != null) {
-      navigate(route);
-      return;
-    }
-    Navigator.of(context).pushNamed(route);
-  }
-
   void _snack() {
     final msg = _viewModel.consumeActionMessage();
     if (!mounted || msg == null || msg.trim().isEmpty) return;
@@ -60,13 +51,14 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
       builder: (context, _) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: () {
-              _viewModel.resetDraft();
-              _openRoute('/manufacturing/production-orders/new');
-              if (!Responsive.isDesktop(context)) {
-                _workspaceController.openEditor();
-              }
-            },
+            onPressed: _viewModel.loading
+                ? null
+                : () {
+                    _viewModel.resetDraft();
+                    if (!Responsive.isDesktop(context)) {
+                      _workspaceController.openEditor();
+                    }
+                  },
             icon: Icons.add_outlined,
             label: 'New Production Order',
           ),
@@ -101,7 +93,11 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
       title: 'Production Orders',
       editorTitle: _viewModel.selected == null
           ? 'New Production Order'
-          : stringValue(_viewModel.selected!.toJson(), 'production_no', 'Order'),
+          : stringValue(
+              _viewModel.selected!.toJson(),
+              'production_no',
+              'Order',
+            ),
       editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: SettingsListCard<ProductionOrderModel>(
@@ -114,18 +110,22 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
           final data = item.toJson();
           return SettingsListTile(
             title: stringValue(data, 'production_no', 'Draft'),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'production_date')),
-              stringValue(data, 'production_status'),
-            ].map((v) => v.toString()).where((v) => v.trim().isNotEmpty).join(' · '),
+            subtitle:
+                [
+                      displayDate(nullableStringValue(data, 'production_date')),
+                      stringValue(data, 'production_status'),
+                    ]
+                    .map((v) => v.toString())
+                    .where((v) => v.trim().isNotEmpty)
+                    .join(' · '),
             selected: selected,
             onTap: () async {
               final isDesktop = Responsive.isDesktop(context);
               await _viewModel.select(item);
-              if (!mounted) return;
-              final id = intValue(data, 'id');
-              if (id != null) _openRoute('/manufacturing/production-orders/$id');
-              if (!isDesktop) _workspaceController.openEditor();
+              if (!context.mounted) return;
+              if (!isDesktop) {
+                _workspaceController.openEditor();
+              }
             },
           );
         },
@@ -153,7 +153,6 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
               onDelete: () async {
                 await _viewModel.delete();
                 _snack();
-                _openRoute('/manufacturing/production-orders');
               },
             ),
     );
@@ -194,7 +193,12 @@ class _ProductionOrderEditor extends StatelessWidget {
                   labelText: 'Company',
                   mappedItems: vm.companies
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.companyId,
                   onChanged: vm.onCompanyChanged,
@@ -204,7 +208,12 @@ class _ProductionOrderEditor extends StatelessWidget {
                   labelText: 'Branch',
                   mappedItems: vm.branchOptions
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.branchId,
                   onChanged: vm.onBranchChanged,
@@ -214,11 +223,31 @@ class _ProductionOrderEditor extends StatelessWidget {
                   labelText: 'Location',
                   mappedItems: vm.locationOptions
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.locationId,
                   onChanged: vm.onLocationChanged,
                   validator: Validators.requiredSelection('Location'),
+                ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Financial Year',
+                  mappedItems: vm.financialYearOptions
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: vm.financialYearId,
+                  onChanged: vm.onFinancialYearChanged,
+                  validator: Validators.requiredSelection('Financial Year'),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'BOM',
@@ -237,11 +266,14 @@ class _ProductionOrderEditor extends StatelessWidget {
                 ),
                 AppSearchPickerField<int>(
                   labelText: 'Output Item',
-                  selectedLabel: vm.items
+                  selectedLabel: vm.outputItemOptions
                       .cast<ItemModel?>()
-                      .firstWhere((x) => x?.id == vm.outputItemId, orElse: () => null)
+                      .firstWhere(
+                        (x) => x?.id == vm.outputItemId,
+                        orElse: () => null,
+                      )
                       ?.toString(),
-                  options: vm.items
+                  options: vm.outputItemOptions
                       .where((x) => x.id != null)
                       .map(
                         (x) => AppSearchPickerOption<int>(
@@ -252,14 +284,21 @@ class _ProductionOrderEditor extends StatelessWidget {
                       )
                       .toList(growable: false),
                   onChanged: vm.setOutputItemId,
-                  validator: (_) =>
-                      vm.outputItemId == null ? 'Output Item is required' : null,
+                  validator: (_) => vm.outputItemId == null
+                      ? 'Output Item is required'
+                      : null,
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Output UOM',
-                  mappedItems: vm.uomOptionsForOutputItem()
+                  mappedItems: vm
+                      .uomOptionsForOutputItem()
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.outputUomId,
                   onChanged: vm.setOutputUomId,
@@ -269,7 +308,12 @@ class _ProductionOrderEditor extends StatelessWidget {
                   labelText: 'Warehouse',
                   mappedItems: vm.warehouseOptions
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.warehouseId,
                   onChanged: vm.setWarehouseId,
@@ -294,7 +338,9 @@ class _ProductionOrderEditor extends StatelessWidget {
                   labelText: 'Planned Qty',
                   controller: vm.plannedQtyController,
                   enabled: !vm.isLocked,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: Validators.requiredPositiveNumber('Planned Qty'),
                 ),
                 AppFormTextField(
@@ -319,7 +365,9 @@ class _ProductionOrderEditor extends StatelessWidget {
                     await onSave();
                   },
                 ),
-                if (vm.selected != null && stringValue(vm.selected!.toJson(), 'production_status') == 'draft')
+                if (vm.selected != null &&
+                    stringValue(vm.selected!.toJson(), 'production_status') ==
+                        'draft')
                   AppActionButton(
                     icon: Icons.play_arrow_outlined,
                     label: 'Release',

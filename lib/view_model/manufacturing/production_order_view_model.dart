@@ -8,7 +8,8 @@ class ProductionOrderViewModel extends ChangeNotifier {
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController productionNoController = TextEditingController();
-  final TextEditingController productionDateController = TextEditingController();
+  final TextEditingController productionDateController =
+      TextEditingController();
   final TextEditingController plannedQtyController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
@@ -56,46 +57,61 @@ class ProductionOrderViewModel extends ChangeNotifier {
     return status == 'completed' || status == 'closed' || status == 'cancelled';
   }
 
-  List<BranchModel> get branchOptions => branchesForCompany(branches, companyId);
+  List<BranchModel> get branchOptions =>
+      branchesForCompany(branches, companyId);
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
+  List<FinancialYearModel> get financialYearOptions => financialYears
+      .where((fy) => companyId == null || fy.companyId == companyId)
+      .toList(growable: false);
 
   List<DocumentSeriesModel> get seriesOptions => documentSeries
       .where(
         (s) =>
-            (s.documentType == null ||
-                s.documentType == 'PRODUCTION_ORDER') &&
+            (s.documentType == null || s.documentType == 'PRODUCTION_ORDER') &&
             (companyId == null || s.companyId == companyId) &&
             (financialYearId == null || s.financialYearId == financialYearId),
       )
       .toList(growable: false);
 
-  List<BomModel> get bomOptions => boms.where((bom) {
+  List<BomModel> get bomOptions => boms
+      .where((bom) {
         final data = bom.toJson();
         final approval = stringValue(data, 'approval_status');
         final sameCompany =
             companyId == null || intValue(data, 'company_id') == companyId;
         return approval == 'approved' && sameCompany;
-      }).toList(growable: false);
+      })
+      .toList(growable: false);
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((w) {
+  List<ItemModel> get outputItemOptions => items
+      .where((item) {
+        return companyId == null || item.companyId == companyId;
+      })
+      .toList(growable: false);
+
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((w) {
         if (w.id == null) return false;
         if (companyId != null && w.companyId != companyId) return false;
         if (branchId != null && w.branchId != branchId) return false;
         if (locationId != null && w.locationId != locationId) return false;
         return true;
-      }).toList(growable: false);
+      })
+      .toList(growable: false);
 
   List<ProductionOrderModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) return true;
-      return [
-        stringValue(data, 'production_no'),
-        stringValue(data, 'production_status'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) return true;
+          return [
+            stringValue(data, 'production_no'),
+            stringValue(data, 'production_status'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -126,16 +142,19 @@ class ProductionOrderViewModel extends ChangeNotifier {
         ),
         _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
-      rows = (responses[0] as PaginatedResponse<ProductionOrderModel>).data ??
+      rows =
+          (responses[0] as PaginatedResponse<ProductionOrderModel>).data ??
           const <ProductionOrderModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[2] as PaginatedResponse<BranchModel>).data ??
-              const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      branches =
+          ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       locations =
           ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
                   const <BusinessLocationModel>[])
@@ -151,29 +170,36 @@ class ProductionOrderViewModel extends ChangeNotifier {
                   const <DocumentSeriesModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      boms = (responses[6] as PaginatedResponse<BomModel>).data ??
+      boms =
+          (responses[6] as PaginatedResponse<BomModel>).data ??
           const <BomModel>[];
-      items = ((responses[7] as PaginatedResponse<ItemModel>).data ??
-              const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uoms = ((responses[8] as PaginatedResponse<UomModel>).data ??
-              const <UomModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uomConversions = ((responses[9] as PaginatedResponse<UomConversionModel>).data ??
-              const <UomConversionModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      warehouses = ((responses[10] as PaginatedResponse<WarehouseModel>).data ??
-              const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      items =
+          ((responses[7] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uoms =
+          ((responses[8] as PaginatedResponse<UomModel>).data ??
+                  const <UomModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uomConversions =
+          ((responses[9] as PaginatedResponse<UomConversionModel>).data ??
+                  const <UomConversionModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[10] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       loading = false;
 
       if (selectId != null) {
         final existing = rows.cast<ProductionOrderModel?>().firstWhere(
-          (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
           orElse: () => null,
         );
         if (existing != null) {
@@ -196,15 +222,21 @@ class ProductionOrderViewModel extends ChangeNotifier {
     companyId ??= companies.isNotEmpty ? companies.first.id : null;
     branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId ??=
-        financialYears.isNotEmpty ? financialYears.first.id : null;
+    financialYearId = financialYearOptions.isNotEmpty
+        ? financialYearOptions.first.id
+        : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     bomId = null;
     outputItemId = null;
     outputUomId = null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     productionNoController.clear();
-    productionDateController.text = DateTime.now().toIso8601String().split('T').first;
+    productionDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     plannedQtyController.text = '1';
     notesController.clear();
     isActive = true;
@@ -231,8 +263,9 @@ class ProductionOrderViewModel extends ChangeNotifier {
       outputUomId = intValue(data, 'output_uom_id');
       warehouseId = intValue(data, 'warehouse_id');
       productionNoController.text = stringValue(data, 'production_no');
-      productionDateController.text =
-          displayDate(nullableStringValue(data, 'production_date'));
+      productionDateController.text = displayDate(
+        nullableStringValue(data, 'production_date'),
+      );
       plannedQtyController.text = stringValue(data, 'planned_qty');
       notesController.text = stringValue(data, 'notes');
       isActive = boolValue(data, 'is_active', fallback: true);
@@ -249,7 +282,16 @@ class ProductionOrderViewModel extends ChangeNotifier {
     companyId = value;
     branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
+    financialYearId = financialYearOptions.isNotEmpty
+        ? financialYearOptions.first.id
+        : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    bomId = null;
+    outputItemId = null;
+    outputUomId = null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     notifyListeners();
   }
 
@@ -263,6 +305,16 @@ class ProductionOrderViewModel extends ChangeNotifier {
   void onLocationChanged(int? value) {
     if (isLocked) return;
     locationId = value;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
+    notifyListeners();
+  }
+
+  void onFinancialYearChanged(int? value) {
+    if (isLocked) return;
+    financialYearId = value;
+    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     notifyListeners();
   }
 
@@ -324,8 +376,17 @@ class ProductionOrderViewModel extends ChangeNotifier {
         financialYearId == null) {
       return 'Company, branch, location and financial year are required.';
     }
+    if (financialYearOptions.every((fy) => fy.id != financialYearId)) {
+      return 'Select a financial year for the chosen company.';
+    }
     if (bomId == null || outputItemId == null || outputUomId == null) {
       return 'BOM, output item and output UOM are required.';
+    }
+    if (bomOptions.every((bom) => intValue(bom.toJson(), 'id') != bomId)) {
+      return 'Select an approved BOM for the chosen company.';
+    }
+    if (outputItemOptions.every((item) => item.id != outputItemId)) {
+      return 'Select an output item for the chosen company.';
     }
     if (warehouseId == null) {
       return 'Warehouse is required.';
@@ -372,7 +433,10 @@ class ProductionOrderViewModel extends ChangeNotifier {
             );
       actionMessage = response.message;
       await load(
-        selectId: intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id'),
+        selectId: intValue(
+          response.data?.toJson() ?? const <String, dynamic>{},
+          'id',
+        ),
       );
     } catch (e) {
       formError = e.toString();

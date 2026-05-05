@@ -279,6 +279,12 @@ Future<void> openAttendanceRecordEditor(
   String? loadError;
   String? formError;
 
+  void disposeControllers() {
+    dateCtrl.dispose();
+    checkInCtrl.dispose();
+    checkOutCtrl.dispose();
+  }
+
   try {
     final empResp = await hr.employees(
       filters: <String, dynamic>{
@@ -318,9 +324,7 @@ Future<void> openAttendanceRecordEditor(
   }
 
   if (!context.mounted) {
-    dateCtrl.dispose();
-    checkInCtrl.dispose();
-    checkOutCtrl.dispose();
+    disposeControllers();
     return;
   }
 
@@ -328,9 +332,7 @@ Future<void> openAttendanceRecordEditor(
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(loadError)));
-    dateCtrl.dispose();
-    checkInCtrl.dispose();
-    checkOutCtrl.dispose();
+    disposeControllers();
     return;
   }
 
@@ -476,9 +478,9 @@ Future<void> openAttendanceRecordEditor(
     },
   );
 
-  dateCtrl.dispose();
-  checkInCtrl.dispose();
-  checkOutCtrl.dispose();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    disposeControllers();
+  });
 }
 
 Future<void> showAttendanceRecordDetailDialog(

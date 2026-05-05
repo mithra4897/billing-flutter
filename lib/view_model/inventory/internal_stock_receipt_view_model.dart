@@ -129,7 +129,9 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
           (locationId == null ||
               intValue(item.raw ?? const <String, dynamic>{}, 'location_id') == null ||
               intValue(item.raw ?? const <String, dynamic>{}, 'location_id') == locationId) &&
-          (financialYearId == null || item.financialYearId == financialYearId))
+          (financialYearId == null ||
+              item.financialYearId == null ||
+              item.financialYearId == financialYearId))
       .toList(growable: false);
 
   List<InternalStockReceiptModel> get filteredRows {

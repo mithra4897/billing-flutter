@@ -60,8 +60,11 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       ];
 
   final AccountsService _accountsService = AccountsService();
+  final AssetsService _assetsService = AssetsService();
+  final HrService _hrService = HrService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
+  final ProjectService _projectService = ProjectService();
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
@@ -92,6 +95,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   List<VoucherTypeModel> _voucherTypes = const <VoucherTypeModel>[];
   List<AccountModel> _accounts = const <AccountModel>[];
   List<PartyModel> _parties = const <PartyModel>[];
+  List<CostCenterModel> _costCenters = const <CostCenterModel>[];
+  List<DepartmentModel> _departments = const <DepartmentModel>[];
+  List<ProjectModel> _projects = const <ProjectModel>[];
   VoucherModel? _selectedVoucher;
   int? _contextCompanyId;
   int? _contextBranchId;
@@ -156,7 +162,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
     try {
       final permissionCodes = await SessionStorage.getPermissionCodes();
       final currentUser = await SessionStorage.getCurrentUser();
-      final isSuperAdmin = currentUser?['is_super_admin'] == true ||
+      final isSuperAdmin =
+          currentUser?['is_super_admin'] == true ||
           currentUser?['is_super_admin'] == 1;
 
       final responses = await Future.wait<dynamic>([
@@ -181,6 +188,15 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         _accountsService.voucherTypesAll(filters: const {'sort_by': 'name'}),
         _partiesService.parties(
           filters: const {'per_page': 200, 'sort_by': 'party_name'},
+        ),
+        _assetsService.costCenters(
+          filters: const {'per_page': 500, 'sort_by': 'cost_center_name'},
+        ),
+        _hrService.departments(
+          filters: const {'per_page': 500, 'sort_by': 'department_name'},
+        ),
+        _projectService.projects(
+          filters: const {'per_page': 500, 'sort_by': 'project_name'},
         ),
       ]);
 
@@ -208,6 +224,15 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
       final parties =
           (responses[7] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
+      final costCenters =
+          (responses[8] as PaginatedResponse<CostCenterModel>).data ??
+          const <CostCenterModel>[];
+      final departments =
+          (responses[9] as PaginatedResponse<DepartmentModel>).data ??
+          const <DepartmentModel>[];
+      final projects =
+          (responses[10] as PaginatedResponse<ProjectModel>).data ??
+          const <ProjectModel>[];
       final activeCompanies = companies.where((item) => item.isActive).toList();
       final activeBranches = branches.where((item) => item.isActive).toList();
       final activeLocations = locations.where((item) => item.isActive).toList();
@@ -259,6 +284,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             .toList();
         _accounts = accounts.where((item) => item.isActive).toList();
         _parties = parties.where((item) => item.isActive).toList();
+        _costCenters = costCenters.where((item) => item.isActive).toList();
+        _departments = departments.where((item) => item.isActive).toList();
+        _projects = projects.where((item) => item.isActive ?? true).toList();
         _initialLoading = false;
         _syncVoucherTypeWithMode();
         _syncDocumentSeriesSelection();
@@ -395,6 +423,26 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         .toList(growable: false);
   }
 
+  List<CostCenterModel> get _costCentersScoped {
+    final cid = _companyId ?? _contextCompanyId;
+    if (cid == null) {
+      return _costCenters;
+    }
+    return _costCenters
+        .where((item) => item.companyId == null || item.companyId == cid)
+        .toList(growable: false);
+  }
+
+  List<ProjectModel> get _projectsScoped {
+    final cid = _companyId ?? _contextCompanyId;
+    if (cid == null) {
+      return _projects;
+    }
+    return _projects
+        .where((item) => item.companyId == null || item.companyId == cid)
+        .toList(growable: false);
+  }
+
   Map<String, dynamic>? _accountGroupJson(AccountModel a) {
     final m = a.raw;
     if (m == null) {
@@ -416,6 +464,101 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
 
   String? _accountGroupCategoryOf(AccountModel a) =>
       _accountGroupJson(a)?['group_category']?.toString();
+
+  String _costCenterValueOf(CostCenterModel item) =>
+      item.costCenterCode?.trim().isNotEmpty == true
+      ? item.costCenterCode!.trim()
+      : (item.costCenterName ?? '').trim();
+
+  String _costCenterLabel(CostCenterModel item) {
+    final code = item.costCenterCode?.trim() ?? '';
+    final name = item.costCenterName?.trim() ?? '';
+    if (code.isNotEmpty && name.isNotEmpty && code != name) {
+      return '$code - $name';
+    }
+    return code.isNotEmpty ? code : name;
+  }
+
+  String _departmentValueOf(DepartmentModel item) =>
+      (item.departmentName ?? '').trim();
+
+  String _projectValueOf(ProjectModel item) =>
+      item.projectCode?.trim().isNotEmpty == true
+      ? item.projectCode!.trim()
+      : (item.projectName ?? '').trim();
+
+  String _projectLabel(ProjectModel item) {
+    final code = item.projectCode?.trim() ?? '';
+    final name = item.projectName?.trim() ?? '';
+    if (code.isNotEmpty && name.isNotEmpty && code != name) {
+      return '$code - $name';
+    }
+    return code.isNotEmpty ? code : name;
+  }
+
+  List<AppDropdownItem<String>> _dimensionItems(
+    Iterable<String> seededValues,
+    Iterable<AppDropdownItem<String>> options,
+  ) {
+    final items = <AppDropdownItem<String>>[];
+    final seen = <String>{};
+
+    void addValue(String? raw, {String? label}) {
+      final value = raw?.trim() ?? '';
+      if (value.isEmpty || !seen.add(value)) {
+        return;
+      }
+      items.add(AppDropdownItem<String>(value: value, label: label ?? value));
+    }
+
+    for (final value in seededValues) {
+      addValue(value);
+    }
+    for (final option in options) {
+      addValue(option.value, label: option.label);
+    }
+
+    return items;
+  }
+
+  List<AppDropdownItem<String>> _costCenterItems([String? currentValue]) =>
+      _dimensionItems(
+        <String>[?currentValue],
+        [
+          for (final item in _costCentersScoped)
+            if (_costCenterValueOf(item).isNotEmpty)
+              AppDropdownItem<String>(
+                value: _costCenterValueOf(item),
+                label: _costCenterLabel(item),
+              ),
+        ],
+      );
+
+  List<AppDropdownItem<String>> _departmentItems([String? currentValue]) =>
+      _dimensionItems(
+        <String>[?currentValue],
+        [
+          for (final item in _departments)
+            if (_departmentValueOf(item).isNotEmpty)
+              AppDropdownItem<String>(
+                value: _departmentValueOf(item),
+                label: _departmentValueOf(item),
+              ),
+        ],
+      );
+
+  List<AppDropdownItem<String>> _projectItems([String? currentValue]) =>
+      _dimensionItems(
+        <String>[?currentValue],
+        [
+          for (final item in _projectsScoped)
+            if (_projectValueOf(item).isNotEmpty)
+              AppDropdownItem<String>(
+                value: _projectValueOf(item),
+                label: _projectLabel(item),
+              ),
+        ],
+      );
 
   /// Expense / payment: debit side (chart groups with expense nature or expense categories).
   List<AccountModel> get _expenseLedgerOptions {
@@ -537,6 +680,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             partyId: item.partyId,
             entryType: item.entryType ?? 'debit',
             amountText: (item.amount ?? 0).toString(),
+            costCenter: item.costCenter ?? '',
+            department: item.department ?? '',
+            project: item.project ?? '',
             narration: item.lineNarration ?? '',
           ),
         )
@@ -762,6 +908,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                   partyId: line.partyId,
                   entryType: line.entryType,
                   amount: double.tryParse(line.amountText.trim()),
+                  costCenter: nullIfEmpty(line.costCenter),
+                  department: nullIfEmpty(line.department),
+                  project: nullIfEmpty(line.project),
                   lineNarration: nullIfEmpty(line.narration),
                 ),
               )
@@ -1011,12 +1160,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                             itemBuilder: (context, index) {
                               final row = rows[index];
                               final action = row['action']?.toString() ?? '';
-                              final desc =
-                                  row['description']?.toString() ?? '';
-                              final who =
-                                  row['user_display']?.toString() ?? '';
-                              final when =
-                                  row['created_at']?.toString() ?? '';
+                              final desc = row['description']?.toString() ?? '';
+                              final who = row['user_display']?.toString() ?? '';
+                              final when = row['created_at']?.toString() ?? '';
                               return ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 title: Text(
@@ -1283,7 +1429,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     color: Theme.of(context).colorScheme.error,
                   ),
                 ),
-              ] else if (_selectedVoucher!.isSystemGenerated && !_isSuperAdmin) ...[
+              ] else if (_selectedVoucher!.isSystemGenerated &&
+                  !_isSuperAdmin) ...[
                 Text(
                   'This voucher was created by the system from another module. '
                   'It cannot be edited or deleted on this screen unless you are a super admin.',
@@ -1291,7 +1438,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     color: Theme.of(context).colorScheme.error,
                   ),
                 ),
-              ] else if (_selectedVoucher!.isSystemGenerated && _isSuperAdmin) ...[
+              ] else if (_selectedVoucher!.isSystemGenerated &&
+                  _isSuperAdmin) ...[
                 Text(
                   'Super admin: you may edit or delete this system-generated voucher. '
                   'Source documents may no longer match the books.',
@@ -1348,10 +1496,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                     ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant
-                        .withValues(alpha: 0.85),
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
                   ),
                   onPressed: _auditLogLoading ? null : _openVoucherAuditLog,
                   child: _auditLogLoading
@@ -1638,20 +1785,26 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               ]),
             ),
             if (!_simpleEntryMode) ...[
-              AppFormTextField(
+              AppDropdownField<String>.fromMapped(
                 labelText: 'Cost Center',
-                controller: _costCenterController,
-                validator: Validators.optionalMaxLength(100, 'Cost Center'),
+                mappedItems: _costCenterItems(_costCenterController.text),
+                initialValue: nullIfEmpty(_costCenterController.text),
+                onChanged: (value) =>
+                    setState(() => _costCenterController.text = value ?? ''),
               ),
-              AppFormTextField(
+              AppDropdownField<String>.fromMapped(
                 labelText: 'Department',
-                controller: _departmentController,
-                validator: Validators.optionalMaxLength(100, 'Department'),
+                mappedItems: _departmentItems(_departmentController.text),
+                initialValue: nullIfEmpty(_departmentController.text),
+                onChanged: (value) =>
+                    setState(() => _departmentController.text = value ?? ''),
               ),
-              AppFormTextField(
+              AppDropdownField<String>.fromMapped(
                 labelText: 'Project',
-                controller: _projectController,
-                validator: Validators.optionalMaxLength(100, 'Project'),
+                mappedItems: _projectItems(_projectController.text),
+                initialValue: nullIfEmpty(_projectController.text),
+                onChanged: (value) =>
+                    setState(() => _projectController.text = value ?? ''),
               ),
               AppFormTextField(
                 labelText: 'Line Narration',
@@ -1770,6 +1923,27 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                           },
                         ]),
                       ),
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Cost Center',
+                        mappedItems: _costCenterItems(line.costCenter),
+                        initialValue: nullIfEmpty(line.costCenter),
+                        onChanged: (value) =>
+                            setState(() => line.costCenter = value ?? ''),
+                      ),
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Department',
+                        mappedItems: _departmentItems(line.department),
+                        initialValue: nullIfEmpty(line.department),
+                        onChanged: (value) =>
+                            setState(() => line.department = value ?? ''),
+                      ),
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Project',
+                        mappedItems: _projectItems(line.project),
+                        initialValue: nullIfEmpty(line.project),
+                        onChanged: (value) =>
+                            setState(() => line.project = value ?? ''),
+                      ),
                       AppFormTextField(
                         labelText: 'Line Narration',
                         initialValue: line.narration,
@@ -1875,6 +2049,9 @@ class _VoucherLineDraft {
     this.partyId,
     this.entryType = 'debit',
     this.amountText = '',
+    this.costCenter = '',
+    this.department = '',
+    this.project = '',
     this.narration = '',
   });
 
@@ -1882,6 +2059,9 @@ class _VoucherLineDraft {
   int? partyId;
   String entryType;
   String amountText;
+  String costCenter;
+  String department;
+  String project;
   String narration;
 }
 
