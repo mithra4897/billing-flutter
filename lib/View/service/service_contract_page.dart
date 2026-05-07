@@ -70,14 +70,17 @@ class _ServiceContractPageState extends State<ServiceContractPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading
                 ? null
                 : () {
                     _viewModel.resetDraft();
-                    _openRoute('/service/contracts/new');
-                    if (!Responsive.isDesktop(context)) {
+                    if (widget.editorOnly || !isDesktop) {
+                      _openRoute('/service/contracts/new');
+                    }
+                    if (!isDesktop) {
                       _workspaceController.openEditor();
                     }
                   },
@@ -168,9 +171,13 @@ class _ServiceContractPageState extends State<ServiceContractPage> {
           _snack();
         },
         onDelete: () async {
+          final shouldNavigateBack =
+              widget.editorOnly || !Responsive.isDesktop(context);
           await _viewModel.deleteContract();
           _snack();
-          _openRoute('/service/contracts');
+          if (shouldNavigateBack) {
+            _openRoute('/service/contracts');
+          }
         },
       ),
     );

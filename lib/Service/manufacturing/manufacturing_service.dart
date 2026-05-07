@@ -108,6 +108,30 @@ class ManufacturingService extends ErpModuleService {
     '/manufacturing/production-material-issues/$id',
     fromJson: ProductionMaterialIssueModel.fromJson,
   );
+  Future<ApiResponse<List<Map<String, dynamic>>>>
+  productionMaterialIssueAuditTrail(int id) {
+    return client.get<List<Map<String, dynamic>>>(
+      '/manufacturing/production-material-issues/$id/audit-trail',
+      fromData: (dynamic json) {
+        if (json is! List) {
+          return <Map<String, dynamic>>[];
+        }
+        return json
+            .map((dynamic e) {
+              if (e is Map<String, dynamic>) {
+                return e;
+              }
+              if (e is Map) {
+                return Map<String, dynamic>.from(e);
+              }
+              return <String, dynamic>{};
+            })
+            .where((m) => m.isNotEmpty)
+            .toList();
+      },
+    );
+  }
+
   Future<ApiResponse<ProductionMaterialIssueModel>>
   createProductionMaterialIssue(ProductionMaterialIssueModel body) =>
       createModel<ProductionMaterialIssueModel>(

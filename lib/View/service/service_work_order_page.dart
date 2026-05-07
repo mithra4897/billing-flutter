@@ -77,14 +77,17 @@ class _ServiceWorkOrderPageState extends State<ServiceWorkOrderPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading
                 ? null
                 : () {
                     _viewModel.resetDraft();
-                    _openRoute('/service/work-orders/new');
-                    if (!Responsive.isDesktop(context)) {
+                    if (widget.editorOnly || !isDesktop) {
+                      _openRoute('/service/work-orders/new');
+                    }
+                    if (!isDesktop) {
                       _workspaceController.openEditor();
                     }
                   },
@@ -179,9 +182,13 @@ class _ServiceWorkOrderPageState extends State<ServiceWorkOrderPage> {
           _snack();
         },
         onDelete: () async {
+          final shouldNavigateBack =
+              widget.editorOnly || !Responsive.isDesktop(context);
           await _viewModel.deleteWorkOrder();
           _snack();
-          _openRoute('/service/work-orders');
+          if (shouldNavigateBack) {
+            _openRoute('/service/work-orders');
+          }
         },
       ),
     );

@@ -107,14 +107,17 @@ class _WarrantyClaimPageState extends State<WarrantyClaimPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading
                 ? null
                 : () {
                     _viewModel.resetDraft();
-                    _openRoute('/service/warranty-claims/new');
-                    if (!Responsive.isDesktop(context)) {
+                    if (widget.editorOnly || !isDesktop) {
+                      _openRoute('/service/warranty-claims/new');
+                    }
+                    if (!isDesktop) {
                       _workspaceController.openEditor();
                     }
                   },
@@ -206,9 +209,13 @@ class _WarrantyClaimPageState extends State<WarrantyClaimPage> {
           _snack();
         },
         onDelete: () async {
+          final shouldNavigateBack =
+              widget.editorOnly || !Responsive.isDesktop(context);
           await _viewModel.deleteClaim();
           _snack();
-          _openRoute('/service/warranty-claims');
+          if (shouldNavigateBack) {
+            _openRoute('/service/warranty-claims');
+          }
         },
         onCreateWorkOrder: _createWo,
       ),

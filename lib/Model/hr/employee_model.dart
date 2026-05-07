@@ -39,6 +39,9 @@ class EmployeeModel implements JsonModel {
     this.designationName,
     this.companyName,
     this.costCenterName,
+    this.userId,
+    this.userDisplayName,
+    this.userUsername,
     this.addresses = const <EmployeeAddressModel>[],
     this.relations = const <EmployeeRelationModel>[],
     this.salaryStructures = const <EmployeeSalaryStructureModel>[],
@@ -80,6 +83,9 @@ class EmployeeModel implements JsonModel {
   final String? designationName;
   final String? companyName;
   final String? costCenterName;
+  final int? userId;
+  final String? userDisplayName;
+  final String? userUsername;
   final List<EmployeeAddressModel> addresses;
   final List<EmployeeRelationModel> relations;
   final List<EmployeeSalaryStructureModel> salaryStructures;
@@ -94,18 +100,17 @@ class EmployeeModel implements JsonModel {
     final designation = _asMap(json['designation']);
     final company = _asMap(json['company']);
     final costCenter = _asMap(json['cost_center'] ?? json['costCenter']);
+    final user = _asMap(json['user']);
     final structures =
         _asList(json['salary_structures'] ?? json['salaryStructures'])
             .map((item) => EmployeeSalaryStructureModel.fromJson(item))
             .toList(growable: false);
-    final addresses =
-        _asList(json['addresses'])
-            .map((item) => EmployeeAddressModel.fromJson(item))
-            .toList(growable: false);
-    final relations =
-        _asList(json['relations'])
-            .map((item) => EmployeeRelationModel.fromJson(item))
-            .toList(growable: false);
+    final addresses = _asList(json['addresses'])
+        .map((item) => EmployeeAddressModel.fromJson(item))
+        .toList(growable: false);
+    final relations = _asList(json['relations'])
+        .map((item) => EmployeeRelationModel.fromJson(item))
+        .toList(growable: false);
 
     return EmployeeModel(
       id: _nullableInt(json['id']),
@@ -131,9 +136,13 @@ class EmployeeModel implements JsonModel {
       passportIssueDate: _dateString(json['passport_issue_date']),
       passportExpiryDate: _dateString(json['passport_expiry_date']),
       passportPlaceOfIssue: json['passport_place_of_issue']?.toString(),
-      personalInsuranceProvider: json['personal_insurance_provider']?.toString(),
-      personalInsurancePolicyNo: json['personal_insurance_policy_no']?.toString(),
-      personalInsuranceAmount: _nullableDouble(json['personal_insurance_amount']),
+      personalInsuranceProvider: json['personal_insurance_provider']
+          ?.toString(),
+      personalInsurancePolicyNo: json['personal_insurance_policy_no']
+          ?.toString(),
+      personalInsuranceAmount: _nullableDouble(
+        json['personal_insurance_amount'],
+      ),
       companyInsuranceProvider: json['company_insurance_provider']?.toString(),
       companyInsurancePolicyNo: json['company_insurance_policy_no']?.toString(),
       companyInsuranceAmount: _nullableDouble(json['company_insurance_amount']),
@@ -147,6 +156,9 @@ class EmployeeModel implements JsonModel {
       costCenterName:
           costCenter['cost_center_name']?.toString() ??
           costCenter['cost_center_code']?.toString(),
+      userId: _nullableInt(user['id'] ?? json['user_id']),
+      userDisplayName: user['display_name']?.toString(),
+      userUsername: user['username']?.toString(),
       addresses: addresses,
       relations: relations,
       salaryStructures: structures,
@@ -198,9 +210,13 @@ class EmployeeModel implements JsonModel {
         'company_insurance_amount': companyInsuranceAmount,
       'cost_center_id': costCenterId,
       if (addresses.isNotEmpty || raw?.containsKey('addresses') == true)
-        'addresses': addresses.map((item) => item.toJson()).toList(growable: false),
+        'addresses': addresses
+            .map((item) => item.toJson())
+            .toList(growable: false),
       if (relations.isNotEmpty || raw?.containsKey('relations') == true)
-        'relations': relations.map((item) => item.toJson()).toList(growable: false),
+        'relations': relations
+            .map((item) => item.toJson())
+            .toList(growable: false),
       if (salaryStructures.isNotEmpty ||
           raw?.containsKey('salary_structures') == true)
         'salary_structures': salaryStructures
@@ -267,8 +283,7 @@ class EmployeeModel implements JsonModel {
       passportNo: passportNo ?? this.passportNo,
       passportIssueDate: passportIssueDate ?? this.passportIssueDate,
       passportExpiryDate: passportExpiryDate ?? this.passportExpiryDate,
-      passportPlaceOfIssue:
-          passportPlaceOfIssue ?? this.passportPlaceOfIssue,
+      passportPlaceOfIssue: passportPlaceOfIssue ?? this.passportPlaceOfIssue,
       personalInsuranceProvider:
           personalInsuranceProvider ?? this.personalInsuranceProvider,
       personalInsurancePolicyNo:

@@ -57,11 +57,14 @@ class _StockReservationPageState extends State<StockReservationPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {
               _viewModel.resetDraft();
-              _openRoute('/planning/stock-reservations/new');
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('/planning/stock-reservations/new');
+              }
               if (!Responsive.isDesktop(context)) {
                 _workspaceController.openEditor();
               }
@@ -124,7 +127,9 @@ class _StockReservationPageState extends State<StockReservationPage> {
               await _viewModel.select(item);
               if (!mounted) return;
               final id = intValue(data, 'id');
-              if (id != null) _openRoute('/planning/stock-reservations/$id');
+              if (id != null && (widget.editorOnly || !isDesktop)) {
+                _openRoute('/planning/stock-reservations/$id');
+              }
               if (!isDesktop) _workspaceController.openEditor();
             },
           );
@@ -143,9 +148,13 @@ class _StockReservationPageState extends State<StockReservationPage> {
                 _snack();
               },
               onDelete: () async {
+                final shouldNavigateBack =
+                    widget.editorOnly || !Responsive.isDesktop(context);
                 await _viewModel.delete();
                 _snack();
-                _openRoute('/planning/stock-reservations');
+                if (shouldNavigateBack) {
+                  _openRoute('/planning/stock-reservations');
+                }
               },
             ),
     );

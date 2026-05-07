@@ -7,7 +7,9 @@ import '../auth/user_role_model.dart';
 class UserModel implements JsonModel {
   const UserModel({
     this.id,
+    this.employeeId,
     this.employeeCode,
+    this.employeeName,
     this.username,
     this.password,
     this.firstName,
@@ -31,7 +33,9 @@ class UserModel implements JsonModel {
   });
 
   final int? id;
+  final int? employeeId;
   final String? employeeCode;
+  final String? employeeName;
   final String? username;
   final String? password;
   final String? firstName;
@@ -56,7 +60,11 @@ class UserModel implements JsonModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: ModelValue.nullableInt(json['id']),
+      employeeId: ModelValue.nullableInt(json['employee_id']),
       employeeCode: json['employee_code']?.toString(),
+      employeeName: (json['employee'] is Map<String, dynamic>)
+          ? (json['employee']['employee_name']?.toString())
+          : json['employee_name']?.toString(),
       username: json['username']?.toString(),
       firstName: json['first_name']?.toString(),
       lastName: json['last_name']?.toString(),
@@ -89,6 +97,7 @@ class UserModel implements JsonModel {
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
+      if (employeeId != null) 'employee_id': employeeId,
       if (employeeCode != null) 'employee_code': employeeCode,
       if (username != null) 'username': username,
       if (password != null && password!.isNotEmpty) 'password': password,

@@ -106,7 +106,9 @@ class _MrpRecommendationPageState extends State<MrpRecommendationPage> {
               final isDesktop = Responsive.isDesktop(context);
               await _viewModel.select(item);
               if (!mounted || id == null) return;
-              _openRoute('/planning/mrp-recommendations/$id');
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('/planning/mrp-recommendations/$id');
+              }
               if (!isDesktop) _workspaceController.openEditor();
             },
           );

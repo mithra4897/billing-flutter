@@ -57,11 +57,14 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {
               _viewModel.resetDraft();
-              _openRoute('/planning/calendars/new');
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('/planning/calendars/new');
+              }
               if (!Responsive.isDesktop(context)) _workspaceController.openEditor();
             },
             icon: Icons.add_outlined,
@@ -114,7 +117,9 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
               final isDesktop = Responsive.isDesktop(context);
               await _viewModel.select(item);
               if (!mounted || id == null) return;
-              _openRoute('/planning/calendars/$id');
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('/planning/calendars/$id');
+              }
               if (!isDesktop) _workspaceController.openEditor();
             },
           );
@@ -129,9 +134,13 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
                 _snack();
               },
               onDelete: () async {
+                final shouldNavigateBack =
+                    widget.editorOnly || !Responsive.isDesktop(context);
                 await _viewModel.delete();
                 _snack();
-                _openRoute('/planning/calendars');
+                if (shouldNavigateBack) {
+                  _openRoute('/planning/calendars');
+                }
               },
             ),
     );

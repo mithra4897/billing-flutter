@@ -66,14 +66,17 @@ class _ServiceFeedbackPageState extends State<ServiceFeedbackPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading
                 ? null
                 : () {
                     _viewModel.resetDraft();
-                    _openRoute('/service/feedbacks/new');
-                    if (!Responsive.isDesktop(context)) {
+                    if (widget.editorOnly || !isDesktop) {
+                      _openRoute('/service/feedbacks/new');
+                    }
+                    if (!isDesktop) {
                       _workspaceController.openEditor();
                     }
                   },
@@ -152,9 +155,13 @@ class _ServiceFeedbackPageState extends State<ServiceFeedbackPage> {
           _snack();
         },
         onDelete: () async {
+          final shouldNavigateBack =
+              widget.editorOnly || !Responsive.isDesktop(context);
           await _viewModel.deleteFeedback();
           _snack();
-          _openRoute('/service/feedbacks');
+          if (shouldNavigateBack) {
+            _openRoute('/service/feedbacks');
+          }
         },
       ),
     );

@@ -121,7 +121,9 @@ class _MrpReadonlyPageState extends State<MrpReadonlyPage> {
               final isDesktop = Responsive.isDesktop(context);
               await _viewModel.select(item);
               if (!mounted || id == null) return;
-              _openRoute('${_baseRoute()}/$id');
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('${_baseRoute()}/$id');
+              }
               if (!isDesktop) _workspaceController.openEditor();
             },
           );

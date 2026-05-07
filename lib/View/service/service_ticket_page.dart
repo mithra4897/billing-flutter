@@ -80,14 +80,17 @@ class _ServiceTicketPageState extends State<ServiceTicketPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading
                 ? null
                 : () {
                     _viewModel.resetDraft();
-                    _openRoute('/service/tickets/new');
-                    if (!Responsive.isDesktop(context)) {
+                    if (widget.editorOnly || !isDesktop) {
+                      _openRoute('/service/tickets/new');
+                    }
+                    if (!isDesktop) {
                       _workspaceController.openEditor();
                     }
                   },
@@ -179,9 +182,13 @@ class _ServiceTicketPageState extends State<ServiceTicketPage> {
           _snack();
         },
         onDelete: () async {
+          final shouldNavigateBack =
+              widget.editorOnly || !Responsive.isDesktop(context);
           await _viewModel.deleteTicket();
           _snack();
-          _openRoute('/service/tickets');
+          if (shouldNavigateBack) {
+            _openRoute('/service/tickets');
+          }
         },
       ),
     );

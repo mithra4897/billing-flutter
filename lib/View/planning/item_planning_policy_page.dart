@@ -57,12 +57,15 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {
               _viewModel.resetDraft();
-              _openRoute('/planning/item-policies/new');
-              if (!Responsive.isDesktop(context)) _workspaceController.openEditor();
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('/planning/item-policies/new');
+              }
+              if (!isDesktop) _workspaceController.openEditor();
             },
             icon: Icons.add_outlined,
             label: 'New Item Policy',
@@ -119,7 +122,9 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
               final isDesktop = Responsive.isDesktop(context);
               await _viewModel.select(item);
               if (!mounted || id == null) return;
-              _openRoute('/planning/item-policies/$id');
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('/planning/item-policies/$id');
+              }
               if (!isDesktop) _workspaceController.openEditor();
             },
           );
@@ -131,9 +136,13 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
               await _viewModel.save();
               _snack();
             }, onDelete: () async {
+              final shouldNavigateBack =
+                  widget.editorOnly || !Responsive.isDesktop(context);
               await _viewModel.delete();
               _snack();
-              _openRoute('/planning/item-policies');
+              if (shouldNavigateBack) {
+                _openRoute('/planning/item-policies');
+              }
             }),
     );
   }

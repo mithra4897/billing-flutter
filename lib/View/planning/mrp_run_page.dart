@@ -57,12 +57,15 @@ class _MrpRunPageState extends State<MrpRunPage> {
     return AnimatedBuilder(
       animation: _viewModel,
       builder: (context, _) {
+        final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {
               _viewModel.resetDraft();
-              _openRoute('/planning/mrp-runs/new');
-              if (!Responsive.isDesktop(context)) _workspaceController.openEditor();
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('/planning/mrp-runs/new');
+              }
+              if (!isDesktop) _workspaceController.openEditor();
             },
             icon: Icons.add_outlined,
             label: 'New MRP Run',
@@ -117,7 +120,9 @@ class _MrpRunPageState extends State<MrpRunPage> {
               final isDesktop = Responsive.isDesktop(context);
               await _viewModel.select(item);
               if (!mounted || id == null) return;
-              _openRoute('/planning/mrp-runs/$id');
+              if (widget.editorOnly || !isDesktop) {
+                _openRoute('/planning/mrp-runs/$id');
+              }
               if (!isDesktop) _workspaceController.openEditor();
             },
           );
@@ -140,9 +145,13 @@ class _MrpRunPageState extends State<MrpRunPage> {
                 _snack();
               },
               onDelete: () async {
+                final shouldNavigateBack =
+                    widget.editorOnly || !Responsive.isDesktop(context);
                 await _viewModel.delete();
                 _snack();
-                _openRoute('/planning/mrp-runs');
+                if (shouldNavigateBack) {
+                  _openRoute('/planning/mrp-runs');
+                }
               },
             ),
     );

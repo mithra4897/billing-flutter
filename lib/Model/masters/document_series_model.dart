@@ -4,6 +4,8 @@ class DocumentSeriesModel implements JsonModel {
   const DocumentSeriesModel({
     this.id,
     this.companyId,
+    this.branchId,
+    this.locationId,
     this.financialYearId,
     this.seriesCode,
     this.seriesName,
@@ -20,6 +22,8 @@ class DocumentSeriesModel implements JsonModel {
 
   final int? id;
   final int? companyId;
+  final int? branchId;
+  final int? locationId;
   final int? financialYearId;
   final String? seriesCode;
   final String? seriesName;
@@ -40,6 +44,8 @@ class DocumentSeriesModel implements JsonModel {
     return DocumentSeriesModel(
       id: _parseInt(json['id']),
       companyId: _parseInt(json['company_id']),
+      branchId: _parseInt(json['branch_id']),
+      locationId: _parseInt(json['location_id']),
       financialYearId: _parseInt(json['financial_year_id']),
       seriesCode: json['series_code']?.toString() ?? '',
       seriesName: json['series_name']?.toString() ?? '',
@@ -60,6 +66,8 @@ class DocumentSeriesModel implements JsonModel {
     return {
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
+      if (branchId != null) 'branch_id': branchId,
+      if (locationId != null) 'location_id': locationId,
       if (financialYearId != null) 'financial_year_id': financialYearId,
       if (seriesCode != null) 'series_code': seriesCode,
       if (seriesName != null) 'series_name': seriesName,

@@ -19,11 +19,14 @@ class ProductionMaterialIssuePage extends StatefulWidget {
       _ProductionMaterialIssuePageState();
 }
 
-class _ProductionMaterialIssuePageState extends State<ProductionMaterialIssuePage> {
+class _ProductionMaterialIssuePageState
+    extends State<ProductionMaterialIssuePage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  final ManufacturingService _service = ManufacturingService();
   late final ProductionMaterialIssueViewModel _viewModel;
+  bool _auditLogLoading = false;
 
   @override
   void initState() {
@@ -53,6 +56,131 @@ class _ProductionMaterialIssuePageState extends State<ProductionMaterialIssuePag
     final msg = _viewModel.consumeActionMessage();
     if (!mounted || msg == null || msg.trim().isEmpty) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _openAuditLog() async {
+    final id = intValue(
+      _viewModel.selected?.toJson() ?? const <String, dynamic>{},
+      'id',
+    );
+    if (id == null || !mounted) {
+      return;
+    }
+    setState(() => _auditLogLoading = true);
+    try {
+      final response = await _service.productionMaterialIssueAuditTrail(id);
+      if (!mounted) {
+        return;
+      }
+      if (!response.success) {
+        final msg = response.message.isNotEmpty
+            ? response.message
+            : 'Could not load activity log';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        return;
+      }
+      final rows = response.data ?? const <Map<String, dynamic>>[];
+      final issueNo = stringValue(
+        _viewModel.selected?.toJson() ?? const <String, dynamic>{},
+        'issue_no',
+        '$id',
+      );
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (ctx) {
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.45,
+            minChildSize: 0.28,
+            maxChildSize: 0.92,
+            builder: (sheetCtx, scrollController) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppUiConstants.spacingMd,
+                    ),
+                    child: Text(
+                      'Activity - $issueNo',
+                      style: Theme.of(sheetCtx).textTheme.titleMedium,
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  Expanded(
+                    child: rows.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(AppUiConstants.spacingLg),
+                              child: Text(
+                                'No logged actions yet for this material issue.',
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppUiConstants.spacingMd,
+                            ),
+                            itemCount: rows.length,
+                            separatorBuilder: (context, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final row = rows[index];
+                              final action = row['action']?.toString() ?? '';
+                              final desc = row['description']?.toString() ?? '';
+                              final who = row['user_display']?.toString() ?? '';
+                              final when = row['created_at']?.toString() ?? '';
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  desc.isNotEmpty ? desc : action,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text(
+                                  [
+                                    who,
+                                    when,
+                                  ].where((s) => s.isNotEmpty).join(' · '),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final msg = error is ApiException
+          ? error.displayMessage
+          : error.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _auditLogLoading = false);
+      }
+    }
   }
 
   @override
@@ -155,6 +283,8 @@ class _ProductionMaterialIssuePageState extends State<ProductionMaterialIssuePag
                 _snack();
                 _openRoute('/manufacturing/production-material-issues');
               },
+              onOpenAuditLog: _openAuditLog,
+              auditLogLoading: _auditLogLoading,
             ),
     );
   }
@@ -167,6 +297,8 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
     required this.onPost,
     required this.onCancel,
     required this.onDelete,
+    required this.onOpenAuditLog,
+    required this.auditLogLoading,
   });
 
   final ProductionMaterialIssueViewModel vm;
@@ -174,6 +306,8 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
   final Future<void> Function() onPost;
   final Future<void> Function() onCancel;
   final Future<void> Function() onDelete;
+  final Future<void> Function() onOpenAuditLog;
+  final bool auditLogLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +329,11 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                       .map(
                         (x) => AppDropdownItem<int>(
                           value: intValue(x.toJson(), 'id')!,
-                          label: stringValue(x.toJson(), 'production_no', 'Order'),
+                          label: stringValue(
+                            x.toJson(),
+                            'production_no',
+                            'Order',
+                          ),
                         ),
                       )
                       .toList(growable: false),
@@ -207,6 +345,27 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                   labelText: 'Issue No',
                   controller: vm.issueNoController,
                   enabled: vm.isDraft || vm.selected == null,
+                ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Document Series',
+                  mappedItems: vm.seriesOptions
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: vm.documentSeriesId,
+                  onChanged: vm.setDocumentSeriesId,
+                  validator: (value) {
+                    if (vm.issueNoController.text.trim().isEmpty &&
+                        value == null) {
+                      return 'Document Series is required';
+                    }
+                    return null;
+                  },
                 ),
                 AppFormTextField(
                   labelText: 'Issue Date',
@@ -232,27 +391,38 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                 Text(
                   'Lines',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const Spacer(),
                 AppActionButton(
                   icon: Icons.add_outlined,
                   label: 'Add line',
                   filled: false,
-                  onPressed: vm.isDraft || vm.selected == null ? vm.addLine : null,
+                  onPressed: vm.isDraft || vm.selected == null
+                      ? vm.addLine
+                      : null,
                 ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
             ...List<Widget>.generate(vm.lines.length, (index) {
               final line = vm.lines[index];
+              final batches = vm.batchOptions(line.itemId, line.warehouseId);
+              final serials = vm.serialOptions(
+                line.itemId,
+                line.warehouseId,
+                line.batchId,
+              );
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: PurchaseCompactLineCard(
                   index: index,
                   total: vm.lines.length,
-                  removeEnabled: (vm.isDraft || vm.selected == null) &&
+                  removeEnabled:
+                      (vm.isDraft || vm.selected == null) &&
                       vm.lines.length > 1,
                   onRemove: (vm.isDraft || vm.selected == null)
                       ? () => vm.removeLine(index)
@@ -261,14 +431,14 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                     children: [
                       AppSearchPickerField<int>(
                         labelText: 'Item',
-                        selectedLabel: vm.items
+                        selectedLabel: vm.lineItemOptions
                             .cast<ItemModel?>()
                             .firstWhere(
                               (x) => x?.id == line.itemId,
                               orElse: () => null,
                             )
                             ?.toString(),
-                        options: vm.items
+                        options: vm.lineItemOptions
                             .where((x) => x.id != null)
                             .map(
                               (x) => AppSearchPickerOption<int>(
@@ -284,9 +454,15 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'UOM',
-                        mappedItems: vm.uomOptionsForItem(line.itemId)
+                        mappedItems: vm
+                            .uomOptionsForItem(line.itemId)
                             .where((x) => x.id != null)
-                            .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                            .map(
+                              (x) => AppDropdownItem<int>(
+                                value: x.id!,
+                                label: x.toString(),
+                              ),
+                            )
                             .toList(growable: false),
                         initialValue: line.uomId,
                         onChanged: (value) => vm.setLineUomId(index, value),
@@ -294,20 +470,66 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Warehouse',
-                        mappedItems: vm.warehouses
+                        mappedItems: vm.warehouseOptionsForItem(line.itemId)
                             .where((x) => x.id != null)
-                            .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                            .map(
+                              (x) => AppDropdownItem<int>(
+                                value: x.id!,
+                                label: x.toString(),
+                              ),
+                            )
                             .toList(growable: false),
                         initialValue: line.warehouseId,
-                        onChanged: (value) => vm.setLineWarehouseId(index, value),
+                        onChanged: (value) =>
+                            vm.setLineWarehouseId(index, value),
                         validator: Validators.requiredSelection('Warehouse'),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Batch',
+                        mappedItems: batches
+                            .where((x) => intValue(x.toJson(), 'id') != null)
+                            .map(
+                              (x) => AppDropdownItem<int>(
+                                value: intValue(x.toJson(), 'id')!,
+                                label: stringValue(
+                                  x.toJson(),
+                                  'batch_no',
+                                  'Batch',
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: line.batchId,
+                        onChanged: (value) => vm.setLineBatchId(index, value),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Serial',
+                        mappedItems: serials
+                            .where((x) => intValue(x.toJson(), 'id') != null)
+                            .map(
+                              (x) => AppDropdownItem<int>(
+                                value: intValue(x.toJson(), 'id')!,
+                                label: stringValue(
+                                  x.toJson(),
+                                  'serial_no',
+                                  'Serial',
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: line.serialId,
+                        onChanged: (value) => vm.setLineSerialId(index, value),
                       ),
                       AppFormTextField(
                         labelText: 'Issue Qty',
                         controller: line.issueQtyController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         enabled: vm.isDraft || vm.selected == null,
-                        validator: Validators.requiredPositiveNumber('Issue Qty'),
+                        validator: Validators.requiredPositiveNumber(
+                          'Issue Qty',
+                        ),
                       ),
                     ],
                   ),
@@ -333,7 +555,12 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                     icon: Icons.publish_outlined,
                     label: 'Post',
                     filled: false,
-                    onPressed: onPost,
+                    onPressed: () async {
+                      if (!Form.of(formContext).validate()) return;
+                      await onSave();
+                      if (vm.formError != null) return;
+                      await onPost();
+                    },
                   ),
                 if (vm.selected != null && vm.isDraft)
                   AppActionButton(
@@ -351,6 +578,37 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                   ),
               ],
             ),
+            if (vm.selected != null) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppUiConstants.spacingSm,
+                      vertical: 2,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.85),
+                  ),
+                  onPressed: auditLogLoading ? null : onOpenAuditLog,
+                  child: auditLogLoading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          'Activity log',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
