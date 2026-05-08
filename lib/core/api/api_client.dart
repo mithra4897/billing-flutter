@@ -519,7 +519,7 @@ class ApiClient {
       responseBody: responseBody,
     );
 
-    if (statusCode == 401 || statusCode == 403) {
+    if (statusCode == 401) {
       _handleUnauthorized();
     }
 

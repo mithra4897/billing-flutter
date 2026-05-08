@@ -442,6 +442,7 @@ class _UserManagementPageState extends State<UserManagementPage>
 
     setState(() {
       _savingPermissions = true;
+      _formError = null;
     });
 
     try {
@@ -1277,6 +1278,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
@@ -1292,6 +1294,15 @@ class _UserManagementPageState extends State<UserManagementPage>
             ],
           ),
         ),
+        if (_formError != null && _formError!.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
+            child: Text(
+              _formError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
         ListView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
