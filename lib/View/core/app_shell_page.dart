@@ -7,6 +7,7 @@ import '../crm/crm_sources_page.dart';
 import '../crm/crm_stages_page.dart';
 import '../dashboard/crm_dashboard_page.dart';
 import '../dashboard/dashboard_page.dart';
+import '../dashboard/erp_module_dashboard_page.dart';
 import '../hr/department_page.dart';
 import '../hr/designation_page.dart';
 import '../hr/employee_page.dart';
@@ -382,6 +383,97 @@ class _AppShellPageState extends State<AppShellPage> {
         return DashboardPage(key: routeKey, embedded: true);
       case '/crm/dashboard':
         return CrmDashboardPage(key: routeKey, embedded: true);
+      case '/parties/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'parties',
+          embedded: true,
+          shellTitle: 'Parties Dashboard',
+        );
+      case '/accounting/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'accounting',
+          embedded: true,
+          shellTitle: 'Accounting Dashboard',
+        );
+      case '/assets/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'assets',
+          embedded: true,
+          shellTitle: 'Assets Dashboard',
+        );
+      case '/hr/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'hr',
+          embedded: true,
+          shellTitle: 'HR Dashboard',
+        );
+      case '/inventory/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'inventory',
+          embedded: true,
+          shellTitle: 'Inventory Dashboard',
+        );
+      case '/maintenance/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'maintenance',
+          embedded: true,
+          shellTitle: 'Maintenance Dashboard',
+        );
+      case '/manufacturing/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'manufacturing',
+          embedded: true,
+          shellTitle: 'Manufacturing Dashboard',
+        );
+      case '/jobwork/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'jobwork',
+          embedded: true,
+          shellTitle: 'Jobwork Dashboard',
+        );
+      case '/planning/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'planning',
+          embedded: true,
+          shellTitle: 'Planning Dashboard',
+        );
+      case '/purchase/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'purchase',
+          embedded: true,
+          shellTitle: 'Purchase Dashboard',
+        );
+      case '/quality/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'quality',
+          embedded: true,
+          shellTitle: 'Quality Dashboard',
+        );
+      case '/sales/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'sales',
+          embedded: true,
+          shellTitle: 'Sales Dashboard',
+        );
+      case '/service/dashboard':
+        return ErpModuleDashboardPage(
+          key: routeKey,
+          moduleKey: 'service',
+          embedded: true,
+          shellTitle: 'Service Dashboard',
+        );
       case '/settings/profile':
         return ProfilePage(key: routeKey, embedded: true);
       case '/settings/users':

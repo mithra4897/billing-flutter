@@ -14,7 +14,8 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController workOrderNoController = TextEditingController();
   final TextEditingController workOrderDateController = TextEditingController();
-  final TextEditingController diagnosisNotesController = TextEditingController();
+  final TextEditingController diagnosisNotesController =
+      TextEditingController();
   final TextEditingController remarksController = TextEditingController();
   final TextEditingController resolutionSummaryController =
       TextEditingController();
@@ -53,8 +54,10 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
 
   int? _sessionCompanyId;
 
-  String get workOrderStatus =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'work_order_status');
+  String get workOrderStatus => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'work_order_status',
+  );
 
   bool get canEdit {
     if (selected == null) {
@@ -90,33 +93,37 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
 
   List<DocumentSeriesModel> get woSeriesOptions {
     final cid = companyId;
-    return documentSeries.where((s) {
-      if (!s.isActive) {
-        return false;
-      }
-      if (s.documentType != 'SERVICE_WORK_ORDER') {
-        return false;
-      }
-      if (cid != null && s.companyId != null && s.companyId != cid) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return documentSeries
+        .where((s) {
+          if (!s.isActive) {
+            return false;
+          }
+          if (s.documentType != 'SERVICE_WORK_ORDER') {
+            return false;
+          }
+          if (cid != null && s.companyId != null && s.companyId != cid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<ServiceWorkOrderModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      return [
-        stringValue(data, 'work_order_no'),
-        stringValue(data, 'work_order_status'),
-        _customerLabel(data),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'work_order_no'),
+            stringValue(data, 'work_order_status'),
+            _customerLabel(data),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String _customerLabel(Map<String, dynamic> data) {
@@ -179,34 +186,37 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
 
       rows =
           (responses[0] as PaginatedResponse<ServiceWorkOrderModel>).data ??
-              const <ServiceWorkOrderModel>[];
+          const <ServiceWorkOrderModel>[];
 
       final rawTickets =
           (responses[1] as PaginatedResponse<ServiceTicketModel>).data ??
-              const <ServiceTicketModel>[];
+          const <ServiceTicketModel>[];
       ticketOptions = rawTickets
           .where(
             (t) => stringValue(t.toJson(), 'ticket_type') != 'warranty_claim',
           )
           .toList(growable: false);
 
-      companies = ((responses[2] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[2] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       documentSeries =
           ((responses[3] as PaginatedResponse<DocumentSeriesModel>).data ??
                   const <DocumentSeriesModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      parties = ((responses[4] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[5] as PaginatedResponse<BranchModel>).data ??
-              const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      parties =
+          ((responses[4] as PaginatedResponse<PartyModel>).data ??
+                  const <PartyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      branches =
+          ((responses[5] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       locations =
           ((responses[6] as PaginatedResponse<BusinessLocationModel>).data ??
                   const <BusinessLocationModel>[])
@@ -247,20 +257,24 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId = _sessionCompanyId ??
-        (companies.isNotEmpty ? companies.first.id : null);
-    documentSeriesId =
-        woSeriesOptions.isNotEmpty ? woSeriesOptions.first.id : null;
-    serviceTicketId =
-        ticketOptions.isNotEmpty ? intValue(ticketOptions.first.toJson(), 'id') : null;
+    companyId =
+        _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    documentSeriesId = woSeriesOptions.isNotEmpty
+        ? woSeriesOptions.first.id
+        : null;
+    serviceTicketId = ticketOptions.isNotEmpty
+        ? intValue(ticketOptions.first.toJson(), 'id')
+        : null;
     customerPartyId = null;
     branchId = null;
     locationId = null;
     financialYearId = null;
     executionMode = 'onsite';
     workOrderNoController.clear();
-    workOrderDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    workOrderDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     diagnosisNotesController.clear();
     remarksController.clear();
     resolutionSummaryController.clear();
@@ -294,21 +308,27 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    _service.ticket(value).then((response) {
-      final doc = response.data;
-      if (doc != null) {
-        final data = doc.toJson();
-        companyId = intValue(data, 'company_id');
-        customerPartyId = intValue(data, 'customer_party_id');
-        branchId = intValue(data, 'branch_id');
-        locationId = intValue(data, 'location_id');
-        financialYearId = intValue(data, 'financial_year_id');
-        diagnosisNotesController.text = stringValue(data, 'issue_description');
-      }
-      notifyListeners();
-    }).catchError((_) {
-      notifyListeners();
-    });
+    _service
+        .ticket(value)
+        .then((response) {
+          final doc = response.data;
+          if (doc != null) {
+            final data = doc.toJson();
+            companyId = intValue(data, 'company_id');
+            customerPartyId = intValue(data, 'customer_party_id');
+            branchId = intValue(data, 'branch_id');
+            locationId = intValue(data, 'location_id');
+            financialYearId = intValue(data, 'financial_year_id');
+            diagnosisNotesController.text = stringValue(
+              data,
+              'issue_description',
+            );
+          }
+          notifyListeners();
+        })
+        .catchError((_) {
+          notifyListeners();
+        });
   }
 
   void setCompanyId(int? value) {
@@ -319,8 +339,9 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
     if (documentSeriesId != null) {
       final ok = woSeriesOptions.any((s) => s.id == documentSeriesId);
       if (!ok) {
-        documentSeriesId =
-            woSeriesOptions.isNotEmpty ? woSeriesOptions.first.id : null;
+        documentSeriesId = woSeriesOptions.isNotEmpty
+            ? woSeriesOptions.first.id
+            : null;
       }
     }
     notifyListeners();
@@ -376,39 +397,45 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
 
   List<BranchModel> get branchOptions {
     final cid = companyId;
-    return branches.where((b) {
-      if (b.id == null) {
-        return false;
-      }
-      return cid == null || b.companyId == cid;
-    }).toList(growable: false);
+    return branches
+        .where((b) {
+          if (b.id == null) {
+            return false;
+          }
+          return cid == null || b.companyId == cid;
+        })
+        .toList(growable: false);
   }
 
   List<BusinessLocationModel> get locationOptions {
     final cid = companyId;
     final bid = branchId;
-    return locations.where((l) {
-      if (l.id == null) {
-        return false;
-      }
-      if (cid != null && l.companyId != cid) {
-        return false;
-      }
-      if (bid != null && l.branchId != null && l.branchId != bid) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return locations
+        .where((l) {
+          if (l.id == null) {
+            return false;
+          }
+          if (cid != null && l.companyId != cid) {
+            return false;
+          }
+          if (bid != null && l.branchId != null && l.branchId != bid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<FinancialYearModel> get financialYearOptions {
     final cid = companyId;
-    return financialYears.where((f) {
-      if (f.id == null) {
-        return false;
-      }
-      return cid == null || f.companyId == cid;
-    }).toList(growable: false);
+    return financialYears
+        .where((f) {
+          if (f.id == null) {
+            return false;
+          }
+          return cid == null || f.companyId == cid;
+        })
+        .toList(growable: false);
   }
 
   Future<void> select(ServiceWorkOrderModel row) async {
@@ -442,8 +469,9 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
     financialYearId = intValue(data, 'financial_year_id');
     documentSeriesId = null;
     workOrderNoController.text = stringValue(data, 'work_order_no');
-    workOrderDateController.text =
-        displayDate(nullableStringValue(data, 'work_order_date'));
+    workOrderDateController.text = displayDate(
+      nullableStringValue(data, 'work_order_date'),
+    );
     executionMode = stringValue(data, 'execution_mode');
     if (executionMode.isEmpty) {
       executionMode = 'onsite';
@@ -452,11 +480,12 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
         intValue(data, 'technician_user_id')?.toString() ?? '';
     diagnosisNotesController.text = stringValue(data, 'diagnosis_notes');
     remarksController.text = stringValue(data, 'remarks');
-    resolutionSummaryController.text =
-        stringValue(data, 'resolution_summary');
+    resolutionSummaryController.text = stringValue(data, 'resolution_summary');
     actionTakenController.text = stringValue(data, 'action_taken');
-    customerSiteAddressController.text =
-        stringValue(data, 'customer_site_address');
+    customerSiteAddressController.text = stringValue(
+      data,
+      'customer_site_address',
+    );
   }
 
   String? _validateSave() {
@@ -481,6 +510,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
 
   Map<String, dynamic> _buildCreatePayload() {
     final techId = int.tryParse(technicianUserIdController.text.trim());
+    final workOrderNo = workOrderNoController.text.trim();
     return <String, dynamic>{
       'company_id': companyId,
       'service_ticket_id': serviceTicketId,
@@ -491,21 +521,20 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       'remarks': nullIfEmpty(remarksController.text),
       'resolution_summary': nullIfEmpty(resolutionSummaryController.text),
       'action_taken': nullIfEmpty(actionTakenController.text),
-      'customer_site_address':
-          nullIfEmpty(customerSiteAddressController.text),
+      'customer_site_address': nullIfEmpty(customerSiteAddressController.text),
       if (branchId != null) 'branch_id': branchId,
       if (locationId != null) 'location_id': locationId,
       if (financialYearId != null) 'financial_year_id': financialYearId,
-      if (techId != null) 'technician_user_id': techId,
-      if (documentSeriesId != null) 'document_series_id': documentSeriesId,
-      if (workOrderNoController.text.trim().isNotEmpty)
-        'work_order_no': workOrderNoController.text.trim(),
+      'technician_user_id': ?techId,
+      'document_series_id': ?documentSeriesId,
+      if (workOrderNo.isNotEmpty) 'work_order_no': workOrderNo,
     };
   }
 
   Map<String, dynamic> _buildUpdatePayload() {
     final techId = int.tryParse(technicianUserIdController.text.trim());
     final data = selected?.toJson() ?? const <String, dynamic>{};
+    final workOrderNo = workOrderNoController.text.trim();
     return <String, dynamic>{
       'company_id': companyId,
       'service_ticket_id': serviceTicketId,
@@ -517,14 +546,12 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       'remarks': nullIfEmpty(remarksController.text),
       'resolution_summary': nullIfEmpty(resolutionSummaryController.text),
       'action_taken': nullIfEmpty(actionTakenController.text),
-      'customer_site_address':
-          nullIfEmpty(customerSiteAddressController.text),
+      'customer_site_address': nullIfEmpty(customerSiteAddressController.text),
       if (branchId != null) 'branch_id': branchId,
       if (locationId != null) 'location_id': locationId,
       if (financialYearId != null) 'financial_year_id': financialYearId,
-      if (techId != null) 'technician_user_id': techId,
-      if (workOrderNoController.text.trim().isNotEmpty)
-        'work_order_no': workOrderNoController.text.trim(),
+      'technician_user_id': ?techId,
+      if (workOrderNo.isNotEmpty) 'work_order_no': workOrderNo,
     };
   }
 

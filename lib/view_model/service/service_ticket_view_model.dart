@@ -15,7 +15,8 @@ class ServiceTicketViewModel extends ChangeNotifier {
   final TextEditingController ticketNoController = TextEditingController();
   final TextEditingController ticketDateController = TextEditingController();
   final TextEditingController issueTitleController = TextEditingController();
-  final TextEditingController issueDescriptionController = TextEditingController();
+  final TextEditingController issueDescriptionController =
+      TextEditingController();
   final TextEditingController priorityController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController contactPersonController = TextEditingController();
@@ -50,8 +51,10 @@ class ServiceTicketViewModel extends ChangeNotifier {
 
   int? _sessionCompanyId;
 
-  String get ticketStatus =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'ticket_status');
+  String get ticketStatus => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'ticket_status',
+  );
 
   bool get canEdit {
     if (selected == null) {
@@ -76,42 +79,45 @@ class ServiceTicketViewModel extends ChangeNotifier {
   bool get canCancel => selected != null && ticketStatus != 'closed';
 
   bool get canDelete =>
-      selected != null &&
-      (ticketStatus == 'draft' || ticketStatus == 'open');
+      selected != null && (ticketStatus == 'draft' || ticketStatus == 'open');
 
   int? get selectedId =>
       intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
 
   List<DocumentSeriesModel> get ticketSeriesOptions {
     final cid = companyId;
-    return documentSeries.where((s) {
-      if (!s.isActive) {
-        return false;
-      }
-      if (s.documentType != 'SERVICE_TICKET') {
-        return false;
-      }
-      if (cid != null && s.companyId != null && s.companyId != cid) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return documentSeries
+        .where((s) {
+          if (!s.isActive) {
+            return false;
+          }
+          if (s.documentType != 'SERVICE_TICKET') {
+            return false;
+          }
+          if (cid != null && s.companyId != null && s.companyId != cid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<ServiceTicketModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      return [
-        stringValue(data, 'ticket_no'),
-        stringValue(data, 'issue_title'),
-        stringValue(data, 'ticket_status'),
-        _customerLabel(data),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'ticket_no'),
+            stringValue(data, 'issue_title'),
+            stringValue(data, 'ticket_status'),
+            _customerLabel(data),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String _customerLabel(Map<String, dynamic> data) {
@@ -159,31 +165,33 @@ class ServiceTicketViewModel extends ChangeNotifier {
 
       var rawRows =
           (responses[0] as PaginatedResponse<ServiceTicketModel>).data ??
-              const <ServiceTicketModel>[];
+          const <ServiceTicketModel>[];
       rows = rawRows
           .where(
-            (r) =>
-                stringValue(r.toJson(), 'ticket_type') != 'warranty_claim',
+            (r) => stringValue(r.toJson(), 'ticket_type') != 'warranty_claim',
           )
           .toList(growable: false);
 
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       documentSeries =
           ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
                   const <DocumentSeriesModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      parties = ((responses[3] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[4] as PaginatedResponse<BranchModel>).data ??
-              const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      parties =
+          ((responses[3] as PaginatedResponse<PartyModel>).data ??
+                  const <PartyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      branches =
+          ((responses[4] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       locations =
           ((responses[5] as PaginatedResponse<BusinessLocationModel>).data ??
                   const <BusinessLocationModel>[])
@@ -224,17 +232,20 @@ class ServiceTicketViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId = _sessionCompanyId ??
-        (companies.isNotEmpty ? companies.first.id : null);
-    documentSeriesId =
-        ticketSeriesOptions.isNotEmpty ? ticketSeriesOptions.first.id : null;
+    companyId =
+        _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    documentSeriesId = ticketSeriesOptions.isNotEmpty
+        ? ticketSeriesOptions.first.id
+        : null;
     customerPartyId = null;
     branchId = null;
     locationId = null;
     financialYearId = null;
     ticketNoController.clear();
-    ticketDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    ticketDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     issueTitleController.clear();
     issueDescriptionController.clear();
     priorityController.text = 'medium';
@@ -253,11 +264,11 @@ class ServiceTicketViewModel extends ChangeNotifier {
     }
     companyId = value;
     if (documentSeriesId != null) {
-      final ok =
-          ticketSeriesOptions.any((s) => s.id == documentSeriesId);
+      final ok = ticketSeriesOptions.any((s) => s.id == documentSeriesId);
       if (!ok) {
-        documentSeriesId =
-            ticketSeriesOptions.isNotEmpty ? ticketSeriesOptions.first.id : null;
+        documentSeriesId = ticketSeriesOptions.isNotEmpty
+            ? ticketSeriesOptions.first.id
+            : null;
       }
     }
     notifyListeners();
@@ -305,39 +316,45 @@ class ServiceTicketViewModel extends ChangeNotifier {
 
   List<BranchModel> get branchOptions {
     final cid = companyId;
-    return branches.where((b) {
-      if (b.id == null) {
-        return false;
-      }
-      return cid == null || b.companyId == cid;
-    }).toList(growable: false);
+    return branches
+        .where((b) {
+          if (b.id == null) {
+            return false;
+          }
+          return cid == null || b.companyId == cid;
+        })
+        .toList(growable: false);
   }
 
   List<BusinessLocationModel> get locationOptions {
     final cid = companyId;
     final bid = branchId;
-    return locations.where((l) {
-      if (l.id == null) {
-        return false;
-      }
-      if (cid != null && l.companyId != cid) {
-        return false;
-      }
-      if (bid != null && l.branchId != null && l.branchId != bid) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return locations
+        .where((l) {
+          if (l.id == null) {
+            return false;
+          }
+          if (cid != null && l.companyId != cid) {
+            return false;
+          }
+          if (bid != null && l.branchId != null && l.branchId != bid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<FinancialYearModel> get financialYearOptions {
     final cid = companyId;
-    return financialYears.where((f) {
-      if (f.id == null) {
-        return false;
-      }
-      return cid == null || f.companyId == cid;
-    }).toList(growable: false);
+    return financialYears
+        .where((f) {
+          if (f.id == null) {
+            return false;
+          }
+          return cid == null || f.companyId == cid;
+        })
+        .toList(growable: false);
   }
 
   Future<void> select(ServiceTicketModel row) async {
@@ -370,8 +387,9 @@ class ServiceTicketViewModel extends ChangeNotifier {
     financialYearId = intValue(data, 'financial_year_id');
     documentSeriesId = null;
     ticketNoController.text = stringValue(data, 'ticket_no');
-    ticketDateController.text =
-        displayDate(nullableStringValue(data, 'ticket_date'));
+    ticketDateController.text = displayDate(
+      nullableStringValue(data, 'ticket_date'),
+    );
     issueTitleController.text = stringValue(data, 'issue_title');
     issueDescriptionController.text = stringValue(data, 'issue_description');
     priorityController.text = stringValue(data, 'priority_level');
@@ -409,6 +427,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
   Map<String, dynamic> _buildCreatePayload() {
     final itemId = int.tryParse(itemIdController.text.trim());
     final serialId = int.tryParse(serialIdController.text.trim());
+    final ticketNo = ticketNoController.text.trim();
     return <String, dynamic>{
       'company_id': companyId,
       'customer_party_id': customerPartyId,
@@ -424,11 +443,10 @@ class ServiceTicketViewModel extends ChangeNotifier {
       if (branchId != null) 'branch_id': branchId,
       if (locationId != null) 'location_id': locationId,
       if (financialYearId != null) 'financial_year_id': financialYearId,
-      if (itemId != null) 'item_id': itemId,
-      if (serialId != null) 'serial_id': serialId,
-      if (documentSeriesId != null) 'document_series_id': documentSeriesId,
-      if (ticketNoController.text.trim().isNotEmpty)
-        'ticket_no': ticketNoController.text.trim(),
+      'item_id': ?itemId,
+      'serial_id': ?serialId,
+      'document_series_id': ?documentSeriesId,
+      if (ticketNo.isNotEmpty) 'ticket_no': ticketNo,
     };
   }
 
@@ -436,6 +454,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
     final itemId = int.tryParse(itemIdController.text.trim());
     final serialId = int.tryParse(serialIdController.text.trim());
     final data = selected?.toJson() ?? const <String, dynamic>{};
+    final ticketNo = ticketNoController.text.trim();
     return <String, dynamic>{
       'company_id': companyId,
       'customer_party_id': customerPartyId,
@@ -452,10 +471,9 @@ class ServiceTicketViewModel extends ChangeNotifier {
       if (branchId != null) 'branch_id': branchId,
       if (locationId != null) 'location_id': locationId,
       if (financialYearId != null) 'financial_year_id': financialYearId,
-      if (itemId != null) 'item_id': itemId,
-      if (serialId != null) 'serial_id': serialId,
-      if (ticketNoController.text.trim().isNotEmpty)
-        'ticket_no': ticketNoController.text.trim(),
+      'item_id': ?itemId,
+      'serial_id': ?serialId,
+      if (ticketNo.isNotEmpty) 'ticket_no': ticketNo,
     };
   }
 
@@ -506,8 +524,10 @@ class ServiceTicketViewModel extends ChangeNotifier {
       return;
     }
     try {
-      final response =
-          await _service.assignTicket(id, assignedToUserId: assignedToUserId);
+      final response = await _service.assignTicket(
+        id,
+        assignedToUserId: assignedToUserId,
+      );
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {

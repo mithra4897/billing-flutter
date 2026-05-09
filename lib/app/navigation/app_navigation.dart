@@ -283,14 +283,77 @@ class AppNavigation {
       key: 'parties',
       title: 'Parties',
       icon: Icons.handshake_outlined,
-      path: '/parties',
-      requiredPermissions: ['party.view'],
+      children: [
+        AppNavigationItem(
+          key: 'parties-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/parties/dashboard',
+          requiredPermissions: ['party.view'],
+        ),
+        AppNavigationItem(
+          key: 'parties-register',
+          title: 'Party Master',
+          icon: Icons.handshake_outlined,
+          path: '/parties',
+          requiredPermissions: ['party.view'],
+        ),
+        AppNavigationItem(
+          key: 'parties-addresses',
+          title: 'Addresses',
+          icon: Icons.location_on_outlined,
+          path: '/parties/addresses',
+          requiredPermissions: ['party.view'],
+        ),
+        AppNavigationItem(
+          key: 'parties-contacts',
+          title: 'Contacts',
+          icon: Icons.contact_phone_outlined,
+          path: '/parties/contacts',
+          requiredPermissions: ['party.view'],
+        ),
+        AppNavigationItem(
+          key: 'parties-gst-details',
+          title: 'GST Details',
+          icon: Icons.receipt_long_outlined,
+          path: '/parties/gst-details',
+          requiredPermissions: ['party.view'],
+        ),
+        AppNavigationItem(
+          key: 'parties-bank-accounts',
+          title: 'Bank Accounts',
+          icon: Icons.account_balance_outlined,
+          path: '/parties/bank-accounts',
+          requiredPermissions: ['party.view'],
+        ),
+        AppNavigationItem(
+          key: 'parties-credit-limits',
+          title: 'Credit Limits',
+          icon: Icons.credit_score_outlined,
+          path: '/parties/credit-limits',
+          requiredPermissions: ['party.view'],
+        ),
+        AppNavigationItem(
+          key: 'parties-payment-terms',
+          title: 'Payment Terms',
+          icon: Icons.schedule_outlined,
+          path: '/parties/payment-terms',
+          requiredPermissions: ['party.view'],
+        ),
+      ],
     ),
     const AppNavigationItem(
       key: 'accounting',
       title: 'Accounting',
       icon: Icons.account_balance_wallet_outlined,
       children: [
+        AppNavigationItem(
+          key: 'accounting-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/accounting/dashboard',
+          requiredPermissions: ['accounts.view'],
+        ),
         AppNavigationItem(
           key: 'vouchers',
           title: 'Vouchers',
@@ -383,6 +446,13 @@ class AppNavigation {
       icon: Icons.precision_manufacturing_outlined,
       children: [
         AppNavigationItem(
+          key: 'assets-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/assets/dashboard',
+          requiredPermissions: ['asset.view'],
+        ),
+        AppNavigationItem(
           key: 'asset-categories',
           title: 'Categories',
           icon: Icons.category_outlined,
@@ -474,6 +544,13 @@ class AppNavigation {
       icon: Icons.badge_outlined,
       children: [
         AppNavigationItem(
+          key: 'hr-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/hr/dashboard',
+          requiredPermissions: ['hr.view'],
+        ),
+        AppNavigationItem(
           key: 'hr-attendance',
           title: 'Attendance',
           icon: Icons.fact_check_outlined,
@@ -522,6 +599,13 @@ class AppNavigation {
       title: 'Inventory',
       icon: Icons.inventory_outlined,
       children: [
+        AppNavigationItem(
+          key: 'inventory-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/inventory/dashboard',
+          requiredPermissions: ['inventory.view'],
+        ),
         AppNavigationItem(
           key: 'inventory-inquiry',
           title: 'Inventory Inquiry',
@@ -642,6 +726,13 @@ class AppNavigation {
       icon: Icons.build_circle_outlined,
       children: [
         AppNavigationItem(
+          key: 'maintenance-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/maintenance/dashboard',
+          requiredPermissions: ['maintenance.view'],
+        ),
+        AppNavigationItem(
           key: 'maintenance-plans',
           title: 'Plans',
           icon: Icons.event_repeat_outlined,
@@ -684,6 +775,13 @@ class AppNavigation {
       icon: Icons.factory_outlined,
       children: [
         AppNavigationItem(
+          key: 'manufacturing-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/manufacturing/dashboard',
+          requiredPermissions: ['manufacturing.view'],
+        ),
+        AppNavigationItem(
           key: 'manufacturing-boms',
           title: 'BOMs',
           icon: Icons.list_alt_outlined,
@@ -719,6 +817,13 @@ class AppNavigation {
       icon: Icons.handyman_outlined,
       children: [
         AppNavigationItem(
+          key: 'jobwork-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/jobwork/dashboard',
+          requiredPermissions: ['jobwork.view'],
+        ),
+        AppNavigationItem(
           key: 'jobwork-orders',
           title: 'Orders',
           icon: Icons.assignment_outlined,
@@ -753,6 +858,13 @@ class AppNavigation {
       title: 'Planning',
       icon: Icons.route_outlined,
       children: [
+        AppNavigationItem(
+          key: 'planning-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/planning/dashboard',
+          requiredPermissions: ['mrp.view'],
+        ),
         AppNavigationItem(
           key: 'planning-stock-reservations',
           title: 'Stock Reservations',
@@ -825,7 +937,7 @@ class AppNavigation {
         ),
         AppNavigationItem(
           key: 'projects-dashboard',
-          title: 'Project Dashboard',
+          title: 'Dashboard',
           icon: Icons.insights_outlined,
           path: '/projects/dashboard',
           requiredPermissions: ['project.view'],
@@ -887,6 +999,13 @@ class AppNavigation {
       icon: Icons.shopping_cart_outlined,
       children: [
         AppNavigationItem(
+          key: 'purchase-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/purchase/dashboard',
+          requiredPermissions: ['purchase.view'],
+        ),
+        AppNavigationItem(
           key: 'purchase-requisitions',
           title: 'Requisitions',
           icon: Icons.playlist_add_check_outlined,
@@ -936,6 +1055,13 @@ class AppNavigation {
       icon: Icons.verified_outlined,
       children: [
         AppNavigationItem(
+          key: 'quality-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/quality/dashboard',
+          requiredPermissions: ['quality.view'],
+        ),
+        AppNavigationItem(
           key: 'quality-qc-plans',
           title: 'QC Plans',
           icon: Icons.rule_outlined,
@@ -970,6 +1096,13 @@ class AppNavigation {
       title: 'Sales',
       icon: Icons.point_of_sale_outlined,
       children: [
+        AppNavigationItem(
+          key: 'sales-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/sales/dashboard',
+          requiredPermissions: ['sales.view'],
+        ),
         AppNavigationItem(
           key: 'sales-quotations',
           title: 'Quotations',
@@ -1020,6 +1153,13 @@ class AppNavigation {
       icon: Icons.miscellaneous_services_outlined,
       children: [
         AppNavigationItem(
+          key: 'service-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/service/dashboard',
+          requiredPermissions: ['service.view'],
+        ),
+        AppNavigationItem(
           key: 'service-contracts',
           title: 'Contracts',
           icon: Icons.description_outlined,
@@ -1063,7 +1203,24 @@ class AppNavigation {
   }
 
   static String titleForPath(String path) {
-    return findByPath(path)?.title ?? 'Dashboard';
+    final normalizedPath = _normalizePath(path);
+    final item = findByPath(normalizedPath);
+    if (item == null) {
+      return 'Dashboard';
+    }
+    if (item.title != 'Dashboard') {
+      return item.title;
+    }
+
+    final ancestorKeys = ancestorKeysForPath(normalizedPath);
+    if (ancestorKeys.isEmpty) {
+      return item.title;
+    }
+    final parent = _findByKey(menu, ancestorKeys.first);
+    if (parent == null) {
+      return item.title;
+    }
+    return '${parent.title} Dashboard';
   }
 
   static List<AppNavigationItem> visibleMenu({
@@ -1153,6 +1310,24 @@ class AppNavigation {
       final childPath = _ancestorKeysForItemKey(item.children, key);
       if (childPath != null) {
         return <String>[item.key, ...childPath];
+      }
+    }
+
+    return null;
+  }
+
+  static AppNavigationItem? _findByKey(
+    List<AppNavigationItem> items,
+    String key,
+  ) {
+    for (final item in items) {
+      if (item.key == key) {
+        return item;
+      }
+
+      final found = _findByKey(item.children, key);
+      if (found != null) {
+        return found;
       }
     }
 

@@ -23,4 +23,6 @@ class AppUiConstants {
   static const double spacingLg = 20;
   static const double spacingXl = 24;
   static const double spacing2xl = 28;
+  static const double dashboardSplitBreakpoint = 1060;
+  static const double dashboardChartHeight = 220;
 }

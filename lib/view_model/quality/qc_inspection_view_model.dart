@@ -26,14 +26,20 @@ const Map<String, String> _sourceTypeToInspectionScope = <String, String>{
 const List<AppDropdownItem<String>> kQcInspectionSourceTypeItems =
     <AppDropdownItem<String>>[
       AppDropdownItem(value: 'purchase_receipt', label: 'Purchase receipt'),
-      AppDropdownItem(value: 'purchase_receipt_line', label: 'Purchase receipt line'),
+      AppDropdownItem(
+        value: 'purchase_receipt_line',
+        label: 'Purchase receipt line',
+      ),
       AppDropdownItem(value: 'production_receipt', label: 'Production receipt'),
       AppDropdownItem(
         value: 'production_receipt_line',
         label: 'Production receipt line',
       ),
       AppDropdownItem(value: 'jobwork_receipt', label: 'Jobwork receipt'),
-      AppDropdownItem(value: 'jobwork_receipt_line', label: 'Jobwork receipt line'),
+      AppDropdownItem(
+        value: 'jobwork_receipt_line',
+        label: 'Jobwork receipt line',
+      ),
       AppDropdownItem(value: 'stock_receipt', label: 'Stock receipt'),
       AppDropdownItem(value: 'stock_receipt_line', label: 'Stock receipt line'),
       AppDropdownItem(value: 'sales_return', label: 'Sales return'),
@@ -131,63 +137,71 @@ class QcInspectionViewModel extends ChangeNotifier {
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
 
-  List<FinancialYearModel> get financialYearOptions =>
-      financialYears.where((fy) {
+  List<FinancialYearModel> get financialYearOptions => financialYears
+      .where((fy) {
         if (fy.id == null) {
           return false;
         }
         return companyId == null || fy.companyId == companyId;
-      }).toList(growable: false);
+      })
+      .toList(growable: false);
 
-  List<ItemModel> get itemOptions => items.where((i) {
-    if (i.id == null) {
-      return false;
-    }
-    return companyId == null || i.companyId == companyId;
-  }).toList(growable: false);
+  List<ItemModel> get itemOptions => items
+      .where((i) {
+        if (i.id == null) {
+          return false;
+        }
+        return companyId == null || i.companyId == companyId;
+      })
+      .toList(growable: false);
 
-  List<UomModel> get uomOptions => uoms.where((u) => u.id != null).toList(
-    growable: false,
-  );
+  List<UomModel> get uomOptions =>
+      uoms.where((u) => u.id != null).toList(growable: false);
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((w) {
-    if (w.id == null) {
-      return false;
-    }
-    if (companyId != null && w.companyId != companyId) {
-      return false;
-    }
-    if (branchId != null && w.branchId != branchId) {
-      return false;
-    }
-    if (locationId != null && w.locationId != locationId) {
-      return false;
-    }
-    return true;
-  }).toList(growable: false);
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((w) {
+        if (w.id == null) {
+          return false;
+        }
+        if (companyId != null && w.companyId != companyId) {
+          return false;
+        }
+        if (branchId != null && w.branchId != branchId) {
+          return false;
+        }
+        if (locationId != null && w.locationId != locationId) {
+          return false;
+        }
+        return true;
+      })
+      .toList(growable: false);
 
-  List<QcPlanModel> get qcPlanOptions => qcPlans.where((p) {
-    if (p.id == null) {
-      return false;
-    }
-    if (p.approvalStatus != 'approved' || !p.isActive) {
-      return false;
-    }
-    if (companyId != null && p.companyId != companyId) {
-      return false;
-    }
-    return p.qcScope == 'all';
-  }).toList(growable: false);
+  List<QcPlanModel> get qcPlanOptions => qcPlans
+      .where((p) {
+        if (p.id == null) {
+          return false;
+        }
+        if (p.approvalStatus != 'approved' || !p.isActive) {
+          return false;
+        }
+        if (companyId != null && p.companyId != companyId) {
+          return false;
+        }
+        return p.qcScope == 'all';
+      })
+      .toList(growable: false);
 
-  List<DocumentSeriesModel> get qcSeriesOptions => documentSeries.where((s) {
-    if (s.id == null) {
-      return false;
-    }
-    if (s.documentType != 'QC_INSPECTION') {
-      return false;
-    }
-    return companyId == null || s.companyId == companyId;
-  }).toList(growable: false);
+  List<DocumentSeriesModel> get qcSeriesOptions => documentSeries
+      .where((s) {
+        if (s.id == null) {
+          return false;
+        }
+        if (s.documentType != 'QC_INSPECTION') {
+          return false;
+        }
+        return companyId == null || s.companyId == companyId;
+      })
+      .toList(growable: false);
 
   String? consumeActionMessage() {
     final message = actionMessage;
@@ -212,14 +226,16 @@ class QcInspectionViewModel extends ChangeNotifier {
         _masterService.documentSeries(filters: const {'per_page': 300}),
       ]);
 
-      companies = ((responses[0] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[1] as PaginatedResponse<BranchModel>).data ??
-              const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[0] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      branches =
+          ((responses[1] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       locations =
           ((responses[2] as PaginatedResponse<BusinessLocationModel>).data ??
                   const <BusinessLocationModel>[])
@@ -230,21 +246,25 @@ class QcInspectionViewModel extends ChangeNotifier {
                   const <FinancialYearModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      items = ((responses[4] as PaginatedResponse<ItemModel>).data ??
-              const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uoms = ((responses[5] as PaginatedResponse<UomModel>).data ??
-              const <UomModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      warehouses = ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
-              const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      qcPlans = ((responses[7] as PaginatedResponse<QcPlanModel>).data ??
-              const <QcPlanModel>[])
-          .toList(growable: false);
+      items =
+          ((responses[4] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uoms =
+          ((responses[5] as PaginatedResponse<UomModel>).data ??
+                  const <UomModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      qcPlans =
+          ((responses[7] as PaginatedResponse<QcPlanModel>).data ??
+                  const <QcPlanModel>[])
+              .toList(growable: false);
       documentSeries =
           ((responses[8] as PaginatedResponse<DocumentSeriesModel>).data ??
                   const <DocumentSeriesModel>[])
@@ -279,8 +299,10 @@ class QcInspectionViewModel extends ChangeNotifier {
     documentSeriesId = qcSeriesOptions.isNotEmpty
         ? qcSeriesOptions.first.id
         : null;
-    inspectionDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    inspectionDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     inspectionScope = 'purchase_receipt';
     sourceDocumentType = 'purchase_receipt';
     sourceDocumentIdController.clear();
@@ -325,15 +347,14 @@ class QcInspectionViewModel extends ChangeNotifier {
       documentSeriesId = intValue(_detail!, 'document_series_id');
       inspectionDateController.text =
           nullableStringValue(_detail!, 'inspection_date') ??
-              DateTime.now().toIso8601String().split('T').first;
-      inspectionScope =
-          stringValue(_detail!, 'inspection_scope').isNotEmpty
-              ? stringValue(_detail!, 'inspection_scope')
-              : 'purchase_receipt';
+          DateTime.now().toIso8601String().split('T').first;
+      inspectionScope = stringValue(_detail!, 'inspection_scope').isNotEmpty
+          ? stringValue(_detail!, 'inspection_scope')
+          : 'purchase_receipt';
       sourceDocumentType =
           stringValue(_detail!, 'source_document_type').isNotEmpty
-              ? stringValue(_detail!, 'source_document_type')
-              : 'purchase_receipt';
+          ? stringValue(_detail!, 'source_document_type')
+          : 'purchase_receipt';
       sourceDocumentIdController.text =
           intValue(_detail!, 'source_document_id')?.toString() ?? '';
       sourceLineIdController.text =
@@ -345,10 +366,8 @@ class QcInspectionViewModel extends ChangeNotifier {
       inspectedQtyController.text =
           _detail!['inspected_qty']?.toString() ?? '1';
       sampleSizeController.text = _detail!['sample_size']?.toString() ?? '';
-      acceptedQtyController.text =
-          _detail!['accepted_qty']?.toString() ?? '0';
-      rejectedQtyController.text =
-          _detail!['rejected_qty']?.toString() ?? '0';
+      acceptedQtyController.text = _detail!['accepted_qty']?.toString() ?? '0';
+      rejectedQtyController.text = _detail!['rejected_qty']?.toString() ?? '0';
       holdQtyController.text = _detail!['hold_qty']?.toString() ?? '0';
       reworkQtyController.text = _detail!['rework_qty']?.toString() ?? '0';
       remarksController.text = stringValue(_detail!, 'remarks');
@@ -508,6 +527,7 @@ class QcInspectionViewModel extends ChangeNotifier {
     final srcId = int.tryParse(sourceDocumentIdController.text.trim());
     final lineId = int.tryParse(sourceLineIdController.text.trim());
     final iq = double.tryParse(inspectedQtyController.text.trim()) ?? 0;
+    final lotNo = lotNoController.text.trim();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'branch_id': branchId,
@@ -517,15 +537,14 @@ class QcInspectionViewModel extends ChangeNotifier {
       'inspection_scope': inspectionScope,
       'source_document_type': sourceDocumentType,
       'source_document_id': srcId,
-      if (lineId != null) 'source_line_id': lineId,
+      'source_line_id': ?lineId,
       'item_id': itemId,
       'uom_id': uomId,
       'inspected_qty': iq,
-      if (documentSeriesId != null) 'document_series_id': documentSeriesId,
-      if (qcPlanId != null) 'qc_plan_id': qcPlanId,
-      if (warehouseId != null) 'warehouse_id': warehouseId,
-      if (lotNoController.text.trim().isNotEmpty)
-        'lot_no': lotNoController.text.trim(),
+      'document_series_id': ?documentSeriesId,
+      'qc_plan_id': ?qcPlanId,
+      'warehouse_id': ?warehouseId,
+      if (lotNo.isNotEmpty) 'lot_no': lotNo,
       'sample_size': double.tryParse(sampleSizeController.text.trim()) ?? 0,
       'accepted_qty': double.tryParse(acceptedQtyController.text.trim()) ?? 0,
       'rejected_qty': double.tryParse(rejectedQtyController.text.trim()) ?? 0,
@@ -544,7 +563,9 @@ class QcInspectionViewModel extends ChangeNotifier {
   }
 
   Map<String, dynamic> _mergeForUpdate() {
-    final base = Map<String, dynamic>.from(_detail ?? const <String, dynamic>{});
+    final base = Map<String, dynamic>.from(
+      _detail ?? const <String, dynamic>{},
+    );
     base.addAll(_buildPayload(forCreate: false));
     return base;
   }

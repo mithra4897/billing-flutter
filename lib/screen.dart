@@ -25,6 +25,7 @@ export 'components/app_standalone_shell.dart';
 export 'components/app_switch_tile.dart';
 export 'components/app_text_field.dart';
 export 'components/app_toggle_chip.dart';
+export 'components/erp_module_dashboard.dart';
 export 'components/date_input_formatter.dart';
 export 'components/date_time_input_formatter.dart';
 export 'components/inline_field_action.dart';
