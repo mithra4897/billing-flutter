@@ -262,7 +262,9 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard() async {
   final service = AccountsService();
   final responses = await Future.wait<dynamic>([
     service.accounts(filters: const {'per_page': 1}),
-    service.vouchers(filters: const {'per_page': 6, 'sort_by': 'voucher_date'}),
+    service.vouchers(
+      filters: const {'per_page': 100, 'sort_by': 'voucher_date'},
+    ),
     service.cashSessions(filters: const {'per_page': 20}),
     service.bankReconciliation(filters: const {'per_page': 20}),
     service.budgets(filters: const {'per_page': 6}),
@@ -422,6 +424,16 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard() async {
             'Cash sessions and reconciliation records will surface here.',
       ),
     ],
+    trend: _buildMonthlyTrendCard(
+      title: 'Monthly Billing Trend',
+      subtitle: 'Live monthly voucher activity from accounting records.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: voucherRows.map((item) => item.toJson()),
+          dateKeys: const ['voucher_date', 'posting_date', 'created_at'],
+        ),
+      ],
+    ),
     distribution: ErpDashboardDistributionCardData(
       title: 'Payment Distribution',
       subtitle: 'Split between open operational accounting queues.',
@@ -460,10 +472,10 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard() async {
 Future<ErpDashboardSnapshot> _loadAssetsDashboard() async {
   final service = AssetsService();
   final responses = await Future.wait<dynamic>([
-    service.assets(filters: const {'per_page': 8}),
-    service.depreciationRuns(filters: const {'per_page': 8}),
-    service.transfers(filters: const {'per_page': 8}),
-    service.disposals(filters: const {'per_page': 8}),
+    service.assets(filters: const {'per_page': 100}),
+    service.depreciationRuns(filters: const {'per_page': 100}),
+    service.transfers(filters: const {'per_page': 100}),
+    service.disposals(filters: const {'per_page': 100}),
   ]);
 
   final assets = responses[0] as PaginatedResponse<AssetModel>;
@@ -593,6 +605,41 @@ Future<ErpDashboardSnapshot> _loadAssetsDashboard() async {
         ],
       ),
     ],
+    trend: _buildMonthlyTrendCard(
+      title: 'Asset Value Trend',
+      subtitle:
+          'Live monthly fixed-asset activity from assets, transfers, depreciation, and disposals.',
+      color: const Color(0xFF1FA971),
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: assetRows.map((item) => item.toJson()),
+          dateKeys: const [
+            'asset_date',
+            'purchase_date',
+            'capitalization_date',
+            'created_at',
+          ],
+        ),
+        _TrendSource(
+          records: (transfers.data ?? const <AssetTransferModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['transfer_date', 'created_at'],
+        ),
+        _TrendSource(
+          records:
+              (depreciationRuns.data ?? const <AssetDepreciationRunModel>[])
+                  .map((item) => item.toJson()),
+          dateKeys: const ['run_date', 'posting_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (disposals.data ?? const <AssetDisposalModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['disposal_date', 'posting_date', 'created_at'],
+        ),
+      ],
+    ),
     distribution: ErpDashboardDistributionCardData(
       title: 'Asset Status Distribution',
       subtitle: 'Live operational split across asset operations.',
@@ -632,11 +679,15 @@ Future<ErpDashboardSnapshot> _loadAssetsDashboard() async {
 Future<ErpDashboardSnapshot> _loadSalesDashboard() async {
   final service = SalesService();
   final responses = await Future.wait<dynamic>([
-    service.orders(filters: const {'per_page': 8, 'sort_by': 'order_date'}),
-    service.invoices(filters: const {'per_page': 8, 'sort_by': 'invoice_date'}),
-    service.receipts(filters: const {'per_page': 8, 'sort_by': 'receipt_date'}),
+    service.orders(filters: const {'per_page': 100, 'sort_by': 'order_date'}),
+    service.invoices(
+      filters: const {'per_page': 100, 'sort_by': 'invoice_date'},
+    ),
+    service.receipts(
+      filters: const {'per_page': 100, 'sort_by': 'receipt_date'},
+    ),
     service.quotations(
-      filters: const {'per_page': 8, 'sort_by': 'quotation_date'},
+      filters: const {'per_page': 100, 'sort_by': 'quotation_date'},
     ),
   ]);
 
@@ -757,6 +808,35 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard() async {
         ],
       ),
     ],
+    trend: _buildMonthlyTrendCard(
+      title: 'Monthly Sales Trend',
+      subtitle:
+          'Live monthly sales activity from quotations, orders, invoices, and receipts.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: orderRows.map((item) => item.toJson()),
+          dateKeys: const ['order_date', 'delivery_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (invoices.data ?? const <SalesInvoiceModel>[]).map(
+            _salesInvoiceJson,
+          ),
+          dateKeys: const ['invoice_date', 'due_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (receipts.data ?? const <SalesReceiptModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['receipt_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (quotations.data ?? const <SalesQuotationModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['quotation_date', 'valid_until', 'created_at'],
+        ),
+      ],
+    ),
     distribution: ErpDashboardDistributionCardData(
       title: 'Sales Distribution',
       subtitle: 'Live split across current order, invoice, and receipt load.',
@@ -796,10 +876,10 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard() async {
 Future<ErpDashboardSnapshot> _loadPurchaseDashboard() async {
   final service = PurchaseService();
   final responses = await Future.wait<dynamic>([
-    service.requisitions(filters: const {'per_page': 8}),
-    service.orders(filters: const {'per_page': 8}),
-    service.receipts(filters: const {'per_page': 8}),
-    service.invoices(filters: const {'per_page': 8}),
+    service.requisitions(filters: const {'per_page': 100}),
+    service.orders(filters: const {'per_page': 100}),
+    service.receipts(filters: const {'per_page': 100}),
+    service.invoices(filters: const {'per_page': 100}),
   ]);
 
   final requisitions =
@@ -923,6 +1003,34 @@ Future<ErpDashboardSnapshot> _loadPurchaseDashboard() async {
         ],
       ),
     ],
+    trend: _buildMonthlyTrendCard(
+      title: 'Monthly Purchase Trend',
+      subtitle:
+          'Live monthly procurement activity from requisitions, orders, receipts, and invoices.',
+      color: const Color(0xFF19A7B8),
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: requisitionRows.map((item) => item.toJson()),
+          dateKeys: const ['requisition_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: orderRows.map((item) => item.toJson()),
+          dateKeys: const ['order_date', 'expected_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (receipts.data ?? const <PurchaseReceiptModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['receipt_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (invoices.data ?? const <PurchaseInvoiceModel>[]).map(
+            _purchaseInvoiceJson,
+          ),
+          dateKeys: const ['invoice_date', 'due_date', 'created_at'],
+        ),
+      ],
+    ),
     distribution: ErpDashboardDistributionCardData(
       title: 'Purchase Distribution',
       subtitle:
@@ -940,9 +1048,9 @@ Future<ErpDashboardSnapshot> _loadPurchaseDashboard() async {
 Future<ErpDashboardSnapshot> _loadInventoryDashboard() async {
   final service = InventoryService();
   final responses = await Future.wait<dynamic>([
-    service.items(filters: const {'per_page': 8}),
-    service.stockBalances(filters: const {'per_page': 20}),
-    service.stockMovements(filters: const {'per_page': 12}),
+    service.items(filters: const {'per_page': 20}),
+    service.stockBalances(filters: const {'per_page': 50}),
+    service.stockMovements(filters: const {'per_page': 100}),
   ]);
 
   final items = responses[0] as PaginatedResponse<ItemModel>;
@@ -1066,6 +1174,17 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard() async {
         ],
       ),
     ],
+    trend: _buildMonthlyTrendCard(
+      title: 'Inventory Movement Trend',
+      subtitle: 'Live monthly inventory movement activity.',
+      color: const Color(0xFF19A7B8),
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: movementRows.map((item) => item.toJson()),
+          dateKeys: const ['movement_date', 'posting_date', 'created_at'],
+        ),
+      ],
+    ),
     distribution: ErpDashboardDistributionCardData(
       title: 'Stock Distribution',
       subtitle:
@@ -1083,10 +1202,10 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard() async {
 Future<ErpDashboardSnapshot> _loadPlanningDashboard() async {
   final service = PlanningService();
   final responses = await Future.wait<dynamic>([
-    service.mrpRuns(filters: const {'per_page': 8}),
-    service.mrpRecommendations(filters: const {'per_page': 8}),
-    service.stockReservations(filters: const {'per_page': 8}),
-    service.mrpDemands(filters: const {'per_page': 8}),
+    service.mrpRuns(filters: const {'per_page': 100}),
+    service.mrpRecommendations(filters: const {'per_page': 100}),
+    service.stockReservations(filters: const {'per_page': 100}),
+    service.mrpDemands(filters: const {'per_page': 100}),
   ]);
 
   final runs = responses[0] as PaginatedResponse<MrpRunModel>;
@@ -1164,6 +1283,39 @@ Future<ErpDashboardSnapshot> _loadPlanningDashboard() async {
             ),
       ],
     ),
+    trend: _buildMonthlyTrendCard(
+      title: 'Planning Trend',
+      subtitle: 'Live monthly MRP and planning activity.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: (runs.data ?? const <MrpRunModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['run_date', 'planned_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (recommendations.data ?? const <MrpRecommendationModel>[])
+              .map((item) => item.toJson()),
+          dateKeys: const [
+            'recommendation_date',
+            'required_date',
+            'created_at',
+          ],
+        ),
+        _TrendSource(
+          records: (reservations.data ?? const <StockReservationModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['reservation_date', 'required_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (demands.data ?? const <MrpDemandModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['demand_date', 'required_date', 'created_at'],
+        ),
+      ],
+    ),
     distributionCounts: <String, int>{
       'Runs': _totalFromPaginated(runs),
       'Recommendations': _totalFromPaginated(recommendations),
@@ -1176,10 +1328,10 @@ Future<ErpDashboardSnapshot> _loadPlanningDashboard() async {
 Future<ErpDashboardSnapshot> _loadManufacturingDashboard() async {
   final service = ManufacturingService();
   final responses = await Future.wait<dynamic>([
-    service.productionOrders(filters: const {'per_page': 8}),
-    service.productionMaterialIssues(filters: const {'per_page': 8}),
-    service.productionReceipts(filters: const {'per_page': 8}),
-    service.boms(filters: const {'per_page': 8}),
+    service.productionOrders(filters: const {'per_page': 100}),
+    service.productionMaterialIssues(filters: const {'per_page': 100}),
+    service.productionReceipts(filters: const {'per_page': 100}),
+    service.boms(filters: const {'per_page': 100}),
   ]);
 
   final orders = responses[0] as PaginatedResponse<ProductionOrderModel>;
@@ -1258,6 +1410,41 @@ Future<ErpDashboardSnapshot> _loadManufacturingDashboard() async {
             ),
       ],
     ),
+    trend: _buildMonthlyTrendCard(
+      title: 'Manufacturing Trend',
+      subtitle: 'Live monthly production activity.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: (orders.data ?? const <ProductionOrderModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const [
+            'production_date',
+            'order_date',
+            'planned_start_date',
+            'created_at',
+          ],
+        ),
+        _TrendSource(
+          records: (issues.data ?? const <ProductionMaterialIssueModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['issue_date', 'posting_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (receipts.data ?? const <ProductionReceiptModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['receipt_date', 'posting_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (boms.data ?? const <BomModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['created_at', 'effective_from'],
+        ),
+      ],
+    ),
     distributionCounts: <String, int>{
       'Orders': _totalFromPaginated(orders),
       'Issues': _totalFromPaginated(issues),
@@ -1270,10 +1457,10 @@ Future<ErpDashboardSnapshot> _loadManufacturingDashboard() async {
 Future<ErpDashboardSnapshot> _loadQualityDashboard() async {
   final service = QualityService();
   final responses = await Future.wait<dynamic>([
-    service.qcPlans(filters: const {'per_page': 8}),
-    service.qcInspections(filters: const {'per_page': 8}),
-    service.qcResultActions(filters: const {'per_page': 8}),
-    service.qcNonConformanceLogs(filters: const {'per_page': 8}),
+    service.qcPlans(filters: const {'per_page': 100}),
+    service.qcInspections(filters: const {'per_page': 100}),
+    service.qcResultActions(filters: const {'per_page': 100}),
+    service.qcNonConformanceLogs(filters: const {'per_page': 100}),
   ]);
 
   final plans = responses[0] as PaginatedResponse<QcPlanModel>;
@@ -1351,6 +1538,36 @@ Future<ErpDashboardSnapshot> _loadQualityDashboard() async {
             ),
       ],
     ),
+    trend: _buildMonthlyTrendCard(
+      title: 'Quality Trend',
+      subtitle: 'Live monthly quality control activity.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: (plans.data ?? const <QcPlanModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['plan_date', 'effective_from', 'created_at'],
+        ),
+        _TrendSource(
+          records: (inspections.data ?? const <QcInspectionModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['inspection_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (actions.data ?? const <QcResultActionModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['action_date', 'due_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (ncr.data ?? const <QcNonConformanceLogModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['log_date', 'reported_date', 'created_at'],
+        ),
+      ],
+    ),
     distributionCounts: <String, int>{
       'Plans': _totalFromPaginated(plans),
       'Inspections': _totalFromPaginated(inspections),
@@ -1363,10 +1580,10 @@ Future<ErpDashboardSnapshot> _loadQualityDashboard() async {
 Future<ErpDashboardSnapshot> _loadJobworkDashboard() async {
   final service = JobworkService();
   final responses = await Future.wait<dynamic>([
-    service.orders(filters: const {'per_page': 8}),
-    service.dispatches(filters: const {'per_page': 8}),
-    service.receipts(filters: const {'per_page': 8}),
-    service.charges(filters: const {'per_page': 8}),
+    service.orders(filters: const {'per_page': 100}),
+    service.dispatches(filters: const {'per_page': 100}),
+    service.receipts(filters: const {'per_page': 100}),
+    service.charges(filters: const {'per_page': 100}),
   ]);
 
   final orders = responses[0] as PaginatedResponse<JobworkOrderModel>;
@@ -1444,6 +1661,36 @@ Future<ErpDashboardSnapshot> _loadJobworkDashboard() async {
             ),
       ],
     ),
+    trend: _buildMonthlyTrendCard(
+      title: 'Jobwork Trend',
+      subtitle: 'Live monthly jobwork activity.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: (orders.data ?? const <JobworkOrderModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['order_date', 'jobwork_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (dispatches.data ?? const <JobworkDispatchModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['dispatch_date', 'posting_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (receipts.data ?? const <JobworkReceiptModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['receipt_date', 'posting_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (charges.data ?? const <JobworkChargeModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['charge_date', 'posting_date', 'created_at'],
+        ),
+      ],
+    ),
     distributionCounts: <String, int>{
       'Orders': _totalFromPaginated(orders),
       'Dispatches': _totalFromPaginated(dispatches),
@@ -1456,10 +1703,10 @@ Future<ErpDashboardSnapshot> _loadJobworkDashboard() async {
 Future<ErpDashboardSnapshot> _loadServiceDashboard() async {
   final service = ServiceModuleService();
   final responses = await Future.wait<dynamic>([
-    service.tickets(filters: const {'per_page': 8}),
-    service.workOrders(filters: const {'per_page': 8}),
-    service.contracts(filters: const {'per_page': 8}),
-    service.feedbacks(filters: const {'per_page': 8}),
+    service.tickets(filters: const {'per_page': 100}),
+    service.workOrders(filters: const {'per_page': 100}),
+    service.contracts(filters: const {'per_page': 100}),
+    service.feedbacks(filters: const {'per_page': 100}),
   ]);
 
   final tickets = responses[0] as PaginatedResponse<ServiceTicketModel>;
@@ -1535,6 +1782,36 @@ Future<ErpDashboardSnapshot> _loadServiceDashboard() async {
                 routeBase: '/service/work-orders',
               ),
             ),
+      ],
+    ),
+    trend: _buildMonthlyTrendCard(
+      title: 'Service Trend',
+      subtitle: 'Live monthly service activity.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: (tickets.data ?? const <ServiceTicketModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['ticket_date', 'reported_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (workOrders.data ?? const <ServiceWorkOrderModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['work_order_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (contracts.data ?? const <ServiceContractModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['contract_date', 'start_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (feedbacks.data ?? const <ServiceFeedbackModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['feedback_date', 'created_at'],
+        ),
       ],
     ),
     distributionCounts: <String, int>{
@@ -1636,6 +1913,29 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard() async {
             .toList(growable: false),
       ),
     ],
+    trend: _buildMonthlyTrendCard(
+      title: 'Project Delivery Trend',
+      subtitle: 'Live monthly project, task, and milestone activity.',
+      color: const Color(0xFF8E5CFF),
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: projects.map((item) => item.toJson()),
+          dateKeys: const ['project_date', 'start_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: tasks.map((item) => item.toJson()),
+          dateKeys: const [
+            'planned_start_date',
+            'planned_end_date',
+            'created_at',
+          ],
+        ),
+        _TrendSource(
+          records: milestones.map((item) => item.toJson()),
+          dateKeys: const ['target_date', 'created_at'],
+        ),
+      ],
+    ),
     distribution: ErpDashboardDistributionCardData(
       title: 'Project Distribution',
       subtitle: 'Live operational spread across project entities.',
@@ -1669,10 +1969,10 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard() async {
 Future<ErpDashboardSnapshot> _loadMaintenanceDashboard() async {
   final service = MaintenanceService();
   final responses = await Future.wait<dynamic>([
-    service.requests(filters: const {'per_page': 8}),
-    service.workOrders(filters: const {'per_page': 8}),
-    service.plans(filters: const {'per_page': 8}),
-    service.downtimeLogs(filters: const {'per_page': 8}),
+    service.requests(filters: const {'per_page': 100}),
+    service.workOrders(filters: const {'per_page': 100}),
+    service.plans(filters: const {'per_page': 100}),
+    service.downtimeLogs(filters: const {'per_page': 100}),
   ]);
 
   final requests = responses[0] as PaginatedResponse<MaintenanceRequestModel>;
@@ -1751,6 +2051,36 @@ Future<ErpDashboardSnapshot> _loadMaintenanceDashboard() async {
             ),
       ],
     ),
+    trend: _buildMonthlyTrendCard(
+      title: 'Maintenance Trend',
+      subtitle: 'Live monthly maintenance activity.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: (requests.data ?? const <MaintenanceRequestModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['request_date', 'created_at', 'reported_date'],
+        ),
+        _TrendSource(
+          records: (workOrders.data ?? const <MaintenanceWorkOrderModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['work_order_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (plans.data ?? const <MaintenancePlanModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['plan_date', 'start_date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (downtime.data ?? const <AssetDowntimeLogModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['downtime_start', 'log_date', 'created_at'],
+        ),
+      ],
+    ),
     distributionCounts: <String, int>{
       'Requests': _totalFromPaginated(requests),
       'Work Orders': _totalFromPaginated(workOrders),
@@ -1763,10 +2093,10 @@ Future<ErpDashboardSnapshot> _loadMaintenanceDashboard() async {
 Future<ErpDashboardSnapshot> _loadHrDashboard() async {
   final service = HrService();
   final responses = await Future.wait<dynamic>([
-    service.employees(filters: const {'per_page': 8}),
-    service.attendance(filters: const {'per_page': 8}),
-    service.departments(filters: const {'per_page': 8}),
-    service.designations(filters: const {'per_page': 8}),
+    service.employees(filters: const {'per_page': 100}),
+    service.attendance(filters: const {'per_page': 100}),
+    service.departments(filters: const {'per_page': 100}),
+    service.designations(filters: const {'per_page': 100}),
   ]);
 
   final employees = responses[0] as PaginatedResponse<EmployeeModel>;
@@ -1848,6 +2178,36 @@ Future<ErpDashboardSnapshot> _loadHrDashboard() async {
             ),
       ],
     ),
+    trend: _buildMonthlyTrendCard(
+      title: 'HR Trend',
+      subtitle: 'Live monthly HR activity.',
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: (employees.data ?? const <EmployeeModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['joining_date', 'date_of_joining', 'created_at'],
+        ),
+        _TrendSource(
+          records: (attendance.data ?? const <AttendanceRecordModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['attendance_date', 'date', 'created_at'],
+        ),
+        _TrendSource(
+          records: (departments.data ?? const <DepartmentModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['created_at'],
+        ),
+        _TrendSource(
+          records: (designations.data ?? const <DesignationModel>[]).map(
+            (item) => item.toJson(),
+          ),
+          dateKeys: const ['created_at'],
+        ),
+      ],
+    ),
     distributionCounts: <String, int>{
       'Employees': _totalFromPaginated(employees),
       'Attendance': _totalFromPaginated(attendance),
@@ -1860,8 +2220,8 @@ Future<ErpDashboardSnapshot> _loadHrDashboard() async {
 Future<ErpDashboardSnapshot> _loadPartiesDashboard() async {
   final service = PartiesService();
   final responses = await Future.wait<dynamic>([
-    service.parties(filters: const {'per_page': 8}),
-    service.partyTypes(filters: const {'per_page': 8}),
+    service.parties(filters: const {'per_page': 100}),
+    service.partyTypes(filters: const {'per_page': 100}),
   ]);
 
   final parties = responses[0] as PaginatedResponse<PartyModel>;
@@ -1951,6 +2311,17 @@ Future<ErpDashboardSnapshot> _loadPartiesDashboard() async {
             .toList(growable: false),
       ),
     ],
+    trend: _buildMonthlyTrendCard(
+      title: 'Relationship Growth',
+      subtitle: 'Live monthly party master activity.',
+      color: const Color(0xFF8E5CFF),
+      sources: <_TrendSource>[
+        _TrendSource(
+          records: partyRows.map((item) => item.toJson()),
+          dateKeys: const ['created_at', 'party_date', 'registered_on'],
+        ),
+      ],
+    ),
     distribution: ErpDashboardDistributionCardData(
       title: 'Party Distribution',
       subtitle: 'Live split between active parties and configured types.',
@@ -1971,6 +2342,7 @@ ErpDashboardSnapshot _buildGenericLiveDashboard({
   required List<ErpDashboardAction> actions,
   required List<_DashboardStatSpec> statSpecs,
   required ErpDashboardListSection primarySection,
+  ErpDashboardTrendCardData? trend,
   required Map<String, int> distributionCounts,
 }) {
   return ErpDashboardSnapshot(
@@ -1989,6 +2361,7 @@ ErpDashboardSnapshot _buildGenericLiveDashboard({
         )
         .toList(growable: false),
     primarySections: <ErpDashboardListSection>[primarySection],
+    trend: trend,
     distribution: ErpDashboardDistributionCardData(
       title: 'Operational Distribution',
       subtitle: 'Live split across this module’s core record groups.',
@@ -2009,6 +2382,13 @@ class _DashboardStatSpec {
   final int value;
   final IconData icon;
   final Color color;
+}
+
+class _TrendSource {
+  const _TrendSource({required this.records, required this.dateKeys});
+
+  final Iterable<Map<String, dynamic>> records;
+  final List<String> dateKeys;
 }
 
 ErpDashboardListItem _genericListItem({
@@ -2054,6 +2434,95 @@ List<ErpDashboardDistributionSegment> _segmentsFromCounts(
   }, growable: false);
 }
 
+ErpDashboardTrendCardData _buildMonthlyTrendCard({
+  required String title,
+  required String subtitle,
+  required List<_TrendSource> sources,
+  String emptyMessage = 'No real trend data is available yet for this module.',
+  Color color = const Color(0xFF2F6FED),
+}) {
+  return ErpDashboardTrendCardData(
+    title: title,
+    subtitle: subtitle,
+    points: _monthlyTrendPointsFromSources(sources),
+    emptyMessage: emptyMessage,
+    color: color,
+  );
+}
+
+List<ErpDashboardTrendPoint> _monthlyTrendPointsFromSources(
+  List<_TrendSource> sources, {
+  int months = 6,
+}) {
+  if (months <= 0) {
+    return const <ErpDashboardTrendPoint>[];
+  }
+
+  final now = DateTime.now();
+  final monthStarts = List<DateTime>.generate(months, (index) {
+    final offset = months - index - 1;
+    return DateTime(now.year, now.month - offset, 1);
+  }, growable: false);
+  final counts = List<int>.filled(months, 0);
+
+  for (final source in sources) {
+    for (final record in source.records) {
+      final parsed = _firstMatchingDate(record, source.dateKeys);
+      if (parsed == null) {
+        continue;
+      }
+
+      final monthStart = DateTime(parsed.year, parsed.month, 1);
+      for (var index = 0; index < monthStarts.length; index++) {
+        if (monthStart.year == monthStarts[index].year &&
+            monthStart.month == monthStarts[index].month) {
+          counts[index] += 1;
+          break;
+        }
+      }
+    }
+  }
+
+  return List<ErpDashboardTrendPoint>.generate(months, (index) {
+    return ErpDashboardTrendPoint(
+      label: _monthLabel(monthStarts[index]),
+      value: counts[index].toDouble(),
+    );
+  }, growable: false);
+}
+
+DateTime? _firstMatchingDate(Map<String, dynamic> data, List<String> keys) {
+  for (final key in keys) {
+    final raw = nullableStringValue(data, key);
+    if (raw == null || raw.trim().isEmpty) {
+      continue;
+    }
+    final parsed = DateTime.tryParse(raw.trim());
+    if (parsed != null) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+String _monthLabel(DateTime date) {
+  const monthNames = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return monthNames[date.month - 1];
+}
+
 int _totalFromPaginated(PaginatedResponse<dynamic> response) {
   return response.meta?.total ?? response.data?.length ?? 0;
 }
@@ -2076,6 +2545,18 @@ Map<String, dynamic> _salesInvoiceJson(SalesInvoiceModel invoice) {
         'invoice_status': invoice.invoiceStatus,
         'grand_total': invoice.totalAmount,
         'balance_amount': invoice.balanceAmount,
+      };
+}
+
+Map<String, dynamic> _purchaseInvoiceJson(PurchaseInvoiceModel invoice) {
+  return invoice.raw ??
+      <String, dynamic>{
+        'id': invoice.id,
+        'invoice_no': invoice.invoiceNo,
+        'invoice_date': invoice.invoiceDate,
+        'due_date': invoice.dueDate,
+        'invoice_status': invoice.invoiceStatus,
+        'total_amount': invoice.totalAmount,
       };
 }
 
