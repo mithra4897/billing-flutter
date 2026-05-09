@@ -6,6 +6,7 @@ class SalesInvoiceLineModel {
     required this.rate,
     this.id,
     this.warehouseId,
+    this.batchId,
     this.description,
     this.discountPercent,
     this.taxCodeId,
@@ -26,6 +27,7 @@ class SalesInvoiceLineModel {
   final int? salesDeliveryLineId;
   final int itemId;
   final int? warehouseId;
+  final int? batchId;
   final int? serialId;
   final String? serialNo;
   final int uomId;
@@ -48,6 +50,7 @@ class SalesInvoiceLineModel {
       salesDeliveryLineId: _nullableInt(json['sales_delivery_line_id']),
       itemId: _parseInt(json['item_id']),
       warehouseId: _nullableInt(json['warehouse_id']),
+      batchId: _nullableInt(json['batch_id']),
       serialId: _nullableInt(json['serial_id']),
       serialNo: json['serial_no']?.toString() ??
           (json['serial'] is Map
@@ -75,6 +78,7 @@ class SalesInvoiceLineModel {
         'sales_delivery_line_id': salesDeliveryLineId,
       'item_id': itemId,
       if (warehouseId != null) 'warehouse_id': warehouseId,
+      if (batchId != null) 'batch_id': batchId,
       if (serialId != null) 'serial_id': serialId,
       if (serialNo != null && serialNo!.trim().isNotEmpty)
         'serial_no': serialNo!.trim(),

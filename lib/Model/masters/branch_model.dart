@@ -27,9 +27,13 @@ class BranchModel implements JsonModel {
   String toString() => name ?? code ?? 'New Branch';
 
   factory BranchModel.fromJson(Map<String, dynamic> json) {
+    final company = json['company'];
     return BranchModel(
       id: _parseInt(json['id']),
-      companyId: _parseInt(json['company_id']),
+      companyId: _parseInt(
+        json['company_id'] ??
+            (company is Map<String, dynamic> ? company['id'] : null),
+      ),
       code: json['code']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       branchType: json['branch_type']?.toString(),
