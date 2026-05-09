@@ -327,6 +327,34 @@ class AppNavigation {
           requiredPermissions: ['accounts.view'],
         ),
         AppNavigationItem(
+          key: 'account-groups',
+          title: 'Account Groups',
+          icon: Icons.account_tree_outlined,
+          path: '/accounting/account-groups',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
+          key: 'voucher-types',
+          title: 'Voucher Types',
+          icon: Icons.receipt_outlined,
+          path: '/accounting/voucher-types',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
+          key: 'posting-rule-groups',
+          title: 'Posting Rule Groups',
+          icon: Icons.folder_special_outlined,
+          path: '/accounting/posting-rule-groups',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
+          key: 'posting-rules',
+          title: 'Posting Rules',
+          icon: Icons.rule_folder_outlined,
+          path: '/accounting/posting-rules',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
           key: 'party-accounts-register',
           title: 'Party Accounts',
           icon: Icons.link_outlined,
@@ -410,6 +438,13 @@ class AppNavigation {
       title: 'CRM',
       icon: Icons.support_agent_outlined,
       children: [
+        AppNavigationItem(
+          key: 'crm-dashboard',
+          title: 'Dashboard',
+          icon: Icons.dashboard_outlined,
+          path: '/crm/dashboard',
+          requiredPermissions: ['crm.view'],
+        ),
         AppNavigationItem(
           key: 'crm-leads',
           title: 'Leads',

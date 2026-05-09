@@ -5,6 +5,7 @@ import '../crm/crm_leads_page.dart';
 import '../crm/crm_opportunities_page.dart';
 import '../crm/crm_sources_page.dart';
 import '../crm/crm_stages_page.dart';
+import '../dashboard/crm_dashboard_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../hr/department_page.dart';
 import '../hr/designation_page.dart';
@@ -221,7 +222,9 @@ class _AppShellPageState extends State<AppShellPage> {
     required bool isSuperAdmin,
     required List<ModuleModel> orderedModules,
   }) {
-    if (_currentPath == '/dashboard' || _currentPath == '/settings/profile') {
+    if (_currentPath == '/dashboard' ||
+        _currentPath == '/crm/dashboard' ||
+        _currentPath == '/settings/profile') {
       return;
     }
 
@@ -377,6 +380,8 @@ class _AppShellPageState extends State<AppShellPage> {
     switch (_currentPath) {
       case '/dashboard':
         return DashboardPage(key: routeKey, embedded: true);
+      case '/crm/dashboard':
+        return CrmDashboardPage(key: routeKey, embedded: true);
       case '/settings/profile':
         return ProfilePage(key: routeKey, embedded: true);
       case '/settings/users':

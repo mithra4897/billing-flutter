@@ -83,8 +83,7 @@ class ApiEndpoints {
   static const String itemSupplierMapsDropdown =
       '$_inv/item-supplier-maps/dropdown';
   static const String itemAlternates = '$_inv/item-alternates';
-  static const String itemAlternatesDropdown =
-      '$_inv/item-alternates/dropdown';
+  static const String itemAlternatesDropdown = '$_inv/item-alternates/dropdown';
   static const String itemPrices = '$_inv/item-prices';
   static const String itemPricesDropdown = '$_inv/item-prices/dropdown';
   static const String stockBatches = '$_inv/stock-batches';
@@ -105,8 +104,7 @@ class ApiEndpoints {
   static const String inquiryStockSummary = '$_inv/inquiry/stock-summary';
   static const String inquiryWarehouseWiseStock =
       '$_inv/inquiry/warehouse-wise-stock';
-  static const String inquiryBatchWiseStock =
-      '$_inv/inquiry/batch-wise-stock';
+  static const String inquiryBatchWiseStock = '$_inv/inquiry/batch-wise-stock';
   static const String inquiryAvailableSerials =
       '$_inv/inquiry/available-serials';
   static const String inquiryStockCard = '$_inv/inquiry/stock-card';
@@ -135,6 +133,7 @@ class ApiEndpoints {
   static const String crmStages = '$_crm/stages';
   static const String crmLeads = '$_crm/leads';
   static const String crmEnquiries = '$_crm/enquiries';
+  static const String crmPendingFollowups = '$_crm/enquiries/pending-followups';
   static const String crmOpportunities = '$_crm/opportunities';
   static const String crmSalesChain = '$_crm/sales-chain';
 

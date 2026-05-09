@@ -302,21 +302,32 @@ class ApiClient {
     MediaType? mediaType;
     final ext = fileName.split('.').last.toLowerCase();
     switch (ext) {
-      case 'png': mediaType = MediaType('image', 'png'); break;
+      case 'png':
+        mediaType = MediaType('image', 'png');
+        break;
       case 'jpg':
-      case 'jpeg': mediaType = MediaType('image', 'jpeg'); break;
-      case 'webp': mediaType = MediaType('image', 'webp'); break;
-      case 'gif': mediaType = MediaType('image', 'gif'); break;
-      case 'pdf': mediaType = MediaType('application', 'pdf'); break;
-      default: mediaType = MediaType('application', 'octet-stream');
+      case 'jpeg':
+        mediaType = MediaType('image', 'jpeg');
+        break;
+      case 'webp':
+        mediaType = MediaType('image', 'webp');
+        break;
+      case 'gif':
+        mediaType = MediaType('image', 'gif');
+        break;
+      case 'pdf':
+        mediaType = MediaType('application', 'pdf');
+        break;
+      default:
+        mediaType = MediaType('application', 'octet-stream');
     }
 
     final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9.\-_]'), '_');
 
     request.files.add(
       http.MultipartFile.fromBytes(
-        fileField, 
-        fileBytes, 
+        fileField,
+        fileBytes,
         filename: safeFileName,
         contentType: mediaType,
       ),

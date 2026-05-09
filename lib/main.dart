@@ -65,6 +65,7 @@ class BillingApp extends StatelessWidget {
           default:
             final matchedRoute =
                 uri.path == '/dashboard' ||
+                uri.path == '/crm/dashboard' ||
                 uri.path.startsWith('/purchase/') ||
                 uri.path.startsWith('/sales/') ||
                 uri.path.startsWith('/inventory/') ||

@@ -33,40 +33,27 @@ class _DashboardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
     return Padding(
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: appTheme.cardBackground,
-          borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-          boxShadow: [
-            BoxShadow(
-              color: appTheme.cardShadow,
-              blurRadius: 30,
-              offset: const Offset(0, 10),
+      child: AppSectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            Text(
+              'Responsive shell, routing, branding, and session bootstrap are now in place. Module screens can plug into this layout next.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: appTheme.mutedText),
             ),
           ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Welcome',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Responsive shell, routing, branding, and session bootstrap are now in place. Module screens can plug into this layout next.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: appTheme.mutedText),
-              ),
-            ],
-          ),
         ),
       ),
     );

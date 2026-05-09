@@ -1,6 +1,7 @@
 import '../../core/models/api_response.dart';
 import '../../core/models/paginated_response.dart';
 import '../../model/crm/crm_enquiry_model.dart';
+import '../../model/crm/crm_followup_model.dart';
 import '../../model/crm/crm_lead_model.dart';
 import '../../model/crm/crm_opportunity_model.dart';
 import '../../model/crm/crm_source_model.dart';
@@ -136,6 +137,12 @@ class CrmService extends ErpModuleService {
       object<CrmEnquiryModel>(
         '${ApiEndpoints.crmEnquiries}/$id',
         fromJson: CrmEnquiryModel.fromJson,
+      );
+
+  Future<ApiResponse<List<CrmFollowupModel>>> pendingFollowups() =>
+      collection<CrmFollowupModel>(
+        ApiEndpoints.crmPendingFollowups,
+        fromJson: CrmFollowupModel.fromJson,
       );
 
   Future<ApiResponse<CrmEnquiryModel>> createEnquiry(CrmEnquiryModel body) =>
