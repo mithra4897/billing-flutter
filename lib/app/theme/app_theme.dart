@@ -29,6 +29,22 @@ class AppTheme {
       heroGradientEnd: Color(0xFF184E77),
       heroOverlayBackground: Color(0x1AFFFFFF),
       heroOverlayBorder: Color(0x1FFFFFFF),
+      crmLeadAccent: Color(0xFF2F9BD6),
+      crmEnquiryAccent: Color(0xFF7B4DCC),
+      crmTodayAccent: Color(0xFFD2A43A),
+      crmPendingAccent: Color(0xFFA7543A),
+      crmTodayChartAccent: Color(0xFF3294E4),
+      crmOverdueChartAccent: Color(0xFF7741C8),
+      crmUpcomingChartAccent: Color(0xFFFFB331),
+      crmNoDateChartAccent: Color(0xFFE5672E),
+      crmActionBackground: Color(0xFF0E2238),
+      crmActionShadow: Color(0x26000000),
+      crmChartGrid: Color(0xFFE8EEF4),
+      crmChartLineStart: Color(0xFF6FB4E9),
+      crmChartLineEnd: Color(0xFF2A6A90),
+      crmChartFill: Color(0xFF6FB4E9),
+      crmChartText: Color(0xFF2A2E35),
+      crmChartMutedText: Color(0xFF5A6775),
     );
 
     return ThemeData(

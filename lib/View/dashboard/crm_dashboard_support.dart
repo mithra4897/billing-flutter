@@ -8,6 +8,7 @@ enum CrmFollowupTimingBucket { today, overdue, upcoming }
 class CrmPendingFollowupItem {
   const CrmPendingFollowupItem({
     required this.id,
+    required this.enquiryId,
     required this.subjectName,
     required this.followupDateRaw,
     required this.priority,
@@ -17,6 +18,7 @@ class CrmPendingFollowupItem {
   });
 
   final int? id;
+  final int? enquiryId;
   final String subjectName;
   final String? followupDateRaw;
   final String priority;
@@ -43,6 +45,7 @@ class CrmPendingFollowupItem {
 
     return CrmPendingFollowupItem(
       id: intValue(json, 'id'),
+      enquiryId: intValue(json, 'enquiry_id'),
       subjectName: subjectName,
       followupDateRaw: nullableStringValue(json, 'followup_date'),
       priority: crmNormalizePriority(
