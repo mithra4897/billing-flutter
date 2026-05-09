@@ -193,41 +193,6 @@ class AppNavigation {
           ],
         ),
         AppNavigationItem(
-          key: 'settings-accounts',
-          title: "Accounts",
-          icon: Icons.account_balance_wallet_outlined,
-          children: [
-            AppNavigationItem(
-              key: 'account-groups',
-              title: 'Account Groups',
-              icon: Icons.account_tree_outlined,
-              path: '/accounting/account-groups',
-              requiredPermissions: ['accounts.view'],
-            ),
-            AppNavigationItem(
-              key: 'voucher-types',
-              title: 'Voucher Types',
-              icon: Icons.receipt_outlined,
-              path: '/accounting/voucher-types',
-              requiredPermissions: ['accounts.view'],
-            ),
-            AppNavigationItem(
-              key: 'posting-rule-groups',
-              title: 'Posting Rule Groups',
-              icon: Icons.folder_special_outlined,
-              path: '/accounting/posting-rule-groups',
-              requiredPermissions: ['accounts.view'],
-            ),
-            AppNavigationItem(
-              key: 'posting-rules',
-              title: 'Posting Rules',
-              icon: Icons.rule_folder_outlined,
-              path: '/accounting/posting-rules',
-              requiredPermissions: ['accounts.view'],
-            ),
-          ],
-        ),
-        AppNavigationItem(
           key: 'settings-hr',
           title: 'HR',
           icon: Icons.badge_outlined,
@@ -295,7 +260,7 @@ class AppNavigation {
           title: 'Companies',
           icon: Icons.apartment_outlined,
           path: '/settings/companies',
-          requiredPermissions: ['company.view'],
+          requiredPermissions: ['permission.view'],
         ),
         AppNavigationItem(
           key: 'settings-branches',
@@ -310,13 +275,6 @@ class AppNavigation {
           icon: Icons.confirmation_number_outlined,
           path: '/settings/document-series',
           requiredPermissions: ['document_series.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-uoms',
-          title: 'UOMs',
-          icon: Icons.straighten_outlined,
-          path: '/inventory/uoms',
-          requiredPermissions: ['inventory.view'],
         ),
       ],
     ),
@@ -612,6 +570,13 @@ class AppNavigation {
           icon: Icons.category_outlined,
           path: '/inventory/item-categories',
           requiredPermissions: ['item_category.view'],
+        ),
+        AppNavigationItem(
+          key: 'inventory-uoms',
+          title: 'UOMs',
+          icon: Icons.straighten_outlined,
+          path: '/inventory/uoms',
+          requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
           key: 'inventory-brands',
@@ -1179,7 +1144,8 @@ class AppNavigation {
           item.requiredPermissions.any(permissionCodes.contains);
 
       if (item.hasChildren) {
-        if (visibleChildren.isNotEmpty || allowed) {
+        final hasPath = item.path != null && item.path!.isNotEmpty;
+        if (allowed && (visibleChildren.isNotEmpty || hasPath)) {
           visible.add(
             AppNavigationItem(
               key: item.key,
