@@ -14,41 +14,61 @@ const List<Color> _dashboardPalette = <Color>[
   Color(0xFF19A7B8),
 ];
 
-Future<ErpDashboardSnapshot> loadErpDashboardSnapshot(String moduleKey) {
+class ErpDashboardGraphRange {
+  const ErpDashboardGraphRange({required this.start, required this.end});
+
+  final DateTime start;
+  final DateTime end;
+}
+
+enum ErpDashboardTrendPreset { monthly, weekly, yearly, custom }
+
+class ErpDashboardTrendFilter {
+  const ErpDashboardTrendFilter({required this.preset, this.customRange});
+
+  final ErpDashboardTrendPreset preset;
+  final ErpDashboardGraphRange? customRange;
+}
+
+Future<ErpDashboardSnapshot> loadErpDashboardSnapshot(
+  String moduleKey, {
+  ErpDashboardTrendFilter? trendFilter,
+}) {
   switch (moduleKey) {
     case 'crm':
       return buildCrmDashboardSnapshot(
         crmService: CrmService(),
         now: DateTime.now,
+        trendFilter: trendFilter,
       );
     case 'accounting':
-      return _loadAccountingDashboard();
+      return _loadAccountingDashboard(trendFilter: trendFilter);
     case 'assets':
-      return _loadAssetsDashboard();
+      return _loadAssetsDashboard(trendFilter: trendFilter);
     case 'sales':
-      return _loadSalesDashboard();
+      return _loadSalesDashboard(trendFilter: trendFilter);
     case 'purchase':
-      return _loadPurchaseDashboard();
+      return _loadPurchaseDashboard(trendFilter: trendFilter);
     case 'inventory':
-      return _loadInventoryDashboard();
+      return _loadInventoryDashboard(trendFilter: trendFilter);
     case 'planning':
-      return _loadPlanningDashboard();
+      return _loadPlanningDashboard(trendFilter: trendFilter);
     case 'manufacturing':
-      return _loadManufacturingDashboard();
+      return _loadManufacturingDashboard(trendFilter: trendFilter);
     case 'quality':
-      return _loadQualityDashboard();
+      return _loadQualityDashboard(trendFilter: trendFilter);
     case 'jobwork':
-      return _loadJobworkDashboard();
+      return _loadJobworkDashboard(trendFilter: trendFilter);
     case 'service':
-      return _loadServiceDashboard();
+      return _loadServiceDashboard(trendFilter: trendFilter);
     case 'projects':
-      return _loadProjectsDashboard();
+      return _loadProjectsDashboard(trendFilter: trendFilter);
     case 'maintenance':
-      return _loadMaintenanceDashboard();
+      return _loadMaintenanceDashboard(trendFilter: trendFilter);
     case 'hr':
-      return _loadHrDashboard();
+      return _loadHrDashboard(trendFilter: trendFilter);
     case 'parties':
-      return _loadPartiesDashboard();
+      return _loadPartiesDashboard(trendFilter: trendFilter);
     default:
       return Future.value(
         ErpDashboardSnapshot(
@@ -62,6 +82,7 @@ Future<ErpDashboardSnapshot> loadErpDashboardSnapshot(String moduleKey) {
 Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   required CrmService crmService,
   required DateTime Function() now,
+  ErpDashboardTrendFilter? trendFilter,
 }) async {
   final leadResponse = await crmService.leads(
     filters: const <String, dynamic>{'per_page': 1},
@@ -258,7 +279,9 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   );
 }
 
-Future<ErpDashboardSnapshot> _loadAccountingDashboard() async {
+Future<ErpDashboardSnapshot> _loadAccountingDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = AccountsService();
   final responses = await Future.wait<dynamic>([
     service.accounts(filters: const {'per_page': 1}),
@@ -427,6 +450,7 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard() async {
     trend: _buildMonthlyTrendCard(
       title: 'Monthly Billing Trend',
       subtitle: 'Live monthly voucher activity from accounting records.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: voucherRows.map((item) => item.toJson()),
@@ -469,7 +493,9 @@ Future<ErpDashboardSnapshot> _loadAccountingDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadAssetsDashboard() async {
+Future<ErpDashboardSnapshot> _loadAssetsDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = AssetsService();
   final responses = await Future.wait<dynamic>([
     service.assets(filters: const {'per_page': 100}),
@@ -610,6 +636,7 @@ Future<ErpDashboardSnapshot> _loadAssetsDashboard() async {
       subtitle:
           'Live monthly fixed-asset activity from assets, transfers, depreciation, and disposals.',
       color: const Color(0xFF1FA971),
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: assetRows.map((item) => item.toJson()),
@@ -676,7 +703,9 @@ Future<ErpDashboardSnapshot> _loadAssetsDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadSalesDashboard() async {
+Future<ErpDashboardSnapshot> _loadSalesDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = SalesService();
   final responses = await Future.wait<dynamic>([
     service.orders(filters: const {'per_page': 100, 'sort_by': 'order_date'}),
@@ -812,6 +841,7 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard() async {
       title: 'Monthly Sales Trend',
       subtitle:
           'Live monthly sales activity from quotations, orders, invoices, and receipts.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: orderRows.map((item) => item.toJson()),
@@ -873,7 +903,9 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadPurchaseDashboard() async {
+Future<ErpDashboardSnapshot> _loadPurchaseDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = PurchaseService();
   final responses = await Future.wait<dynamic>([
     service.requisitions(filters: const {'per_page': 100}),
@@ -1008,6 +1040,7 @@ Future<ErpDashboardSnapshot> _loadPurchaseDashboard() async {
       subtitle:
           'Live monthly procurement activity from requisitions, orders, receipts, and invoices.',
       color: const Color(0xFF19A7B8),
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: requisitionRows.map((item) => item.toJson()),
@@ -1045,7 +1078,9 @@ Future<ErpDashboardSnapshot> _loadPurchaseDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadInventoryDashboard() async {
+Future<ErpDashboardSnapshot> _loadInventoryDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = InventoryService();
   final responses = await Future.wait<dynamic>([
     service.items(filters: const {'per_page': 20}),
@@ -1178,6 +1213,7 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard() async {
       title: 'Inventory Movement Trend',
       subtitle: 'Live monthly inventory movement activity.',
       color: const Color(0xFF19A7B8),
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: movementRows.map((item) => item.toJson()),
@@ -1199,7 +1235,9 @@ Future<ErpDashboardSnapshot> _loadInventoryDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadPlanningDashboard() async {
+Future<ErpDashboardSnapshot> _loadPlanningDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = PlanningService();
   final responses = await Future.wait<dynamic>([
     service.mrpRuns(filters: const {'per_page': 100}),
@@ -1286,6 +1324,7 @@ Future<ErpDashboardSnapshot> _loadPlanningDashboard() async {
     trend: _buildMonthlyTrendCard(
       title: 'Planning Trend',
       subtitle: 'Live monthly MRP and planning activity.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: (runs.data ?? const <MrpRunModel>[]).map(
@@ -1325,7 +1364,9 @@ Future<ErpDashboardSnapshot> _loadPlanningDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadManufacturingDashboard() async {
+Future<ErpDashboardSnapshot> _loadManufacturingDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = ManufacturingService();
   final responses = await Future.wait<dynamic>([
     service.productionOrders(filters: const {'per_page': 100}),
@@ -1413,6 +1454,7 @@ Future<ErpDashboardSnapshot> _loadManufacturingDashboard() async {
     trend: _buildMonthlyTrendCard(
       title: 'Manufacturing Trend',
       subtitle: 'Live monthly production activity.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: (orders.data ?? const <ProductionOrderModel>[]).map(
@@ -1454,7 +1496,9 @@ Future<ErpDashboardSnapshot> _loadManufacturingDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadQualityDashboard() async {
+Future<ErpDashboardSnapshot> _loadQualityDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = QualityService();
   final responses = await Future.wait<dynamic>([
     service.qcPlans(filters: const {'per_page': 100}),
@@ -1541,6 +1585,7 @@ Future<ErpDashboardSnapshot> _loadQualityDashboard() async {
     trend: _buildMonthlyTrendCard(
       title: 'Quality Trend',
       subtitle: 'Live monthly quality control activity.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: (plans.data ?? const <QcPlanModel>[]).map(
@@ -1577,7 +1622,9 @@ Future<ErpDashboardSnapshot> _loadQualityDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadJobworkDashboard() async {
+Future<ErpDashboardSnapshot> _loadJobworkDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = JobworkService();
   final responses = await Future.wait<dynamic>([
     service.orders(filters: const {'per_page': 100}),
@@ -1664,6 +1711,7 @@ Future<ErpDashboardSnapshot> _loadJobworkDashboard() async {
     trend: _buildMonthlyTrendCard(
       title: 'Jobwork Trend',
       subtitle: 'Live monthly jobwork activity.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: (orders.data ?? const <JobworkOrderModel>[]).map(
@@ -1700,7 +1748,9 @@ Future<ErpDashboardSnapshot> _loadJobworkDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadServiceDashboard() async {
+Future<ErpDashboardSnapshot> _loadServiceDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = ServiceModuleService();
   final responses = await Future.wait<dynamic>([
     service.tickets(filters: const {'per_page': 100}),
@@ -1787,6 +1837,7 @@ Future<ErpDashboardSnapshot> _loadServiceDashboard() async {
     trend: _buildMonthlyTrendCard(
       title: 'Service Trend',
       subtitle: 'Live monthly service activity.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: (tickets.data ?? const <ServiceTicketModel>[]).map(
@@ -1823,7 +1874,9 @@ Future<ErpDashboardSnapshot> _loadServiceDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadProjectsDashboard() async {
+Future<ErpDashboardSnapshot> _loadProjectsDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = ProjectService();
   final projectsResponse = await service.projects(
     filters: const {'per_page': 100, 'sort_by': 'project_name'},
@@ -1917,6 +1970,7 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard() async {
       title: 'Project Delivery Trend',
       subtitle: 'Live monthly project, task, and milestone activity.',
       color: const Color(0xFF8E5CFF),
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: projects.map((item) => item.toJson()),
@@ -1966,7 +2020,9 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadMaintenanceDashboard() async {
+Future<ErpDashboardSnapshot> _loadMaintenanceDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = MaintenanceService();
   final responses = await Future.wait<dynamic>([
     service.requests(filters: const {'per_page': 100}),
@@ -2054,6 +2110,7 @@ Future<ErpDashboardSnapshot> _loadMaintenanceDashboard() async {
     trend: _buildMonthlyTrendCard(
       title: 'Maintenance Trend',
       subtitle: 'Live monthly maintenance activity.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: (requests.data ?? const <MaintenanceRequestModel>[]).map(
@@ -2090,7 +2147,9 @@ Future<ErpDashboardSnapshot> _loadMaintenanceDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadHrDashboard() async {
+Future<ErpDashboardSnapshot> _loadHrDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = HrService();
   final responses = await Future.wait<dynamic>([
     service.employees(filters: const {'per_page': 100}),
@@ -2181,6 +2240,7 @@ Future<ErpDashboardSnapshot> _loadHrDashboard() async {
     trend: _buildMonthlyTrendCard(
       title: 'HR Trend',
       subtitle: 'Live monthly HR activity.',
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: (employees.data ?? const <EmployeeModel>[]).map(
@@ -2217,7 +2277,9 @@ Future<ErpDashboardSnapshot> _loadHrDashboard() async {
   );
 }
 
-Future<ErpDashboardSnapshot> _loadPartiesDashboard() async {
+Future<ErpDashboardSnapshot> _loadPartiesDashboard({
+  ErpDashboardTrendFilter? trendFilter,
+}) async {
   final service = PartiesService();
   final responses = await Future.wait<dynamic>([
     service.parties(filters: const {'per_page': 100}),
@@ -2315,6 +2377,7 @@ Future<ErpDashboardSnapshot> _loadPartiesDashboard() async {
       title: 'Relationship Growth',
       subtitle: 'Live monthly party master activity.',
       color: const Color(0xFF8E5CFF),
+      trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
           records: partyRows.map((item) => item.toJson()),
@@ -2438,32 +2501,33 @@ ErpDashboardTrendCardData _buildMonthlyTrendCard({
   required String title,
   required String subtitle,
   required List<_TrendSource> sources,
+  ErpDashboardTrendFilter? trendFilter,
   String emptyMessage = 'No real trend data is available yet for this module.',
   Color color = const Color(0xFF2F6FED),
 }) {
   return ErpDashboardTrendCardData(
     title: title,
     subtitle: subtitle,
-    points: _monthlyTrendPointsFromSources(sources),
+    points: _trendPointsFromSources(sources, trendFilter: trendFilter),
     emptyMessage: emptyMessage,
     color: color,
   );
 }
 
-List<ErpDashboardTrendPoint> _monthlyTrendPointsFromSources(
+List<ErpDashboardTrendPoint> _trendPointsFromSources(
   List<_TrendSource> sources, {
-  int months = 6,
+  ErpDashboardTrendFilter? trendFilter,
 }) {
-  if (months <= 0) {
+  final activeFilter =
+      trendFilter ??
+      const ErpDashboardTrendFilter(preset: ErpDashboardTrendPreset.monthly);
+  final buckets = _buildTrendBuckets(activeFilter);
+  if (buckets.isEmpty) {
     return const <ErpDashboardTrendPoint>[];
   }
-
-  final now = DateTime.now();
-  final monthStarts = List<DateTime>.generate(months, (index) {
-    final offset = months - index - 1;
-    return DateTime(now.year, now.month - offset, 1);
-  }, growable: false);
-  final counts = List<int>.filled(months, 0);
+  final counts = List<int>.filled(buckets.length, 0);
+  final rangeStart = buckets.first.start;
+  final rangeEnd = buckets.last.endExclusive;
 
   for (final source in sources) {
     for (final record in source.records) {
@@ -2471,11 +2535,13 @@ List<ErpDashboardTrendPoint> _monthlyTrendPointsFromSources(
       if (parsed == null) {
         continue;
       }
-
-      final monthStart = DateTime(parsed.year, parsed.month, 1);
-      for (var index = 0; index < monthStarts.length; index++) {
-        if (monthStart.year == monthStarts[index].year &&
-            monthStart.month == monthStarts[index].month) {
+      if (parsed.isBefore(rangeStart) || !parsed.isBefore(rangeEnd)) {
+        continue;
+      }
+      for (var index = 0; index < buckets.length; index++) {
+        final bucket = buckets[index];
+        if (!parsed.isBefore(bucket.start) &&
+            parsed.isBefore(bucket.endExclusive)) {
           counts[index] += 1;
           break;
         }
@@ -2483,12 +2549,165 @@ List<ErpDashboardTrendPoint> _monthlyTrendPointsFromSources(
     }
   }
 
-  return List<ErpDashboardTrendPoint>.generate(months, (index) {
+  return List<ErpDashboardTrendPoint>.generate(buckets.length, (index) {
     return ErpDashboardTrendPoint(
-      label: _monthLabel(monthStarts[index]),
+      label: buckets[index].label,
       value: counts[index].toDouble(),
     );
   }, growable: false);
+}
+
+class _TrendBucket {
+  const _TrendBucket({
+    required this.label,
+    required this.start,
+    required this.endExclusive,
+  });
+
+  final String label;
+  final DateTime start;
+  final DateTime endExclusive;
+}
+
+List<_TrendBucket> _buildTrendBuckets(ErpDashboardTrendFilter filter) {
+  switch (filter.preset) {
+    case ErpDashboardTrendPreset.monthly:
+      return _monthlyTrendBuckets(6);
+    case ErpDashboardTrendPreset.weekly:
+      return _weeklyTrendBuckets(8);
+    case ErpDashboardTrendPreset.yearly:
+      return _yearlyTrendBuckets(5);
+    case ErpDashboardTrendPreset.custom:
+      final range = filter.customRange;
+      if (range == null || range.end.isBefore(range.start)) {
+        return const <_TrendBucket>[];
+      }
+      return _customTrendBuckets(range);
+  }
+}
+
+List<_TrendBucket> _monthlyTrendBuckets(int months) {
+  final now = DateTime.now();
+  return List<_TrendBucket>.generate(months, (index) {
+    final offset = months - index - 1;
+    final start = DateTime(now.year, now.month - offset, 1);
+    final end = DateTime(start.year, start.month + 1, 1);
+    return _TrendBucket(
+      label: _monthLabel(start),
+      start: start,
+      endExclusive: end,
+    );
+  }, growable: false);
+}
+
+List<_TrendBucket> _weeklyTrendBuckets(int weeks) {
+  final now = DateTime.now();
+  final thisWeekStart = _weekStart(now);
+  return List<_TrendBucket>.generate(weeks, (index) {
+    final offset = weeks - index - 1;
+    final start = thisWeekStart.subtract(Duration(days: offset * 7));
+    final end = start.add(const Duration(days: 7));
+    return _TrendBucket(
+      label: 'W${_weekOfYear(start)}',
+      start: start,
+      endExclusive: end,
+    );
+  }, growable: false);
+}
+
+List<_TrendBucket> _yearlyTrendBuckets(int years) {
+  final now = DateTime.now();
+  return List<_TrendBucket>.generate(years, (index) {
+    final year = now.year - (years - index - 1);
+    final start = DateTime(year, 1, 1);
+    final end = DateTime(year + 1, 1, 1);
+    return _TrendBucket(
+      label: year.toString(),
+      start: start,
+      endExclusive: end,
+    );
+  }, growable: false);
+}
+
+List<_TrendBucket> _customTrendBuckets(ErpDashboardGraphRange range) {
+  final normalizedStart = DateTime(
+    range.start.year,
+    range.start.month,
+    range.start.day,
+  );
+  final normalizedEndExclusive = DateTime(
+    range.end.year,
+    range.end.month,
+    range.end.day + 1,
+  );
+  final daySpan = normalizedEndExclusive.difference(normalizedStart).inDays;
+
+  if (daySpan <= 31) {
+    final buckets = <_TrendBucket>[];
+    var cursor = normalizedStart;
+    while (cursor.isBefore(normalizedEndExclusive)) {
+      final end = cursor.add(const Duration(days: 1));
+      buckets.add(
+        _TrendBucket(
+          label: _dayMonthLabel(cursor),
+          start: cursor,
+          endExclusive: end,
+        ),
+      );
+      cursor = end;
+    }
+    return buckets;
+  }
+
+  if (daySpan <= 180) {
+    final buckets = <_TrendBucket>[];
+    var cursor = _weekStart(normalizedStart);
+    while (cursor.isBefore(normalizedEndExclusive)) {
+      final end = cursor.add(const Duration(days: 7));
+      buckets.add(
+        _TrendBucket(
+          label: 'W${_weekOfYear(cursor)}',
+          start: cursor,
+          endExclusive: end,
+        ),
+      );
+      cursor = end;
+    }
+    return buckets;
+  }
+
+  if (daySpan <= 730) {
+    final buckets = <_TrendBucket>[];
+    var cursor = DateTime(normalizedStart.year, normalizedStart.month, 1);
+    while (cursor.isBefore(normalizedEndExclusive)) {
+      final end = DateTime(cursor.year, cursor.month + 1, 1);
+      buckets.add(
+        _TrendBucket(
+          label: _monthLabel(cursor),
+          start: cursor,
+          endExclusive: end,
+        ),
+      );
+      cursor = end;
+    }
+    return buckets;
+  }
+
+  final buckets = <_TrendBucket>[];
+  var cursor = DateTime(normalizedStart.year, 1, 1);
+  final limit = DateTime(normalizedEndExclusive.year, 1, 1);
+  while (!cursor.isAfter(limit)) {
+    final end = DateTime(cursor.year + 1, 1, 1);
+    buckets.add(
+      _TrendBucket(
+        label: cursor.year.toString(),
+        start: cursor,
+        endExclusive: end,
+      ),
+    );
+    cursor = end;
+  }
+  return buckets;
 }
 
 DateTime? _firstMatchingDate(Map<String, dynamic> data, List<String> keys) {
@@ -2521,6 +2740,21 @@ String _monthLabel(DateTime date) {
     'Dec',
   ];
   return monthNames[date.month - 1];
+}
+
+String _dayMonthLabel(DateTime date) {
+  return '${date.day.toString().padLeft(2, '0')} ${_monthLabel(date)}';
+}
+
+DateTime _weekStart(DateTime value) {
+  final normalized = DateTime(value.year, value.month, value.day);
+  return normalized.subtract(Duration(days: normalized.weekday - 1));
+}
+
+int _weekOfYear(DateTime value) {
+  final startOfYear = DateTime(value.year, 1, 1);
+  final firstWeekStart = _weekStart(startOfYear);
+  return ((value.difference(firstWeekStart).inDays) ~/ 7) + 1;
 }
 
 int _totalFromPaginated(PaginatedResponse<dynamic> response) {

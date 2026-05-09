@@ -20,9 +20,10 @@ class CrmDashboardPage extends StatelessWidget {
       moduleKey: 'crm',
       embedded: embedded,
       shellTitle: 'CRM Dashboard',
-      loader: () => buildCrmDashboardSnapshot(
+      loader: (trendFilter) => buildCrmDashboardSnapshot(
         crmService: crmService ?? CrmService(),
         now: now ?? DateTime.now,
+        trendFilter: trendFilter,
       ),
     );
   }

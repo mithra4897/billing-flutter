@@ -8,6 +8,8 @@ import '../helper/responsive.dart';
 import '../View/core/page_shell_actions.dart';
 import 'adaptive_shell.dart';
 
+enum ErpDashboardTrendControlValue { monthly, weekly, yearly, custom }
+
 class ErpDashboardSnapshot {
   const ErpDashboardSnapshot({
     required this.title,
@@ -200,9 +202,18 @@ class ErpDashboardHighlightEntry {
 }
 
 class ErpModuleDashboard extends StatelessWidget {
-  const ErpModuleDashboard({super.key, required this.snapshot});
+  const ErpModuleDashboard({
+    super.key,
+    required this.snapshot,
+    this.trendControlValue,
+    this.onTrendControlChanged,
+    this.showTrendControls = false,
+  });
 
   final ErpDashboardSnapshot snapshot;
+  final ErpDashboardTrendControlValue? trendControlValue;
+  final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
+  final bool showTrendControls;
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +246,12 @@ class ErpModuleDashboard extends StatelessWidget {
               const SizedBox(width: AppUiConstants.spacingLg),
               Expanded(
                 flex: 8,
-                child: _DashboardInsightsColumn(snapshot: snapshot),
+                child: _DashboardInsightsColumn(
+                  snapshot: snapshot,
+                  trendControlValue: trendControlValue,
+                  onTrendControlChanged: onTrendControlChanged,
+                  showTrendControls: showTrendControls,
+                ),
               ),
             ],
           )
@@ -245,7 +261,12 @@ class ErpModuleDashboard extends StatelessWidget {
             children: [
               _DashboardPrimaryColumn(sections: snapshot.primarySections),
               const SizedBox(height: AppUiConstants.spacingLg),
-              _DashboardInsightsColumn(snapshot: snapshot),
+              _DashboardInsightsColumn(
+                snapshot: snapshot,
+                trendControlValue: trendControlValue,
+                onTrendControlChanged: onTrendControlChanged,
+                showTrendControls: showTrendControls,
+              ),
             ],
           ),
       ],
@@ -507,14 +528,28 @@ class _DashboardPrimaryColumn extends StatelessWidget {
 }
 
 class _DashboardInsightsColumn extends StatelessWidget {
-  const _DashboardInsightsColumn({required this.snapshot});
+  const _DashboardInsightsColumn({
+    required this.snapshot,
+    required this.trendControlValue,
+    required this.onTrendControlChanged,
+    required this.showTrendControls,
+  });
 
   final ErpDashboardSnapshot snapshot;
+  final ErpDashboardTrendControlValue? trendControlValue;
+  final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
+  final bool showTrendControls;
 
   @override
   Widget build(BuildContext context) {
     final cards = <Widget>[
-      if (snapshot.trend != null) _DashboardTrendCard(data: snapshot.trend!),
+      if (snapshot.trend != null)
+        _DashboardTrendCard(
+          data: snapshot.trend!,
+          trendControlValue: trendControlValue,
+          onTrendControlChanged: onTrendControlChanged,
+          showTrendControls: showTrendControls,
+        ),
       if (snapshot.distribution != null)
         _DashboardDistributionCard(data: snapshot.distribution!),
       if (snapshot.highlights != null)
@@ -696,9 +731,17 @@ class _DashboardListCard extends StatelessWidget {
 }
 
 class _DashboardTrendCard extends StatelessWidget {
-  const _DashboardTrendCard({required this.data});
+  const _DashboardTrendCard({
+    required this.data,
+    required this.trendControlValue,
+    required this.onTrendControlChanged,
+    required this.showTrendControls,
+  });
 
   final ErpDashboardTrendCardData data;
+  final ErpDashboardTrendControlValue? trendControlValue;
+  final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
+  final bool showTrendControls;
 
   @override
   Widget build(BuildContext context) {
@@ -711,6 +754,18 @@ class _DashboardTrendCard extends StatelessWidget {
             subtitle: data.subtitle,
             icon: Icons.show_chart_outlined,
           ),
+          if (showTrendControls &&
+              trendControlValue != null &&
+              onTrendControlChanged != null) ...[
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _TrendControlDropdown(
+                value: trendControlValue!,
+                onChanged: onTrendControlChanged!,
+              ),
+            ),
+          ],
           const SizedBox(height: AppUiConstants.spacingMd),
           if (data.points.isEmpty)
             _DashboardInlineEmptyState(
@@ -747,6 +802,57 @@ class _DashboardTrendCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _TrendControlDropdown extends StatelessWidget {
+  const _TrendControlDropdown({required this.value, required this.onChanged});
+
+  final ErpDashboardTrendControlValue value;
+  final ValueChanged<ErpDashboardTrendControlValue> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('erp-dashboard-trend-filter-dropdown'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ErpDashboardTrendControlValue>(
+          value: value,
+          borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+          items: const [
+            DropdownMenuItem(
+              value: ErpDashboardTrendControlValue.monthly,
+              child: Text('Monthly'),
+            ),
+            DropdownMenuItem(
+              value: ErpDashboardTrendControlValue.weekly,
+              child: Text('Weekly'),
+            ),
+            DropdownMenuItem(
+              value: ErpDashboardTrendControlValue.yearly,
+              child: Text('Yearly'),
+            ),
+            DropdownMenuItem(
+              value: ErpDashboardTrendControlValue.custom,
+              child: Text('Custom'),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              onChanged(value);
+            }
+          },
+        ),
       ),
     );
   }
