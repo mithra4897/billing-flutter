@@ -7,6 +7,7 @@ class ProductionMaterialIssueLineDraft {
     this.productionOrderMaterialId,
     this.batchId,
     this.serialId,
+    List<int>? serialIds,
     this.uomId,
     this.warehouseId,
     String? issueQty,
@@ -14,7 +15,8 @@ class ProductionMaterialIssueLineDraft {
     String? remarks,
   }) : issueQtyController = TextEditingController(text: issueQty ?? ''),
        unitCostController = TextEditingController(text: unitCost ?? ''),
-       remarksController = TextEditingController(text: remarks ?? '');
+       remarksController = TextEditingController(text: remarks ?? ''),
+       serialIds = List<int>.from(serialIds ?? const <int>[]);
 
   factory ProductionMaterialIssueLineDraft.fromJson(Map<String, dynamic> json) {
     return ProductionMaterialIssueLineDraft(
@@ -22,6 +24,9 @@ class ProductionMaterialIssueLineDraft {
       productionOrderMaterialId: intValue(json, 'production_order_material_id'),
       batchId: intValue(json, 'batch_id'),
       serialId: intValue(json, 'serial_id'),
+      serialIds: <int>[
+        if (intValue(json, 'serial_id') != null) intValue(json, 'serial_id')!,
+      ],
       uomId: intValue(json, 'uom_id'),
       warehouseId: intValue(json, 'warehouse_id'),
       issueQty: stringValue(json, 'issue_qty'),
@@ -34,6 +39,7 @@ class ProductionMaterialIssueLineDraft {
   int? productionOrderMaterialId;
   int? batchId;
   int? serialId;
+  List<int> serialIds;
   int? uomId;
   int? warehouseId;
   final TextEditingController issueQtyController;
@@ -44,7 +50,7 @@ class ProductionMaterialIssueLineDraft {
     'item_id': itemId,
     'production_order_material_id': productionOrderMaterialId,
     'batch_id': batchId,
-    'serial_id': serialId,
+    'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
     'uom_id': uomId,
     'warehouse_id': warehouseId,
     'issue_qty': double.tryParse(issueQtyController.text.trim()) ?? 0,
@@ -219,6 +225,29 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     return message;
   }
 
+  ItemModel? itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    for (final item in items) {
+      if (item.id == itemId) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  bool itemHasBatch(int? itemId) => itemById(itemId)?.hasBatch ?? false;
+
+  bool itemHasSerial(int? itemId) => itemById(itemId)?.hasSerial ?? false;
+
+  List<int> lineSerialIds(ProductionMaterialIssueLineDraft line) {
+    if (line.serialIds.isNotEmpty) {
+      return List<int>.from(line.serialIds);
+    }
+    return line.serialId == null ? const <int>[] : <int>[line.serialId!];
+  }
+
   DocumentSeriesModel? get _resolvedDocumentSeries {
     DocumentSeriesModel? fallback;
     for (final series in documentSeries) {
@@ -269,6 +298,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
       line.itemId = null;
       line.batchId = null;
       line.serialId = null;
+      line.serialIds = <int>[];
       line.uomId = null;
       line.warehouseId = warehouseId;
     }
@@ -314,6 +344,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     lines[index].warehouseId = value;
     lines[index].batchId = null;
     lines[index].serialId = null;
+    lines[index].serialIds = <int>[];
     _notifySafely();
   }
 
@@ -497,9 +528,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
           ? <ProductionMaterialIssueLineDraft>[
               ProductionMaterialIssueLineDraft(),
             ]
-          : rawLines
-                .map(ProductionMaterialIssueLineDraft.fromJson)
-                .toList(growable: true);
+          : _buildLineDrafts(rawLines);
     } catch (e) {
       formError = e.toString();
     } finally {
@@ -545,6 +574,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     );
     lines[index].batchId = null;
     lines[index].serialId = null;
+    lines[index].serialIds = <int>[];
     final item = items.cast<ItemModel?>().firstWhere(
       (entry) => entry?.id == value,
       orElse: () => null,
@@ -579,6 +609,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     }
     lines[index].batchId = value;
     lines[index].serialId = null;
+    lines[index].serialIds = <int>[];
     _notifySafely();
   }
 
@@ -587,6 +618,20 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
       return;
     }
     lines[index].serialId = value;
+    lines[index].serialIds = value == null ? <int>[] : <int>[value];
+    _notifySafely();
+  }
+
+  void setLineSerialIds(int index, List<int> values) {
+    if ((!isDraft && selected != null) || index < 0 || index >= lines.length) {
+      return;
+    }
+    final normalized = values.toSet().toList(growable: false);
+    lines[index].serialIds = List<int>.from(normalized);
+    lines[index].serialId = normalized.length == 1 ? normalized.first : null;
+    if (itemHasSerial(lines[index].itemId)) {
+      lines[index].issueQtyController.text = normalized.length.toString();
+    }
     _notifySafely();
   }
 
@@ -808,7 +853,54 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
         .toList(growable: false);
   }
 
+  List<ProductionMaterialIssueLineDraft> _buildLineDrafts(
+    List<Map<String, dynamic>> rawLines,
+  ) {
+    final grouped = <String, _ProductionMaterialIssueGroupedLine>{};
+    final ordered = <_ProductionMaterialIssueGroupedLine>[];
+
+    for (final rawLine in rawLines) {
+      final itemId = intValue(rawLine, 'item_id');
+      if (!itemHasSerial(itemId)) {
+        ordered.add(_ProductionMaterialIssueGroupedLine.fromLine(rawLine));
+        continue;
+      }
+
+      final key = [
+        intValue(rawLine, 'production_order_material_id') ?? '',
+        itemId ?? '',
+        intValue(rawLine, 'warehouse_id') ?? '',
+        intValue(rawLine, 'batch_id') ?? '',
+        intValue(rawLine, 'uom_id') ?? '',
+        stringValue(rawLine, 'unit_cost'),
+        stringValue(rawLine, 'remarks'),
+      ].join('|');
+
+      final alreadyGrouped = grouped.containsKey(key);
+      final current = grouped.putIfAbsent(key, () {
+        final created = _ProductionMaterialIssueGroupedLine.fromLine(rawLine);
+        ordered.add(created);
+        return created;
+      });
+
+      if (!alreadyGrouped) {
+        continue;
+      }
+
+      current.issueQty +=
+          double.tryParse(stringValue(rawLine, 'issue_qty')) ?? 0;
+      final serialId = intValue(rawLine, 'serial_id');
+      if (serialId != null) {
+        current.serialIds.add(serialId);
+      }
+      current.serialId = null;
+    }
+
+    return ordered.map((entry) => entry.toDraft()).toList(growable: true);
+  }
+
   String? _validate() {
+    final usedSerialIds = <int>{};
     if (companyId == null ||
         branchId == null ||
         locationId == null ||
@@ -886,34 +978,70 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
         return 'Line ${i + 1}: no available stock found for the selected warehouse.';
       }
       if (item.hasSerial) {
-        if (line.serialId == null) {
+        final selectedSerialIds = lineSerialIds(line);
+        if (selectedSerialIds.isEmpty) {
           return 'Line ${i + 1}: serial is required for serial-tracked item.';
         }
-        if ((double.tryParse(line.issueQtyController.text.trim()) ?? 0) != 1) {
-          return 'Line ${i + 1}: serial issue qty must be exactly 1.';
+        if (issueQty != issueQty.floorToDouble()) {
+          return 'Line ${i + 1}: serial issue qty must be a whole number.';
         }
-        final serial =
-            serialOptions(
-              line.itemId,
-              line.warehouseId,
-              line.batchId,
-            ).cast<StockSerialModel?>().firstWhere(
-              (entry) =>
-                  intValue(
-                    entry?.toJson() ?? const <String, dynamic>{},
-                    'id',
-                  ) ==
-                  line.serialId,
-              orElse: () => null,
-            );
-        if (serial == null) {
-          return 'Line ${i + 1}: invalid serial for selected warehouse/batch.';
+        if (issueQty != selectedSerialIds.length) {
+          return 'Line ${i + 1}: issue qty must match selected serial count.';
         }
-      } else if (line.serialId != null) {
+        for (final selectedSerialId in selectedSerialIds) {
+          final serial =
+              serialOptions(
+                line.itemId,
+                line.warehouseId,
+                line.batchId,
+              ).cast<StockSerialModel?>().firstWhere(
+                (entry) =>
+                    intValue(
+                      entry?.toJson() ?? const <String, dynamic>{},
+                      'id',
+                    ) ==
+                    selectedSerialId,
+                orElse: () => null,
+              );
+          if (serial == null) {
+            return 'Line ${i + 1}: invalid serial for selected warehouse/batch.';
+          }
+          if (!usedSerialIds.add(selectedSerialId)) {
+            return 'Line ${i + 1}: duplicate serial selected in this document.';
+          }
+        }
+      } else if (line.serialId != null || line.serialIds.isNotEmpty) {
         return 'Line ${i + 1}: serial is not allowed for this item.';
       }
     }
     return null;
+  }
+
+  List<Map<String, dynamic>> _expandedLinesForSave() {
+    final expanded = <Map<String, dynamic>>[];
+    for (final line in lines) {
+      if (!itemHasSerial(line.itemId)) {
+        expanded.add(line.toJson());
+        continue;
+      }
+      final selectedSerialIds = lineSerialIds(line);
+      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final remarks = nullIfEmpty(line.remarksController.text);
+      for (final selectedSerialId in selectedSerialIds) {
+        expanded.add(<String, dynamic>{
+          'item_id': line.itemId,
+          'production_order_material_id': line.productionOrderMaterialId,
+          'batch_id': line.batchId,
+          'serial_id': selectedSerialId,
+          'uom_id': line.uomId,
+          'warehouse_id': line.warehouseId,
+          'issue_qty': 1,
+          'unit_cost': unitCost,
+          'remarks': remarks,
+        });
+      }
+    }
+    return expanded;
   }
 
   Future<void> save() async {
@@ -940,7 +1068,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
       'warehouse_id': warehouseId,
       'remarks': nullIfEmpty(remarksController.text),
       'is_active': isActive ? 1 : 0,
-      'lines': lines.map((line) => line.toJson()).toList(growable: false),
+      'lines': _expandedLinesForSave(),
     };
     try {
       final response = selected == null
@@ -1031,4 +1159,68 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     }
     super.dispose();
   }
+}
+
+class _ProductionMaterialIssueGroupedLine {
+  _ProductionMaterialIssueGroupedLine({
+    required this.itemId,
+    required this.productionOrderMaterialId,
+    required this.batchId,
+    required this.serialId,
+    required this.serialIds,
+    required this.uomId,
+    required this.warehouseId,
+    required this.issueQty,
+    required this.unitCost,
+    required this.remarks,
+  });
+
+  factory _ProductionMaterialIssueGroupedLine.fromLine(
+    Map<String, dynamic> rawLine,
+  ) {
+    final serialId = intValue(rawLine, 'serial_id');
+    return _ProductionMaterialIssueGroupedLine(
+      itemId: intValue(rawLine, 'item_id'),
+      productionOrderMaterialId: intValue(rawLine, 'production_order_material_id'),
+      batchId: intValue(rawLine, 'batch_id'),
+      serialId: serialId,
+      serialIds: serialId == null ? <int>[] : <int>[serialId],
+      uomId: intValue(rawLine, 'uom_id'),
+      warehouseId: intValue(rawLine, 'warehouse_id'),
+      issueQty: double.tryParse(stringValue(rawLine, 'issue_qty')) ?? 0,
+      unitCost: double.tryParse(stringValue(rawLine, 'unit_cost')) ?? 0,
+      remarks: stringValue(rawLine, 'remarks'),
+    );
+  }
+
+  int? itemId;
+  int? productionOrderMaterialId;
+  int? batchId;
+  int? serialId;
+  List<int> serialIds;
+  int? uomId;
+  int? warehouseId;
+  double issueQty;
+  double unitCost;
+  String remarks;
+
+  ProductionMaterialIssueLineDraft toDraft() => ProductionMaterialIssueLineDraft(
+    itemId: itemId,
+    productionOrderMaterialId: productionOrderMaterialId,
+    batchId: batchId,
+    serialId: serialId,
+    serialIds: serialIds,
+    uomId: uomId,
+    warehouseId: warehouseId,
+    issueQty: _productionIssueFormatNumber(issueQty),
+    unitCost: _productionIssueFormatNumber(unitCost),
+    remarks: remarks,
+  );
+}
+
+String _productionIssueFormatNumber(double value) {
+  if (value == value.roundToDouble()) {
+    return value.toStringAsFixed(0);
+  }
+  return value.toString();
 }

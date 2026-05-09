@@ -345,24 +345,26 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                             vm.onLineUomChanged(index, v);
                           },
                         ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Batch',
-                          mappedItems: batches.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'batch_no', 'Batch'))).toList(growable: false),
-                          initialValue: line.batchId,
-                          onChanged: (v) {
-                            if (!canEdit) return;
-                            vm.onLineBatchChanged(index, v);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Serial',
-                          mappedItems: serials.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'serial_no', 'Serial'))).toList(growable: false),
-                          initialValue: line.serialId,
-                          onChanged: (v) {
-                            if (!canEdit) return;
-                            vm.onLineSerialChanged(index, v);
-                          },
-                        ),
+                        if (vm.itemHasBatch(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Batch',
+                            mappedItems: batches.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'batch_no', 'Batch'))).toList(growable: false),
+                            initialValue: line.batchId,
+                            onChanged: (v) {
+                              if (!canEdit) return;
+                              vm.onLineBatchChanged(index, v);
+                            },
+                          ),
+                        if (vm.itemHasSerial(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Serial',
+                            mappedItems: serials.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'serial_no', 'Serial'))).toList(growable: false),
+                            initialValue: line.serialId,
+                            onChanged: (v) {
+                              if (!canEdit) return;
+                              vm.onLineSerialChanged(index, v);
+                            },
+                          ),
                         AppDropdownField<String>.fromMapped(
                           labelText: 'Direction',
                           mappedItems: const <AppDropdownItem<String>>[

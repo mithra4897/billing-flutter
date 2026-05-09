@@ -191,7 +191,12 @@ class _StockIssueEditor extends StatelessWidget {
                   labelText: 'Company',
                   mappedItems: vm.companies
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.companyId,
                   validator: Validators.requiredSelection('Company'),
@@ -206,7 +211,12 @@ class _StockIssueEditor extends StatelessWidget {
                   labelText: 'Branch',
                   mappedItems: vm.branchOptions
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.branchId,
                   validator: Validators.requiredSelection('Branch'),
@@ -221,7 +231,12 @@ class _StockIssueEditor extends StatelessWidget {
                   labelText: 'Location',
                   mappedItems: vm.locationOptions
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.locationId,
                   validator: Validators.requiredSelection('Location'),
@@ -236,7 +251,12 @@ class _StockIssueEditor extends StatelessWidget {
                   labelText: 'Financial Year',
                   mappedItems: vm.financialYears
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.financialYearId,
                   validator: Validators.requiredSelection('Financial Year'),
@@ -261,7 +281,12 @@ class _StockIssueEditor extends StatelessWidget {
                   labelText: 'Document Series',
                   mappedItems: vm.seriesOptions
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.documentSeriesId,
                   onChanged: (value) {
@@ -275,7 +300,12 @@ class _StockIssueEditor extends StatelessWidget {
                   labelText: 'Warehouse',
                   mappedItems: vm.warehouseOptions
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.warehouseId,
                   validator: Validators.requiredSelection('Warehouse'),
@@ -358,8 +388,8 @@ class _StockIssueEditor extends StatelessWidget {
                 Text(
                   'Line Items',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const Spacer(),
                 AppActionButton(
@@ -378,8 +408,12 @@ class _StockIssueEditor extends StatelessWidget {
                 final line = vm.lines[index];
                 final batches = vm.batchOptions(line.itemId);
                 final serials = vm.serialOptions(line.itemId, line.batchId);
+                final showBatch = vm.itemHasBatch(line.itemId);
+                final showSerial = vm.itemHasSerial(line.itemId);
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
                   child: PurchaseCompactLineCard(
                     index: index,
                     total: vm.lines.length,
@@ -417,9 +451,15 @@ class _StockIssueEditor extends StatelessWidget {
                         ),
                         AppDropdownField<int>.fromMapped(
                           labelText: 'UOM',
-                          mappedItems: vm.uomOptionsForItem(line.itemId)
+                          mappedItems: vm
+                              .uomOptionsForItem(line.itemId)
                               .where((u) => u.id != null)
-                              .map((u) => AppDropdownItem<int>(value: u.id!, label: u.toString()))
+                              .map(
+                                (u) => AppDropdownItem<int>(
+                                  value: u.id!,
+                                  label: u.toString(),
+                                ),
+                              )
                               .toList(growable: false),
                           initialValue: line.uomId,
                           validator: Validators.requiredSelection('UOM'),
@@ -430,72 +470,129 @@ class _StockIssueEditor extends StatelessWidget {
                             vm.onLineUomChanged(index, value);
                           },
                         ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Batch',
-                          mappedItems: batches
-                              .map(
-                                (item) => AppDropdownItem<int>(
-                                  value: intValue(item, 'id')!,
-                                  label: stringValue(item, 'batch_no', 'Batch'),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.batchId,
-                          onChanged: (value) {
-                            if (!canEdit) {
-                              return;
-                            }
-                            vm.onLineBatchChanged(index, value);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Serial',
-                          mappedItems: serials
-                              .map(
-                                (item) => AppDropdownItem<int>(
-                                  value: intValue(item, 'id')!,
-                                  label: stringValue(
-                                    item,
-                                    'serial_no',
-                                    'Serial',
+                        if (showBatch)
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Batch',
+                            mappedItems: batches
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item, 'id')!,
+                                    label: stringValue(
+                                      item,
+                                      'batch_no',
+                                      'Batch',
+                                    ),
                                   ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.serialId,
-                          onChanged: (value) {
-                            if (!canEdit) {
-                              return;
-                            }
-                            vm.onLineSerialChanged(index, value);
-                          },
-                        ),
+                                )
+                                .toList(growable: false),
+                            initialValue: line.batchId,
+                            onChanged: (value) {
+                              if (!canEdit) {
+                                return;
+                              }
+                              vm.onLineBatchChanged(index, value);
+                            },
+                          ),
+                        if (showSerial)
+                          AppSerialNumbersField(
+                            values: vm
+                                .lineSerialIds(line)
+                                .map((id) {
+                                  final serial = serials
+                                      .cast<Map<String, dynamic>?>()
+                                      .firstWhere(
+                                        (entry) =>
+                                            entry != null &&
+                                            intValue(entry, 'id') == id,
+                                        orElse: () => null,
+                                      );
+                                  return serial == null
+                                      ? ''
+                                      : stringValue(serial, 'serial_no');
+                                })
+                                .where((value) => value.trim().isNotEmpty)
+                                .toList(growable: false),
+                            enabled: canEdit,
+                            emptyText: 'No serials added',
+                            countSummaryBuilder: (count) =>
+                                '$count serial(s) added',
+                            validator: (values) {
+                              final serialIdByLabel = <String, int>{
+                                for (final serial in serials)
+                                  stringValue(
+                                        serial,
+                                        'serial_no',
+                                      ).trim().toLowerCase():
+                                      intValue(serial, 'id') ?? 0,
+                              };
+                              for (final label in values) {
+                                if (!serialIdByLabel.containsKey(
+                                  label.toLowerCase(),
+                                )) {
+                                  return 'Serial "$label" is not available for this item/batch.';
+                                }
+                              }
+                              return null;
+                            },
+                            onChanged: (values) {
+                              final serialIdByLabel = <String, int>{
+                                for (final serial in serials)
+                                  stringValue(
+                                        serial,
+                                        'serial_no',
+                                      ).trim().toLowerCase():
+                                      intValue(serial, 'id') ?? 0,
+                              };
+                              final resolvedIds = values
+                                  .map(
+                                    (value) =>
+                                        serialIdByLabel[value.toLowerCase()]!,
+                                  )
+                                  .toList(growable: false);
+                              vm.setLineSerialIds(index, resolvedIds);
+                            },
+                          ),
                         AppFormTextField(
                           labelText: 'Issue qty',
                           controller: line.qtyController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          enabled: canEdit,
-                          validator: Validators.requiredPositiveNumber('Issue qty'),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          enabled: canEdit && !showSerial,
+                          validator: Validators.requiredPositiveNumber(
+                            'Issue qty',
+                          ),
                         ),
                         AppFormTextField(
                           labelText: 'Unit Cost',
                           controller: line.unitCostController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber('Unit Cost'),
+                          validator: Validators.optionalNonNegativeNumber(
+                            'Unit Cost',
+                          ),
                         ),
                         AppFormTextField(
                           labelText: 'Total Cost',
                           controller: line.totalCostController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber('Total Cost'),
+                          validator: Validators.optionalNonNegativeNumber(
+                            'Total Cost',
+                          ),
                         ),
                         AppFormTextField(
                           labelText: 'Remarks',
                           controller: line.remarksController,
                           enabled: canEdit,
-                          validator: Validators.optionalMaxLength(500, 'Line Remarks'),
+                          validator: Validators.optionalMaxLength(
+                            500,
+                            'Line Remarks',
+                          ),
                         ),
                       ],
                     ),

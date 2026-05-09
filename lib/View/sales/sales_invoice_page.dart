@@ -20,6 +20,7 @@ class SalesInvoicePage extends StatefulWidget {
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+
   /// Prefills a **standalone** invoice from a quotation (API has no `sales_quotation_id` on invoices).
   final int? initialQuotationId;
 
@@ -30,13 +31,13 @@ class SalesInvoicePage extends StatefulWidget {
 class _SalesInvoicePageState extends State<SalesInvoicePage> {
   static const List<AppDropdownItem<String>> _listStatusFilter =
       <AppDropdownItem<String>>[
-    AppDropdownItem(value: '', label: 'All'),
-    AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(value: 'partially_paid', label: 'Partially paid'),
-    AppDropdownItem(value: 'paid', label: 'Paid'),
-    AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-  ];
+        AppDropdownItem(value: '', label: 'All'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'partially_paid', label: 'Partially paid'),
+        AppDropdownItem(value: 'paid', label: 'Paid'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
 
   final SalesService _salesService = SalesService();
   final CrmService _crmService = CrmService();
@@ -78,6 +79,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> _customers = const <PartyModel>[];
+  final Map<int, PartyModel> _customerDetailsById = <int, PartyModel>{};
+  final Map<int, List<PartyGstDetailModel>> _customerGstDetailsById =
+      <int, List<PartyGstDetailModel>>{};
   List<AccountModel> _accounts = const <AccountModel>[];
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
@@ -90,8 +94,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   List<Map<String, dynamic>>? _deliveryLinesCache;
   final Map<int, Set<int>> _allowedWarehouseIdsByItem = <int, Set<int>>{};
   final Set<int> _warehouseOptionsLoadingItemIds = <int>{};
-  final Map<String, List<Map<String, dynamic>>> _availableSerialsByItemWarehouse =
-      <String, List<Map<String, dynamic>>>{};
+  final Map<String, List<Map<String, dynamic>>>
+  _availableSerialsByItemWarehouse = <String, List<Map<String, dynamic>>>{};
   final Set<String> _serialOptionsLoadingKeys = <String>{};
   int? _salesOrderId;
   int? _salesDeliveryId;
@@ -106,6 +110,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   int? _financialYearId;
   int? _documentSeriesId;
   int? _customerPartyId;
+  int? _billingAddressId;
+  int? _shippingAddressId;
   int? _adjustmentAccountId;
   bool _isActive = true;
   Map<String, dynamic>? _salesChain;
@@ -128,8 +134,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     return _selectedItem!.invoiceStatus == 'draft';
   }
 
-  String get _status =>
-      _selectedItem?.invoiceStatus ?? 'draft';
+  String get _status => _selectedItem?.invoiceStatus ?? 'draft';
 
   List<BranchModel> get _branchOptions =>
       branchesForCompany(_branches, _companyId);
@@ -140,8 +145,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     return _documentSeries
         .where((item) {
           final typeOk =
-              item.documentType == null ||
-              item.documentType == 'SALES_INVOICE';
+              item.documentType == null || item.documentType == 'SALES_INVOICE';
           final companyOk = _companyId == null || item.companyId == _companyId;
           final fyOk =
               _financialYearId == null ||
@@ -174,10 +178,317 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     );
   }
 
-  bool _isSerialManagedItem(int? itemId) => _itemById(itemId)?.hasSerial == true;
+  bool _isSerialManagedItem(int? itemId) =>
+      _itemById(itemId)?.hasSerial == true;
+
+  int? get _currentDraftInvoiceId =>
+      _selectedItem != null && _selectedItem!.invoiceStatus == 'draft'
+      ? _selectedItem!.id
+      : null;
+
+  List<String> _lineSerialNumbers(_InvoiceLineDraft line) {
+    if (line.serialNumbers.isNotEmpty) {
+      return List<String>.from(line.serialNumbers);
+    }
+    final serialNo = line.serialNoController.text.trim();
+    return serialNo.isEmpty ? const <String>[] : <String>[serialNo];
+  }
+
+  void _setLineSerialNumbers(_InvoiceLineDraft line, List<String> values) {
+    final normalized = values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    line.serialNumbers = List<String>.from(normalized);
+    line.serialNoController.text = normalized.isEmpty ? '' : normalized.first;
+    if (!_isSerialManagedItem(line.itemId)) {
+      return;
+    }
+    line.qtyController.text = normalized.length.toString();
+    if (normalized.length == 1) {
+      final matched = _serialOptionsForLine(line)
+          .cast<Map<String, dynamic>?>()
+          .firstWhere(
+            (serial) =>
+                (serial?['serial_no']?.toString().trim().toLowerCase() ?? '') ==
+                normalized.first.toLowerCase(),
+            orElse: () => null,
+          );
+      line.serialId = matched == null
+          ? null
+          : int.tryParse(matched['serial_id']?.toString() ?? '');
+    } else {
+      line.serialId = null;
+    }
+  }
+
+  String _invoiceLineGroupingKey(SalesInvoiceLineModel line) {
+    String normalizeText(String? value) => (value ?? '').trim().toLowerCase();
+    String normalizeNumber(double? value) => (value ?? 0).toStringAsFixed(6);
+
+    return <String>[
+      '${line.salesOrderLineId ?? 0}',
+      '${line.salesDeliveryLineId ?? 0}',
+      '${line.itemId}',
+      '${line.warehouseId ?? 0}',
+      '${line.uomId}',
+      normalizeNumber(line.rate),
+      normalizeNumber(line.discountPercent),
+      '${line.taxCodeId ?? 0}',
+      normalizeText(line.description),
+      normalizeText(line.remarks),
+    ].join('|');
+  }
+
+  List<_InvoiceLineDraft> _buildInvoiceDraftsFromLines(
+    List<SalesInvoiceLineModel> lines,
+  ) {
+    final drafts = <_InvoiceLineDraft>[];
+    final grouped = <String, _InvoiceLineDraft>{};
+
+    for (final line in lines) {
+      if (!_isSerialManagedItem(line.itemId)) {
+        drafts.add(_InvoiceLineDraft.fromLine(line));
+        continue;
+      }
+
+      final key = _invoiceLineGroupingKey(line);
+      final existing = grouped[key];
+      final serialNo = (line.serialNo ?? '').trim();
+      if (existing == null) {
+        final draft = _InvoiceLineDraft.fromLine(line);
+        draft.serialNumbers = serialNo.isEmpty
+            ? <String>[]
+            : <String>[serialNo];
+        if (draft.serialNumbers.isNotEmpty) {
+          draft.serialNoController.text = draft.serialNumbers.first;
+        }
+        draft.qtyController.text = draft.serialNumbers.length.toString();
+        grouped[key] = draft;
+        drafts.add(draft);
+        continue;
+      }
+
+      if (serialNo.isNotEmpty &&
+          !existing.serialNumbers.any(
+            (value) => value.toLowerCase() == serialNo.toLowerCase(),
+          )) {
+        existing.serialNumbers = <String>[...existing.serialNumbers, serialNo];
+      }
+      existing.qtyController.text = existing.serialNumbers.length.toString();
+      if (existing.serialNumbers.isNotEmpty) {
+        existing.serialNoController.text = existing.serialNumbers.first;
+      }
+      existing.serialId = existing.serialNumbers.length == 1
+          ? line.serialId
+          : null;
+    }
+
+    return drafts;
+  }
+
+  TaxCodeModel? _taxCodeById(int? taxCodeId) {
+    if (taxCodeId == null) {
+      return null;
+    }
+    return _taxCodes.cast<TaxCodeModel?>().firstWhere(
+      (taxCode) => taxCode?.id == taxCodeId,
+      orElse: () => null,
+    );
+  }
+
+  PartyModel? _customerListEntryById(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return _customers.cast<PartyModel?>().firstWhere(
+      (party) => party?.id == partyId,
+      orElse: () => null,
+    );
+  }
+
+  PartyModel? _customerForTaxContext(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return _customerDetailsById[partyId] ?? _customerListEntryById(partyId);
+  }
+
+  String? _normalizeStateCode(String? code) {
+    final trimmed = (code ?? '').trim().toUpperCase();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    if (RegExp(r'^\d+$').hasMatch(trimmed)) {
+      return trimmed.padLeft(2, '0');
+    }
+    return trimmed;
+  }
+
+  String? _gstStateFromGstin(String? gstin) {
+    final normalized = (gstin ?? '').trim().toUpperCase();
+    if (normalized.length < 2) {
+      return null;
+    }
+    final prefix = normalized.substring(0, 2);
+    return RegExp(r'^\d{2}$').hasMatch(prefix) ? prefix : null;
+  }
+
+  String? _resolveCompanyStateCodeForSummary() {
+    final location = _locations.cast<BusinessLocationModel?>().firstWhere(
+      (entry) => entry?.id == _locationId,
+      orElse: () => null,
+    );
+    final fromLocation = _normalizeStateCode(location?.stateCode);
+    if (fromLocation != null) {
+      return fromLocation;
+    }
+
+    final company = _companies.cast<CompanyModel?>().firstWhere(
+      (entry) => entry?.id == _companyId,
+      orElse: () => null,
+    );
+    final fromCompany = _normalizeStateCode(company?.stateCode);
+    if (fromCompany != null) {
+      return fromCompany;
+    }
+
+    return _gstStateFromGstin(company?.gstin);
+  }
+
+  PartyAddressModel? _preferredCustomerAddress(PartyModel? customer) {
+    if (customer == null) {
+      return null;
+    }
+
+    PartyAddressModel? byId(int? id) {
+      if (id == null) {
+        return null;
+      }
+      return customer.addresses.cast<PartyAddressModel?>().firstWhere(
+        (address) => address?.id == id,
+        orElse: () => null,
+      );
+    }
+
+    final preferred = byId(_shippingAddressId) ?? byId(_billingAddressId);
+    if (preferred != null && preferred.isActive) {
+      return preferred;
+    }
+
+    final shipping = customer.addresses.where(
+      (address) =>
+          address.isActive &&
+          (address.addressType ?? '').trim().toLowerCase() == 'shipping',
+    );
+    if (shipping.isNotEmpty) {
+      return shipping.firstWhere(
+        (address) => address.isDefault,
+        orElse: () => shipping.first,
+      );
+    }
+
+    final billing = customer.addresses.where(
+      (address) =>
+          address.isActive &&
+          (address.addressType ?? '').trim().toLowerCase() == 'billing',
+    );
+    if (billing.isNotEmpty) {
+      return billing.firstWhere(
+        (address) => address.isDefault,
+        orElse: () => billing.first,
+      );
+    }
+
+    final active = customer.addresses.where((address) => address.isActive);
+    if (active.isNotEmpty) {
+      return active.firstWhere(
+        (address) => address.isDefault,
+        orElse: () => active.first,
+      );
+    }
+
+    return null;
+  }
+
+  String? _resolveCustomerStateCodeForSummary() {
+    final customer = _customerForTaxContext(_customerPartyId);
+    final preferredAddress = _preferredCustomerAddress(customer);
+    final fromAddress = _normalizeStateCode(preferredAddress?.stateCode);
+    if (fromAddress != null) {
+      return fromAddress;
+    }
+
+    final partyId = _customerPartyId;
+    if (partyId != null) {
+      final gstDetails =
+          _customerGstDetailsById[partyId] ?? const <PartyGstDetailModel>[];
+      final activeDetails = gstDetails
+          .where((detail) {
+            final data = detail.toJson();
+            return data['is_active'] != false && data['is_active'] != 0;
+          })
+          .toList(growable: false);
+      if (activeDetails.isNotEmpty) {
+        final preferred = activeDetails.firstWhere((detail) {
+          final data = detail.toJson();
+          return data['is_default'] == true || data['is_default'] == 1;
+        }, orElse: () => activeDetails.first);
+        final data = preferred.toJson();
+        final fromStateCode = _normalizeStateCode(
+          data['state_code']?.toString(),
+        );
+        if (fromStateCode != null) {
+          return fromStateCode;
+        }
+        final fromGstin = _gstStateFromGstin(data['gstin']?.toString());
+        if (fromGstin != null) {
+          return fromGstin;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  bool? _isInterStateForSummary() {
+    final companyState = _resolveCompanyStateCodeForSummary();
+    final customerState = _resolveCustomerStateCodeForSummary();
+    if (companyState == null || customerState == null) {
+      return null;
+    }
+    return companyState != customerState;
+  }
+
+  Future<void> _ensureCustomerTaxContext(int? partyId) async {
+    if (partyId == null) {
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _partiesService.party(partyId),
+        _partiesService.partyGstDetails(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        final party = (responses[0] as ApiResponse<PartyModel>).data;
+        if (party != null) {
+          _customerDetailsById[partyId] = party;
+        }
+        _customerGstDetailsById[partyId] =
+            (responses[1] as PaginatedResponse<PartyGstDetailModel>).data ??
+            const <PartyGstDetailModel>[];
+      });
+    } catch (_) {}
+  }
 
   String _serialCacheKey(int? itemId, int? warehouseId) =>
-      '${itemId ?? 0}:${warehouseId ?? 0}';
+      '${itemId ?? 0}:${warehouseId ?? 0}:${_currentDraftInvoiceId ?? 0}';
 
   List<WarehouseModel> _warehouseOptionsForLine(_InvoiceLineDraft line) {
     final itemId = line.itemId;
@@ -190,7 +501,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
     return _warehouses
         .where((warehouse) => warehouse.id != null)
-        .where((warehouse) => allowedWarehouseIds.contains(warehouse.id))
+        .where(
+          (warehouse) =>
+              allowedWarehouseIds.contains(warehouse.id) ||
+              warehouse.id == line.warehouseId,
+        )
         .toList(growable: false);
   }
 
@@ -198,10 +513,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     _InvoiceLineDraft line,
     Set<int> allowedWarehouseIds,
   ) {
+    if (_lineSerialNumbers(line).isNotEmpty || line.serialId != null) {
+      return false;
+    }
     if (line.warehouseId != null &&
         !allowedWarehouseIds.contains(line.warehouseId)) {
-      line.warehouseId =
-          allowedWarehouseIds.length == 1 ? allowedWarehouseIds.first : null;
+      line.warehouseId = allowedWarehouseIds.length == 1
+          ? allowedWarehouseIds.first
+          : null;
       line.serialId = null;
       return true;
     }
@@ -229,12 +548,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     _warehouseOptionsLoadingItemIds.add(itemId);
     try {
       final raw = _isSerialManagedItem(itemId)
-          ? (await _inventoryService.inquiryAvailableSerials(itemId: itemId)).data
+          ? (await _inventoryService.inquiryAvailableSerials(
+              itemId: itemId,
+              salesInvoiceId: _currentDraftInvoiceId,
+            )).data
           : (await _inventoryService.inquiryWarehouseWiseStock(
               itemId: itemId,
               companyId: _companyId,
-            ))
-              .data;
+            )).data;
       final rows = raw is List
           ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e))
           : const Iterable<Map<String, dynamic>>.empty();
@@ -243,7 +564,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             if (_isSerialManagedItem(itemId)) {
               return true;
             }
-            final qty = double.tryParse(row['qty_available']?.toString() ?? '') ?? 0;
+            final qty =
+                double.tryParse(row['qty_available']?.toString() ?? '') ?? 0;
             return qty > 0;
           })
           .map((row) => int.tryParse(row['warehouse_id']?.toString() ?? ''))
@@ -278,8 +600,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         line.warehouseId == null) {
       return const <Map<String, dynamic>>[];
     }
-    return _availableSerialsByItemWarehouse[
-            _serialCacheKey(line.itemId, line.warehouseId)] ??
+    return _availableSerialsByItemWarehouse[_serialCacheKey(
+          line.itemId,
+          line.warehouseId,
+        )] ??
         const <Map<String, dynamic>>[];
   }
 
@@ -299,14 +623,23 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       }
       final hasSelectedSerial = cachedSerials.any(
         (serial) =>
-            int.tryParse(serial['serial_id']?.toString() ?? '') == line.serialId,
+            int.tryParse(serial['serial_id']?.toString() ?? '') ==
+            line.serialId,
       );
       if ((line.serialId != null && !hasSelectedSerial) ||
           (line.serialId == null && cachedSerials.length == 1)) {
         setState(() {
-          line.serialId = cachedSerials.length == 1
-              ? int.tryParse(cachedSerials.first['serial_id']?.toString() ?? '')
-              : null;
+          if (cachedSerials.length == 1) {
+            line.serialId = int.tryParse(
+              cachedSerials.first['serial_id']?.toString() ?? '',
+            );
+            if (_lineSerialNumbers(line).isEmpty) {
+              line.serialNoController.text =
+                  cachedSerials.first['serial_no']?.toString() ?? '';
+            }
+          } else {
+            line.serialId = null;
+          }
         });
       }
       return;
@@ -319,10 +652,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       final response = await _inventoryService.inquiryAvailableSerials(
         itemId: itemId,
         warehouseId: warehouseId,
+        salesInvoiceId: _currentDraftInvoiceId,
       );
       final raw = response.data;
       final serials = raw is List
-          ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+          ? raw
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList()
           : const <Map<String, dynamic>>[];
       if (!mounted) {
         return;
@@ -331,21 +668,36 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _availableSerialsByItemWarehouse[cacheKey] = serials;
         final hasSelectedSerial = serials.any(
           (serial) =>
-              int.tryParse(serial['serial_id']?.toString() ?? '') == line.serialId,
+              int.tryParse(serial['serial_id']?.toString() ?? '') ==
+              line.serialId,
         );
         if (line.itemId == itemId &&
             line.warehouseId == warehouseId &&
             line.serialId != null &&
             !hasSelectedSerial) {
-          line.serialId = serials.length == 1
-              ? int.tryParse(serials.first['serial_id']?.toString() ?? '')
-              : null;
+          if (serials.length == 1) {
+            line.serialId = int.tryParse(
+              serials.first['serial_id']?.toString() ?? '',
+            );
+            if (_lineSerialNumbers(line).isEmpty) {
+              line.serialNoController.text =
+                  serials.first['serial_no']?.toString() ?? '';
+            }
+          } else {
+            line.serialId = null;
+          }
         } else if (line.itemId == itemId &&
             line.warehouseId == warehouseId &&
             line.serialId == null &&
-            serials.length == 1) {
-          line.serialId =
-              int.tryParse(serials.first['serial_id']?.toString() ?? '');
+            serials.length == 1 &&
+            _lineSerialNumbers(line).isEmpty) {
+          line.serialId = int.tryParse(
+            serials.first['serial_id']?.toString() ?? '',
+          );
+          if (_lineSerialNumbers(line).isEmpty) {
+            line.serialNoController.text =
+                serials.first['serial_no']?.toString() ?? '';
+          }
         }
       });
     } catch (_) {
@@ -353,7 +705,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         return;
       }
       setState(() {
-        _availableSerialsByItemWarehouse[cacheKey] = const <Map<String, dynamic>>[];
+        _availableSerialsByItemWarehouse[cacheKey] =
+            const <Map<String, dynamic>>[];
         if (line.itemId == itemId && line.warehouseId == warehouseId) {
           line.serialId = null;
         }
@@ -372,48 +725,52 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   List<SalesOrderModel> get _orderChoices {
     final companyId = _companyId;
     final cust = _customerPartyId;
-    return _ordersAll.where((o) {
-      final j = o.toJson();
-      if (companyId != null && intValue(j, 'company_id') != companyId) {
-        return false;
-      }
-      if (cust != null && intValue(j, 'customer_party_id') != cust) {
-        return false;
-      }
-      final st = stringValue(j, 'order_status');
-      return const {
-        'confirmed',
-        'partially_delivered',
-        'fully_delivered',
-        'partially_invoiced',
-      }.contains(st);
-    }).toList(growable: false);
+    return _ordersAll
+        .where((o) {
+          final j = o.toJson();
+          if (companyId != null && intValue(j, 'company_id') != companyId) {
+            return false;
+          }
+          if (cust != null && intValue(j, 'customer_party_id') != cust) {
+            return false;
+          }
+          final st = stringValue(j, 'order_status');
+          return const {
+            'confirmed',
+            'partially_delivered',
+            'fully_delivered',
+            'partially_invoiced',
+          }.contains(st);
+        })
+        .toList(growable: false);
   }
 
   List<SalesDeliveryModel> get _deliveryChoices {
     final companyId = _companyId;
     final cust = _customerPartyId;
     final orderId = _salesOrderId;
-    return _deliveriesAll.where((d) {
-      final j = d.toJson();
-      if (companyId != null && intValue(j, 'company_id') != companyId) {
-        return false;
-      }
-      if (cust != null && intValue(j, 'customer_party_id') != cust) {
-        return false;
-      }
-      final st = stringValue(j, 'delivery_status');
-      if (!const {'posted', 'partially_invoiced'}.contains(st)) {
-        return false;
-      }
-      if (orderId != null) {
-        final dSo = intValue(j, 'sales_order_id');
-        if (dSo != null && dSo != 0 && dSo != orderId) {
-          return false;
-        }
-      }
-      return true;
-    }).toList(growable: false);
+    return _deliveriesAll
+        .where((d) {
+          final j = d.toJson();
+          if (companyId != null && intValue(j, 'company_id') != companyId) {
+            return false;
+          }
+          if (cust != null && intValue(j, 'customer_party_id') != cust) {
+            return false;
+          }
+          final st = stringValue(j, 'delivery_status');
+          if (!const {'posted', 'partially_invoiced'}.contains(st)) {
+            return false;
+          }
+          if (orderId != null) {
+            final dSo = intValue(j, 'sales_order_id');
+            if (dSo != null && dSo != 0 && dSo != orderId) {
+              return false;
+            }
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   Map<String, dynamic>? _deliveryJsonById(int? id) {
@@ -435,8 +792,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       (i) => i?.id == itemId,
       orElse: () => null,
     );
-    final ordered =
-        double.tryParse(line['ordered_qty']?.toString() ?? '') ?? 0;
+    final ordered = double.tryParse(line['ordered_qty']?.toString() ?? '') ?? 0;
     final invoiced =
         double.tryParse(line['invoiced_qty']?.toString() ?? '') ?? 0;
     final rem = ordered - invoiced;
@@ -476,26 +832,31 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
     try {
       final src = await Future.wait<dynamic>([
-        _salesService.ordersAll(filters: <String, dynamic>{
-          'company_id': companyId,
-          'is_active': 1,
-          'sort_by': 'order_date',
-        }),
-        _salesService.deliveriesAll(filters: <String, dynamic>{
-          'company_id': companyId,
-          'is_active': 1,
-          'sort_by': 'delivery_date',
-        }),
+        _salesService.ordersAll(
+          filters: <String, dynamic>{
+            'company_id': companyId,
+            'is_active': 1,
+            'sort_by': 'order_date',
+          },
+        ),
+        _salesService.deliveriesAll(
+          filters: <String, dynamic>{
+            'company_id': companyId,
+            'is_active': 1,
+            'sort_by': 'delivery_date',
+          },
+        ),
       ]);
       if (!mounted) {
         return;
       }
       setState(() {
-        _ordersAll = (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
+        _ordersAll =
+            (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
             const <SalesOrderModel>[];
         _deliveriesAll =
             (src[1] as ApiResponse<List<SalesDeliveryModel>>).data ??
-                const <SalesDeliveryModel>[];
+            const <SalesDeliveryModel>[];
       });
       await _refreshSalesChain();
     } catch (_) {}
@@ -518,6 +879,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     _documentSeriesId = _invoiceDocumentSeriesIdFrom(j);
     final cust = intValue(j, 'customer_party_id');
     _customerPartyId = cust == 0 ? null : cust;
+    final billingAddressId = intValue(j, 'billing_address_id');
+    _billingAddressId = billingAddressId == null || billingAddressId == 0
+        ? null
+        : billingAddressId;
+    final shippingAddressId = intValue(j, 'shipping_address_id');
+    _shippingAddressId = shippingAddressId == null || shippingAddressId == 0
+        ? null
+        : shippingAddressId;
     _currencyCodeController.text = stringValue(j, 'currency_code', 'INR');
     _exchangeRateController.text = stringValue(j, 'exchange_rate', '1');
     _customerRefNoController.text = stringValue(j, 'customer_reference_no');
@@ -542,6 +911,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     _documentSeriesId = _invoiceDocumentSeriesIdFrom(j);
     final cust = intValue(j, 'customer_party_id');
     _customerPartyId = cust == 0 ? null : cust;
+    final billingAddressId = intValue(j, 'billing_address_id');
+    _billingAddressId = billingAddressId == null || billingAddressId == 0
+        ? null
+        : billingAddressId;
+    final shippingAddressId = intValue(j, 'shipping_address_id');
+    _shippingAddressId = shippingAddressId == null || shippingAddressId == 0
+        ? null
+        : shippingAddressId;
     _currencyCodeController.text = stringValue(j, 'currency_code', 'INR');
     _exchangeRateController.text = stringValue(j, 'exchange_rate', '1');
     _customerRefNoController.text = stringValue(j, 'customer_reference_no');
@@ -550,11 +927,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     );
     _notesController.text = stringValue(j, 'notes');
     _termsController.text = stringValue(j, 'terms_conditions');
-    _dueDateController.text =
-        displayDate(nullableStringValue(j, 'valid_until'));
+    _dueDateController.text = displayDate(
+      nullableStringValue(j, 'valid_until'),
+    );
     final adj = double.tryParse(j['adjustment_amount']?.toString() ?? '') ?? 0;
-    _adjustmentAmountController.text =
-        adj == 0 ? '' : adj.toString();
+    _adjustmentAmountController.text = adj == 0 ? '' : adj.toString();
     final adjAcc = intValue(j, 'adjustment_account_id');
     _adjustmentAccountId = adjAcc == 0 ? null : adjAcc;
     _adjustmentRemarksController.text = stringValue(j, 'adjustment_remarks');
@@ -568,6 +945,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     _documentSeriesId = _invoiceDocumentSeriesIdFrom(j);
     final cust = intValue(j, 'customer_party_id');
     _customerPartyId = cust == 0 ? null : cust;
+    final billingAddressId = intValue(j, 'billing_address_id');
+    _billingAddressId = billingAddressId == null || billingAddressId == 0
+        ? null
+        : billingAddressId;
+    final shippingAddressId = intValue(j, 'shipping_address_id');
+    _shippingAddressId = shippingAddressId == null || shippingAddressId == 0
+        ? null
+        : shippingAddressId;
     _notesController.text = stringValue(j, 'notes');
   }
 
@@ -613,9 +998,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       return j;
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _deliveryLinesCache = const <Map<String, dynamic>>[],
-        );
+        setState(() => _deliveryLinesCache = const <Map<String, dynamic>>[]);
       }
       return null;
     }
@@ -748,6 +1131,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         }
         _applyAutoInvoiceLinesFromSources();
       });
+      unawaited(_ensureCustomerTaxContext(_customerPartyId));
       await _reloadSourceDocumentsForCompany(_companyId);
     } else {
       if (mounted) {
@@ -769,8 +1153,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
     setState(() {
       _salesDeliveryId = value;
-      _deliveryLinesCache =
-          value == null ? null : const <Map<String, dynamic>>[];
+      _deliveryLinesCache = value == null
+          ? null
+          : const <Map<String, dynamic>>[];
     });
     if (value != null) {
       final dJson = await _fetchDeliveryDetail(value);
@@ -801,6 +1186,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         }
         _applyAutoInvoiceLinesFromSources();
       });
+      unawaited(_ensureCustomerTaxContext(_customerPartyId));
       await _reloadSourceDocumentsForCompany(_companyId);
     } else {
       if (mounted) {
@@ -850,13 +1236,19 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       line.itemId = intValue(ol, 'item_id');
       line.uomId = intValue(ol, 'uom_id');
       line.warehouseId = intValue(ol, 'warehouse_id');
+      line.serialId = _InvoiceLineDraft._nullableIntKey(ol, 'serial_id');
       line.rateController.text = stringValue(ol, 'rate');
-      final ordered =
-          double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
+      final ordered = double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
       final invoiced =
           double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
       final rem = ordered - invoiced;
-      if (rem > 0) {
+      final serialNo = stringValue(ol, 'serial_no').trim();
+      if (_isSerialManagedItem(line.itemId)) {
+        _setLineSerialNumbers(
+          line,
+          serialNo.isEmpty ? const <String>[] : <String>[serialNo],
+        );
+      } else if (rem > 0) {
         line.qtyController.text = rem.toString();
       }
     });
@@ -883,10 +1275,17 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       line.itemId = intValue(dl, 'item_id');
       line.uomId = intValue(dl, 'uom_id');
       line.warehouseId = intValue(dl, 'warehouse_id');
+      line.serialId = _InvoiceLineDraft._nullableIntKey(dl, 'serial_id');
       line.rateController.text = stringValue(dl, 'rate');
       final pend =
           double.tryParse(dl['pending_invoice_qty']?.toString() ?? '') ?? 0;
-      if (pend > 0) {
+      final serialNo = stringValue(dl, 'serial_no').trim();
+      if (_isSerialManagedItem(line.itemId)) {
+        _setLineSerialNumbers(
+          line,
+          serialNo.isEmpty ? const <String>[] : <String>[serialNo],
+        );
+      } else if (pend > 0) {
         line.qtyController.text = pend.toString();
       }
     });
@@ -905,8 +1304,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
     final drafts = <_InvoiceLineDraft>[];
     for (final ol in cache) {
-      final ordered =
-          double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
+      final ordered = double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
       final invoiced =
           double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
       if (ordered - invoiced <= 0) {
@@ -940,9 +1338,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           }
         }
       }
-      drafts.add(
-        _InvoiceLineDraft.fromDeliveryLineMap(dl, taxCodeId: taxId),
-      );
+      drafts.add(_InvoiceLineDraft.fromDeliveryLineMap(dl, taxCodeId: taxId));
     }
     _disposeAllInvoiceLineDrafts();
     _lines = drafts.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : drafts;
@@ -1127,22 +1523,27 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       if (sourceCompanyId != null) {
         try {
           final src = await Future.wait<dynamic>([
-            _salesService.ordersAll(filters: <String, dynamic>{
-              'company_id': sourceCompanyId,
-              'is_active': 1,
-              'sort_by': 'order_date',
-            }),
-            _salesService.deliveriesAll(filters: <String, dynamic>{
-              'company_id': sourceCompanyId,
-              'is_active': 1,
-              'sort_by': 'delivery_date',
-            }),
+            _salesService.ordersAll(
+              filters: <String, dynamic>{
+                'company_id': sourceCompanyId,
+                'is_active': 1,
+                'sort_by': 'order_date',
+              },
+            ),
+            _salesService.deliveriesAll(
+              filters: <String, dynamic>{
+                'company_id': sourceCompanyId,
+                'is_active': 1,
+                'sort_by': 'delivery_date',
+              },
+            ),
           ]);
-          ordersAll = (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
+          ordersAll =
+              (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
               const <SalesOrderModel>[];
           deliveriesAll =
               (src[1] as ApiResponse<List<SalesDeliveryModel>>).data ??
-                  const <SalesDeliveryModel>[];
+              const <SalesDeliveryModel>[];
         } catch (_) {}
       }
 
@@ -1187,6 +1588,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _deliveriesAll = deliveriesAll;
         _initialLoading = false;
       });
+      await _loadReferenceDataInBackground();
       _applyFilters();
 
       final selected = selectId != null
@@ -1209,8 +1611,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           await _prefillNewInvoiceFromQuotation(qPref);
         }
       }
-
-      unawaited(_loadReferenceDataInBackground());
     } catch (error) {
       if (!mounted) {
         return;
@@ -1247,12 +1647,17 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         _orderLinesCache = null;
         _deliveryLinesCache = null;
         _invoiceNoController.clear();
-        _invoiceDateController.text =
-            DateTime.now().toIso8601String().split('T').first;
+        _invoiceDateController.text = DateTime.now()
+            .toIso8601String()
+            .split('T')
+            .first;
         _isActive = true;
-        _lines = lines.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : lines;
+        _lines = lines.isEmpty
+            ? <_InvoiceLineDraft>[_InvoiceLineDraft()]
+            : lines;
         _formError = null;
       });
+      unawaited(_ensureCustomerTaxContext(_customerPartyId));
       await _reloadSourceDocumentsForCompany(_companyId);
       await _refreshSalesChain(quotationId: quotationId);
     } catch (e) {
@@ -1269,9 +1674,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
     final response = await _salesService.invoice(id);
     final full = response.data ?? item;
-    final lines = full.lines
-        .map(_InvoiceLineDraft.fromLine)
-        .toList(growable: true);
+    final lines = _buildInvoiceDraftsFromLines(full.lines);
     for (final old in _lines) {
       old.dispose();
     }
@@ -1283,6 +1686,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       _financialYearId = full.financialYearId;
       _documentSeriesId = full.documentSeriesId;
       _customerPartyId = full.customerPartyId;
+      _billingAddressId = full.billingAddressId;
+      _shippingAddressId = full.shippingAddressId;
       _salesOrderId = full.salesOrderId;
       _salesDeliveryId = full.salesDeliveryId;
       _orderLinesCache = null;
@@ -1295,8 +1700,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       _customerRefNoController.text = full.customerReferenceNo ?? '';
       _customerRefDateController.text = displayDate(full.customerReferenceDate);
       _currencyCodeController.text = full.currencyCode ?? 'INR';
-      _exchangeRateController.text =
-          (full.exchangeRate ?? 1).toString();
+      _exchangeRateController.text = (full.exchangeRate ?? 1).toString();
       _adjustmentAmountController.text =
           full.adjustmentAmount == null || full.adjustmentAmount == 0
           ? ''
@@ -1311,6 +1715,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     });
     _syncWarehouseOptionsForLines(_lines);
     _syncSerialOptionsForLines(_lines);
+    unawaited(_ensureCustomerTaxContext(_customerPartyId));
     await _hydrateSourceCaches();
     if (!mounted) {
       return;
@@ -1332,6 +1737,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       _financialYearId = _contextFinancialYearId;
       _documentSeriesId = series.isNotEmpty ? series.first.id : null;
       _customerPartyId = null;
+      _billingAddressId = null;
+      _shippingAddressId = null;
       _salesOrderId = null;
       _salesDeliveryId = null;
       _orderLinesCache = null;
@@ -1365,8 +1772,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           .where((item) {
             final data = _rowJson(item);
             final status = item.invoiceStatus ?? '';
-            final statusOk =
-                _statusFilter.isEmpty || status == _statusFilter;
+            final statusOk = _statusFilter.isEmpty || status == _statusFilter;
             final cust = quotationCustomerLabel(data);
             final searchOk =
                 search.isEmpty ||
@@ -1389,6 +1795,147 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     return allowedUomsForItem(item, _uoms, _uomConversions);
   }
 
+  String? _serialNumberForLine(_InvoiceLineDraft line) {
+    final groupedSerials = _lineSerialNumbers(line);
+    if (groupedSerials.length == 1) {
+      return groupedSerials.first;
+    }
+    final serialNo = line.serialNoController.text.trim();
+    if (serialNo.isNotEmpty) {
+      return serialNo;
+    }
+    if (line.serialId == null) {
+      return null;
+    }
+    final serial = _serialOptionsForLine(line)
+        .cast<Map<String, dynamic>?>()
+        .firstWhere(
+          (entry) =>
+              int.tryParse(entry?['serial_id']?.toString() ?? '') ==
+              line.serialId,
+          orElse: () => null,
+        );
+    return serial?['serial_no']?.toString();
+  }
+
+  _InvoiceTaxSummary _invoiceTaxSummary() {
+    double taxable = 0;
+    double cgst = 0;
+    double sgst = 0;
+    double igst = 0;
+    final isInterState = _isInterStateForSummary();
+
+    for (final line in _lines) {
+      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+      final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+      final discount =
+          double.tryParse(line.discountController.text.trim()) ?? 0;
+      if (qty <= 0 || rate < 0) {
+        continue;
+      }
+
+      final gross = qty * rate;
+      final clampedDiscount = discount.clamp(0, 100);
+      final taxableAmount = gross * (1 - (clampedDiscount / 100));
+      taxable += taxableAmount;
+
+      final taxCode = _taxCodeById(line.taxCodeId);
+      final taxRate = taxCode?.taxRate ?? 0;
+      if (taxRate <= 0) {
+        continue;
+      }
+
+      final normalizedTaxType =
+          ((taxCode?.taxType ?? taxCode?.raw?['tax_application'])
+              ?.toString()
+              .trim()
+              .toLowerCase()) ??
+          '';
+      final shouldUseIgst = isInterState ?? normalizedTaxType.contains('igst');
+      if (shouldUseIgst) {
+        igst += taxableAmount * taxRate / 100;
+      } else {
+        final halfTax = taxableAmount * taxRate / 200;
+        cgst += halfTax;
+        sgst += halfTax;
+      }
+    }
+
+    final adjustment =
+        double.tryParse(_adjustmentAmountController.text.trim()) ?? 0;
+    return _InvoiceTaxSummary(
+      taxable: taxable,
+      cgst: cgst,
+      sgst: sgst,
+      igst: igst,
+      total: taxable + cgst + sgst + igst + adjustment,
+    );
+  }
+
+  Widget _buildTaxSummaryCard(BuildContext context) {
+    final summary = _invoiceTaxSummary();
+    final currency = _currencyCodeController.text.trim().isEmpty
+        ? 'INR'
+        : _currencyCodeController.text.trim();
+    final isInterState = _isInterStateForSummary();
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+
+    Widget metric(String label, double value, {bool emphasize = false}) {
+      final valueStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+        fontWeight: emphasize ? FontWeight.w800 : FontWeight.w700,
+        color: emphasize ? Theme.of(context).colorScheme.primary : null,
+      );
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: appTheme.mutedText),
+          ),
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Text(value.toStringAsFixed(2), style: valueStyle),
+        ],
+      );
+    }
+
+    return AppSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'GST Summary',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Text(
+            isInterState == null
+                ? 'Live totals for the current invoice lines in $currency'
+                : 'Live totals for the current invoice lines in $currency · ${isInterState ? 'Inter-state (IGST)' : 'Intra-state (CGST + SGST)'}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Wrap(
+            spacing: AppUiConstants.spacingLg,
+            runSpacing: AppUiConstants.spacingMd,
+            children: [
+              metric('Taxable', summary.taxable),
+              metric('CGST', summary.cgst),
+              metric('SGST', summary.sgst),
+              metric('IGST', summary.igst),
+              metric('Total', summary.total, emphasize: true),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addLine() {
     setState(() {
       _lines = List<_InvoiceLineDraft>.from(_lines)..add(_InvoiceLineDraft());
@@ -1405,25 +1952,66 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
   List<SalesInvoiceLineModel> _linesForSave() {
     return _lines
-        .map((line) {
+        .expand((line) {
           final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
           final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
           final disc =
               double.tryParse(line.discountController.text.trim()) ?? 0;
-      return SalesInvoiceLineModel(
-        salesOrderLineId: line.salesOrderLineId,
-        salesDeliveryLineId: line.salesDeliveryLineId,
-        itemId: line.itemId ?? 0,
-        uomId: line.uomId ?? 0,
-        invoicedQty: qty,
-        rate: rate,
-        warehouseId: line.warehouseId,
-        serialId: line.serialId,
-        taxCodeId: line.taxCodeId,
-        description: nullIfEmpty(line.descriptionController.text),
-            discountPercent: disc == 0 ? null : disc,
-            remarks: nullIfEmpty(line.remarksController.text),
-          );
+          final description = nullIfEmpty(line.descriptionController.text);
+          final remarks = nullIfEmpty(line.remarksController.text);
+
+          if (_isSerialManagedItem(line.itemId)) {
+            final serials = _lineSerialNumbers(line);
+            return serials.map((serialNo) {
+              final matched = _serialOptionsForLine(line)
+                  .cast<Map<String, dynamic>?>()
+                  .firstWhere(
+                    (serial) =>
+                        (serial?['serial_no']
+                                ?.toString()
+                                .trim()
+                                .toLowerCase() ??
+                            '') ==
+                        serialNo.toLowerCase(),
+                    orElse: () => null,
+                  );
+              return SalesInvoiceLineModel(
+                salesOrderLineId: line.salesOrderLineId,
+                salesDeliveryLineId: line.salesDeliveryLineId,
+                itemId: line.itemId ?? 0,
+                uomId: line.uomId ?? 0,
+                invoicedQty: 1,
+                rate: rate,
+                warehouseId: line.warehouseId,
+                serialId: matched == null
+                    ? null
+                    : int.tryParse(matched['serial_id']?.toString() ?? ''),
+                serialNo: serialNo,
+                taxCodeId: line.taxCodeId,
+                description: description,
+                discountPercent: disc == 0 ? null : disc,
+                remarks: remarks,
+              );
+            });
+          }
+
+          return <SalesInvoiceLineModel>[
+            SalesInvoiceLineModel(
+              salesOrderLineId: line.salesOrderLineId,
+              salesDeliveryLineId: line.salesDeliveryLineId,
+              itemId: line.itemId ?? 0,
+              uomId: line.uomId ?? 0,
+              invoicedQty: qty,
+              rate: rate,
+              warehouseId: line.warehouseId,
+              serialId: line.serialId,
+              serialNo: _serialNumberForLine(line),
+              taxCodeId: line.taxCodeId,
+              description: description,
+              discountPercent: disc == 0 ? null : disc,
+              remarks: remarks,
+            ),
+          ];
         })
         .toList(growable: false);
   }
@@ -1446,9 +2034,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           line.uomId == null ||
           (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
     )) {
-      setState(
-        () => _formError = 'Each line needs item, UOM, and quantity.',
-      );
+      setState(() => _formError = 'Each line needs item, UOM, and quantity.');
       return;
     }
 
@@ -1474,6 +2060,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       locationId: _locationId ?? 0,
       financialYearId: _financialYearId ?? 0,
       customerPartyId: _customerPartyId ?? 0,
+      billingAddressId: _billingAddressId,
+      shippingAddressId: _shippingAddressId,
       invoiceDate: _invoiceDateController.text.trim(),
       documentSeriesId: _documentSeriesId,
       salesOrderId: _salesOrderId,
@@ -1481,8 +2069,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       invoiceNo: nullIfEmpty(_invoiceNoController.text),
       dueDate: nullIfEmpty(_dueDateController.text),
       currencyCode: nullIfEmpty(_currencyCodeController.text) ?? 'INR',
-      exchangeRate:
-          double.tryParse(_exchangeRateController.text.trim()) ?? 1,
+      exchangeRate: double.tryParse(_exchangeRateController.text.trim()) ?? 1,
       notes: nullIfEmpty(_notesController.text),
       termsConditions: nullIfEmpty(_termsController.text),
       customerReferenceNo: nullIfEmpty(_customerRefNoController.text),
@@ -1624,8 +2211,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         itemBuilder: (item, selected) {
           final data = _rowJson(item);
           final st = item.invoiceStatus ?? '';
-          final currency =
-              (item.currencyCode?.trim().isNotEmpty == true)
+          final currency = (item.currencyCode?.trim().isNotEmpty == true)
               ? item.currencyCode!.trim()
               : 'INR';
           final total =
@@ -1658,9 +2244,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                 Text(
                   currency,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context)
-                        .extension<AppThemeExtension>()!
-                        .mutedText,
+                    color: Theme.of(
+                      context,
+                    ).extension<AppThemeExtension>()!.mutedText,
                   ),
                 ),
                 if (!const {'draft', 'cancelled'}.contains(st))
@@ -1690,19 +2276,23 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             CrmSalesPipelineBar(data: _salesChain),
             if (_selectedItem != null && totalStr.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: Text(
                   'Total: $totalStr ${_currencyCodeController.text.trim().isEmpty ? 'INR' : _currencyCodeController.text.trim()} · Status: ${_status.toUpperCase()}',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             if (_selectedItem != null &&
                 !const {'draft', 'cancelled'}.contains(_status) &&
                 _outstandingBalanceForSelectedInvoice() > 0.000001)
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -1751,8 +2341,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       _branchId = null;
                       _locationId = null;
                       final options = _seriesOptions();
-                      _documentSeriesId =
-                          options.isNotEmpty ? options.first.id : null;
+                      _documentSeriesId = options.isNotEmpty
+                          ? options.first.id
+                          : null;
                       _salesOrderId = null;
                       _salesDeliveryId = null;
                       _orderLinesCache = null;
@@ -1828,8 +2419,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     setState(() {
                       _financialYearId = value;
                       final options = _seriesOptions();
-                      _documentSeriesId =
-                          options.isNotEmpty ? options.first.id : null;
+                      _documentSeriesId = options.isNotEmpty
+                          ? options.first.id
+                          : null;
                     });
                   },
                   validator: Validators.requiredSelection('Financial Year'),
@@ -1904,18 +2496,18 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     }
                     setState(() {
                       _customerPartyId = value;
+                      _billingAddressId = null;
+                      _shippingAddressId = null;
                       _pruneSourcesForCustomer();
                     });
+                    unawaited(_ensureCustomerTaxContext(value));
                   },
                   validator: Validators.requiredSelection('Customer'),
                 ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Sales order (optional)',
                   mappedItems: [
-                    const AppDropdownItem<int?>(
-                      value: null,
-                      label: 'None',
-                    ),
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
                     ..._orderChoices
                         .map((o) => o.toJson())
                         .where((j) => intValue(j, 'id') != null)
@@ -1927,15 +2519,13 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         ),
                   ],
                   initialValue: _salesOrderId,
-                  onChanged: (value) => unawaited(_onHeaderSalesOrderChanged(value)),
+                  onChanged: (value) =>
+                      unawaited(_onHeaderSalesOrderChanged(value)),
                 ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Sales delivery (optional)',
                   mappedItems: [
-                    const AppDropdownItem<int?>(
-                      value: null,
-                      label: 'None',
-                    ),
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
                     ..._deliveryChoices
                         .map((d) => d.toJson())
                         .where((j) => intValue(j, 'id') != null)
@@ -1968,6 +2558,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   labelText: 'Currency',
                   controller: _currencyCodeController,
                   enabled: _canEdit,
+                  onChanged: (_) => setState(() {}),
                   validator: Validators.optionalMaxLength(10, 'Currency'),
                 ),
                 AppFormTextField(
@@ -1977,7 +2568,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     decimal: true,
                   ),
                   enabled: _canEdit,
-                  validator: Validators.optionalNonNegativeNumber('Exchange Rate'),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Exchange Rate',
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Adjustment amount',
@@ -1987,6 +2580,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     signed: true,
                   ),
                   enabled: _canEdit,
+                  onChanged: (_) => setState(() {}),
                   validator: (value) {
                     final trimmed = value?.trim() ?? '';
                     if (trimmed.isEmpty) {
@@ -2067,6 +2661,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             ...List<Widget>.generate(_lines.length, (index) {
               final line = _lines[index];
               return Padding(
+                key: ObjectKey(line),
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
@@ -2087,13 +2682,15 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                               value: null,
                               label: 'None',
                             ),
-                            ..._orderLinesCache!.map((ol) {
-                              final id = intValue(ol, 'id');
-                              return AppDropdownItem<int?>(
-                                value: id,
-                                label: _orderLinePickerLabel(ol),
-                              );
-                            }).where((it) => it.value != null),
+                            ..._orderLinesCache!
+                                .map((ol) {
+                                  final id = intValue(ol, 'id');
+                                  return AppDropdownItem<int?>(
+                                    value: id,
+                                    label: _orderLinePickerLabel(ol),
+                                  );
+                                })
+                                .where((it) => it.value != null),
                           ],
                           initialValue: line.salesOrderLineId,
                           onChanged: (value) {
@@ -2113,13 +2710,15 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                               value: null,
                               label: 'None',
                             ),
-                            ..._deliveryLinesCache!.map((dl) {
-                              final id = intValue(dl, 'id');
-                              return AppDropdownItem<int?>(
-                                value: id,
-                                label: _deliveryLinePickerLabel(dl),
-                              );
-                            }).where((it) => it.value != null),
+                            ..._deliveryLinesCache!
+                                .map((dl) {
+                                  final id = intValue(dl, 'id');
+                                  return AppDropdownItem<int?>(
+                                    value: id,
+                                    label: _deliveryLinePickerLabel(dl),
+                                  );
+                                })
+                                .where((it) => it.value != null),
                           ],
                           initialValue: line.salesDeliveryLineId,
                           onChanged: (value) {
@@ -2158,6 +2757,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                             line.salesDeliveryLineId = null;
                             line.warehouseId = null;
                             line.serialId = null;
+                            line.serialNumbers = <String>[];
+                            line.serialNoController.clear();
                             final item = _itemsLookup
                                 .cast<ItemModel?>()
                                 .firstWhere(
@@ -2169,6 +2770,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                               uoms: _uoms,
                               conversions: _uomConversions,
                               rateController: line.rateController,
+                              descriptionController: line.descriptionController,
+                              qtyController: line.qtyController,
                               setUom: (u) => line.uomId = u,
                               currentUomId: line.uomId,
                               setTaxCodeId: (t) => line.taxCodeId = t,
@@ -2240,6 +2843,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           setState(() {
                             line.warehouseId = value;
                             line.serialId = null;
+                            line.serialNumbers = <String>[];
+                            line.serialNoController.clear();
                           });
                           unawaited(_syncSerialOptionsForLine(line));
                         },
@@ -2256,47 +2861,52 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         },
                       ),
                       if (_isSerialManagedItem(line.itemId))
-                        Builder(
-                          builder: (context) {
+                        AppSerialNumbersField(
+                          values: line.serialNumbers,
+                          enabled: _canEdit,
+                          canOpen:
+                              line.warehouseId != null ||
+                              line.serialNumbers.isNotEmpty,
+                          beforeOpen: _canEdit
+                              ? () => _syncSerialOptionsForLine(line)
+                              : null,
+                          validator: (values) {
                             final serialOptions = _serialOptionsForLine(line);
-                            return AppDropdownField<int>.fromMapped(
-                              labelText: 'Serial Number',
-                              mappedItems: serialOptions
-                                  .map(
-                                    (serial) => AppDropdownItem(
-                                      value: int.tryParse(
-                                        serial['serial_id']?.toString() ?? '',
-                                      )!,
-                                      label:
-                                          serial['serial_no']?.toString() ?? '',
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.serialId,
-                              onChanged: (value) {
-                                if (!_canEdit) {
-                                  return;
-                                }
-                                setState(() => line.serialId = value);
-                              },
-                              validator: (_) {
-                                if (line.warehouseId == null) {
-                                  return 'Select warehouse first';
-                                }
-                                if (serialOptions.isEmpty) {
-                                  return 'No serial is available for the selected warehouse';
-                                }
-                                return line.serialId == null
-                                    ? 'Serial number is required'
-                                    : null;
-                              },
-                            );
+                            if (line.warehouseId == null) {
+                              return 'Select warehouse first';
+                            }
+                            if (serialOptions.isEmpty) {
+                              return 'No serials found in backend for the selected warehouse.';
+                            }
+                            final serialLabelSet = serialOptions
+                                .map(
+                                  (serial) =>
+                                      (serial['serial_no']
+                                          ?.toString()
+                                          .trim()
+                                          .toLowerCase() ??
+                                      ''),
+                                )
+                                .where((value) => value.isNotEmpty)
+                                .toSet();
+                            for (final value in values) {
+                              if (!serialLabelSet.contains(
+                                value.trim().toLowerCase(),
+                              )) {
+                                return 'Serial "$value" does not exist in backend.';
+                              }
+                            }
+                            return null;
+                          },
+                          onChanged: (values) {
+                            setState(() => _setLineSerialNumbers(line, values));
                           },
                         ),
                       AppFormTextField(
                         labelText: 'Qty',
                         controller: line.qtyController,
-                        enabled: _canEdit,
+                        enabled: _canEdit && !_isSerialManagedItem(line.itemId),
+                        onChanged: (_) => setState(() {}),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
@@ -2312,8 +2922,17 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           if (qty <= 0) {
                             return 'Qty must be greater than zero';
                           }
-                          if (_isSerialManagedItem(line.itemId) && qty != 1) {
-                            return 'Serial-managed item quantity must be exactly 1';
+                          if (_isSerialManagedItem(line.itemId)) {
+                            final serialCount = _lineSerialNumbers(line).length;
+                            if (line.warehouseId == null) {
+                              return 'Select warehouse first';
+                            }
+                            if (serialCount == 0) {
+                              return 'Add at least one serial number';
+                            }
+                            if (qty != serialCount) {
+                              return 'Qty must match serial count';
+                            }
                           }
                           return null;
                         },
@@ -2322,6 +2941,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         labelText: 'Rate',
                         controller: line.rateController,
                         enabled: _canEdit,
+                        onChanged: (_) => setState(() {}),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
@@ -2334,6 +2954,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         labelText: 'Discount %',
                         controller: line.discountController,
                         enabled: _canEdit,
+                        onChanged: (_) => setState(() {}),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
@@ -2377,13 +2998,17 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               );
             }),
             const SizedBox(height: AppUiConstants.spacingMd),
+            _buildTaxSummaryCard(context),
+            const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
                 AppActionButton(
                   icon: Icons.save_outlined,
-                  label: _selectedItem == null ? 'Save invoice' : 'Update invoice',
+                  label: _selectedItem == null
+                      ? 'Save invoice'
+                      : 'Update invoice',
                   onPressed: _canEdit ? _save : null,
                   busy: _saving,
                 ),
@@ -2422,6 +3047,22 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   }
 }
 
+class _InvoiceTaxSummary {
+  const _InvoiceTaxSummary({
+    required this.taxable,
+    required this.cgst,
+    required this.sgst,
+    required this.igst,
+    required this.total,
+  });
+
+  final double taxable;
+  final double cgst;
+  final double sgst;
+  final double igst;
+  final double total;
+}
+
 class _InvoiceLineDraft {
   _InvoiceLineDraft({
     this.salesOrderLineId,
@@ -2429,6 +3070,8 @@ class _InvoiceLineDraft {
     this.itemId,
     this.warehouseId,
     this.serialId,
+    List<String>? serialNumbers,
+    String? serialNo,
     this.uomId,
     this.taxCodeId,
     String? description,
@@ -2437,10 +3080,12 @@ class _InvoiceLineDraft {
     String? discountPercent,
     String? remarks,
   }) : descriptionController = TextEditingController(text: description ?? ''),
+       serialNoController = TextEditingController(text: serialNo ?? ''),
        qtyController = TextEditingController(text: qty ?? ''),
        rateController = TextEditingController(text: rate ?? ''),
        discountController = TextEditingController(text: discountPercent ?? ''),
-       remarksController = TextEditingController(text: remarks ?? '');
+       remarksController = TextEditingController(text: remarks ?? ''),
+       serialNumbers = List<String>.from(serialNumbers ?? const <String>[]);
 
   factory _InvoiceLineDraft.fromLine(SalesInvoiceLineModel line) {
     return _InvoiceLineDraft(
@@ -2449,6 +3094,10 @@ class _InvoiceLineDraft {
       itemId: line.itemId,
       warehouseId: line.warehouseId,
       serialId: line.serialId,
+      serialNumbers: <String>[
+        if ((line.serialNo ?? '').trim().isNotEmpty) line.serialNo!.trim(),
+      ],
+      serialNo: line.serialNo,
       uomId: line.uomId,
       taxCodeId: line.taxCodeId,
       description: line.description,
@@ -2477,16 +3126,19 @@ class _InvoiceLineDraft {
   }
 
   factory _InvoiceLineDraft.fromOrderLineMap(Map<String, dynamic> ol) {
-    final ordered =
-        double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
-    final invoiced =
-        double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
+    final ordered = double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
+    final invoiced = double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
     final rem = ordered - invoiced;
     return _InvoiceLineDraft(
       salesOrderLineId: intValue(ol, 'id'),
       itemId: intValue(ol, 'item_id'),
       warehouseId: intValue(ol, 'warehouse_id'),
       serialId: _nullableIntKey(ol, 'serial_id'),
+      serialNumbers: <String>[
+        if (stringValue(ol, 'serial_no').trim().isNotEmpty)
+          stringValue(ol, 'serial_no').trim(),
+      ],
+      serialNo: stringValue(ol, 'serial_no'),
       uomId: intValue(ol, 'uom_id'),
       taxCodeId: _nullableIntKey(ol, 'tax_code_id'),
       description: stringValue(ol, 'description'),
@@ -2510,6 +3162,11 @@ class _InvoiceLineDraft {
       itemId: intValue(dl, 'item_id'),
       warehouseId: intValue(dl, 'warehouse_id'),
       serialId: _nullableIntKey(dl, 'serial_id'),
+      serialNumbers: <String>[
+        if (stringValue(dl, 'serial_no').trim().isNotEmpty)
+          stringValue(dl, 'serial_no').trim(),
+      ],
+      serialNo: stringValue(dl, 'serial_no'),
       uomId: intValue(dl, 'uom_id'),
       taxCodeId: taxCodeId ?? _nullableIntKey(dl, 'tax_code_id'),
       description: stringValue(dl, 'description'),
@@ -2536,9 +3193,11 @@ class _InvoiceLineDraft {
   int? itemId;
   int? warehouseId;
   int? serialId;
+  List<String> serialNumbers;
   int? uomId;
   int? taxCodeId;
   final TextEditingController descriptionController;
+  final TextEditingController serialNoController;
   final TextEditingController qtyController;
   final TextEditingController rateController;
   final TextEditingController discountController;
@@ -2546,6 +3205,7 @@ class _InvoiceLineDraft {
 
   void dispose() {
     descriptionController.dispose();
+    serialNoController.dispose();
     qtyController.dispose();
     rateController.dispose();
     discountController.dispose();

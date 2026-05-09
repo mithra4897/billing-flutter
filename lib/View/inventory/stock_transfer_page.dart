@@ -387,62 +387,82 @@ class _StockTransferEditor extends StatelessWidget {
                             vm.onLineUomChanged(index, value);
                           },
                         ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'From batch',
-                          mappedItems: fromBatches
-                              .map((item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(item, 'batch_no', 'Batch'),
-                                  ))
-                              .toList(growable: false),
-                          initialValue: line.fromBatchId,
-                          onChanged: (value) {
-                            if (!canEdit) return;
-                            vm.onLineFromBatchChanged(index, value);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'From serial',
-                          mappedItems: fromSerials
-                              .map((item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(item, 'serial_no', 'Serial'),
-                                  ))
-                              .toList(growable: false),
-                          initialValue: line.fromSerialId,
-                          onChanged: (value) {
-                            if (!canEdit) return;
-                            vm.onLineFromSerialChanged(index, value);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'To batch',
-                          mappedItems: toBatches
-                              .map((item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(item, 'batch_no', 'Batch'),
-                                  ))
-                              .toList(growable: false),
-                          initialValue: line.toBatchId,
-                          onChanged: (value) {
-                            if (!canEdit) return;
-                            vm.onLineToBatchChanged(index, value);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'To serial',
-                          mappedItems: toSerials
-                              .map((item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(item, 'serial_no', 'Serial'),
-                                  ))
-                              .toList(growable: false),
-                          initialValue: line.toSerialId,
-                          onChanged: (value) {
-                            if (!canEdit) return;
-                            vm.onLineToSerialChanged(index, value);
-                          },
-                        ),
+                        if (vm.itemHasBatch(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'From batch',
+                            mappedItems: fromBatches
+                                .map((item) => AppDropdownItem<int>(
+                                      value: intValue(item, 'id')!,
+                                      label: stringValue(
+                                        item,
+                                        'batch_no',
+                                        'Batch',
+                                      ),
+                                    ))
+                                .toList(growable: false),
+                            initialValue: line.fromBatchId,
+                            onChanged: (value) {
+                              if (!canEdit) return;
+                              vm.onLineFromBatchChanged(index, value);
+                            },
+                          ),
+                        if (vm.itemHasSerial(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'From serial',
+                            mappedItems: fromSerials
+                                .map((item) => AppDropdownItem<int>(
+                                      value: intValue(item, 'id')!,
+                                      label: stringValue(
+                                        item,
+                                        'serial_no',
+                                        'Serial',
+                                      ),
+                                    ))
+                                .toList(growable: false),
+                            initialValue: line.fromSerialId,
+                            onChanged: (value) {
+                              if (!canEdit) return;
+                              vm.onLineFromSerialChanged(index, value);
+                            },
+                          ),
+                        if (vm.itemHasBatch(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'To batch',
+                            mappedItems: toBatches
+                                .map((item) => AppDropdownItem<int>(
+                                      value: intValue(item, 'id')!,
+                                      label: stringValue(
+                                        item,
+                                        'batch_no',
+                                        'Batch',
+                                      ),
+                                    ))
+                                .toList(growable: false),
+                            initialValue: line.toBatchId,
+                            onChanged: (value) {
+                              if (!canEdit) return;
+                              vm.onLineToBatchChanged(index, value);
+                            },
+                          ),
+                        if (vm.itemHasSerial(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'To serial',
+                            mappedItems: toSerials
+                                .map((item) => AppDropdownItem<int>(
+                                      value: intValue(item, 'id')!,
+                                      label: stringValue(
+                                        item,
+                                        'serial_no',
+                                        'Serial',
+                                      ),
+                                    ))
+                                .toList(growable: false),
+                            initialValue: line.toSerialId,
+                            onChanged: (value) {
+                              if (!canEdit) return;
+                              vm.onLineToSerialChanged(index, value);
+                            },
+                          ),
                         AppFormTextField(
                           labelText: 'Transfer qty',
                           controller: line.qtyController,

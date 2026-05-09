@@ -167,6 +167,22 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     return message;
   }
 
+  ItemModel? itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    for (final item in items) {
+      if (item.id == itemId) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  bool itemHasBatch(int? itemId) => itemById(itemId)?.hasBatch ?? false;
+
+  bool itemHasSerial(int? itemId) => itemById(itemId)?.hasSerial ?? false;
+
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;

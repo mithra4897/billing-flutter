@@ -18,6 +18,7 @@ class SalesInvoiceLineModel {
     this.salesOrderLineId,
     this.salesDeliveryLineId,
     this.serialId,
+    this.serialNo,
   });
 
   final int? id;
@@ -26,6 +27,7 @@ class SalesInvoiceLineModel {
   final int itemId;
   final int? warehouseId;
   final int? serialId;
+  final String? serialNo;
   final int uomId;
   final double invoicedQty;
   final double rate;
@@ -47,6 +49,10 @@ class SalesInvoiceLineModel {
       itemId: _parseInt(json['item_id']),
       warehouseId: _nullableInt(json['warehouse_id']),
       serialId: _nullableInt(json['serial_id']),
+      serialNo: json['serial_no']?.toString() ??
+          (json['serial'] is Map
+              ? (json['serial']['serial_no']?.toString())
+              : null),
       uomId: _parseInt(json['uom_id']),
       invoicedQty: _parseDouble(json['invoiced_qty']),
       rate: _parseDouble(json['rate']),
@@ -70,6 +76,8 @@ class SalesInvoiceLineModel {
       'item_id': itemId,
       if (warehouseId != null) 'warehouse_id': warehouseId,
       if (serialId != null) 'serial_id': serialId,
+      if (serialNo != null && serialNo!.trim().isNotEmpty)
+        'serial_no': serialNo!.trim(),
       'uom_id': uomId,
       'invoiced_qty': invoicedQty,
       'rate': rate,

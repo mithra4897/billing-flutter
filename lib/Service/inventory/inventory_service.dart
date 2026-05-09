@@ -81,7 +81,11 @@ class InventoryService extends ErpModuleService {
   Future<ApiResponse<BrandModel>> createBrand(BrandModel body) =>
       createModel(ApiEndpoints.brands, body, fromJson: BrandModel.fromJson);
   Future<ApiResponse<BrandModel>> updateBrand(int id, BrandModel body) =>
-      updateModel('${ApiEndpoints.brands}/$id', body, fromJson: BrandModel.fromJson);
+      updateModel(
+        '${ApiEndpoints.brands}/$id',
+        body,
+        fromJson: BrandModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteBrand(int id) =>
       destroy('${ApiEndpoints.brands}/$id');
 
@@ -102,8 +106,11 @@ class InventoryService extends ErpModuleService {
       object('${ApiEndpoints.uoms}/$id', fromJson: UomModel.fromJson);
   Future<ApiResponse<UomModel>> createUom(UomModel body) =>
       createModel(ApiEndpoints.uoms, body, fromJson: UomModel.fromJson);
-  Future<ApiResponse<UomModel>> updateUom(int id, UomModel body) =>
-      updateModel('${ApiEndpoints.uoms}/$id', body, fromJson: UomModel.fromJson);
+  Future<ApiResponse<UomModel>> updateUom(int id, UomModel body) => updateModel(
+    '${ApiEndpoints.uoms}/$id',
+    body,
+    fromJson: UomModel.fromJson,
+  );
   Future<ApiResponse<dynamic>> deleteUom(int id) =>
       destroy('${ApiEndpoints.uoms}/$id');
 
@@ -167,11 +174,7 @@ class InventoryService extends ErpModuleService {
   Future<ApiResponse<TaxCodeModel>> taxCode(int id) =>
       object('${ApiEndpoints.taxCodes}/$id', fromJson: TaxCodeModel.fromJson);
   Future<ApiResponse<TaxCodeModel>> createTaxCode(TaxCodeModel body) =>
-      createModel(
-        ApiEndpoints.taxCodes,
-        body,
-        fromJson: TaxCodeModel.fromJson,
-      );
+      createModel(ApiEndpoints.taxCodes, body, fromJson: TaxCodeModel.fromJson);
   Future<ApiResponse<TaxCodeModel>> updateTaxCode(int id, TaxCodeModel body) =>
       updateModel(
         '${ApiEndpoints.taxCodes}/$id',
@@ -199,7 +202,11 @@ class InventoryService extends ErpModuleService {
   Future<ApiResponse<ItemModel>> createItem(ItemModel body) =>
       createModel(ApiEndpoints.items, body, fromJson: ItemModel.fromJson);
   Future<ApiResponse<ItemModel>> updateItem(int id, ItemModel body) =>
-      updateModel('${ApiEndpoints.items}/$id', body, fromJson: ItemModel.fromJson);
+      updateModel(
+        '${ApiEndpoints.items}/$id',
+        body,
+        fromJson: ItemModel.fromJson,
+      );
   Future<ApiResponse<dynamic>> deleteItem(int id) =>
       destroy('${ApiEndpoints.items}/$id');
 
@@ -814,12 +821,14 @@ class InventoryService extends ErpModuleService {
     required int itemId,
     int? warehouseId,
     int? batchId,
+    int? salesInvoiceId,
   }) => client.get<dynamic>(
     ApiEndpoints.inquiryAvailableSerials,
     queryParameters: <String, dynamic>{
       'item_id': itemId,
       'warehouse_id': ?warehouseId,
       'batch_id': ?batchId,
+      'sales_invoice_id': ?salesInvoiceId,
     },
     fromData: (dynamic json) => json,
   );

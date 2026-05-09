@@ -337,11 +337,6 @@ class _OpeningStockEditor extends StatelessWidget {
               ...List<Widget>.generate(vm.lines.length, (index) {
                 final line = vm.lines[index];
                 final batches = vm.batchOptions(line.itemId, line.warehouseId);
-                final serials = vm.serialOptions(
-                  line.itemId,
-                  line.warehouseId,
-                  line.batchId,
-                );
                 return Padding(
                   padding: const EdgeInsets.only(
                     bottom: AppUiConstants.spacingSm,
@@ -403,7 +398,8 @@ class _OpeningStockEditor extends StatelessWidget {
                         ),
                         AppDropdownField<int>.fromMapped(
                           labelText: 'UOM',
-                          mappedItems: vm.uomOptionsForItem(line.itemId)
+                          mappedItems: vm
+                              .uomOptionsForItem(line.itemId)
                               .where((u) => u.id != null)
                               .map(
                                 (u) => AppDropdownItem<int>(
@@ -421,46 +417,36 @@ class _OpeningStockEditor extends StatelessWidget {
                             vm.onLineUomChanged(index, value);
                           },
                         ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Batch',
-                          mappedItems: batches
-                              .map(
-                                (item) => AppDropdownItem<int>(
-                                  value: intValue(item, 'id')!,
-                                  label: stringValue(item, 'batch_no', 'Batch'),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.batchId,
-                          onChanged: (value) {
-                            if (!canEdit) {
-                              return;
-                            }
-                            vm.onLineBatchChanged(index, value);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Serial',
-                          mappedItems: serials
-                              .map(
-                                (item) => AppDropdownItem<int>(
-                                  value: intValue(item, 'id')!,
-                                  label: stringValue(
-                                    item,
-                                    'serial_no',
-                                    'Serial',
+                        if (vm.isBatchManagedItem(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Batch',
+                            mappedItems: batches
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item, 'id')!,
+                                    label: stringValue(
+                                      item,
+                                      'batch_no',
+                                      'Batch',
+                                    ),
                                   ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.serialId,
-                          onChanged: (value) {
-                            if (!canEdit) {
-                              return;
-                            }
-                            vm.onLineSerialChanged(index, value);
-                          },
-                        ),
+                                )
+                                .toList(growable: false),
+                            initialValue: line.batchId,
+                            onChanged: (value) {
+                              if (!canEdit) {
+                                return;
+                              }
+                              vm.onLineBatchChanged(index, value);
+                            },
+                          ),
+                        if (vm.isSerialManagedItem(line.itemId))
+                          AppSerialNumbersField(
+                            values: line.serialNumbers,
+                            enabled: canEdit,
+                            onChanged: (values) =>
+                                vm.setLineSerialNumbers(index, values),
+                          ),
                         AppFormTextField(
                           labelText: 'Quantity',
                           controller: line.qtyController,

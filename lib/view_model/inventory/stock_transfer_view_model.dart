@@ -148,6 +148,22 @@ class StockTransferViewModel extends ChangeNotifier {
     return message;
   }
 
+  ItemModel? itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    for (final item in items) {
+      if (item.id == itemId) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  bool itemHasBatch(int? itemId) => itemById(itemId)?.hasBatch ?? false;
+
+  bool itemHasSerial(int? itemId) => itemById(itemId)?.hasSerial ?? false;
+
   int? _firstWarehouseIdOtherThan(int? exclude) {
     for (final w in warehouseOptions) {
       if (w.id != null && w.id != exclude) {

@@ -9,6 +9,7 @@ class OpeningStockLineDraft {
     this.batchId,
     this.serialId,
     this.uomId,
+    List<String>? serialNumbers,
     String? qty,
     String? unitCost,
     String? totalCost,
@@ -16,13 +17,15 @@ class OpeningStockLineDraft {
   }) : qtyController = TextEditingController(text: qty ?? ''),
        unitCostController = TextEditingController(text: unitCost ?? ''),
        totalCostController = TextEditingController(text: totalCost ?? ''),
-       remarksController = TextEditingController(text: remarks ?? '');
+       remarksController = TextEditingController(text: remarks ?? ''),
+       serialNumbers = List<String>.from(serialNumbers ?? const <String>[]);
 
   int? itemId;
   int? warehouseId;
   int? batchId;
   int? serialId;
   int? uomId;
+  List<String> serialNumbers;
   final TextEditingController qtyController;
   final TextEditingController unitCostController;
   final TextEditingController totalCostController;
@@ -33,6 +36,8 @@ class OpeningStockLineDraft {
     'warehouse_id': warehouseId,
     'batch_id': batchId,
     'serial_id': serialId,
+    if (serialNumbers.length == 1 && serialNumbers.first.trim().isNotEmpty)
+      'serial_no': serialNumbers.first.trim(),
     'uom_id': uomId,
     'qty': double.tryParse(qtyController.text.trim()) ?? 0,
     'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
@@ -352,21 +357,7 @@ class OpeningStockViewModel extends ChangeNotifier {
           .toList(growable: false);
       lines = apiLines.isEmpty
           ? <OpeningStockLineDraft>[OpeningStockLineDraft()]
-          : apiLines
-                .map(
-                  (line) => OpeningStockLineDraft(
-                    itemId: intValue(line, 'item_id'),
-                    warehouseId: intValue(line, 'warehouse_id'),
-                    batchId: intValue(line, 'batch_id'),
-                    serialId: intValue(line, 'serial_id'),
-                    uomId: intValue(line, 'uom_id'),
-                    qty: stringValue(line, 'qty'),
-                    unitCost: stringValue(line, 'unit_cost'),
-                    totalCost: stringValue(line, 'total_cost'),
-                    remarks: stringValue(line, 'remarks'),
-                  ),
-                )
-                .toList(growable: true);
+          : _buildLineDrafts(apiLines);
       detailLoading = false;
       notifyListeners();
     } catch (e) {
@@ -465,6 +456,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     lines[index].itemId = value;
     lines[index].batchId = null;
     lines[index].serialId = null;
+    lines[index].serialNumbers = <String>[];
     // Keep UOM consistent with the selected Item (uses UOM conversions graph).
     final item = (() {
       for (final x in items) {
@@ -485,6 +477,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     lines[index].warehouseId = value;
     lines[index].batchId = null;
     lines[index].serialId = null;
+    lines[index].serialNumbers = <String>[];
     notifyListeners();
   }
 
@@ -495,11 +488,63 @@ class OpeningStockViewModel extends ChangeNotifier {
 
   void onLineBatchChanged(int index, int? value) {
     lines[index].batchId = value;
+    lines[index].serialId = null;
+    lines[index].serialNumbers = <String>[];
     notifyListeners();
   }
 
   void onLineSerialChanged(int index, int? value) {
     lines[index].serialId = value;
+    notifyListeners();
+  }
+
+  bool isBatchManagedItem(int? itemId) {
+    if (itemId == null) {
+      return false;
+    }
+    for (final item in items) {
+      if (item.id == itemId) {
+        return item.hasBatch;
+      }
+    }
+    return false;
+  }
+
+  bool isSerialManagedItem(int? itemId) {
+    if (itemId == null) {
+      return false;
+    }
+    for (final item in items) {
+      if (item.id == itemId) {
+        return item.hasSerial;
+      }
+    }
+    return false;
+  }
+
+  int serialFieldCountForLine(OpeningStockLineDraft line) {
+    if (!isSerialManagedItem(line.itemId)) {
+      return 0;
+    }
+    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+    if (qty <= 0) {
+      return 0;
+    }
+    return qty.floor();
+  }
+
+  void setLineSerialNumbers(int index, List<String> values) {
+    if (index < 0 || index >= lines.length) {
+      return;
+    }
+    final normalizedValues = values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    lines[index].serialNumbers = List<String>.from(normalizedValues);
+    if (isSerialManagedItem(lines[index].itemId)) {
+      lines[index].qtyController.text = normalizedValues.length.toString();
+    }
     notifyListeners();
   }
 
@@ -527,6 +572,59 @@ class OpeningStockViewModel extends ChangeNotifier {
           return itemOk && whOk;
         })
         .toList(growable: false);
+  }
+
+  List<OpeningStockLineDraft> _buildLineDrafts(
+    List<Map<String, dynamic>> apiLines,
+  ) {
+    final grouped = <String, _OpeningStockGroupedLine>{};
+    final ordered = <_OpeningStockGroupedLine>[];
+
+    for (final line in apiLines) {
+      final itemId = intValue(line, 'item_id');
+      final hasSerial = isSerialManagedItem(itemId);
+      if (!hasSerial) {
+        ordered.add(_OpeningStockGroupedLine.fromLine(line));
+        continue;
+      }
+
+      final key = [
+        itemId ?? '',
+        intValue(line, 'warehouse_id') ?? '',
+        intValue(line, 'batch_id') ?? '',
+        intValue(line, 'uom_id') ?? '',
+        stringValue(line, 'unit_cost'),
+        stringValue(line, 'remarks'),
+      ].join('|');
+
+      final alreadyGrouped = grouped.containsKey(key);
+      final current =
+          grouped.putIfAbsent(key, () {
+            final created = _OpeningStockGroupedLine.fromLine(line);
+            ordered.add(created);
+            return created;
+          });
+
+      if (!alreadyGrouped) {
+        continue;
+      }
+
+      current.qty += double.tryParse(stringValue(line, 'qty')) ?? 0;
+      current.totalCost +=
+          double.tryParse(stringValue(line, 'total_cost')) ??
+          (double.tryParse(stringValue(line, 'unit_cost')) ?? 0);
+
+      final serialNo =
+          line['serial'] is Map<String, dynamic>
+              ? stringValue(line['serial'] as Map<String, dynamic>, 'serial_no')
+              : stringValue(line, 'serial_no');
+      if (serialNo.trim().isNotEmpty) {
+        current.serialNumbers.add(serialNo.trim());
+      }
+      current.serialId = null;
+    }
+
+    return ordered.map((group) => group.toDraft()).toList(growable: true);
   }
 
   List<Map<String, dynamic>> serialOptions(
@@ -660,9 +758,64 @@ class OpeningStockViewModel extends ChangeNotifier {
         if (qty != 1) {
           return 'Serial-tracked quantity must be exactly 1 at line $lineNo.';
         }
+      } else if (boolValue(itemData, 'has_serial')) {
+        if (qty != qty.floorToDouble()) {
+          return 'Serial-tracked quantity must be a whole number at line $lineNo.';
+        }
+        final expectedCount = qty.floor();
+        final normalizedSerials = line.serialNumbers
+            .map((serial) => serial.trim())
+            .where((serial) => serial.isNotEmpty)
+            .toList(growable: false);
+        if (normalizedSerials.length != expectedCount) {
+          return 'Enter exactly $expectedCount serial number(s) at line $lineNo.';
+        }
+        final unique = normalizedSerials
+            .map((serial) => serial.toLowerCase())
+            .toSet();
+        if (unique.length != normalizedSerials.length) {
+          return 'Duplicate serial numbers are not allowed at line $lineNo.';
+        }
       }
     }
     return null;
+  }
+
+  List<Map<String, dynamic>> _expandedItemsForSave() {
+    final expanded = <Map<String, dynamic>>[];
+    for (final line in lines) {
+      if (!isSerialManagedItem(line.itemId)) {
+        expanded.add(line.toJson());
+        continue;
+      }
+
+      final serialNumbers = line.serialNumbers
+          .map((serial) => serial.trim())
+          .where((serial) => serial.isNotEmpty)
+          .toList(growable: false);
+      if (serialNumbers.isEmpty) {
+        expanded.add(line.toJson());
+        continue;
+      }
+
+      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final remarks = nullIfEmpty(line.remarksController.text);
+      for (final serialNo in serialNumbers) {
+        expanded.add(<String, dynamic>{
+          'item_id': line.itemId,
+          'warehouse_id': line.warehouseId,
+          'batch_id': line.batchId,
+          'serial_id': null,
+          'serial_no': serialNo,
+          'uom_id': line.uomId,
+          'qty': 1,
+          'unit_cost': unitCost,
+          'total_cost': unitCost,
+          'remarks': remarks,
+        });
+      }
+    }
+    return expanded;
   }
 
   Future<void> save() async {
@@ -685,7 +838,7 @@ class OpeningStockViewModel extends ChangeNotifier {
       'opening_no': nullIfEmpty(openingNoController.text),
       'opening_date': openingDateController.text.trim(),
       'remarks': nullIfEmpty(remarksController.text),
-      'items': lines.map((e) => e.toJson()).toList(growable: false),
+      'items': _expandedItemsForSave(),
     };
     try {
       final response = selected == null
@@ -777,4 +930,69 @@ class OpeningStockViewModel extends ChangeNotifier {
     }
     super.dispose();
   }
+}
+
+class _OpeningStockGroupedLine {
+  _OpeningStockGroupedLine({
+    required this.itemId,
+    required this.warehouseId,
+    required this.batchId,
+    required this.serialId,
+    required this.uomId,
+    required this.qty,
+    required this.unitCost,
+    required this.totalCost,
+    required this.remarks,
+    required this.serialNumbers,
+  });
+
+  factory _OpeningStockGroupedLine.fromLine(Map<String, dynamic> line) {
+    final serialNo =
+        line['serial'] is Map<String, dynamic>
+            ? stringValue(line['serial'] as Map<String, dynamic>, 'serial_no')
+            : stringValue(line, 'serial_no');
+    return _OpeningStockGroupedLine(
+      itemId: intValue(line, 'item_id'),
+      warehouseId: intValue(line, 'warehouse_id'),
+      batchId: intValue(line, 'batch_id'),
+      serialId: intValue(line, 'serial_id'),
+      uomId: intValue(line, 'uom_id'),
+      qty: double.tryParse(stringValue(line, 'qty')) ?? 0,
+      unitCost: double.tryParse(stringValue(line, 'unit_cost')) ?? 0,
+      totalCost: double.tryParse(stringValue(line, 'total_cost')) ?? 0,
+      remarks: stringValue(line, 'remarks'),
+      serialNumbers: serialNo.trim().isEmpty ? <String>[] : <String>[serialNo.trim()],
+    );
+  }
+
+  int? itemId;
+  int? warehouseId;
+  int? batchId;
+  int? serialId;
+  int? uomId;
+  double qty;
+  double unitCost;
+  double totalCost;
+  String remarks;
+  List<String> serialNumbers;
+
+  OpeningStockLineDraft toDraft() => OpeningStockLineDraft(
+    itemId: itemId,
+    warehouseId: warehouseId,
+    batchId: batchId,
+    serialId: serialId,
+    serialNumbers: serialNumbers,
+    uomId: uomId,
+    qty: _formatDraftNumber(qty),
+    unitCost: _formatDraftNumber(unitCost),
+    totalCost: _formatDraftNumber(totalCost),
+    remarks: remarks,
+  );
+}
+
+String _formatDraftNumber(double value) {
+  if (value == value.roundToDouble()) {
+    return value.toStringAsFixed(0);
+  }
+  return value.toString();
 }

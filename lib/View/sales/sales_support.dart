@@ -78,6 +78,8 @@ void applySalesLineDefaultsFromItemMaster({
   required List<UomModel> uoms,
   required List<UomConversionModel> conversions,
   required TextEditingController rateController,
+  TextEditingController? descriptionController,
+  TextEditingController? qtyController,
   required void Function(int? uomId) setUom,
   int? currentUomId,
   void Function(int? taxCodeId)? setTaxCodeId,
@@ -100,6 +102,20 @@ void applySalesLineDefaultsFromItemMaster({
   final rate = formattedStandardSellingRate(item);
   if (rate != null) {
     rateController.text = rate;
+  }
+  if (descriptionController != null &&
+      descriptionController.text.trim().isEmpty) {
+    final description = item.itemName.trim().isNotEmpty
+        ? item.itemName.trim()
+        : item.itemCode.trim();
+    if (description.isNotEmpty) {
+      descriptionController.text = description;
+    }
+  }
+  if (qtyController != null &&
+      item.hasSerial &&
+      qtyController.text.trim().isEmpty) {
+    qtyController.text = '1';
   }
   if (setWarehouseId != null &&
       warehouses != null &&

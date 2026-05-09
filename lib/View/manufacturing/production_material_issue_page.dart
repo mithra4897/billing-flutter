@@ -470,7 +470,8 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Warehouse',
-                        mappedItems: vm.warehouseOptionsForItem(line.itemId)
+                        mappedItems: vm
+                            .warehouseOptionsForItem(line.itemId)
                             .where((x) => x.id != null)
                             .map(
                               (x) => AppDropdownItem<int>(
@@ -484,49 +485,101 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                             vm.setLineWarehouseId(index, value),
                         validator: Validators.requiredSelection('Warehouse'),
                       ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Batch',
-                        mappedItems: batches
-                            .where((x) => intValue(x.toJson(), 'id') != null)
-                            .map(
-                              (x) => AppDropdownItem<int>(
-                                value: intValue(x.toJson(), 'id')!,
-                                label: stringValue(
-                                  x.toJson(),
-                                  'batch_no',
-                                  'Batch',
+                      if (vm.itemHasBatch(line.itemId))
+                        AppDropdownField<int>.fromMapped(
+                          labelText: 'Batch',
+                          mappedItems: batches
+                              .where((x) => intValue(x.toJson(), 'id') != null)
+                              .map(
+                                (x) => AppDropdownItem<int>(
+                                  value: intValue(x.toJson(), 'id')!,
+                                  label: stringValue(
+                                    x.toJson(),
+                                    'batch_no',
+                                    'Batch',
+                                  ),
                                 ),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.batchId,
-                        onChanged: (value) => vm.setLineBatchId(index, value),
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Serial',
-                        mappedItems: serials
-                            .where((x) => intValue(x.toJson(), 'id') != null)
-                            .map(
-                              (x) => AppDropdownItem<int>(
-                                value: intValue(x.toJson(), 'id')!,
-                                label: stringValue(
-                                  x.toJson(),
-                                  'serial_no',
-                                  'Serial',
-                                ),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.serialId,
-                        onChanged: (value) => vm.setLineSerialId(index, value),
-                      ),
+                              )
+                              .toList(growable: false),
+                          initialValue: line.batchId,
+                          onChanged: (value) => vm.setLineBatchId(index, value),
+                        ),
+                      if (vm.itemHasSerial(line.itemId))
+                        AppSerialNumbersField(
+                          values: vm
+                              .lineSerialIds(line)
+                              .map((id) {
+                                final serial = serials
+                                    .cast<StockSerialModel?>()
+                                    .firstWhere(
+                                      (entry) =>
+                                          entry != null &&
+                                          intValue(entry.toJson(), 'id') == id,
+                                      orElse: () => null,
+                                    );
+                                return serial == null
+                                    ? ''
+                                    : stringValue(
+                                        serial.toJson(),
+                                        'serial_no',
+                                        serial.toString(),
+                                      );
+                              })
+                              .where((value) => value.trim().isNotEmpty)
+                              .toList(growable: false),
+                          labelText: 'Serials',
+                          dialogTitle: 'Select Serials',
+                          enabled: vm.isDraft || vm.selected == null,
+                          emptyText: 'No serials selected',
+                          countSummaryBuilder: (count) =>
+                              '$count serial(s) selected',
+                          validator: (values) {
+                            final serialIdByLabel = <String, int>{
+                              for (final serial in serials)
+                                stringValue(
+                                      serial.toJson(),
+                                      'serial_no',
+                                      serial.toString(),
+                                    ).trim().toLowerCase():
+                                    intValue(serial.toJson(), 'id') ?? 0,
+                            };
+                            for (final label in values) {
+                              if (!serialIdByLabel.containsKey(
+                                label.toLowerCase(),
+                              )) {
+                                return 'Serial "$label" is not available for this item/warehouse/batch.';
+                              }
+                            }
+                            return null;
+                          },
+                          onChanged: (values) {
+                            final serialIdByLabel = <String, int>{
+                              for (final serial in serials)
+                                stringValue(
+                                      serial.toJson(),
+                                      'serial_no',
+                                      serial.toString(),
+                                    ).trim().toLowerCase():
+                                    intValue(serial.toJson(), 'id') ?? 0,
+                            };
+                            final resolvedIds = values
+                                .map(
+                                  (value) =>
+                                      serialIdByLabel[value.toLowerCase()]!,
+                                )
+                                .toList(growable: false);
+                            vm.setLineSerialIds(index, resolvedIds);
+                          },
+                        ),
                       AppFormTextField(
                         labelText: 'Issue Qty',
                         controller: line.issueQtyController,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        enabled: vm.isDraft || vm.selected == null,
+                        enabled:
+                            (vm.isDraft || vm.selected == null) &&
+                            !vm.itemHasSerial(line.itemId),
                         validator: Validators.requiredPositiveNumber(
                           'Issue Qty',
                         ),

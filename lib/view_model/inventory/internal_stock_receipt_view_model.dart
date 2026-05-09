@@ -16,6 +16,7 @@ class InternalStockReceiptLineDraft {
     this.itemId,
     this.batchId,
     this.serialId,
+    List<int>? serialIds,
     this.uomId,
     String? qty,
     String? unitCost,
@@ -24,11 +25,13 @@ class InternalStockReceiptLineDraft {
   })  : qtyController = TextEditingController(text: qty ?? ''),
         unitCostController = TextEditingController(text: unitCost ?? ''),
         totalCostController = TextEditingController(text: totalCost ?? ''),
-        remarksController = TextEditingController(text: remarks ?? '');
+        remarksController = TextEditingController(text: remarks ?? ''),
+        serialIds = List<int>.from(serialIds ?? const <int>[]);
 
   int? itemId;
   int? batchId;
   int? serialId;
+  List<int> serialIds;
   int? uomId;
   final TextEditingController qtyController;
   final TextEditingController unitCostController;
@@ -39,7 +42,7 @@ class InternalStockReceiptLineDraft {
         'item_id': itemId,
         'uom_id': uomId,
         'batch_id': batchId,
-        'serial_id': serialId,
+        'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
         'receipt_qty': double.tryParse(qtyController.text.trim()) ?? 0,
         'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
         'total_cost': double.tryParse(totalCostController.text.trim()),
@@ -154,6 +157,29 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     final message = actionMessage;
     actionMessage = null;
     return message;
+  }
+
+  ItemModel? itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    for (final item in items) {
+      if (item.id == itemId) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  bool itemHasBatch(int? itemId) => itemById(itemId)?.hasBatch ?? false;
+
+  bool itemHasSerial(int? itemId) => itemById(itemId)?.hasSerial ?? false;
+
+  List<int> lineSerialIds(InternalStockReceiptLineDraft line) {
+    if (line.serialIds.isNotEmpty) {
+      return List<int>.from(line.serialIds);
+    }
+    return line.serialId == null ? const <int>[] : <int>[line.serialId!];
   }
 
   Future<void> load({int? selectId}) async {
@@ -309,20 +335,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
           .toList(growable: false);
       lines = apiLines.isEmpty
           ? <InternalStockReceiptLineDraft>[InternalStockReceiptLineDraft()]
-          : apiLines
-              .map(
-                (line) => InternalStockReceiptLineDraft(
-                  itemId: intValue(line, 'item_id'),
-                  batchId: intValue(line, 'batch_id'),
-                  serialId: intValue(line, 'serial_id'),
-                  uomId: intValue(line, 'uom_id'),
-                  qty: stringValue(line, 'receipt_qty'),
-                  unitCost: stringValue(line, 'unit_cost'),
-                  totalCost: stringValue(line, 'total_cost'),
-                  remarks: stringValue(line, 'remarks'),
-                ),
-              )
-              .toList(growable: true);
+          : _buildLineDrafts(apiLines);
       detailLoading = false;
       notifyListeners();
     } catch (e) {
@@ -408,6 +421,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     lines[index].itemId = value;
     lines[index].batchId = null;
     lines[index].serialId = null;
+    lines[index].serialIds = <int>[];
     // Keep UOM consistent with the selected Item (uses UOM conversions graph).
     final item = (() {
       for (final x in items) {
@@ -432,11 +446,26 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
   void onLineBatchChanged(int index, int? value) {
     lines[index].batchId = value;
     lines[index].serialId = null;
+    lines[index].serialIds = <int>[];
     notifyListeners();
   }
 
   void onLineSerialChanged(int index, int? value) {
     lines[index].serialId = value;
+    lines[index].serialIds = value == null ? <int>[] : <int>[value];
+    notifyListeners();
+  }
+
+  void setLineSerialIds(int index, List<int> values) {
+    if (index < 0 || index >= lines.length) {
+      return;
+    }
+    final normalized = values.toSet().toList(growable: false);
+    lines[index].serialIds = List<int>.from(normalized);
+    lines[index].serialId = normalized.length == 1 ? normalized.first : null;
+    if (itemHasSerial(lines[index].itemId)) {
+      lines[index].qtyController.text = normalized.length.toString();
+    }
     notifyListeners();
   }
 
@@ -480,7 +509,46 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
         .toList(growable: false);
   }
 
+  List<InternalStockReceiptLineDraft> _buildLineDrafts(
+    List<Map<String, dynamic>> apiLines,
+  ) {
+    final grouped = <String, _InternalStockReceiptGroupedLine>{};
+    final ordered = <_InternalStockReceiptGroupedLine>[];
+    for (final line in apiLines) {
+      final itemId = intValue(line, 'item_id');
+      if (!itemHasSerial(itemId)) {
+        ordered.add(_InternalStockReceiptGroupedLine.fromLine(line));
+        continue;
+      }
+      final key = [
+        itemId ?? '',
+        intValue(line, 'batch_id') ?? '',
+        intValue(line, 'uom_id') ?? '',
+        stringValue(line, 'unit_cost'),
+        stringValue(line, 'total_cost'),
+        stringValue(line, 'remarks'),
+      ].join('|');
+      final alreadyGrouped = grouped.containsKey(key);
+      final current = grouped.putIfAbsent(key, () {
+        final created = _InternalStockReceiptGroupedLine.fromLine(line);
+        ordered.add(created);
+        return created;
+      });
+      if (!alreadyGrouped) {
+        continue;
+      }
+      current.qty += double.tryParse(stringValue(line, 'receipt_qty')) ?? 0;
+      final serialId = intValue(line, 'serial_id');
+      if (serialId != null) {
+        current.serialIds.add(serialId);
+      }
+      current.serialId = null;
+    }
+    return ordered.map((entry) => entry.toDraft()).toList(growable: true);
+  }
+
   String? _validate() {
+    final usedSerialIds = <int>{};
     if (companyId == null || branchId == null || locationId == null || financialYearId == null) {
       return 'Company, branch, location, and financial year are required.';
     }
@@ -541,27 +609,63 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
         }
       }
 
-      if (line.serialId != null) {
-        final matchingSerial = serialOptions(line.itemId, line.batchId)
-            .cast<Map<String, dynamic>?>()
-            .firstWhere(
-              (serial) => intValue(serial ?? const <String, dynamic>{}, 'id') == line.serialId,
-              orElse: () => null,
-            );
-        if (matchingSerial == null) {
-          return 'Invalid serial at line $lineNo.';
+      final selectedSerialIds = lineSerialIds(line);
+      if (selectedSerialIds.isNotEmpty) {
+        if (qty != qty.floorToDouble()) {
+          return 'Serial receipt quantity must be a whole number at line $lineNo.';
         }
-        if (line.batchId != null &&
-            intValue(matchingSerial, 'batch_id') != null &&
-            intValue(matchingSerial, 'batch_id') != line.batchId) {
-          return 'Serial does not belong to selected batch at line $lineNo.';
+        if (qty != selectedSerialIds.length) {
+          return 'Receipt quantity must match selected serial count at line $lineNo.';
         }
-        if (qty != 1) {
-          return 'Serial receipt quantity must be exactly 1 at line $lineNo.';
+        for (final serialId in selectedSerialIds) {
+          final matchingSerial = serialOptions(line.itemId, line.batchId)
+              .cast<Map<String, dynamic>?>()
+              .firstWhere(
+                (serial) => intValue(serial ?? const <String, dynamic>{}, 'id') == serialId,
+                orElse: () => null,
+              );
+          if (matchingSerial == null) {
+            return 'Invalid serial at line $lineNo.';
+          }
+          if (line.batchId != null &&
+              intValue(matchingSerial, 'batch_id') != null &&
+              intValue(matchingSerial, 'batch_id') != line.batchId) {
+            return 'Serial does not belong to selected batch at line $lineNo.';
+          }
+          if (!usedSerialIds.add(serialId)) {
+            return 'Duplicate serial selected at line $lineNo.';
+          }
         }
       }
     }
     return null;
+  }
+
+  List<Map<String, dynamic>> _expandedItemsForSave() {
+    final expanded = <Map<String, dynamic>>[];
+    for (final line in lines) {
+      if (!itemHasSerial(line.itemId)) {
+        expanded.add(line.toJson());
+        continue;
+      }
+      final serialIds = lineSerialIds(line);
+      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final totalCost = double.tryParse(line.totalCostController.text.trim());
+      final remarks = nullIfEmpty(line.remarksController.text);
+      for (final serialId in serialIds) {
+        expanded.add(<String, dynamic>{
+          'item_id': line.itemId,
+          'uom_id': line.uomId,
+          'batch_id': line.batchId,
+          'serial_id': serialId,
+          'receipt_qty': 1,
+          'unit_cost': unitCost,
+          'total_cost': totalCost ?? unitCost,
+          'remarks': remarks,
+        });
+      }
+    }
+    return expanded;
   }
 
   Future<void> save() async {
@@ -587,7 +691,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       'receipt_date': receiptDateController.text.trim(),
       'received_from': nullIfEmpty(receivedFromController.text),
       'remarks': nullIfEmpty(remarksController.text),
-      'items': lines.map((e) => e.toJson()).toList(growable: false),
+      'items': _expandedItemsForSave(),
     };
     try {
       final response = selected == null
@@ -675,4 +779,62 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     }
     super.dispose();
   }
+}
+
+class _InternalStockReceiptGroupedLine {
+  _InternalStockReceiptGroupedLine({
+    required this.itemId,
+    required this.batchId,
+    required this.serialId,
+    required this.serialIds,
+    required this.uomId,
+    required this.qty,
+    required this.unitCost,
+    required this.totalCost,
+    required this.remarks,
+  });
+
+  factory _InternalStockReceiptGroupedLine.fromLine(Map<String, dynamic> line) {
+    final serialId = intValue(line, 'serial_id');
+    return _InternalStockReceiptGroupedLine(
+      itemId: intValue(line, 'item_id'),
+      batchId: intValue(line, 'batch_id'),
+      serialId: serialId,
+      serialIds: serialId == null ? <int>[] : <int>[serialId],
+      uomId: intValue(line, 'uom_id'),
+      qty: double.tryParse(stringValue(line, 'receipt_qty')) ?? 0,
+      unitCost: double.tryParse(stringValue(line, 'unit_cost')) ?? 0,
+      totalCost: double.tryParse(stringValue(line, 'total_cost')) ?? 0,
+      remarks: stringValue(line, 'remarks'),
+    );
+  }
+
+  int? itemId;
+  int? batchId;
+  int? serialId;
+  List<int> serialIds;
+  int? uomId;
+  double qty;
+  double unitCost;
+  double totalCost;
+  String remarks;
+
+  InternalStockReceiptLineDraft toDraft() => InternalStockReceiptLineDraft(
+    itemId: itemId,
+    batchId: batchId,
+    serialId: serialId,
+    serialIds: serialIds,
+    uomId: uomId,
+    qty: _internalReceiptFormatNumber(qty),
+    unitCost: _internalReceiptFormatNumber(unitCost),
+    totalCost: _internalReceiptFormatNumber(totalCost),
+    remarks: remarks,
+  );
+}
+
+String _internalReceiptFormatNumber(double value) {
+  if (value == value.roundToDouble()) {
+    return value.toStringAsFixed(0);
+  }
+  return value.toString();
 }
