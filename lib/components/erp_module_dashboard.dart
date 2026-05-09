@@ -779,7 +779,19 @@ class _DashboardDistributionCard extends StatelessWidget {
               title: 'No distribution yet',
               message: data.emptyMessage,
             )
-          else
+          else ...[
+            SizedBox(
+              height: AppUiConstants.dashboardChartHeight,
+              child: CustomPaint(
+                painter: _DistributionPieChartPainter(
+                  segments: data.segments,
+                  total: total,
+                  dividerColor: Theme.of(context).scaffoldBackgroundColor,
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
             Column(
               children: data.segments
                   .map(
@@ -794,6 +806,7 @@ class _DashboardDistributionCard extends StatelessWidget {
                   )
                   .toList(growable: false),
             ),
+          ],
         ],
       ),
     );
@@ -814,6 +827,15 @@ class _DistributionRow extends StatelessWidget {
       children: [
         Row(
           children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: segment.color,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(width: AppUiConstants.spacingSm),
             Expanded(
               child: Text(
                 segment.label,
@@ -823,27 +845,75 @@ class _DistributionRow extends StatelessWidget {
               ),
             ),
             Text(
-              segment.value.toStringAsFixed(
-                segment.value == segment.value.roundToDouble() ? 0 : 1,
-              ),
+              '${_formatSegmentValue(segment.value)}  ${_formatSegmentPercent(ratio)}',
               style: Theme.of(
                 context,
               ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),
-        const SizedBox(height: AppUiConstants.spacingXs),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppUiConstants.pillRadius),
-          child: LinearProgressIndicator(
-            minHeight: 10,
-            value: ratio.clamp(0.0, 1.0),
-            backgroundColor: segment.color.withValues(alpha: 0.14),
-            valueColor: AlwaysStoppedAnimation<Color>(segment.color),
-          ),
-        ),
       ],
     );
+  }
+}
+
+class _DistributionPieChartPainter extends CustomPainter {
+  _DistributionPieChartPainter({
+    required this.segments,
+    required this.total,
+    required this.dividerColor,
+  });
+
+  final List<ErpDashboardDistributionSegment> segments;
+  final double total;
+  final Color dividerColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (segments.isEmpty || total <= 0 || size.isEmpty) {
+      return;
+    }
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2;
+    final ringWidth = radius * 0.34;
+    final chartRect = Rect.fromCircle(center: center, radius: radius);
+    var startAngle = -math.pi / 2;
+
+    for (final segment in segments) {
+      final sweepAngle = (segment.value / total) * math.pi * 2;
+      if (sweepAngle <= 0) {
+        continue;
+      }
+
+      final paint = Paint()
+        ..color = segment.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = ringWidth
+        ..strokeCap = StrokeCap.butt;
+
+      canvas.drawArc(
+        chartRect.deflate(ringWidth / 2),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+
+      startAngle += sweepAngle;
+    }
+
+    final holePaint = Paint()
+      ..color = dividerColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius - ringWidth, holePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DistributionPieChartPainter oldDelegate) {
+    return oldDelegate.segments != segments ||
+        oldDelegate.total != total ||
+        oldDelegate.dividerColor != dividerColor;
   }
 }
 
@@ -1194,4 +1264,14 @@ class _TrendChartPainter extends CustomPainter {
         other.color != color ||
         other.gridColor != gridColor;
   }
+}
+
+String _formatSegmentValue(double value) {
+  return value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(1);
+}
+
+String _formatSegmentPercent(double ratio) {
+  return '${(ratio * 100).toStringAsFixed(0)}%';
 }
