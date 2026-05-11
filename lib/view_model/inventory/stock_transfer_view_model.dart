@@ -469,7 +469,7 @@ class StockTransferViewModel extends ChangeNotifier {
 
   void onLineFromBatchChanged(int index, int? value) {
     lines[index].fromBatchId = value;
-    lines[index].fromSerialId = null;
+    _reconcileLineFromSerial(lines[index]);
     notifyListeners();
   }
 
@@ -480,13 +480,38 @@ class StockTransferViewModel extends ChangeNotifier {
 
   void onLineToBatchChanged(int index, int? value) {
     lines[index].toBatchId = value;
-    lines[index].toSerialId = null;
+    _reconcileLineToSerial(lines[index]);
     notifyListeners();
   }
 
   void onLineToSerialChanged(int index, int? value) {
     lines[index].toSerialId = value;
     notifyListeners();
+  }
+
+  void _reconcileLineFromSerial(StockTransferLineDraft line) {
+    final allowedSerialIds = serialOptionsForWarehouse(
+      fromWarehouseId,
+      line.itemId,
+      line.fromBatchId,
+    ).map((serial) => intValue(serial, 'id')).whereType<int>().toSet();
+
+    if (line.fromSerialId != null &&
+        !allowedSerialIds.contains(line.fromSerialId)) {
+      line.fromSerialId = null;
+    }
+  }
+
+  void _reconcileLineToSerial(StockTransferLineDraft line) {
+    final allowedSerialIds = serialOptionsForWarehouse(
+      toWarehouseId,
+      line.itemId,
+      line.toBatchId,
+    ).map((serial) => intValue(serial, 'id')).whereType<int>().toSet();
+
+    if (line.toSerialId != null && !allowedSerialIds.contains(line.toSerialId)) {
+      line.toSerialId = null;
+    }
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {

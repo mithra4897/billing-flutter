@@ -244,6 +244,40 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
   }
 
+  void _reconcileLineSerials(
+    _InvoiceLineDraft line,
+    List<Map<String, dynamic>> serialOptions,
+  ) {
+    final allowedByLabel = <String, Map<String, dynamic>>{
+      for (final serial in serialOptions)
+        (serial['serial_no']?.toString().trim().toLowerCase() ?? ''): serial,
+    }..remove('');
+
+    final existing = _lineSerialNumbers(line);
+    final preserved = existing
+        .where((serialNo) => allowedByLabel.containsKey(serialNo.toLowerCase()))
+        .toList(growable: false);
+
+    line.serialNumbers = List<String>.from(preserved);
+    line.serialNoController.text = preserved.isEmpty ? '' : preserved.first;
+
+    if (preserved.length == 1) {
+      final matched = allowedByLabel[preserved.first.toLowerCase()];
+      line.serialId = matched == null
+          ? null
+          : int.tryParse(matched['serial_id']?.toString() ?? '');
+      if (matched != null && line.batchId == null) {
+        line.batchId = int.tryParse(matched['batch_id']?.toString() ?? '');
+      }
+    } else {
+      line.serialId = null;
+    }
+
+    if (_isSerialManagedItem(line.itemId)) {
+      line.qtyController.text = preserved.length.toString();
+    }
+  }
+
   void _replaceLineWithSerialDrafts(
     _InvoiceLineDraft line,
     List<String> values,
@@ -652,11 +686,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           } else {
             line.batchId = null;
           }
-          if (line.batchId == null) {
-            line.serialId = null;
-            line.serialNumbers = <String>[];
-            line.serialNoController.clear();
-          }
         });
       }
       return;
@@ -700,11 +729,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           line.batchId = batches.length == 1
               ? int.tryParse(batches.first['batch_id']?.toString() ?? '')
               : null;
-          if (line.batchId == null) {
-            line.serialId = null;
-            line.serialNumbers = <String>[];
-            line.serialNoController.clear();
-          }
         } else if (line.itemId == itemId &&
             line.warehouseId == warehouseId &&
             line.batchId == null &&
@@ -807,6 +831,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       }
       setState(() {
         _availableSerialsByItemWarehouse[cacheKey] = serials;
+        _reconcileLineSerials(line, serials);
         final hasSelectedSerial = serials.any(
           (serial) =>
               int.tryParse(serial['serial_id']?.toString() ?? '') ==
@@ -861,6 +886,21 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     for (final line in lines) {
       unawaited(_syncSerialOptionsForLine(line));
     }
+  }
+
+  Future<void> _refreshSerialAvailabilityForSave() async {
+    final serialManagedLines = _lines
+        .where((line) => _isSerialManagedItem(line.itemId))
+        .where((line) => line.itemId != null && line.warehouseId != null)
+        .toList(growable: false);
+
+    if (serialManagedLines.isEmpty) {
+      return;
+    }
+
+    await Future.wait(
+      serialManagedLines.map(_syncSerialOptionsForLine),
+    );
   }
 
   List<SalesOrderModel> get _orderChoices {
@@ -2174,6 +2214,11 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       return;
     }
 
+    await _refreshSerialAvailabilityForSave();
+    if (!mounted) {
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -3008,8 +3053,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                             line.warehouseId = value;
                             line.batchId = null;
                             line.serialId = null;
-                            line.serialNumbers = <String>[];
-                            line.serialNoController.clear();
                           });
                           unawaited(_syncBatchOptionsForLine(line));
                           unawaited(_syncSerialOptionsForLine(line));
@@ -3054,8 +3097,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                             setState(() {
                               line.batchId = value;
                               line.serialId = null;
-                              line.serialNumbers = <String>[];
-                              line.serialNoController.clear();
                             });
                             unawaited(_syncSerialOptionsForLine(line));
                           },
@@ -3114,7 +3155,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                               if (!serialLabelSet.contains(
                                 value.trim().toLowerCase(),
                               )) {
-                                return 'Serial "$value" does not exist in backend.';
+                                return 'Serial "$value" is not available for the selected warehouse/batch.';
                               }
                             }
                             return null;

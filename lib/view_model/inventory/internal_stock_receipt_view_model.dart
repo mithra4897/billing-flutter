@@ -397,7 +397,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
   void _clearLineBatchAndSerial() {
     for (final line in lines) {
       line.batchId = null;
-      line.serialId = null;
+      _reconcileLineSerialSelection(line);
     }
   }
 
@@ -445,8 +445,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
 
   void onLineBatchChanged(int index, int? value) {
     lines[index].batchId = value;
-    lines[index].serialId = null;
-    lines[index].serialIds = <int>[];
+    _reconcileLineSerialSelection(lines[index]);
     notifyListeners();
   }
 
@@ -467,6 +466,29 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       lines[index].qtyController.text = normalized.length.toString();
     }
     notifyListeners();
+  }
+
+  void _reconcileLineSerialSelection(InternalStockReceiptLineDraft line) {
+    final allowedSerialIds = serialOptions(
+      line.itemId,
+      line.batchId,
+    ).map((serial) => intValue(serial, 'id')).whereType<int>().toSet();
+
+    final nextSerialIds = line.serialIds
+        .where(allowedSerialIds.contains)
+        .toSet()
+        .toList(growable: false);
+    line.serialIds = nextSerialIds;
+
+    if (line.serialId != null && !allowedSerialIds.contains(line.serialId)) {
+      line.serialId = null;
+    }
+    if (line.serialId == null && nextSerialIds.length == 1) {
+      line.serialId = nextSerialIds.first;
+    }
+    if (itemHasSerial(line.itemId)) {
+      line.qtyController.text = nextSerialIds.length.toString();
+    }
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {

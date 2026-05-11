@@ -416,11 +416,11 @@ class OpeningStockViewModel extends ChangeNotifier {
     for (final line in lines) {
       if (line.itemId != null && !validItemIds.contains(line.itemId)) {
         line.itemId = null;
+        line.serialNumbers = <String>[];
       }
       line.warehouseId = warehouseId;
       line.batchId = null;
-      line.serialId = null;
-      line.serialIds = <int>[];
+      _reconcileLineSerialSelection(line);
     }
   }
 
@@ -481,9 +481,7 @@ class OpeningStockViewModel extends ChangeNotifier {
   void onLineWarehouseChanged(int index, int? value) {
     lines[index].warehouseId = value;
     lines[index].batchId = null;
-    lines[index].serialId = null;
-    lines[index].serialIds = <int>[];
-    lines[index].serialNumbers = <String>[];
+    _reconcileLineSerialSelection(lines[index]);
     notifyListeners();
   }
 
@@ -494,9 +492,7 @@ class OpeningStockViewModel extends ChangeNotifier {
 
   void onLineBatchChanged(int index, int? value) {
     lines[index].batchId = value;
-    lines[index].serialId = null;
-    lines[index].serialIds = <int>[];
-    lines[index].serialNumbers = <String>[];
+    _reconcileLineSerialSelection(lines[index]);
     notifyListeners();
   }
 
@@ -504,6 +500,24 @@ class OpeningStockViewModel extends ChangeNotifier {
     lines[index].serialId = value;
     lines[index].serialIds = value == null ? <int>[] : <int>[value];
     notifyListeners();
+  }
+
+  void _reconcileLineSerialSelection(OpeningStockLineDraft line) {
+    final allowedSerialIds = serialOptions(
+      line.itemId,
+      line.warehouseId,
+      line.batchId,
+    ).map((serial) => intValue(serial, 'id')).whereType<int>().toSet();
+
+    line.serialIds = line.serialIds
+        .where(allowedSerialIds.contains)
+        .toList(growable: false);
+    if (line.serialId != null && !allowedSerialIds.contains(line.serialId)) {
+      line.serialId = null;
+    }
+    if (line.serialId == null && line.serialIds.length == 1) {
+      line.serialId = line.serialIds.first;
+    }
   }
 
   bool isBatchManagedItem(int? itemId) {

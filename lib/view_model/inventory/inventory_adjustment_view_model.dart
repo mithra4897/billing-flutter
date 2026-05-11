@@ -403,7 +403,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
   void onLineWarehouseChanged(int i, int? value) {
     lines[i].warehouseId = value;
     lines[i].batchId = null;
-    lines[i].serialId = null;
+    _reconcileLineSerialSelection(lines[i]);
     notifyListeners();
   }
 
@@ -414,13 +414,25 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
 
   void onLineBatchChanged(int i, int? value) {
     lines[i].batchId = value;
-    lines[i].serialId = null;
+    _reconcileLineSerialSelection(lines[i]);
     notifyListeners();
   }
 
   void onLineSerialChanged(int i, int? value) {
     lines[i].serialId = value;
     notifyListeners();
+  }
+
+  void _reconcileLineSerialSelection(InventoryAdjustmentLineDraft line) {
+    final allowedSerialIds = serialOptions(
+      line.warehouseId,
+      line.itemId,
+      line.batchId,
+    ).map((serial) => intValue(serial, 'id')).whereType<int>().toSet();
+
+    if (line.serialId != null && !allowedSerialIds.contains(line.serialId)) {
+      line.serialId = null;
+    }
   }
 
   void onLineDirectionChanged(int i, String? value) {

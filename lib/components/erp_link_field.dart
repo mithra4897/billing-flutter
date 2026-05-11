@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import 'app_field_box.dart';
@@ -171,25 +170,10 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   }
 
   void _setControllerText(String text) {
-    void apply() {
-      if (!mounted) {
-        return;
-      }
-      _controller.value = TextEditingValue(
-        text: text,
-        selection: TextSelection.collapsed(offset: text.length),
-      );
-    }
-
-    final phase = WidgetsBinding.instance.schedulerPhase;
-    if (phase == SchedulerPhase.persistentCallbacks ||
-        phase == SchedulerPhase.transientCallbacks ||
-        phase == SchedulerPhase.midFrameMicrotasks) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => apply());
-      return;
-    }
-
-    apply();
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 
   void _openDropdown() {
@@ -309,7 +293,9 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
         .map(_ErpMenuEntry<T>.result)
         .toList(growable: true);
     final canCreate =
-        widget.allowCreate && query.isNotEmpty && !_hasExactMatch(query);
+        widget.allowCreate &&
+        query.isNotEmpty &&
+        !_hasExactMatch(query);
 
     if (entries.isEmpty) {
       entries.add(
