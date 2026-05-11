@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app_field_box.dart';
+import 'decimal_input_formatter.dart';
 
 class AppFormTextField extends StatelessWidget {
   const AppFormTextField({
@@ -43,6 +44,27 @@ class AppFormTextField extends StatelessWidget {
   final String? hintText;
   final bool? enabled;
 
+  List<TextInputFormatter>? _effectiveInputFormatters() {
+    final formatters = <TextInputFormatter>[
+      ...?inputFormatters,
+    ];
+
+    final usesDecimalKeyboard = keyboardType is TextInputType &&
+        (keyboardType as TextInputType).decimal == true;
+    final usesSignedKeyboard = keyboardType is TextInputType &&
+        (keyboardType as TextInputType).signed == true;
+
+    if (usesDecimalKeyboard &&
+        !formatters.any((item) => item is DecimalInputFormatter)) {
+      formatters.insert(
+        0,
+        DecimalInputFormatter(allowSigned: usesSignedKeyboard),
+      );
+    }
+
+    return formatters.isEmpty ? null : formatters;
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppFieldBox(
@@ -58,7 +80,7 @@ class AppFormTextField extends StatelessWidget {
         onChanged: onChanged,
         readOnly: readOnly,
         enabled: enabled,
-        inputFormatters: inputFormatters,
+        inputFormatters: _effectiveInputFormatters(),
         textCapitalization: textCapitalization,
         decoration: InputDecoration(
           labelText: labelText,
