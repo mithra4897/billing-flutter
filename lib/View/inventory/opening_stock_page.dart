@@ -444,6 +444,8 @@ class _OpeningStockEditor extends StatelessWidget {
                           AppSerialNumbersField(
                             values: line.serialNumbers,
                             enabled: canEdit,
+                            validator: (values) =>
+                                vm.validateLineSerialNumbers(index, values),
                             onChanged: (values) =>
                                 vm.setLineSerialNumbers(index, values),
                           ),

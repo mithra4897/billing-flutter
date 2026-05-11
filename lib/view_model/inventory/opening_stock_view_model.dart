@@ -8,6 +8,7 @@ class OpeningStockLineDraft {
     this.warehouseId,
     this.batchId,
     this.serialId,
+    List<int>? serialIds,
     this.uomId,
     List<String>? serialNumbers,
     String? qty,
@@ -18,12 +19,14 @@ class OpeningStockLineDraft {
        unitCostController = TextEditingController(text: unitCost ?? ''),
        totalCostController = TextEditingController(text: totalCost ?? ''),
        remarksController = TextEditingController(text: remarks ?? ''),
+       serialIds = List<int>.from(serialIds ?? const <int>[]),
        serialNumbers = List<String>.from(serialNumbers ?? const <String>[]);
 
   int? itemId;
   int? warehouseId;
   int? batchId;
   int? serialId;
+  List<int> serialIds;
   int? uomId;
   List<String> serialNumbers;
   final TextEditingController qtyController;
@@ -417,6 +420,7 @@ class OpeningStockViewModel extends ChangeNotifier {
       line.warehouseId = warehouseId;
       line.batchId = null;
       line.serialId = null;
+      line.serialIds = <int>[];
     }
   }
 
@@ -456,6 +460,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     lines[index].itemId = value;
     lines[index].batchId = null;
     lines[index].serialId = null;
+    lines[index].serialIds = <int>[];
     lines[index].serialNumbers = <String>[];
     // Keep UOM consistent with the selected Item (uses UOM conversions graph).
     final item = (() {
@@ -477,6 +482,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     lines[index].warehouseId = value;
     lines[index].batchId = null;
     lines[index].serialId = null;
+    lines[index].serialIds = <int>[];
     lines[index].serialNumbers = <String>[];
     notifyListeners();
   }
@@ -489,12 +495,14 @@ class OpeningStockViewModel extends ChangeNotifier {
   void onLineBatchChanged(int index, int? value) {
     lines[index].batchId = value;
     lines[index].serialId = null;
+    lines[index].serialIds = <int>[];
     lines[index].serialNumbers = <String>[];
     notifyListeners();
   }
 
   void onLineSerialChanged(int index, int? value) {
     lines[index].serialId = value;
+    lines[index].serialIds = value == null ? <int>[] : <int>[value];
     notifyListeners();
   }
 
@@ -537,13 +545,30 @@ class OpeningStockViewModel extends ChangeNotifier {
     if (index < 0 || index >= lines.length) {
       return;
     }
+    final line = lines[index];
+    final existingSerialMap = <String, int>{};
+    for (
+      var i = 0;
+      i < line.serialNumbers.length && i < line.serialIds.length;
+      i++
+    ) {
+      final serialNo = line.serialNumbers[i].trim().toLowerCase();
+      final serialId = line.serialIds[i];
+      if (serialNo.isNotEmpty && serialId > 0) {
+        existingSerialMap[serialNo] = serialId;
+      }
+    }
     final normalizedValues = values
         .map((value) => value.trim())
         .where((value) => value.isNotEmpty)
         .toList(growable: false);
-    lines[index].serialNumbers = List<String>.from(normalizedValues);
-    if (isSerialManagedItem(lines[index].itemId)) {
-      lines[index].qtyController.text = normalizedValues.length.toString();
+    line.serialNumbers = List<String>.from(normalizedValues);
+    line.serialIds = normalizedValues
+        .map((value) => existingSerialMap[value.toLowerCase()])
+        .whereType<int>()
+        .toList(growable: false);
+    if (isSerialManagedItem(line.itemId)) {
+      line.qtyController.text = normalizedValues.length.toString();
     }
     notifyListeners();
   }
@@ -598,12 +623,11 @@ class OpeningStockViewModel extends ChangeNotifier {
       ].join('|');
 
       final alreadyGrouped = grouped.containsKey(key);
-      final current =
-          grouped.putIfAbsent(key, () {
-            final created = _OpeningStockGroupedLine.fromLine(line);
-            ordered.add(created);
-            return created;
-          });
+      final current = grouped.putIfAbsent(key, () {
+        final created = _OpeningStockGroupedLine.fromLine(line);
+        ordered.add(created);
+        return created;
+      });
 
       if (!alreadyGrouped) {
         continue;
@@ -614,12 +638,15 @@ class OpeningStockViewModel extends ChangeNotifier {
           double.tryParse(stringValue(line, 'total_cost')) ??
           (double.tryParse(stringValue(line, 'unit_cost')) ?? 0);
 
-      final serialNo =
-          line['serial'] is Map<String, dynamic>
-              ? stringValue(line['serial'] as Map<String, dynamic>, 'serial_no')
-              : stringValue(line, 'serial_no');
+      final serialNo = line['serial'] is Map<String, dynamic>
+          ? stringValue(line['serial'] as Map<String, dynamic>, 'serial_no')
+          : stringValue(line, 'serial_no');
       if (serialNo.trim().isNotEmpty) {
         current.serialNumbers.add(serialNo.trim());
+      }
+      final serialId = intValue(line, 'serial_id');
+      if (serialId != null) {
+        current.serialIds.add(serialId);
       }
       current.serialId = null;
     }
@@ -648,6 +675,69 @@ class OpeningStockViewModel extends ChangeNotifier {
         .toList(growable: false);
   }
 
+  String? validateLineSerialNumbers(int index, List<String> values) {
+    if (index < 0 || index >= lines.length) {
+      return null;
+    }
+
+    final currentLine = lines[index];
+    final normalizedValues = values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    final normalizedSet = normalizedValues
+        .map((value) => value.toLowerCase())
+        .toSet();
+
+    final existingSerialOwners = <String, Set<int>>{};
+    for (final serial in serials) {
+      final serialData = serial.toJson();
+      final serialNo = stringValue(
+        serialData,
+        'serial_no',
+      ).trim().toLowerCase();
+      final serialId = intValue(serialData, 'id');
+      if (serialNo.isEmpty || serialId == null) {
+        continue;
+      }
+      existingSerialOwners.putIfAbsent(serialNo, () => <int>{}).add(serialId);
+    }
+
+    final allowedSerialIds = <int>{
+      if (currentLine.serialId != null) currentLine.serialId!,
+      ...currentLine.serialIds,
+    };
+
+    for (var lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      if (lineIndex == index) {
+        continue;
+      }
+      final otherLine = lines[lineIndex];
+      final otherSerials = otherLine.serialNumbers
+          .map((serial) => serial.trim())
+          .where((serial) => serial.isNotEmpty)
+          .toList(growable: false);
+      for (final serialNo in otherSerials) {
+        if (normalizedSet.contains(serialNo.toLowerCase())) {
+          return "Serial number '$serialNo' is already used in another line.";
+        }
+      }
+    }
+
+    for (final serialNo in normalizedValues) {
+      final existingIds = existingSerialOwners[serialNo.toLowerCase()];
+      if (existingIds == null || existingIds.isEmpty) {
+        continue;
+      }
+      final belongsToCurrentDraft = existingIds.any(allowedSerialIds.contains);
+      if (!belongsToCurrentDraft) {
+        return "Serial number '$serialNo' already exists. Enter a unique serial.";
+      }
+    }
+
+    return null;
+  }
+
   String? _validate() {
     if (companyId == null ||
         branchId == null ||
@@ -663,6 +753,20 @@ class OpeningStockViewModel extends ChangeNotifier {
     }
     if (lines.isEmpty) {
       return 'At least one line is required.';
+    }
+    final seenSerialNos = <String, int>{};
+    final existingSerialOwners = <String, Set<int>>{};
+    for (final serial in serials) {
+      final serialData = serial.toJson();
+      final serialNo = stringValue(
+        serialData,
+        'serial_no',
+      ).trim().toLowerCase();
+      final serialId = intValue(serialData, 'id');
+      if (serialNo.isEmpty || serialId == null) {
+        continue;
+      }
+      existingSerialOwners.putIfAbsent(serialNo, () => <int>{}).add(serialId);
     }
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
@@ -776,6 +880,29 @@ class OpeningStockViewModel extends ChangeNotifier {
         if (unique.length != normalizedSerials.length) {
           return 'Duplicate serial numbers are not allowed at line $lineNo.';
         }
+        final allowedSerialIds = <int>{
+          if (line.serialId != null) line.serialId!,
+          ...line.serialIds,
+        };
+        for (final serialNo in normalizedSerials) {
+          final normalized = serialNo.toLowerCase();
+          final firstSeenLine = seenSerialNos[normalized];
+          if (firstSeenLine != null) {
+            return "Serial number '$serialNo' is duplicated at line $lineNo.";
+          }
+          seenSerialNos[normalized] = lineNo;
+
+          final existingIds = existingSerialOwners[normalized];
+          if (existingIds == null || existingIds.isEmpty) {
+            continue;
+          }
+          final belongsToCurrentDraft = existingIds.any(
+            allowedSerialIds.contains,
+          );
+          if (!belongsToCurrentDraft) {
+            return "Serial number '$serialNo' already exists. Enter a unique serial at line $lineNo.";
+          }
+        }
       }
     }
     return null;
@@ -798,14 +925,18 @@ class OpeningStockViewModel extends ChangeNotifier {
         continue;
       }
 
-      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final unitCost =
+          double.tryParse(line.unitCostController.text.trim()) ?? 0;
       final remarks = nullIfEmpty(line.remarksController.text);
-      for (final serialNo in serialNumbers) {
+      for (var index = 0; index < serialNumbers.length; index++) {
+        final serialNo = serialNumbers[index];
         expanded.add(<String, dynamic>{
           'item_id': line.itemId,
           'warehouse_id': line.warehouseId,
           'batch_id': line.batchId,
-          'serial_id': null,
+          'serial_id': index < line.serialIds.length
+              ? line.serialIds[index]
+              : null,
           'serial_no': serialNo,
           'uom_id': line.uomId,
           'qty': 1,
@@ -938,6 +1069,7 @@ class _OpeningStockGroupedLine {
     required this.warehouseId,
     required this.batchId,
     required this.serialId,
+    required this.serialIds,
     required this.uomId,
     required this.qty,
     required this.unitCost,
@@ -947,21 +1079,25 @@ class _OpeningStockGroupedLine {
   });
 
   factory _OpeningStockGroupedLine.fromLine(Map<String, dynamic> line) {
-    final serialNo =
-        line['serial'] is Map<String, dynamic>
-            ? stringValue(line['serial'] as Map<String, dynamic>, 'serial_no')
-            : stringValue(line, 'serial_no');
+    final serialNo = line['serial'] is Map<String, dynamic>
+        ? stringValue(line['serial'] as Map<String, dynamic>, 'serial_no')
+        : stringValue(line, 'serial_no');
     return _OpeningStockGroupedLine(
       itemId: intValue(line, 'item_id'),
       warehouseId: intValue(line, 'warehouse_id'),
       batchId: intValue(line, 'batch_id'),
       serialId: intValue(line, 'serial_id'),
+      serialIds: intValue(line, 'serial_id') == null
+          ? <int>[]
+          : <int>[intValue(line, 'serial_id')!],
       uomId: intValue(line, 'uom_id'),
       qty: double.tryParse(stringValue(line, 'qty')) ?? 0,
       unitCost: double.tryParse(stringValue(line, 'unit_cost')) ?? 0,
       totalCost: double.tryParse(stringValue(line, 'total_cost')) ?? 0,
       remarks: stringValue(line, 'remarks'),
-      serialNumbers: serialNo.trim().isEmpty ? <String>[] : <String>[serialNo.trim()],
+      serialNumbers: serialNo.trim().isEmpty
+          ? <String>[]
+          : <String>[serialNo.trim()],
     );
   }
 
@@ -969,6 +1105,7 @@ class _OpeningStockGroupedLine {
   int? warehouseId;
   int? batchId;
   int? serialId;
+  List<int> serialIds;
   int? uomId;
   double qty;
   double unitCost;
@@ -981,6 +1118,7 @@ class _OpeningStockGroupedLine {
     warehouseId: warehouseId,
     batchId: batchId,
     serialId: serialId,
+    serialIds: serialIds,
     serialNumbers: serialNumbers,
     uomId: uomId,
     qty: _formatDraftNumber(qty),
