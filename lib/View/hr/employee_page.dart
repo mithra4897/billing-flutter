@@ -559,10 +559,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _relations = full.relations
         .map(_employeeRelationDraftFromModel)
         .toList(growable: true);
-    _salaryStructures =
-        (salaryResponse.data ?? const <EmployeeSalaryStructureModel>[])
-            .map(_salaryStructureDraftFromModel)
-            .toList(growable: true);
+    _salaryStructures = _mergeSalaryStructureModels(
+      primary: salaryResponse.data ?? const <EmployeeSalaryStructureModel>[],
+      fallback: full.salaryStructures,
+    ).map(_salaryStructureDraftFromModel).toList(growable: true);
     _resetAddressEditor(silent: true);
     _resetRelationEditor(silent: true);
     _resetStructureEditor(silent: true);
@@ -1154,6 +1154,51 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           )
           .toList(growable: true),
     );
+  }
+
+  List<EmployeeSalaryStructureModel> _mergeSalaryStructureModels({
+    required List<EmployeeSalaryStructureModel> primary,
+    required List<EmployeeSalaryStructureModel> fallback,
+  }) {
+    if (primary.isEmpty) {
+      return fallback;
+    }
+    if (fallback.isEmpty) {
+      return primary;
+    }
+
+    EmployeeSalaryStructureModel? findFallback(EmployeeSalaryStructureModel item) {
+      final byId = item.id == null
+          ? null
+          : fallback.where((candidate) => candidate.id == item.id).firstOrNull;
+      if (byId != null) {
+        return byId;
+      }
+
+      return fallback
+          .where(
+            (candidate) =>
+                candidate.effectiveFrom == item.effectiveFrom &&
+                candidate.basicSalary == item.basicSalary &&
+                candidate.grossSalary == item.grossSalary &&
+                candidate.netSalary == item.netSalary,
+          )
+          .firstOrNull;
+    }
+
+    return primary.map((item) {
+      final fallbackItem = findFallback(item);
+      if (fallbackItem == null) {
+        return item;
+      }
+
+      return item.copyWith(
+        ctcMonthly: item.ctcMonthly ?? fallbackItem.ctcMonthly,
+        components: item.components.isNotEmpty
+            ? item.components
+            : fallbackItem.components,
+      );
+    }).toList(growable: false);
   }
 
   void _resetStructureEditor({bool silent = false}) {

@@ -40,7 +40,7 @@ class EmployeeSalaryStructureModel implements JsonModel {
       basicSalary: _double(json['basic_salary']),
       grossSalary: _double(json['gross_salary']),
       netSalary: _double(json['net_salary']),
-      ctcMonthly: _double(json['ctc_monthly']),
+      ctcMonthly: _double(json['ctc_monthly'] ?? json['ctcMonthly']),
       isActive: _bool(json['is_active'], fallback: true),
       components: components,
       raw: json,
