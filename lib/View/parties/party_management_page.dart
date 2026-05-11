@@ -5,10 +5,14 @@ class PartyManagementPage extends StatefulWidget {
     super.key,
     this.embedded = false,
     this.initialTabIndex = 0,
+    this.startInNewMode = false,
+    this.initialPartyName,
   });
 
   final bool embedded;
   final int initialTabIndex;
+  final bool startInNewMode;
+  final String? initialPartyName;
 
   @override
   State<PartyManagementPage> createState() => _PartyManagementPageState();
@@ -343,18 +347,27 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               (item) => item?.id == selectId,
               orElse: () => null,
             )
-          : (_selectedParty == null
-                ? (parties.isNotEmpty ? parties.first : null)
-                : parties.cast<PartyModel?>().firstWhere(
-                    (item) => item?.id == _selectedParty?.id,
-                    orElse: () => parties.isNotEmpty ? parties.first : null,
-                  ));
+          : (widget.startInNewMode && _selectedParty == null
+                ? null
+                : (_selectedParty == null
+                      ? (parties.isNotEmpty ? parties.first : null)
+                      : parties.cast<PartyModel?>().firstWhere(
+                          (item) => item?.id == _selectedParty?.id,
+                          orElse: () =>
+                              parties.isNotEmpty ? parties.first : null,
+                        )));
 
       if (selected != null) {
         await _selectParty(selected);
       } else {
         _resetPartyForm();
         _clearDetailTabs();
+        // Pre-fill party name if navigated from a "create new" dropdown action
+        if (widget.initialPartyName != null &&
+            _partyNameController.text.isEmpty) {
+          _partyNameController.text = widget.initialPartyName!;
+          _displayNameController.text = widget.initialPartyName!;
+        }
       }
     } catch (error) {
       if (!mounted) {

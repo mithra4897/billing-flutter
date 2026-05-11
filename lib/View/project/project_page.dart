@@ -497,6 +497,23 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
                 AppDropdownField<int>.fromMapped(
                   initialValue: _customerPartyId,
                   labelText: 'Customer',
+                  doctypeLabel: 'Customer',
+                  allowCreate: true,
+                  onNavigateToCreateNew: (name) {
+                    final uri = Uri(
+                      path: '/parties',
+                      queryParameters: {
+                        'new': '1',
+                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                      },
+                    );
+                    final navigate = ShellRouteScope.maybeOf(context);
+                    if (navigate != null) {
+                      navigate(uri.toString());
+                    } else {
+                      Navigator.of(context).pushNamed(uri.toString());
+                    }
+                  },
                   mappedItems: _partyItems,
                   onChanged: (value) =>
                       setState(() => _customerPartyId = value),

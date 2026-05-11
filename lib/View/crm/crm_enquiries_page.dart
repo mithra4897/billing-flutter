@@ -19,6 +19,7 @@ class CrmEnquiriesPage extends StatefulWidget {
   });
 
   final bool embedded;
+
   /// Deep link from lead conversion: `/crm/enquiries?select_id=…`
   final int? initialSelectId;
 
@@ -150,12 +151,18 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
-        _crmService.leads(filters: const {'per_page': 300, 'sort_by': 'lead_name'}),
+        _crmService.leads(
+          filters: const {'per_page': 300, 'sort_by': 'lead_name'},
+        ),
         _partiesService.parties(
           filters: const {'per_page': 300, 'sort_by': 'party_name'},
         ),
-        _crmService.stages(filters: const {'per_page': 200, 'sort_by': 'sequence_no'}),
-        _authService.users(filters: const {'per_page': 200, 'sort_by': 'username'}),
+        _crmService.stages(
+          filters: const {'per_page': 200, 'sort_by': 'sequence_no'},
+        ),
+        _authService.users(
+          filters: const {'per_page': 200, 'sort_by': 'username'},
+        ),
         _inventoryService.items(
           filters: const {'per_page': 300, 'sort_by': 'item_name'},
         ),
@@ -191,21 +198,20 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     const <PartyModel>[])
                 .where((item) => item.isActive)
                 .toList();
-        _stages =
-            () {
-              final allStages =
-                  ((responses[4] as PaginatedResponse<CrmStageModel>).data ??
-                          const <CrmStageModel>[])
-                      .where(
-                        (item) =>
-                            boolValue(item.toJson(), 'is_active', fallback: true),
-                      )
-                      .toList(growable: false);
-              final filtered = allStages
-                  .where(_isAllowedEnquiryStage)
+        _stages = () {
+          final allStages =
+              ((responses[4] as PaginatedResponse<CrmStageModel>).data ??
+                      const <CrmStageModel>[])
+                  .where(
+                    (item) =>
+                        boolValue(item.toJson(), 'is_active', fallback: true),
+                  )
                   .toList(growable: false);
-              return filtered.isNotEmpty ? filtered : allStages;
-            }();
+          final filtered = allStages
+              .where(_isAllowedEnquiryStage)
+              .toList(growable: false);
+          return filtered.isNotEmpty ? filtered : allStages;
+        }();
         _users =
             ((responses[5] as PaginatedResponse<UserModel>).data ??
                     const <UserModel>[])
@@ -262,6 +268,73 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         ];
       });
     });
+  }
+
+  ErpLinkFieldOption<int>? _selectedLeadOption() {
+    final selectedId = _leadId;
+    if (selectedId == null) {
+      return null;
+    }
+    final lead = _leads.cast<CrmLeadModel?>().firstWhere(
+      (item) => intValue(item?.toJson() ?? const {}, 'id') == selectedId,
+      orElse: () => null,
+    );
+    return lead == null ? null : _leadOption(lead);
+  }
+
+  ErpLinkFieldOption<int> _leadOption(CrmLeadModel lead) {
+    final data = lead.toJson();
+    final label = lead.toString();
+    final companyName = stringValue(data, 'company_name');
+    final mobile = stringValue(data, 'mobile');
+    final email = stringValue(data, 'email');
+    final subtitle = [
+      companyName,
+      mobile,
+      email,
+    ].where((value) => value.trim().isNotEmpty).join(' • ');
+
+    return ErpLinkFieldOption<int>(
+      value: intValue(data, 'id')!,
+      label: label,
+      subtitle: subtitle.isEmpty ? null : subtitle,
+      searchText: [label, companyName, mobile, email].join(' '),
+    );
+  }
+
+  Future<List<ErpLinkFieldOption<int>>> _searchLeadOptions(String query) async {
+    final normalized = query.trim().toLowerCase();
+    return _leads
+        .where((lead) => intValue(lead.toJson(), 'id') != null)
+        .where((lead) {
+          if (normalized.isEmpty) {
+            return true;
+          }
+          final data = lead.toJson();
+          final haystack = [
+            lead.toString(),
+            stringValue(data, 'company_name'),
+            stringValue(data, 'mobile'),
+            stringValue(data, 'email'),
+            stringValue(data, 'lead_status'),
+          ].join(' ').toLowerCase();
+          return haystack.contains(normalized);
+        })
+        .map(_leadOption)
+        .toList(growable: false);
+  }
+
+  void _openNewLeadForm(String query) {
+    final leadName = query.trim();
+    final route = Uri(
+      path: '/crm/leads',
+      queryParameters: <String, String>{
+        'new': '1',
+        if (leadName.isNotEmpty) 'lead_name': leadName,
+        if (_companyId != null) 'company_id': _companyId.toString(),
+      },
+    ).toString();
+    _openCrmShellRoute(context, route);
   }
 
   Future<void> _selectItem(CrmEnquiryModel item) async {
@@ -447,7 +520,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(response.data?.toJson() ?? const {}, 'id'));
+      await _loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -721,22 +796,38 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 keyboardType: TextInputType.datetime,
                 inputFormatters: const [DateInputFormatter()],
               ),
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Lead',
-                mappedItems: _leads
-                    .where((item) => intValue(item.toJson(), 'id') != null)
-                    .map(
-                      (item) => AppDropdownItem(
-                        value: intValue(item.toJson(), 'id')!,
-                        label: item.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
-                initialValue: _leadId,
-                onChanged: (value) => setState(() => _leadId = value),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 300),
+                child: ErpLinkField<int>(
+                  labelText: 'Lead',
+                  doctypeLabel: 'Lead',
+                  allowCreate: true,
+                  hintText: 'Search or create lead',
+                  initialSelection: _selectedLeadOption(),
+                  search: _searchLeadOptions,
+                  onNavigateToCreateNew: _openNewLeadForm,
+                  onChanged: (value) {
+                    setState(() {
+                      _leadId = value;
+                      _formError = null;
+                    });
+                  },
+                ),
               ),
               AppDropdownField<int>.fromMapped(
                 labelText: 'Customer',
+                doctypeLabel: 'Customer',
+                allowCreate: true,
+                onNavigateToCreateNew: (name) {
+                    final uri = Uri(
+                      path: '/parties',
+                      queryParameters: {
+                        'new': '1',
+                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                      },
+                    );
+                    openModuleShellRoute(context, uri.toString());
+                  },
                 mappedItems: _customers
                     .where((item) => item.id != null)
                     .map(
@@ -798,8 +889,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             children: [
               AppActionButton(
                 icon: Icons.save_outlined,
-                label:
-                    _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
+                label: _selectedItem == null
+                    ? 'Save Enquiry'
+                    : 'Update Enquiry',
                 onPressed: _save,
                 busy: _saving,
               ),
@@ -808,7 +900,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   icon: Icons.auto_graph_outlined,
                   label: 'Start deal',
                   filled: false,
-                  onPressed: (_pipelineOpportunityId() != null ||
+                  onPressed:
+                      (_pipelineOpportunityId() != null ||
                           _enquiryStatus == 'converted')
                       ? null
                       : _convert,
@@ -841,9 +934,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           children: [
             Text(
               'Requested Items',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             AppActionButton(
@@ -949,9 +1042,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           children: [
             Text(
               'Followups',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             AppActionButton(

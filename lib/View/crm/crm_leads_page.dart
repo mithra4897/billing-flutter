@@ -12,9 +12,18 @@ void _openCrmShellRoute(BuildContext context, String route) {
 }
 
 class CrmLeadsPage extends StatefulWidget {
-  const CrmLeadsPage({super.key, this.embedded = false});
+  const CrmLeadsPage({
+    super.key,
+    this.embedded = false,
+    this.startInNewMode = false,
+    this.initialLeadName,
+    this.initialCompanyId,
+  });
 
   final bool embedded;
+  final bool startInNewMode;
+  final String? initialLeadName;
+  final int? initialCompanyId;
 
   @override
   State<CrmLeadsPage> createState() => _CrmLeadsPageState();
@@ -74,6 +83,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   List<_LeadActivityDraft> _activities = <_LeadActivityDraft>[];
   int? _expandedActivityIndex;
   Map<String, dynamic>? _salesChain;
+  bool _appliedInitialNewMode = false;
 
   @override
   void initState() {
@@ -88,6 +98,19 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     });
     _searchController.addListener(_applySearch);
     _loadPage();
+  }
+
+  @override
+  void didUpdateWidget(covariant CrmLeadsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newModeChanged =
+        widget.startInNewMode != oldWidget.startInNewMode ||
+        widget.initialLeadName != oldWidget.initialLeadName ||
+        widget.initialCompanyId != oldWidget.initialCompanyId;
+    if (newModeChanged) {
+      _appliedInitialNewMode = false;
+      _loadPage();
+    }
   }
 
   @override
@@ -113,12 +136,18 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
 
     try {
       final responses = await Future.wait<dynamic>([
-        _crmService.leads(filters: const {'per_page': 200, 'sort_by': 'lead_name'}),
+        _crmService.leads(
+          filters: const {'per_page': 200, 'sort_by': 'lead_name'},
+        ),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
-        _crmService.sources(filters: const {'per_page': 200, 'sort_by': 'source_name'}),
-        _authService.users(filters: const {'per_page': 200, 'sort_by': 'username'}),
+        _crmService.sources(
+          filters: const {'per_page': 200, 'sort_by': 'source_name'},
+        ),
+        _authService.users(
+          filters: const {'per_page': 200, 'sort_by': 'username'},
+        ),
       ]);
 
       final companies =
@@ -146,7 +175,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         _sources =
             ((responses[2] as PaginatedResponse<CrmSourceModel>).data ??
                     const <CrmSourceModel>[])
-                .where((item) => boolValue(item.toJson(), 'is_active', fallback: true))
+                .where(
+                  (item) =>
+                      boolValue(item.toJson(), 'is_active', fallback: true),
+                )
                 .toList();
         _users =
             ((responses[3] as PaginatedResponse<UserModel>).data ??
@@ -157,6 +189,13 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         _initialLoading = false;
       });
       _applySearch();
+
+      if (widget.startInNewMode && !_appliedInitialNewMode) {
+        _appliedInitialNewMode = true;
+        _resetForm();
+        _applyInitialLeadDraft();
+        return;
+      }
 
       final selected = selectId != null
           ? _items.cast<CrmLeadModel?>().firstWhere(
@@ -188,6 +227,28 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     }
   }
 
+  void _applyInitialLeadDraft() {
+    final leadName = (widget.initialLeadName ?? '').trim();
+    final companyId = widget.initialCompanyId;
+    setState(() {
+      _selectedItem = null;
+      _companyId = companyId ?? _contextCompanyId;
+      if (leadName.isNotEmpty) {
+        _leadNameController
+          ..text = leadName
+          ..selection = TextSelection.collapsed(offset: leadName.length);
+      }
+      _formError = null;
+    });
+    if (!Responsive.isDesktop(context)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _workspaceController.openEditor();
+        }
+      });
+    }
+  }
+
   void _applySearch() {
     setState(() {
       _filteredItems = filterMasterList(_items, _searchController.text, (item) {
@@ -211,10 +272,11 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     final response = await _crmService.lead(id);
     final full = response.data ?? item;
     final data = full.toJson();
-    final activities = (data['activities'] as List<dynamic>? ?? const <dynamic>[])
-        .whereType<Map<String, dynamic>>()
-        .map(_LeadActivityDraft.fromJson)
-        .toList(growable: true);
+    final activities =
+        (data['activities'] as List<dynamic>? ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .map(_LeadActivityDraft.fromJson)
+            .toList(growable: true);
 
     _disposeActivities(_activities);
     setState(() {
@@ -268,10 +330,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   Future<void> _handleEnquiryFromLead() async {
     final enquiryId = _enquiryIdFromSalesChain();
     if (enquiryId != null) {
-      _openCrmShellRoute(
-        context,
-        '/crm/enquiries?select_id=$enquiryId',
-      );
+      _openCrmShellRoute(context, '/crm/enquiries?select_id=$enquiryId');
       return;
     }
     await _convert(createEnquiry: true);
@@ -345,7 +404,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       'assigned_to': _assignedTo,
       'lead_status': _leadStatus,
       'remarks': nullIfEmpty(_remarksController.text),
-      'activities': _activities.map((item) => item.toJson()).toList(growable: false),
+      'activities': _activities
+          .map((item) => item.toJson())
+          .toList(growable: false),
     });
 
     try {
@@ -361,7 +422,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(response.data?.toJson() ?? const {}, 'id'));
+      await _loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -588,8 +651,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             Text(
               'This lead is converted. Details are read-only. Use Open enquiry if one exists, or delete the lead if needed.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
@@ -743,9 +806,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
           children: [
             Text(
               'Activities',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             AppActionButton(
@@ -761,7 +824,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
           const SettingsEmptyState(
             icon: Icons.event_note_outlined,
             title: 'No Activities',
-            message: 'Add calls, emails, meetings, notes, and follow-up entries.',
+            message:
+                'Add calls, emails, meetings, notes, and follow-up entries.',
             minHeight: 180,
           )
         else

@@ -255,6 +255,23 @@ class _ServiceTicketEditor extends StatelessWidget {
                   ),
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Customer',
+                    doctypeLabel: 'Customer',
+                    allowCreate: true,
+                    onNavigateToCreateNew: (name) {
+                        final uri = Uri(
+                          path: '/parties',
+                          queryParameters: {
+                            'new': '1',
+                            if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                          },
+                        );
+                        final navigate = ShellRouteScope.maybeOf(context);
+                        if (navigate != null) {
+                          navigate(uri.toString());
+                        } else {
+                          Navigator.of(context).pushNamed(uri.toString());
+                        }
+                      },
                     mappedItems: vm.parties
                         .where((p) => p.id != null)
                         .map(

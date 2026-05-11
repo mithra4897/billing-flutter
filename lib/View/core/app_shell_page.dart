@@ -594,7 +594,17 @@ class _AppShellPageState extends State<AppShellPage> {
           openSendComposerOnInit: true,
         );
       case '/crm/leads':
-        return CrmLeadsPage(key: routeKey, embedded: true);
+        return CrmLeadsPage(
+          key: routeKey,
+          embedded: true,
+          startInNewMode:
+              (_currentQueryParameters['new'] ?? '') == '1' ||
+              (_currentQueryParameters['new'] ?? '').toLowerCase() == 'true',
+          initialLeadName: _currentQueryParameters['lead_name'],
+          initialCompanyId: int.tryParse(
+            _currentQueryParameters['company_id'] ?? '',
+          ),
+        );
       case '/crm/enquiries':
         return CrmEnquiriesPage(
           key: routeKey,
@@ -616,7 +626,14 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/crm/stages':
         return CrmStagesPage(key: routeKey, embedded: true);
       case '/parties':
-        return PartyManagementPage(key: routeKey, embedded: true);
+        return PartyManagementPage(
+          key: routeKey,
+          embedded: true,
+          startInNewMode:
+              (_currentQueryParameters['new'] ?? '') == '1' ||
+              (_currentQueryParameters['new'] ?? '').toLowerCase() == 'true',
+          initialPartyName: _currentQueryParameters['party_name'],
+        );
       case '/accounting/account-groups':
         return AccountGroupManagementPage(key: routeKey, embedded: true);
       case '/accounting/accounts':

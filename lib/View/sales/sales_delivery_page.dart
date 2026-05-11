@@ -767,6 +767,18 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Customer',
+                  doctypeLabel: 'Customer',
+                  allowCreate: true,
+                  onNavigateToCreateNew: (name) {
+                    final uri = Uri(
+                      path: '/parties',
+                      queryParameters: {
+                        'new': '1',
+                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                      },
+                    );
+                    openModuleShellRoute(context, uri.toString());
+                  },
                   mappedItems: _customers
                       .where((item) => item.id != null)
                       .map(
