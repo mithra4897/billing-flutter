@@ -706,201 +706,233 @@ Future<ErpDashboardSnapshot> _loadAssetsDashboard({
 Future<ErpDashboardSnapshot> _loadSalesDashboard({
   ErpDashboardTrendFilter? trendFilter,
 }) async {
-  final service = SalesService();
-  final responses = await Future.wait<dynamic>([
-    service.orders(filters: const {'per_page': 100, 'sort_by': 'order_date'}),
-    service.invoices(
-      filters: const {'per_page': 100, 'sort_by': 'invoice_date'},
-    ),
-    service.receipts(
-      filters: const {'per_page': 100, 'sort_by': 'receipt_date'},
-    ),
-    service.quotations(
-      filters: const {'per_page': 100, 'sort_by': 'quotation_date'},
-    ),
-  ]);
-
-  final orders = responses[0] as PaginatedResponse<SalesOrderModel>;
-  final invoices = responses[1] as PaginatedResponse<SalesInvoiceModel>;
-  final receipts = responses[2] as PaginatedResponse<SalesReceiptModel>;
-  final quotations = responses[3] as PaginatedResponse<SalesQuotationModel>;
-
-  final orderRows = orders.data ?? const <SalesOrderModel>[];
-  final pendingOrders = orderRows
-      .where(
-        (item) =>
-            !_isClosedStatus(item.toJson(), const ['order_status', 'status']),
-      )
-      .length;
-  final dueToday = orderRows
-      .where(
-        (item) =>
-            _isToday(item.toJson(), const ['order_date', 'delivery_date']),
-      )
-      .length;
-  final openFollowUps = (quotations.data ?? const <SalesQuotationModel>[])
-      .where(
-        (item) => !_isClosedStatus(item.toJson(), const [
-          'quotation_status',
-          'status',
-        ]),
-      )
-      .length;
-
-  return ErpDashboardSnapshot(
-    title: 'Sales Dashboard',
-    subtitle: 'Shared ERP dashboard layout backed by live sales documents.',
-    actions: const <ErpDashboardAction>[
-      ErpDashboardAction(
-        label: 'Open orders',
-        icon: Icons.shopping_cart_checkout_outlined,
-        route: '/sales/orders',
-      ),
-      ErpDashboardAction(
-        label: 'Open invoices',
-        icon: Icons.receipt_long_outlined,
-        route: '/sales/invoices',
-      ),
-    ],
-    stats: <ErpDashboardStat>[
-      ErpDashboardStat(
-        label: 'Total Orders',
-        value: _formatInt(_totalFromPaginated(orders)),
-        helper: 'Live order volume',
-        icon: Icons.shopping_bag_outlined,
-      ),
-      ErpDashboardStat(
-        label: 'Pending Orders',
-        value: _formatInt(pendingOrders),
-        helper: 'Status-driven live count',
-        icon: Icons.pending_actions_outlined,
-        color: const Color(0xFFE67E22),
-      ),
-      ErpDashboardStat(
-        label: 'Due Today',
-        value: _formatInt(dueToday),
-        helper: 'Document dates falling today',
-        icon: Icons.today_outlined,
-        color: const Color(0xFFDA4D78),
-      ),
-      ErpDashboardStat(
-        label: 'Open Follow-ups',
-        value: _formatInt(openFollowUps),
-        helper: 'Open quotations used as pipeline proxy',
-        icon: Icons.forum_outlined,
-        color: const Color(0xFF19A7B8),
-      ),
-    ],
-    primarySections: <ErpDashboardListSection>[
-      ErpDashboardListSection(
-        title: 'Recent Sales Tasks',
-        subtitle: 'Live sales orders and invoices to keep the team moving.',
-        icon: Icons.fact_check_outlined,
-        items: <ErpDashboardListItem>[
-          ...orderRows
-              .take(4)
-              .map(
-                (order) => ErpDashboardListItem(
-                  title: stringValue(order.toJson(), 'order_no', 'Sales order'),
-                  subtitle: [
-                    displayDate(
-                      nullableStringValue(order.toJson(), 'order_date'),
-                    ),
-                    _customerName(order.toJson()),
-                  ].where((part) => part.trim().isNotEmpty).join(' • '),
-                  detail: nullableStringValue(order.toJson(), 'remarks'),
-                  statusLabel: _statusLabel(order.toJson(), const [
-                    'order_status',
-                    'status',
-                  ]),
-                  route: _recordRoute('/sales/orders', order.toJson()),
-                ),
-              ),
-          ...(invoices.data ?? const <SalesInvoiceModel>[]).take(2).map((
-            invoice,
-          ) {
-            final json = _salesInvoiceJson(invoice);
-            return ErpDashboardListItem(
-              title: stringValue(json, 'invoice_no', 'Sales invoice'),
-              subtitle: [
-                displayDate(nullableStringValue(json, 'invoice_date')),
-                _customerName(json),
-              ].join(' • '),
-              detail: nullableStringValue(json, 'grand_total'),
-              statusLabel: _statusLabel(json, const [
-                'invoice_status',
-                'status',
-              ]),
-              route: _recordRoute('/sales/invoices', json),
-            );
-          }),
-        ],
-      ),
-    ],
-    trend: _buildMonthlyTrendCard(
-      title: 'Monthly Sales Trend',
-      subtitle:
-          'Live monthly sales activity from quotations, orders, invoices, and receipts.',
-      trendFilter: trendFilter,
-      sources: <_TrendSource>[
-        _TrendSource(
-          records: orderRows.map((item) => item.toJson()),
-          dateKeys: const ['order_date', 'delivery_date', 'created_at'],
+  try {
+    final service = SalesService();
+    final responses = await Future.wait<dynamic>([
+      _safePaginated(
+        () => service.orders(
+          filters: const {'per_page': 100, 'sort_by': 'order_date'},
         ),
-        _TrendSource(
-          records: (invoices.data ?? const <SalesInvoiceModel>[]).map(
-            _salesInvoiceJson,
-          ),
-          dateKeys: const ['invoice_date', 'due_date', 'created_at'],
+      ),
+      _safePaginated(
+        () => service.invoices(
+          filters: const {'per_page': 100, 'sort_by': 'invoice_date'},
         ),
-        _TrendSource(
-          records: (receipts.data ?? const <SalesReceiptModel>[]).map(
-            (item) => item.toJson(),
-          ),
-          dateKeys: const ['receipt_date', 'created_at'],
+      ),
+      _safePaginated(
+        () => service.receipts(
+          filters: const {'per_page': 100, 'sort_by': 'receipt_date'},
         ),
-        _TrendSource(
-          records: (quotations.data ?? const <SalesQuotationModel>[]).map(
-            (item) => item.toJson(),
-          ),
-          dateKeys: const ['quotation_date', 'valid_until', 'created_at'],
+      ),
+      _safePaginated(
+        () => service.quotations(
+          filters: const {'per_page': 100, 'sort_by': 'quotation_date'},
+        ),
+      ),
+    ]);
+
+    final orders = responses[0] as PaginatedResponse<SalesOrderModel>;
+    final invoices = responses[1] as PaginatedResponse<SalesInvoiceModel>;
+    final receipts = responses[2] as PaginatedResponse<SalesReceiptModel>;
+    final quotations = responses[3] as PaginatedResponse<SalesQuotationModel>;
+
+    final orderRows = orders.data ?? const <SalesOrderModel>[];
+    final orderJsonRows = orderRows
+        .map((item) => _safeMap(item.toJson))
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    final invoiceJsonRows = (invoices.data ?? const <SalesInvoiceModel>[])
+        .map((item) => _safeMap(() => _salesInvoiceJson(item)))
+        .toList(growable: false);
+    final receiptJsonRows = (receipts.data ?? const <SalesReceiptModel>[])
+        .map((item) => _safeMap(item.toJson))
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    final quotationJsonRows = (quotations.data ?? const <SalesQuotationModel>[])
+        .map((item) => _safeMap(item.toJson))
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    final pendingOrders = orderJsonRows
+        .where(
+          (item) => !_isClosedStatus(item, const ['order_status', 'status']),
+        )
+        .length;
+    final dueToday = orderJsonRows
+        .where((item) => _isToday(item, const ['order_date', 'delivery_date']))
+        .length;
+    final openFollowUps = quotationJsonRows
+        .where(
+          (item) =>
+              !_isClosedStatus(item, const ['quotation_status', 'status']),
+        )
+        .length;
+
+    return ErpDashboardSnapshot(
+      title: 'Sales Dashboard',
+      subtitle: 'Shared ERP dashboard layout backed by live sales documents.',
+      actions: const <ErpDashboardAction>[
+        ErpDashboardAction(
+          label: 'Open orders',
+          icon: Icons.shopping_cart_checkout_outlined,
+          route: '/sales/orders',
+        ),
+        ErpDashboardAction(
+          label: 'Open invoices',
+          icon: Icons.receipt_long_outlined,
+          route: '/sales/invoices',
         ),
       ],
-    ),
-    distribution: ErpDashboardDistributionCardData(
-      title: 'Sales Distribution',
-      subtitle: 'Live split across current order, invoice, and receipt load.',
-      segments: _segmentsFromCounts(<String, int>{
-        'Orders': _totalFromPaginated(orders),
-        'Invoices': _totalFromPaginated(invoices),
-        'Receipts': _totalFromPaginated(receipts),
-        'Quotations': _totalFromPaginated(quotations),
-      }),
-    ),
-    highlights: ErpDashboardHighlightsCardData(
-      title: 'Sales Focus',
-      subtitle: 'Key operational pressure points for the sales desk.',
-      entries: <ErpDashboardHighlightEntry>[
-        ErpDashboardHighlightEntry(
-          label: 'Invoices',
-          value: _formatInt(_totalFromPaginated(invoices)),
-          helper: 'Live billing documents',
+      stats: <ErpDashboardStat>[
+        ErpDashboardStat(
+          label: 'Total Orders',
+          value: _formatInt(_totalFromPaginated(orders)),
+          helper: 'Live order volume',
+          icon: Icons.shopping_bag_outlined,
         ),
-        ErpDashboardHighlightEntry(
-          label: 'Receipts',
-          value: _formatInt(_totalFromPaginated(receipts)),
-          helper: 'Collections recorded',
-          color: const Color(0xFF1FA971),
+        ErpDashboardStat(
+          label: 'Pending Orders',
+          value: _formatInt(pendingOrders),
+          helper: 'Status-driven live count',
+          icon: Icons.pending_actions_outlined,
+          color: const Color(0xFFE67E22),
         ),
-        ErpDashboardHighlightEntry(
-          label: 'Quotations',
-          value: _formatInt(_totalFromPaginated(quotations)),
-          helper: 'Pipeline estimation',
+        ErpDashboardStat(
+          label: 'Due Today',
+          value: _formatInt(dueToday),
+          helper: 'Document dates falling today',
+          icon: Icons.today_outlined,
+          color: const Color(0xFFDA4D78),
+        ),
+        ErpDashboardStat(
+          label: 'Open Follow-ups',
+          value: _formatInt(openFollowUps),
+          helper: 'Open quotations used as pipeline proxy',
+          icon: Icons.forum_outlined,
           color: const Color(0xFF19A7B8),
         ),
       ],
-    ),
-  );
+      primarySections: <ErpDashboardListSection>[
+        ErpDashboardListSection(
+          title: 'Recent Sales Tasks',
+          subtitle: 'Live sales orders and invoices to keep the team moving.',
+          icon: Icons.fact_check_outlined,
+          items: <ErpDashboardListItem>[
+            ...orderJsonRows
+                .take(4)
+                .map(
+                  (order) => ErpDashboardListItem(
+                    title: stringValue(order, 'order_no', 'Sales order'),
+                    subtitle: [
+                      displayDate(nullableStringValue(order, 'order_date')),
+                      _customerName(order),
+                    ].where((part) => part.trim().isNotEmpty).join(' • '),
+                    detail: nullableStringValue(order, 'remarks'),
+                    statusLabel: _statusLabel(order, const [
+                      'order_status',
+                      'status',
+                    ]),
+                    route: _recordRoute('/sales/orders', order),
+                  ),
+                ),
+            ...invoiceJsonRows.take(2).map((json) {
+              return ErpDashboardListItem(
+                title: stringValue(json, 'invoice_no', 'Sales invoice'),
+                subtitle: [
+                  displayDate(nullableStringValue(json, 'invoice_date')),
+                  _customerName(json),
+                ].where((part) => part.trim().isNotEmpty).join(' • '),
+                detail:
+                    nullableStringValue(json, 'grand_total') ??
+                    nullableStringValue(json, 'total_amount'),
+                statusLabel: _statusLabel(json, const [
+                  'invoice_status',
+                  'status',
+                ]),
+                route: _recordRoute('/sales/invoices', json),
+              );
+            }),
+          ],
+        ),
+      ],
+      trend: _buildMonthlyTrendCard(
+        title: 'Monthly Sales Trend',
+        subtitle:
+            'Live monthly sales activity from quotations, orders, invoices, and receipts.',
+        trendFilter: trendFilter,
+        sources: <_TrendSource>[
+          _TrendSource(
+            records: orderJsonRows,
+            dateKeys: const ['order_date', 'delivery_date', 'created_at'],
+          ),
+          _TrendSource(
+            records: invoiceJsonRows,
+            dateKeys: const ['invoice_date', 'due_date', 'created_at'],
+          ),
+          _TrendSource(
+            records: receiptJsonRows,
+            dateKeys: const ['receipt_date', 'created_at'],
+          ),
+          _TrendSource(
+            records: quotationJsonRows,
+            dateKeys: const ['quotation_date', 'valid_until', 'created_at'],
+          ),
+        ],
+      ),
+      distribution: ErpDashboardDistributionCardData(
+        title: 'Sales Distribution',
+        subtitle: 'Live split across current order, invoice, and receipt load.',
+        segments: _segmentsFromCounts(<String, int>{
+          'Orders': _totalFromPaginated(orders),
+          'Invoices': _totalFromPaginated(invoices),
+          'Receipts': _totalFromPaginated(receipts),
+          'Quotations': _totalFromPaginated(quotations),
+        }),
+      ),
+      highlights: ErpDashboardHighlightsCardData(
+        title: 'Sales Focus',
+        subtitle: 'Key operational pressure points for the sales desk.',
+        entries: <ErpDashboardHighlightEntry>[
+          ErpDashboardHighlightEntry(
+            label: 'Invoices',
+            value: _formatInt(_totalFromPaginated(invoices)),
+            helper: 'Live billing documents',
+          ),
+          ErpDashboardHighlightEntry(
+            label: 'Receipts',
+            value: _formatInt(_totalFromPaginated(receipts)),
+            helper: 'Collections recorded',
+            color: const Color(0xFF1FA971),
+          ),
+          ErpDashboardHighlightEntry(
+            label: 'Quotations',
+            value: _formatInt(_totalFromPaginated(quotations)),
+            helper: 'Pipeline estimation',
+            color: const Color(0xFF19A7B8),
+          ),
+        ],
+      ),
+    );
+  } catch (_) {
+    return const ErpDashboardSnapshot(
+      title: 'Sales Dashboard',
+      subtitle: 'Sales dashboard is available with partial live data.',
+      actions: <ErpDashboardAction>[
+        ErpDashboardAction(
+          label: 'Open orders',
+          icon: Icons.shopping_cart_checkout_outlined,
+          route: '/sales/orders',
+        ),
+        ErpDashboardAction(
+          label: 'Open invoices',
+          icon: Icons.receipt_long_outlined,
+          route: '/sales/invoices',
+        ),
+      ],
+      emptyTitle: 'Sales dashboard data is loading',
+      emptyMessage:
+          'One or more live sales feeds returned an unexpected format. The dashboard shell is still available while the data refreshes.',
+    );
+  }
 }
 
 Future<ErpDashboardSnapshot> _loadPurchaseDashboard({
@@ -2792,6 +2824,34 @@ Map<String, dynamic> _purchaseInvoiceJson(PurchaseInvoiceModel invoice) {
         'invoice_status': invoice.invoiceStatus,
         'total_amount': invoice.totalAmount,
       };
+}
+
+Future<PaginatedResponse<T>> _safePaginated<T>(
+  Future<PaginatedResponse<T>> Function() loader,
+) async {
+  try {
+    return await loader();
+  } catch (_) {
+    return PaginatedResponse<T>(
+      success: false,
+      message: '',
+      data: <T>[],
+      meta: const PaginationMeta(
+        currentPage: 1,
+        lastPage: 1,
+        perPage: 0,
+        total: 0,
+      ),
+    );
+  }
+}
+
+Map<String, dynamic> _safeMap(Map<String, dynamic> Function() builder) {
+  try {
+    return builder();
+  } catch (_) {
+    return <String, dynamic>{};
+  }
 }
 
 String _statusLabel(Map<String, dynamic> data, List<String> keys) {
