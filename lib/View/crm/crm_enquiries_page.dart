@@ -137,6 +137,63 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     super.dispose();
   }
 
+  Future<void> _pickEnquiryDate() async {
+    final now = DateTime.now();
+    final selected = await showAppDatePickerDialog(
+      context: context,
+      title: 'Select Enquiry Date',
+      initialDate: tryParseCalendarDate(_enquiryDateController.text) ?? now,
+      firstDate: DateTime(now.year - 5, 1, 1),
+      lastDate: DateTime(now.year + 5, 12, 31),
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _enquiryDateController.text = formatCalendarDate(selected);
+    });
+  }
+
+  Future<void> _pickFollowupDate(_FollowupDraft followup) async {
+    final now = DateTime.now();
+    final initial =
+        tryParseCalendarDateTime(followup.followupDateController.text) ?? now;
+    final selected = await showAppDateTimePickerDialog(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 5, 1, 1),
+      lastDate: DateTime(now.year + 5, 12, 31),
+      dateTitle: 'Select Followup Date',
+      timeTitle: 'Select Followup Time',
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    setState(() {
+      followup.followupDateController.text = formatCalendarDateTime(selected);
+    });
+  }
+
+  Future<void> _pickNextFollowupDate(_FollowupDraft followup) async {
+    final now = DateTime.now();
+    final initial =
+        tryParseCalendarDateTime(followup.nextFollowupController.text) ?? now;
+    final selected = await showAppDateTimePickerDialog(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 5, 1, 1),
+      lastDate: DateTime(now.year + 5, 12, 31),
+      dateTitle: 'Select Next Followup Date',
+      timeTitle: 'Select Next Followup Time',
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    setState(() {
+      followup.nextFollowupController.text = formatCalendarDateTime(selected);
+    });
+  }
+
   Future<void> _loadPage({int? selectId}) async {
     setState(() {
       _initialLoading = _items.isEmpty;
@@ -790,11 +847,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 labelText: 'Enquiry No',
                 hintText: 'Leave blank — we assign a number for you',
               ),
-              AppFormTextField(
+              AppDateSelectorField(
                 controller: _enquiryDateController,
                 labelText: 'Enquiry Date',
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
+                onTap: _pickEnquiryDate,
               ),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 300),
@@ -819,15 +875,15 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 doctypeLabel: 'Customer',
                 allowCreate: true,
                 onNavigateToCreateNew: (name) {
-                    final uri = Uri(
-                      path: '/parties',
-                      queryParameters: {
-                        'new': '1',
-                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                      },
-                    );
-                    openModuleShellRoute(context, uri.toString());
-                  },
+                  final uri = Uri(
+                    path: '/parties',
+                    queryParameters: {
+                      'new': '1',
+                      if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                    },
+                  );
+                  openModuleShellRoute(context, uri.toString());
+                },
                 mappedItems: _customers
                     .where((item) => item.id != null)
                     .map(
@@ -1091,19 +1147,17 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 },
                 child: PurchaseCompactFieldGrid(
                   children: [
-                    AppFormTextField(
+                    AppDateTimeSelectorField(
                       controller: followup.followupDateController,
                       labelText: 'Followup Date',
                       hintText: 'YYYY-MM-DD HH:MM:SS',
-                      keyboardType: TextInputType.datetime,
-                      inputFormatters: const [DateTimeInputFormatter()],
+                      onTap: () => _pickFollowupDate(followup),
                     ),
-                    AppFormTextField(
+                    AppDateTimeSelectorField(
                       controller: followup.nextFollowupController,
                       labelText: 'Next Followup',
                       hintText: 'YYYY-MM-DD HH:MM:SS',
-                      keyboardType: TextInputType.datetime,
-                      inputFormatters: const [DateTimeInputFormatter()],
+                      onTap: () => _pickNextFollowupDate(followup),
                     ),
                     AppDropdownField<int>.fromMapped(
                       labelText: 'Assigned To',

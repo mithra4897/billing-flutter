@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_calendar_picker.dart';
 import 'app_field_box.dart';
+import 'date_input_formatter.dart';
+import 'date_time_input_formatter.dart';
 
 class AppFormTextField extends StatelessWidget {
   const AppFormTextField({
@@ -43,8 +46,62 @@ class AppFormTextField extends StatelessWidget {
   final String? hintText;
   final bool? enabled;
 
+  bool get _isAutoDateField =>
+      !readOnly &&
+      enabled != false &&
+      controller != null &&
+      (inputFormatters?.any((formatter) => formatter is DateInputFormatter) ??
+          false);
+
+  bool get _isAutoDateTimeField =>
+      !readOnly &&
+      enabled != false &&
+      controller != null &&
+      (inputFormatters?.any(
+            (formatter) => formatter is DateTimeInputFormatter,
+          ) ??
+          false);
+
+  Future<void> _handlePickerTap(BuildContext context) async {
+    if (_isAutoDateField) {
+      final now = DateTime.now();
+      final picked = await showAppDatePickerDialog(
+        context: context,
+        initialDate: tryParseCalendarDate(controller!.text) ?? now,
+        firstDate: DateTime(now.year - 10, 1, 1),
+        lastDate: DateTime(now.year + 10, 12, 31),
+        title: 'Select $labelText',
+      );
+      if (picked == null) {
+        return;
+      }
+      controller!.text = formatCalendarDate(picked);
+      onChanged?.call(controller!.text);
+      return;
+    }
+
+    if (_isAutoDateTimeField) {
+      final now = DateTime.now();
+      final picked = await showAppDateTimePickerDialog(
+        context: context,
+        initialDate: tryParseCalendarDateTime(controller!.text) ?? now,
+        firstDate: DateTime(now.year - 10, 1, 1),
+        lastDate: DateTime(now.year + 10, 12, 31),
+        dateTitle: 'Select $labelText',
+        timeTitle: 'Select $labelText Time',
+      );
+      if (picked == null) {
+        return;
+      }
+      controller!.text = formatCalendarDateTime(picked);
+      onChanged?.call(controller!.text);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final autoPickerEnabled = _isAutoDateField || _isAutoDateTimeField;
+
     return AppFieldBox(
       width: width,
       child: TextFormField(
@@ -56,8 +113,9 @@ class AppFormTextField extends StatelessWidget {
         obscureText: obscureText,
         validator: validator,
         onChanged: onChanged,
-        readOnly: readOnly,
+        readOnly: readOnly || autoPickerEnabled,
         enabled: enabled,
+        onTap: autoPickerEnabled ? () => _handlePickerTap(context) : null,
         inputFormatters: inputFormatters,
         textCapitalization: textCapitalization,
         decoration: InputDecoration(
@@ -65,7 +123,15 @@ class AppFormTextField extends StatelessWidget {
           hintText: hintText,
           alignLabelWithHint: maxLines > 1,
           prefixIcon: prefixIcon,
-          suffixIcon: suffixIcon,
+          suffixIcon:
+              suffixIcon ??
+              (autoPickerEnabled
+                  ? Icon(
+                      _isAutoDateTimeField
+                          ? Icons.schedule_outlined
+                          : Icons.calendar_month_outlined,
+                    )
+                  : null),
         ),
       ),
     );

@@ -735,11 +735,9 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                   hintText: 'Auto-generated on save',
                   validator: Validators.optionalMaxLength(100, 'Receipt No'),
                 ),
-                AppFormTextField(
+                AppDateField(
                   labelText: 'Receipt Date',
                   controller: _receiptDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
                   validator: Validators.compose([
                     Validators.required('Receipt Date'),
                     Validators.date('Receipt Date'),
@@ -809,11 +807,9 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                   validator:
                       Validators.optionalMaxLength(100, 'Payment Reference No'),
                 ),
-                AppFormTextField(
+                AppDateField(
                   labelText: 'Payment Reference Date',
                   controller: _paymentReferenceDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
                   validator:
                       Validators.optionalDate('Payment Reference Date'),
                 ),
