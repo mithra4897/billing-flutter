@@ -60,9 +60,16 @@ class AppNavigation {
       icon: Icons.settings_outlined,
       children: [
         AppNavigationItem(
+          key: 'settings-my-profile',
+          title: 'My Profile',
+          icon: Icons.manage_accounts_outlined,
+          path: '/settings/profile',
+        ),
+        AppNavigationItem(
           key: 'settings-communication',
           title: 'Communication',
           icon: Icons.mail_outline,
+          requiredPermissions: ['permission.view'],
           children: [
             AppNavigationItem(
               key: 'email-settings',
@@ -112,6 +119,7 @@ class AppNavigation {
           key: 'tax',
           title: 'Tax',
           icon: Icons.receipt_long_outlined,
+          requiredPermissions: ['permission.view'],
           children: [
             AppNavigationItem(
               key: 'inventory-tax-codes',
@@ -155,12 +163,14 @@ class AppNavigation {
           key: 'settings-access-control',
           title: 'Access Control',
           icon: Icons.admin_panel_settings_outlined,
+          requiredPermissions: ['permission.view'],
           children: [
             AppNavigationItem(
               key: 'settings-profile',
               title: 'Profile',
               icon: Icons.person_outline,
               path: '/settings/profile',
+              requiredPermissions: ['user.view'],
             ),
             AppNavigationItem(
               key: 'settings-users',
@@ -183,12 +193,40 @@ class AppNavigation {
               path: '/settings/login-history',
               requiredPermissions: ['user.view'],
             ),
+          ],
+        ),
+        AppNavigationItem(
+          key: 'settings-accounts',
+          title: "Accounts",
+          icon: Icons.account_balance_wallet_outlined,
+          children: [
             AppNavigationItem(
-              key: 'settings-module-preferences',
-              title: 'Module Preferences',
-              icon: Icons.view_sidebar_outlined,
-              path: '/settings/module-preferences',
-              requiredPermissions: ['permission.view'],
+              key: 'account-groups',
+              title: 'Account Groups',
+              icon: Icons.account_tree_outlined,
+              path: '/accounting/account-groups',
+              requiredPermissions: ['accounts.view'],
+            ),
+            AppNavigationItem(
+              key: 'voucher-types',
+              title: 'Voucher Types',
+              icon: Icons.receipt_outlined,
+              path: '/accounting/voucher-types',
+              requiredPermissions: ['accounts.view'],
+            ),
+            AppNavigationItem(
+              key: 'posting-rule-groups',
+              title: 'Posting Rule Groups',
+              icon: Icons.folder_special_outlined,
+              path: '/accounting/posting-rule-groups',
+              requiredPermissions: ['accounts.view'],
+            ),
+            AppNavigationItem(
+              key: 'posting-rules',
+              title: 'Posting Rules',
+              icon: Icons.rule_folder_outlined,
+              path: '/accounting/posting-rules',
+              requiredPermissions: ['accounts.view'],
             ),
           ],
         ),
@@ -196,6 +234,7 @@ class AppNavigation {
           key: 'settings-hr',
           title: 'HR',
           icon: Icons.badge_outlined,
+          requiredPermissions: ['permission.view'],
           children: [
             AppNavigationItem(
               key: 'hr-departments',
@@ -231,6 +270,7 @@ class AppNavigation {
           key: 'settings-crm',
           title: 'CRM',
           icon: Icons.support_agent_outlined,
+          requiredPermissions: ['permission.view'],
           children: [
             AppNavigationItem(
               key: 'crm-sources',
@@ -277,6 +317,13 @@ class AppNavigation {
           requiredPermissions: ['document_series.view'],
         ),
       ],
+    ),
+    AppNavigationItem(
+      key: 'inventory-uoms',
+      title: 'UOMs',
+      icon: Icons.straighten_outlined,
+      path: '/inventory/uoms',
+      requiredPermissions: ['inventory.view'],
     ),
 
     const AppNavigationItem(
@@ -1407,6 +1454,9 @@ class AppNavigation {
 
     final filtered = items
         .where((item) {
+          if (item.key == 'settings') {
+            return true;
+          }
           return !hiddenModules.contains(item.key.toLowerCase());
         })
         .toList(growable: false);
