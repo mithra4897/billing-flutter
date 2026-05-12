@@ -16,6 +16,7 @@ class AppDateField extends StatelessWidget {
     this.width,
     this.firstDate,
     this.lastDate,
+    this.allowType = true,
   });
 
   final String labelText;
@@ -26,6 +27,7 @@ class AppDateField extends StatelessWidget {
   final double? width;
   final DateTime? firstDate;
   final DateTime? lastDate;
+  final bool allowType;
 
   DateTime get _effectiveFirstDate =>
       firstDate ?? DateTime(DateTime.now().year - 10);
@@ -68,6 +70,7 @@ class AppDateField extends StatelessWidget {
       keyboardType: TextInputType.datetime,
       inputFormatters: const [DateInputFormatter()],
       validator: validator,
+      allowType: allowType,
       suffixIcon: GestureDetector(
         onTap: () => _openPicker(context),
         child: const Padding(

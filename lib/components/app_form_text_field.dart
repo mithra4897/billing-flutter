@@ -26,6 +26,7 @@ class AppFormTextField extends StatelessWidget {
     this.textCapitalization = TextCapitalization.none,
     this.hintText,
     this.enabled,
+    this.allowType = true,
   });
 
   final String labelText;
@@ -45,6 +46,7 @@ class AppFormTextField extends StatelessWidget {
   final TextCapitalization textCapitalization;
   final String? hintText;
   final bool? enabled;
+  final bool allowType;
 
   bool get _isAutoDateField =>
       !readOnly &&
@@ -113,9 +115,9 @@ class AppFormTextField extends StatelessWidget {
         obscureText: obscureText,
         validator: validator,
         onChanged: onChanged,
-        readOnly: readOnly || autoPickerEnabled,
+        readOnly: readOnly || (autoPickerEnabled && !allowType),
         enabled: enabled,
-        onTap: autoPickerEnabled ? () => _handlePickerTap(context) : null,
+        onTap: (autoPickerEnabled && !allowType) ? () => _handlePickerTap(context) : null,
         inputFormatters: inputFormatters,
         textCapitalization: textCapitalization,
         decoration: InputDecoration(
@@ -126,11 +128,29 @@ class AppFormTextField extends StatelessWidget {
           suffixIcon:
               suffixIcon ??
               (autoPickerEnabled
-                  ? Icon(
-                      _isAutoDateTimeField
-                          ? Icons.schedule_outlined
-                          : Icons.calendar_month_outlined,
-                    )
+                  ? (allowType
+                      ? MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => _handlePickerTap(context),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0,
+                              ),
+                              child: Icon(
+                                _isAutoDateTimeField
+                                    ? Icons.schedule_outlined
+                                    : Icons.calendar_month_outlined,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Icon(
+                          _isAutoDateTimeField
+                              ? Icons.schedule_outlined
+                              : Icons.calendar_month_outlined,
+                        ))
                   : null),
         ),
       ),
