@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../screen.dart';
+import '../printing/document_print_designer.dart';
 import 'purchase_support.dart';
 
 class PurchaseInvoicePage extends StatefulWidget {
@@ -394,6 +395,72 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     });
   }
 
+  Map<String, dynamic> _purchaseInvoicePrintData() {
+    final supplier = _suppliers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == _supplierPartyId,
+      orElse: () => null,
+    );
+    var subtotal = 0.0;
+    var taxAmount = 0.0;
+    final lines = _lines
+        .map((line) {
+          final qty = line.invoicedQty;
+          final rate = line.rate;
+          final discount = line.discountPercent ?? 0;
+          final taxable = qty * rate * (1 - (discount.clamp(0, 100) / 100));
+          final taxRate =
+              _taxCodes
+                  .cast<TaxCodeModel?>()
+                  .firstWhere(
+                    (item) => item?.id == line.taxCodeId,
+                    orElse: () => null,
+                  )
+                  ?.taxRate ??
+              line.taxPercent ??
+              0;
+          final total = taxable + (taxable * taxRate / 100);
+          subtotal += taxable;
+          taxAmount += total - taxable;
+          final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+            (entry) => entry?.id == line.itemId,
+            orElse: () => null,
+          );
+          return <String, dynamic>{
+            'item_name':
+                item?.itemName ?? item?.itemCode ?? (line.description ?? ''),
+            'description': line.description ?? '',
+            'qty': qty,
+            'rate': rate,
+            'line_total': double.parse(total.toStringAsFixed(2)),
+          };
+        })
+        .toList(growable: false);
+
+    return <String, dynamic>{
+      'company_name': companyNameById(_companies, _companyId),
+      'document_number': nullIfEmpty(_invoiceNoController.text) ?? 'Draft',
+      'document_date': _invoiceDateController.text.trim(),
+      'reference_number': _supplierReferenceNoController.text.trim(),
+      'party_name': supplier?.partyName ?? '',
+      'party_address': '',
+      'party_contact': '',
+      'notes': _notesController.text.trim(),
+      'subtotal': double.parse(subtotal.toStringAsFixed(2)),
+      'tax_amount': double.parse(taxAmount.toStringAsFixed(2)),
+      'total_amount': double.parse((subtotal + taxAmount).toStringAsFixed(2)),
+      'lines': lines,
+    };
+  }
+
+  Future<void> _openPrintPreview() {
+    return openDocumentPrintDesigner(
+      context,
+      documentType: 'purchase_invoice',
+      title: 'Purchase Invoice',
+      documentData: _purchaseInvoicePrintData(),
+    );
+  }
+
   List<UomModel> _uomOptionsForItem(int? itemId) {
     final item = _itemsLookup.cast<ItemModel?>().firstWhere(
       (entry) => entry?.id == itemId,
@@ -441,7 +508,8 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               item.documentType == 'PURCHASE_INVOICE';
           final companyOk = companyId == null || item.companyId == companyId;
           final fyOk =
-              financialYearId == null || item.financialYearId == financialYearId;
+              financialYearId == null ||
+              item.financialYearId == financialYearId;
           return typeOk && companyOk && fyOk;
         })
         .toList(growable: false);
@@ -486,7 +554,12 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
 
     return lines.isEmpty
         ? <PurchaseInvoiceLineModel>[
-            PurchaseInvoiceLineModel(itemId: 0, uomId: 0, invoicedQty: 0, rate: 0),
+            PurchaseInvoiceLineModel(
+              itemId: 0,
+              uomId: 0,
+              invoicedQty: 0,
+              rate: 0,
+            ),
           ]
         : lines;
   }
@@ -498,9 +571,10 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     PurchaseReceiptModel receipt,
     List<PurchaseInvoiceLineModel> lines,
   ) {
-    final receiptLines = (receipt.toJson()['lines'] as List<dynamic>? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .toList(growable: false);
+    final receiptLines =
+        (receipt.toJson()['lines'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
 
     final pendingLeft = <int, double>{};
     for (final rl in receiptLines) {
@@ -517,17 +591,18 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           if (line.itemId <= 0 || line.purchaseOrderLineId == null) {
             return line.copyWith(purchaseReceiptLineId: null);
           }
-          final candidates = receiptLines
-              .where(
-                (rl) =>
-                    intValue(rl, 'purchase_order_line_id') ==
-                        line.purchaseOrderLineId &&
-                    intValue(rl, 'item_id') == line.itemId,
-              )
-              .map((rl) => intValue(rl, 'id'))
-              .whereType<int>()
-              .toList()
-            ..sort();
+          final candidates =
+              receiptLines
+                  .where(
+                    (rl) =>
+                        intValue(rl, 'purchase_order_line_id') ==
+                            line.purchaseOrderLineId &&
+                        intValue(rl, 'item_id') == line.itemId,
+                  )
+                  .map((rl) => intValue(rl, 'id'))
+                  .whereType<int>()
+                  .toList()
+                ..sort();
 
           int? chosenId;
           for (final id in candidates) {
@@ -650,7 +725,12 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         _purchaseReceiptId = null;
         _supplierPartyId = null;
         _lines = <PurchaseInvoiceLineModel>[
-          PurchaseInvoiceLineModel(itemId: 0, uomId: 0, invoicedQty: 0, rate: 0),
+          PurchaseInvoiceLineModel(
+            itemId: 0,
+            uomId: 0,
+            invoicedQty: 0,
+            rate: 0,
+          ),
         ];
         _formError = null;
       });
@@ -1353,6 +1433,12 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               runSpacing: AppUiConstants.spacingSm,
               children: [
                 AppActionButton(
+                  icon: Icons.print_outlined,
+                  label: 'Print',
+                  filled: false,
+                  onPressed: _openPrintPreview,
+                ),
+                AppActionButton(
                   icon: Icons.save_outlined,
                   label: _selectedItem == null
                       ? 'Save Invoice'
@@ -1364,7 +1450,8 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                   if ((() {
                     final status = (_selectedItem!.invoiceStatus ?? '')
                         .toLowerCase();
-                    final balance = double.tryParse(
+                    final balance =
+                        double.tryParse(
                           _selectedItem!.raw?['balance_amount']?.toString() ??
                               '',
                         ) ??

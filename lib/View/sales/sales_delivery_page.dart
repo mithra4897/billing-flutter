@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../model/sales/sales_delivery_model.dart';
 import '../../model/sales/sales_order_model.dart';
 import '../../screen.dart';
+import '../printing/document_print_designer.dart';
 import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
@@ -453,6 +454,61 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     _lines = drafts.isEmpty
         ? <_SalesDeliveryLineDraft>[_SalesDeliveryLineDraft()]
         : drafts;
+  }
+
+  Map<String, dynamic> _salesDeliveryPrintData() {
+    final customer = _customers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == _customerPartyId,
+      orElse: () => null,
+    );
+    var subtotal = 0.0;
+    final lines = _lines
+        .map((line) {
+          final qty =
+              double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
+          final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+          final total = qty * rate;
+          subtotal += total;
+          final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+            (entry) => entry?.id == line.itemId,
+            orElse: () => null,
+          );
+          return <String, dynamic>{
+            'item_name':
+                item?.itemName ??
+                item?.itemCode ??
+                line.descriptionController.text.trim(),
+            'description': line.descriptionController.text.trim(),
+            'qty': qty,
+            'rate': rate,
+            'line_total': roundToDouble(total, 2),
+          };
+        })
+        .toList(growable: false);
+
+    return <String, dynamic>{
+      'company_name': companyNameById(_companies, _companyId),
+      'document_number': nullIfEmpty(_deliveryNoController.text) ?? 'Draft',
+      'document_date': _deliveryDateController.text.trim(),
+      'reference_number': '',
+      'party_name': customer?.partyName ?? '',
+      'party_address': '',
+      'party_contact': '',
+      'notes': _notesController.text.trim(),
+      'subtotal': roundToDouble(subtotal, 2),
+      'tax_amount': 0,
+      'total_amount': roundToDouble(subtotal, 2),
+      'lines': lines,
+    };
+  }
+
+  Future<void> _openPrintPreview() {
+    return openDocumentPrintDesigner(
+      context,
+      documentType: 'sales_delivery',
+      title: 'Delivery Challan',
+      documentData: _salesDeliveryPrintData(),
+    );
   }
 
   Future<void> _applySalesOrderSelection(int? orderId) async {
@@ -1017,6 +1073,12 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                AppActionButton(
+                  icon: Icons.print_outlined,
+                  label: 'Print',
+                  filled: false,
+                  onPressed: _openPrintPreview,
+                ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: _selectedItem == null

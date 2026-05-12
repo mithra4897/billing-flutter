@@ -1,5 +1,6 @@
 import '../../model/sales/sales_quotation_model.dart';
 import '../../screen.dart';
+import '../printing/document_print_designer.dart';
 import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
@@ -572,6 +573,66 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       'cess_amount': roundToDouble(breakdown.cess, 2),
       'line_total': roundToDouble(breakdown.total, 2),
     };
+  }
+
+  Map<String, dynamic> _quotationPrintData() {
+    final summary = _taxSummary();
+    final selected = _selectedItem?.toJson() ?? const <String, dynamic>{};
+    final customer = _customers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == _customerPartyId,
+      orElse: () => null,
+    );
+    final customerData = selected['customer'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(
+            selected['customer'] as Map<String, dynamic>,
+          )
+        : customer?.toJson() ?? const <String, dynamic>{};
+    final lines = _lines
+        .map((line) {
+          final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+            (entry) => entry?.id == line.itemId,
+            orElse: () => null,
+          );
+          final breakdown = _taxBreakdownForLine(line);
+          return <String, dynamic>{
+            'item_name':
+                item?.itemName ??
+                item?.itemCode ??
+                line.descriptionController.text.trim(),
+            'description': line.descriptionController.text.trim(),
+            'qty': double.tryParse(line.qtyController.text.trim()) ?? 0,
+            'rate': double.tryParse(line.rateController.text.trim()) ?? 0,
+            'line_total': roundToDouble(breakdown.total, 2),
+          };
+        })
+        .toList(growable: false);
+    final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
+
+    return <String, dynamic>{
+      'company_name': companyNameById(_companies, _companyId),
+      'document_number': nullIfEmpty(_quotationNoController.text) ?? 'Draft',
+      'document_date': _quotationDateController.text.trim(),
+      'reference_number': _customerRefNoController.text.trim(),
+      'party_name': stringValue(customerData, 'party_name').isNotEmpty
+          ? stringValue(customerData, 'party_name')
+          : quotationCustomerLabel(selected),
+      'party_address': stringValue(customerData, 'address_line1'),
+      'party_contact': stringValue(customerData, 'mobile_no'),
+      'notes': _notesController.text.trim(),
+      'subtotal': roundToDouble(summary.taxable, 2),
+      'tax_amount': roundToDouble(totalTax, 2),
+      'total_amount': roundToDouble(summary.total, 2),
+      'lines': lines,
+    };
+  }
+
+  Future<void> _openPrintPreview() {
+    return openDocumentPrintDesigner(
+      context,
+      documentType: 'sales_quotation',
+      title: 'Quotation',
+      documentData: _quotationPrintData(),
+    );
   }
 
   void _addLine() {
@@ -1293,6 +1354,12 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                AppActionButton(
+                  icon: Icons.print_outlined,
+                  label: 'Print',
+                  filled: false,
+                  onPressed: _openPrintPreview,
+                ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: _selectedItem == null ? 'Save quote' : 'Update quote',

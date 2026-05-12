@@ -4,6 +4,7 @@ import '../../model/sales/sales_delivery_model.dart';
 import '../../model/sales/sales_invoice_line_model.dart';
 import '../../model/sales/sales_order_model.dart';
 import '../../screen.dart';
+import '../printing/document_print_designer.dart';
 import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
@@ -155,6 +156,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
     return <BranchModel>[...options, selectedBranch];
   }
+
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
 
@@ -293,33 +295,38 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
 
     final serialOptions = _serialOptionsForLine(line);
-    final replacements = normalized.map((serialNo) {
-      final matched = serialOptions.cast<Map<String, dynamic>?>().firstWhere(
-        (serial) =>
-            (serial?['serial_no']?.toString().trim().toLowerCase() ?? '') ==
-            serialNo.toLowerCase(),
-        orElse: () => null,
-      );
-      return _InvoiceLineDraft(
-        salesOrderLineId: line.salesOrderLineId,
-        salesDeliveryLineId: line.salesDeliveryLineId,
-        itemId: line.itemId,
-        warehouseId: line.warehouseId,
-        batchId: line.batchId,
-        serialId: matched == null
-            ? null
-            : int.tryParse(matched['serial_id']?.toString() ?? ''),
-        serialNumbers: <String>[serialNo],
-        serialNo: serialNo,
-        uomId: line.uomId,
-        taxCodeId: line.taxCodeId,
-        description: line.descriptionController.text,
-        qty: '1',
-        rate: line.rateController.text,
-        discountPercent: line.discountController.text,
-        remarks: line.remarksController.text,
-      );
-    }).toList(growable: false);
+    final replacements = normalized
+        .map((serialNo) {
+          final matched = serialOptions
+              .cast<Map<String, dynamic>?>()
+              .firstWhere(
+                (serial) =>
+                    (serial?['serial_no']?.toString().trim().toLowerCase() ??
+                        '') ==
+                    serialNo.toLowerCase(),
+                orElse: () => null,
+              );
+          return _InvoiceLineDraft(
+            salesOrderLineId: line.salesOrderLineId,
+            salesDeliveryLineId: line.salesDeliveryLineId,
+            itemId: line.itemId,
+            warehouseId: line.warehouseId,
+            batchId: line.batchId,
+            serialId: matched == null
+                ? null
+                : int.tryParse(matched['serial_id']?.toString() ?? ''),
+            serialNumbers: <String>[serialNo],
+            serialNo: serialNo,
+            uomId: line.uomId,
+            taxCodeId: line.taxCodeId,
+            description: line.descriptionController.text,
+            qty: '1',
+            rate: line.rateController.text,
+            discountPercent: line.discountController.text,
+            remarks: line.remarksController.text,
+          );
+        })
+        .toList(growable: false);
 
     final nextLines = List<_InvoiceLineDraft>.from(_lines);
     nextLines.removeAt(lineIndex);
@@ -331,9 +338,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   List<_InvoiceLineDraft> _buildInvoiceDraftsFromLines(
     List<SalesInvoiceLineModel> lines,
   ) {
-    return lines
-        .map(_InvoiceLineDraft.fromLine)
-        .toList(growable: false);
+    return lines.map(_InvoiceLineDraft.fromLine).toList(growable: false);
   }
 
   TaxCodeModel? _taxCodeById(int? taxCodeId) {
@@ -662,9 +667,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   Future<void> _syncBatchOptionsForLine(_InvoiceLineDraft line) async {
     final itemId = line.itemId;
     final warehouseId = line.warehouseId;
-    if (itemId == null ||
-        warehouseId == null ||
-        !_isBatchManagedItem(itemId)) {
+    if (itemId == null || warehouseId == null || !_isBatchManagedItem(itemId)) {
       return;
     }
     final cacheKey = _batchCacheKey(itemId, warehouseId);
@@ -674,7 +677,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         return;
       }
       final hasSelectedBatch = cachedBatches.any(
-        (batch) => int.tryParse(batch['batch_id']?.toString() ?? '') == line.batchId,
+        (batch) =>
+            int.tryParse(batch['batch_id']?.toString() ?? '') == line.batchId,
       );
       if ((line.batchId != null && !hasSelectedBatch) ||
           (line.batchId == null && cachedBatches.length == 1)) {
@@ -898,9 +902,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       return;
     }
 
-    await Future.wait(
-      serialManagedLines.map(_syncSerialOptionsForLine),
-    );
+    await Future.wait(serialManagedLines.map(_syncSerialOptionsForLine));
   }
 
   List<SalesOrderModel> get _orderChoices {
@@ -2060,6 +2062,72 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     );
   }
 
+  Map<String, dynamic> _salesInvoicePrintData() {
+    final summary = _invoiceTaxSummary();
+    final selected = _selectedItem?.raw ?? const <String, dynamic>{};
+    final customer = _customers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == _customerPartyId,
+      orElse: () => null,
+    );
+    final customerData = selected['customer'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(
+            selected['customer'] as Map<String, dynamic>,
+          )
+        : customer?.toJson() ?? const <String, dynamic>{};
+    final lines = _lines
+        .map((line) {
+          final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+          final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+          final discount =
+              double.tryParse(line.discountController.text.trim()) ?? 0;
+          final taxable = qty * rate * (1 - (discount.clamp(0, 100) / 100));
+          final taxRate = _taxCodeById(line.taxCodeId)?.taxRate ?? 0;
+          final total = taxable + (taxable * taxRate / 100);
+          final item = _itemsLookup.cast<ItemModel?>().firstWhere(
+            (entry) => entry?.id == line.itemId,
+            orElse: () => null,
+          );
+          return <String, dynamic>{
+            'item_name':
+                item?.itemName ??
+                item?.itemCode ??
+                line.descriptionController.text.trim(),
+            'description': line.descriptionController.text.trim(),
+            'qty': qty,
+            'rate': rate,
+            'line_total': roundToDouble(total, 2),
+          };
+        })
+        .toList(growable: false);
+    final taxAmount = summary.cgst + summary.sgst + summary.igst;
+
+    return <String, dynamic>{
+      'company_name': companyNameById(_companies, _companyId),
+      'document_number': nullIfEmpty(_invoiceNoController.text) ?? 'Draft',
+      'document_date': _invoiceDateController.text.trim(),
+      'reference_number': _customerRefNoController.text.trim(),
+      'party_name': stringValue(customerData, 'party_name').isNotEmpty
+          ? stringValue(customerData, 'party_name')
+          : stringValue(selected, 'customer_name'),
+      'party_address': stringValue(customerData, 'address_line1'),
+      'party_contact': stringValue(customerData, 'mobile_no'),
+      'notes': _notesController.text.trim(),
+      'subtotal': roundToDouble(summary.taxable, 2),
+      'tax_amount': roundToDouble(taxAmount, 2),
+      'total_amount': roundToDouble(summary.total, 2),
+      'lines': lines,
+    };
+  }
+
+  Future<void> _openPrintPreview() {
+    return openDocumentPrintDesigner(
+      context,
+      documentType: 'sales_invoice',
+      title: 'Sales Invoice',
+      documentData: _salesInvoicePrintData(),
+    );
+  }
+
   Widget _buildTaxSummaryCard(BuildContext context) {
     final summary = _invoiceTaxSummary();
     final currency = _currencyCodeController.text.trim().isEmpty
@@ -3122,8 +3190,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           enabled: _canEdit,
                           canOpen:
                               ((_isBatchManagedItem(line.itemId)
-                                      ? line.batchId != null
-                                      : line.warehouseId != null) ||
+                                  ? line.batchId != null
+                                  : line.warehouseId != null) ||
                               line.serialNumbers.isNotEmpty),
                           beforeOpen: _canEdit
                               ? () => _syncSerialOptionsForLine(line)
@@ -3272,6 +3340,12 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
+                AppActionButton(
+                  icon: Icons.print_outlined,
+                  label: 'Print',
+                  filled: false,
+                  onPressed: _openPrintPreview,
+                ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: _selectedItem == null
