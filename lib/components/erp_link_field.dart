@@ -117,7 +117,11 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     if (oldWidget.initialSelection?.value != widget.initialSelection?.value) {
       _selected = widget.initialSelection;
       if (!_focusNode.hasFocus) {
-        _setControllerText(widget.initialSelection?.label ?? '');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_focusNode.hasFocus) {
+            _setControllerText(widget.initialSelection?.label ?? '');
+          }
+        });
       }
     }
   }
