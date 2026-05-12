@@ -12,13 +12,24 @@ class StockBatchModel implements JsonModel {
   @override
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
 
+  int? get id => int.tryParse(data['id']?.toString() ?? '');
+
+  String get batchNo => data['batch_no']?.toString().trim() ?? '';
+
+  double get balanceQty {
+    final primary = double.tryParse(data['balance_qty']?.toString() ?? '');
+    if (primary != null) {
+      return primary;
+    }
+    return double.tryParse(data['qty_available']?.toString() ?? '') ?? 0;
+  }
+
   @override
   String toString() {
-    final no = data['batch_no']?.toString().trim();
-    if (no != null && no.isNotEmpty) {
+    final no = batchNo;
+    if (no.isNotEmpty) {
       return no;
     }
-    final id = data['id'];
     if (id != null) {
       return 'Batch #$id';
     }

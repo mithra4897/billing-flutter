@@ -377,8 +377,6 @@ class _InternalStockReceiptEditor extends StatelessWidget {
             else
               ...List<Widget>.generate(vm.lines.length, (index) {
                 final line = vm.lines[index];
-                final batches = vm.batchOptions(line.itemId);
-                final serials = vm.serialOptions(line.itemId, line.batchId);
                 return Padding(
                   padding: const EdgeInsets.only(
                     bottom: AppUiConstants.spacingSm,
@@ -440,86 +438,35 @@ class _InternalStockReceiptEditor extends StatelessWidget {
                           },
                         ),
                         if (vm.itemHasBatch(line.itemId))
-                          AppDropdownField<int>.fromMapped(
+                          AppFormTextField(
                             labelText: 'Batch',
-                            mappedItems: batches
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(
-                                      item,
-                                      'batch_no',
-                                      'Batch',
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.batchId,
+                            controller: line.batchNoController,
+                            enabled: canEdit,
+                            validator: (value) {
+                              if (!vm.itemHasBatch(line.itemId)) {
+                                return null;
+                              }
+                              if ((value ?? '').trim().isEmpty) {
+                                return 'Batch is required';
+                              }
+                              return null;
+                            },
                             onChanged: (value) {
                               if (!canEdit) {
                                 return;
                               }
-                              vm.onLineBatchChanged(index, value);
+                              vm.onLineBatchInputChanged(index, value);
                             },
                           ),
                         if (vm.itemHasSerial(line.itemId))
                           AppSerialNumbersField(
-                            values: vm
-                                .lineSerialIds(line)
-                                .map((id) {
-                                  final serial = serials
-                                      .cast<Map<String, dynamic>?>()
-                                      .firstWhere(
-                                        (entry) =>
-                                            entry != null &&
-                                            intValue(entry, 'id') == id,
-                                        orElse: () => null,
-                                      );
-                                  return serial == null
-                                      ? ''
-                                      : stringValue(serial, 'serial_no');
-                                })
-                                .where((value) => value.trim().isNotEmpty)
-                                .toList(growable: false),
+                            values: line.serialNumbers,
                             enabled: canEdit,
                             emptyText: 'No serials added',
                             countSummaryBuilder: (count) =>
                                 '$count serial(s) added',
-                            validator: (values) {
-                              final serialIdByLabel = <String, int>{
-                                for (final serial in serials)
-                                  stringValue(
-                                        serial,
-                                        'serial_no',
-                                      ).trim().toLowerCase():
-                                      intValue(serial, 'id') ?? 0,
-                              };
-                              for (final label in values) {
-                                if (!serialIdByLabel.containsKey(
-                                  label.toLowerCase(),
-                                )) {
-                                  return 'Serial "$label" is not available for this item/batch.';
-                                }
-                              }
-                              return null;
-                            },
-                            onChanged: (values) {
-                              final serialIdByLabel = <String, int>{
-                                for (final serial in serials)
-                                  stringValue(
-                                        serial,
-                                        'serial_no',
-                                      ).trim().toLowerCase():
-                                      intValue(serial, 'id') ?? 0,
-                              };
-                              final resolvedIds = values
-                                  .map(
-                                    (value) =>
-                                        serialIdByLabel[value.toLowerCase()]!,
-                                  )
-                                  .toList(growable: false);
-                              vm.setLineSerialIds(index, resolvedIds);
-                            },
+                            onChanged: (values) =>
+                                vm.setLineSerialNumbers(index, values),
                           ),
                         AppFormTextField(
                           labelText: 'Receipt qty',

@@ -33,16 +33,18 @@ List<PartyModel> salesCustomersOrFallback({
 
 bool _looksLikeCustomerType(PartyTypeModel type) {
   final data = type.toJson();
-  final code = (stringValue(data, 'code').isNotEmpty
-          ? stringValue(data, 'code')
-          : stringValue(data, 'type_code'))
-      .trim()
-      .toLowerCase();
-  final name = (stringValue(data, 'name').isNotEmpty
-          ? stringValue(data, 'name')
-          : stringValue(data, 'type_name'))
-      .trim()
-      .toLowerCase();
+  final code =
+      (stringValue(data, 'code').isNotEmpty
+              ? stringValue(data, 'code')
+              : stringValue(data, 'type_code'))
+          .trim()
+          .toLowerCase();
+  final name =
+      (stringValue(data, 'name').isNotEmpty
+              ? stringValue(data, 'name')
+              : stringValue(data, 'type_name'))
+          .trim()
+          .toLowerCase();
   return code.contains('customer') ||
       code.contains('buyer') ||
       name.contains('customer') ||
@@ -91,12 +93,7 @@ void applySalesLineDefaultsFromItemMaster({
     return;
   }
   setUom(
-    defaultSalesUomIdForItem(
-      item,
-      uoms,
-      conversions,
-      current: currentUomId,
-    ),
+    defaultSalesUomIdForItem(item, uoms, conversions, current: currentUomId),
   );
   setTaxCodeId?.call(item.taxCodeId);
   final rate = formattedStandardSellingRate(item);
@@ -149,4 +146,127 @@ int? defaultSalesUomIdForItem(
 
   final allowed = allowedUomsForItem(item, uoms, conversions);
   return allowed.isNotEmpty ? allowed.first.id : null;
+}
+
+double roundToDouble(double value, int fractionDigits) {
+  return double.parse(value.toStringAsFixed(fractionDigits));
+}
+
+TaxCodeModel? salesTaxCodeById(List<TaxCodeModel> taxCodes, int? taxCodeId) {
+  if (taxCodeId == null) {
+    return null;
+  }
+  return taxCodes.cast<TaxCodeModel?>().firstWhere(
+    (taxCode) => taxCode?.id == taxCodeId,
+    orElse: () => null,
+  );
+}
+
+class SalesLineTaxBreakdown {
+  const SalesLineTaxBreakdown({
+    required this.gross,
+    required this.taxable,
+    required this.taxPercent,
+    required this.cgst,
+    required this.sgst,
+    required this.igst,
+    required this.cess,
+    required this.total,
+  });
+
+  final double gross;
+  final double taxable;
+  final double taxPercent;
+  final double cgst;
+  final double sgst;
+  final double igst;
+  final double cess;
+  final double total;
+}
+
+class SalesDocumentTaxSummary {
+  const SalesDocumentTaxSummary({
+    required this.taxable,
+    required this.cgst,
+    required this.sgst,
+    required this.igst,
+    required this.cess,
+    required this.total,
+  });
+
+  final double taxable;
+  final double cgst;
+  final double sgst;
+  final double igst;
+  final double cess;
+  final double total;
+}
+
+SalesLineTaxBreakdown computeSalesLineTaxBreakdown({
+  required double qty,
+  required double rate,
+  required double discountPercent,
+  required TaxCodeModel? taxCode,
+  bool? isInterState,
+  double? taxPercent,
+  String? taxType,
+}) {
+  final gross = qty > 0 && rate >= 0 ? qty * rate : 0.0;
+  final clampedDiscount = discountPercent.clamp(0, 100).toDouble();
+  final taxable = gross * (1 - (clampedDiscount / 100));
+  final resolvedTaxPercent = (taxPercent ?? taxCode?.taxRate ?? 0).toDouble();
+  final resolvedTaxType =
+      (taxType ??
+              taxCode?.taxType ??
+              taxCode?.raw?['tax_application']?.toString() ??
+              '')
+          .trim()
+          .toLowerCase();
+  final useIgst = isInterState ?? resolvedTaxType.contains('igst');
+  final cessRate = (taxCode?.cessRate ?? 0).toDouble();
+
+  final igst = useIgst ? taxable * resolvedTaxPercent / 100 : 0.0;
+  final halfTax = useIgst ? 0.0 : taxable * resolvedTaxPercent / 200;
+  final cgst = halfTax;
+  final sgst = halfTax;
+  final cess = taxable * cessRate / 100;
+
+  return SalesLineTaxBreakdown(
+    gross: gross,
+    taxable: taxable,
+    taxPercent: resolvedTaxPercent,
+    cgst: cgst,
+    sgst: sgst,
+    igst: igst,
+    cess: cess,
+    total: taxable + cgst + sgst + igst + cess,
+  );
+}
+
+SalesDocumentTaxSummary summarizeSalesLineTaxes(
+  Iterable<SalesLineTaxBreakdown> lines, {
+  double adjustment = 0,
+}) {
+  double taxable = 0;
+  double cgst = 0;
+  double sgst = 0;
+  double igst = 0;
+  double cess = 0;
+
+  for (final line in lines) {
+    taxable += line.taxable;
+    cgst += line.cgst;
+    sgst += line.sgst;
+    igst += line.igst;
+    cess += line.cess;
+  }
+
+  return SalesDocumentTaxSummary(
+    taxable: taxable,
+    cgst: cgst,
+    sgst: sgst,
+    igst: igst,
+    cess: cess,
+    total: taxable + cgst + sgst + igst + cess + adjustment,
+  );
 }

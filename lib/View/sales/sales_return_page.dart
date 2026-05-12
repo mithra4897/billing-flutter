@@ -23,11 +23,11 @@ class SalesReturnPage extends StatefulWidget {
 class _SalesReturnPageState extends State<SalesReturnPage> {
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
-    AppDropdownItem(value: '', label: 'All'),
-    AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-  ];
+        AppDropdownItem(value: '', label: 'All'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
 
   final SalesService _salesService = SalesService();
   final MasterService _masterService = MasterService();
@@ -55,11 +55,11 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<SalesInvoiceModel> _invoices = const <SalesInvoiceModel>[];
-  List<SalesInvoiceLineModel> _invoiceLines =
-      const <SalesInvoiceLineModel>[];
+  List<SalesInvoiceLineModel> _invoiceLines = const <SalesInvoiceLineModel>[];
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
   List<WarehouseModel> _warehouses = const <WarehouseModel>[];
+  List<TaxCodeModel> _taxCodes = const <TaxCodeModel>[];
   SalesReturnModel? _selectedItem;
   int? _contextCompanyId;
   int? _contextBranchId;
@@ -131,6 +131,9 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         _masterService.warehouses(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
+        _inventoryService.taxCodes(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
       ]);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -194,6 +197,11 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         _warehouses =
             ((responses[9] as PaginatedResponse<WarehouseModel>).data ??
                     const <WarehouseModel>[])
+                .where((item) => item.isActive)
+                .toList();
+        _taxCodes =
+            ((responses[10] as PaginatedResponse<TaxCodeModel>).data ??
+                    const <TaxCodeModel>[])
                 .where((item) => item.isActive)
                 .toList();
         _contextCompanyId = contextSelection.companyId;
@@ -320,8 +328,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     return _documentSeries
         .where((item) {
           final typeOk =
-              item.documentType == null ||
-              item.documentType == 'SALES_RETURN';
+              item.documentType == null || item.documentType == 'SALES_RETURN';
           final companyOk = _companyId == null || item.companyId == _companyId;
           final fyOk =
               _financialYearId == null ||
@@ -347,7 +354,8 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         final locationOk =
             _locationId == null || item.locationId == _locationId;
         final customerOk =
-            _customerPartyId == null || item.customerPartyId == _customerPartyId;
+            _customerPartyId == null ||
+            item.customerPartyId == _customerPartyId;
         final returnableOk = item.lines.any(_invoiceLineIsReturnable);
         return statusOk &&
             companyOk &&
@@ -367,10 +375,8 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       })
       .toList(growable: false);
 
-  Set<int> get _selectedInvoiceLineIds => _lines
-      .map((line) => line.salesInvoiceLineId)
-      .whereType<int>()
-      .toSet();
+  Set<int> get _selectedInvoiceLineIds =>
+      _lines.map((line) => line.salesInvoiceLineId).whereType<int>().toSet();
 
   bool _invoiceLineIsReturnable(SalesInvoiceLineModel line) {
     final returnedQty = line.returnedQty ?? 0;
@@ -452,6 +458,60 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     }
   }
 
+  String get _currencyCodeForTaxSummary {
+    final invoice = _invoices.cast<SalesInvoiceModel?>().firstWhere(
+      (item) => item?.id == _salesInvoiceId,
+      orElse: () => null,
+    );
+    final currency = invoice?.currencyCode?.trim() ?? '';
+    return currency.isEmpty ? 'INR' : currency;
+  }
+
+  SalesLineTaxBreakdown _taxBreakdownForLine(_SalesReturnLineDraft line) {
+    return computeSalesLineTaxBreakdown(
+      qty: double.tryParse(line.returnQtyController.text.trim()) ?? 0,
+      rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+      discountPercent: line.discountPercent ?? 0,
+      taxCode: salesTaxCodeById(_taxCodes, line.taxCodeId),
+      taxPercent: line.taxPercent,
+      taxType: line.taxType,
+    );
+  }
+
+  SalesDocumentTaxSummary _taxSummary() {
+    return summarizeSalesLineTaxes(_lines.map(_taxBreakdownForLine));
+  }
+
+  Widget _buildTaxSummaryCard(BuildContext context) {
+    final summary = _taxSummary();
+    return SalesGstSummaryCard(
+      taxable: summary.taxable,
+      cgst: summary.cgst,
+      sgst: summary.sgst,
+      igst: summary.igst,
+      cess: summary.cess,
+      total: summary.total,
+      currencyCode: _currencyCodeForTaxSummary,
+    );
+  }
+
+  Map<String, dynamic> _linePayload(_SalesReturnLineDraft line) {
+    final payload = line.toJson();
+    final breakdown = _taxBreakdownForLine(line);
+    return <String, dynamic>{
+      ...payload,
+      'discount_amount': roundToDouble(breakdown.gross - breakdown.taxable, 2),
+      'gross_amount': roundToDouble(breakdown.gross, 2),
+      'taxable_amount': roundToDouble(breakdown.taxable, 2),
+      'tax_percent': roundToDouble(breakdown.taxPercent, 4),
+      'cgst_amount': roundToDouble(breakdown.cgst, 2),
+      'sgst_amount': roundToDouble(breakdown.sgst, 2),
+      'igst_amount': roundToDouble(breakdown.igst, 2),
+      'cess_amount': roundToDouble(breakdown.cess, 2),
+      'line_total': roundToDouble(breakdown.total, 2),
+    };
+  }
+
   void _addLine() => setState(
     () =>
         _lines = List<_SalesReturnLineDraft>.from(_lines)
@@ -489,6 +549,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       (item) => item?.id == _salesInvoiceId,
       orElse: () => null,
     );
+    final taxSummary = _taxSummary();
     final payload = <String, dynamic>{
       'company_id': _companyId,
       'branch_id': _branchId,
@@ -500,9 +561,15 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       'return_no': nullIfEmpty(_returnNoController.text),
       'return_date': _returnDateController.text.trim(),
       'reason': nullIfEmpty(_reasonController.text),
+      'taxable_amount': roundToDouble(taxSummary.taxable, 2),
+      'cgst_amount': roundToDouble(taxSummary.cgst, 2),
+      'sgst_amount': roundToDouble(taxSummary.sgst, 2),
+      'igst_amount': roundToDouble(taxSummary.igst, 2),
+      'cess_amount': roundToDouble(taxSummary.cess, 2),
+      'total_amount': roundToDouble(taxSummary.total, 2),
       'notes': nullIfEmpty(_notesController.text),
       'is_active': _isActive,
-      'lines': _lines.map((item) => item.toJson()).toList(growable: false),
+      'lines': _lines.map(_linePayload).toList(growable: false),
     };
     try {
       final response = _selectedItem == null
@@ -584,11 +651,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       title: 'Sales Returns',
       editorTitle: _selectedItem == null
           ? 'New Sales Return'
-          : stringValue(
-              _selectedItem!.toJson(),
-              'return_no',
-              'Sales Return',
-            ),
+          : stringValue(_selectedItem!.toJson(), 'return_no', 'Sales Return'),
       editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: PurchaseListCard<SalesReturnModel>(
@@ -757,7 +820,9 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                           label: item.invoiceNo ?? 'Invoice',
                           subtitle: [
                             displayDate(
-                              item.invoiceDate.isEmpty ? null : item.invoiceDate,
+                              item.invoiceDate.isEmpty
+                                  ? null
+                                  : item.invoiceDate,
                             ),
                             item.invoiceStatus ?? '',
                             item.totalAmount == null
@@ -813,6 +878,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
             const SizedBox(height: AppUiConstants.spacingSm),
             ...List<Widget>.generate(_lines.length, (index) {
               final line = _lines[index];
+              final breakdown = _taxBreakdownForLine(line);
               return Padding(
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
@@ -822,104 +888,131 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                   total: _lines.length,
                   removeEnabled: _lines.length > 1,
                   onRemove: () => _removeLine(index),
-                  child: PurchaseCompactFieldGrid(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AppSearchPickerField<int>(
-                        labelText: 'Sales Invoice Line',
-                        selectedLabel: (() {
-                          final selected = _invoiceLineOptions
-                              .cast<SalesInvoiceLineModel?>()
-                              .firstWhere(
-                                (item) =>
-                                    item?.id == line.salesInvoiceLineId,
-                                orElse: () => null,
+                      PurchaseCompactFieldGrid(
+                        children: [
+                          AppSearchPickerField<int>(
+                            labelText: 'Sales Invoice Line',
+                            selectedLabel: (() {
+                              final selected = _invoiceLineOptions
+                                  .cast<SalesInvoiceLineModel?>()
+                                  .firstWhere(
+                                    (item) =>
+                                        item?.id == line.salesInvoiceLineId,
+                                    orElse: () => null,
+                                  );
+                              if (selected == null) {
+                                return null;
+                              }
+                              return '${_itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
+                            })(),
+                            options: _invoiceLineOptions
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => AppSearchPickerOption<int>(
+                                    value: item.id!,
+                                    label:
+                                        '${_itemName(item.itemId)} · Qty ${item.invoicedQty}',
+                                    subtitle:
+                                        '${_warehouseName(item.warehouseId)} · ${_uomName(item.uomId)}',
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) => setState(() {
+                              final selected = _invoiceLineOptions
+                                  .cast<SalesInvoiceLineModel?>()
+                                  .firstWhere(
+                                    (item) => item?.id == value,
+                                    orElse: () => null,
+                                  );
+                              if (selected == null) {
+                                line.applyInvoiceLine(null);
+                                return;
+                              }
+                              line.applyInvoiceLine(selected);
+                              line.itemNameController.text = _itemName(
+                                selected.itemId,
                               );
-                          if (selected == null) {
-                            return null;
-                          }
-                          return '${_itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
-                        })(),
-                        options: _invoiceLineOptions
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label:
-                                    '${_itemName(item.itemId)} · Qty ${item.invoicedQty}',
-                                subtitle:
-                                    '${_warehouseName(item.warehouseId)} · ${_uomName(item.uomId)}',
+                              line.warehouseNameController.text =
+                                  _warehouseName(selected.warehouseId);
+                              line.uomNameController.text = _uomName(
+                                selected.uomId,
+                              );
+                            }),
+                            validator: (_) => line.salesInvoiceLineId == null
+                                ? 'Sales invoice line is required'
+                                : null,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Item',
+                            controller: line.itemNameController,
+                            readOnly: true,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Warehouse',
+                            controller: line.warehouseNameController,
+                            readOnly: true,
+                          ),
+                          AppFormTextField(
+                            labelText: 'UOM',
+                            controller: line.uomNameController,
+                            readOnly: true,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Return Qty',
+                            controller: line.returnQtyController,
+                            onChanged: (_) => setState(() {}),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: Validators.compose([
+                              Validators.required('Return Qty'),
+                              Validators.optionalNonNegativeNumber(
+                                'Return Qty',
                               ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) => setState(() {
-                          final selected = _invoiceLineOptions
-                              .cast<SalesInvoiceLineModel?>()
-                              .firstWhere(
-                                (item) => item?.id == value,
-                                orElse: () => null,
-                              );
-                          if (selected == null) {
-                            line.applyInvoiceLine(null);
-                            return;
-                          }
-                          line.applyInvoiceLine(selected);
-                          line.itemNameController.text = _itemName(
-                            selected.itemId,
-                          );
-                          line.warehouseNameController.text = _warehouseName(
-                            selected.warehouseId,
-                          );
-                          line.uomNameController.text = _uomName(
-                            selected.uomId,
-                          );
-                        }),
-                        validator: (_) => line.salesInvoiceLineId == null
-                            ? 'Sales invoice line is required'
-                            : null,
+                            ]),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Rate',
+                            controller: line.rateController,
+                            onChanged: (_) => setState(() {}),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: Validators.optionalNonNegativeNumber(
+                              'Rate',
+                            ),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Remarks',
+                            controller: line.remarksController,
+                          ),
+                        ],
                       ),
-                      AppFormTextField(
-                        labelText: 'Item',
-                        controller: line.itemNameController,
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Warehouse',
-                        controller: line.warehouseNameController,
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'UOM',
-                        controller: line.uomNameController,
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Return Qty',
-                        controller: line.returnQtyController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.compose([
-                          Validators.required('Return Qty'),
-                          Validators.optionalNonNegativeNumber('Return Qty'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Rate',
-                        controller: line.rateController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.optionalNonNegativeNumber('Rate'),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Remarks',
-                        controller: line.remarksController,
+                      const SizedBox(height: AppUiConstants.spacingSm),
+                      SalesLineTaxPreview(
+                        gross: breakdown.gross,
+                        taxable: breakdown.taxable,
+                        cgst: breakdown.cgst,
+                        sgst: breakdown.sgst,
+                        igst: breakdown.igst,
+                        cess: breakdown.cess,
+                        total: breakdown.total,
+                        currencyCode: _currencyCodeForTaxSummary,
+                        taxCodeLabel: salesTaxCodeById(
+                          _taxCodes,
+                          line.taxCodeId,
+                        )?.toString(),
                       ),
                     ],
                   ),
                 ),
               );
             }),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildTaxSummaryCard(context),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
@@ -969,6 +1062,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
 class _SalesReturnLineDraft {
   _SalesReturnLineDraft({
     this.salesInvoiceLineId,
+    this.taxCodeId,
+    this.taxPercent,
+    this.taxType,
+    this.discountPercent,
     String? itemName,
     String? warehouseName,
     String? uomName,
@@ -984,9 +1081,7 @@ class _SalesReturnLineDraft {
        rateController = TextEditingController(text: rate ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
 
-  factory _SalesReturnLineDraft.fromInvoiceLine(
-    SalesInvoiceLineModel line,
-  ) {
+  factory _SalesReturnLineDraft.fromInvoiceLine(SalesInvoiceLineModel line) {
     return _SalesReturnLineDraft(
       salesInvoiceLineId: line.id,
       returnQty: line.invoicedQty.toString(),
@@ -997,6 +1092,12 @@ class _SalesReturnLineDraft {
   factory _SalesReturnLineDraft.fromJson(Map<String, dynamic> json) {
     final draft = _SalesReturnLineDraft(
       salesInvoiceLineId: intValue(json, 'sales_invoice_line_id'),
+      taxCodeId: intValue(json, 'tax_code_id'),
+      taxPercent: double.tryParse(json['tax_percent']?.toString() ?? ''),
+      taxType: stringValue(json, 'tax_type'),
+      discountPercent: double.tryParse(
+        json['discount_percent']?.toString() ?? '',
+      ),
       returnQty: stringValue(json, 'return_qty'),
       rate: stringValue(json, 'rate'),
       remarks: stringValue(json, 'remarks'),
@@ -1011,6 +1112,10 @@ class _SalesReturnLineDraft {
   int? itemId;
   int? warehouseId;
   int? uomId;
+  int? taxCodeId;
+  double? taxPercent;
+  String? taxType;
+  double? discountPercent;
   final TextEditingController itemNameController;
   final TextEditingController warehouseNameController;
   final TextEditingController uomNameController;
@@ -1023,6 +1128,10 @@ class _SalesReturnLineDraft {
     itemId = line?.itemId;
     warehouseId = line?.warehouseId;
     uomId = line?.uomId;
+    taxCodeId = line?.taxCodeId;
+    taxPercent = line?.taxPercent;
+    taxType = line?.taxType;
+    discountPercent = line?.discountPercent;
     itemNameController.text = '';
     warehouseNameController.text = '';
     uomNameController.text = '';
@@ -1037,6 +1146,9 @@ class _SalesReturnLineDraft {
       'item_id': itemId,
       if (warehouseId != null) 'warehouse_id': warehouseId,
       'uom_id': uomId,
+      if (taxCodeId != null) 'tax_code_id': taxCodeId,
+      if (discountPercent != null) 'discount_percent': discountPercent,
+      if (taxPercent != null) 'tax_percent': taxPercent,
       'return_qty': double.tryParse(returnQtyController.text.trim()) ?? 0,
       'rate': double.tryParse(rateController.text.trim()) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),

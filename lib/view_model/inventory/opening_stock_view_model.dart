@@ -7,6 +7,7 @@ class OpeningStockLineDraft {
     this.itemId,
     this.warehouseId,
     this.batchId,
+    String? batchNo,
     this.serialId,
     List<int>? serialIds,
     this.uomId,
@@ -15,7 +16,8 @@ class OpeningStockLineDraft {
     String? unitCost,
     String? totalCost,
     String? remarks,
-  }) : qtyController = TextEditingController(text: qty ?? ''),
+  }) : batchNoController = TextEditingController(text: batchNo ?? ''),
+       qtyController = TextEditingController(text: qty ?? ''),
        unitCostController = TextEditingController(text: unitCost ?? ''),
        totalCostController = TextEditingController(text: totalCost ?? ''),
        remarksController = TextEditingController(text: remarks ?? ''),
@@ -25,6 +27,7 @@ class OpeningStockLineDraft {
   int? itemId;
   int? warehouseId;
   int? batchId;
+  final TextEditingController batchNoController;
   int? serialId;
   List<int> serialIds;
   int? uomId;
@@ -38,6 +41,7 @@ class OpeningStockLineDraft {
     'item_id': itemId,
     'warehouse_id': warehouseId,
     'batch_id': batchId,
+    'batch_no': nullIfEmpty(batchNoController.text),
     'serial_id': serialId,
     if (serialNumbers.length == 1 && serialNumbers.first.trim().isNotEmpty)
       'serial_no': serialNumbers.first.trim(),
@@ -49,6 +53,7 @@ class OpeningStockLineDraft {
   };
 
   void dispose() {
+    batchNoController.dispose();
     qtyController.dispose();
     unitCostController.dispose();
     totalCostController.dispose();
@@ -420,6 +425,7 @@ class OpeningStockViewModel extends ChangeNotifier {
       }
       line.warehouseId = warehouseId;
       line.batchId = null;
+      line.batchNoController.clear();
       _reconcileLineSerialSelection(line);
     }
   }
@@ -459,6 +465,7 @@ class OpeningStockViewModel extends ChangeNotifier {
   void onLineItemChanged(int index, int? value) {
     lines[index].itemId = value;
     lines[index].batchId = null;
+    lines[index].batchNoController.clear();
     lines[index].serialId = null;
     lines[index].serialIds = <int>[];
     lines[index].serialNumbers = <String>[];
@@ -481,6 +488,7 @@ class OpeningStockViewModel extends ChangeNotifier {
   void onLineWarehouseChanged(int index, int? value) {
     lines[index].warehouseId = value;
     lines[index].batchId = null;
+    lines[index].batchNoController.clear();
     _reconcileLineSerialSelection(lines[index]);
     notifyListeners();
   }
@@ -492,6 +500,52 @@ class OpeningStockViewModel extends ChangeNotifier {
 
   void onLineBatchChanged(int index, int? value) {
     lines[index].batchId = value;
+    if (value == null) {
+      lines[index].batchNoController.clear();
+    } else {
+      final selectedBatch = batchOptions(
+        lines[index].itemId,
+        lines[index].warehouseId,
+      ).cast<Map<String, dynamic>?>().firstWhere(
+        (batch) => intValue(batch ?? const <String, dynamic>{}, 'id') == value,
+        orElse: () => null,
+      );
+      lines[index].batchNoController.text = stringValue(
+        selectedBatch ?? const <String, dynamic>{},
+        'batch_no',
+      );
+    }
+    _reconcileLineSerialSelection(lines[index]);
+    notifyListeners();
+  }
+
+  void onLineBatchInputChanged(int index, String value) {
+    if (index < 0 || index >= lines.length) {
+      return;
+    }
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      lines[index].batchId = null;
+      _reconcileLineSerialSelection(lines[index]);
+      notifyListeners();
+      return;
+    }
+
+    final matchingBatch = batchOptions(
+      lines[index].itemId,
+      lines[index].warehouseId,
+    ).cast<Map<String, dynamic>?>().firstWhere(
+      (batch) =>
+          stringValue(batch ?? const <String, dynamic>{}, 'batch_no')
+              .trim()
+              .toLowerCase() ==
+          normalized,
+      orElse: () => null,
+    );
+    lines[index].batchId = intValue(
+      matchingBatch ?? const <String, dynamic>{},
+      'id',
+    );
     _reconcileLineSerialSelection(lines[index]);
     notifyListeners();
   }
@@ -852,6 +906,11 @@ class OpeningStockViewModel extends ChangeNotifier {
           return 'Invalid batch at line $lineNo.';
         }
       }
+      if (boolValue(itemData, 'has_batch') &&
+          line.batchId == null &&
+          line.batchNoController.text.trim().isEmpty) {
+        return 'Batch is required at line $lineNo.';
+      }
 
       if (line.serialId != null) {
         final matchingSerial =
@@ -948,6 +1007,7 @@ class OpeningStockViewModel extends ChangeNotifier {
           'item_id': line.itemId,
           'warehouse_id': line.warehouseId,
           'batch_id': line.batchId,
+          'batch_no': nullIfEmpty(line.batchNoController.text),
           'serial_id': index < line.serialIds.length
               ? line.serialIds[index]
               : null,
@@ -1082,6 +1142,7 @@ class _OpeningStockGroupedLine {
     required this.itemId,
     required this.warehouseId,
     required this.batchId,
+    required this.batchNo,
     required this.serialId,
     required this.serialIds,
     required this.uomId,
@@ -1100,6 +1161,9 @@ class _OpeningStockGroupedLine {
       itemId: intValue(line, 'item_id'),
       warehouseId: intValue(line, 'warehouse_id'),
       batchId: intValue(line, 'batch_id'),
+      batchNo: line['batch'] is Map<String, dynamic>
+          ? stringValue(line['batch'] as Map<String, dynamic>, 'batch_no')
+          : stringValue(line, 'batch_no'),
       serialId: intValue(line, 'serial_id'),
       serialIds: intValue(line, 'serial_id') == null
           ? <int>[]
@@ -1118,6 +1182,7 @@ class _OpeningStockGroupedLine {
   int? itemId;
   int? warehouseId;
   int? batchId;
+  String batchNo;
   int? serialId;
   List<int> serialIds;
   int? uomId;
@@ -1131,6 +1196,7 @@ class _OpeningStockGroupedLine {
     itemId: itemId,
     warehouseId: warehouseId,
     batchId: batchId,
+    batchNo: batchNo,
     serialId: serialId,
     serialIds: serialIds,
     serialNumbers: serialNumbers,

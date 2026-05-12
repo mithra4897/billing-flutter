@@ -336,7 +336,6 @@ class _OpeningStockEditor extends StatelessWidget {
             else
               ...List<Widget>.generate(vm.lines.length, (index) {
                 final line = vm.lines[index];
-                final batches = vm.batchOptions(line.itemId, line.warehouseId);
                 return Padding(
                   padding: const EdgeInsets.only(
                     bottom: AppUiConstants.spacingSm,
@@ -418,26 +417,24 @@ class _OpeningStockEditor extends StatelessWidget {
                           },
                         ),
                         if (vm.isBatchManagedItem(line.itemId))
-                          AppDropdownField<int>.fromMapped(
+                          AppFormTextField(
                             labelText: 'Batch',
-                            mappedItems: batches
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(
-                                      item,
-                                      'batch_no',
-                                      'Batch',
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.batchId,
+                            controller: line.batchNoController,
+                            enabled: canEdit,
+                            validator: (value) {
+                              if (!vm.isBatchManagedItem(line.itemId)) {
+                                return null;
+                              }
+                              if ((value ?? '').trim().isEmpty) {
+                                return 'Batch is required';
+                              }
+                              return null;
+                            },
                             onChanged: (value) {
                               if (!canEdit) {
                                 return;
                               }
-                              vm.onLineBatchChanged(index, value);
+                              vm.onLineBatchInputChanged(index, value);
                             },
                           ),
                         if (vm.isSerialManagedItem(line.itemId))

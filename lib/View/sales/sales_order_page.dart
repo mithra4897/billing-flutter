@@ -26,8 +26,8 @@ class SalesOrderPage extends StatefulWidget {
 }
 
 class _SalesOrderPageState extends State<SalesOrderPage> {
-  static const List<AppDropdownItem<String>> _listStatusFilter =
-      <AppDropdownItem<String>>[
+  static const List<AppDropdownItem<String>>
+  _listStatusFilter = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
     AppDropdownItem(value: 'confirmed', label: 'Confirmed'),
@@ -127,17 +127,19 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   List<SalesQuotationModel> get _quotationChoices {
     final companyId = _companyId;
     final cust = _customerPartyId;
-    return _quotationsAll.where((q) {
-      final j = q.toJson();
-      if (companyId != null && intValue(j, 'company_id') != companyId) {
-        return false;
-      }
-      if (cust != null && intValue(j, 'customer_party_id') != cust) {
-        return false;
-      }
-      final st = stringValue(j, 'quotation_status');
-      return const {'accepted', 'sent', 'draft'}.contains(st);
-    }).toList(growable: false);
+    return _quotationsAll
+        .where((q) {
+          final j = q.toJson();
+          if (companyId != null && intValue(j, 'company_id') != companyId) {
+            return false;
+          }
+          if (cust != null && intValue(j, 'customer_party_id') != cust) {
+            return false;
+          }
+          final st = stringValue(j, 'quotation_status');
+          return const {'accepted', 'sent', 'draft'}.contains(st);
+        })
+        .toList(growable: false);
   }
 
   String _quotationLinePickerLabel(Map<String, dynamic> line) {
@@ -180,8 +182,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     }
     setState(() {
       _salesQuotationId = value;
-      _quotationLinesCache =
-          value == null ? null : const <Map<String, dynamic>>[];
+      _quotationLinesCache = value == null
+          ? null
+          : const <Map<String, dynamic>>[];
       for (final line in _lines) {
         line.salesQuotationLineId = null;
       }
@@ -257,8 +260,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     return _documentSeries
         .where((item) {
           final typeOk =
-              item.documentType == null ||
-              item.documentType == 'SALES_ORDER';
+              item.documentType == null || item.documentType == 'SALES_ORDER';
           final companyOk = _companyId == null || item.companyId == _companyId;
           final fyOk =
               _financialYearId == null ||
@@ -496,24 +498,31 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         _locationId = intValue(data, 'location_id');
         _financialYearId = intValue(data, 'financial_year_id');
         final series = _seriesOptions();
-        _documentSeriesId =
-            series.isNotEmpty ? series.first.id : intValue(data, 'document_series_id');
+        _documentSeriesId = series.isNotEmpty
+            ? series.first.id
+            : intValue(data, 'document_series_id');
         _customerPartyId = intValue(data, 'customer_party_id');
         _orderNoController.clear();
-        _orderDateController.text =
-            DateTime.now().toIso8601String().split('T').first;
+        _orderDateController.text = DateTime.now()
+            .toIso8601String()
+            .split('T')
+            .first;
         _expectedDeliveryController.text = displayDate(
           nullableStringValue(data, 'valid_until'),
         );
-        _customerRefNoController.text =
-            stringValue(data, 'customer_reference_no');
+        _customerRefNoController.text = stringValue(
+          data,
+          'customer_reference_no',
+        );
         _customerRefDateController.text = displayDate(
           nullableStringValue(data, 'customer_reference_date'),
         );
-        _currencyCodeController.text =
-            stringValue(data, 'currency_code', 'INR');
-        _exchangeRateController.text =
-            stringValue(data, 'exchange_rate', '1');
+        _currencyCodeController.text = stringValue(
+          data,
+          'currency_code',
+          'INR',
+        );
+        _exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
         _roundOffController.clear();
         _notesController.text = stringValue(data, 'notes');
         _termsController.text = stringValue(data, 'terms_conditions');
@@ -563,7 +572,10 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       _expectedDeliveryController.text = displayDate(
         nullableStringValue(data, 'expected_delivery_date'),
       );
-      _customerRefNoController.text = stringValue(data, 'customer_reference_no');
+      _customerRefNoController.text = stringValue(
+        data,
+        'customer_reference_no',
+      );
       _customerRefDateController.text = displayDate(
         nullableStringValue(data, 'customer_reference_date'),
       );
@@ -651,6 +663,64 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     return allowedUomsForItem(item, _uoms, _uomConversions);
   }
 
+  String get _currencyCodeForTaxSummary {
+    final currency = _currencyCodeController.text.trim();
+    return currency.isEmpty ? 'INR' : currency;
+  }
+
+  SalesLineTaxBreakdown _taxBreakdownForLine(_OrderLineDraft line) {
+    return computeSalesLineTaxBreakdown(
+      qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
+      rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+      discountPercent:
+          double.tryParse(line.discountController.text.trim()) ?? 0,
+      taxCode: salesTaxCodeById(_taxCodes, line.taxCodeId),
+    );
+  }
+
+  SalesDocumentTaxSummary _taxSummary() {
+    final roundOff = double.tryParse(_roundOffController.text.trim()) ?? 0;
+    return summarizeSalesLineTaxes(
+      _lines.map(_taxBreakdownForLine),
+      adjustment: roundOff,
+    );
+  }
+
+  Widget _buildTaxSummaryCard(BuildContext context) {
+    final roundOff = double.tryParse(_roundOffController.text.trim()) ?? 0;
+    final subtitle = roundOff == 0
+        ? null
+        : 'Live GST totals for the current lines in $_currencyCodeForTaxSummary · includes round off ${roundOff.toStringAsFixed(2)}';
+    final summary = _taxSummary();
+    return SalesGstSummaryCard(
+      taxable: summary.taxable,
+      cgst: summary.cgst,
+      sgst: summary.sgst,
+      igst: summary.igst,
+      cess: summary.cess,
+      total: summary.total,
+      currencyCode: _currencyCodeForTaxSummary,
+      subtitle: subtitle,
+    );
+  }
+
+  Map<String, dynamic> _linePayload(_OrderLineDraft line) {
+    final payload = line.toJson();
+    final breakdown = _taxBreakdownForLine(line);
+    return <String, dynamic>{
+      ...payload,
+      'discount_amount': roundToDouble(breakdown.gross - breakdown.taxable, 2),
+      'gross_amount': roundToDouble(breakdown.gross, 2),
+      'taxable_amount': roundToDouble(breakdown.taxable, 2),
+      'tax_percent': roundToDouble(breakdown.taxPercent, 4),
+      'cgst_amount': roundToDouble(breakdown.cgst, 2),
+      'sgst_amount': roundToDouble(breakdown.sgst, 2),
+      'igst_amount': roundToDouble(breakdown.igst, 2),
+      'cess_amount': roundToDouble(breakdown.cess, 2),
+      'line_total': roundToDouble(breakdown.total, 2),
+    };
+  }
+
   void _addLine() {
     setState(() {
       _lines = List<_OrderLineDraft>.from(_lines)..add(_OrderLineDraft());
@@ -683,9 +753,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           line.uomId == null ||
           (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
     )) {
-      setState(
-        () => _formError = 'Each line needs item, UOM, and quantity.',
-      );
+      setState(() => _formError = 'Each line needs item, UOM, and quantity.');
       return;
     }
 
@@ -694,6 +762,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       _formError = null;
     });
 
+    final taxSummary = _taxSummary();
     final payload = <String, dynamic>{
       'company_id': _companyId,
       'branch_id': _branchId,
@@ -710,12 +779,17 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       'currency_code': nullIfEmpty(_currencyCodeController.text) ?? 'INR',
       'exchange_rate':
           double.tryParse(_exchangeRateController.text.trim()) ?? 1,
-      'round_off_amount':
-          double.tryParse(_roundOffController.text.trim()) ?? 0,
+      'round_off_amount': double.tryParse(_roundOffController.text.trim()) ?? 0,
+      'taxable_amount': roundToDouble(taxSummary.taxable, 2),
+      'cgst_amount': roundToDouble(taxSummary.cgst, 2),
+      'sgst_amount': roundToDouble(taxSummary.sgst, 2),
+      'igst_amount': roundToDouble(taxSummary.igst, 2),
+      'cess_amount': roundToDouble(taxSummary.cess, 2),
+      'total_amount': roundToDouble(taxSummary.total, 2),
       'notes': nullIfEmpty(_notesController.text),
       'terms_conditions': nullIfEmpty(_termsController.text),
       'is_active': _isActive,
-      'lines': _lines.map((line) => line.toJson()).toList(growable: false),
+      'lines': _lines.map(_linePayload).toList(growable: false),
     };
 
     try {
@@ -877,12 +951,14 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             CrmSalesPipelineBar(data: _salesChain),
             if (_selectedItem != null && totalStr.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: Text(
                   'Total: $totalStr ${_currencyCodeController.text.trim().isEmpty ? 'INR' : _currencyCodeController.text.trim()} · Status: ${_status.toUpperCase()}',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             SettingsFormWrap(
@@ -908,8 +984,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       _branchId = null;
                       _locationId = null;
                       final options = _seriesOptions();
-                      _documentSeriesId =
-                          options.isNotEmpty ? options.first.id : null;
+                      _documentSeriesId = options.isNotEmpty
+                          ? options.first.id
+                          : null;
                       _salesQuotationId = null;
                       _quotationLinesCache = null;
                       for (final line in _lines) {
@@ -981,8 +1058,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     setState(() {
                       _financialYearId = value;
                       final options = _seriesOptions();
-                      _documentSeriesId =
-                          options.isNotEmpty ? options.first.id : null;
+                      _documentSeriesId = options.isNotEmpty
+                          ? options.first.id
+                          : null;
                     });
                   },
                   validator: Validators.requiredSelection('Financial Year'),
@@ -1122,6 +1200,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   labelText: 'Currency',
                   controller: _currencyCodeController,
                   enabled: _canEdit,
+                  onChanged: (_) => setState(() {}),
                   validator: Validators.optionalMaxLength(10, 'Currency'),
                 ),
                 AppFormTextField(
@@ -1131,7 +1210,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     decimal: true,
                   ),
                   enabled: _canEdit,
-                  validator: Validators.optionalNonNegativeNumber('Exchange Rate'),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Exchange Rate',
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Round off',
@@ -1141,6 +1222,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     signed: true,
                   ),
                   enabled: _canEdit,
+                  onChanged: (_) => setState(() {}),
                   validator: (value) {
                     final trimmed = value?.trim() ?? '';
                     if (trimmed.isEmpty) {
@@ -1195,6 +1277,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             const SizedBox(height: AppUiConstants.spacingSm),
             ...List<Widget>.generate(_lines.length, (index) {
               final line = _lines[index];
+              final breakdown = _taxBreakdownForLine(line);
               return Padding(
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
@@ -1204,95 +1287,129 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   total: _lines.length,
                   removeEnabled: _canEdit && _lines.length > 1,
                   onRemove: _canEdit ? () => _removeLine(index) : null,
-                  child: PurchaseCompactFieldGrid(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_salesQuotationId != null &&
-                          (_quotationLinesCache != null &&
-                              _quotationLinesCache!.isNotEmpty))
-                        AppDropdownField<int?>.fromMapped(
-                          labelText: 'Quotation line',
-                          mappedItems: [
-                            const AppDropdownItem<int?>(
-                              value: null,
-                              label: 'None',
+                      PurchaseCompactFieldGrid(
+                        children: [
+                          if (_salesQuotationId != null &&
+                              (_quotationLinesCache != null &&
+                                  _quotationLinesCache!.isNotEmpty))
+                            AppDropdownField<int?>.fromMapped(
+                              labelText: 'Quotation line',
+                              mappedItems: [
+                                const AppDropdownItem<int?>(
+                                  value: null,
+                                  label: 'None',
+                                ),
+                                ..._quotationLinesCache!
+                                    .map((ql) {
+                                      final lid = intValue(ql, 'id');
+                                      return AppDropdownItem<int?>(
+                                        value: lid,
+                                        label: _quotationLinePickerLabel(ql),
+                                      );
+                                    })
+                                    .where((it) => it.value != null),
+                              ],
+                              initialValue: line.salesQuotationLineId,
+                              onChanged: (value) {
+                                if (!_canEdit) {
+                                  return;
+                                }
+                                _applyQuotationLinePick(line, value);
+                              },
                             ),
-                            ..._quotationLinesCache!.map((ql) {
-                              final lid = intValue(ql, 'id');
-                              return AppDropdownItem<int?>(
-                                value: lid,
-                                label: _quotationLinePickerLabel(ql),
-                              );
-                            }).where((it) => it.value != null),
-                          ],
-                          initialValue: line.salesQuotationLineId,
-                          onChanged: (value) {
-                            if (!_canEdit) {
-                              return;
-                            }
-                            _applyQuotationLinePick(line, value);
-                          },
-                        ),
-                      AppSearchPickerField<int>(
-                        labelText: 'Item',
-                        selectedLabel: _itemsLookup
-                            .cast<ItemModel?>()
-                            .firstWhere(
-                              (item) => item?.id == line.itemId,
-                              orElse: () => null,
-                            )
-                            ?.toString(),
-                        options: _itemsLookup
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                                subtitle: item.itemCode,
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) {
-                          if (!_canEdit) {
-                            return;
-                          }
-                          setState(() {
-                            line.itemId = value;
-                            line.salesQuotationLineId = null;
-                            final item = _itemsLookup
+                          AppSearchPickerField<int>(
+                            labelText: 'Item',
+                            selectedLabel: _itemsLookup
                                 .cast<ItemModel?>()
                                 .firstWhere(
-                                  (e) => e?.id == value,
+                                  (item) => item?.id == line.itemId,
                                   orElse: () => null,
+                                )
+                                ?.toString(),
+                            options: _itemsLookup
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => AppSearchPickerOption<int>(
+                                    value: item.id!,
+                                    label: item.toString(),
+                                    subtitle: item.itemCode,
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) {
+                              if (!_canEdit) {
+                                return;
+                              }
+                              setState(() {
+                                line.itemId = value;
+                                line.salesQuotationLineId = null;
+                                final item = _itemsLookup
+                                    .cast<ItemModel?>()
+                                    .firstWhere(
+                                      (e) => e?.id == value,
+                                      orElse: () => null,
+                                    );
+                                applySalesLineDefaultsFromItemMaster(
+                                  item: item,
+                                  uoms: _uoms,
+                                  conversions: _uomConversions,
+                                  rateController: line.rateController,
+                                  setUom: (u) => line.uomId = u,
+                                  currentUomId: line.uomId,
+                                  setTaxCodeId: (t) => line.taxCodeId = t,
+                                  setWarehouseId: (w) => line.warehouseId = w,
+                                  currentWarehouseId: line.warehouseId,
+                                  warehouses: _warehouses,
                                 );
-                            applySalesLineDefaultsFromItemMaster(
-                              item: item,
-                              uoms: _uoms,
-                              conversions: _uomConversions,
-                              rateController: line.rateController,
-                              setUom: (u) => line.uomId = u,
-                              currentUomId: line.uomId,
-                              setTaxCodeId: (t) => line.taxCodeId = t,
-                              setWarehouseId: (w) => line.warehouseId = w,
-                              currentWarehouseId: line.warehouseId,
-                              warehouses: _warehouses,
-                            );
-                          });
-                        },
-                        validator: (_) =>
-                            line.itemId == null ? 'Item is required' : null,
-                      ),
-                      Builder(
-                        builder: (context) {
-                          final options = _uomOptionsForItem(line.itemId);
-                          if (_canEdit && options.length == 1) {
-                            final onlyId = options.first.id;
-                            if (line.uomId != onlyId) {
-                              line.uomId = onlyId;
-                            }
-                          }
-                          return AppDropdownField<int>.fromMapped(
-                            labelText: 'UOM',
-                            mappedItems: options
+                              });
+                            },
+                            validator: (_) =>
+                                line.itemId == null ? 'Item is required' : null,
+                          ),
+                          Builder(
+                            builder: (context) {
+                              final options = _uomOptionsForItem(line.itemId);
+                              if (_canEdit && options.length == 1) {
+                                final onlyId = options.first.id;
+                                if (line.uomId != onlyId) {
+                                  line.uomId = onlyId;
+                                }
+                              }
+                              return AppDropdownField<int>.fromMapped(
+                                labelText: 'UOM',
+                                mappedItems: options
+                                    .where((item) => item.id != null)
+                                    .map(
+                                      (item) => AppDropdownItem(
+                                        value: item.id!,
+                                        label: item.toString(),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                                initialValue: line.uomId,
+                                onChanged: (value) {
+                                  if (!_canEdit) {
+                                    return;
+                                  }
+                                  setState(() => line.uomId = value);
+                                },
+                                validator: (_) {
+                                  if (line.itemId == null) {
+                                    return 'Select item first';
+                                  }
+                                  return line.uomId == null
+                                      ? 'UOM is required'
+                                      : null;
+                                },
+                              );
+                            },
+                          ),
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Warehouse',
+                            mappedItems: _warehouses
                                 .where((item) => item.id != null)
                                 .map(
                                   (item) => AppDropdownItem(
@@ -1301,113 +1418,106 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                                   ),
                                 )
                                 .toList(growable: false),
-                            initialValue: line.uomId,
+                            initialValue: line.warehouseId,
                             onChanged: (value) {
                               if (!_canEdit) {
                                 return;
                               }
-                              setState(() => line.uomId = value);
+                              setState(() => line.warehouseId = value);
                             },
-                            validator: (_) {
-                              if (line.itemId == null) {
-                                return 'Select item first';
+                          ),
+                          AppFormTextField(
+                            labelText: 'Order qty',
+                            controller: line.qtyController,
+                            enabled: _canEdit,
+                            onChanged: (_) => setState(() {}),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: Validators.compose([
+                              Validators.required('Order qty'),
+                              Validators.optionalNonNegativeNumber('Order qty'),
+                            ]),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Rate',
+                            controller: line.rateController,
+                            enabled: _canEdit,
+                            onChanged: (_) => setState(() {}),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: Validators.compose([
+                              Validators.required('Rate'),
+                              Validators.optionalNonNegativeNumber('Rate'),
+                            ]),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Discount %',
+                            controller: line.discountController,
+                            enabled: _canEdit,
+                            onChanged: (_) => setState(() {}),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: Validators.optionalNonNegativeNumber(
+                              'Discount %',
+                            ),
+                          ),
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Tax code',
+                            mappedItems: _taxCodes
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => AppDropdownItem(
+                                    value: item.id!,
+                                    label: item.toString(),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            initialValue: line.taxCodeId,
+                            onChanged: (value) {
+                              if (!_canEdit) {
+                                return;
                               }
-                              return line.uomId == null
-                                  ? 'UOM is required'
-                                  : null;
+                              setState(() => line.taxCodeId = value);
                             },
-                          );
-                        },
+                          ),
+                          AppFormTextField(
+                            labelText: 'Description',
+                            controller: line.descriptionController,
+                            enabled: _canEdit,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Remarks',
+                            controller: line.remarksController,
+                            enabled: _canEdit,
+                            maxLines: 2,
+                          ),
+                        ],
                       ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Warehouse',
-                        mappedItems: _warehouses
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.warehouseId,
-                        onChanged: (value) {
-                          if (!_canEdit) {
-                            return;
-                          }
-                          setState(() => line.warehouseId = value);
-                        },
-                      ),
-                      AppFormTextField(
-                        labelText: 'Order qty',
-                        controller: line.qtyController,
-                        enabled: _canEdit,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.compose([
-                          Validators.required('Order qty'),
-                          Validators.optionalNonNegativeNumber('Order qty'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Rate',
-                        controller: line.rateController,
-                        enabled: _canEdit,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.compose([
-                          Validators.required('Rate'),
-                          Validators.optionalNonNegativeNumber('Rate'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Discount %',
-                        controller: line.discountController,
-                        enabled: _canEdit,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.optionalNonNegativeNumber(
-                          'Discount %',
-                        ),
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Tax code',
-                        mappedItems: _taxCodes
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.taxCodeId,
-                        onChanged: (value) {
-                          if (!_canEdit) {
-                            return;
-                          }
-                          setState(() => line.taxCodeId = value);
-                        },
-                      ),
-                      AppFormTextField(
-                        labelText: 'Description',
-                        controller: line.descriptionController,
-                        enabled: _canEdit,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Remarks',
-                        controller: line.remarksController,
-                        enabled: _canEdit,
-                        maxLines: 2,
+                      const SizedBox(height: AppUiConstants.spacingSm),
+                      SalesLineTaxPreview(
+                        gross: breakdown.gross,
+                        taxable: breakdown.taxable,
+                        cgst: breakdown.cgst,
+                        sgst: breakdown.sgst,
+                        igst: breakdown.igst,
+                        cess: breakdown.cess,
+                        total: breakdown.total,
+                        currencyCode: _currencyCodeForTaxSummary,
+                        taxCodeLabel: salesTaxCodeById(
+                          _taxCodes,
+                          line.taxCodeId,
+                        )?.toString(),
                       ),
                     ],
                   ),
                 ),
               );
             }),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildTaxSummaryCard(context),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

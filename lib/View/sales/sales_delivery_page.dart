@@ -26,16 +26,16 @@ class SalesDeliveryPage extends StatefulWidget {
 class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
-    AppDropdownItem(value: '', label: 'All'),
-    AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(
-      value: 'partially_invoiced',
-      label: 'Partially Invoiced',
-    ),
-    AppDropdownItem(value: 'fully_invoiced', label: 'Fully Invoiced'),
-    AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-  ];
+        AppDropdownItem(value: '', label: 'All'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(
+          value: 'partially_invoiced',
+          label: 'Partially Invoiced',
+        ),
+        AppDropdownItem(value: 'fully_invoiced', label: 'Fully Invoiced'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
 
   final SalesService _salesService = SalesService();
   final CrmService _crmService = CrmService();
@@ -501,8 +501,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           line.itemId == null ||
           line.uomId == null ||
           line.warehouseId == null ||
-          (double.tryParse(line.deliveredQtyController.text.trim()) ?? 0) <=
-              0,
+          (double.tryParse(line.deliveredQtyController.text.trim()) ?? 0) <= 0,
     )) {
       setState(
         () => _formError =
@@ -1070,9 +1069,7 @@ class _SalesDeliveryLineDraft {
     String? rate,
     String? remarks,
   }) : descriptionController = TextEditingController(text: description ?? ''),
-       deliveredQtyController = TextEditingController(
-         text: deliveredQty ?? '',
-       ),
+       deliveredQtyController = TextEditingController(text: deliveredQty ?? ''),
        rateController = TextEditingController(text: rate ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
 
@@ -1105,8 +1102,7 @@ class _SalesDeliveryLineDraft {
       'warehouse_id': warehouseId,
       'uom_id': uomId,
       'description': nullIfEmpty(descriptionController.text),
-      'delivered_qty':
-          double.tryParse(deliveredQtyController.text.trim()) ?? 0,
+      'delivered_qty': double.tryParse(deliveredQtyController.text.trim()) ?? 0,
       'rate': double.tryParse(rateController.text.trim()) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),
     };

@@ -34,6 +34,7 @@ export 'components/date_time_input_formatter.dart';
 export 'components/inline_field_action.dart';
 export 'components/report_pagination_bar.dart';
 export 'components/session_context_button.dart';
+export 'components/sales_gst_card.dart';
 export 'components/upload_path_field.dart';
 
 export 'core/error/api_exception.dart';

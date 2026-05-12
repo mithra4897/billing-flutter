@@ -82,6 +82,9 @@ class StockReservationViewModel extends ChangeNotifier {
     if (warehouseId != null && intValue(data, 'warehouse_id') != warehouseId) {
       return false;
     }
+    if (x.balanceQty <= 0) {
+      return false;
+    }
     return true;
   }).toList(growable: false);
 
