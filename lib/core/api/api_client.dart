@@ -466,6 +466,8 @@ class ApiClient {
       headers['Authorization'] = '${tokenType ?? 'Bearer'} $token';
     }
 
+    headers.addAll(await _buildContextHeaders());
+
     return headers;
   }
 
@@ -478,7 +480,24 @@ class ApiClient {
       headers['Authorization'] = '${tokenType ?? 'Bearer'} $token';
     }
 
+    headers.addAll(await _buildContextHeaders());
+
     return headers;
+  }
+
+  Future<Map<String, String>> _buildContextHeaders() async {
+    final companyId = await SessionStorage.getCurrentCompanyId();
+    final branchId = await SessionStorage.getCurrentBranchId();
+    final locationId = await SessionStorage.getCurrentLocationId();
+    final financialYearId = await SessionStorage.getCurrentFinancialYearId();
+
+    return <String, String>{
+      if (companyId != null) 'X-Company-Id': companyId.toString(),
+      if (branchId != null) 'X-Branch-Id': branchId.toString(),
+      if (locationId != null) 'X-Location-Id': locationId.toString(),
+      if (financialYearId != null)
+        'X-Financial-Year-Id': financialYearId.toString(),
+    };
   }
 
   ApiResponse<T> _parseResponse<T>(
@@ -618,9 +637,13 @@ class ApiClient {
 
   String _buildCacheKey(Uri uri, Map<String, String> headers) {
     final authorization = headers['Authorization'] ?? '';
+    final companyId = headers['X-Company-Id'] ?? '';
+    final branchId = headers['X-Branch-Id'] ?? '';
+    final locationId = headers['X-Location-Id'] ?? '';
+    final financialYearId = headers['X-Financial-Year-Id'] ?? '';
     final normalizedPath = _normalizePath(uri.path);
     final query = uri.query;
-    return 'GET|$authorization|$normalizedPath|$query';
+    return 'GET|$authorization|$companyId|$branchId|$locationId|$financialYearId|$normalizedPath|$query';
   }
 
   void _invalidateCacheForMutation(String endpoint, int statusCode) {

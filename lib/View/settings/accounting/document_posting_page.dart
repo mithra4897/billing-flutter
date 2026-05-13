@@ -60,8 +60,7 @@ class _DocumentPostingManagementPageState
   final TextEditingController _tableController = TextEditingController();
   final TextEditingController _documentIdController = TextEditingController();
   final TextEditingController _documentNoController = TextEditingController();
-  final TextEditingController _documentDateController =
-      TextEditingController();
+  final TextEditingController _documentDateController = TextEditingController();
   final TextEditingController _voucherIdController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
 
@@ -86,8 +85,9 @@ class _DocumentPostingManagementPageState
   int? _financialYearId;
   int? _postingRuleGroupId;
   String _postingStatus = 'pending';
-  List<_DocumentPostingLineDraft> _lines =
-      <_DocumentPostingLineDraft>[_DocumentPostingLineDraft()];
+  List<_DocumentPostingLineDraft> _lines = <_DocumentPostingLineDraft>[
+    _DocumentPostingLineDraft(),
+  ];
 
   @override
   void initState() {
@@ -121,7 +121,9 @@ class _DocumentPostingManagementPageState
       .where(
         (b) =>
             b.isActive &&
-            (_companyId == null || b.companyId == null || b.companyId == _companyId),
+            (_companyId == null ||
+                b.companyId == null ||
+                b.companyId == _companyId),
       )
       .toList(growable: false);
 
@@ -157,7 +159,9 @@ class _DocumentPostingManagementPageState
         _accountsService.postingRuleGroupsAll(
           filters: const {'sort_by': 'group_name', 'per_page': 200},
         ),
-        _accountsService.accountsAll(filters: const {'sort_by': 'account_name'}),
+        _accountsService.accountsAll(
+          filters: const {'sort_by': 'account_name'},
+        ),
       ]);
 
       final companies =
@@ -179,14 +183,18 @@ class _DocumentPostingManagementPageState
           (results[5] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
 
-      final activeCompanies =
-          companies.where((c) => c.isActive).toList(growable: false);
-      final activeBranches =
-          branches.where((b) => b.isActive).toList(growable: false);
-      final activeLocations =
-          locations.where((l) => l.isActive).toList(growable: false);
-      final activeYears =
-          years.where((y) => y.isActive).toList(growable: false);
+      final activeCompanies = companies
+          .where((c) => c.isActive)
+          .toList(growable: false);
+      final activeBranches = branches
+          .where((b) => b.isActive)
+          .toList(growable: false);
+      final activeLocations = locations
+          .where((l) => l.isActive)
+          .toList(growable: false);
+      final activeYears = years
+          .where((y) => y.isActive)
+          .toList(growable: false);
 
       final ctx = await WorkingContextService.instance.resolveSelection(
         companies: activeCompanies,
@@ -276,11 +284,10 @@ class _DocumentPostingManagementPageState
       for (final l in _lines) {
         l.dispose();
       }
-      final rawLines =
-          (d['lines'] as List<dynamic>? ?? const <dynamic>[])
-              .whereType<Map>()
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList(growable: false);
+      final rawLines = (d['lines'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList(growable: false);
       _selected = full;
       _companyId = intValue(d, 'company_id');
       _branchId = intValue(d, 'branch_id');
@@ -290,8 +297,12 @@ class _DocumentPostingManagementPageState
       _tableController.text = stringValue(d, 'document_table');
       _documentIdController.text = stringValue(d, 'document_id');
       _documentNoController.text = stringValue(d, 'document_no');
-      _documentDateController.text =
-          (d['document_date'] ?? '').toString().split('T').first.split(' ').first;
+      _documentDateController.text = (d['document_date'] ?? '')
+          .toString()
+          .split('T')
+          .first
+          .split(' ')
+          .first;
       _postingRuleGroupId = intValue(d, 'posting_rule_group_id');
       _voucherIdController.text = stringValue(d, 'voucher_id');
       _postingStatus = stringValue(d, 'posting_status', 'pending');
@@ -325,8 +336,10 @@ class _DocumentPostingManagementPageState
     _tableController.clear();
     _documentIdController.clear();
     _documentNoController.clear();
-    _documentDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    _documentDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     _postingRuleGroupId = null;
     _voucherIdController.clear();
     _postingStatus = 'pending';
@@ -394,7 +407,9 @@ class _DocumentPostingManagementPageState
         _branchId == null ||
         _locationId == null ||
         _financialYearId == null) {
-      setState(() => _formError = 'Company, branch, location and year required.');
+      setState(
+        () => _formError = 'Company, branch, location and year required.',
+      );
       return;
     }
     final docId = int.tryParse(_documentIdController.text.trim());
@@ -532,58 +547,6 @@ class _DocumentPostingManagementPageState
             const SizedBox(height: AppUiConstants.spacingMd),
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: _companies
-                      .where((c) => c.id != null)
-                      .map(
-                        (c) => AppDropdownItem<int>(
-                          value: c.id!,
-                          label: c.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _companyId,
-                  onChanged: (v) => setState(() {
-                    _companyId = v;
-                    _branchId = null;
-                    _locationId = null;
-                  }),
-                  validator: Validators.requiredSelection('Company'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: _branchOptions
-                      .where((b) => b.id != null)
-                      .map(
-                        (b) => AppDropdownItem<int>(
-                          value: b.id!,
-                          label: b.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _branchId,
-                  onChanged: (v) => setState(() {
-                    _branchId = v;
-                    _locationId = null;
-                  }),
-                  validator: Validators.requiredSelection('Branch'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: _locationOptions
-                      .where((l) => l.id != null)
-                      .map(
-                        (l) => AppDropdownItem<int>(
-                          value: l.id!,
-                          label: l.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _locationId,
-                  onChanged: (v) => setState(() => _locationId = v),
-                  validator: Validators.requiredSelection('Location'),
-                ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial year',
                   mappedItems: _years

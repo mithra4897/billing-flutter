@@ -56,7 +56,9 @@ class _DocumentTaxLinesRegisterPageState
       .where(
         (BranchModel b) =>
             b.isActive &&
-            (_companyId == null || b.companyId == null || b.companyId == _companyId),
+            (_companyId == null ||
+                b.companyId == null ||
+                b.companyId == _companyId),
       )
       .toList(growable: false);
 
@@ -231,9 +233,7 @@ class _DocumentTaxLinesRegisterPageState
   String _taxLabel(DocumentTaxLineModel row) {
     final dynamic tax = row.data['tax_code'];
     if (tax is Map<String, dynamic>) {
-      return tax['tax_name']?.toString() ??
-          tax['tax_code']?.toString() ??
-          '';
+      return tax['tax_name']?.toString() ?? tax['tax_code']?.toString() ?? '';
     }
     return '';
   }
@@ -257,10 +257,8 @@ class _DocumentTaxLinesRegisterPageState
   Future<void> _openFilterPanel() async {
     final companyItems = _companies
         .map(
-          (CompanyModel c) => AppDropdownItem<int?>(
-            value: c.id,
-            label: c.toString(),
-          ),
+          (CompanyModel c) =>
+              AppDropdownItem<int?>(value: c.id, label: c.toString()),
         )
         .toList(growable: false);
 
@@ -322,7 +320,9 @@ class _DocumentTaxLinesRegisterPageState
                           Expanded(
                             child: Text(
                               'Filter Document Tax Lines',
-                              style: Theme.of(dialogContext).textTheme.titleLarge
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .titleLarge
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
@@ -340,29 +340,6 @@ class _DocumentTaxLinesRegisterPageState
                         spacing: 16,
                         runSpacing: 16,
                         children: [
-                          _filterBox(
-                            child: AppDropdownField<int?>.fromMapped(
-                              labelText: 'Company',
-                              mappedItems: companyItems,
-                              initialValue: _companyId,
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  _companyId = value;
-                                  _branchId = null;
-                                  _financialYearId = null;
-                                });
-                              },
-                            ),
-                          ),
-                          _filterBox(
-                            child: AppDropdownField<int?>.fromMapped(
-                              labelText: 'Branch',
-                              mappedItems: branchItems,
-                              initialValue: _branchId,
-                              onChanged: (value) =>
-                                  setDialogState(() => _branchId = value),
-                            ),
-                          ),
                           _filterBox(
                             child: AppDropdownField<int?>.fromMapped(
                               labelText: 'Financial year',
@@ -520,22 +497,30 @@ class _DocumentTaxLinesRegisterPageState
                               DataColumn(label: Text('Item')),
                               DataColumn(label: Text('Tax code')),
                             ],
-                            rows: _rows.map((DocumentTaxLineModel row) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(Text(_cell(row, 'document_date'))),
-                                  DataCell(Text(_cell(row, 'document_no'))),
-                                  DataCell(Text(_cell(row, 'document_module'))),
-                                  DataCell(Text(_cell(row, 'taxable_amount'))),
-                                  DataCell(Text(_cell(row, 'cgst_amount'))),
-                                  DataCell(Text(_cell(row, 'sgst_amount'))),
-                                  DataCell(Text(_cell(row, 'igst_amount'))),
-                                  DataCell(Text(_cell(row, 'cess_amount'))),
-                                  DataCell(Text(_itemLabel(row))),
-                                  DataCell(Text(_taxLabel(row))),
-                                ],
-                              );
-                            }).toList(growable: false),
+                            rows: _rows
+                                .map((DocumentTaxLineModel row) {
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(
+                                        Text(_cell(row, 'document_date')),
+                                      ),
+                                      DataCell(Text(_cell(row, 'document_no'))),
+                                      DataCell(
+                                        Text(_cell(row, 'document_module')),
+                                      ),
+                                      DataCell(
+                                        Text(_cell(row, 'taxable_amount')),
+                                      ),
+                                      DataCell(Text(_cell(row, 'cgst_amount'))),
+                                      DataCell(Text(_cell(row, 'sgst_amount'))),
+                                      DataCell(Text(_cell(row, 'igst_amount'))),
+                                      DataCell(Text(_cell(row, 'cess_amount'))),
+                                      DataCell(Text(_itemLabel(row))),
+                                      DataCell(Text(_taxLabel(row))),
+                                    ],
+                                  );
+                                })
+                                .toList(growable: false),
                           ),
                         ),
                       );

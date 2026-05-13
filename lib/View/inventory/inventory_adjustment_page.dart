@@ -17,19 +17,22 @@ class InventoryAdjustmentPage extends StatefulWidget {
   final int? initialItemId;
 
   @override
-  State<InventoryAdjustmentPage> createState() => _InventoryAdjustmentPageState();
+  State<InventoryAdjustmentPage> createState() =>
+      _InventoryAdjustmentPageState();
 }
 
 class _InventoryAdjustmentPageState extends State<InventoryAdjustmentPage> {
   final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController = SettingsWorkspaceController();
+  final SettingsWorkspaceController _workspaceController =
+      SettingsWorkspaceController();
   late final InventoryAdjustmentViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = InventoryAdjustmentViewModel(initialItemId: widget.initialItemId)
-      ..load(selectId: widget.initialId);
+    _viewModel = InventoryAdjustmentViewModel(
+      initialItemId: widget.initialItemId,
+    )..load(selectId: widget.initialId);
   }
 
   @override
@@ -168,6 +171,9 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
       return const AppLoadingView(message: 'Loading document...');
     }
     final canEdit = vm.status == 'draft';
+    final contextLabel = vm.contextLabels.isEmpty
+        ? 'No working context selected'
+        : vm.contextLabels.join(' / ');
     return Form(
       child: Builder(
         builder: (formContext) => Column(
@@ -177,41 +183,31 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
               AppErrorStateView.inline(message: vm.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'Context'),
+              child: Text(contextLabel),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            if (vm.warehouseOptions.isEmpty) ...[
+              AppErrorStateView.inline(
+                message:
+                    'No warehouse found for the selected working context: $contextLabel.',
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+            ],
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
-                  initialValue: vm.companyId,
-                  validator: Validators.requiredSelection('Company'),
-                  onChanged: (v) {
-                    if (!canEdit) return;
-                    vm.onCompanyChanged(v);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: vm.branchOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
-                  initialValue: vm.branchId,
-                  validator: Validators.requiredSelection('Branch'),
-                  onChanged: (v) {
-                    if (!canEdit) return;
-                    vm.onBranchChanged(v);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: vm.locationOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
-                  initialValue: vm.locationId,
-                  validator: Validators.requiredSelection('Location'),
-                  onChanged: (v) {
-                    if (!canEdit) return;
-                    vm.onLocationChanged(v);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
-                  mappedItems: vm.financialYears.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                  mappedItems: vm.financialYears
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
                   initialValue: vm.financialYearId,
                   validator: Validators.requiredSelection('Financial Year'),
                   onChanged: (v) {
@@ -221,7 +217,15 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Document Series',
-                  mappedItems: vm.seriesOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                  mappedItems: vm.seriesOptions
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
                   initialValue: vm.documentSeriesId,
                   onChanged: (v) {
                     if (!canEdit) return;
@@ -260,7 +264,10 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
                   enabled: canEdit,
-                  validator: Validators.compose([Validators.required('Adjustment Date'), Validators.date('Adjustment Date')]),
+                  validator: Validators.compose([
+                    Validators.required('Adjustment Date'),
+                    Validators.date('Adjustment Date'),
+                  ]),
                 ),
                 AppFormTextField(
                   labelText: 'Remarks',
@@ -274,9 +281,19 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
             const SizedBox(height: AppUiConstants.spacingMd),
             Row(
               children: [
-                Text('Line Items', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  'Line Items',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const Spacer(),
-                AppActionButton(icon: Icons.add_outlined, label: 'Add line', filled: false, onPressed: canEdit ? vm.addLine : null),
+                AppActionButton(
+                  icon: Icons.add_outlined,
+                  label: 'Add line',
+                  filled: false,
+                  onPressed: canEdit ? vm.addLine : null,
+                ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
@@ -286,9 +303,15 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
               ...List<Widget>.generate(vm.lines.length, (index) {
                 final line = vm.lines[index];
                 final batches = vm.batchOptions(line.warehouseId, line.itemId);
-                final serials = vm.serialOptions(line.warehouseId, line.itemId, line.batchId);
+                final serials = vm.serialOptions(
+                  line.warehouseId,
+                  line.itemId,
+                  line.batchId,
+                );
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
                   child: PurchaseCompactLineCard(
                     index: index,
                     total: vm.lines.length,
@@ -324,7 +347,15 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                         ),
                         AppDropdownField<int>.fromMapped(
                           labelText: 'Warehouse',
-                          mappedItems: vm.warehouseOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                          mappedItems: vm.warehouseOptions
+                              .where((x) => x.id != null)
+                              .map(
+                                (x) => AppDropdownItem<int>(
+                                  value: x.id!,
+                                  label: x.toString(),
+                                ),
+                              )
+                              .toList(growable: false),
                           initialValue: line.warehouseId,
                           validator: Validators.requiredSelection('Warehouse'),
                           onChanged: (v) {
@@ -334,9 +365,15 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                         ),
                         AppDropdownField<int>.fromMapped(
                           labelText: 'UOM',
-                          mappedItems: vm.uomOptionsForItem(line.itemId)
+                          mappedItems: vm
+                              .uomOptionsForItem(line.itemId)
                               .where((x) => x.id != null)
-                              .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                              .map(
+                                (x) => AppDropdownItem<int>(
+                                  value: x.id!,
+                                  label: x.toString(),
+                                ),
+                              )
                               .toList(growable: false),
                           initialValue: line.uomId,
                           validator: Validators.requiredSelection('UOM'),
@@ -348,7 +385,14 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                         if (vm.itemHasBatch(line.itemId))
                           AppDropdownField<int>.fromMapped(
                             labelText: 'Batch',
-                            mappedItems: batches.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'batch_no', 'Batch'))).toList(growable: false),
+                            mappedItems: batches
+                                .map(
+                                  (x) => AppDropdownItem<int>(
+                                    value: intValue(x, 'id')!,
+                                    label: stringValue(x, 'batch_no', 'Batch'),
+                                  ),
+                                )
+                                .toList(growable: false),
                             initialValue: line.batchId,
                             onChanged: (v) {
                               if (!canEdit) return;
@@ -358,7 +402,18 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                         if (vm.itemHasSerial(line.itemId))
                           AppDropdownField<int>.fromMapped(
                             labelText: 'Serial',
-                            mappedItems: serials.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'serial_no', 'Serial'))).toList(growable: false),
+                            mappedItems: serials
+                                .map(
+                                  (x) => AppDropdownItem<int>(
+                                    value: intValue(x, 'id')!,
+                                    label: stringValue(
+                                      x,
+                                      'serial_no',
+                                      'Serial',
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
                             initialValue: line.serialId,
                             onChanged: (v) {
                               if (!canEdit) return;
@@ -378,34 +433,80 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                             vm.onLineDirectionChanged(index, v);
                           },
                         ),
-                        AppFormTextField(labelText: 'System qty', controller: line.systemQtyController, keyboardType: const TextInputType.numberWithOptions(decimal: true), enabled: canEdit, validator: Validators.optionalNonNegativeNumber('System qty')),
-                        AppFormTextField(labelText: 'Actual qty', controller: line.actualQtyController, keyboardType: const TextInputType.numberWithOptions(decimal: true), enabled: canEdit, validator: Validators.optionalNonNegativeNumber('Actual qty')),
+                        AppFormTextField(
+                          labelText: 'System qty',
+                          controller: line.systemQtyController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          enabled: canEdit,
+                          validator: Validators.optionalNonNegativeNumber(
+                            'System qty',
+                          ),
+                        ),
+                        AppFormTextField(
+                          labelText: 'Actual qty',
+                          controller: line.actualQtyController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          enabled: canEdit,
+                          validator: Validators.optionalNonNegativeNumber(
+                            'Actual qty',
+                          ),
+                        ),
                         AppFormTextField(
                           labelText: 'Adjustment qty',
                           controller: line.adjustmentQtyController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           enabled: canEdit,
                           validator: (value) {
                             final text = (value ?? '').trim();
                             if (text.isEmpty) return null;
-                            if (double.tryParse(text) == null) return 'Adjustment qty must be a valid number';
+                            if (double.tryParse(text) == null) {
+                              return 'Adjustment qty must be a valid number';
+                            }
                             return null;
                           },
                         ),
-                        AppFormTextField(labelText: 'Unit cost', controller: line.unitCostController, keyboardType: const TextInputType.numberWithOptions(decimal: true), enabled: canEdit, validator: Validators.optionalNonNegativeNumber('Unit cost')),
+                        AppFormTextField(
+                          labelText: 'Unit cost',
+                          controller: line.unitCostController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          enabled: canEdit,
+                          validator: Validators.optionalNonNegativeNumber(
+                            'Unit cost',
+                          ),
+                        ),
                         AppFormTextField(
                           labelText: 'Total cost',
                           controller: line.totalCostController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           enabled: canEdit,
                           validator: (value) {
                             final text = (value ?? '').trim();
                             if (text.isEmpty) return null;
-                            if (double.tryParse(text) == null) return 'Total cost must be a valid number';
+                            if (double.tryParse(text) == null) {
+                              return 'Total cost must be a valid number';
+                            }
                             return null;
                           },
                         ),
-                        AppFormTextField(labelText: 'Remarks', controller: line.remarksController, enabled: canEdit, validator: Validators.optionalMaxLength(500, 'Line remarks')),
+                        AppFormTextField(
+                          labelText: 'Remarks',
+                          controller: line.remarksController,
+                          enabled: canEdit,
+                          validator: Validators.optionalMaxLength(
+                            500,
+                            'Line remarks',
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -416,13 +517,33 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(icon: Icons.save_outlined, label: vm.selected == null ? 'Save' : 'Update', busy: vm.saving, onPressed: canEdit ? () => onSave(formContext) : null),
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: vm.selected == null ? 'Save' : 'Update',
+                  busy: vm.saving,
+                  onPressed: canEdit ? () => onSave(formContext) : null,
+                ),
                 if (vm.selected != null && vm.status == 'draft') ...[
-                  AppActionButton(icon: Icons.publish_outlined, label: 'Post', filled: false, onPressed: onPost),
-                  AppActionButton(icon: Icons.delete_outline, label: 'Delete', filled: false, onPressed: onDelete),
+                  AppActionButton(
+                    icon: Icons.publish_outlined,
+                    label: 'Post',
+                    filled: false,
+                    onPressed: onPost,
+                  ),
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    filled: false,
+                    onPressed: onDelete,
+                  ),
                 ],
                 if (vm.selected != null && vm.status == 'draft')
-                  AppActionButton(icon: Icons.block_outlined, label: 'Cancel', filled: false, onPressed: onCancel),
+                  AppActionButton(
+                    icon: Icons.block_outlined,
+                    label: 'Cancel',
+                    filled: false,
+                    onPressed: onCancel,
+                  ),
               ],
             ),
           ],

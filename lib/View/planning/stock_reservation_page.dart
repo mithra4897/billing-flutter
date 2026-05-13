@@ -187,16 +187,6 @@ class _StockReservationEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  onChanged: vm.onCompanyChanged,
-                  validator: Validators.requiredSelection('Company'),
-                ),
                 AppSearchPickerField<int>(
                   labelText: 'Item',
                   selectedLabel: vm.items
@@ -214,13 +204,19 @@ class _StockReservationEditor extends StatelessWidget {
                       )
                       .toList(growable: false),
                   onChanged: vm.setItemId,
-                  validator: (_) => vm.itemId == null ? 'Item is required' : null,
+                  validator: (_) =>
+                      vm.itemId == null ? 'Item is required' : null,
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Warehouse',
                   mappedItems: vm.warehouseOptions
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.warehouseId,
                   onChanged: vm.setWarehouseId,
@@ -280,7 +276,9 @@ class _StockReservationEditor extends StatelessWidget {
                   labelText: 'Reserved Qty',
                   controller: vm.reservedQtyController,
                   enabled: !vm.isLocked,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: Validators.requiredPositiveNumber('Reserved Qty'),
                 ),
                 AppFormTextField(
@@ -293,7 +291,9 @@ class _StockReservationEditor extends StatelessWidget {
                   labelText: 'Release Qty',
                   controller: vm.releaseQtyController,
                   enabled: vm.selected != null && !vm.isLocked,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Release Remarks',

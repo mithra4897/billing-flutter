@@ -96,12 +96,18 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
   @override
   void initState() {
     super.initState();
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
     _searchController.addListener(_applyFilters);
     _loadPage(selectId: widget.initialId);
   }
 
+  void _handleWorkingContextChanged() {
+    _loadPage(selectId: intValue(_selectedItem?.toJson() ?? const {}, 'id'));
+  }
+
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
@@ -420,7 +426,8 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
               item.documentType == 'PURCHASE_PAYMENT';
           final companyOk = companyId == null || item.companyId == companyId;
           final fyOk =
-              financialYearId == null || item.financialYearId == financialYearId;
+              financialYearId == null ||
+              item.financialYearId == financialYearId;
           return typeOk && companyOk && fyOk;
         })
         .toList(growable: false);
@@ -510,8 +517,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
         financialYearId: invoice.financialYearId,
       );
       _supplierPartyId = invoice.supplierPartyId;
-      _referenceNoController.text =
-          _referenceNoController.text.trim().isEmpty
+      _referenceNoController.text = _referenceNoController.text.trim().isEmpty
           ? (invoice.invoiceNo ?? '')
           : _referenceNoController.text;
       _referenceDateController.text =
@@ -711,62 +717,6 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: _companies
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() {
-                    _companyId = value;
-                    _branchId = null;
-                    _locationId = null;
-                    final series = _seriesOptions();
-                    _documentSeriesId = series.isNotEmpty
-                        ? series.first.id
-                        : null;
-                  }),
-                  validator: Validators.requiredSelection('Company'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: _branchOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _branchId,
-                  onChanged: (value) => setState(() {
-                    _branchId = value;
-                    _locationId = null;
-                  }),
-                  validator: Validators.requiredSelection('Branch'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: _locationOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _locationId,
-                  onChanged: (value) => setState(() => _locationId = value),
-                  validator: Validators.requiredSelection('Location'),
-                ),
-                AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: _financialYears
                       .where((item) => item.id != null)
@@ -949,10 +899,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                               )
                               .toList(growable: false),
                           onChanged: (value) async {
-                            await _handleAllocationInvoiceChanged(
-                              index,
-                              value,
-                            );
+                            await _handleAllocationInvoiceChanged(index, value);
                           },
                         ),
                         AppFormTextField(

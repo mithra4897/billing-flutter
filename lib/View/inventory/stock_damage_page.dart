@@ -172,6 +172,9 @@ class _StockDamageEditor extends StatelessWidget {
     }
 
     final canEdit = vm.status == 'draft';
+    final contextLabel = vm.contextLabels.isEmpty
+        ? 'No working context selected'
+        : vm.contextLabels.join(' / ');
     return Form(
       child: Builder(
         builder: (formContext) => Column(
@@ -181,62 +184,20 @@ class _StockDamageEditor extends StatelessWidget {
               AppErrorStateView.inline(message: vm.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'Context'),
+              child: Text(contextLabel),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            if (vm.warehouseOptions.isEmpty) ...[
+              AppErrorStateView.inline(
+                message:
+                    'No warehouse found for the selected working context: $contextLabel.',
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+            ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  validator: Validators.requiredSelection('Company'),
-                  onChanged: (value) {
-                    if (!canEdit) return;
-                    vm.onCompanyChanged(value);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: vm.branchOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.branchId,
-                  validator: Validators.requiredSelection('Branch'),
-                  onChanged: (value) {
-                    if (!canEdit) return;
-                    vm.onBranchChanged(value);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: vm.locationOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.locationId,
-                  validator: Validators.requiredSelection('Location'),
-                  onChanged: (value) {
-                    if (!canEdit) return;
-                    vm.onLocationChanged(value);
-                  },
-                ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: vm.financialYears

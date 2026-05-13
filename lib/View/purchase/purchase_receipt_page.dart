@@ -93,12 +93,18 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
   @override
   void initState() {
     super.initState();
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
     _searchController.addListener(_applyFilters);
     _loadPage(selectId: widget.initialId);
   }
 
+  void _handleWorkingContextChanged() {
+    _loadPage(selectId: intValue(_selectedItem?.toJson() ?? const {}, 'id'));
+  }
+
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
@@ -407,8 +413,10 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
         line.warehouseId == null) {
       return const <StockSerialModel>[];
     }
-    return _serialOptionsByItemWarehouse[
-            _serialCacheKey(line.itemId, line.warehouseId)] ??
+    return _serialOptionsByItemWarehouse[_serialCacheKey(
+          line.itemId,
+          line.warehouseId,
+        )] ??
         const <StockSerialModel>[];
   }
 
@@ -431,8 +439,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
       if ((line.serialId != null && !hasSelected) ||
           (line.serialId == null && cached.length == 1)) {
         setState(() {
-          line.serialId =
-              cached.length == 1 ? intValue(cached.first.toJson(), 'id') : null;
+          line.serialId = cached.length == 1
+              ? intValue(cached.first.toJson(), 'id')
+              : null;
         });
       }
       return;
@@ -460,8 +469,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
             line.warehouseId == warehouseId &&
             line.serialId != null &&
             !hasSelected) {
-          line.serialId =
-              serials.length == 1 ? intValue(serials.first.toJson(), 'id') : null;
+          line.serialId = serials.length == 1
+              ? intValue(serials.first.toJson(), 'id')
+              : null;
         } else if (line.itemId == itemId &&
             line.warehouseId == warehouseId &&
             line.serialId == null &&
@@ -508,7 +518,8 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
               item.documentType == 'PURCHASE_RECEIPT';
           final companyOk = companyId == null || item.companyId == companyId;
           final fyOk =
-              financialYearId == null || item.financialYearId == financialYearId;
+              financialYearId == null ||
+              item.financialYearId == financialYearId;
           return typeOk && companyOk && fyOk;
         })
         .toList(growable: false);
@@ -834,62 +845,6 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: _companies
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() {
-                    _companyId = value;
-                    _branchId = null;
-                    _locationId = null;
-                    final series = _seriesOptions();
-                    _documentSeriesId = series.isNotEmpty
-                        ? series.first.id
-                        : null;
-                  }),
-                  validator: Validators.requiredSelection('Company'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: _branchOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _branchId,
-                  onChanged: (value) => setState(() {
-                    _branchId = value;
-                    _locationId = null;
-                  }),
-                  validator: Validators.requiredSelection('Branch'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: _locationOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _locationId,
-                  onChanged: (value) => setState(() => _locationId = value),
-                  validator: Validators.requiredSelection('Location'),
-                ),
-                AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: _financialYears
                       .where((item) => item.id != null)
@@ -1119,8 +1074,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                               mappedItems: serialOptions
                                   .where(
                                     (serial) =>
-                                        intValue(serial.toJson(), 'id') !=
-                                        null,
+                                        intValue(serial.toJson(), 'id') != null,
                                   )
                                   .map(
                                     (serial) => AppDropdownItem<int>(

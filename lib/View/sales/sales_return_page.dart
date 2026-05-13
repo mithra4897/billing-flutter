@@ -78,12 +78,18 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
   @override
   void initState() {
     super.initState();
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
     _searchController.addListener(_applyFilters);
     _loadPage(selectId: widget.initialId);
   }
 
+  void _handleWorkingContextChanged() {
+    _loadPage(selectId: intValue(_selectedItem?.toJson() ?? const {}, 'id'));
+  }
+
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
@@ -691,67 +697,6 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: _companies
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() {
-                    _companyId = value;
-                    _branchId = null;
-                    _locationId = null;
-                    _clearInvoiceSelection();
-                    final series = _seriesOptions();
-                    _documentSeriesId = series.isNotEmpty
-                        ? series.first.id
-                        : null;
-                  }),
-                  validator: Validators.requiredSelection('Company'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: _branchOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _branchId,
-                  onChanged: (value) => setState(() {
-                    _branchId = value;
-                    _locationId = null;
-                    _clearInvoiceSelection();
-                  }),
-                  validator: Validators.requiredSelection('Branch'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: _locationOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _locationId,
-                  onChanged: (value) => setState(() {
-                    _locationId = value;
-                    _clearInvoiceSelection();
-                  }),
-                  validator: Validators.requiredSelection('Location'),
-                ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: _financialYears

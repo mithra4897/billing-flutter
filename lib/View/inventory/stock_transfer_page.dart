@@ -175,6 +175,9 @@ class _StockTransferEditor extends StatelessWidget {
     }
 
     final canEdit = vm.status == 'draft';
+    final contextLabel = vm.contextLabels.isEmpty
+        ? 'No working context selected'
+        : vm.contextLabels.join(' / ');
     return Form(
       child: Builder(
         builder: (formContext) => Column(
@@ -184,52 +187,30 @@ class _StockTransferEditor extends StatelessWidget {
               AppErrorStateView.inline(message: vm.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'Context'),
+              child: Text(contextLabel),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            if (vm.warehouseOptions.isEmpty) ...[
+              AppErrorStateView.inline(
+                message:
+                    'No warehouse found for the selected working context: $contextLabel.',
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+            ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  validator: Validators.requiredSelection('Company'),
-                  onChanged: (value) {
-                    if (!canEdit) return;
-                    vm.onCompanyChanged(value);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: vm.branchOptions
-                      .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
-                      .toList(growable: false),
-                  initialValue: vm.branchId,
-                  validator: Validators.requiredSelection('Branch'),
-                  onChanged: (value) {
-                    if (!canEdit) return;
-                    vm.onBranchChanged(value);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: vm.locationOptions
-                      .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
-                      .toList(growable: false),
-                  initialValue: vm.locationId,
-                  validator: Validators.requiredSelection('Location'),
-                  onChanged: (value) {
-                    if (!canEdit) return;
-                    vm.onLocationChanged(value);
-                  },
-                ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: vm.financialYears
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.financialYearId,
                   validator: Validators.requiredSelection('Financial Year'),
@@ -242,7 +223,12 @@ class _StockTransferEditor extends StatelessWidget {
                   labelText: 'Document Series',
                   mappedItems: vm.seriesOptions
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.documentSeriesId,
                   onChanged: (value) {
@@ -254,7 +240,12 @@ class _StockTransferEditor extends StatelessWidget {
                   labelText: 'From warehouse',
                   mappedItems: vm.warehouseOptions
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.fromWarehouseId,
                   validator: Validators.requiredSelection('From warehouse'),
@@ -267,7 +258,12 @@ class _StockTransferEditor extends StatelessWidget {
                   labelText: 'To warehouse',
                   mappedItems: vm.warehouseOptions
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.toWarehouseId,
                   validator: Validators.requiredSelection('To warehouse'),
@@ -309,8 +305,8 @@ class _StockTransferEditor extends StatelessWidget {
                 Text(
                   'Line Items',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const Spacer(),
                 AppActionButton(
@@ -327,20 +323,28 @@ class _StockTransferEditor extends StatelessWidget {
             else
               ...List<Widget>.generate(vm.lines.length, (index) {
                 final line = vm.lines[index];
-                final fromBatches = vm.batchOptionsForWarehouse(vm.fromWarehouseId, line.itemId);
+                final fromBatches = vm.batchOptionsForWarehouse(
+                  vm.fromWarehouseId,
+                  line.itemId,
+                );
                 final fromSerials = vm.serialOptionsForWarehouse(
                   vm.fromWarehouseId,
                   line.itemId,
                   line.fromBatchId,
                 );
-                final toBatches = vm.batchOptionsForWarehouse(vm.toWarehouseId, line.itemId);
+                final toBatches = vm.batchOptionsForWarehouse(
+                  vm.toWarehouseId,
+                  line.itemId,
+                );
                 final toSerials = vm.serialOptionsForWarehouse(
                   vm.toWarehouseId,
                   line.itemId,
                   line.toBatchId,
                 );
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
                   child: PurchaseCompactLineCard(
                     index: index,
                     total: vm.lines.length,
@@ -376,9 +380,15 @@ class _StockTransferEditor extends StatelessWidget {
                         ),
                         AppDropdownField<int>.fromMapped(
                           labelText: 'UOM',
-                          mappedItems: vm.uomOptionsForItem(line.itemId)
+                          mappedItems: vm
+                              .uomOptionsForItem(line.itemId)
                               .where((u) => u.id != null)
-                              .map((u) => AppDropdownItem<int>(value: u.id!, label: u.toString()))
+                              .map(
+                                (u) => AppDropdownItem<int>(
+                                  value: u.id!,
+                                  label: u.toString(),
+                                ),
+                              )
                               .toList(growable: false),
                           initialValue: line.uomId,
                           validator: Validators.requiredSelection('UOM'),
@@ -391,14 +401,16 @@ class _StockTransferEditor extends StatelessWidget {
                           AppDropdownField<int>.fromMapped(
                             labelText: 'From batch',
                             mappedItems: fromBatches
-                                .map((item) => AppDropdownItem<int>(
-                                      value: intValue(item, 'id')!,
-                                      label: stringValue(
-                                        item,
-                                        'batch_no',
-                                        'Batch',
-                                      ),
-                                    ))
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item, 'id')!,
+                                    label: stringValue(
+                                      item,
+                                      'batch_no',
+                                      'Batch',
+                                    ),
+                                  ),
+                                )
                                 .toList(growable: false),
                             initialValue: line.fromBatchId,
                             onChanged: (value) {
@@ -410,14 +422,16 @@ class _StockTransferEditor extends StatelessWidget {
                           AppDropdownField<int>.fromMapped(
                             labelText: 'From serial',
                             mappedItems: fromSerials
-                                .map((item) => AppDropdownItem<int>(
-                                      value: intValue(item, 'id')!,
-                                      label: stringValue(
-                                        item,
-                                        'serial_no',
-                                        'Serial',
-                                      ),
-                                    ))
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item, 'id')!,
+                                    label: stringValue(
+                                      item,
+                                      'serial_no',
+                                      'Serial',
+                                    ),
+                                  ),
+                                )
                                 .toList(growable: false),
                             initialValue: line.fromSerialId,
                             onChanged: (value) {
@@ -429,14 +443,16 @@ class _StockTransferEditor extends StatelessWidget {
                           AppDropdownField<int>.fromMapped(
                             labelText: 'To batch',
                             mappedItems: toBatches
-                                .map((item) => AppDropdownItem<int>(
-                                      value: intValue(item, 'id')!,
-                                      label: stringValue(
-                                        item,
-                                        'batch_no',
-                                        'Batch',
-                                      ),
-                                    ))
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item, 'id')!,
+                                    label: stringValue(
+                                      item,
+                                      'batch_no',
+                                      'Batch',
+                                    ),
+                                  ),
+                                )
                                 .toList(growable: false),
                             initialValue: line.toBatchId,
                             onChanged: (value) {
@@ -448,14 +464,16 @@ class _StockTransferEditor extends StatelessWidget {
                           AppDropdownField<int>.fromMapped(
                             labelText: 'To serial',
                             mappedItems: toSerials
-                                .map((item) => AppDropdownItem<int>(
-                                      value: intValue(item, 'id')!,
-                                      label: stringValue(
-                                        item,
-                                        'serial_no',
-                                        'Serial',
-                                      ),
-                                    ))
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item, 'id')!,
+                                    label: stringValue(
+                                      item,
+                                      'serial_no',
+                                      'Serial',
+                                    ),
+                                  ),
+                                )
                                 .toList(growable: false),
                             initialValue: line.toSerialId,
                             onChanged: (value) {
@@ -466,29 +484,44 @@ class _StockTransferEditor extends StatelessWidget {
                         AppFormTextField(
                           labelText: 'Transfer qty',
                           controller: line.qtyController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           enabled: canEdit,
-                          validator: Validators.requiredPositiveNumber('Transfer qty'),
+                          validator: Validators.requiredPositiveNumber(
+                            'Transfer qty',
+                          ),
                         ),
                         AppFormTextField(
                           labelText: 'Unit Cost',
                           controller: line.unitCostController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber('Unit Cost'),
+                          validator: Validators.optionalNonNegativeNumber(
+                            'Unit Cost',
+                          ),
                         ),
                         AppFormTextField(
                           labelText: 'Total Cost',
                           controller: line.totalCostController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber('Total Cost'),
+                          validator: Validators.optionalNonNegativeNumber(
+                            'Total Cost',
+                          ),
                         ),
                         AppFormTextField(
                           labelText: 'Remarks',
                           controller: line.remarksController,
                           enabled: canEdit,
-                          validator: Validators.optionalMaxLength(500, 'Line Remarks'),
+                          validator: Validators.optionalMaxLength(
+                            500,
+                            'Line Remarks',
+                          ),
                         ),
                       ],
                     ),

@@ -225,43 +225,24 @@ class _ServiceContractEditor extends StatelessWidget {
               SettingsFormWrap(
                 children: [
                   AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((c) => c.id != null)
-                        .map(
-                          (c) => AppDropdownItem<int>(
-                            value: c.id!,
-                            label: c.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setCompanyId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
                     labelText: 'Customer',
                     doctypeLabel: 'Customer',
                     allowCreate: true,
                     onNavigateToCreateNew: (name) {
-                        final uri = Uri(
-                          path: '/parties',
-                          queryParameters: {
-                            'new': '1',
-                            if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                          },
-                        );
-                        final navigate = ShellRouteScope.maybeOf(context);
-                        if (navigate != null) {
-                          navigate(uri.toString());
-                        } else {
-                          Navigator.of(context).pushNamed(uri.toString());
-                        }
-                      },
+                      final uri = Uri(
+                        path: '/parties',
+                        queryParameters: {
+                          'new': '1',
+                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                        },
+                      );
+                      final navigate = ShellRouteScope.maybeOf(context);
+                      if (navigate != null) {
+                        navigate(uri.toString());
+                      } else {
+                        Navigator.of(context).pushNamed(uri.toString());
+                      }
+                    },
                     mappedItems: vm.parties
                         .where((p) => p.id != null)
                         .map(
@@ -287,10 +268,7 @@ class _ServiceContractEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Document series (for auto number)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.seriesOptions
                           .where((s) => s.id != null)
                           .map(

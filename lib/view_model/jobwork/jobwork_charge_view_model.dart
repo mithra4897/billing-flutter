@@ -10,8 +10,9 @@ class JobworkChargeLineDraft {
     String? rate,
     String? amount,
     String? remarks,
-  }) : serviceDescriptionController =
-           TextEditingController(text: serviceDescription ?? ''),
+  }) : serviceDescriptionController = TextEditingController(
+         text: serviceDescription ?? '',
+       ),
        qtyController = TextEditingController(text: qty ?? '1'),
        rateController = TextEditingController(text: rate ?? '0'),
        amountController = TextEditingController(text: amount ?? '0'),
@@ -74,6 +75,7 @@ class JobworkChargeLineDraft {
 class JobworkChargeViewModel extends ChangeNotifier {
   JobworkChargeViewModel() {
     searchController.addListener(notifyListeners);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
   final JobworkService _service = JobworkService();
@@ -120,21 +122,24 @@ class JobworkChargeViewModel extends ChangeNotifier {
 
   List<JobworkChargeLineDraft> lineDrafts = <JobworkChargeLineDraft>[];
 
+  void _handleWorkingContextChanged() {
+    load(selectId: selected?.id);
+  }
+
   String get chargeStatus => selected?.chargeStatus ?? 'draft';
 
-  bool get isLocked =>
-      chargeStatus == 'posted' || chargeStatus == 'cancelled';
+  bool get isLocked => chargeStatus == 'posted' || chargeStatus == 'cancelled';
 
   bool get canEditLines => chargeStatus == 'draft';
 
   bool get canPost => selected != null && chargeStatus == 'draft';
 
-  bool get canCancelCharge =>
-      selected != null && chargeStatus == 'draft';
+  bool get canCancelCharge => selected != null && chargeStatus == 'draft';
 
   bool get canDelete => selected != null && chargeStatus == 'draft';
 
-  List<BranchModel> get branchOptions => branchesForCompany(branches, companyId);
+  List<BranchModel> get branchOptions =>
+      branchesForCompany(branches, companyId);
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
 
@@ -156,8 +161,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
         .where(
           (s) =>
               (companyId == null || s.companyId == companyId) &&
-              (financialYearId == null ||
-                  s.financialYearId == financialYearId),
+              (financialYearId == null || s.financialYearId == financialYearId),
         )
         .toList();
   }
@@ -168,18 +172,20 @@ class JobworkChargeViewModel extends ChangeNotifier {
 
   List<JobworkChargeModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        row.chargeNo,
-        row.chargeStatus,
-        row.supplierLabel,
-        row.jobworkOrderNoLabel,
-        row.totalAmount.toString(),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            row.chargeNo,
+            row.chargeStatus,
+            row.supplierLabel,
+            row.jobworkOrderNoLabel,
+            row.totalAmount.toString(),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -216,15 +222,17 @@ class JobworkChargeViewModel extends ChangeNotifier {
       ]);
       rows =
           (responses[0] as PaginatedResponse<JobworkChargeModel>).data ??
-              const <JobworkChargeModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[2] as PaginatedResponse<BranchModel>).data ??
-              const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <JobworkChargeModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      branches =
+          ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       locations =
           ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
                   const <BusinessLocationModel>[])
@@ -240,21 +248,34 @@ class JobworkChargeViewModel extends ChangeNotifier {
                   const <DocumentSeriesModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      parties = ((responses[6] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      parties =
+          ((responses[6] as PaginatedResponse<PartyModel>).data ??
+                  const <PartyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       partyTypes =
           (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
-              const <PartyTypeModel>[];
-      items = ((responses[8] as PaginatedResponse<ItemModel>).data ??
-              const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <PartyTypeModel>[];
+      items =
+          ((responses[8] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       jobworkOrders =
           (responses[9] as PaginatedResponse<JobworkOrderModel>).data ??
-              const <JobworkOrderModel>[];
+          const <JobworkOrderModel>[];
 
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: financialYears,
+          );
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
+      financialYearId = contextSelection.financialYearId;
       loading = false;
 
       if (selectId != null) {
@@ -300,17 +321,28 @@ class JobworkChargeViewModel extends ChangeNotifier {
     selectedOrderDetail = null;
     formError = null;
     _disposeLines();
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId ??=
-        financialYears.isNotEmpty ? financialYears.first.id : null;
+    final contextSelection = normalizedWorkingContextSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: financialYears,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+    );
+    companyId = contextSelection.companyId;
+    branchId = contextSelection.branchId;
+    locationId = contextSelection.locationId;
+    financialYearId = contextSelection.financialYearId;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     jobworkOrderId = null;
     supplierPartyId = null;
     chargeNoController.clear();
-    chargeDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    chargeDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     purchaseInvoiceIdController.clear();
     remarksController.clear();
     isActive = true;
@@ -338,8 +370,9 @@ class JobworkChargeViewModel extends ChangeNotifier {
       jobworkOrderId = doc.jobworkOrderId;
       supplierPartyId = doc.supplierPartyId;
       chargeNoController.text = doc.chargeNo;
-      chargeDateController.text =
-          displayDate(doc.chargeDate.isNotEmpty ? doc.chargeDate : null);
+      chargeDateController.text = displayDate(
+        doc.chargeDate.isNotEmpty ? doc.chargeDate : null,
+      );
       purchaseInvoiceIdController.text =
           doc.purchaseInvoiceId?.toString() ?? '';
       remarksController.text = doc.remarks ?? '';
@@ -575,6 +608,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     chargeNoController.dispose();
     chargeDateController.dispose();

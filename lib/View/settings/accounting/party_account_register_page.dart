@@ -415,10 +415,8 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
     final companyItems = <AppDropdownItem<int?>>[
       const AppDropdownItem<int?>(value: null, label: 'All companies'),
       ..._companies.map(
-        (CompanyModel c) => AppDropdownItem<int?>(
-          value: c.id,
-          label: c.toString(),
-        ),
+        (CompanyModel c) =>
+            AppDropdownItem<int?>(value: c.id, label: c.toString()),
       ),
     ];
 
@@ -462,7 +460,9 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                           Expanded(
                             child: Text(
                               'Filter Party Accounts',
-                              style: Theme.of(dialogContext).textTheme.titleLarge
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .titleLarge
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
@@ -481,18 +481,6 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                         runSpacing: 16,
                         children: [
                           _filterBox(
-                            child: AppDropdownField<int?>.fromMapped(
-                              labelText: 'Company',
-                              mappedItems: companyItems,
-                              initialValue: _companyId,
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  _companyId = value;
-                                });
-                              },
-                            ),
-                          ),
-                          _filterBox(
                             child: AppFormTextField(
                               controller: _searchController,
                               labelText: 'Search',
@@ -504,9 +492,8 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                               labelText: 'Purpose',
                               mappedItems: _accountPurposeFilterItems,
                               initialValue: _filterPurpose,
-                              onChanged: (value) => setDialogState(
-                                () => _filterPurpose = value,
-                              ),
+                              onChanged: (value) =>
+                                  setDialogState(() => _filterPurpose = value),
                             ),
                           ),
                           _filterBox(
@@ -514,9 +501,8 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                               labelText: 'Active',
                               mappedItems: _activeFilterItems,
                               initialValue: _filterActive,
-                              onChanged: (value) => setDialogState(
-                                () => _filterActive = value,
-                              ),
+                              onChanged: (value) =>
+                                  setDialogState(() => _filterActive = value),
                             ),
                           ),
                         ],
@@ -600,8 +586,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
         .toList(growable: false);
 
     final canEdit =
-        (_editing == null && _canCreate) ||
-        (_editing != null && _canUpdate);
+        (_editing == null && _canCreate) || (_editing != null && _canUpdate);
 
     return SingleChildScrollView(
       controller: _pageScrollController,
@@ -660,7 +645,9 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                               initialValue: _formAccountId,
                               onChanged: (value) =>
                                   setState(() => _formAccountId = value),
-                              validator: Validators.requiredSelection('Account'),
+                              validator: Validators.requiredSelection(
+                                'Account',
+                              ),
                             ),
                             AppDropdownField<String>.fromMapped(
                               labelText: 'Purpose',
@@ -669,7 +656,9 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                               onChanged: (value) => setState(
                                 () => _formPurpose = value ?? 'primary',
                               ),
-                              validator: Validators.requiredSelection('Purpose'),
+                              validator: Validators.requiredSelection(
+                                'Purpose',
+                              ),
                             ),
                             AppFormTextField(
                               labelText: 'Remarks',
@@ -711,8 +700,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                               ),
                             const Spacer(),
                             FilledButton.icon(
-                              onPressed:
-                                  (_saving || !canEdit) ? null : _save,
+                              onPressed: (_saving || !canEdit) ? null : _save,
                               icon: const Icon(Icons.save_outlined),
                               label: Text(_saving ? 'Saving…' : 'Save'),
                             ),
@@ -767,34 +755,40 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                               DataColumn(label: Text('Active')),
                               DataColumn(label: Text('')),
                             ],
-                            rows: _rows.map((PartyAccountModel row) {
-                              final partyLabel =
-                                  row.partyName?.isNotEmpty == true
-                                  ? row.partyName!
-                                  : (row.partyCode ?? '—');
-                              final accountLabel =
-                                  row.accountName?.isNotEmpty == true
-                                  ? row.accountName!
-                                  : (row.accountCode ?? '—');
-                              final selected = _editing?.id == row.id;
-                              return DataRow(
-                                selected: selected,
-                                cells: [
-                                  DataCell(Text(partyLabel)),
-                                  DataCell(Text(accountLabel)),
-                                  DataCell(Text(row.accountPurpose ?? '—')),
-                                  DataCell(Text(row.isDefault ? 'Yes' : 'No')),
-                                  DataCell(Text(row.isActive ? 'Yes' : 'No')),
-                                  DataCell(
-                                    IconButton(
-                                      tooltip: 'Edit',
-                                      icon: const Icon(Icons.edit_outlined),
-                                      onPressed: () => _editRow(row),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }).toList(growable: false),
+                            rows: _rows
+                                .map((PartyAccountModel row) {
+                                  final partyLabel =
+                                      row.partyName?.isNotEmpty == true
+                                      ? row.partyName!
+                                      : (row.partyCode ?? '—');
+                                  final accountLabel =
+                                      row.accountName?.isNotEmpty == true
+                                      ? row.accountName!
+                                      : (row.accountCode ?? '—');
+                                  final selected = _editing?.id == row.id;
+                                  return DataRow(
+                                    selected: selected,
+                                    cells: [
+                                      DataCell(Text(partyLabel)),
+                                      DataCell(Text(accountLabel)),
+                                      DataCell(Text(row.accountPurpose ?? '—')),
+                                      DataCell(
+                                        Text(row.isDefault ? 'Yes' : 'No'),
+                                      ),
+                                      DataCell(
+                                        Text(row.isActive ? 'Yes' : 'No'),
+                                      ),
+                                      DataCell(
+                                        IconButton(
+                                          tooltip: 'Edit',
+                                          icon: const Icon(Icons.edit_outlined),
+                                          onPressed: () => _editRow(row),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                })
+                                .toList(growable: false),
                           ),
                         ),
                       );

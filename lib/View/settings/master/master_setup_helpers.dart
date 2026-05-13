@@ -143,3 +143,217 @@ List<BusinessLocationModel> locationsForBranch(
       })
       .toList(growable: false);
 }
+
+bool containsMasterId<T>(List<T> items, int? id, int? Function(T item) idOf) {
+  if (id == null) {
+    return false;
+  }
+
+  return items.any((item) => idOf(item) == id);
+}
+
+List<FinancialYearModel> financialYearsForCompany(
+  List<FinancialYearModel> financialYears,
+  int? companyId,
+) {
+  return financialYears
+      .where(
+        (item) =>
+            companyId == null ||
+            item.companyId == null ||
+            item.companyId == companyId,
+      )
+      .toList(growable: false);
+}
+
+int? defaultFinancialYearIdForCompany(
+  List<FinancialYearModel> financialYears,
+  int? companyId, {
+  int? current,
+}) {
+  final scoped = financialYearsForCompany(financialYears, companyId);
+  if (containsMasterId(scoped, current, (item) => item.id)) {
+    return current;
+  }
+  final active = scoped.cast<FinancialYearModel?>().firstWhere(
+    (item) => item?.isCurrent == true,
+    orElse: () => null,
+  );
+  return active?.id ?? (scoped.isNotEmpty ? scoped.first.id : null);
+}
+
+WorkingContextSelection normalizedWorkingContextSelection({
+  required List<CompanyModel> companies,
+  required List<BranchModel> branches,
+  required List<BusinessLocationModel> locations,
+  required List<FinancialYearModel> financialYears,
+  required int? companyId,
+  required int? branchId,
+  required int? locationId,
+  required int? financialYearId,
+}) {
+  final resolvedCompanyId =
+      containsMasterId(companies, companyId, (item) => item.id)
+      ? companyId
+      : (companies.isNotEmpty ? companies.first.id : null);
+  final scopedBranches = branchesForCompany(branches, resolvedCompanyId);
+  final resolvedBranchId =
+      containsMasterId(scopedBranches, branchId, (item) => item.id)
+      ? branchId
+      : (scopedBranches.isNotEmpty ? scopedBranches.first.id : null);
+  final scopedLocations = locationsForBranch(locations, resolvedBranchId);
+  final resolvedLocationId =
+      containsMasterId(scopedLocations, locationId, (item) => item.id)
+      ? locationId
+      : (scopedLocations.isNotEmpty ? scopedLocations.first.id : null);
+  final resolvedFinancialYearId = defaultFinancialYearIdForCompany(
+    financialYears,
+    resolvedCompanyId,
+    current: financialYearId,
+  );
+
+  return WorkingContextSelection(
+    companyId: resolvedCompanyId,
+    branchId: resolvedBranchId,
+    locationId: resolvedLocationId,
+    financialYearId: resolvedFinancialYearId,
+  );
+}
+
+List<String> workingContextLabels({
+  required List<CompanyModel> companies,
+  required List<BranchModel> branches,
+  required List<BusinessLocationModel> locations,
+  required List<FinancialYearModel> financialYears,
+  required int? companyId,
+  required int? branchId,
+  required int? locationId,
+  required int? financialYearId,
+}) {
+  return <String>[
+    companyNameById(companies, companyId),
+    branchNameById(branches, branchId),
+    locationNameById(locations, locationId),
+    financialYears
+            .cast<FinancialYearModel?>()
+            .firstWhere(
+              (item) => item?.id == financialYearId,
+              orElse: () => null,
+            )
+            ?.toString() ??
+        '',
+  ].where((value) => value.trim().isNotEmpty).toList(growable: false);
+}
+
+List<DocumentSeriesModel> documentSeriesForContext({
+  required List<DocumentSeriesModel> documentSeries,
+  required String documentType,
+  required int? companyId,
+  required int? branchId,
+  required int? locationId,
+  required int? financialYearId,
+}) {
+  final options = documentSeries
+      .where(
+        (item) =>
+            item.documentType == null || item.documentType == documentType,
+      )
+      .toList(growable: false);
+  final matchLevels = <List<DocumentSeriesModel> Function()>[
+    () => _matchingDocumentSeries(
+      options,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+    ),
+    () => _matchingDocumentSeries(
+      options,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+      matchFinancialYear: false,
+    ),
+    () => _matchingDocumentSeries(
+      options,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+      matchLocation: false,
+      matchFinancialYear: false,
+    ),
+    () => _matchingDocumentSeries(
+      options,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+      matchBranch: false,
+      matchLocation: false,
+      matchFinancialYear: false,
+    ),
+    () => options,
+  ];
+
+  for (final buildMatches in matchLevels) {
+    final matches = buildMatches();
+    if (matches.isNotEmpty) {
+      return _defaultDocumentSeriesFirst(matches);
+    }
+  }
+
+  return const <DocumentSeriesModel>[];
+}
+
+List<DocumentSeriesModel> _matchingDocumentSeries(
+  List<DocumentSeriesModel> options, {
+  required int? companyId,
+  required int? branchId,
+  required int? locationId,
+  required int? financialYearId,
+  bool matchBranch = true,
+  bool matchLocation = true,
+  bool matchFinancialYear = true,
+}) {
+  return options
+      .where((item) {
+        if (companyId != null &&
+            item.companyId != null &&
+            item.companyId != companyId) {
+          return false;
+        }
+        if (matchBranch &&
+            branchId != null &&
+            item.branchId != null &&
+            item.branchId != branchId) {
+          return false;
+        }
+        if (matchLocation &&
+            locationId != null &&
+            item.locationId != null &&
+            item.locationId != locationId) {
+          return false;
+        }
+        if (matchFinancialYear &&
+            financialYearId != null &&
+            item.financialYearId != null &&
+            item.financialYearId != financialYearId) {
+          return false;
+        }
+        return true;
+      })
+      .toList(growable: false);
+}
+
+List<DocumentSeriesModel> _defaultDocumentSeriesFirst(
+  List<DocumentSeriesModel> options,
+) {
+  return List<DocumentSeriesModel>.from(options)..sort((a, b) {
+    if (a.isDefault != b.isDefault) {
+      return a.isDefault ? -1 : 1;
+    }
+    return (a.id ?? 0).compareTo(b.id ?? 0);
+  });
+}

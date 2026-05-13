@@ -13,16 +13,15 @@ class QcPlanLineDraft {
     this.isMandatory = true,
     String? sequenceNo,
     String? remarks,
-  }) : checkpointNameController =
-           TextEditingController(text: checkpointName ?? ''),
-       specificationController =
-           TextEditingController(text: specification ?? ''),
-       toleranceMinController =
-           TextEditingController(text: toleranceMin ?? ''),
-       toleranceMaxController =
-           TextEditingController(text: toleranceMax ?? ''),
-       expectedTextController =
-           TextEditingController(text: expectedText ?? ''),
+  }) : checkpointNameController = TextEditingController(
+         text: checkpointName ?? '',
+       ),
+       specificationController = TextEditingController(
+         text: specification ?? '',
+       ),
+       toleranceMinController = TextEditingController(text: toleranceMin ?? ''),
+       toleranceMaxController = TextEditingController(text: toleranceMax ?? ''),
+       expectedTextController = TextEditingController(text: expectedText ?? ''),
        unitController = TextEditingController(text: unit ?? ''),
        sequenceNoController = TextEditingController(text: sequenceNo ?? '1'),
        remarksController = TextEditingController(text: remarks ?? '');
@@ -89,6 +88,11 @@ class QcPlanLineDraft {
 class QcPlanViewModel extends ChangeNotifier {
   QcPlanViewModel() {
     searchController.addListener(notifyListeners);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
+
+  void _handleWorkingContextChanged() {
+    load(selectId: selected?.id);
   }
 
   final QualityService _service = QualityService();
@@ -103,7 +107,8 @@ class QcPlanViewModel extends ChangeNotifier {
   final TextEditingController effectiveFromController = TextEditingController();
   final TextEditingController effectiveToController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
-  final TextEditingController samplingMethodController = TextEditingController();
+  final TextEditingController samplingMethodController =
+      TextEditingController();
 
   bool loading = true;
   bool detailLoading = false;
@@ -135,8 +140,7 @@ class QcPlanViewModel extends ChangeNotifier {
 
   String get approvalStatus => selected?.approvalStatus ?? 'draft';
 
-  bool get canEdit =>
-      selected == null || approvalStatus == 'draft';
+  bool get canEdit => selected == null || approvalStatus == 'draft';
 
   bool get canApprove =>
       selected != null &&
@@ -154,19 +158,22 @@ class QcPlanViewModel extends ChangeNotifier {
 
   bool get canEditLines => canEdit;
 
-  List<BranchModel> get branchOptions => branchesForCompany(branches, companyId);
+  List<BranchModel> get branchOptions =>
+      branchesForCompany(branches, companyId);
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
 
-  List<ItemModel> get itemOptions => items.where((i) {
-    if (i.id == null) {
-      return false;
-    }
-    return companyId == null || i.companyId == companyId;
-  }).toList(growable: false);
+  List<ItemModel> get itemOptions => items
+      .where((i) {
+        if (i.id == null) {
+          return false;
+        }
+        return companyId == null || i.companyId == companyId;
+      })
+      .toList(growable: false);
 
-  List<ItemCategoryModel> get categoryOptions =>
-      itemCategories.where((c) {
+  List<ItemCategoryModel> get categoryOptions => itemCategories
+      .where((c) {
         if (c.id == null) {
           return false;
         }
@@ -178,23 +185,26 @@ class QcPlanViewModel extends ChangeNotifier {
             ? int.tryParse(raw['company_id']?.toString() ?? '')
             : null;
         return cid == null || cid == companyId;
-      }).toList(growable: false);
+      })
+      .toList(growable: false);
 
   List<QcPlanModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        row.planCode,
-        row.planName,
-        row.approvalStatus,
-        row.qcScope,
-        row.itemLabel,
-        row.categoryLabel,
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            row.planCode,
+            row.planName,
+            row.approvalStatus,
+            row.qcScope,
+            row.itemLabel,
+            row.categoryLabel,
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -225,29 +235,43 @@ class QcPlanViewModel extends ChangeNotifier {
       ]);
       rows =
           (responses[0] as PaginatedResponse<QcPlanModel>).data ??
-              const <QcPlanModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[2] as PaginatedResponse<BranchModel>).data ??
-              const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <QcPlanModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      branches =
+          ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       locations =
           ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
                   const <BusinessLocationModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      items = ((responses[4] as PaginatedResponse<ItemModel>).data ??
-              const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      items =
+          ((responses[4] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       itemCategories =
           ((responses[5] as PaginatedResponse<ItemCategoryModel>).data ??
                   const <ItemCategoryModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: const <FinancialYearModel>[],
+          );
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
 
       loading = false;
 
@@ -274,9 +298,19 @@ class QcPlanViewModel extends ChangeNotifier {
     selected = null;
     formError = null;
     _disposeLines();
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
+    final contextSelection = normalizedWorkingContextSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: const <FinancialYearModel>[],
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: null,
+    );
+    companyId = contextSelection.companyId;
+    branchId = contextSelection.branchId;
+    locationId = contextSelection.locationId;
     planCodeController.clear();
     planNameController.clear();
     itemId = null;
@@ -441,8 +475,7 @@ class QcPlanViewModel extends ChangeNotifier {
     if (!canEditLines) {
       return;
     }
-    lineDrafts = List<QcPlanLineDraft>.from(lineDrafts)
-      ..add(QcPlanLineDraft());
+    lineDrafts = List<QcPlanLineDraft>.from(lineDrafts)..add(QcPlanLineDraft());
     notifyListeners();
   }
 
@@ -481,9 +514,7 @@ class QcPlanViewModel extends ChangeNotifier {
         }
         final tMin = double.tryParse(d.toleranceMinController.text.trim());
         final tMax = double.tryParse(d.toleranceMaxController.text.trim());
-        if (tMin != null &&
-            tMax != null &&
-            tMin > tMax) {
+        if (tMin != null && tMax != null && tMin > tMax) {
           return 'Tolerance min cannot exceed tolerance max.';
         }
       }
@@ -611,6 +642,7 @@ class QcPlanViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     planCodeController.dispose();
     planNameController.dispose();

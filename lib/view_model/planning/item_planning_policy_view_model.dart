@@ -32,6 +32,13 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
 
   ItemPlanningPolicyViewModel() {
     searchController.addListener(notifyListeners);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
+
+  void _handleWorkingContextChanged() {
+    final id =
+        intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    load(selectId: id);
   }
 
   List<ItemPlanningPolicyModel> get filteredRows {
@@ -81,6 +88,14 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
               const <ItemModel>[])
           .where((x) => x.isActive)
           .toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: const <BranchModel>[],
+            locations: const <BusinessLocationModel>[],
+            financialYears: const <FinancialYearModel>[],
+          );
+      companyId = contextSelection.companyId;
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<ItemPlanningPolicyModel?>().firstWhere(
@@ -236,6 +251,7 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     planningMethodController.dispose();
     procurementTypeController.dispose();

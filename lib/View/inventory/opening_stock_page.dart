@@ -175,6 +175,9 @@ class _OpeningStockEditor extends StatelessWidget {
     }
 
     final canEdit = vm.status == 'draft';
+    final contextLabel = vm.contextLabels.isEmpty
+        ? 'No working context selected'
+        : vm.contextLabels.join(' / ');
     return Form(
       child: Builder(
         builder: (formContext) => Column(
@@ -184,68 +187,13 @@ class _OpeningStockEditor extends StatelessWidget {
               AppErrorStateView.inline(message: vm.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'Context'),
+              child: Text(contextLabel),
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  validator: Validators.requiredSelection('Company'),
-                  onChanged: (value) {
-                    if (!canEdit) {
-                      return;
-                    }
-                    vm.onCompanyChanged(value);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: vm.branchOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.branchId,
-                  validator: Validators.requiredSelection('Branch'),
-                  onChanged: (value) {
-                    if (!canEdit) {
-                      return;
-                    }
-                    vm.onBranchChanged(value);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: vm.locationOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.locationId,
-                  validator: Validators.requiredSelection('Location'),
-                  onChanged: (value) {
-                    if (!canEdit) {
-                      return;
-                    }
-                    vm.onLocationChanged(value);
-                  },
-                ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: vm.financialYears
@@ -313,6 +261,13 @@ class _OpeningStockEditor extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
+            if (vm.warehouseOptions.isEmpty) ...[
+              AppErrorStateView.inline(
+                message:
+                    'No warehouse found for the selected working context: $contextLabel.',
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+            ],
             Row(
               children: [
                 Text(
@@ -417,15 +372,23 @@ class _OpeningStockEditor extends StatelessWidget {
                           },
                         ),
                         if (vm.isBatchManagedItem(line.itemId))
-                          AppFormTextField(
+                          ErpLinkField<int>(
                             labelText: 'Batch',
-                            controller: line.batchNoController,
+                            doctypeLabel: 'batch',
                             enabled: canEdit,
-                            validator: (value) {
+                            initialSelection: vm.selectedBatchOption(line),
+                            options: vm.batchFieldOptions(
+                              line.itemId,
+                              line.warehouseId,
+                            ),
+                            allowCreate: canEdit,
+                            validator: (_) {
                               if (!vm.isBatchManagedItem(line.itemId)) {
                                 return null;
                               }
-                              if ((value ?? '').trim().isEmpty) {
+                              final hasBatchNo =
+                                  line.batchNoController.text.trim().isNotEmpty;
+                              if (!hasBatchNo) {
                                 return 'Batch is required';
                               }
                               return null;
@@ -434,8 +397,15 @@ class _OpeningStockEditor extends StatelessWidget {
                               if (!canEdit) {
                                 return;
                               }
-                              vm.onLineBatchInputChanged(index, value);
+                              vm.onLineBatchChanged(index, value);
                             },
+                            onCreateNew: canEdit
+                                ? (query) => vm.createBatchForLine(index, query)
+                                : null,
+                            createNewLabelBuilder: (query, _) =>
+                                'Create batch "$query"',
+                            emptyMessageBuilder: (_, _) =>
+                                'No batches found for the selected item and warehouse',
                           ),
                         if (vm.isSerialManagedItem(line.itemId))
                           AppSerialNumbersField(

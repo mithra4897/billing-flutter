@@ -133,9 +133,7 @@ class _JobworkReceiptPageState extends State<JobworkReceiptPage> {
           return SettingsListTile(
             title: row.receiptNo.isNotEmpty ? row.receiptNo : 'Draft',
             subtitle: [
-              displayDate(
-                row.receiptDate.isNotEmpty ? row.receiptDate : null,
-              ),
+              displayDate(row.receiptDate.isNotEmpty ? row.receiptDate : null),
               row.receiptStatus,
             ].where((v) => v.trim().isNotEmpty).join(' · '),
             detail: row.supplierLabel,
@@ -215,57 +213,6 @@ class _JobworkReceiptEditor extends StatelessWidget {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (!locked) vm.onCompanyChanged(v);
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Branch',
-                    mappedItems: vm.branchOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.branchId,
-                    onChanged: (int? v) {
-                      if (!locked) vm.onBranchChanged(v);
-                    },
-                    validator: Validators.requiredSelection('Branch'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Location',
-                    mappedItems: vm.locationOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.locationId,
-                    onChanged: (int? v) {
-                      if (!locked) vm.onLocationChanged(v);
-                    },
-                    validator: Validators.requiredSelection('Location'),
-                  ),
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Financial year',
                     mappedItems: vm.financialYears
@@ -442,8 +389,8 @@ class _JobworkReceiptEditor extends StatelessWidget {
                   Text(
                     'Lines',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const Spacer(),
                   AppActionButton(
@@ -464,12 +411,15 @@ class _JobworkReceiptEditor extends StatelessWidget {
                       .map(
                         (o) => AppDropdownItem<int?>(
                           value: o.id,
-                          label: 'Out line ${o.lineNo} · planned ${o.plannedQty}',
+                          label:
+                              'Out line ${o.lineNo} · planned ${o.plannedQty}',
                         ),
                       ),
                 ];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
                   child: PurchaseCompactLineCard(
                     index: index,
                     total: vm.lineDrafts.length,

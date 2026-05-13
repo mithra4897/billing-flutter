@@ -119,11 +119,23 @@ class WorkingContextService {
     final scopedBranches = branches
         .where((BranchModel item) => resolvedCompanyId == null || item.companyId == resolvedCompanyId)
         .toList(growable: false);
-    final resolvedBranchId = _resolveBranchId(scopedBranches, storedBranchId);
+    final resolvedBranchId = _resolveBranchId(
+      scopedBranches,
+      storedBranchId,
+      forceSingleOption: resolvedCompanyId != null,
+    );
     final scopedLocations = locations
-        .where((BusinessLocationModel item) => resolvedBranchId == null || item.branchId == resolvedBranchId)
+        .where(
+          (BusinessLocationModel item) =>
+              (resolvedCompanyId == null || item.companyId == resolvedCompanyId) &&
+              (resolvedBranchId == null || item.branchId == resolvedBranchId),
+        )
         .toList(growable: false);
-    final resolvedLocationId = _resolveLocationId(scopedLocations, storedLocationId);
+    final resolvedLocationId = _resolveLocationId(
+      scopedLocations,
+      storedLocationId,
+      forceSingleOption: resolvedBranchId != null || resolvedCompanyId != null,
+    );
     final scopedFinancialYears = financialYears
         .where((FinancialYearModel item) => resolvedCompanyId == null || item.companyId == resolvedCompanyId)
         .toList(growable: false);
@@ -168,7 +180,14 @@ class WorkingContextService {
     return companies.first.id;
   }
 
-  int? _resolveBranchId(List<BranchModel> branches, int? preferredId) {
+  int? _resolveBranchId(
+    List<BranchModel> branches,
+    int? preferredId, {
+    bool forceSingleOption = false,
+  }) {
+    if (forceSingleOption && branches.length == 1) {
+      return branches.first.id;
+    }
     if (preferredId != null && branches.any((BranchModel item) => item.id == preferredId)) {
       return preferredId;
     }
@@ -180,8 +199,12 @@ class WorkingContextService {
 
   int? _resolveLocationId(
     List<BusinessLocationModel> locations,
-    int? preferredId,
-  ) {
+    int? preferredId, {
+    bool forceSingleOption = false,
+  }) {
+    if (forceSingleOption && locations.length == 1) {
+      return locations.first.id;
+    }
     if (preferredId != null &&
         locations.any((BusinessLocationModel item) => item.id == preferredId)) {
       return preferredId;

@@ -157,9 +157,7 @@ class _JobworkOrderPageState extends State<JobworkOrderPage> {
           return SettingsListTile(
             title: row.jobworkNo.isNotEmpty ? row.jobworkNo : 'Draft',
             subtitle: [
-              displayDate(
-                row.jobworkDate.isNotEmpty ? row.jobworkDate : null,
-              ),
+              displayDate(row.jobworkDate.isNotEmpty ? row.jobworkDate : null),
               row.jobworkStatus,
             ].where((v) => v.trim().isNotEmpty).join(' · '),
             detail: row.supplierLabel,
@@ -252,57 +250,14 @@ class _JobworkOrderEditor extends StatelessWidget {
               SettingsFormWrap(
                 children: [
                   AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) =>
-                              AppDropdownItem<int>(value: x.id!, label: x.toString()),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (!locked) vm.onCompanyChanged(v);
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Branch',
-                    mappedItems: vm.branchOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) =>
-                              AppDropdownItem<int>(value: x.id!, label: x.toString()),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.branchId,
-                    onChanged: (int? v) {
-                      if (!locked) vm.onBranchChanged(v);
-                    },
-                    validator: Validators.requiredSelection('Branch'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Location',
-                    mappedItems: vm.locationOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) =>
-                              AppDropdownItem<int>(value: x.id!, label: x.toString()),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.locationId,
-                    onChanged: (int? v) {
-                      if (!locked) vm.onLocationChanged(v);
-                    },
-                    validator: Validators.requiredSelection('Location'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
                     labelText: 'Financial year',
                     mappedItems: vm.financialYears
                         .where((x) => x.id != null)
                         .map(
-                          (x) =>
-                              AppDropdownItem<int>(value: x.id!, label: x.toString()),
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
                         )
                         .toList(growable: false),
                     initialValue: vm.financialYearId,
@@ -316,8 +271,10 @@ class _JobworkOrderEditor extends StatelessWidget {
                     mappedItems: vm.seriesOptions
                         .where((x) => x.id != null)
                         .map(
-                          (x) =>
-                              AppDropdownItem<int>(value: x.id!, label: x.toString()),
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
                         )
                         .toList(growable: false),
                     initialValue: vm.documentSeriesId,
@@ -345,8 +302,10 @@ class _JobworkOrderEditor extends StatelessWidget {
                     mappedItems: vm.supplierOptions
                         .where((x) => x.id != null)
                         .map(
-                          (x) =>
-                              AppDropdownItem<int>(value: x.id!, label: x.toString()),
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
                         )
                         .toList(growable: false),
                     initialValue: vm.supplierPartyId,
@@ -400,8 +359,10 @@ class _JobworkOrderEditor extends StatelessWidget {
                     mappedItems: vm.warehouseOptions
                         .where((x) => x.id != null)
                         .map(
-                          (x) =>
-                              AppDropdownItem<int>(value: x.id!, label: x.toString()),
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
                         )
                         .toList(growable: false),
                     initialValue: vm.issueWarehouseId,
@@ -415,15 +376,19 @@ class _JobworkOrderEditor extends StatelessWidget {
                     mappedItems: vm.warehouseOptions
                         .where((x) => x.id != null)
                         .map(
-                          (x) =>
-                              AppDropdownItem<int>(value: x.id!, label: x.toString()),
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
                         )
                         .toList(growable: false),
                     initialValue: vm.receiptWarehouseId,
                     onChanged: (int? v) {
                       if (!locked) vm.setReceiptWarehouseId(v);
                     },
-                    validator: Validators.requiredSelection('Receipt warehouse'),
+                    validator: Validators.requiredSelection(
+                      'Receipt warehouse',
+                    ),
                   ),
                   AppFormTextField(
                     labelText: 'Expected return date',
@@ -446,8 +411,8 @@ class _JobworkOrderEditor extends StatelessWidget {
                   Text(
                     'Materials sent',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const Spacer(),
                   AppActionButton(
@@ -462,12 +427,16 @@ class _JobworkOrderEditor extends StatelessWidget {
               ...List<Widget>.generate(vm.materialDrafts.length, (index) {
                 final line = vm.materialDrafts[index];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
                   child: PurchaseCompactLineCard(
                     index: index,
                     total: vm.materialDrafts.length,
                     removeEnabled: editLines && vm.materialDrafts.length > 1,
-                    onRemove: editLines ? () => vm.removeMaterialLine(index) : null,
+                    onRemove: editLines
+                        ? () => vm.removeMaterialLine(index)
+                        : null,
                     child: PurchaseCompactFieldGrid(
                       children: [
                         AppSearchPickerField<int>(
@@ -537,7 +506,9 @@ class _JobworkOrderEditor extends StatelessWidget {
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
-                          validator: Validators.requiredPositiveNumber('Planned qty'),
+                          validator: Validators.requiredPositiveNumber(
+                            'Planned qty',
+                          ),
                         ),
                         AppFormTextField(
                           labelText: 'Remarks',
@@ -555,8 +526,8 @@ class _JobworkOrderEditor extends StatelessWidget {
                   Text(
                     'Outputs expected',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const Spacer(),
                   AppActionButton(
@@ -571,12 +542,16 @@ class _JobworkOrderEditor extends StatelessWidget {
               ...List<Widget>.generate(vm.outputDrafts.length, (index) {
                 final line = vm.outputDrafts[index];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
                   child: PurchaseCompactLineCard(
                     index: index,
                     total: vm.outputDrafts.length,
                     removeEnabled: editLines && vm.outputDrafts.length > 1,
-                    onRemove: editLines ? () => vm.removeOutputLine(index) : null,
+                    onRemove: editLines
+                        ? () => vm.removeOutputLine(index)
+                        : null,
                     child: PurchaseCompactFieldGrid(
                       children: [
                         AppSearchPickerField<int>(
@@ -646,7 +621,9 @@ class _JobworkOrderEditor extends StatelessWidget {
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
-                          validator: Validators.requiredPositiveNumber('Planned qty'),
+                          validator: Validators.requiredPositiveNumber(
+                            'Planned qty',
+                          ),
                         ),
                         AppFormTextField(
                           labelText: 'Remarks',

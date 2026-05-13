@@ -52,7 +52,6 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _enquiryNoController = TextEditingController();
   final TextEditingController _enquiryDateController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
@@ -84,6 +83,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   int? _expandedLineIndex;
   int? _expandedFollowupIndex;
   Map<String, dynamic>? _salesChain;
+  BuildContext? _primaryFormContext;
 
   String _normalizedStageType(CrmStageModel stage) {
     return stringValue(stage.toJson(), 'stage_type').trim().toLowerCase();
@@ -538,8 +538,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     });
   }
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> _save(BuildContext formContext) async {
+    if (!Form.of(formContext).validate()) {
       return;
     }
 
@@ -802,182 +802,174 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
 
   Widget _buildPrimaryTab() {
     return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_formError != null) ...[
-            AppErrorStateView.inline(message: _formError!),
-            const SizedBox(height: AppUiConstants.spacingSm),
-          ],
-          if (intValue(_selectedItem?.toJson() ?? const {}, 'id') != null) ...[
-            CrmSalesPipelineBar(data: _salesChain),
-            if (_pipelineOpportunityId() != null) ...[
-              AppActionButton(
-                icon: Icons.request_quote_outlined,
-                label: 'New quotation (this deal)',
-                filled: false,
-                onPressed: () => openModuleShellRoute(
-                  context,
-                  '/sales/quotations/new?crm_opportunity_id=${_pipelineOpportunityId()}',
-                ),
-              ),
-              const SizedBox(height: AppUiConstants.spacingSm),
-            ],
-          ],
-          SettingsFormWrap(
+      child: Builder(
+        builder: (formContext) {
+          _primaryFormContext = formContext;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Company',
-                mappedItems: _companies
-                    .where((item) => item.id != null)
-                    .map(
-                      (item) => AppDropdownItem(
-                        value: item.id!,
-                        label: item.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
-                initialValue: _companyId,
-                onChanged: (value) => setState(() => _companyId = value),
-                validator: Validators.requiredSelection('Company'),
-              ),
-              AppFormTextField(
-                controller: _enquiryNoController,
-                labelText: 'Enquiry No',
-                hintText: 'Leave blank — we assign a number for you',
-              ),
-              AppDateSelectorField(
-                controller: _enquiryDateController,
-                labelText: 'Enquiry Date',
-                onTap: _pickEnquiryDate,
-              ),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 300),
-                child: ErpLinkField<int>(
-                  labelText: 'Lead',
-                  doctypeLabel: 'Lead',
-                  allowCreate: true,
-                  hintText: 'Search or create lead',
-                  initialSelection: _selectedLeadOption(),
-                  search: _searchLeadOptions,
-                  onNavigateToCreateNew: _openNewLeadForm,
-                  onChanged: (value) {
-                    setState(() {
-                      _leadId = value;
-                      _formError = null;
-                    });
-                  },
-                ),
-              ),
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Customer',
-                doctypeLabel: 'Customer',
-                allowCreate: true,
-                onNavigateToCreateNew: (name) {
-                  final uri = Uri(
-                    path: '/parties',
-                    queryParameters: {
-                      'new': '1',
-                      if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                    },
-                  );
-                  openModuleShellRoute(context, uri.toString());
-                },
-                mappedItems: _customers
-                    .where((item) => item.id != null)
-                    .map(
-                      (item) => AppDropdownItem(
-                        value: item.id!,
-                        label: item.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
-                initialValue: _customerPartyId,
-                onChanged: (value) => setState(() => _customerPartyId = value),
-              ),
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Stage',
-                mappedItems: _stages
-                    .where((item) => intValue(item.toJson(), 'id') != null)
-                    .map(
-                      (item) => AppDropdownItem(
-                        value: intValue(item.toJson(), 'id')!,
-                        label: item.toString(),
-                      ),
-                    )
-                    .toList(growable: false),
-                initialValue: _stageId,
-                onChanged: (value) => setState(() => _stageId = value),
-              ),
-              AppDropdownField<int>.fromMapped(
-                labelText: 'Assigned To',
-                mappedItems: _users
-                    .where((item) => item.id != null)
-                    .map(
-                      (item) => AppDropdownItem(
-                        value: item.id!,
-                        label: item.displayName ?? item.username ?? '',
-                      ),
-                    )
-                    .toList(growable: false),
-                initialValue: _assignedTo,
-                onChanged: (value) => setState(() => _assignedTo = value),
-              ),
-              AppDropdownField<String>.fromMapped(
-                labelText: 'Status',
-                mappedItems: _statusItems,
-                initialValue: _enquiryStatus,
-                onChanged: (value) =>
-                    setState(() => _enquiryStatus = value ?? _enquiryStatus),
-              ),
-              AppFormTextField(
-                controller: _remarksController,
-                labelText: 'Remarks',
-                maxLines: 3,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
-            children: [
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: _selectedItem == null
-                    ? 'Save Enquiry'
-                    : 'Update Enquiry',
-                onPressed: _save,
-                busy: _saving,
-              ),
-              if (_selectedItem != null) ...[
-                AppActionButton(
-                  icon: Icons.auto_graph_outlined,
-                  label: 'Start deal',
-                  filled: false,
-                  onPressed:
-                      (_pipelineOpportunityId() != null ||
-                          _enquiryStatus == 'converted')
-                      ? null
-                      : _convert,
-                ),
-                AppActionButton(
-                  icon: Icons.cancel_outlined,
-                  label: 'Lose',
-                  filled: false,
-                  onPressed: _lose,
-                ),
-                AppActionButton(
-                  icon: Icons.delete_outline,
-                  label: 'Delete',
-                  filled: false,
-                  onPressed: _delete,
-                ),
+              if (_formError != null) ...[
+                AppErrorStateView.inline(message: _formError!),
+                const SizedBox(height: AppUiConstants.spacingSm),
               ],
+              if (intValue(_selectedItem?.toJson() ?? const {}, 'id') !=
+                  null) ...[
+                CrmSalesPipelineBar(data: _salesChain),
+                if (_pipelineOpportunityId() != null) ...[
+                  AppActionButton(
+                    icon: Icons.request_quote_outlined,
+                    label: 'New quotation (this deal)',
+                    filled: false,
+                    onPressed: () => openModuleShellRoute(
+                      context,
+                      '/sales/quotations/new?crm_opportunity_id=${_pipelineOpportunityId()}',
+                    ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                ],
+              ],
+              SettingsFormWrap(
+                children: [
+                  AppFormTextField(
+                    controller: _enquiryNoController,
+                    labelText: 'Enquiry No',
+                    hintText: 'Leave blank — we assign a number for you',
+                  ),
+                  AppDateSelectorField(
+                    controller: _enquiryDateController,
+                    labelText: 'Enquiry Date',
+                    onTap: _pickEnquiryDate,
+                  ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 300),
+                    child: ErpLinkField<int>(
+                      labelText: 'Lead',
+                      doctypeLabel: 'Lead',
+                      allowCreate: true,
+                      hintText: 'Search or create lead',
+                      initialSelection: _selectedLeadOption(),
+                      search: _searchLeadOptions,
+                      onNavigateToCreateNew: _openNewLeadForm,
+                      onChanged: (value) {
+                        setState(() {
+                          _leadId = value;
+                          _formError = null;
+                        });
+                      },
+                    ),
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Customer',
+                    doctypeLabel: 'Customer',
+                    allowCreate: true,
+                    onNavigateToCreateNew: (name) {
+                      final uri = Uri(
+                        path: '/parties',
+                        queryParameters: {
+                          'new': '1',
+                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                        },
+                      );
+                      openModuleShellRoute(context, uri.toString());
+                    },
+                    mappedItems: _customers
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: _customerPartyId,
+                    onChanged: (value) =>
+                        setState(() => _customerPartyId = value),
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Stage',
+                    mappedItems: _stages
+                        .where((item) => intValue(item.toJson(), 'id') != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: intValue(item.toJson(), 'id')!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: _stageId,
+                    onChanged: (value) => setState(() => _stageId = value),
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Assigned To',
+                    mappedItems: _users
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.displayName ?? item.username ?? '',
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: _assignedTo,
+                    onChanged: (value) => setState(() => _assignedTo = value),
+                  ),
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Status',
+                    mappedItems: _statusItems,
+                    initialValue: _enquiryStatus,
+                    onChanged: (value) => setState(
+                      () => _enquiryStatus = value ?? _enquiryStatus,
+                    ),
+                  ),
+                  AppFormTextField(
+                    controller: _remarksController,
+                    labelText: 'Remarks',
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Wrap(
+                spacing: AppUiConstants.spacingSm,
+                runSpacing: AppUiConstants.spacingSm,
+                children: [
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: _selectedItem == null
+                        ? 'Save Enquiry'
+                        : 'Update Enquiry',
+                    onPressed: () => _save(formContext),
+                    busy: _saving,
+                  ),
+                  if (_selectedItem != null) ...[
+                    AppActionButton(
+                      icon: Icons.auto_graph_outlined,
+                      label: 'Start deal',
+                      filled: false,
+                      onPressed:
+                          (_pipelineOpportunityId() != null ||
+                              _enquiryStatus == 'converted')
+                          ? null
+                          : _convert,
+                    ),
+                    AppActionButton(
+                      icon: Icons.cancel_outlined,
+                      label: 'Lose',
+                      filled: false,
+                      onPressed: _lose,
+                    ),
+                    AppActionButton(
+                      icon: Icons.delete_outline,
+                      label: 'Delete',
+                      filled: false,
+                      onPressed: _delete,
+                    ),
+                  ],
+                ],
+              ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -1081,7 +1073,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             AppActionButton(
               icon: Icons.save_outlined,
               label: _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
-              onPressed: _save,
+              onPressed: () => _save(_primaryFormContext ?? context),
               busy: _saving,
             ),
           ],
@@ -1199,7 +1191,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             AppActionButton(
               icon: Icons.save_outlined,
               label: _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
-              onPressed: _save,
+              onPressed: () => _save(_primaryFormContext ?? context),
               busy: _saving,
             ),
           ],

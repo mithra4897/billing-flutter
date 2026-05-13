@@ -232,25 +232,6 @@ class _AmcContractEditor extends StatelessWidget {
               SettingsFormWrap(
                 children: [
                   AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((c) => c.id != null)
-                        .map(
-                          (c) => AppDropdownItem<int>(
-                            value: c.id!,
-                            label: c.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setCompanyId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
                     labelText: 'Vendor',
                     mappedItems: vm.vendorOptions
                         .where((p) => p.id != null)
@@ -277,10 +258,7 @@ class _AmcContractEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Document series (for auto number)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.seriesOptions
                           .where((s) => s.id != null)
                           .map(

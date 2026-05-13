@@ -61,9 +61,7 @@ class _MaintenanceWorkOrderPageState extends State<MaintenanceWorkOrderPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete work order'),
-        content: const Text(
-          'Only draft work orders can be deleted. Continue?',
-        ),
+        content: const Text('Only draft work orders can be deleted. Continue?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -229,9 +227,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
 
     final theme = Theme.of(context);
     final detail = vm.selected?.toJson();
-    final spare = detail == null
-        ? ''
-        : stringValue(detail, 'spare_cost');
+    final spare = detail == null ? '' : stringValue(detail, 'spare_cost');
     final extSvc = detail == null
         ? ''
         : stringValue(detail, 'external_service_cost');
@@ -283,33 +279,11 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((c) => c.id != null)
-                        .map(
-                          (c) => AppDropdownItem<int>(
-                            value: c.id!,
-                            label: c.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (vm.canEdit) {
-                        vm.setCompanyId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
                   if (vm.selected == null) ...[
                     AppDropdownField<int?>.fromMapped(
                       labelText: 'Document series (for auto no.)',
                       mappedItems: [
-                        const AppDropdownItem<int?>(
-                          value: null,
-                          label: '—',
-                        ),
+                        const AppDropdownItem<int?>(value: null, label: '—'),
                         ...vm.seriesOptions
                             .where((s) => s.id != null)
                             .map(
@@ -360,59 +334,11 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                     },
                     validator: Validators.requiredSelection('Asset'),
                   ),
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Branch',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
-                      ...vm.branchOptions
-                          .where((b) => b.id != null)
-                          .map(
-                            (b) => AppDropdownItem<int?>(
-                              value: b.id,
-                              label: b.toString(),
-                            ),
-                          ),
-                    ],
-                    initialValue: vm.branchId,
-                    onChanged: (int? v) {
-                      if (vm.canEdit) {
-                        vm.setBranchId(v);
-                      }
-                    },
-                  ),
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Location',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
-                      ...vm.locationOptions
-                          .where((l) => l.id != null)
-                          .map(
-                            (l) => AppDropdownItem<int?>(
-                              value: l.id,
-                              label: l.toString(),
-                            ),
-                          ),
-                    ],
-                    initialValue: vm.locationId,
-                    onChanged: (int? v) {
-                      if (vm.canEdit) {
-                        vm.setLocationId(v);
-                      }
-                    },
-                  ),
+
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Financial year',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.financialYearOptions
                           .where((fy) => fy.id != null)
                           .map(
@@ -432,10 +358,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Maintenance request',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.maintenanceRequests
                           .where((r) => intValue(r.toJson(), 'id') != null)
                           .map(
@@ -455,19 +378,17 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Maintenance plan',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.maintenancePlans
                           .where((p) => intValue(p.toJson(), 'id') != null)
                           .map((p) {
                             final d = p.toJson();
                             final code = stringValue(d, 'plan_code');
                             final name = stringValue(d, 'plan_name');
-                            final label = [code, name]
-                                .where((x) => x.trim().isNotEmpty)
-                                .join(' — ');
+                            final label = [
+                              code,
+                              name,
+                            ].where((x) => x.trim().isNotEmpty).join(' — ');
                             return AppDropdownItem<int?>(
                               value: intValue(d, 'id'),
                               label: label.isNotEmpty
@@ -486,10 +407,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Vendor',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.vendorOptions
                           .where((p) => p.id != null)
                           .map(
@@ -588,9 +506,14 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                     ),
                     readOnly: !vm.canEdit,
                   ),
-                  if (vm.selected != null && (spare.isNotEmpty || extSvc.isNotEmpty || total.isNotEmpty))
+                  if (vm.selected != null &&
+                      (spare.isNotEmpty ||
+                          extSvc.isNotEmpty ||
+                          total.isNotEmpty))
                     Padding(
-                      padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                      padding: const EdgeInsets.only(
+                        bottom: AppUiConstants.spacingSm,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [

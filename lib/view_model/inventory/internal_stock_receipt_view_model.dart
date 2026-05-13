@@ -4,12 +4,18 @@ import 'package:billing/view/purchase/purchase_support.dart';
 /// Backend `receipt_source` enum values; labels are UI-facing.
 const List<AppDropdownItem<String>> internalStockReceiptSourceItems =
     <AppDropdownItem<String>>[
-  AppDropdownItem<String>(value: 'department_return', label: 'Department return'),
-  AppDropdownItem<String>(value: 'sample_return', label: 'Sample return'),
-  AppDropdownItem<String>(value: 'jobwork_return', label: 'Jobwork return'),
-  AppDropdownItem<String>(value: 'production_return', label: 'Production return'),
-  AppDropdownItem<String>(value: 'other', label: 'Other'),
-];
+      AppDropdownItem<String>(
+        value: 'department_return',
+        label: 'Department return',
+      ),
+      AppDropdownItem<String>(value: 'sample_return', label: 'Sample return'),
+      AppDropdownItem<String>(value: 'jobwork_return', label: 'Jobwork return'),
+      AppDropdownItem<String>(
+        value: 'production_return',
+        label: 'Production return',
+      ),
+      AppDropdownItem<String>(value: 'other', label: 'Other'),
+    ];
 
 class InternalStockReceiptLineDraft {
   InternalStockReceiptLineDraft({
@@ -24,13 +30,13 @@ class InternalStockReceiptLineDraft {
     String? unitCost,
     String? totalCost,
     String? remarks,
-  })  : batchNoController = TextEditingController(text: batchNo ?? ''),
-        qtyController = TextEditingController(text: qty ?? ''),
-        unitCostController = TextEditingController(text: unitCost ?? ''),
-        totalCostController = TextEditingController(text: totalCost ?? ''),
-        remarksController = TextEditingController(text: remarks ?? ''),
-        serialIds = List<int>.from(serialIds ?? const <int>[]),
-        serialNumbers = List<String>.from(serialNumbers ?? const <String>[]);
+  }) : batchNoController = TextEditingController(text: batchNo ?? ''),
+       qtyController = TextEditingController(text: qty ?? ''),
+       unitCostController = TextEditingController(text: unitCost ?? ''),
+       totalCostController = TextEditingController(text: totalCost ?? ''),
+       remarksController = TextEditingController(text: remarks ?? ''),
+       serialIds = List<int>.from(serialIds ?? const <int>[]),
+       serialNumbers = List<String>.from(serialNumbers ?? const <String>[]);
 
   int? itemId;
   int? batchId;
@@ -45,18 +51,18 @@ class InternalStockReceiptLineDraft {
   final TextEditingController remarksController;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'item_id': itemId,
-        'uom_id': uomId,
-        'batch_id': batchId,
-        'batch_no': nullIfEmpty(batchNoController.text),
-        'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
-        if (serialNumbers.length == 1 && serialNumbers.first.trim().isNotEmpty)
-          'serial_no': serialNumbers.first.trim(),
-        'receipt_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-        'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
-        'total_cost': double.tryParse(totalCostController.text.trim()),
-        'remarks': nullIfEmpty(remarksController.text),
-      };
+    'item_id': itemId,
+    'uom_id': uomId,
+    'batch_id': batchId,
+    'batch_no': nullIfEmpty(batchNoController.text),
+    'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
+    if (serialNumbers.length == 1 && serialNumbers.first.trim().isNotEmpty)
+      'serial_no': serialNumbers.first.trim(),
+    'receipt_qty': double.tryParse(qtyController.text.trim()) ?? 0,
+    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'total_cost': double.tryParse(totalCostController.text.trim()),
+    'remarks': nullIfEmpty(remarksController.text),
+  };
 
   void dispose() {
     batchNoController.dispose();
@@ -70,6 +76,12 @@ class InternalStockReceiptLineDraft {
 class InternalStockReceiptViewModel extends ChangeNotifier {
   InternalStockReceiptViewModel({this.initialItemId}) {
     searchController.addListener(notifyListeners);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
+
+  void _handleWorkingContextChanged() {
+    final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    load(selectId: id);
   }
 
   final int? initialItemId;
@@ -110,13 +122,29 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
   String receiptSource = 'department_return';
   List<InternalStockReceiptLineDraft> lines = <InternalStockReceiptLineDraft>[];
 
-  String get status =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'receipt_status', 'draft');
+  String get status => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'receipt_status',
+    'draft',
+  );
 
-  List<BranchModel> get branchOptions => branchesForCompany(branches, companyId);
-  List<BusinessLocationModel> get locationOptions => locationsForBranch(locations, branchId);
+  List<BranchModel> get branchOptions =>
+      branchesForCompany(branches, companyId);
+  List<BusinessLocationModel> get locationOptions =>
+      locationsForBranch(locations, branchId);
+  List<String> get contextLabels => workingContextLabels(
+    companies: companies,
+    branches: branches,
+    locations: locations,
+    financialYears: financialYears,
+    companyId: companyId,
+    branchId: branchId,
+    locationId: locationId,
+    financialYearId: financialYearId,
+  );
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((w) {
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((w) {
         if (w.id == null) {
           return false;
         }
@@ -130,37 +158,34 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
           return false;
         }
         return true;
-      }).toList(growable: false);
-
-  List<DocumentSeriesModel> get seriesOptions => documentSeries
-      .where((item) =>
-          (item.documentType == null || item.documentType == 'STOCK_RECEIPT_INTERNAL') &&
-          (companyId == null || item.companyId == companyId) &&
-          (branchId == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'branch_id') == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'branch_id') == branchId) &&
-          (locationId == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'location_id') == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'location_id') == locationId) &&
-          (financialYearId == null ||
-              item.financialYearId == null ||
-              item.financialYearId == financialYearId))
+      })
       .toList(growable: false);
+
+  List<DocumentSeriesModel> get seriesOptions => documentSeriesForContext(
+    documentSeries: documentSeries,
+    documentType: 'STOCK_RECEIPT_INTERNAL',
+    companyId: companyId,
+    branchId: branchId,
+    locationId: locationId,
+    financialYearId: financialYearId,
+  );
 
   List<InternalStockReceiptModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        stringValue(data, 'receipt_no'),
-        stringValue(data, 'receipt_status'),
-        stringValue(data, 'receipt_source'),
-        stringValue(data, 'remarks'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            stringValue(data, 'receipt_no'),
+            stringValue(data, 'receipt_status'),
+            stringValue(data, 'receipt_source'),
+            stringValue(data, 'remarks'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -206,7 +231,9 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
         _masterService.businessLocations(filters: const {'per_page': 300}),
         _masterService.financialYears(filters: const {'per_page': 100}),
         _masterService.documentSeries(filters: const {'per_page': 300}),
-        _inventoryService.items(filters: const {'per_page': 500, 'sort_by': 'item_name'}),
+        _inventoryService.items(
+          filters: const {'per_page': 500, 'sort_by': 'item_name'},
+        ),
         _masterService.warehouses(filters: const {'per_page': 300}),
         _inventoryService.uoms(filters: const {'per_page': 300}),
         _inventoryService.uomConversionsAll(
@@ -217,45 +244,77 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       ]);
       rows =
           (responses[0] as PaginatedResponse<InternalStockReceiptModel>).data ??
-              const <InternalStockReceiptModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ?? const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[2] as PaginatedResponse<BranchModel>).data ?? const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ?? const <BusinessLocationModel>[])
+          const <InternalStockReceiptModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      financialYears = ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-              const <FinancialYearModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      documentSeries = ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-              const <DocumentSeriesModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      items = ((responses[6] as PaginatedResponse<ItemModel>).data ?? const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      warehouses = ((responses[7] as PaginatedResponse<WarehouseModel>).data ?? const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uoms = ((responses[8] as PaginatedResponse<UomModel>).data ?? const <UomModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uomConversions = ((responses[9] as PaginatedResponse<UomConversionModel>).data ?? const <UomConversionModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      batches = (responses[10] as PaginatedResponse<StockBatchModel>).data ?? const <StockBatchModel>[];
-      serials = (responses[11] as PaginatedResponse<StockSerialModel>).data ?? const <StockSerialModel>[];
+      branches =
+          ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      locations =
+          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+                  const <BusinessLocationModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      financialYears =
+          ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+                  const <FinancialYearModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      documentSeries =
+          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
+                  const <DocumentSeriesModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      items =
+          ((responses[6] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[7] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uoms =
+          ((responses[8] as PaginatedResponse<UomModel>).data ??
+                  const <UomModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uomConversions =
+          ((responses[9] as PaginatedResponse<UomConversionModel>).data ??
+                  const <UomConversionModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      batches =
+          (responses[10] as PaginatedResponse<StockBatchModel>).data ??
+          const <StockBatchModel>[];
+      serials =
+          (responses[11] as PaginatedResponse<StockSerialModel>).data ??
+          const <StockSerialModel>[];
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: financialYears,
+          );
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
+      financialYearId = contextSelection.financialYearId;
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<InternalStockReceiptModel?>().firstWhere(
-              (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
-              orElse: () => null,
-            );
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
+          orElse: () => null,
+        );
         if (existing != null) {
           await select(existing);
           return;
@@ -279,21 +338,18 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     receiptDateController.text = now;
     receivedFromController.clear();
     remarksController.clear();
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId ??= financialYears.isNotEmpty ? financialYears.first.id : null;
+    _ensureContextSelection();
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     receiptSource = 'department_return';
     for (final line in lines) {
       line.dispose();
     }
     final itemId = initialItemId;
     lines = <InternalStockReceiptLineDraft>[
-      InternalStockReceiptLineDraft(
-        itemId: itemId,
-      ),
+      InternalStockReceiptLineDraft(itemId: itemId),
     ];
     final item = (() {
       for (final x in items) {
@@ -308,6 +364,25 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       current: lines.first.uomId,
     );
     notifyListeners();
+  }
+
+  void _ensureContextSelection() {
+    if (!containsMasterId(companies, companyId, (item) => item.id)) {
+      companyId = companies.isNotEmpty ? companies.first.id : null;
+    }
+    final branches = branchOptions;
+    if (!containsMasterId(branches, branchId, (item) => item.id)) {
+      branchId = branches.isNotEmpty ? branches.first.id : null;
+    }
+    final locations = locationOptions;
+    if (!containsMasterId(locations, locationId, (item) => item.id)) {
+      locationId = locations.isNotEmpty ? locations.first.id : null;
+    }
+    financialYearId = defaultFinancialYearIdForCompany(
+      financialYears,
+      companyId,
+      current: financialYearId,
+    );
   }
 
   Future<void> select(InternalStockReceiptModel row) async {
@@ -330,11 +405,15 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       documentSeriesId = intValue(data, 'document_series_id');
       warehouseId = intValue(data, 'warehouse_id');
       receiptSource = stringValue(data, 'receipt_source', 'department_return');
-      if (!internalStockReceiptSourceItems.any((e) => e.value == receiptSource)) {
+      if (!internalStockReceiptSourceItems.any(
+        (e) => e.value == receiptSource,
+      )) {
         receiptSource = 'department_return';
       }
       receiptNoController.text = stringValue(data, 'receipt_no');
-      receiptDateController.text = displayDate(nullableStringValue(data, 'receipt_date'));
+      receiptDateController.text = displayDate(
+        nullableStringValue(data, 'receipt_date'),
+      );
       receivedFromController.text = stringValue(data, 'received_from');
       remarksController.text = stringValue(data, 'remarks');
       for (final line in lines) {
@@ -360,7 +439,9 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     _clearLineBatchAndSerial();
     notifyListeners();
   }
@@ -368,7 +449,9 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
   void onBranchChanged(int? value) {
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _clearLineBatchAndSerial();
     notifyListeners();
@@ -376,7 +459,9 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
 
   void onLocationChanged(int? value) {
     locationId = value;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _clearLineBatchAndSerial();
     notifyListeners();
@@ -414,7 +499,8 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
   }
 
   void addLine() {
-    lines = List<InternalStockReceiptLineDraft>.from(lines)..add(InternalStockReceiptLineDraft());
+    lines = List<InternalStockReceiptLineDraft>.from(lines)
+      ..add(InternalStockReceiptLineDraft());
     notifyListeners();
   }
 
@@ -424,8 +510,9 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     }
     final next = List<InternalStockReceiptLineDraft>.from(lines);
     next.removeAt(index).dispose();
-    lines =
-        next.isEmpty ? <InternalStockReceiptLineDraft>[InternalStockReceiptLineDraft()] : next;
+    lines = next.isEmpty
+        ? <InternalStockReceiptLineDraft>[InternalStockReceiptLineDraft()]
+        : next;
     notifyListeners();
   }
 
@@ -465,7 +552,8 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       final selectedBatch = batchOptions(lines[index].itemId)
           .cast<Map<String, dynamic>?>()
           .firstWhere(
-            (batch) => intValue(batch ?? const <String, dynamic>{}, 'id') == value,
+            (batch) =>
+                intValue(batch ?? const <String, dynamic>{}, 'id') == value,
             orElse: () => null,
           );
       lines[index].batchNoController.text = stringValue(
@@ -493,9 +581,10 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
         .cast<Map<String, dynamic>?>()
         .firstWhere(
           (batch) =>
-              stringValue(batch ?? const <String, dynamic>{}, 'batch_no')
-                  .trim()
-                  .toLowerCase() ==
+              stringValue(
+                batch ?? const <String, dynamic>{},
+                'batch_no',
+              ).trim().toLowerCase() ==
               normalized,
           orElse: () => null,
         );
@@ -526,7 +615,8 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
               .map((entry) => entry.toJson())
               .cast<Map<String, dynamic>?>()
               .firstWhere(
-                (entry) => intValue(entry ?? const <String, dynamic>{}, 'id') == id,
+                (entry) =>
+                    intValue(entry ?? const <String, dynamic>{}, 'id') == id,
                 orElse: () => null,
               );
           return stringValue(serial ?? const <String, dynamic>{}, 'serial_no');
@@ -550,8 +640,12 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     lines[index].serialNumbers = normalized;
 
     final serialIdByLabel = <String, int>{
-      for (final serial in serialOptions(lines[index].itemId, lines[index].batchId))
-        stringValue(serial, 'serial_no').trim().toLowerCase(): intValue(serial, 'id') ?? 0,
+      for (final serial in serialOptions(
+        lines[index].itemId,
+        lines[index].batchId,
+      ))
+        stringValue(serial, 'serial_no').trim().toLowerCase():
+            intValue(serial, 'id') ?? 0,
     };
     final resolvedIds = normalized
         .map((value) => serialIdByLabel[value.toLowerCase()])
@@ -625,7 +719,10 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
           final whOk = wh == null || intValue(s, 'warehouse_id') == wh;
           final batchOk = batchId == null || intValue(s, 'batch_id') == batchId;
           final status = stringValue(s, 'status');
-          return itemOk && whOk && batchOk && (status == 'available' || status == 'returned');
+          return itemOk &&
+              whOk &&
+              batchOk &&
+              (status == 'available' || status == 'returned');
         })
         .toList(growable: false);
   }
@@ -677,7 +774,10 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
   String? _validate() {
     final usedSerialIds = <int>{};
     final usedSerialNos = <String>{};
-    if (companyId == null || branchId == null || locationId == null || financialYearId == null) {
+    if (companyId == null ||
+        branchId == null ||
+        locationId == null ||
+        financialYearId == null) {
       return 'Company, branch, location, and financial year are required.';
     }
     if (warehouseId == null) {
@@ -699,9 +799,12 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       final line = lines[i];
       final lineNo = i + 1;
       final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final unitCost =
+          double.tryParse(line.unitCostController.text.trim()) ?? 0;
       final totalCostText = line.totalCostController.text.trim();
-      final totalCost = totalCostText.isEmpty ? null : double.tryParse(totalCostText);
+      final totalCost = totalCostText.isEmpty
+          ? null
+          : double.tryParse(totalCostText);
       if (line.itemId == null || line.uomId == null) {
         return 'Item and UOM are required at line $lineNo.';
       }
@@ -719,19 +822,24 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
           .map((e) => e.toJson())
           .cast<Map<String, dynamic>?>()
           .firstWhere(
-            (item) => intValue(item ?? const <String, dynamic>{}, 'id') == line.itemId,
+            (item) =>
+                intValue(item ?? const <String, dynamic>{}, 'id') ==
+                line.itemId,
             orElse: () => null,
           );
       if (itemData == null) {
         return 'Invalid inventory item at line $lineNo.';
       }
       final itemCompanyId = intValue(itemData, 'company_id');
-      if (!boolValue(itemData, 'track_inventory') || itemCompanyId != companyId) {
+      if (!boolValue(itemData, 'track_inventory') ||
+          itemCompanyId != companyId) {
         return 'Invalid inventory item at line $lineNo.';
       }
 
       if (line.batchId != null) {
-        final validBatch = batchOptions(line.itemId).any((batch) => intValue(batch, 'id') == line.batchId);
+        final validBatch = batchOptions(
+          line.itemId,
+        ).any((batch) => intValue(batch, 'id') == line.batchId);
         if (!boolValue(itemData, 'has_batch') || !validBatch) {
           return 'Invalid batch at line $lineNo.';
         }
@@ -796,7 +904,8 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
           .map((value) => value.trim())
           .where((value) => value.isNotEmpty)
           .toList(growable: false);
-      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final unitCost =
+          double.tryParse(line.unitCostController.text.trim()) ?? 0;
       final totalCost = double.tryParse(line.totalCostController.text.trim());
       final remarks = nullIfEmpty(line.remarksController.text);
       for (var index = 0; index < serialEntries.length; index++) {
@@ -805,7 +914,9 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
           'uom_id': line.uomId,
           'batch_id': line.batchId,
           'batch_no': nullIfEmpty(line.batchNoController.text),
-          'serial_id': index < line.serialIds.length ? line.serialIds[index] : null,
+          'serial_id': index < line.serialIds.length
+              ? line.serialIds[index]
+              : null,
           'serial_no': serialEntries[index],
           'receipt_qty': 1,
           'unit_cost': unitCost,
@@ -844,12 +955,17 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createInternalStockReceipt(InternalStockReceiptModel(payload))
+          ? await _inventoryService.createInternalStockReceipt(
+              InternalStockReceiptModel(payload),
+            )
           : await _inventoryService.updateInternalStockReceipt(
               intValue(selected!.toJson(), 'id')!,
               InternalStockReceiptModel(payload),
             );
-      final id = intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id');
+      final id = intValue(
+        response.data?.toJson() ?? const <String, dynamic>{},
+        'id',
+      );
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
@@ -918,6 +1034,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     receiptNoController.dispose();
     receiptDateController.dispose();
@@ -958,7 +1075,9 @@ class _InternalStockReceiptGroupedLine {
           : stringValue(line, 'batch_no'),
       serialId: serialId,
       serialIds: serialId == null ? <int>[] : <int>[serialId],
-      serialNumbers: serialNo.trim().isEmpty ? <String>[] : <String>[serialNo.trim()],
+      serialNumbers: serialNo.trim().isEmpty
+          ? <String>[]
+          : <String>[serialNo.trim()],
       uomId: intValue(line, 'uom_id'),
       qty: double.tryParse(stringValue(line, 'receipt_qty')) ?? 0,
       unitCost: double.tryParse(stringValue(line, 'unit_cost')) ?? 0,

@@ -26,7 +26,8 @@ class _MaintenanceRequestPageState extends State<MaintenanceRequestPage> {
   @override
   void initState() {
     super.initState();
-    _viewModel = MaintenanceRequestViewModel()..load(selectId: widget.initialId);
+    _viewModel = MaintenanceRequestViewModel()
+      ..load(selectId: widget.initialId);
   }
 
   @override
@@ -237,33 +238,11 @@ class _MaintenanceRequestEditor extends StatelessWidget {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((c) => c.id != null)
-                        .map(
-                          (c) => AppDropdownItem<int>(
-                            value: c.id!,
-                            label: c.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (vm.canEdit) {
-                        vm.setCompanyId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
                   if (vm.selected == null) ...[
                     AppDropdownField<int?>.fromMapped(
                       labelText: 'Document series (for auto no.)',
                       mappedItems: [
-                        const AppDropdownItem<int?>(
-                          value: null,
-                          label: '—',
-                        ),
+                        const AppDropdownItem<int?>(value: null, label: '—'),
                         ...vm.seriesOptions
                             .where((s) => s.id != null)
                             .map(
@@ -314,68 +293,21 @@ class _MaintenanceRequestEditor extends StatelessWidget {
                     },
                     validator: Validators.requiredSelection('Asset'),
                   ),
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Branch',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
-                      ...vm.branchOptions
-                          .where((b) => b.id != null)
-                          .map(
-                            (b) => AppDropdownItem<int?>(
-                              value: b.id,
-                              label: b.toString(),
-                            ),
-                          ),
-                    ],
-                    initialValue: vm.branchId,
-                    onChanged: (int? v) {
-                      if (vm.canEdit) {
-                        vm.setBranchId(v);
-                      }
-                    },
-                  ),
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Location',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
-                      ...vm.locationOptions
-                          .where((l) => l.id != null)
-                          .map(
-                            (l) => AppDropdownItem<int?>(
-                              value: l.id,
-                              label: l.toString(),
-                            ),
-                          ),
-                    ],
-                    initialValue: vm.locationId,
-                    onChanged: (int? v) {
-                      if (vm.canEdit) {
-                        vm.setLocationId(v);
-                      }
-                    },
-                  ),
+
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Maintenance plan',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.maintenancePlans
                           .where((p) => intValue(p.toJson(), 'id') != null)
                           .map((p) {
                             final d = p.toJson();
                             final code = stringValue(d, 'plan_code');
                             final name = stringValue(d, 'plan_name');
-                            final label = [code, name]
-                                .where((x) => x.trim().isNotEmpty)
-                                .join(' — ');
+                            final label = [
+                              code,
+                              name,
+                            ].where((x) => x.trim().isNotEmpty).join(' — ');
                             return AppDropdownItem<int?>(
                               value: intValue(d, 'id'),
                               label: label.isNotEmpty

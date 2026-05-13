@@ -207,23 +207,6 @@ class _MaintenancePlanEditor extends StatelessWidget {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((c) => c.id != null)
-                        .map(
-                          (c) => AppDropdownItem<int>(
-                            value: c.id!,
-                            label: c.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      vm.setCompanyId(v);
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
                   AppFormTextField(
                     labelText: 'Plan code',
                     controller: vm.planCodeController,

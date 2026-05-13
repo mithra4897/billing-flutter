@@ -26,7 +26,8 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
   @override
   void initState() {
     super.initState();
-    _viewModel = ItemPlanningPolicyViewModel()..load(selectId: widget.initialId);
+    _viewModel = ItemPlanningPolicyViewModel()
+      ..load(selectId: widget.initialId);
   }
 
   @override
@@ -86,7 +87,8 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
   }
 
   Widget _buildContent() {
-    if (_viewModel.loading) return const AppLoadingView(message: 'Loading item policies...');
+    if (_viewModel.loading)
+      return const AppLoadingView(message: 'Loading item policies...');
     if (_viewModel.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load item policies',
@@ -132,24 +134,32 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
       ),
       editor: _viewModel.detailLoading
           ? const AppLoadingView(message: 'Loading item policy...')
-          : _ItemPolicyEditor(vm: _viewModel, onSave: () async {
-              await _viewModel.save();
-              _snack();
-            }, onDelete: () async {
-              final shouldNavigateBack =
-                  widget.editorOnly || !Responsive.isDesktop(context);
-              await _viewModel.delete();
-              _snack();
-              if (shouldNavigateBack) {
-                _openRoute('/planning/item-policies');
-              }
-            }),
+          : _ItemPolicyEditor(
+              vm: _viewModel,
+              onSave: () async {
+                await _viewModel.save();
+                _snack();
+              },
+              onDelete: () async {
+                final shouldNavigateBack =
+                    widget.editorOnly || !Responsive.isDesktop(context);
+                await _viewModel.delete();
+                _snack();
+                if (shouldNavigateBack) {
+                  _openRoute('/planning/item-policies');
+                }
+              },
+            ),
     );
   }
 }
 
 class _ItemPolicyEditor extends StatelessWidget {
-  const _ItemPolicyEditor({required this.vm, required this.onSave, required this.onDelete});
+  const _ItemPolicyEditor({
+    required this.vm,
+    required this.onSave,
+    required this.onDelete,
+  });
   final ItemPlanningPolicyViewModel vm;
   final Future<void> Function() onSave;
   final Future<void> Function() onDelete;
@@ -167,16 +177,6 @@ class _ItemPolicyEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  onChanged: vm.onCompanyChanged,
-                  validator: Validators.requiredSelection('Company'),
-                ),
                 AppSearchPickerField<int>(
                   labelText: 'Item',
                   selectedLabel: vm.items
@@ -185,22 +185,39 @@ class _ItemPolicyEditor extends StatelessWidget {
                       ?.toString(),
                   options: vm.itemOptions
                       .where((x) => x.id != null)
-                      .map((x) => AppSearchPickerOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode))
+                      .map(
+                        (x) => AppSearchPickerOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
                       .toList(growable: false),
                   onChanged: vm.setItemId,
-                  validator: (_) => vm.itemId == null ? 'Item is required' : null,
+                  validator: (_) =>
+                      vm.itemId == null ? 'Item is required' : null,
                 ),
-                AppFormTextField(labelText: 'Planning Method', controller: vm.planningMethodController),
-                AppFormTextField(labelText: 'Procurement Type', controller: vm.procurementTypeController),
+                AppFormTextField(
+                  labelText: 'Planning Method',
+                  controller: vm.planningMethodController,
+                ),
+                AppFormTextField(
+                  labelText: 'Procurement Type',
+                  controller: vm.procurementTypeController,
+                ),
                 AppFormTextField(
                   labelText: 'Reorder Level Qty',
                   controller: vm.reorderLevelQtyController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Reorder Qty',
                   controller: vm.reorderQtyController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                 ),
                 AppSwitchTile(
                   label: 'MRP Enabled',
@@ -217,7 +234,11 @@ class _ItemPolicyEditor extends StatelessWidget {
                   value: vm.isActive,
                   onChanged: vm.setIsActive,
                 ),
-                AppFormTextField(labelText: 'Remarks', controller: vm.remarksController, maxLines: 2),
+                AppFormTextField(
+                  labelText: 'Remarks',
+                  controller: vm.remarksController,
+                  maxLines: 2,
+                ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
@@ -234,7 +255,12 @@ class _ItemPolicyEditor extends StatelessWidget {
                   },
                 ),
                 if (vm.selected != null)
-                  AppActionButton(icon: Icons.delete_outline, label: 'Delete', filled: false, onPressed: onDelete),
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    filled: false,
+                    onPressed: onDelete,
+                  ),
               ],
             ),
           ],

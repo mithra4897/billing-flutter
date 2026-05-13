@@ -112,12 +112,18 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   @override
   void initState() {
     super.initState();
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
     _searchController.addListener(_applyFilters);
     _loadPage(selectId: widget.initialId);
   }
 
+  void _handleWorkingContextChanged() {
+    _loadPage(selectId: intValue(_selectedItem?.toJson() ?? const {}, 'id'));
+  }
+
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
@@ -518,7 +524,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     return doc;
   }
 
-  List<Map<String, dynamic>> _requisitionLineMaps(PurchaseRequisitionModel? doc) {
+  List<Map<String, dynamic>> _requisitionLineMaps(
+    PurchaseRequisitionModel? doc,
+  ) {
     final data = doc?.toJson() ?? const <String, dynamic>{};
     return (data['lines'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<Map<String, dynamic>>()
@@ -578,7 +586,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             orElse: () => null,
           );
       if (supplierMap != null) {
-        draft.uomId = supplierMap.purchaseUomId ??
+        draft.uomId =
+            supplierMap.purchaseUomId ??
             _resolveDefaultUom(draft.itemId, draft.uomId);
         draft.rateController.text =
             supplierMap.supplierRate?.toString() ?? draft.rateController.text;
@@ -586,9 +595,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         if (draft.descriptionController.text.trim().isEmpty) {
           draft.descriptionController.text = _itemDescription(
             item,
-            fallback:
-                supplierMap.supplierItemName ??
-                supplierMap.itemName,
+            fallback: supplierMap.supplierItemName ?? supplierMap.itemName,
           );
         }
         if (draft.remarksController.text.trim().isEmpty &&
@@ -737,12 +744,16 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     int? supplierId,
   }) {
     final lineMaps = _requisitionLineMaps(requisition);
-    final allowedItemIds = supplierId != null ? _supplierItemIds(supplierId) : null;
+    final allowedItemIds = supplierId != null
+        ? _supplierItemIds(supplierId)
+        : null;
     final filtered = allowedItemIds == null
         ? lineMaps
         : lineMaps
-            .where((line) => allowedItemIds.contains(intValue(line, 'item_id')))
-            .toList(growable: false);
+              .where(
+                (line) => allowedItemIds.contains(intValue(line, 'item_id')),
+              )
+              .toList(growable: false);
 
     final lines = filtered
         .map((line) {
@@ -813,10 +824,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     if (requisition == null) {
       return _suppliers;
     }
-    final itemIds = _requisitionLineMaps(requisition)
-        .map((line) => intValue(line, 'item_id'))
-        .whereType<int>()
-        .toSet();
+    final itemIds = _requisitionLineMaps(
+      requisition,
+    ).map((line) => intValue(line, 'item_id')).whereType<int>().toSet();
     if (itemIds.isEmpty) {
       return _suppliers;
     }
@@ -826,7 +836,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         .whereType<int>()
         .toSet();
     return _suppliers
-        .where((entry) => entry.id != null && allowedSupplierIds.contains(entry.id))
+        .where(
+          (entry) => entry.id != null && allowedSupplierIds.contains(entry.id),
+        )
         .toList(growable: false);
   }
 
@@ -839,22 +851,24 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     if (supplierItemIds.isEmpty) {
       return const <PurchaseRequisitionModel>[];
     }
-    return _requisitions.where((req) {
-      final id = intValue(req.toJson(), 'id');
-      final detail = id != null ? _requisitionDetailCache[id] : null;
-      if (detail == null) {
-        return true;
-      }
-      if (!_isOpenDemandRequisition(detail)) {
-        return false;
-      }
-      return _requisitionLineMaps(detail).any((line) {
-        final itemId = intValue(line, 'item_id');
-        return itemId != null &&
-            supplierItemIds.contains(itemId) &&
-            _isOpenDemandRequisitionLine(line);
-      });
-    }).toList(growable: false);
+    return _requisitions
+        .where((req) {
+          final id = intValue(req.toJson(), 'id');
+          final detail = id != null ? _requisitionDetailCache[id] : null;
+          if (detail == null) {
+            return true;
+          }
+          if (!_isOpenDemandRequisition(detail)) {
+            return false;
+          }
+          return _requisitionLineMaps(detail).any((line) {
+            final itemId = intValue(line, 'item_id');
+            return itemId != null &&
+                supplierItemIds.contains(itemId) &&
+                _isOpenDemandRequisitionLine(line);
+          });
+        })
+        .toList(growable: false);
   }
 
   Future<void> _handleRequisitionChanged(int? requisitionId) async {
@@ -886,7 +900,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         await _primeAllRequisitionDetails();
         if (!mounted) return;
 
-        final supplierId = _hasSpecificSupplierSelection ? _supplierPartyId : null;
+        final supplierId = _hasSpecificSupplierSelection
+            ? _supplierPartyId
+            : null;
         final mappedLines = _linesFromAllRequisitions(supplierId: supplierId);
 
         setState(() {
@@ -907,7 +923,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       if (!mounted) return;
       final data = requisition?.toJson() ?? const <String, dynamic>{};
       if (requisition == null) {
-        setState(() => _formError = 'Selected requisition could not be loaded.');
+        setState(
+          () => _formError = 'Selected requisition could not be loaded.',
+        );
         return;
       }
       final result = _linesFromRequisition(
@@ -918,7 +936,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
 
       if (_linkDriver == _PurchaseOrderLinkDriver.requisition &&
           _hasSpecificSupplierSelection &&
-          !_filteredSupplierOptions.any((item) => item.id == _supplierPartyId)) {
+          !_filteredSupplierOptions.any(
+            (item) => item.id == _supplierPartyId,
+          )) {
         setState(() {
           _supplierPartyId = null;
         });
@@ -938,7 +958,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         _companyId = intValue(data, 'company_id') ?? _companyId;
         _branchId = intValue(data, 'branch_id') ?? _branchId;
         _locationId = intValue(data, 'location_id') ?? _locationId;
-        _financialYearId = intValue(data, 'financial_year_id') ?? _financialYearId;
+        _financialYearId =
+            intValue(data, 'financial_year_id') ?? _financialYearId;
         _lines = mappedLines;
         _selectionInfo = result.excluded > 0
             ? '${result.excluded} requisition item(s) excluded because they are not mapped to the selected supplier.'
@@ -1057,7 +1078,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
 
     if (_isAllSupplierSelected) {
       setState(() {
-        _formError = 'Select a specific supplier before saving the purchase order.';
+        _formError =
+            'Select a specific supplier before saving the purchase order.';
       });
       return;
     }
@@ -1086,8 +1108,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       'location_id': _locationId,
       'financial_year_id': _financialYearId,
       'document_series_id': _documentSeriesId,
-      'purchase_requisition_id':
-          _isAllRequisitionSelected ? null : _purchaseRequisitionId,
+      'purchase_requisition_id': _isAllRequisitionSelected
+          ? null
+          : _purchaseRequisitionId,
       'order_no': nullIfEmpty(_orderNoController.text),
       'order_date': _orderDateController.text.trim(),
       'expected_receipt_date': nullIfEmpty(_expectedReceiptDateController.text),
@@ -1228,9 +1251,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(AppUiConstants.spacingSm),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(
-                    alpha: 0.08,
-                  ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(
                     AppUiConstants.cardRadius,
                   ),
@@ -1241,62 +1264,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: _companies
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() {
-                    _companyId = value;
-                    _branchId = null;
-                    _locationId = null;
-                    final options = _seriesOptions();
-                    _documentSeriesId = options.isNotEmpty
-                        ? options.first.id
-                        : null;
-                  }),
-                  validator: Validators.requiredSelection('Company'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: _branchOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _branchId,
-                  onChanged: (value) => setState(() {
-                    _branchId = value;
-                    _locationId = null;
-                  }),
-                  validator: Validators.requiredSelection('Branch'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: _locationOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _locationId,
-                  onChanged: (value) => setState(() => _locationId = value),
-                  validator: Validators.requiredSelection('Location'),
-                ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: _financialYears
@@ -1366,10 +1333,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Supplier',
                   mappedItems: <AppDropdownItem<int>>[
-                    const AppDropdownItem(
-                      value: _allSelectionId,
-                      label: 'All',
-                    ),
+                    const AppDropdownItem(value: _allSelectionId, label: 'All'),
                     ..._filteredSupplierOptions
                         .where((item) => item.id != null)
                         .map(
@@ -1386,10 +1350,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Requisition',
                   mappedItems: <AppDropdownItem<int>>[
-                    const AppDropdownItem(
-                      value: _allSelectionId,
-                      label: 'All',
-                    ),
+                    const AppDropdownItem(value: _allSelectionId, label: 'All'),
                     ..._filteredRequisitionOptions
                         .where((item) => intValue(item.toJson(), 'id') != null)
                         .map(

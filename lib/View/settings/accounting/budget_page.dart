@@ -10,12 +10,9 @@ class BudgetManagementPage extends StatefulWidget {
 }
 
 class _BudgetLineDraft {
-  _BudgetLineDraft({
-    this.accountId,
-    String? amount,
-    String? remarks,
-  }) : amountController = TextEditingController(text: amount ?? ''),
-       remarksController = TextEditingController(text: remarks ?? '');
+  _BudgetLineDraft({this.accountId, String? amount, String? remarks})
+    : amountController = TextEditingController(text: amount ?? ''),
+      remarksController = TextEditingController(text: remarks ?? '');
 
   int? accountId;
   final TextEditingController amountController;
@@ -107,7 +104,9 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
         _masterService.financialYears(
           filters: const {'per_page': 100, 'sort_by': 'fy_name'},
         ),
-        _accountsService.accountsAll(filters: const {'sort_by': 'account_name'}),
+        _accountsService.accountsAll(
+          filters: const {'sort_by': 'account_name'},
+        ),
       ]);
       final budgets =
           (results[0] as PaginatedResponse<BudgetModel>).data ??
@@ -125,8 +124,7 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
         companies: companies.where((c) => c.isActive).toList(growable: false),
         branches: const <BranchModel>[],
         locations: const <BusinessLocationModel>[],
-        financialYears:
-            years.where((y) => y.isActive).toList(growable: false),
+        financialYears: years.where((y) => y.isActive).toList(growable: false),
       );
       if (!mounted) return;
       setState(() {
@@ -192,20 +190,27 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
       for (final l in _lines) {
         l.dispose();
       }
-      final lineMaps =
-          (d['lines'] as List<dynamic>? ?? const <dynamic>[])
-              .whereType<Map>()
-              .map((raw) => Map<String, dynamic>.from(raw))
-              .toList(growable: false);
+      final lineMaps = (d['lines'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map>()
+          .map((raw) => Map<String, dynamic>.from(raw))
+          .toList(growable: false);
       _selected = full;
       _companyId = intValue(d, 'company_id');
       _financialYearId = intValue(d, 'financial_year_id');
       _codeController.text = stringValue(d, 'budget_code');
       _nameController.text = stringValue(d, 'budget_name');
-      _dateFromController.text =
-          (d['date_from'] ?? '').toString().split('T').first.split(' ').first;
-      _dateToController.text =
-          (d['date_to'] ?? '').toString().split('T').first.split(' ').first;
+      _dateFromController.text = (d['date_from'] ?? '')
+          .toString()
+          .split('T')
+          .first
+          .split(' ')
+          .first;
+      _dateToController.text = (d['date_to'] ?? '')
+          .toString()
+          .split('T')
+          .first
+          .split(' ')
+          .first;
       _status = stringValue(d, 'budget_status', 'draft');
       _notesController.text = stringValue(d, 'notes');
       _isActive = boolValue(d, 'is_active', fallback: true);
@@ -234,8 +239,10 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
     _selected = null;
     _codeController.clear();
     _nameController.clear();
-    _dateFromController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    _dateFromController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     _dateToController.text = DateTime.now().toIso8601String().split('T').first;
     _status = 'draft';
     _notesController.clear();
@@ -402,7 +409,9 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
                                 _BudgetVsTd('${r['budget_amount'] ?? ''}'),
                                 _BudgetVsTd('${r['actual_amount'] ?? ''}'),
                                 _BudgetVsTd('${r['variance_amount'] ?? ''}'),
-                                _BudgetVsTd('${r['utilization_percent'] ?? ''}'),
+                                _BudgetVsTd(
+                                  '${r['utilization_percent'] ?? ''}',
+                                ),
                               ],
                             ),
                           ),
@@ -507,28 +516,10 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: _companies
-                      .where((c) => c.id != null)
-                      .map(
-                        (c) => AppDropdownItem<int>(
-                          value: c.id!,
-                          label: c.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _companyId,
-                  onChanged: (v) => setState(() => _companyId = v),
-                  validator: Validators.requiredSelection('Company'),
-                ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Financial year (optional)',
                   mappedItems: <AppDropdownItem<int?>>[
-                    const AppDropdownItem<int?>(
-                      value: null,
-                      label: 'None',
-                    ),
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
                     ..._years
                         .where((y) => y.id != null)
                         .map(
@@ -723,9 +714,9 @@ class _BudgetVsTh extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -744,4 +735,3 @@ class _BudgetVsTd extends StatelessWidget {
     );
   }
 }
-

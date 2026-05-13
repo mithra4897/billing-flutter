@@ -4,13 +4,13 @@ import 'package:billing/view/purchase/purchase_support.dart';
 /// Backend `issue_purpose` enum values; labels are UI-facing.
 const List<AppDropdownItem<String>> stockIssuePurposeItems =
     <AppDropdownItem<String>>[
-  AppDropdownItem<String>(value: 'department_use', label: 'Department use'),
-  AppDropdownItem<String>(value: 'production', label: 'Production'),
-  AppDropdownItem<String>(value: 'sample', label: 'Sample'),
-  AppDropdownItem<String>(value: 'maintenance', label: 'Maintenance'),
-  AppDropdownItem<String>(value: 'jobwork', label: 'Jobwork'),
-  AppDropdownItem<String>(value: 'other', label: 'Other'),
-];
+      AppDropdownItem<String>(value: 'department_use', label: 'Department use'),
+      AppDropdownItem<String>(value: 'production', label: 'Production'),
+      AppDropdownItem<String>(value: 'sample', label: 'Sample'),
+      AppDropdownItem<String>(value: 'maintenance', label: 'Maintenance'),
+      AppDropdownItem<String>(value: 'jobwork', label: 'Jobwork'),
+      AppDropdownItem<String>(value: 'other', label: 'Other'),
+    ];
 
 /// Mutable line state for the stock issue editor (View binds controllers).
 class StockIssueLineDraft {
@@ -24,11 +24,11 @@ class StockIssueLineDraft {
     String? unitCost,
     String? totalCost,
     String? remarks,
-  })  : qtyController = TextEditingController(text: qty ?? ''),
-        unitCostController = TextEditingController(text: unitCost ?? ''),
-        totalCostController = TextEditingController(text: totalCost ?? ''),
-        remarksController = TextEditingController(text: remarks ?? ''),
-        serialIds = List<int>.from(serialIds ?? const <int>[]);
+  }) : qtyController = TextEditingController(text: qty ?? ''),
+       unitCostController = TextEditingController(text: unitCost ?? ''),
+       totalCostController = TextEditingController(text: totalCost ?? ''),
+       remarksController = TextEditingController(text: remarks ?? ''),
+       serialIds = List<int>.from(serialIds ?? const <int>[]);
 
   int? itemId;
   int? batchId;
@@ -41,15 +41,15 @@ class StockIssueLineDraft {
   final TextEditingController remarksController;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'item_id': itemId,
-        'uom_id': uomId,
-        'batch_id': batchId,
-        'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
-        'issue_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-        'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
-        'total_cost': double.tryParse(totalCostController.text.trim()),
-        'remarks': nullIfEmpty(remarksController.text),
-      };
+    'item_id': itemId,
+    'uom_id': uomId,
+    'batch_id': batchId,
+    'serial_id': serialIds.length == 1 ? serialIds.first : serialId,
+    'issue_qty': double.tryParse(qtyController.text.trim()) ?? 0,
+    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'total_cost': double.tryParse(totalCostController.text.trim()),
+    'remarks': nullIfEmpty(remarksController.text),
+  };
 
   void dispose() {
     qtyController.dispose();
@@ -62,6 +62,12 @@ class StockIssueLineDraft {
 class StockIssueViewModel extends ChangeNotifier {
   StockIssueViewModel({this.initialItemId}) {
     searchController.addListener(notifyListeners);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
+
+  void _handleWorkingContextChanged() {
+    final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    load(selectId: id);
   }
 
   final int? initialItemId;
@@ -71,7 +77,8 @@ class StockIssueViewModel extends ChangeNotifier {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController issueNoController = TextEditingController();
   final TextEditingController issueDateController = TextEditingController();
-  final TextEditingController departmentNameController = TextEditingController();
+  final TextEditingController departmentNameController =
+      TextEditingController();
   final TextEditingController issuedToController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
 
@@ -105,13 +112,29 @@ class StockIssueViewModel extends ChangeNotifier {
   String issuePurpose = 'department_use';
   List<StockIssueLineDraft> lines = <StockIssueLineDraft>[];
 
-  String get status =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'issue_status', 'draft');
+  String get status => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'issue_status',
+    'draft',
+  );
 
-  List<BranchModel> get branchOptions => branchesForCompany(branches, companyId);
-  List<BusinessLocationModel> get locationOptions => locationsForBranch(locations, branchId);
+  List<BranchModel> get branchOptions =>
+      branchesForCompany(branches, companyId);
+  List<BusinessLocationModel> get locationOptions =>
+      locationsForBranch(locations, branchId);
+  List<String> get contextLabels => workingContextLabels(
+    companies: companies,
+    branches: branches,
+    locations: locations,
+    financialYears: financialYears,
+    companyId: companyId,
+    branchId: branchId,
+    locationId: locationId,
+    financialYearId: financialYearId,
+  );
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((w) {
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((w) {
         if (w.id == null) {
           return false;
         }
@@ -125,37 +148,34 @@ class StockIssueViewModel extends ChangeNotifier {
           return false;
         }
         return true;
-      }).toList(growable: false);
-
-  List<DocumentSeriesModel> get seriesOptions => documentSeries
-      .where((item) =>
-          (item.documentType == null || item.documentType == 'STOCK_ISSUE') &&
-          (companyId == null || item.companyId == companyId) &&
-          (branchId == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'branch_id') == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'branch_id') == branchId) &&
-          (locationId == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'location_id') == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'location_id') == locationId) &&
-          (financialYearId == null ||
-              item.financialYearId == null ||
-              item.financialYearId == financialYearId))
+      })
       .toList(growable: false);
+
+  List<DocumentSeriesModel> get seriesOptions => documentSeriesForContext(
+    documentSeries: documentSeries,
+    documentType: 'STOCK_ISSUE',
+    companyId: companyId,
+    branchId: branchId,
+    locationId: locationId,
+    financialYearId: financialYearId,
+  );
 
   List<StockIssueModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        stringValue(data, 'issue_no'),
-        stringValue(data, 'issue_status'),
-        stringValue(data, 'issue_purpose'),
-        stringValue(data, 'remarks'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            stringValue(data, 'issue_no'),
+            stringValue(data, 'issue_status'),
+            stringValue(data, 'issue_purpose'),
+            stringValue(data, 'remarks'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -193,15 +213,21 @@ class StockIssueViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final responses = await Future.wait<dynamic>([
-        _inventoryService.stockIssues(filters: const {'per_page': 200, 'sort_by': 'issue_date'}),
+        _inventoryService.stockIssues(
+          filters: const {'per_page': 200, 'sort_by': 'issue_date'},
+        ),
         _masterService.companies(filters: const {'per_page': 200}),
         _masterService.branches(filters: const {'per_page': 300}),
         _masterService.businessLocations(filters: const {'per_page': 300}),
         _masterService.financialYears(filters: const {'per_page': 100}),
         _masterService.documentSeries(filters: const {'per_page': 300}),
-        _inventoryService.items(filters: const {'per_page': 500, 'sort_by': 'item_name'}),
+        _inventoryService.items(
+          filters: const {'per_page': 500, 'sort_by': 'item_name'},
+        ),
         _masterService.warehouses(filters: const {'per_page': 300}),
-        _hrService.departments(filters: const {'per_page': 500, 'sort_by': 'department_name'}),
+        _hrService.departments(
+          filters: const {'per_page': 500, 'sort_by': 'department_name'},
+        ),
         _inventoryService.uoms(filters: const {'per_page': 300}),
         _inventoryService.uomConversionsAll(
           filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
@@ -209,49 +235,84 @@ class StockIssueViewModel extends ChangeNotifier {
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
       ]);
-      rows = (responses[0] as PaginatedResponse<StockIssueModel>).data ?? const <StockIssueModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ?? const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[2] as PaginatedResponse<BranchModel>).data ?? const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ?? const <BusinessLocationModel>[])
+      rows =
+          (responses[0] as PaginatedResponse<StockIssueModel>).data ??
+          const <StockIssueModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      financialYears = ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-              const <FinancialYearModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      documentSeries = ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-              const <DocumentSeriesModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      items = ((responses[6] as PaginatedResponse<ItemModel>).data ?? const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      warehouses = ((responses[7] as PaginatedResponse<WarehouseModel>).data ?? const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      departments = ((responses[8] as PaginatedResponse<DepartmentModel>).data ??
-              const <DepartmentModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uoms = ((responses[9] as PaginatedResponse<UomModel>).data ?? const <UomModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uomConversions = ((responses[10] as PaginatedResponse<UomConversionModel>).data ?? const <UomConversionModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      batches = (responses[11] as PaginatedResponse<StockBatchModel>).data ?? const <StockBatchModel>[];
-      serials = (responses[12] as PaginatedResponse<StockSerialModel>).data ?? const <StockSerialModel>[];
+      branches =
+          ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      locations =
+          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+                  const <BusinessLocationModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      financialYears =
+          ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+                  const <FinancialYearModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      documentSeries =
+          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
+                  const <DocumentSeriesModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      items =
+          ((responses[6] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[7] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      departments =
+          ((responses[8] as PaginatedResponse<DepartmentModel>).data ??
+                  const <DepartmentModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uoms =
+          ((responses[9] as PaginatedResponse<UomModel>).data ??
+                  const <UomModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uomConversions =
+          ((responses[10] as PaginatedResponse<UomConversionModel>).data ??
+                  const <UomConversionModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      batches =
+          (responses[11] as PaginatedResponse<StockBatchModel>).data ??
+          const <StockBatchModel>[];
+      serials =
+          (responses[12] as PaginatedResponse<StockSerialModel>).data ??
+          const <StockSerialModel>[];
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: financialYears,
+          );
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
+      financialYearId = contextSelection.financialYearId;
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<StockIssueModel?>().firstWhere(
-              (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
-              orElse: () => null,
-            );
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
+          orElse: () => null,
+        );
         if (existing != null) {
           await select(existing);
           return;
@@ -276,22 +337,17 @@ class StockIssueViewModel extends ChangeNotifier {
     departmentNameController.clear();
     issuedToController.clear();
     remarksController.clear();
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId ??= financialYears.isNotEmpty ? financialYears.first.id : null;
+    _ensureContextSelection();
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     issuePurpose = 'department_use';
     for (final line in lines) {
       line.dispose();
     }
     final itemId = initialItemId;
-    lines = <StockIssueLineDraft>[
-      StockIssueLineDraft(
-        itemId: itemId,
-      ),
-    ];
+    lines = <StockIssueLineDraft>[StockIssueLineDraft(itemId: itemId)];
     final item = (() {
       for (final x in items) {
         if (x.id == itemId) return x;
@@ -305,6 +361,25 @@ class StockIssueViewModel extends ChangeNotifier {
       current: lines.first.uomId,
     );
     notifyListeners();
+  }
+
+  void _ensureContextSelection() {
+    if (!containsMasterId(companies, companyId, (item) => item.id)) {
+      companyId = companies.isNotEmpty ? companies.first.id : null;
+    }
+    final branches = branchOptions;
+    if (!containsMasterId(branches, branchId, (item) => item.id)) {
+      branchId = branches.isNotEmpty ? branches.first.id : null;
+    }
+    final locations = locationOptions;
+    if (!containsMasterId(locations, locationId, (item) => item.id)) {
+      locationId = locations.isNotEmpty ? locations.first.id : null;
+    }
+    financialYearId = defaultFinancialYearIdForCompany(
+      financialYears,
+      companyId,
+      current: financialYearId,
+    );
   }
 
   Future<void> select(StockIssueModel row) async {
@@ -331,7 +406,9 @@ class StockIssueViewModel extends ChangeNotifier {
         issuePurpose = 'department_use';
       }
       issueNoController.text = stringValue(data, 'issue_no');
-      issueDateController.text = displayDate(nullableStringValue(data, 'issue_date'));
+      issueDateController.text = displayDate(
+        nullableStringValue(data, 'issue_date'),
+      );
       departmentNameController.text = stringValue(data, 'department_name');
       issuedToController.text = stringValue(data, 'issued_to');
       remarksController.text = stringValue(data, 'remarks');
@@ -358,7 +435,9 @@ class StockIssueViewModel extends ChangeNotifier {
     branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     _clearLineBatchAndSerial();
     notifyListeners();
   }
@@ -366,7 +445,9 @@ class StockIssueViewModel extends ChangeNotifier {
   void onBranchChanged(int? value) {
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _clearLineBatchAndSerial();
     notifyListeners();
@@ -374,7 +455,9 @@ class StockIssueViewModel extends ChangeNotifier {
 
   void onLocationChanged(int? value) {
     locationId = value;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _clearLineBatchAndSerial();
     notifyListeners();
@@ -538,7 +621,10 @@ class StockIssueViewModel extends ChangeNotifier {
           final whOk = wh == null || intValue(s, 'warehouse_id') == wh;
           final batchOk = batchId == null || intValue(s, 'batch_id') == batchId;
           final status = stringValue(s, 'status');
-          return itemOk && whOk && batchOk && (status == 'available' || status == 'returned');
+          return itemOk &&
+              whOk &&
+              batchOk &&
+              (status == 'available' || status == 'returned');
         })
         .toList(growable: false);
   }
@@ -583,7 +669,10 @@ class StockIssueViewModel extends ChangeNotifier {
 
   String? _validate() {
     final usedSerialIds = <int>{};
-    if (companyId == null || branchId == null || locationId == null || financialYearId == null) {
+    if (companyId == null ||
+        branchId == null ||
+        locationId == null ||
+        financialYearId == null) {
       return 'Company, branch, location, and financial year are required.';
     }
     if (warehouseId == null) {
@@ -605,9 +694,12 @@ class StockIssueViewModel extends ChangeNotifier {
       final line = lines[i];
       final lineNo = i + 1;
       final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final unitCost =
+          double.tryParse(line.unitCostController.text.trim()) ?? 0;
       final totalCostText = line.totalCostController.text.trim();
-      final totalCost = totalCostText.isEmpty ? null : double.tryParse(totalCostText);
+      final totalCost = totalCostText.isEmpty
+          ? null
+          : double.tryParse(totalCostText);
       if (line.itemId == null || line.uomId == null) {
         return 'Item and UOM are required at line $lineNo.';
       }
@@ -625,14 +717,17 @@ class StockIssueViewModel extends ChangeNotifier {
           .map((e) => e.toJson())
           .cast<Map<String, dynamic>?>()
           .firstWhere(
-            (item) => intValue(item ?? const <String, dynamic>{}, 'id') == line.itemId,
+            (item) =>
+                intValue(item ?? const <String, dynamic>{}, 'id') ==
+                line.itemId,
             orElse: () => null,
           );
       if (itemData == null) {
         return 'Invalid inventory item at line $lineNo.';
       }
       final itemCompanyId = intValue(itemData, 'company_id');
-      if (!boolValue(itemData, 'track_inventory') || itemCompanyId != companyId) {
+      if (!boolValue(itemData, 'track_inventory') ||
+          itemCompanyId != companyId) {
         return 'Invalid inventory item at line $lineNo.';
       }
 
@@ -642,7 +737,9 @@ class StockIssueViewModel extends ChangeNotifier {
       }
 
       if (line.batchId != null) {
-        final validBatch = batchOptions(line.itemId).any((batch) => intValue(batch, 'id') == line.batchId);
+        final validBatch = batchOptions(
+          line.itemId,
+        ).any((batch) => intValue(batch, 'id') == line.batchId);
         if (!boolValue(itemData, 'has_batch') || !validBatch) {
           return 'Invalid batch at line $lineNo.';
         }
@@ -659,7 +756,9 @@ class StockIssueViewModel extends ChangeNotifier {
           final matchingSerial = serialOptions(line.itemId, line.batchId)
               .cast<Map<String, dynamic>?>()
               .firstWhere(
-                (serial) => intValue(serial ?? const <String, dynamic>{}, 'id') == serialId,
+                (serial) =>
+                    intValue(serial ?? const <String, dynamic>{}, 'id') ==
+                    serialId,
                 orElse: () => null,
               );
           if (matchingSerial == null) {
@@ -687,7 +786,8 @@ class StockIssueViewModel extends ChangeNotifier {
         continue;
       }
       final serialIds = lineSerialIds(line);
-      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final unitCost =
+          double.tryParse(line.unitCostController.text.trim()) ?? 0;
       final totalCost = double.tryParse(line.totalCostController.text.trim());
       final remarks = nullIfEmpty(line.remarksController.text);
       for (final serialId in serialIds) {
@@ -739,7 +839,10 @@ class StockIssueViewModel extends ChangeNotifier {
               intValue(selected!.toJson(), 'id')!,
               StockIssueModel(payload),
             );
-      final id = intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id');
+      final id = intValue(
+        response.data?.toJson() ?? const <String, dynamic>{},
+        'id',
+      );
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
@@ -808,6 +911,7 @@ class StockIssueViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     issueNoController.dispose();
     issueDateController.dispose();

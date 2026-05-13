@@ -11,10 +11,7 @@ const List<AppDropdownItem<String>> _qcScopeItems = <AppDropdownItem<String>>[
 const List<AppDropdownItem<String>> _acceptanceBasisItems =
     <AppDropdownItem<String>>[
       AppDropdownItem(value: 'all_pass', label: 'All pass'),
-      AppDropdownItem(
-        value: 'min_pass_percent',
-        label: 'Minimum pass percent',
-      ),
+      AppDropdownItem(value: 'min_pass_percent', label: 'Minimum pass percent'),
     ];
 
 const List<AppDropdownItem<String>> _checkpointTypeItems =
@@ -133,7 +130,9 @@ class _QcPlanPageState extends State<QcPlanPage> {
               row.qcScope,
               row.approvalStatus,
             ].where((v) => v.trim().isNotEmpty).join(' · '),
-            detail: row.itemLabel.isNotEmpty ? row.itemLabel : row.categoryLabel,
+            detail: row.itemLabel.isNotEmpty
+                ? row.itemLabel
+                : row.categoryLabel,
             selected: selected,
             onTap: () async {
               await _viewModel.select(item);
@@ -215,55 +214,6 @@ class _QcPlanEditor extends StatelessWidget {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (edit) vm.onCompanyChanged(v);
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Branch',
-                    mappedItems: vm.branchOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.branchId,
-                    onChanged: (int? v) {
-                      if (edit) vm.onBranchChanged(v);
-                    },
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Location',
-                    mappedItems: vm.locationOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.locationId,
-                    onChanged: (int? v) {
-                      if (edit) vm.onLocationChanged(v);
-                    },
-                  ),
                   AppFormTextField(
                     labelText: 'Plan code',
                     controller: vm.planCodeController,
@@ -402,8 +352,8 @@ class _QcPlanEditor extends StatelessWidget {
                   Text(
                     'Checkpoints',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const Spacer(),
                   AppActionButton(
@@ -418,7 +368,9 @@ class _QcPlanEditor extends StatelessWidget {
               ...List<Widget>.generate(vm.lineDrafts.length, (index) {
                 final line = vm.lineDrafts[index];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
                   child: PurchaseCompactLineCard(
                     index: index,
                     total: vm.lineDrafts.length,
@@ -440,10 +392,7 @@ class _QcPlanEditor extends StatelessWidget {
                           initialValue: line.checkpointType,
                           onChanged: (String? v) {
                             if (editLines) {
-                              vm.setCheckpointType(
-                                index,
-                                v ?? 'visual',
-                              );
+                              vm.setCheckpointType(index, v ?? 'visual');
                             }
                           },
                         ),

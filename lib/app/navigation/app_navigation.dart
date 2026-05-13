@@ -201,28 +201,28 @@ class AppNavigation {
           icon: Icons.account_balance_wallet_outlined,
           children: [
             AppNavigationItem(
-              key: 'account-groups',
+              key: 'settings-account-groups',
               title: 'Account Groups',
               icon: Icons.account_tree_outlined,
               path: '/accounting/account-groups',
               requiredPermissions: ['accounts.view'],
             ),
             AppNavigationItem(
-              key: 'voucher-types',
+              key: 'settings-voucher-types',
               title: 'Voucher Types',
               icon: Icons.receipt_outlined,
               path: '/accounting/voucher-types',
               requiredPermissions: ['accounts.view'],
             ),
             AppNavigationItem(
-              key: 'posting-rule-groups',
+              key: 'settings-posting-rule-groups',
               title: 'Posting Rule Groups',
               icon: Icons.folder_special_outlined,
               path: '/accounting/posting-rule-groups',
               requiredPermissions: ['accounts.view'],
             ),
             AppNavigationItem(
-              key: 'posting-rules',
+              key: 'settings-posting-rules',
               title: 'Posting Rules',
               icon: Icons.rule_folder_outlined,
               path: '/accounting/posting-rules',
@@ -319,7 +319,7 @@ class AppNavigation {
       ],
     ),
     AppNavigationItem(
-      key: 'inventory-uoms',
+      key: 'settings-uoms',
       title: 'UOMs',
       icon: Icons.straighten_outlined,
       path: '/inventory/uoms',

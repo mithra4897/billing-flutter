@@ -484,16 +484,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
                     Validators.optionalMaxLength(255, 'Project Name'),
                   ]),
                 ),
-                AppDropdownField<int>.fromMapped(
-                  initialValue: _companyId,
-                  labelText: 'Company',
-                  mappedItems: _companyItems,
-                  onChanged: (value) {
-                    setState(() => _companyId = value);
-                    _refreshProjectCode();
-                  },
-                  validator: Validators.requiredSelection('Company'),
-                ),
+
                 AppDropdownField<int>.fromMapped(
                   initialValue: _customerPartyId,
                   labelText: 'Customer',

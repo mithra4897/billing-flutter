@@ -153,16 +153,6 @@ class _StockMovementEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  validator: Validators.requiredSelection('Company'),
-                  onChanged: vm.onCompanyChanged,
-                ),
                 AppSearchPickerField<int>(
                   labelText: 'Item',
                   selectedLabel: vm.itemOptions
@@ -190,7 +180,12 @@ class _StockMovementEditor extends StatelessWidget {
                   labelText: 'Warehouse',
                   mappedItems: vm.warehouseOptions
                       .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.warehouseId,
                   validator: Validators.requiredSelection('Warehouse'),
@@ -198,22 +193,28 @@ class _StockMovementEditor extends StatelessWidget {
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Batch',
-                  mappedItems: vm.batchOptions()
-                      .map((x) => AppDropdownItem<int>(
-                            value: intValue(x, 'id')!,
-                            label: stringValue(x, 'batch_no', 'Batch'),
-                          ))
+                  mappedItems: vm
+                      .batchOptions()
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: intValue(x, 'id')!,
+                          label: stringValue(x, 'batch_no', 'Batch'),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.batchId,
                   onChanged: vm.onBatchChanged,
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Serial',
-                  mappedItems: vm.serialOptions()
-                      .map((x) => AppDropdownItem<int>(
-                            value: intValue(x, 'id')!,
-                            label: stringValue(x, 'serial_no', 'Serial'),
-                          ))
+                  mappedItems: vm
+                      .serialOptions()
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: intValue(x, 'id')!,
+                          label: stringValue(x, 'serial_no', 'Serial'),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.serialId,
                   onChanged: vm.onSerialChanged,
@@ -237,7 +238,12 @@ class _StockMovementEditor extends StatelessWidget {
                     labelText: 'Source warehouse',
                     mappedItems: vm.warehouseOptions
                         .where((x) => x.id != null)
-                        .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                        .map(
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
+                        )
                         .toList(growable: false),
                     initialValue: vm.sourceWarehouseId,
                     validator: Validators.requiredSelection('Source warehouse'),
@@ -248,22 +254,34 @@ class _StockMovementEditor extends StatelessWidget {
                     labelText: 'Destination warehouse',
                     mappedItems: vm.warehouseOptions
                         .where((x) => x.id != null)
-                        .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                        .map(
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
+                        )
                         .toList(growable: false),
                     initialValue: vm.destinationWarehouseId,
-                    validator: Validators.requiredSelection('Destination warehouse'),
+                    validator: Validators.requiredSelection(
+                      'Destination warehouse',
+                    ),
                     onChanged: vm.onDestinationWarehouseChanged,
                   ),
                 AppFormTextField(
                   labelText: 'Reference type',
                   controller: vm.referenceTypeController,
-                  validator: Validators.optionalMaxLength(100, 'Reference type'),
+                  validator: Validators.optionalMaxLength(
+                    100,
+                    'Reference type',
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Reference id',
                   controller: vm.referenceIdController,
                   keyboardType: TextInputType.number,
-                  validator: Validators.optionalNonNegativeInteger('Reference id'),
+                  validator: Validators.optionalNonNegativeInteger(
+                    'Reference id',
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Reference no',
@@ -283,19 +301,25 @@ class _StockMovementEditor extends StatelessWidget {
                 AppFormTextField(
                   labelText: 'Qty',
                   controller: vm.qtyController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: Validators.requiredPositiveNumber('Qty'),
                 ),
                 AppFormTextField(
                   labelText: 'Rate',
                   controller: vm.rateController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: Validators.optionalNonNegativeNumber('Rate'),
                 ),
                 AppFormTextField(
                   labelText: 'Amount',
                   controller: vm.amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: Validators.optionalNonNegativeNumber('Amount'),
                 ),
                 AppFormTextField(

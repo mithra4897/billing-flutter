@@ -63,7 +63,13 @@ class OpeningStockLineDraft {
 
 class OpeningStockViewModel extends ChangeNotifier {
   OpeningStockViewModel({this.initialItemId}) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(_notifyListenersSafely);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
+
+  void _handleWorkingContextChanged() {
+    final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    load(selectId: id);
   }
 
   final int? initialItemId;
@@ -73,6 +79,16 @@ class OpeningStockViewModel extends ChangeNotifier {
   final TextEditingController openingNoController = TextEditingController();
   final TextEditingController openingDateController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
+  bool _disposed = false;
+
+  bool get _isDisposed => _disposed;
+
+  void _notifyListenersSafely() {
+    if (_isDisposed) {
+      return;
+    }
+    notifyListeners();
+  }
 
   bool loading = true;
   bool detailLoading = false;
@@ -111,6 +127,17 @@ class OpeningStockViewModel extends ChangeNotifier {
       branchesForCompany(branches, companyId);
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
+
+  List<String> get contextLabels => workingContextLabels(
+    companies: companies,
+    branches: branches,
+    locations: locations,
+    financialYears: financialYears,
+    companyId: companyId,
+    branchId: branchId,
+    locationId: locationId,
+    financialYearId: financialYearId,
+  );
   List<ItemModel> get itemOptions => items
       .where((item) {
         if (!item.trackInventory) {
@@ -141,32 +168,28 @@ class OpeningStockViewModel extends ChangeNotifier {
       })
       .toList(growable: false);
 
-  List<DocumentSeriesModel> get seriesOptions => documentSeries
-      .where(
-        (item) =>
-            (item.documentType == null ||
-                item.documentType == 'STOCK_OPENING') &&
-            (companyId == null || item.companyId == companyId) &&
-            (branchId == null ||
-                intValue(item.raw ?? const <String, dynamic>{}, 'branch_id') ==
-                    null ||
-                intValue(item.raw ?? const <String, dynamic>{}, 'branch_id') ==
-                    branchId) &&
-            (locationId == null ||
-                intValue(
-                      item.raw ?? const <String, dynamic>{},
-                      'location_id',
-                    ) ==
-                    null ||
-                intValue(
-                      item.raw ?? const <String, dynamic>{},
-                      'location_id',
-                    ) ==
-                    locationId) &&
-            (financialYearId == null ||
-                item.financialYearId == financialYearId),
-      )
-      .toList(growable: false);
+  List<DocumentSeriesModel> get seriesOptions {
+    return documentSeriesForContext(
+      documentSeries: documentSeries,
+      documentType: 'STOCK_OPENING',
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+    );
+  }
+
+  int? _defaultDocumentSeriesId() {
+    final options = seriesOptions;
+    if (options.isEmpty) {
+      return null;
+    }
+    if (documentSeriesId != null &&
+        options.any((item) => item.id == documentSeriesId)) {
+      return documentSeriesId;
+    }
+    return options.first.id;
+  }
 
   List<OpeningStockModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
@@ -194,7 +217,7 @@ class OpeningStockViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    _notifyListenersSafely();
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.openingStocks(
@@ -204,7 +227,9 @@ class OpeningStockViewModel extends ChangeNotifier {
         _masterService.branches(filters: const {'per_page': 300}),
         _masterService.businessLocations(filters: const {'per_page': 300}),
         _masterService.financialYears(filters: const {'per_page': 100}),
-        _masterService.documentSeries(filters: const {'per_page': 300}),
+        _masterService.documentSeries(
+          filters: const {'per_page': 300, 'document_type': 'STOCK_OPENING'},
+        ),
         _inventoryService.items(
           filters: const {'per_page': 500, 'sort_by': 'item_name'},
         ),
@@ -216,6 +241,9 @@ class OpeningStockViewModel extends ChangeNotifier {
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
       ]);
+      if (_isDisposed) {
+        return;
+      }
       rows =
           (responses[0] as PaginatedResponse<OpeningStockModel>).data ??
           const <OpeningStockModel>[];
@@ -270,6 +298,20 @@ class OpeningStockViewModel extends ChangeNotifier {
       serials =
           (responses[11] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: financialYears,
+          );
+      if (_isDisposed) {
+        return;
+      }
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
+      financialYearId = contextSelection.financialYearId;
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<OpeningStockModel?>().firstWhere(
@@ -284,11 +326,11 @@ class OpeningStockViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      _notifyListenersSafely();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
@@ -300,13 +342,8 @@ class OpeningStockViewModel extends ChangeNotifier {
     openingNoController.clear();
     openingDateController.text = now;
     remarksController.clear();
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId ??= financialYears.isNotEmpty
-        ? financialYears.first.id
-        : null;
-    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    _ensureContextSelection();
+    documentSeriesId = _defaultDocumentSeriesId();
     for (final line in lines) {
       line.dispose();
     }
@@ -331,7 +368,26 @@ class OpeningStockViewModel extends ChangeNotifier {
       uomConversions,
       current: lines.first.uomId,
     );
-    notifyListeners();
+    _notifyListenersSafely();
+  }
+
+  void _ensureContextSelection() {
+    if (!containsMasterId(companies, companyId, (item) => item.id)) {
+      companyId = companies.isNotEmpty ? companies.first.id : null;
+    }
+    final branches = branchOptions;
+    if (!containsMasterId(branches, branchId, (item) => item.id)) {
+      branchId = branches.isNotEmpty ? branches.first.id : null;
+    }
+    final locations = locationOptions;
+    if (!containsMasterId(locations, locationId, (item) => item.id)) {
+      locationId = locations.isNotEmpty ? locations.first.id : null;
+    }
+    financialYearId = defaultFinancialYearIdForCompany(
+      financialYears,
+      companyId,
+      current: financialYearId,
+    );
   }
 
   Future<void> select(OpeningStockModel row) async {
@@ -342,9 +398,12 @@ class OpeningStockViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    _notifyListenersSafely();
     try {
       final response = await _inventoryService.openingStock(id);
+      if (_isDisposed) {
+        return;
+      }
       final data = (response.data ?? row).toJson();
       selectedDetail = response.data ?? row;
       companyId = intValue(data, 'company_id');
@@ -367,11 +426,11 @@ class OpeningStockViewModel extends ChangeNotifier {
           ? <OpeningStockLineDraft>[OpeningStockLineDraft()]
           : _buildLineDrafts(apiLines);
       detailLoading = false;
-      notifyListeners();
+      _notifyListenersSafely();
     } catch (e) {
       detailLoading = false;
       formError = e.toString();
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
@@ -379,7 +438,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     companyId = value;
     branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    documentSeriesId = _defaultDocumentSeriesId();
     _resetLineWarehouses();
     notifyListeners();
   }
@@ -387,21 +446,21 @@ class OpeningStockViewModel extends ChangeNotifier {
   void onBranchChanged(int? value) {
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    documentSeriesId = _defaultDocumentSeriesId();
     _resetLineWarehouses();
     notifyListeners();
   }
 
   void onLocationChanged(int? value) {
     locationId = value;
-    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    documentSeriesId = _defaultDocumentSeriesId();
     _resetLineWarehouses();
     notifyListeners();
   }
 
   void onFinancialYearChanged(int? value) {
     financialYearId = value;
-    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    documentSeriesId = _defaultDocumentSeriesId();
     notifyListeners();
   }
 
@@ -503,13 +562,15 @@ class OpeningStockViewModel extends ChangeNotifier {
     if (value == null) {
       lines[index].batchNoController.clear();
     } else {
-      final selectedBatch = batchOptions(
-        lines[index].itemId,
-        lines[index].warehouseId,
-      ).cast<Map<String, dynamic>?>().firstWhere(
-        (batch) => intValue(batch ?? const <String, dynamic>{}, 'id') == value,
-        orElse: () => null,
-      );
+      final selectedBatch =
+          batchOptions(
+            lines[index].itemId,
+            lines[index].warehouseId,
+          ).cast<Map<String, dynamic>?>().firstWhere(
+            (batch) =>
+                intValue(batch ?? const <String, dynamic>{}, 'id') == value,
+            orElse: () => null,
+          );
       lines[index].batchNoController.text = stringValue(
         selectedBatch ?? const <String, dynamic>{},
         'batch_no',
@@ -517,6 +578,105 @@ class OpeningStockViewModel extends ChangeNotifier {
     }
     _reconcileLineSerialSelection(lines[index]);
     notifyListeners();
+  }
+
+  ErpLinkFieldOption<int>? selectedBatchOption(OpeningStockLineDraft line) {
+    final batchId = line.batchId;
+    if (batchId == null) {
+      return null;
+    }
+    return batchFieldOptions(line.itemId, line.warehouseId)
+        .cast<ErpLinkFieldOption<int>?>()
+        .firstWhere(
+          (option) => option?.value == batchId,
+          orElse: () => null,
+        );
+  }
+
+  List<ErpLinkFieldOption<int>> batchFieldOptions(
+    int? itemId,
+    int? warehouseId,
+  ) {
+    return batchOptions(itemId, warehouseId).map((batch) {
+      final batchNo = stringValue(batch, 'batch_no');
+      final balanceQty = stringValue(batch, 'balance_qty');
+      final subtitle = balanceQty.trim().isEmpty ? null : 'Balance: $balanceQty';
+      return ErpLinkFieldOption<int>(
+        value: intValue(batch, 'id')!,
+        label: batchNo,
+        subtitle: subtitle,
+        searchText: [batchNo, subtitle ?? ''].join(' '),
+      );
+    }).toList(growable: false);
+  }
+
+  Future<ErpLinkFieldOption<int>?> createBatchForLine(
+    int index,
+    String query,
+  ) async {
+    if (index < 0 || index >= lines.length) {
+      return null;
+    }
+    final line = lines[index];
+    final batchNo = query.trim();
+    if (batchNo.isEmpty) {
+      return null;
+    }
+
+    final existing = batchFieldOptions(line.itemId, line.warehouseId)
+        .cast<ErpLinkFieldOption<int>?>()
+        .firstWhere(
+          (option) => option?.label.trim().toLowerCase() == batchNo.toLowerCase(),
+          orElse: () => null,
+        );
+    if (existing != null) {
+      onLineBatchChanged(index, existing.value);
+      return existing;
+    }
+
+    if (line.itemId == null) {
+      formError = 'Select an item before creating a batch.';
+      _notifyListenersSafely();
+      return null;
+    }
+    if (line.warehouseId == null) {
+      formError = 'Select a warehouse before creating a batch.';
+      _notifyListenersSafely();
+      return null;
+    }
+
+    final payload = StockBatchModel(<String, dynamic>{
+      'item_id': line.itemId,
+      'warehouse_id': line.warehouseId,
+      'batch_no': batchNo,
+      'is_active': true,
+    });
+
+    try {
+      final response = await _inventoryService.createStockBatch(payload);
+      if (_isDisposed) {
+        return null;
+      }
+      final created = response.data;
+      if (created == null) {
+        return null;
+      }
+      final createdId = created.id;
+      if (createdId == null) {
+        return null;
+      }
+      batches = <StockBatchModel>[
+        ...batches.where((batch) => batch.id != createdId),
+        created,
+      ]..sort((a, b) => a.toString().toLowerCase().compareTo(b.toString().toLowerCase()));
+      formError = null;
+      onLineBatchChanged(index, createdId);
+      return selectedBatchOption(lines[index]);
+    } catch (e) {
+      formError = e.toString();
+      _notifyListenersSafely();
+      return null;
+    }
   }
 
   void onLineBatchInputChanged(int index, String value) {
@@ -531,17 +691,19 @@ class OpeningStockViewModel extends ChangeNotifier {
       return;
     }
 
-    final matchingBatch = batchOptions(
-      lines[index].itemId,
-      lines[index].warehouseId,
-    ).cast<Map<String, dynamic>?>().firstWhere(
-      (batch) =>
-          stringValue(batch ?? const <String, dynamic>{}, 'batch_no')
-              .trim()
-              .toLowerCase() ==
-          normalized,
-      orElse: () => null,
-    );
+    final matchingBatch =
+        batchOptions(
+          lines[index].itemId,
+          lines[index].warehouseId,
+        ).cast<Map<String, dynamic>?>().firstWhere(
+          (batch) =>
+              stringValue(
+                batch ?? const <String, dynamic>{},
+                'batch_no',
+              ).trim().toLowerCase() ==
+              normalized,
+          orElse: () => null,
+        );
     lines[index].batchId = intValue(
       matchingBatch ?? const <String, dynamic>{},
       'id',
@@ -1027,13 +1189,13 @@ class OpeningStockViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      _notifyListenersSafely();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    _notifyListenersSafely();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'branch_id': branchId,
@@ -1058,15 +1220,18 @@ class OpeningStockViewModel extends ChangeNotifier {
         response.data?.toJson() ?? const <String, dynamic>{},
         'id',
       );
+      if (_isDisposed) {
+        return;
+      }
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      _notifyListenersSafely();
     } finally {
       saving = false;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
@@ -1080,12 +1245,15 @@ class OpeningStockViewModel extends ChangeNotifier {
         id,
         OpeningStockModel(const <String, dynamic>{}),
       );
+      if (_isDisposed) {
+        return;
+      }
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
@@ -1099,12 +1267,15 @@ class OpeningStockViewModel extends ChangeNotifier {
         id,
         OpeningStockModel(const <String, dynamic>{}),
       );
+      if (_isDisposed) {
+        return;
+      }
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
@@ -1115,17 +1286,22 @@ class OpeningStockViewModel extends ChangeNotifier {
     }
     try {
       final response = await _inventoryService.deleteOpeningStock(id);
+      if (_isDisposed) {
+        return;
+      }
       actionMessage = response.message;
       await load();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      _notifyListenersSafely();
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     openingNoController.dispose();
     openingDateController.dispose();

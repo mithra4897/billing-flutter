@@ -26,8 +26,7 @@ class _QcInspectionPageState extends State<QcInspectionPage> {
   @override
   void initState() {
     super.initState();
-    _viewModel = QcInspectionViewModel()
-      ..load(selectId: widget.initialId);
+    _viewModel = QcInspectionViewModel()..load(selectId: widget.initialId);
   }
 
   @override
@@ -184,63 +183,6 @@ class _QcInspectionEditor extends StatelessWidget {
               SettingsFormWrap(
                 children: [
                   AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setCompanyId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Branch',
-                    mappedItems: vm.branchOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.branchId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setBranchId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Branch'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Location',
-                    mappedItems: vm.locationOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.locationId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setLocationId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Location'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
                     labelText: 'Financial year',
                     mappedItems: vm.financialYearOptions
                         .where((x) => x.id != null)
@@ -348,7 +290,8 @@ class _QcInspectionEditor extends StatelessWidget {
                           ),
                         )
                         .toList(growable: false),
-                    validator: (_) => vm.itemId == null ? 'Item is required' : null,
+                    validator: (_) =>
+                        vm.itemId == null ? 'Item is required' : null,
                     onChanged: (int? v) {
                       if (edit) {
                         vm.setItemId(v);
@@ -375,7 +318,8 @@ class _QcInspectionEditor extends StatelessWidget {
                     validator: Validators.requiredSelection('UOM'),
                   ),
                   AppDropdownField<int>.fromMapped(
-                    labelText: 'QC plan (optional — scope “all”; else add lines via API)',
+                    labelText:
+                        'QC plan (optional — scope “all”; else add lines via API)',
                     mappedItems: vm.qcPlanOptions
                         .where((x) => x.id != null)
                         .map(

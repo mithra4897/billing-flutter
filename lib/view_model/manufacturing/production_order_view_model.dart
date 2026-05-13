@@ -44,8 +44,14 @@ class ProductionOrderViewModel extends ChangeNotifier {
   int? warehouseId;
   bool isActive = true;
 
+  void _handleWorkingContextChanged() {
+    final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    load(selectId: id);
+  }
+
   ProductionOrderViewModel() {
     searchController.addListener(notifyListeners);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
   bool get isLocked {
@@ -193,6 +199,17 @@ class ProductionOrderViewModel extends ChangeNotifier {
                   const <WarehouseModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: financialYears,
+          );
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
+      financialYearId = contextSelection.financialYearId;
       loading = false;
 
       if (selectId != null) {
@@ -219,12 +236,20 @@ class ProductionOrderViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId = financialYearOptions.isNotEmpty
-        ? financialYearOptions.first.id
-        : null;
+    final contextSelection = normalizedWorkingContextSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: financialYears,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+    );
+    companyId = contextSelection.companyId;
+    branchId = contextSelection.branchId;
+    locationId = contextSelection.locationId;
+    financialYearId = contextSelection.financialYearId;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     bomId = null;
     outputItemId = null;
@@ -510,6 +535,8 @@ class ProductionOrderViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
+    searchController.removeListener(notifyListeners);
     searchController.dispose();
     productionNoController.dispose();
     productionDateController.dispose();

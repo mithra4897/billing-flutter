@@ -257,44 +257,26 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                     },
                     validator: Validators.requiredSelection('Service ticket'),
                   ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Company',
-                    mappedItems: vm.companies
-                        .where((c) => c.id != null)
-                        .map(
-                          (c) => AppDropdownItem<int>(
-                            value: c.id!,
-                            label: c.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.companyId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setCompanyId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Company'),
-                  ),
+
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Customer',
                     doctypeLabel: 'Customer',
                     allowCreate: true,
                     onNavigateToCreateNew: (name) {
-                        final uri = Uri(
-                          path: '/parties',
-                          queryParameters: {
-                            'new': '1',
-                            if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                          },
-                        );
-                        final navigate = ShellRouteScope.maybeOf(context);
-                        if (navigate != null) {
-                          navigate(uri.toString());
-                        } else {
-                          Navigator.of(context).pushNamed(uri.toString());
-                        }
-                      },
+                      final uri = Uri(
+                        path: '/parties',
+                        queryParameters: {
+                          'new': '1',
+                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                        },
+                      );
+                      final navigate = ShellRouteScope.maybeOf(context);
+                      if (navigate != null) {
+                        navigate(uri.toString());
+                      } else {
+                        Navigator.of(context).pushNamed(uri.toString());
+                      }
+                    },
                     mappedItems: vm.parties
                         .where((p) => p.id != null)
                         .map(
@@ -320,10 +302,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Document series',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.woSeriesOptions
                           .where((s) => s.id != null)
                           .map(
@@ -367,10 +346,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Branch (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.branchOptions
                           .where((b) => b.id != null)
                           .map(
@@ -390,10 +366,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Location (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.locationOptions
                           .where((l) => l.id != null)
                           .map(
@@ -413,10 +386,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Financial year (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.financialYearOptions
                           .where((f) => f.id != null)
                           .map(

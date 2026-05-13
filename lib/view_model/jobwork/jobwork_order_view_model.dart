@@ -27,8 +27,9 @@ class JobworkMaterialDraft {
       dispatchedQty: m.dispatchedQty,
       receivedBackQty: m.receivedBackQty,
       consumedQty: m.consumedQty,
-      pendingWithVendorQty:
-          m.pendingWithVendorQty > 0 ? m.pendingWithVendorQty : m.plannedQty,
+      pendingWithVendorQty: m.pendingWithVendorQty > 0
+          ? m.pendingWithVendorQty
+          : m.plannedQty,
       standardRate: m.standardRate,
       standardAmount: m.standardAmount,
     );
@@ -50,8 +51,7 @@ class JobworkMaterialDraft {
 
   JobworkOrderMaterialModel toModel() {
     final planned = double.tryParse(plannedQtyController.text.trim()) ?? 0;
-    final pending =
-        pendingWithVendorQty > 0 ? pendingWithVendorQty : planned;
+    final pending = pendingWithVendorQty > 0 ? pendingWithVendorQty : planned;
     return JobworkOrderMaterialModel(
       itemId: itemId,
       uomId: uomId,
@@ -142,6 +142,7 @@ class JobworkOutputDraft {
 class JobworkOrderViewModel extends ChangeNotifier {
   JobworkOrderViewModel() {
     searchController.addListener(notifyListeners);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
   final JobworkService _service = JobworkService();
@@ -197,8 +198,11 @@ class JobworkOrderViewModel extends ChangeNotifier {
   List<JobworkMaterialDraft> materialDrafts = <JobworkMaterialDraft>[];
   List<JobworkOutputDraft> outputDrafts = <JobworkOutputDraft>[];
 
-  String get jobworkStatus =>
-      selected?.jobworkStatus ?? 'draft';
+  void _handleWorkingContextChanged() {
+    load(selectId: selected?.id);
+  }
+
+  String get jobworkStatus => selected?.jobworkStatus ?? 'draft';
 
   bool get isLocked =>
       jobworkStatus == 'closed' || jobworkStatus == 'cancelled';
@@ -216,7 +220,8 @@ class JobworkOrderViewModel extends ChangeNotifier {
 
   bool get canDelete => selected != null && jobworkStatus == 'draft';
 
-  List<BranchModel> get branchOptions => branchesForCompany(branches, companyId);
+  List<BranchModel> get branchOptions =>
+      branchesForCompany(branches, companyId);
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
 
@@ -226,13 +231,10 @@ class JobworkOrderViewModel extends ChangeNotifier {
   List<DocumentSeriesModel> get seriesOptions {
     final filtered = documentSeries.where((s) {
       final dt = (s.documentType ?? '').trim().toUpperCase();
-      final sameCompany =
-          companyId == null || s.companyId == companyId;
+      final sameCompany = companyId == null || s.companyId == companyId;
       final fyOk =
           financialYearId == null || s.financialYearId == financialYearId;
-      return sameCompany &&
-          fyOk &&
-          (dt == 'JOBWORK_ORDER' || dt == 'JOBWORK');
+      return sameCompany && fyOk && (dt == 'JOBWORK_ORDER' || dt == 'JOBWORK');
     }).toList();
     if (filtered.isNotEmpty) {
       return filtered;
@@ -241,41 +243,44 @@ class JobworkOrderViewModel extends ChangeNotifier {
         .where(
           (s) =>
               (companyId == null || s.companyId == companyId) &&
-              (financialYearId == null ||
-                  s.financialYearId == financialYearId),
+              (financialYearId == null || s.financialYearId == financialYearId),
         )
         .toList();
   }
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((w) {
-    if (w.id == null) {
-      return false;
-    }
-    if (companyId != null && w.companyId != companyId) {
-      return false;
-    }
-    if (branchId != null && w.branchId != branchId) {
-      return false;
-    }
-    if (locationId != null && w.locationId != locationId) {
-      return false;
-    }
-    return true;
-  }).toList(growable: false);
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((w) {
+        if (w.id == null) {
+          return false;
+        }
+        if (companyId != null && w.companyId != companyId) {
+          return false;
+        }
+        if (branchId != null && w.branchId != branchId) {
+          return false;
+        }
+        if (locationId != null && w.locationId != locationId) {
+          return false;
+        }
+        return true;
+      })
+      .toList(growable: false);
 
   List<JobworkOrderModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        row.jobworkNo,
-        row.processName,
-        row.jobworkStatus,
-        row.supplierLabel,
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            row.jobworkNo,
+            row.processName,
+            row.jobworkStatus,
+            row.supplierLabel,
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -301,7 +306,9 @@ class JobworkOrderViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final responses = await Future.wait<dynamic>([
-        _service.orders(filters: const {'per_page': 200, 'sort_by': 'jobwork_date'}),
+        _service.orders(
+          filters: const {'per_page': 200, 'sort_by': 'jobwork_date'},
+        ),
         _masterService.companies(filters: const {'per_page': 200}),
         _masterService.branches(filters: const {'per_page': 300}),
         _masterService.businessLocations(filters: const {'per_page': 300}),
@@ -316,16 +323,19 @@ class JobworkOrderViewModel extends ChangeNotifier {
         ),
         _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
-      rows = (responses[0] as PaginatedResponse<JobworkOrderModel>).data ??
+      rows =
+          (responses[0] as PaginatedResponse<JobworkOrderModel>).data ??
           const <JobworkOrderModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[2] as PaginatedResponse<BranchModel>).data ??
-              const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      branches =
+          ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       locations =
           ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
                   const <BusinessLocationModel>[])
@@ -341,30 +351,45 @@ class JobworkOrderViewModel extends ChangeNotifier {
                   const <DocumentSeriesModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      parties = ((responses[6] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      parties =
+          ((responses[6] as PaginatedResponse<PartyModel>).data ??
+                  const <PartyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       partyTypes =
           (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
-              const <PartyTypeModel>[];
-      items = ((responses[8] as PaginatedResponse<ItemModel>).data ??
-              const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uoms = ((responses[9] as PaginatedResponse<UomModel>).data ??
-              const <UomModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <PartyTypeModel>[];
+      items =
+          ((responses[8] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uoms =
+          ((responses[9] as PaginatedResponse<UomModel>).data ??
+                  const <UomModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       uomConversions =
           ((responses[10] as PaginatedResponse<UomConversionModel>).data ??
                   const <UomConversionModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      warehouses = ((responses[11] as PaginatedResponse<WarehouseModel>).data ??
-              const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      warehouses =
+          ((responses[11] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: financialYears,
+          );
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
+      financialYearId = contextSelection.financialYearId;
 
       loading = false;
 
@@ -391,22 +416,35 @@ class JobworkOrderViewModel extends ChangeNotifier {
     selected = null;
     formError = null;
     _disposeLineDrafts();
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId ??=
-        financialYears.isNotEmpty ? financialYears.first.id : null;
+    final contextSelection = normalizedWorkingContextSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: financialYears,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+    );
+    companyId = contextSelection.companyId;
+    branchId = contextSelection.branchId;
+    locationId = contextSelection.locationId;
+    financialYearId = contextSelection.financialYearId;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     supplierPartyId = null;
     processType = 'other';
     sourceType = 'manual';
-    issueWarehouseId =
-        warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
-    receiptWarehouseId =
-        warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    issueWarehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
+    receiptWarehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     jobworkNoController.clear();
-    jobworkDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    jobworkDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     processNameController.clear();
     notesController.clear();
     expectedReturnDateController.clear();
@@ -442,15 +480,16 @@ class JobworkOrderViewModel extends ChangeNotifier {
       issueWarehouseId = data.issueWarehouseId;
       receiptWarehouseId = data.receiptWarehouseId;
       jobworkNoController.text = data.jobworkNo;
-      jobworkDateController.text =
-          displayDate(data.jobworkDate.isNotEmpty ? data.jobworkDate : null);
+      jobworkDateController.text = displayDate(
+        data.jobworkDate.isNotEmpty ? data.jobworkDate : null,
+      );
       processNameController.text = data.processName;
       notesController.text = data.notes ?? '';
-      expectedReturnDateController.text =
-          displayDate(data.expectedReturnDate ?? '');
+      expectedReturnDateController.text = displayDate(
+        data.expectedReturnDate ?? '',
+      );
       sourceDocumentTypeController.text = data.sourceDocumentType ?? '';
-      sourceDocumentIdController.text =
-          data.sourceDocumentId?.toString() ?? '';
+      sourceDocumentIdController.text = data.sourceDocumentId?.toString() ?? '';
       isActive = data.isActive;
 
       _disposeLineDrafts();
@@ -480,10 +519,12 @@ class JobworkOrderViewModel extends ChangeNotifier {
     branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    issueWarehouseId =
-        warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
-    receiptWarehouseId =
-        warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    issueWarehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
+    receiptWarehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     notifyListeners();
   }
 
@@ -493,10 +534,12 @@ class JobworkOrderViewModel extends ChangeNotifier {
     }
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    issueWarehouseId =
-        warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
-    receiptWarehouseId =
-        warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    issueWarehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
+    receiptWarehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     notifyListeners();
   }
 
@@ -505,10 +548,12 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    issueWarehouseId =
-        warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
-    receiptWarehouseId =
-        warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    issueWarehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
+    receiptWarehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     notifyListeners();
   }
 
@@ -806,9 +851,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
         final doc = _buildFullDocument();
         final response = await _service.createOrder(doc);
         actionMessage = response.message;
-        await load(
-          selectId: response.data?.id,
-        );
+        await load(selectId: response.data?.id);
       } else if (canEditLines) {
         final doc = _buildFullDocument();
         final response = await _service.updateOrder(selected!.id!, doc);
@@ -893,6 +936,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     jobworkNoController.dispose();
     jobworkDateController.dispose();

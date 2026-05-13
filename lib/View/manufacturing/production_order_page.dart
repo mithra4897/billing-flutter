@@ -190,51 +190,6 @@ class _ProductionOrderEditor extends StatelessWidget {
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((x) => x.id != null)
-                      .map(
-                        (x) => AppDropdownItem<int>(
-                          value: x.id!,
-                          label: x.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  onChanged: vm.onCompanyChanged,
-                  validator: Validators.requiredSelection('Company'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: vm.branchOptions
-                      .where((x) => x.id != null)
-                      .map(
-                        (x) => AppDropdownItem<int>(
-                          value: x.id!,
-                          label: x.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.branchId,
-                  onChanged: vm.onBranchChanged,
-                  validator: Validators.requiredSelection('Branch'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: vm.locationOptions
-                      .where((x) => x.id != null)
-                      .map(
-                        (x) => AppDropdownItem<int>(
-                          value: x.id!,
-                          label: x.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.locationId,
-                  onChanged: vm.onLocationChanged,
-                  validator: Validators.requiredSelection('Location'),
-                ),
-                AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: vm.financialYearOptions
                       .where((x) => x.id != null)

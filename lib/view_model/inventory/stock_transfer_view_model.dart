@@ -13,10 +13,10 @@ class StockTransferLineDraft {
     String? unitCost,
     String? totalCost,
     String? remarks,
-  })  : qtyController = TextEditingController(text: qty ?? ''),
-        unitCostController = TextEditingController(text: unitCost ?? ''),
-        totalCostController = TextEditingController(text: totalCost ?? ''),
-        remarksController = TextEditingController(text: remarks ?? '');
+  }) : qtyController = TextEditingController(text: qty ?? ''),
+       unitCostController = TextEditingController(text: unitCost ?? ''),
+       totalCostController = TextEditingController(text: totalCost ?? ''),
+       remarksController = TextEditingController(text: remarks ?? '');
 
   int? itemId;
   int? fromBatchId;
@@ -30,17 +30,17 @@ class StockTransferLineDraft {
   final TextEditingController remarksController;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'item_id': itemId,
-        'uom_id': uomId,
-        'from_batch_id': fromBatchId,
-        'from_serial_id': fromSerialId,
-        'to_batch_id': toBatchId,
-        'to_serial_id': toSerialId,
-        'transfer_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-        'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
-        'total_cost': double.tryParse(totalCostController.text.trim()),
-        'remarks': nullIfEmpty(remarksController.text),
-      };
+    'item_id': itemId,
+    'uom_id': uomId,
+    'from_batch_id': fromBatchId,
+    'from_serial_id': fromSerialId,
+    'to_batch_id': toBatchId,
+    'to_serial_id': toSerialId,
+    'transfer_qty': double.tryParse(qtyController.text.trim()) ?? 0,
+    'unit_cost': double.tryParse(unitCostController.text.trim()) ?? 0,
+    'total_cost': double.tryParse(totalCostController.text.trim()),
+    'remarks': nullIfEmpty(remarksController.text),
+  };
 
   void dispose() {
     qtyController.dispose();
@@ -53,6 +53,12 @@ class StockTransferLineDraft {
 class StockTransferViewModel extends ChangeNotifier {
   StockTransferViewModel({this.initialItemId}) {
     searchController.addListener(notifyListeners);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
+
+  void _handleWorkingContextChanged() {
+    final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    load(selectId: id);
   }
 
   final int? initialItemId;
@@ -92,13 +98,29 @@ class StockTransferViewModel extends ChangeNotifier {
   int? toWarehouseId;
   List<StockTransferLineDraft> lines = <StockTransferLineDraft>[];
 
-  String get status =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'transfer_status', 'draft');
+  String get status => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'transfer_status',
+    'draft',
+  );
 
-  List<BranchModel> get branchOptions => branchesForCompany(branches, companyId);
-  List<BusinessLocationModel> get locationOptions => locationsForBranch(locations, branchId);
+  List<BranchModel> get branchOptions =>
+      branchesForCompany(branches, companyId);
+  List<BusinessLocationModel> get locationOptions =>
+      locationsForBranch(locations, branchId);
+  List<String> get contextLabels => workingContextLabels(
+    companies: companies,
+    branches: branches,
+    locations: locations,
+    financialYears: financialYears,
+    companyId: companyId,
+    branchId: branchId,
+    locationId: locationId,
+    financialYearId: financialYearId,
+  );
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((w) {
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((w) {
         if (w.id == null) {
           return false;
         }
@@ -112,34 +134,33 @@ class StockTransferViewModel extends ChangeNotifier {
           return false;
         }
         return true;
-      }).toList(growable: false);
-
-  List<DocumentSeriesModel> get seriesOptions => documentSeries
-      .where((item) =>
-          (item.documentType == null || item.documentType == 'STOCK_TRANSFER') &&
-          (companyId == null || item.companyId == companyId) &&
-          (branchId == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'branch_id') == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'branch_id') == branchId) &&
-          (locationId == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'location_id') == null ||
-              intValue(item.raw ?? const <String, dynamic>{}, 'location_id') == locationId) &&
-          (financialYearId == null || item.financialYearId == financialYearId))
+      })
       .toList(growable: false);
+
+  List<DocumentSeriesModel> get seriesOptions => documentSeriesForContext(
+    documentSeries: documentSeries,
+    documentType: 'STOCK_TRANSFER',
+    companyId: companyId,
+    branchId: branchId,
+    locationId: locationId,
+    financialYearId: financialYearId,
+  );
 
   List<StockTransferModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        stringValue(data, 'transfer_no'),
-        stringValue(data, 'transfer_status'),
-        stringValue(data, 'remarks'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            stringValue(data, 'transfer_no'),
+            stringValue(data, 'transfer_status'),
+            stringValue(data, 'remarks'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -193,7 +214,9 @@ class StockTransferViewModel extends ChangeNotifier {
         _masterService.businessLocations(filters: const {'per_page': 300}),
         _masterService.financialYears(filters: const {'per_page': 100}),
         _masterService.documentSeries(filters: const {'per_page': 300}),
-        _inventoryService.items(filters: const {'per_page': 500, 'sort_by': 'item_name'}),
+        _inventoryService.items(
+          filters: const {'per_page': 500, 'sort_by': 'item_name'},
+        ),
         _masterService.warehouses(filters: const {'per_page': 300}),
         _inventoryService.uoms(filters: const {'per_page': 300}),
         _inventoryService.uomConversionsAll(
@@ -202,45 +225,79 @@ class StockTransferViewModel extends ChangeNotifier {
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
       ]);
-      rows = (responses[0] as PaginatedResponse<StockTransferModel>).data ?? const <StockTransferModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ?? const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      branches = ((responses[2] as PaginatedResponse<BranchModel>).data ?? const <BranchModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      locations =
-          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ?? const <BusinessLocationModel>[])
+      rows =
+          (responses[0] as PaginatedResponse<StockTransferModel>).data ??
+          const <StockTransferModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      financialYears = ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-              const <FinancialYearModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      documentSeries = ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-              const <DocumentSeriesModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      items = ((responses[6] as PaginatedResponse<ItemModel>).data ?? const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      warehouses = ((responses[7] as PaginatedResponse<WarehouseModel>).data ?? const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uoms = ((responses[8] as PaginatedResponse<UomModel>).data ?? const <UomModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uomConversions = ((responses[9] as PaginatedResponse<UomConversionModel>).data ?? const <UomConversionModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      batches = (responses[10] as PaginatedResponse<StockBatchModel>).data ?? const <StockBatchModel>[];
-      serials = (responses[11] as PaginatedResponse<StockSerialModel>).data ?? const <StockSerialModel>[];
+      branches =
+          ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      locations =
+          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+                  const <BusinessLocationModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      financialYears =
+          ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+                  const <FinancialYearModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      documentSeries =
+          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
+                  const <DocumentSeriesModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      items =
+          ((responses[6] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[7] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uoms =
+          ((responses[8] as PaginatedResponse<UomModel>).data ??
+                  const <UomModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uomConversions =
+          ((responses[9] as PaginatedResponse<UomConversionModel>).data ??
+                  const <UomConversionModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      batches =
+          (responses[10] as PaginatedResponse<StockBatchModel>).data ??
+          const <StockBatchModel>[];
+      serials =
+          (responses[11] as PaginatedResponse<StockSerialModel>).data ??
+          const <StockSerialModel>[];
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: financialYears,
+          );
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
+      financialYearId = contextSelection.financialYearId;
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<StockTransferModel?>().firstWhere(
-              (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
-              orElse: () => null,
-            );
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
+          orElse: () => null,
+        );
         if (existing != null) {
           await select(existing);
           return;
@@ -263,19 +320,14 @@ class StockTransferViewModel extends ChangeNotifier {
     transferNoController.clear();
     transferDateController.text = now;
     remarksController.clear();
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId ??= financialYears.isNotEmpty ? financialYears.first.id : null;
+    _ensureContextSelection();
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _assignDefaultWarehouses();
     for (final line in lines) {
       line.dispose();
     }
     lines = <StockTransferLineDraft>[
-      StockTransferLineDraft(
-        itemId: initialItemId,
-      ),
+      StockTransferLineDraft(itemId: initialItemId),
     ];
     final itemId = initialItemId;
     final item = (() {
@@ -291,6 +343,25 @@ class StockTransferViewModel extends ChangeNotifier {
       current: lines.first.uomId,
     );
     notifyListeners();
+  }
+
+  void _ensureContextSelection() {
+    if (!containsMasterId(companies, companyId, (item) => item.id)) {
+      companyId = companies.isNotEmpty ? companies.first.id : null;
+    }
+    final branches = branchOptions;
+    if (!containsMasterId(branches, branchId, (item) => item.id)) {
+      branchId = branches.isNotEmpty ? branches.first.id : null;
+    }
+    final locations = locationOptions;
+    if (!containsMasterId(locations, locationId, (item) => item.id)) {
+      locationId = locations.isNotEmpty ? locations.first.id : null;
+    }
+    financialYearId = defaultFinancialYearIdForCompany(
+      financialYears,
+      companyId,
+      current: financialYearId,
+    );
   }
 
   Future<void> select(StockTransferModel row) async {
@@ -314,7 +385,9 @@ class StockTransferViewModel extends ChangeNotifier {
       fromWarehouseId = intValue(data, 'from_warehouse_id');
       toWarehouseId = intValue(data, 'to_warehouse_id');
       transferNoController.text = stringValue(data, 'transfer_no');
-      transferDateController.text = displayDate(nullableStringValue(data, 'transfer_date'));
+      transferDateController.text = displayDate(
+        nullableStringValue(data, 'transfer_date'),
+      );
       remarksController.text = stringValue(data, 'remarks');
       for (final line in lines) {
         line.dispose();
@@ -325,21 +398,21 @@ class StockTransferViewModel extends ChangeNotifier {
       lines = apiLines.isEmpty
           ? <StockTransferLineDraft>[StockTransferLineDraft()]
           : apiLines
-              .map(
-                (line) => StockTransferLineDraft(
-                  itemId: intValue(line, 'item_id'),
-                  fromBatchId: intValue(line, 'from_batch_id'),
-                  fromSerialId: intValue(line, 'from_serial_id'),
-                  toBatchId: intValue(line, 'to_batch_id'),
-                  toSerialId: intValue(line, 'to_serial_id'),
-                  uomId: intValue(line, 'uom_id'),
-                  qty: stringValue(line, 'transfer_qty'),
-                  unitCost: stringValue(line, 'unit_cost'),
-                  totalCost: stringValue(line, 'total_cost'),
-                  remarks: stringValue(line, 'remarks'),
-                ),
-              )
-              .toList(growable: true);
+                .map(
+                  (line) => StockTransferLineDraft(
+                    itemId: intValue(line, 'item_id'),
+                    fromBatchId: intValue(line, 'from_batch_id'),
+                    fromSerialId: intValue(line, 'from_serial_id'),
+                    toBatchId: intValue(line, 'to_batch_id'),
+                    toSerialId: intValue(line, 'to_serial_id'),
+                    uomId: intValue(line, 'uom_id'),
+                    qty: stringValue(line, 'transfer_qty'),
+                    unitCost: stringValue(line, 'unit_cost'),
+                    totalCost: stringValue(line, 'total_cost'),
+                    remarks: stringValue(line, 'remarks'),
+                  ),
+                )
+                .toList(growable: true);
       detailLoading = false;
       notifyListeners();
     } catch (e) {
@@ -425,7 +498,8 @@ class StockTransferViewModel extends ChangeNotifier {
   }
 
   void addLine() {
-    lines = List<StockTransferLineDraft>.from(lines)..add(StockTransferLineDraft());
+    lines = List<StockTransferLineDraft>.from(lines)
+      ..add(StockTransferLineDraft());
     notifyListeners();
   }
 
@@ -435,8 +509,9 @@ class StockTransferViewModel extends ChangeNotifier {
     }
     final next = List<StockTransferLineDraft>.from(lines);
     next.removeAt(index).dispose();
-    lines =
-        next.isEmpty ? <StockTransferLineDraft>[StockTransferLineDraft()] : next;
+    lines = next.isEmpty
+        ? <StockTransferLineDraft>[StockTransferLineDraft()]
+        : next;
     notifyListeners();
   }
 
@@ -509,7 +584,8 @@ class StockTransferViewModel extends ChangeNotifier {
       line.toBatchId,
     ).map((serial) => intValue(serial, 'id')).whereType<int>().toSet();
 
-    if (line.toSerialId != null && !allowedSerialIds.contains(line.toSerialId)) {
+    if (line.toSerialId != null &&
+        !allowedSerialIds.contains(line.toSerialId)) {
       line.toSerialId = null;
     }
   }
@@ -528,12 +604,16 @@ class StockTransferViewModel extends ChangeNotifier {
     return allowedUomsForItem(item, uoms, uomConversions);
   }
 
-  List<Map<String, dynamic>> batchOptionsForWarehouse(int? warehouseId, int? itemId) {
+  List<Map<String, dynamic>> batchOptionsForWarehouse(
+    int? warehouseId,
+    int? itemId,
+  ) {
     return batches
         .map((e) => e.toJson())
         .where((b) {
           final itemOk = itemId == null || intValue(b, 'item_id') == itemId;
-          final whOk = warehouseId == null || intValue(b, 'warehouse_id') == warehouseId;
+          final whOk =
+              warehouseId == null || intValue(b, 'warehouse_id') == warehouseId;
           return itemOk && whOk;
         })
         .toList(growable: false);
@@ -548,16 +628,23 @@ class StockTransferViewModel extends ChangeNotifier {
         .map((e) => e.toJson())
         .where((s) {
           final itemOk = itemId == null || intValue(s, 'item_id') == itemId;
-          final whOk = warehouseId == null || intValue(s, 'warehouse_id') == warehouseId;
+          final whOk =
+              warehouseId == null || intValue(s, 'warehouse_id') == warehouseId;
           final batchOk = batchId == null || intValue(s, 'batch_id') == batchId;
           final status = stringValue(s, 'status');
-          return itemOk && whOk && batchOk && (status == 'available' || status == 'returned');
+          return itemOk &&
+              whOk &&
+              batchOk &&
+              (status == 'available' || status == 'returned');
         })
         .toList(growable: false);
   }
 
   String? _validate() {
-    if (companyId == null || branchId == null || locationId == null || financialYearId == null) {
+    if (companyId == null ||
+        branchId == null ||
+        locationId == null ||
+        financialYearId == null) {
       return 'Company, branch, location, and financial year are required.';
     }
     if (fromWarehouseId == null || toWarehouseId == null) {
@@ -579,9 +666,12 @@ class StockTransferViewModel extends ChangeNotifier {
       final line = lines[i];
       final lineNo = i + 1;
       final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final unitCost =
+          double.tryParse(line.unitCostController.text.trim()) ?? 0;
       final totalCostText = line.totalCostController.text.trim();
-      final totalCost = totalCostText.isEmpty ? null : double.tryParse(totalCostText);
+      final totalCost = totalCostText.isEmpty
+          ? null
+          : double.tryParse(totalCostText);
       if (line.itemId == null || line.uomId == null) {
         return 'Item and UOM are required at line $lineNo.';
       }
@@ -599,14 +689,17 @@ class StockTransferViewModel extends ChangeNotifier {
           .map((e) => e.toJson())
           .cast<Map<String, dynamic>?>()
           .firstWhere(
-            (item) => intValue(item ?? const <String, dynamic>{}, 'id') == line.itemId,
+            (item) =>
+                intValue(item ?? const <String, dynamic>{}, 'id') ==
+                line.itemId,
             orElse: () => null,
           );
       if (itemData == null) {
         return 'Invalid inventory item at line $lineNo.';
       }
       final itemCompanyId = intValue(itemData, 'company_id');
-      if (!boolValue(itemData, 'track_inventory') || itemCompanyId != companyId) {
+      if (!boolValue(itemData, 'track_inventory') ||
+          itemCompanyId != companyId) {
         return 'Invalid inventory item at line $lineNo.';
       }
 
@@ -614,18 +707,24 @@ class StockTransferViewModel extends ChangeNotifier {
       final hasSerial = boolValue(itemData, 'has_serial');
 
       if (line.fromBatchId != null) {
-        final ok = hasBatch &&
-            batchOptionsForWarehouse(fromWarehouseId, line.itemId)
-                .any((b) => intValue(b, 'id') == line.fromBatchId);
+        final ok =
+            hasBatch &&
+            batchOptionsForWarehouse(
+              fromWarehouseId,
+              line.itemId,
+            ).any((b) => intValue(b, 'id') == line.fromBatchId);
         if (!ok) {
           return 'Invalid source batch at line $lineNo.';
         }
       }
 
       if (line.toBatchId != null) {
-        final ok = hasBatch &&
-            batchOptionsForWarehouse(toWarehouseId, line.itemId)
-                .any((b) => intValue(b, 'id') == line.toBatchId);
+        final ok =
+            hasBatch &&
+            batchOptionsForWarehouse(
+              toWarehouseId,
+              line.itemId,
+            ).any((b) => intValue(b, 'id') == line.toBatchId);
         if (!ok) {
           return 'Invalid destination batch at line $lineNo.';
         }
@@ -639,10 +738,15 @@ class StockTransferViewModel extends ChangeNotifier {
         if (!hasSerial) {
           return 'Source serial not allowed for this item at line $lineNo.';
         }
-        final matching = serialOptionsForWarehouse(fromWarehouseId, line.itemId, line.fromBatchId)
-            .cast<Map<String, dynamic>?>()
-            .firstWhere(
-              (s) => intValue(s ?? const <String, dynamic>{}, 'id') == line.fromSerialId,
+        final matching =
+            serialOptionsForWarehouse(
+              fromWarehouseId,
+              line.itemId,
+              line.fromBatchId,
+            ).cast<Map<String, dynamic>?>().firstWhere(
+              (s) =>
+                  intValue(s ?? const <String, dynamic>{}, 'id') ==
+                  line.fromSerialId,
               orElse: () => null,
             );
         if (matching == null) {
@@ -662,10 +766,15 @@ class StockTransferViewModel extends ChangeNotifier {
         if (!hasSerial) {
           return 'Destination serial not allowed for this item at line $lineNo.';
         }
-        final matching = serialOptionsForWarehouse(toWarehouseId, line.itemId, line.toBatchId)
-            .cast<Map<String, dynamic>?>()
-            .firstWhere(
-              (s) => intValue(s ?? const <String, dynamic>{}, 'id') == line.toSerialId,
+        final matching =
+            serialOptionsForWarehouse(
+              toWarehouseId,
+              line.itemId,
+              line.toBatchId,
+            ).cast<Map<String, dynamic>?>().firstWhere(
+              (s) =>
+                  intValue(s ?? const <String, dynamic>{}, 'id') ==
+                  line.toSerialId,
               orElse: () => null,
             );
         if (matching == null) {
@@ -714,12 +823,17 @@ class StockTransferViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createStockTransfer(StockTransferModel(payload))
+          ? await _inventoryService.createStockTransfer(
+              StockTransferModel(payload),
+            )
           : await _inventoryService.updateStockTransfer(
               intValue(selected!.toJson(), 'id')!,
               StockTransferModel(payload),
             );
-      final id = intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id');
+      final id = intValue(
+        response.data?.toJson() ?? const <String, dynamic>{},
+        'id',
+      );
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
@@ -788,6 +902,7 @@ class StockTransferViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     transferNoController.dispose();
     transferDateController.dispose();

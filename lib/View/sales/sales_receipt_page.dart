@@ -15,6 +15,7 @@ class SalesReceiptPage extends StatefulWidget {
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+
   /// From `/sales/receipts/new?invoice_id=…` — prefills customer, amount, allocation.
   final int? initialSalesInvoiceId;
 
@@ -25,16 +26,16 @@ class SalesReceiptPage extends StatefulWidget {
 class _SalesReceiptPageState extends State<SalesReceiptPage> {
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
-    AppDropdownItem(value: '', label: 'All'),
-    AppDropdownItem(value: 'draft', label: 'Draft'),
-    AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(
-      value: 'partially_allocated',
-      label: 'Partially Allocated',
-    ),
-    AppDropdownItem(value: 'fully_allocated', label: 'Fully Allocated'),
-    AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-  ];
+        AppDropdownItem(value: '', label: 'All'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(
+          value: 'partially_allocated',
+          label: 'Partially Allocated',
+        ),
+        AppDropdownItem(value: 'fully_allocated', label: 'Fully Allocated'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
 
   final SalesService _salesService = SalesService();
   final MasterService _masterService = MasterService();
@@ -89,12 +90,18 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
   @override
   void initState() {
     super.initState();
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
     _searchController.addListener(_applyFilters);
     _loadPage(selectId: widget.initialId);
   }
 
+  void _handleWorkingContextChanged() {
+    _loadPage(selectId: intValue(_selectedItem?.toJson() ?? const {}, 'id'));
+  }
+
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
@@ -121,7 +128,10 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       final label = raw.isEmpty
           ? 'Other (legacy)'
           : '${raw[0].toUpperCase()}${raw.length > 1 ? raw.substring(1) : ''} (legacy)';
-      return <AppDropdownItem<String>>[...core, AppDropdownItem(value: raw, label: label)];
+      return <AppDropdownItem<String>>[
+        ...core,
+        AppDropdownItem(value: raw, label: label),
+      ];
     }
     return core;
   }
@@ -311,8 +321,10 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       _receiptDateController.text = displayDate(
         nullableStringValue(data, 'receipt_date'),
       );
-      _paymentReferenceNoController.text =
-          stringValue(data, 'payment_reference_no');
+      _paymentReferenceNoController.text = stringValue(
+        data,
+        'payment_reference_no',
+      );
       _paymentReferenceDateController.text = displayDate(
         nullableStringValue(data, 'payment_reference_date'),
       );
@@ -385,7 +397,8 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
         _locationId = inv.locationId;
         _financialYearId = inv.financialYearId;
         final series = _seriesOptions();
-        _documentSeriesId = inv.documentSeriesId ??
+        _documentSeriesId =
+            inv.documentSeriesId ??
             (series.isNotEmpty ? series.first.id : null);
         _customerPartyId = inv.customerPartyId;
         _paidAmountController.text = allocAmount;
@@ -439,8 +452,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
     return _documentSeries
         .where((item) {
           final typeOk =
-              item.documentType == null ||
-              item.documentType == 'SALES_RECEIPT';
+              item.documentType == null || item.documentType == 'SALES_RECEIPT';
           final companyOk = _companyId == null || item.companyId == _companyId;
           final fyOk =
               _financialYearId == null ||
@@ -502,8 +514,9 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       'payment_mode': _paymentMode,
       'account_id': _accountId,
       'payment_reference_no': nullIfEmpty(_paymentReferenceNoController.text),
-      'payment_reference_date':
-          nullIfEmpty(_paymentReferenceDateController.text),
+      'payment_reference_date': nullIfEmpty(
+        _paymentReferenceDateController.text,
+      ),
       'paid_amount': double.tryParse(_paidAmountController.text.trim()) ?? 0,
       'notes': nullIfEmpty(_notesController.text),
       'is_active': _isActive,
@@ -592,11 +605,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       title: 'Sales Receipts',
       editorTitle: _selectedItem == null
           ? 'New Sales Receipt'
-          : stringValue(
-              _selectedItem!.toJson(),
-              'receipt_no',
-              'Sales Receipt',
-            ),
+          : stringValue(_selectedItem!.toJson(), 'receipt_no', 'Sales Receipt'),
       editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: PurchaseListCard<SalesReceiptModel>(
@@ -636,63 +645,6 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: _companies
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _companyId,
-                  onChanged: (value) => setState(() {
-                    _companyId = value;
-                    _branchId = null;
-                    _locationId = null;
-                    final series = _seriesOptions();
-                    _documentSeriesId = series.isNotEmpty
-                        ? series.first.id
-                        : null;
-                    _clearAccountIfInvalidForReceipt();
-                  }),
-                  validator: Validators.requiredSelection('Company'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: _branchOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _branchId,
-                  onChanged: (value) => setState(() {
-                    _branchId = value;
-                    _locationId = null;
-                  }),
-                  validator: Validators.requiredSelection('Branch'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: _locationOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: _locationId,
-                  onChanged: (value) => setState(() => _locationId = value),
-                  validator: Validators.requiredSelection('Location'),
-                ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: _financialYears
@@ -804,14 +756,15 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                 AppFormTextField(
                   labelText: 'Payment Reference No',
                   controller: _paymentReferenceNoController,
-                  validator:
-                      Validators.optionalMaxLength(100, 'Payment Reference No'),
+                  validator: Validators.optionalMaxLength(
+                    100,
+                    'Payment Reference No',
+                  ),
                 ),
                 AppDateField(
                   labelText: 'Payment Reference Date',
                   controller: _paymentReferenceDateController,
-                  validator:
-                      Validators.optionalDate('Payment Reference Date'),
+                  validator: Validators.optionalDate('Payment Reference Date'),
                 ),
                 AppFormTextField(
                   labelText: 'Paid Amount',
@@ -895,9 +848,8 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                                 ),
                               )
                               .toList(growable: false),
-                          onChanged: (value) => setState(
-                            () => allocation.salesInvoiceId = value,
-                          ),
+                          onChanged: (value) =>
+                              setState(() => allocation.salesInvoiceId = value),
                         ),
                         AppFormTextField(
                           labelText: 'Allocated Amount',

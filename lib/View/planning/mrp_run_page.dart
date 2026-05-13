@@ -72,7 +72,8 @@ class _MrpRunPageState extends State<MrpRunPage> {
           ),
         ];
         final content = _buildContent();
-        if (widget.embedded) return ShellPageActions(actions: actions, child: content);
+        if (widget.embedded)
+          return ShellPageActions(actions: actions, child: content);
         return AppStandaloneShell(
           title: 'MRP Runs',
           scrollController: _pageScrollController,
@@ -84,7 +85,8 @@ class _MrpRunPageState extends State<MrpRunPage> {
   }
 
   Widget _buildContent() {
-    if (_viewModel.loading) return const AppLoadingView(message: 'Loading MRP runs...');
+    if (_viewModel.loading)
+      return const AppLoadingView(message: 'Loading MRP runs...');
     if (_viewModel.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load MRP runs',
@@ -185,36 +187,42 @@ class _MrpRunEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  onChanged: vm.onCompanyChanged,
-                  validator: Validators.requiredSelection('Company'),
+                AppFormTextField(
+                  labelText: 'Run No (optional)',
+                  controller: vm.runNoController,
                 ),
-                AppFormTextField(labelText: 'Run No (optional)', controller: vm.runNoController),
                 AppFormTextField(
                   labelText: 'Run Date',
                   controller: vm.runDateController,
                   inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([Validators.required('Run Date'), Validators.date('Run Date')]),
+                  validator: Validators.compose([
+                    Validators.required('Run Date'),
+                    Validators.date('Run Date'),
+                  ]),
                 ),
                 AppFormTextField(
                   labelText: 'Planning Start Date',
                   controller: vm.startDateController,
                   inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([Validators.required('Planning Start Date'), Validators.date('Planning Start Date')]),
+                  validator: Validators.compose([
+                    Validators.required('Planning Start Date'),
+                    Validators.date('Planning Start Date'),
+                  ]),
                 ),
                 AppFormTextField(
                   labelText: 'Planning End Date',
                   controller: vm.endDateController,
                   inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([Validators.required('Planning End Date'), Validators.date('Planning End Date')]),
+                  validator: Validators.compose([
+                    Validators.required('Planning End Date'),
+                    Validators.date('Planning End Date'),
+                  ]),
                 ),
-                AppFormTextField(labelText: 'Notes', controller: vm.notesController, maxLines: 2),
+                AppFormTextField(
+                  labelText: 'Notes',
+                  controller: vm.notesController,
+                  maxLines: 2,
+                ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
@@ -231,12 +239,28 @@ class _MrpRunEditor extends StatelessWidget {
                     await onSave();
                   },
                 ),
-                if (vm.selected != null && (vm.status == 'draft' || vm.status == 'failed'))
-                  AppActionButton(icon: Icons.play_arrow_outlined, label: 'Process', filled: false, onPressed: onProcess),
+                if (vm.selected != null &&
+                    (vm.status == 'draft' || vm.status == 'failed'))
+                  AppActionButton(
+                    icon: Icons.play_arrow_outlined,
+                    label: 'Process',
+                    filled: false,
+                    onPressed: onProcess,
+                  ),
                 if (vm.selected != null && vm.status != 'cancelled')
-                  AppActionButton(icon: Icons.cancel_outlined, label: 'Cancel Run', filled: false, onPressed: onCancelRun),
+                  AppActionButton(
+                    icon: Icons.cancel_outlined,
+                    label: 'Cancel Run',
+                    filled: false,
+                    onPressed: onCancelRun,
+                  ),
                 if (vm.selected != null)
-                  AppActionButton(icon: Icons.delete_outline, label: 'Delete', filled: false, onPressed: onDelete),
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    filled: false,
+                    onPressed: onDelete,
+                  ),
               ],
             ),
           ],

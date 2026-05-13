@@ -593,95 +593,18 @@ class _GstRegistrationManagementPageState
               SettingsFormWrap(
                 children: [
                   if (widget.fixedCompanyId == null)
-                    AppDropdownField<int>.fromMapped(
-                      initialValue: companyValue,
-                      labelText: 'Company',
-                      mappedItems: _companies
-                          .where((company) => company.id != null)
-                          .map(
-                            (company) => AppDropdownItem<int>(
-                              value: company.id!,
-                              label: company.toString(),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) {
-                        setState(() {
-                          _companyId = value;
-                          final branches = branchesForCompany(_branches, value)
-                              .where(
-                                (branch) =>
-                                    widget.fixedBranchId == null ||
-                                    branch.id == widget.fixedBranchId,
-                              )
-                              .toList(growable: false);
-                          _branchId = branches.isNotEmpty
-                              ? branches.first.id
-                              : null;
-                          final locations = locationsForBranch(
-                            _locations,
-                            _branchId,
-                          );
-                          _locationId = locations.isNotEmpty
-                              ? locations.first.id
-                              : null;
-                        });
-                      },
-                      validator: (value) =>
-                          Validators.requiredSelectionField(value, 'Company'),
-                    ),
-                  if (widget.fixedBranchId == null)
-                    AppDropdownField<int?>.fromMapped(
-                      initialValue: branchValue,
-                      labelText: 'Branch',
-                      mappedItems: [
-                        const AppDropdownItem<int?>(value: null, label: 'None'),
-                        ...branchOptions
-                            .where((branch) => branch.id != null)
-                            .map(
-                              (branch) => AppDropdownItem<int?>(
-                                value: branch.id!,
-                                label: branch.toString(),
-                              ),
-                            ),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _branchId = value;
-                          final locations = locationsForBranch(
-                            _locations,
-                            value,
-                          );
-                          _locationId = locations.isNotEmpty
-                              ? locations.first.id
-                              : null;
-                        });
-                      },
-                    ),
-                  AppDropdownField<int?>.fromMapped(
-                    initialValue: locationValue,
-                    labelText: 'Location',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: 'None'),
-                      ...locationOptions
-                          .where((location) => location.id != null)
-                          .map(
-                            (location) => AppDropdownItem<int?>(
-                              value: location.id!,
-                              label: location.toString(),
-                            ),
+                    if (widget.fixedBranchId == null)
+                      AppFormTextField(
+                        controller: _nameController,
+                        labelText: 'Registration Name',
+                        validator: Validators.compose([
+                          Validators.required('Registration Name'),
+                          Validators.optionalMaxLength(
+                            255,
+                            'Registration Name',
                           ),
-                    ],
-                    onChanged: (value) => setState(() => _locationId = value),
-                  ),
-                  AppFormTextField(
-                    controller: _nameController,
-                    labelText: 'Registration Name',
-                    validator: Validators.compose([
-                      Validators.required('Registration Name'),
-                      Validators.optionalMaxLength(255, 'Registration Name'),
-                    ]),
-                  ),
+                        ]),
+                      ),
                   AppDropdownField<int>.fromMapped(
                     initialValue: stateValue,
                     labelText: 'State',
@@ -712,8 +635,10 @@ class _GstRegistrationManagementPageState
                     onChanged: (value) => setState(() {
                       _registrationType = value ?? 'regular';
                     }),
-                    validator: (value) =>
-                        Validators.requiredSelectionField(value, 'Registration Type'),
+                    validator: (value) => Validators.requiredSelectionField(
+                      value,
+                      'Registration Type',
+                    ),
                   ),
                   AppFormTextField(
                     controller: _gstinController,

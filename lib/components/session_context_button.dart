@@ -9,11 +9,16 @@ class SessionContextButton extends StatefulWidget {
 
 class _SessionContextButtonState extends State<SessionContextButton> {
   bool _busy = false;
+  String? _companyLabel;
+  String? _branchLabel;
+  String? _locationLabel;
+  String? _financialYearLabel;
 
   @override
   void initState() {
     super.initState();
     WorkingContextService.version.addListener(_handleVersionChanged);
+    _reloadSummary();
   }
 
   @override
@@ -25,7 +30,67 @@ class _SessionContextButtonState extends State<SessionContextButton> {
   void _handleVersionChanged() {
     if (mounted) {
       setState(() {});
+      _reloadSummary();
     }
+  }
+
+  Future<void> _reloadSummary() async {
+    final authContext = await SessionStorage.getAuthContext();
+    final companyId = await SessionStorage.getCurrentCompanyId();
+    final branchId = await SessionStorage.getCurrentBranchId();
+    final locationId = await SessionStorage.getCurrentLocationId();
+    final financialYearId = await SessionStorage.getCurrentFinancialYearId();
+    if (!mounted) {
+      return;
+    }
+
+    final company = authContext?.companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == companyId,
+      orElse: () => null,
+    );
+    final branch = authContext?.branches.cast<BranchModel?>().firstWhere(
+      (item) => item?.id == branchId,
+      orElse: () => null,
+    );
+    final location = authContext?.locations
+        .cast<BusinessLocationModel?>()
+        .firstWhere((item) => item?.id == locationId, orElse: () => null);
+    final financialYear = authContext?.financialYears
+        .cast<FinancialYearModel?>()
+        .firstWhere((item) => item?.id == financialYearId, orElse: () => null);
+
+    setState(() {
+      _companyLabel = company?.toString();
+      _branchLabel = branch?.toString();
+      _locationLabel = location?.toString();
+      _financialYearLabel = financialYear?.toString();
+    });
+  }
+
+  String get _summaryLabel {
+    final primary = <String>[
+      if ((_companyLabel ?? '').trim().isNotEmpty) _companyLabel!,
+      if ((_branchLabel ?? '').trim().isNotEmpty) _branchLabel!,
+      if ((_locationLabel ?? '').trim().isNotEmpty) _locationLabel!,
+    ];
+    if (primary.isEmpty) {
+      return 'Context';
+    }
+    return primary.join(' / ');
+  }
+
+  String get _tooltipLabel {
+    final values = <String>[
+      if ((_companyLabel ?? '').trim().isNotEmpty) 'Company: $_companyLabel',
+      if ((_branchLabel ?? '').trim().isNotEmpty) 'Branch: $_branchLabel',
+      if ((_locationLabel ?? '').trim().isNotEmpty) 'Location: $_locationLabel',
+      if ((_financialYearLabel ?? '').trim().isNotEmpty)
+        'FY: $_financialYearLabel',
+    ];
+    if (values.isEmpty) {
+      return 'Working Context';
+    }
+    return values.join('\n');
   }
 
   Future<void> _openContextDialog() async {
@@ -78,9 +143,15 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                       .toList(growable: false);
                   final scopedLocations = snapshot.locations
                       .where(
-                        (BusinessLocationModel item) =>
-                            branchId.value == null ||
-                            item.branchId == branchId.value,
+                        (BusinessLocationModel item) {
+                          final companyMatches =
+                              companyId.value == null ||
+                              item.companyId == companyId.value;
+                          final branchMatches =
+                              branchId.value == null ||
+                              item.branchId == branchId.value;
+                          return companyMatches && branchMatches;
+                        },
                       )
                       .toList(growable: false);
                   final scopedFinancialYears = snapshot.financialYears
@@ -141,12 +212,15 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                           labelText: 'Location',
                           initialValue: locationId.value,
                           mappedItems: scopedLocations
-                              .where((BusinessLocationModel item) => item.id != null)
+                              .where(
+                                (BusinessLocationModel item) => item.id != null,
+                              )
                               .map(
-                                (BusinessLocationModel item) => AppDropdownItem<int>(
-                                  value: item.id!,
-                                  label: item.name ?? item.toString(),
-                                ),
+                                (BusinessLocationModel item) =>
+                                    AppDropdownItem<int>(
+                                      value: item.id!,
+                                      label: item.name ?? item.toString(),
+                                    ),
                               )
                               .toList(growable: false),
                           onChanged: (value) async {
@@ -156,18 +230,33 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                           },
                         ),
                       ],
+                      if (scopedLocations.length == 1) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Location',
+                          ),
+                          child: Text(
+                            scopedLocations.first.name ??
+                                scopedLocations.first.toString(),
+                          ),
+                        ),
+                      ],
                       if (scopedFinancialYears.length > 1) ...[
                         const SizedBox(height: AppUiConstants.spacingMd),
                         AppDropdownField<int>.fromMapped(
                           labelText: 'Financial Year',
                           initialValue: financialYearId.value,
                           mappedItems: scopedFinancialYears
-                              .where((FinancialYearModel item) => item.id != null)
+                              .where(
+                                (FinancialYearModel item) => item.id != null,
+                              )
                               .map(
-                                (FinancialYearModel item) => AppDropdownItem<int>(
-                                  value: item.id!,
-                                  label: item.fyName ?? item.toString(),
-                                ),
+                                (FinancialYearModel item) =>
+                                    AppDropdownItem<int>(
+                                      value: item.id!,
+                                      label: item.fyName ?? item.toString(),
+                                    ),
                               )
                               .toList(growable: false),
                           onChanged: (value) {
@@ -178,7 +267,7 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                       ],
                       if (snapshot.companies.length <= 1 &&
                           scopedBranches.length <= 1 &&
-                          scopedLocations.length <= 1 &&
+                          scopedLocations.isEmpty &&
                           scopedFinancialYears.length <= 1)
                         const Text(
                           'Only one active option is available for each context, so defaults are already applied.',
@@ -229,7 +318,7 @@ class _SessionContextButtonState extends State<SessionContextButton> {
   Widget build(BuildContext context) {
     final compact = MediaQuery.of(context).size.width < 600;
     return Tooltip(
-      message: 'Working Context',
+      message: _tooltipLabel,
       child: OutlinedButton(
         onPressed: _busy ? null : _openContextDialog,
         style: OutlinedButton.styleFrom(
@@ -248,10 +337,17 @@ class _SessionContextButtonState extends State<SessionContextButton> {
             ? const Icon(Icons.tune_outlined, size: 20)
             : Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.tune_outlined, size: 20),
-                  SizedBox(width: 8),
-                  Text('Context'),
+                children: [
+                  const Icon(Icons.tune_outlined, size: 20),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Text(
+                      _summaryLabel,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
                 ],
               ),
       ),

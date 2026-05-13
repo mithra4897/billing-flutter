@@ -210,51 +210,6 @@ class _BomEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  onChanged: vm.onCompanyChanged,
-                  validator: Validators.requiredSelection('Company'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Branch',
-                  mappedItems: vm.branchOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.branchId,
-                  onChanged: vm.onBranchChanged,
-                  validator: Validators.requiredSelection('Branch'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Location',
-                  mappedItems: vm.locationOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.locationId,
-                  onChanged: vm.onLocationChanged,
-                  validator: Validators.requiredSelection('Location'),
-                ),
                 AppFormTextField(
                   labelText: 'BOM Code',
                   controller: vm.bomCodeController,

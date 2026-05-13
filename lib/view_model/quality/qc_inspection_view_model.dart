@@ -49,7 +49,9 @@ const List<AppDropdownItem<String>> kQcInspectionSourceTypeItems =
 String? _scopeForSourceType(String type) => _sourceTypeToInspectionScope[type];
 
 class QcInspectionViewModel extends ChangeNotifier {
-  QcInspectionViewModel();
+  QcInspectionViewModel() {
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
 
   final QualityService _service = QualityService();
   final MasterService _masterService = MasterService();
@@ -102,6 +104,10 @@ class QcInspectionViewModel extends ChangeNotifier {
   int? qcPlanId;
   int? warehouseId;
   bool isActive = true;
+
+  void _handleWorkingContextChanged() {
+    load(selectId: selectedId);
+  }
 
   String get inspectionStatus =>
       stringValue(_detail ?? const <String, dynamic>{}, 'inspection_status');
@@ -271,6 +277,18 @@ class QcInspectionViewModel extends ChangeNotifier {
               .where((x) => x.isActive)
               .toList(growable: false);
 
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies: companies,
+            branches: branches,
+            locations: locations,
+            financialYears: financialYears,
+          );
+      companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
+      financialYearId = contextSelection.financialYearId;
+
       loading = false;
 
       if (selectId != null) {
@@ -290,12 +308,20 @@ class QcInspectionViewModel extends ChangeNotifier {
     selectedId = null;
     _detail = null;
     formError = null;
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
-    branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
-    locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    financialYearId = financialYearOptions.isNotEmpty
-        ? financialYearOptions.first.id
-        : null;
+    final contextSelection = normalizedWorkingContextSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: financialYears,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: financialYearId,
+    );
+    companyId = contextSelection.companyId;
+    branchId = contextSelection.branchId;
+    locationId = contextSelection.locationId;
+    financialYearId = contextSelection.financialYearId;
     documentSeriesId = qcSeriesOptions.isNotEmpty
         ? qcSeriesOptions.first.id
         : null;
@@ -734,6 +760,7 @@ class QcInspectionViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     inspectionDateController.dispose();
     sourceDocumentIdController.dispose();
     sourceLineIdController.dispose();

@@ -65,14 +65,16 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
               if (widget.editorOnly || !isDesktop) {
                 _openRoute('/planning/calendars/new');
               }
-              if (!Responsive.isDesktop(context)) _workspaceController.openEditor();
+              if (!Responsive.isDesktop(context))
+                _workspaceController.openEditor();
             },
             icon: Icons.add_outlined,
             label: 'New Calendar',
           ),
         ];
         final content = _buildContent();
-        if (widget.embedded) return ShellPageActions(actions: actions, child: content);
+        if (widget.embedded)
+          return ShellPageActions(actions: actions, child: content);
         return AppStandaloneShell(
           title: 'Planning Calendars',
           scrollController: _pageScrollController,
@@ -84,7 +86,8 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
   }
 
   Widget _buildContent() {
-    if (_viewModel.loading) return const AppLoadingView(message: 'Loading calendars...');
+    if (_viewModel.loading)
+      return const AppLoadingView(message: 'Loading calendars...');
     if (_viewModel.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load calendars',
@@ -97,7 +100,11 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
       title: 'Planning Calendars',
       editorTitle: _viewModel.selected == null
           ? 'New Planning Calendar'
-          : stringValue(_viewModel.selected!.toJson(), 'calendar_name', 'Calendar'),
+          : stringValue(
+              _viewModel.selected!.toJson(),
+              'calendar_name',
+              'Calendar',
+            ),
       editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: SettingsListCard<PlanningCalendarModel>(
@@ -148,7 +155,11 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
 }
 
 class _CalendarEditor extends StatelessWidget {
-  const _CalendarEditor({required this.vm, required this.onSave, required this.onDelete});
+  const _CalendarEditor({
+    required this.vm,
+    required this.onSave,
+    required this.onDelete,
+  });
   final PlanningCalendarViewModel vm;
   final Future<void> Function() onSave;
   final Future<void> Function() onDelete;
@@ -166,16 +177,6 @@ class _CalendarEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Company',
-                  mappedItems: vm.companies
-                      .where((x) => x.id != null)
-                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
-                      .toList(growable: false),
-                  initialValue: vm.companyId,
-                  onChanged: vm.onCompanyChanged,
-                  validator: Validators.requiredSelection('Company'),
-                ),
                 AppFormTextField(
                   labelText: 'Calendar Code',
                   controller: vm.codeController,
@@ -186,8 +187,14 @@ class _CalendarEditor extends StatelessWidget {
                   controller: vm.nameController,
                   validator: Validators.required('Calendar Name'),
                 ),
-                AppFormTextField(labelText: 'Planning Frequency', controller: vm.frequencyController),
-                AppFormTextField(labelText: 'Week Start Day', controller: vm.weekStartDayController),
+                AppFormTextField(
+                  labelText: 'Planning Frequency',
+                  controller: vm.frequencyController,
+                ),
+                AppFormTextField(
+                  labelText: 'Week Start Day',
+                  controller: vm.weekStartDayController,
+                ),
                 AppSwitchTile(
                   label: 'Default Calendar',
                   value: vm.isDefault,
@@ -198,7 +205,11 @@ class _CalendarEditor extends StatelessWidget {
                   value: vm.isActive,
                   onChanged: vm.setIsActive,
                 ),
-                AppFormTextField(labelText: 'Remarks', controller: vm.remarksController, maxLines: 2),
+                AppFormTextField(
+                  labelText: 'Remarks',
+                  controller: vm.remarksController,
+                  maxLines: 2,
+                ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
@@ -215,7 +226,12 @@ class _CalendarEditor extends StatelessWidget {
                   },
                 ),
                 if (vm.selected != null)
-                  AppActionButton(icon: Icons.delete_outline, label: 'Delete', filled: false, onPressed: onDelete),
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    filled: false,
+                    onPressed: onDelete,
+                  ),
               ],
             ),
           ],
