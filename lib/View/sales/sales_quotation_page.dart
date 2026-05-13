@@ -584,6 +584,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
   Map<String, dynamic> _quotationPrintData() {
     final summary = _taxSummary();
     final selected = _selectedItem?.toJson() ?? const <String, dynamic>{};
+    final company = _companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == _companyId,
+      orElse: () => null,
+    );
     final customer = _customers.cast<PartyModel?>().firstWhere(
       (item) => item?.id == _customerPartyId,
       orElse: () => null,
@@ -616,6 +620,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
     return <String, dynamic>{
       'company_name': companyNameById(_companies, _companyId),
+      'company_logo_url':
+          AppConfig.resolvePublicFileUrl(company?.logoPath) ??
+          'assets/sakthicontroller logo.jpg',
       'document_number': nullIfEmpty(_quotationNoController.text) ?? 'Draft',
       'document_date': _quotationDateController.text.trim(),
       'reference_number': _customerRefNoController.text.trim(),

@@ -463,6 +463,10 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   }
 
   Map<String, dynamic> _salesDeliveryPrintData() {
+    final company = _companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == _companyId,
+      orElse: () => null,
+    );
     final customer = _customers.cast<PartyModel?>().firstWhere(
       (item) => item?.id == _customerPartyId,
       orElse: () => null,
@@ -494,6 +498,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
 
     return <String, dynamic>{
       'company_name': companyNameById(_companies, _companyId),
+      'company_logo_url':
+          AppConfig.resolvePublicFileUrl(company?.logoPath) ??
+          'assets/sakthicontroller logo.jpg',
       'document_number': nullIfEmpty(_deliveryNoController.text) ?? 'Draft',
       'document_date': _deliveryDateController.text.trim(),
       'reference_number': '',

@@ -402,6 +402,10 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
   }
 
   Map<String, dynamic> _purchaseInvoicePrintData() {
+    final company = _companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == _companyId,
+      orElse: () => null,
+    );
     final supplier = _suppliers.cast<PartyModel?>().firstWhere(
       (item) => item?.id == _supplierPartyId,
       orElse: () => null,
@@ -444,6 +448,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
 
     return <String, dynamic>{
       'company_name': companyNameById(_companies, _companyId),
+      'company_logo_url':
+          AppConfig.resolvePublicFileUrl(company?.logoPath) ??
+          'assets/sakthicontroller logo.jpg',
       'document_number': nullIfEmpty(_invoiceNoController.text) ?? 'Draft',
       'document_date': _invoiceDateController.text.trim(),
       'reference_number': _supplierReferenceNoController.text.trim(),

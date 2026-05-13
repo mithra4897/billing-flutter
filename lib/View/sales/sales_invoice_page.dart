@@ -2071,6 +2071,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
   Map<String, dynamic> _salesInvoicePrintData() {
     final summary = _invoiceTaxSummary();
     final selected = _selectedItem?.raw ?? const <String, dynamic>{};
+    final company = _companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == _companyId,
+      orElse: () => null,
+    );
     final customer = _customers.cast<PartyModel?>().firstWhere(
       (item) => item?.id == _customerPartyId,
       orElse: () => null,
@@ -2109,6 +2113,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
     return <String, dynamic>{
       'company_name': companyNameById(_companies, _companyId),
+      'company_logo_url':
+          AppConfig.resolvePublicFileUrl(company?.logoPath) ??
+          'assets/sakthicontroller logo.jpg',
       'document_number': nullIfEmpty(_invoiceNoController.text) ?? 'Draft',
       'document_date': _invoiceDateController.text.trim(),
       'reference_number': _customerRefNoController.text.trim(),

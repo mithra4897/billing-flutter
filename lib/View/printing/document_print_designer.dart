@@ -1,9 +1,18 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../screen.dart';
+
+const String _defaultPrintLogoAsset = 'assets/sakthicontroller logo.jpg';
+const String _legacyPbsLogoAsset = 'assets/pbs_logo.png';
 
 Future<void> openDocumentPrintDesigner(
   BuildContext context, {
@@ -43,11 +52,13 @@ class DocumentPrintDesignerPage extends StatefulWidget {
 class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final _DocumentPrintTemplateRepository _repository =
       _DocumentPrintTemplateRepository();
+  final GlobalKey _previewBoundaryKey = GlobalKey();
   _DocumentPrintTemplate? _template;
   String? _selectedShapeId;
   bool _editMode = false;
   bool _loading = true;
   bool _saving = false;
+  bool _printingPdf = false;
 
   @override
   void initState() {
@@ -112,6 +123,18 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                     )
                   : const Icon(Icons.save_outlined),
             ),
+          if (!_loading)
+            IconButton(
+              tooltip: 'Print',
+              onPressed: _printingPdf ? null : _printPdf,
+              icon: _printingPdf
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.print_outlined),
+            ),
         ],
       ),
       body: _loading
@@ -130,28 +153,36 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                     children: [
                       Expanded(
                         child: Container(
-                          color: const Color(0xFFF2F4F8),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerLowest,
                           padding: const EdgeInsets.all(
                             AppUiConstants.spacingMd,
                           ),
-                          child: _DesignerCanvas(
-                            template: template,
-                            documentData: widget.documentData,
-                            editMode: _editMode,
-                            selectedShapeId: _selectedShapeId,
-                            onSelectShape: (shapeId) {
-                              if (!_editMode) {
-                                return;
-                              }
-                              setState(() => _selectedShapeId = shapeId);
-                            },
-                            onMoveShape: _moveShape,
-                            onResizeShape: _resizeShape,
+                          child: RepaintBoundary(
+                            key: _previewBoundaryKey,
+                            child: _DesignerCanvas(
+                              template: template,
+                              documentData: widget.documentData,
+                              editMode: _editMode,
+                              selectedShapeId: _selectedShapeId,
+                              onSelectShape: (shapeId) {
+                                if (!_editMode) {
+                                  return;
+                                }
+                                setState(() => _selectedShapeId = shapeId);
+                              },
+                              onMoveShape: _moveShape,
+                              onResizeShape: _resizeShape,
+                            ),
                           ),
                         ),
                       ),
                       if (_editMode)
-                        SizedBox(width: 320, child: _buildInspector(template)),
+                        SizedBox(
+                          width: AppUiConstants.settingsSidebarWidth,
+                          child: _buildInspector(template),
+                        ),
                     ],
                   ),
                 ),
@@ -181,16 +212,18 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           ),
           const SizedBox(width: AppUiConstants.spacingXs),
           _toolbarButton(
-            Icons.circle_outlined,
-            'Ellipse',
-            () => _addShape('ellipse'),
-          ),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          _toolbarButton(
             Icons.table_chart_outlined,
             'Table',
             () => _addShape('table'),
           ),
+          const SizedBox(width: AppUiConstants.spacingXs),
+          _toolbarButton(
+            Icons.image_outlined,
+            'Image',
+            () => _addShape('image'),
+          ),
+          const SizedBox(width: AppUiConstants.spacingXs),
+          _toolbarButton(Icons.qr_code, 'Barcode', () => _addShape('barcode')),
           const SizedBox(width: AppUiConstants.spacingMd),
           OutlinedButton.icon(
             onPressed: _resetTemplate,
@@ -212,26 +245,29 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   Widget _buildInspector(_DocumentPrintTemplate template) {
     final selected = template.shapeById(_selectedShapeId);
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(left: BorderSide(color: Theme.of(context).dividerColor)),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        0,
+        AppUiConstants.spacingMd,
+        AppUiConstants.spacingMd,
+        AppUiConstants.spacingMd,
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-        child: selected == null
-            ? _PageInspector(
-                template: template,
-                onChanged: (next) => setState(() => _template = next),
-              )
-            : _ShapeInspector(
-                shape: selected,
-                bindings: _availableBindings(widget.documentData),
-                onChanged: _updateShape,
-                onDelete: _deleteSelectedShape,
-                onBringForward: _bringSelectedForward,
-                onSendBackward: _sendSelectedBackward,
-              ),
+      child: AppSectionCard(
+        child: SingleChildScrollView(
+          child: selected == null
+              ? _PageInspector(
+                  template: template,
+                  onChanged: (next) => setState(() => _template = next),
+                )
+              : _ShapeInspector(
+                  shape: selected,
+                  bindings: _availableBindings(widget.documentData),
+                  onChanged: _updateShape,
+                  onDelete: _deleteSelectedShape,
+                  onBringForward: _bringSelectedForward,
+                  onSendBackward: _sendSelectedBackward,
+                ),
+        ),
       ),
     );
   }
@@ -347,6 +383,89 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     shapes.insert(index - 1, shape);
     setState(() => _template = template.copyWith(shapes: shapes));
   }
+
+  Future<Uint8List?> _capturePreviewPng() async {
+    await SchedulerBinding.instance.endOfFrame;
+    await Future<void>.delayed(const Duration(milliseconds: 32));
+    await SchedulerBinding.instance.endOfFrame;
+    final boundary =
+        _previewBoundaryKey.currentContext?.findRenderObject()
+            as RenderRepaintBoundary?;
+    if (boundary == null) {
+      return null;
+    }
+    final pixelRatio = switch (defaultTargetPlatform) {
+      TargetPlatform.macOS => 1.4,
+      TargetPlatform.windows => 1.6,
+      _ => 2.0,
+    };
+    final image = await boundary
+        .toImage(pixelRatio: pixelRatio)
+        .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => throw Exception(
+            'Preview capture timed out. Please wait for the preview to finish rendering and try again.',
+          ),
+        );
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData?.buffer.asUint8List();
+  }
+
+  PdfPageFormat _pageFormatForTemplate(_DocumentPrintTemplate template) {
+    return PdfPageFormat(template.pageWidth, template.pageHeight, marginAll: 0);
+  }
+
+  Future<Uint8List?> _buildPdfBytes() async {
+    final template = _template;
+    if (template == null) {
+      return null;
+    }
+    final png = await _capturePreviewPng();
+    if (png == null) {
+      return null;
+    }
+    final document = pw.Document();
+    final image = pw.MemoryImage(png);
+    final format = _pageFormatForTemplate(template);
+    document.addPage(
+      pw.Page(
+        pageFormat: format,
+        margin: pw.EdgeInsets.zero,
+        build: (_) =>
+            pw.SizedBox.expand(child: pw.Image(image, fit: pw.BoxFit.fill)),
+      ),
+    );
+    return document.save();
+  }
+
+  Future<void> _printPdf() async {
+    setState(() => _printingPdf = true);
+    try {
+      final bytes = await _buildPdfBytes();
+      if (bytes == null) {
+        throw Exception('Unable to capture print preview.');
+      }
+      await Printing.layoutPdf(
+        name: '${widget.title}.pdf',
+        onLayout: (_) async => bytes,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception(
+          'Print dialog timed out. Please check macOS printer access and try again.',
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Print failed: $error')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _printingPdf = false);
+      }
+    }
+  }
 }
 
 class _DesignerCanvas extends StatelessWidget {
@@ -411,6 +530,34 @@ class _DesignerCanvas extends StatelessWidget {
                         ),
                       ),
                     ),
+                    ...template.shapes
+                        .where((shape) => shape.type == 'image')
+                        .map(
+                          (shape) => Positioned(
+                            left: shape.x * scale,
+                            top: shape.y * scale,
+                            width: math.max(24, shape.width * scale),
+                            height: math.max(24, shape.height * scale),
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: shape.strokeWidth > 0
+                                    ? BoxDecoration(
+                                        border: Border.all(
+                                          color: Color(shape.strokeColor),
+                                          width: shape.strokeWidth * scale,
+                                        ),
+                                      )
+                                    : const BoxDecoration(),
+                                child: _DocumentImageShape(
+                                  source: _resolveTemplateText(
+                                    shape.assetPath,
+                                    documentData,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     if (editMode)
                       ...template.shapes.map((shape) {
                         final isSelected = shape.id == selectedShapeId;
@@ -498,6 +645,44 @@ class _ShapeSelectionOverlay extends StatelessWidget {
   }
 }
 
+class _DocumentImageShape extends StatelessWidget {
+  const _DocumentImageShape({required this.source});
+
+  final String source;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = _resolveImageSource(source);
+    if (resolved == null || resolved.trim().isEmpty) {
+      return _fallback();
+    }
+    if (resolved.startsWith('assets/')) {
+      return Image.asset(
+        resolved,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => _fallback(),
+      );
+    }
+    return Image.network(
+      resolved,
+      fit: BoxFit.contain,
+      errorBuilder: (_, _, _) => _fallback(),
+    );
+  }
+
+  Widget _fallback() {
+    return Image.asset(
+      _defaultPrintLogoAsset,
+      fit: BoxFit.contain,
+      errorBuilder: (_, _, _) => Container(
+        color: const Color(0xFFF8FAFC),
+        alignment: Alignment.center,
+        child: const Icon(Icons.broken_image_outlined),
+      ),
+    );
+  }
+}
+
 class _DocumentCanvasPainter extends CustomPainter {
   _DocumentCanvasPainter({
     required this.template,
@@ -542,17 +727,16 @@ class _DocumentCanvasPainter extends CustomPainter {
           }
           canvas.drawRect(rect, stroke);
           break;
-        case 'ellipse':
-          if (shape.fillAlpha > 0) {
-            canvas.drawOval(rect, fill);
-          }
-          canvas.drawOval(rect, stroke);
-          break;
         case 'line':
           canvas.drawLine(rect.topLeft, rect.bottomRight, stroke);
           break;
         case 'table':
           _paintTable(canvas, rect, shape);
+          break;
+        case 'image':
+          break;
+        case 'barcode':
+          _paintBarcode(canvas, rect, shape);
           break;
         case 'text':
         default:
@@ -676,6 +860,93 @@ class _DocumentCanvasPainter extends CustomPainter {
     }
   }
 
+  void _paintBarcode(Canvas canvas, Rect rect, _DocumentPrintShape shape) {
+    final value = _resolveTemplateText(shape.text, documentData);
+    if (value.trim().isEmpty) {
+      return;
+    }
+    final stroke = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Color(shape.strokeColor);
+    final fill = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Color(shape.fillColor).withValues(alpha: shape.fillAlpha);
+
+    if (shape.fillAlpha > 0) {
+      canvas.drawRect(rect, fill);
+    }
+
+    if (shape.barcodeType == 'qr') {
+      final grid = 21;
+      final cell = math.min(rect.width, rect.height) / grid;
+      final seed = value.codeUnits.fold<int>(0, (sum, code) => sum + code);
+      for (var y = 0; y < grid; y++) {
+        for (var x = 0; x < grid; x++) {
+          final finder =
+              ((x < 7 && y < 7) ||
+              (x >= grid - 7 && y < 7) ||
+              (x < 7 && y >= grid - 7));
+          final bit = finder || (((x * 31 + y * 17 + seed) % 7) < 3);
+          if (bit) {
+            canvas.drawRect(
+              Rect.fromLTWH(
+                rect.left + (x * cell),
+                rect.top + (y * cell),
+                cell,
+                cell,
+              ),
+              stroke,
+            );
+          }
+        }
+      }
+      return;
+    }
+
+    final top = rect.top;
+    final barHeight = math.max(12.0, rect.height - (shape.fontSize + 8));
+    var cursor = rect.left;
+    final units = value.codeUnits.isEmpty ? [1] : value.codeUnits;
+    for (var i = 0; i < units.length * 3 && cursor < rect.right; i++) {
+      final unit = units[i % units.length];
+      final width = ((unit + i) % 4 + 1) * 1.6 * scale;
+      final shouldDraw = (unit + i).isEven;
+      if (shouldDraw) {
+        canvas.drawRect(
+          Rect.fromLTWH(
+            cursor,
+            top,
+            math.min(width, rect.right - cursor),
+            barHeight,
+          ),
+          stroke,
+        );
+      }
+      cursor += width;
+    }
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: value,
+        style: TextStyle(
+          color: Color(shape.strokeColor),
+          fontSize: shape.fontSize * scale,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+      maxLines: 1,
+      ellipsis: '...',
+    )..layout(maxWidth: rect.width);
+    textPainter.paint(
+      canvas,
+      Offset(
+        rect.left + ((rect.width - textPainter.width) / 2),
+        rect.bottom - textPainter.height,
+      ),
+    );
+  }
+
   void _paintTableCell(
     Canvas canvas,
     Rect rect,
@@ -719,19 +990,60 @@ class _PageInspector extends StatelessWidget {
       children: [
         Text('Page', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: AppUiConstants.spacingSm),
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Paper',
+          initialValue: template.mediaPreset,
+          mappedItems: const [
+            AppDropdownItem(value: 'A4', label: 'A4'),
+            AppDropdownItem(value: 'A5', label: 'A5'),
+            AppDropdownItem(value: 'LETTER', label: 'Letter'),
+            AppDropdownItem(value: 'CUSTOM', label: 'Custom'),
+          ],
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            onChanged(_applyPagePreset(template, mediaPreset: value));
+          },
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Orientation',
+          initialValue: template.orientation,
+          mappedItems: const [
+            AppDropdownItem(value: 'portrait', label: 'Portrait'),
+            AppDropdownItem(value: 'landscape', label: 'Landscape'),
+          ],
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            onChanged(_applyPagePreset(template, orientation: value));
+          },
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
         _NumberField(
           label: 'Width',
           value: template.pageWidth,
-          onChanged: (value) =>
-              onChanged(template.copyWith(pageWidth: math.max(320, value))),
+          onChanged: (value) => onChanged(
+            template.copyWith(
+              pageWidth: math.max(320, value),
+              mediaPreset: 'CUSTOM',
+            ),
+          ),
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
         _NumberField(
           label: 'Height',
           value: template.pageHeight,
-          onChanged: (value) =>
-              onChanged(template.copyWith(pageHeight: math.max(400, value))),
+          onChanged: (value) => onChanged(
+            template.copyWith(
+              pageHeight: math.max(400, value),
+              mediaPreset: 'CUSTOM',
+            ),
+          ),
         ),
+        const SizedBox(height: AppUiConstants.spacingSm),
         const SizedBox(height: AppUiConstants.spacingMd),
         Text(
           'Select a shape on the page to edit it.',
@@ -862,13 +1174,13 @@ class _ShapeInspector extends StatelessWidget {
                 onChanged(shape.copyWith(fontSize: math.max(8, value))),
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
-          DropdownButtonFormField<String>(
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Alignment',
             initialValue: shape.align,
-            decoration: const InputDecoration(labelText: 'Alignment'),
-            items: const [
-              DropdownMenuItem(value: 'left', child: Text('Left')),
-              DropdownMenuItem(value: 'center', child: Text('Center')),
-              DropdownMenuItem(value: 'right', child: Text('Right')),
+            mappedItems: const [
+              AppDropdownItem(value: 'left', label: 'Left'),
+              AppDropdownItem(value: 'center', label: 'Center'),
+              AppDropdownItem(value: 'right', label: 'Right'),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -877,9 +1189,8 @@ class _ShapeInspector extends StatelessWidget {
             },
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Bold'),
+          AppSwitchTile(
+            label: 'Bold',
             value: shape.bold,
             onChanged: (value) => onChanged(shape.copyWith(bold: value)),
           ),
@@ -920,6 +1231,43 @@ class _ShapeInspector extends StatelessWidget {
                 onChanged(shape.copyWith(rowHeight: math.max(20, value))),
           ),
         ],
+        if (shape.type == 'image') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _StringField(
+            label: 'Image Source',
+            value: shape.assetPath,
+            onChanged: (value) => onChanged(shape.copyWith(assetPath: value)),
+          ),
+        ],
+        if (shape.type == 'barcode') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _StringField(
+            label: 'Barcode Value',
+            value: shape.text,
+            onChanged: (value) => onChanged(shape.copyWith(text: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Barcode Type',
+            initialValue: shape.barcodeType,
+            mappedItems: const [
+              AppDropdownItem(value: 'code128', label: 'CODE128'),
+              AppDropdownItem(value: 'qr', label: 'QR'),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                onChanged(shape.copyWith(barcodeType: value));
+              }
+            },
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _NumberField(
+            label: 'Font Size',
+            value: shape.fontSize,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(fontSize: math.max(8, value))),
+          ),
+        ],
       ],
     );
   }
@@ -940,11 +1288,11 @@ class _StringField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
+    return AppFormTextField(
       key: ValueKey('$label:$value'),
+      labelText: label,
       initialValue: value,
       maxLines: maxLines,
-      decoration: InputDecoration(labelText: label),
       onChanged: onChanged,
     );
   }
@@ -968,11 +1316,11 @@ class _NumberField extends StatelessWidget {
     final text = fractionDigits == 0
         ? value.toStringAsFixed(0)
         : value.toStringAsFixed(fractionDigits);
-    return TextFormField(
+    return AppFormTextField(
       key: ValueKey('$label:$text'),
+      labelText: label,
       initialValue: text,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      decoration: InputDecoration(labelText: label),
       onChanged: (next) {
         final parsed = double.tryParse(next.trim());
         if (parsed != null) {
@@ -1009,28 +1357,13 @@ class _ColorField extends StatelessWidget {
     final current = _palette.values.contains(value)
         ? value
         : _palette.values.first;
-    return DropdownButtonFormField<int>(
+    return AppDropdownField<int>.fromMapped(
+      labelText: label,
       initialValue: current,
-      decoration: InputDecoration(labelText: label),
-      items: _palette.entries
+      mappedItems: _palette.entries
           .map(
-            (entry) => DropdownMenuItem<int>(
-              value: entry.value,
-              child: Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Color(entry.value),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(entry.key),
-                ],
-              ),
-            ),
+            (entry) =>
+                AppDropdownItem<int>(value: entry.value, label: entry.key),
           )
           .toList(growable: false),
       onChanged: (next) {
@@ -1054,7 +1387,9 @@ class _DocumentPrintTemplateRepository {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map<String, dynamic>) {
-        return _DocumentPrintTemplate.fromJson(decoded);
+        return _DocumentPrintTemplate.fromJson(
+          decoded,
+        ).withoutUnsupportedShapes();
       }
     } catch (_) {}
     return _DocumentPrintTemplate.defaults(documentType);
@@ -1077,16 +1412,28 @@ class _DocumentPrintTemplate {
     required this.pageWidth,
     required this.pageHeight,
     required this.shapes,
+    this.backgroundImagePath,
+    this.backgroundOpacity = 0.18,
+    this.mediaPreset = 'A4',
+    this.orientation = 'portrait',
   });
 
   final double pageWidth;
   final double pageHeight;
   final List<_DocumentPrintShape> shapes;
+  final String? backgroundImagePath;
+  final double backgroundOpacity;
+  final String mediaPreset;
+  final String orientation;
 
   factory _DocumentPrintTemplate.fromJson(Map<String, dynamic> json) {
     return _DocumentPrintTemplate(
       pageWidth: _toDouble(json['pageWidth'], 595),
       pageHeight: _toDouble(json['pageHeight'], 842),
+      backgroundImagePath: nullableStringValue(json, 'backgroundImagePath'),
+      backgroundOpacity: _toDouble(json['backgroundOpacity'], 0.18),
+      mediaPreset: stringValue(json, 'mediaPreset', 'A4'),
+      orientation: stringValue(json, 'orientation', 'portrait'),
       shapes: (json['shapes'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .map(_DocumentPrintShape.fromJson)
@@ -1098,13 +1445,25 @@ class _DocumentPrintTemplate {
     return _DocumentPrintTemplate(
       pageWidth: 595,
       pageHeight: 842,
+      mediaPreset: 'A4',
+      orientation: 'portrait',
       shapes: [
+        const _DocumentPrintShape(
+          id: 'company-logo',
+          type: 'image',
+          x: 28,
+          y: 28,
+          width: 84,
+          height: 84,
+          strokeWidth: 0,
+          assetPath: '{{company_logo_url}}',
+        ),
         _DocumentPrintShape(
           id: 'text-title',
           type: 'text',
-          x: 28,
+          x: 126,
           y: 28,
-          width: 280,
+          width: 220,
           height: 32,
           text: '{{company_name}}',
           fontSize: 20,
@@ -1113,9 +1472,9 @@ class _DocumentPrintTemplate {
         _DocumentPrintShape(
           id: 'text-doc-type',
           type: 'text',
-          x: 28,
+          x: 126,
           y: 60,
-          width: 220,
+          width: 210,
           height: 18,
           text: title.toUpperCase(),
           fontSize: 11,
@@ -1232,15 +1591,31 @@ class _DocumentPrintTemplate {
     );
   }
 
+  _DocumentPrintTemplate withoutUnsupportedShapes() {
+    return copyWith(
+      shapes: shapes
+          .where((shape) => shape.isSupported)
+          .toList(growable: false),
+    );
+  }
+
   _DocumentPrintTemplate copyWith({
     double? pageWidth,
     double? pageHeight,
     List<_DocumentPrintShape>? shapes,
+    String? backgroundImagePath,
+    double? backgroundOpacity,
+    String? mediaPreset,
+    String? orientation,
   }) {
     return _DocumentPrintTemplate(
       pageWidth: pageWidth ?? this.pageWidth,
       pageHeight: pageHeight ?? this.pageHeight,
       shapes: shapes ?? this.shapes,
+      backgroundImagePath: backgroundImagePath ?? this.backgroundImagePath,
+      backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
+      mediaPreset: mediaPreset ?? this.mediaPreset,
+      orientation: orientation ?? this.orientation,
     );
   }
 
@@ -1248,6 +1623,10 @@ class _DocumentPrintTemplate {
     return {
       'pageWidth': pageWidth,
       'pageHeight': pageHeight,
+      'backgroundImagePath': backgroundImagePath,
+      'backgroundOpacity': backgroundOpacity,
+      'mediaPreset': mediaPreset,
+      'orientation': orientation,
       'shapes': shapes.map((shape) => shape.toJson()).toList(growable: false),
     };
   }
@@ -1273,6 +1652,9 @@ class _DocumentPrintShape {
     this.dataPath = 'lines',
     this.rowHeight = 30,
     this.columns = const <_DocumentPrintColumn>[],
+    this.assetPath = _defaultPrintLogoAsset,
+    this.sides = 5,
+    this.barcodeType = 'code128',
   });
 
   final String id;
@@ -1293,6 +1675,9 @@ class _DocumentPrintShape {
   final String dataPath;
   final double rowHeight;
   final List<_DocumentPrintColumn> columns;
+  final String assetPath;
+  final int sides;
+  final String barcodeType;
 
   factory _DocumentPrintShape.fromJson(Map<String, dynamic> json) {
     return _DocumentPrintShape(
@@ -1313,6 +1698,11 @@ class _DocumentPrintShape {
       strokeWidth: _toDouble(json['strokeWidth'], 1),
       dataPath: stringValue(json, 'dataPath', 'lines'),
       rowHeight: _toDouble(json['rowHeight'], 30),
+      assetPath: _normalizeLegacyImageSource(
+        stringValue(json, 'assetPath', _defaultPrintLogoAsset),
+      ),
+      sides: int.tryParse(json['sides']?.toString() ?? '') ?? 5,
+      barcodeType: stringValue(json, 'barcodeType', 'code128'),
       columns: (json['columns'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .map(_DocumentPrintColumn.fromJson)
@@ -1341,18 +1731,6 @@ class _DocumentPrintShape {
           width: 220,
           height: 0,
         );
-      case 'ellipse':
-        return _DocumentPrintShape(
-          id: '$type-$index',
-          type: type,
-          x: 36,
-          y: 36 + (index * 12),
-          width: 140,
-          height: 72,
-          strokeColor: 0xFF0F766E,
-          fillColor: 0xFFCCFBF1,
-          fillAlpha: 0.35,
-        );
       case 'table':
         return _DocumentPrintShape(
           id: '$type-$index',
@@ -1363,6 +1741,29 @@ class _DocumentPrintShape {
           height: 240,
           strokeColor: 0xFF94A3B8,
           columns: defaultTableColumns(),
+        );
+      case 'image':
+        return _DocumentPrintShape(
+          id: '$type-$index',
+          type: 'image',
+          x: 36,
+          y: 36,
+          width: 84,
+          height: 84,
+          strokeWidth: 0,
+          assetPath: '{{company_logo_url}}',
+        );
+      case 'barcode':
+        return _DocumentPrintShape(
+          id: '$type-$index',
+          type: 'barcode',
+          x: 36,
+          y: 36 + (index * 12),
+          width: 180,
+          height: 72,
+          text: '{{document_number}}',
+          fontSize: 11,
+          barcodeType: 'code128',
         );
       case 'text':
       default:
@@ -1411,12 +1812,14 @@ class _DocumentPrintShape {
     switch (type) {
       case 'rectangle':
         return 'Rectangle';
-      case 'ellipse':
-        return 'Ellipse';
       case 'line':
         return 'Line';
       case 'table':
         return 'Table';
+      case 'image':
+        return 'Image';
+      case 'barcode':
+        return 'Barcode';
       default:
         return 'Text';
     }
@@ -1439,6 +1842,9 @@ class _DocumentPrintShape {
     String? dataPath,
     double? rowHeight,
     List<_DocumentPrintColumn>? columns,
+    String? assetPath,
+    int? sides,
+    String? barcodeType,
   }) {
     return _DocumentPrintShape(
       id: id,
@@ -1459,6 +1865,9 @@ class _DocumentPrintShape {
       dataPath: dataPath ?? this.dataPath,
       rowHeight: rowHeight ?? this.rowHeight,
       columns: columns ?? this.columns,
+      assetPath: assetPath ?? this.assetPath,
+      sides: sides ?? this.sides,
+      barcodeType: barcodeType ?? this.barcodeType,
     );
   }
 
@@ -1481,10 +1890,24 @@ class _DocumentPrintShape {
       'strokeWidth': strokeWidth,
       'dataPath': dataPath,
       'rowHeight': rowHeight,
+      'assetPath': assetPath,
+      'sides': sides,
+      'barcodeType': barcodeType,
       'columns': columns
           .map((column) => column.toJson())
           .toList(growable: false),
     };
+  }
+
+  bool get isSupported {
+    return const {
+      'text',
+      'rectangle',
+      'line',
+      'table',
+      'image',
+      'barcode',
+    }.contains(type);
   }
 }
 
@@ -1526,6 +1949,34 @@ double _toDouble(dynamic value, double fallback) {
 
 int _toInt(dynamic value, int fallback) {
   return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+_DocumentPrintTemplate _applyPagePreset(
+  _DocumentPrintTemplate template, {
+  String? mediaPreset,
+  String? orientation,
+}) {
+  final nextPreset = mediaPreset ?? template.mediaPreset;
+  final nextOrientation = orientation ?? template.orientation;
+  if (nextPreset == 'CUSTOM') {
+    return template.copyWith(
+      mediaPreset: nextPreset,
+      orientation: nextOrientation,
+    );
+  }
+  final size = switch (nextPreset) {
+    'A5' => const Size(420, 595),
+    'LETTER' => const Size(612, 792),
+    _ => const Size(595, 842),
+  };
+  final width = nextOrientation == 'landscape' ? size.height : size.width;
+  final height = nextOrientation == 'landscape' ? size.width : size.height;
+  return template.copyWith(
+    mediaPreset: nextPreset,
+    orientation: nextOrientation,
+    pageWidth: width,
+    pageHeight: height,
+  );
 }
 
 Object? _resolvePath(Map<String, dynamic> data, String path) {
@@ -1573,6 +2024,28 @@ String _formatAmount(double value) {
     return value.round().toString();
   }
   return value.toStringAsFixed(2);
+}
+
+String? _resolveImageSource(String? source) {
+  if (source == null || source.trim().isEmpty) {
+    return null;
+  }
+  source = _normalizeLegacyImageSource(source);
+  if (source.startsWith('assets/')) {
+    return source;
+  }
+  if (source.startsWith('http://') || source.startsWith('https://')) {
+    return source;
+  }
+  return AppConfig.resolvePublicFileUrl(source) ?? source;
+}
+
+String _normalizeLegacyImageSource(String source) {
+  final trimmed = source.trim();
+  if (trimmed == _legacyPbsLogoAsset) {
+    return _defaultPrintLogoAsset;
+  }
+  return trimmed;
 }
 
 List<String> _availableBindings(
