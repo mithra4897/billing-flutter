@@ -394,6 +394,15 @@ class HrService extends ErpModuleService {
     fromJson: ExpenseClaimModel.fromJson,
   );
 
+  Future<ApiResponse<ExpenseClaimModel>> applyExpenseClaim(
+    int id,
+    ExpenseClaimModel body,
+  ) => actionModel<ExpenseClaimModel>(
+    '/hr/expense-claims/$id/apply',
+    body: body,
+    fromJson: ExpenseClaimModel.fromJson,
+  );
+
   Future<ApiResponse<ExpenseClaimModel>> approveExpenseClaim(
     int id,
     ExpenseClaimModel body,

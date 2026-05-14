@@ -10,27 +10,31 @@ Future<LocalPickedFile?> pickSingleFile({String accept = '*/*'}) async {
   final input = html.FileUploadInputElement()..accept = accept;
   final completer = Completer<LocalPickedFile?>();
 
+  void completeOnce(LocalPickedFile? value) {
+    if (!completer.isCompleted) {
+      completer.complete(value);
+    }
+  }
+
   input.onChange.first.then((_) {
     final file = input.files?.isNotEmpty == true ? input.files!.first : null;
     if (file == null) {
-      completer.complete(null);
+      completeOnce(null);
       return;
     }
 
     final reader = html.FileReader();
     reader.onError.first.then((_) {
-      if (!completer.isCompleted) {
-        completer.complete(null);
-      }
+      completeOnce(null);
     });
     reader.onLoad.first.then((_) {
       final result = reader.result;
       if (result is! ByteBuffer) {
-        completer.complete(null);
+        completeOnce(null);
         return;
       }
 
-      completer.complete(
+      completeOnce(
         LocalPickedFile(name: file.name, bytes: Uint8List.view(result)),
       );
     });

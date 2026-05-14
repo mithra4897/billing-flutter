@@ -32,7 +32,7 @@ String _nestedEmployeeName(Map<String, dynamic> data) {
 }
 
 String _paymentSubtitle(Map<String, dynamic> d) {
-  final st = stringValue(d, 'claim_status');
+  final st = _claimStatusCode(d['claim_status']);
   final rid = intValue(d, 'reimbursement_voucher_id');
   if (st == 'approved' && rid == null) {
     return 'Unpaid · ${stringValue(d, 'total_amount')}';
@@ -40,7 +40,69 @@ String _paymentSubtitle(Map<String, dynamic> d) {
   if (st == 'reimbursed') {
     return 'Paid · ${stringValue(d, 'total_amount')}';
   }
-  return '${stringValue(d, 'claim_status')} · ${stringValue(d, 'total_amount')}';
+  return '${_claimStatusLabel(d['claim_status'])} · ${stringValue(d, 'total_amount')}';
+}
+
+String _claimStatusCode(dynamic status) {
+  final value = status?.toString().trim().toLowerCase() ?? '';
+  if (value == '0' || value == 'draft') {
+    return 'draft';
+  }
+  if (value == '1' || value == 'applied' || value == 'submitted') {
+    return 'applied';
+  }
+  if (value == 'approved') {
+    return 'approved';
+  }
+  if (value == 'reimbursed') {
+    return 'reimbursed';
+  }
+  if (value == 'rejected') {
+    return 'rejected';
+  }
+  if (value == 'cancelled') {
+    return 'cancelled';
+  }
+  return value;
+}
+
+String _claimStatusLabel(dynamic status) {
+  switch (_claimStatusCode(status)) {
+    case 'draft':
+      return 'Draft';
+    case 'applied':
+      return 'Applied';
+    case 'approved':
+      return 'Approved';
+    case 'reimbursed':
+      return 'Reimbursed';
+    case 'rejected':
+      return 'Rejected';
+    case 'cancelled':
+      return 'Cancelled';
+    default:
+      return (status?.toString().trim().isNotEmpty ?? false)
+          ? status.toString()
+          : '-';
+  }
+}
+
+bool _isHrApprovalQueueRow(Map<String, dynamic> data) {
+  final status = _claimStatusCode(data['claim_status']);
+  final reimbursementVoucherId = intValue(data, 'reimbursement_voucher_id');
+  if (status == 'applied') {
+    return true;
+  }
+  if (status == 'rejected') {
+    return true;
+  }
+  if (status == 'approved' && reimbursementVoucherId == null) {
+    return true;
+  }
+  if (status == 'reimbursed') {
+    return true;
+  }
+  return false;
 }
 
 class _ExpenseLineEditors {
@@ -187,7 +249,8 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
   static const List<AppDropdownItem<String?>> _statusFilterItems =
       <AppDropdownItem<String?>>[
     AppDropdownItem<String?>(value: null, label: 'All statuses'),
-    AppDropdownItem<String?>(value: 'draft', label: 'Draft'),
+    AppDropdownItem<String?>(value: '0', label: 'Draft'),
+    AppDropdownItem<String?>(value: '1', label: 'Applied'),
     AppDropdownItem<String?>(value: 'approved', label: 'Approved'),
     AppDropdownItem<String?>(value: 'reimbursed', label: 'Reimbursed'),
     AppDropdownItem<String?>(value: 'rejected', label: 'Rejected'),
@@ -228,10 +291,15 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
 
   List<ExpenseClaimModel> get _filteredRows {
     final q = _searchController.text.trim().toLowerCase();
+    final visibleRows = _canViewAllClaims
+        ? _rows.where((ExpenseClaimModel row) {
+            return _isHrApprovalQueueRow(row.toJson());
+          }).toList(growable: false)
+        : _rows;
     if (q.isEmpty) {
-      return _rows;
+      return visibleRows;
     }
-    return _rows
+    return visibleRows
         .where((ExpenseClaimModel row) {
           final data = row.toJson();
           return [
@@ -253,16 +321,20 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
     final base = _employees
         .where((e) => e.companyId == _companyId && e.id != null)
         .toList(growable: false);
-    if (_canViewAllClaims) {
+    if (_isNewClaim && _linkedEmployeeId != null) {
+      return base
+          .where((e) => e.id == _linkedEmployeeId)
+          .toList(growable: false);
+    }
+    if (_linkedEmployeeId == null && !_canViewAllClaims) {
       return base;
     }
-    if (_linkedEmployeeId == null) {
-      return base;
-    }
-    return base
-        .where((e) => e.id == _linkedEmployeeId)
-        .toList(growable: false);
+    return base;
   }
+
+  bool get _employeeFieldReadOnly => true;
+
+  bool get _isSelfServiceUser => !_canViewAllClaims;
 
   Future<void> _loadPage({int? selectClaimId}) async {
     setState(() {
@@ -512,7 +584,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
     });
   }
 
-  Future<void> _saveDraft() async {
+  Future<void> _submitClaim({required bool applyNow}) async {
     if (_companyId == null) {
       return;
     }
@@ -540,6 +612,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
       'company_id': _companyId,
       'employee_id': _employeeId,
       'claim_date': _claimDateCtrl.text.trim(),
+      'claim_status': applyNow ? 1 : 0,
       'lines': lines,
     };
     final cn = _claimNoCtrl.text.trim();
@@ -572,9 +645,36 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
         return;
       }
       final newId = intValue(response.data!.toJson(), 'id');
+      if (applyNow &&
+          !_isNewClaim &&
+          _editingClaimId != null &&
+          response.success == true) {
+        final applyResponse = await _hr.applyExpenseClaim(
+          _editingClaimId!,
+          ExpenseClaimModel(const <String, dynamic>{}),
+        );
+        if (!mounted) {
+          return;
+        }
+        if (applyResponse.success != true || applyResponse.data == null) {
+          setState(() {
+            _formError = applyResponse.message;
+            _saving = false;
+          });
+          return;
+        }
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            applyNow
+                ? 'Expense claim applied successfully.'
+                : response.message,
+          ),
+        ),
+      );
       setState(() => _saving = false);
       await _loadPage(selectClaimId: newId);
     } catch (e) {
@@ -593,18 +693,18 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
       return null;
     }
     if (_editorSnapshot != null) {
-      return stringValue(_editorSnapshot!, 'claim_status');
+      return _claimStatusCode(_editorSnapshot!['claim_status']);
     }
     final row = _selectedListRow?.toJson();
     if (row == null) {
       return null;
     }
-    return stringValue(row, 'claim_status');
+    return _claimStatusCode(row['claim_status']);
   }
 
   bool get _editorEditable {
     final st = _editorStatus();
-    return st == null || st == 'draft';
+    return _isSelfServiceUser && (st == null || st == 'draft');
   }
 
   String _expenseSelectedEmployeeLabel() {
@@ -617,6 +717,18 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
       }
     }
     return 'Employee #$_filterEmployeeId';
+  }
+
+  String _editorEmployeeLabel() {
+    if (_employeeId == null) {
+      return '';
+    }
+    for (final EmployeeModel e in _employeesForEditor) {
+      if (e.id == _employeeId) {
+        return e.toString();
+      }
+    }
+    return 'Employee #$_employeeId';
   }
 
   List<String> _expenseAppliedFilterChips() {
@@ -718,21 +830,22 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
         filled: false,
         onPressed: _openExpenseFilterPanel,
       ),
-      AdaptiveShellActionButton(
-        icon: Icons.add_outlined,
-        label: 'New claim',
-        onPressed: () async {
-          final cid = await hrResolveCompanyId(context);
-          if (!context.mounted) {
-            return;
-          }
-          if (cid == null) {
-            _expenseClaimsNeedCompanySnack(context);
-            return;
-          }
-          _startNewClaim();
-        },
-      ),
+      if (_isSelfServiceUser)
+        AdaptiveShellActionButton(
+          icon: Icons.add_outlined,
+          label: 'New claim',
+          onPressed: () async {
+            final cid = await hrResolveCompanyId(context);
+            if (!context.mounted) {
+              return;
+            }
+            if (cid == null) {
+              _expenseClaimsNeedCompanySnack(context);
+              return;
+            }
+            _startNewClaim();
+          },
+        ),
     ];
 
     final content = _buildContent();
@@ -833,9 +946,18 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                   'reimbursement_voucher_id',
                 ));
     final showReimburse =
-        status == 'approved' && reimbursementVoucherId == null;
-    final showSaveDraft =
-        _editorEditable && (_isNewClaim || status == 'draft' || status == null);
+        _canViewAllClaims && status == 'approved' && reimbursementVoucherId == null;
+    final isDraft = status == null || status == 'draft';
+    final isApplied = status == 'applied';
+    final showSaveDraft = _isSelfServiceUser && _editorEditable && isDraft;
+    final showApply = _isSelfServiceUser && _editorEditable && isDraft;
+    final showCancelDraft =
+        _isSelfServiceUser && !_isNewClaim && _editingClaimId != null && status == 'draft';
+    final showDelete =
+        _canViewAllClaims &&
+        !_isNewClaim &&
+        _editingClaimId != null &&
+        (status == 'draft' || status == 'applied');
 
     // Workflow actions stay outside [Form] so approve/reimburse never interact with
     // form validation scope; avoids unmount/remount jank when syncing after approve.
@@ -855,7 +977,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
             Padding(
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
               child: Text(
-                'Status: $status'
+                'Status: ${_claimStatusLabel(status)}'
                 '${status == 'approved' && reimbursementVoucherId == null ? ' (unpaid)' : ''}'
                 '${status == 'reimbursed' ? ' (paid)' : ''}',
                 style: Theme.of(context).textTheme.titleSmall,
@@ -863,25 +985,36 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
             ),
           SettingsFormWrap(
             children: [
-              AppDropdownField<int>.fromMapped(
-                key: ValueKey<String>(
-                  'emp-$_formGeneration-${_employeeId ?? 0}',
+              if (_employeeFieldReadOnly)
+                AppFormTextField(
+                  key: ValueKey<String>(
+                    'emp-readonly-$_formGeneration-${_employeeId ?? 0}',
+                  ),
+                  initialValue: _editorEmployeeLabel(),
+                  labelText: 'Employee',
+                  readOnly: true,
+                  validator: Validators.required('Employee'),
+                )
+              else
+                AppDropdownField<int>.fromMapped(
+                  key: ValueKey<String>(
+                    'emp-$_formGeneration-${_employeeId ?? 0}',
+                  ),
+                  labelText: 'Employee',
+                  mappedItems: _employeesForEditor
+                      .map(
+                        (e) => AppDropdownItem<int>(
+                          value: e.id!,
+                          label: e.toString(),
+                        ),
+                      )
+                      .toList(),
+                  initialValue: _employeeId,
+                  onChanged: _editorEditable
+                      ? (v) => setState(() => _employeeId = v)
+                      : (_) {},
+                  validator: Validators.requiredSelection('Employee'),
                 ),
-                labelText: 'Employee',
-                mappedItems: _employeesForEditor
-                    .map(
-                      (e) => AppDropdownItem<int>(
-                        value: e.id!,
-                        label: e.toString(),
-                      ),
-                    )
-                    .toList(),
-                initialValue: _employeeId,
-                onChanged: _editorEditable
-                    ? (v) => setState(() => _employeeId = v)
-                    : (_) {},
-                validator: Validators.requiredSelection('Employee'),
-              ),
               AppFormTextField(
                 controller: _claimNoCtrl,
                 labelText: 'Claim no. (optional)',
@@ -1025,7 +1158,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
             onPressed: _saving
                 ? null
                 : () {
-                    _saveDraft();
+                    _submitClaim(applyNow: false);
                   },
             child: _saving
                 ? const SizedBox(
@@ -1037,12 +1170,23 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
         ],
+        if (showApply) ...[
+          FilledButton.tonal(
+            onPressed: _saving
+                ? null
+                : () {
+                    _submitClaim(applyNow: true);
+                  },
+            child: const Text('Apply'),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+        ],
         if (!_isNewClaim && _editingClaimId != null) ...[
           Wrap(
             spacing: AppUiConstants.spacingSm,
             runSpacing: AppUiConstants.spacingSm,
             children: [
-              if (status == 'draft') ...[
+              if (_canViewAllClaims && isApplied) ...[
                 FilledButton.tonal(
                   onPressed: () async {
                     final int id = _editingClaimId!;
@@ -1087,7 +1231,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                   child: const Text('Reject'),
                 ),
               ],
-              if (status == 'draft') ...[
+              if (showCancelDraft) ...[
                 FilledButton.tonal(
                   onPressed: () async {
                     await openExpenseClaimCancelDialog(
@@ -1100,7 +1244,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                   child: const Text('Cancel draft'),
                 ),
               ],
-              if (status == 'draft')
+              if (showDelete)
                 FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.error,
@@ -1111,8 +1255,10 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                       context: context,
                       builder: (ctx) => AlertDialog(
                         title: const Text('Delete claim'),
-                        content: const Text(
-                          'Delete this draft expense claim?',
+                        content: Text(
+                          status == 'applied'
+                              ? 'Delete this applied expense claim?'
+                              : 'Delete this draft expense claim?',
                         ),
                         actions: [
                           TextButton(
