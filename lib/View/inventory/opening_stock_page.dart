@@ -9,12 +9,16 @@ class OpeningStockPage extends StatefulWidget {
     this.editorOnly = false,
     this.initialId,
     this.initialItemId,
+    this.fixedItemId,
+    this.fixedItemLabel,
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
   final int? initialItemId;
+  final int? fixedItemId;
+  final String? fixedItemLabel;
 
   @override
   State<OpeningStockPage> createState() => _OpeningStockPageState();
@@ -25,12 +29,15 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   late final OpeningStockViewModel _viewModel;
+  bool _showDraftTile = false;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = OpeningStockViewModel(initialItemId: widget.initialItemId)
-      ..load(selectId: widget.initialId);
+    _viewModel = OpeningStockViewModel(
+      initialItemId: widget.fixedItemId ?? widget.initialItemId,
+      filterItemId: widget.fixedItemId,
+    )..load(selectId: widget.initialId);
   }
 
   @override
@@ -52,6 +59,10 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
             onPressed: _viewModel.loading
                 ? null
                 : () {
+                    if (widget.fixedItemId != null) {
+                      _startNew();
+                      return;
+                    }
                     _viewModel.resetDraft();
                     if (!Responsive.isDesktop(context)) {
                       _workspaceController.openEditor();
@@ -62,9 +73,13 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
           ),
         ];
 
-        if (widget.embedded) {
-          return ShellPageActions(actions: actions, child: content);
-        }
+    if (widget.fixedItemId != null) {
+      return content;
+    }
+
+    if (widget.embedded) {
+      return ShellPageActions(actions: actions, child: content);
+    }
         return AppStandaloneShell(
           title: 'Opening Stock',
           scrollController: _pageScrollController,
@@ -85,6 +100,11 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _startNew() {
+    setState(() => _showDraftTile = true);
+    _viewModel.resetDraft();
+  }
+
   Widget _buildContent(BuildContext context) {
     if (_viewModel.loading) {
       return const AppLoadingView(message: 'Loading opening stock...');
@@ -97,58 +117,214 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
       );
     }
 
-    return SettingsWorkspace(
-      controller: _workspaceController,
-      title: 'Opening Stock',
-      editorTitle: _viewModel.selected?.toString() ?? 'New Opening Stock',
-      editorOnly: widget.editorOnly,
-      scrollController: _pageScrollController,
-      list: SettingsListCard<OpeningStockModel>(
-        searchController: _viewModel.searchController,
-        searchHint: 'Search opening stock',
-        items: _viewModel.filteredRows,
-        selectedItem: _viewModel.selected,
-        emptyMessage: 'No opening stock documents found.',
-        itemBuilder: (row, selected) => SettingsListTile(
-          title: stringValue(row.toJson(), 'opening_no', 'Draft'),
-          subtitle: [
-            displayDate(nullableStringValue(row.toJson(), 'opening_date')),
-            stringValue(row.toJson(), 'opening_status'),
-          ].where((v) => v.trim().isNotEmpty).join(' · '),
-          selected: selected,
-          onTap: () async {
-            await _viewModel.select(row);
-            if (!context.mounted) {
+    if (widget.fixedItemId == null) {
+      return SettingsWorkspace(
+        controller: _workspaceController,
+        title: 'Opening Stock',
+        editorTitle: _viewModel.selected?.toString() ?? 'New Opening Stock',
+        editorOnly: widget.editorOnly,
+        scrollController: _pageScrollController,
+        list: SettingsListCard<OpeningStockModel>(
+          searchController: _viewModel.searchController,
+          searchHint: 'Search opening stock',
+          items: _viewModel.filteredRows,
+          selectedItem: _viewModel.selected,
+          emptyMessage: 'No opening stock documents found.',
+          itemBuilder: (row, selected) => SettingsListTile(
+            title: stringValue(row.toJson(), 'opening_no', 'Draft'),
+            subtitle: [
+              displayDate(nullableStringValue(row.toJson(), 'opening_date')),
+              stringValue(row.toJson(), 'opening_status'),
+            ].where((v) => v.trim().isNotEmpty).join(' · '),
+            selected: selected,
+            onTap: () async {
+              await _viewModel.select(row);
+              if (!context.mounted) {
+                return;
+              }
+              if (!Responsive.isDesktop(context)) {
+                _workspaceController.openEditor();
+              }
+            },
+          ),
+        ),
+        editor: _OpeningStockEditor(
+          vm: _viewModel,
+          fixedItemId: widget.fixedItemId,
+          fixedItemLabel: widget.fixedItemLabel,
+          onSave: (formContext) async {
+            if (!Form.of(formContext).validate()) {
               return;
             }
-            if (!Responsive.isDesktop(context)) {
-              _workspaceController.openEditor();
-            }
+            await _viewModel.save();
+            _showActionSnackBar();
+          },
+          onPost: () async {
+            await _viewModel.post();
+            _showActionSnackBar();
+          },
+          onCancel: () async {
+            await _viewModel.cancel();
+            _showActionSnackBar();
+          },
+          onDelete: () async {
+            await _viewModel.delete();
+            _showActionSnackBar();
           },
         ),
-      ),
-      editor: _OpeningStockEditor(
-        vm: _viewModel,
-        onSave: (formContext) async {
-          if (!Form.of(formContext).validate()) {
-            return;
-          }
-          await _viewModel.save();
-          _showActionSnackBar();
-        },
-        onPost: () async {
-          await _viewModel.post();
-          _showActionSnackBar();
-        },
-        onCancel: () async {
-          await _viewModel.cancel();
-          _showActionSnackBar();
-        },
-        onDelete: () async {
-          await _viewModel.delete();
-          _showActionSnackBar();
-        },
-      ),
+      );
+    }
+
+    return _buildOpeningStockCardsContent(
+      context,
+      fixedItemMode: widget.fixedItemId != null,
+    );
+  }
+
+  Widget _buildOpeningStockCardsContent(
+    BuildContext context, {
+    required bool fixedItemMode,
+  }) {
+    if (fixedItemMode &&
+        _viewModel.itemOptions.where((item) => item.id == widget.fixedItemId).isEmpty) {
+      return const SettingsEmptyState(
+        icon: Icons.inventory_2_outlined,
+        title: 'Item Not Found',
+        message: 'The selected item is not available for opening stock.',
+      );
+    }
+
+    final rows = _viewModel.filteredRows;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!fixedItemMode) ...[
+          AppSectionCard(
+            padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+            child: AppFormTextField(
+              labelText: 'Search opening stock',
+              controller: _viewModel.searchController,
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+        ],
+        if (fixedItemMode) ...[
+          Align(
+            alignment: Alignment.centerRight,
+            child: AppActionButton(
+              icon: Icons.add_outlined,
+              label: 'New Opening Stock',
+              onPressed: _startNew,
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+        ],
+        if (rows.isEmpty && !_showDraftTile)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
+            child: Text('No opening stock documents found.'),
+          ),
+        if (_showDraftTile && _viewModel.selected == null) ...[
+          SettingsExpandableTile(
+            key: const ValueKey('opening-draft'),
+            title: 'New Opening Stock',
+            subtitle: fixedItemMode
+                ? 'Add opening stock for this item.'
+                : 'Create a new opening stock document.',
+            expanded: true,
+            highlighted: true,
+            leadingIcon: Icons.add_outlined,
+            onToggle: () {
+              setState(() => _showDraftTile = false);
+              _viewModel.resetDraft();
+            },
+            child: _OpeningStockEditor(
+              vm: _viewModel,
+              fixedItemId: widget.fixedItemId,
+              fixedItemLabel: widget.fixedItemLabel,
+              onSave: (formContext) async {
+                if (!Form.of(formContext).validate()) {
+                  return;
+                }
+                await _viewModel.save();
+                if (mounted) {
+                  setState(() => _showDraftTile = false);
+                }
+                _showActionSnackBar();
+              },
+              onPost: () async {
+                await _viewModel.post();
+                _showActionSnackBar();
+              },
+              onCancel: () async {
+                await _viewModel.cancel();
+                _showActionSnackBar();
+              },
+              onDelete: () async {
+                await _viewModel.delete();
+                if (mounted) {
+                  setState(() => _showDraftTile = false);
+                }
+                _showActionSnackBar();
+              },
+            ),
+          ),
+          if (rows.isNotEmpty) const SizedBox(height: AppUiConstants.spacingSm),
+        ],
+        ...rows.map((row) {
+          final expanded = identical(row, _viewModel.selected);
+          final data = row.toJson();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+            child: SettingsExpandableTile(
+              key: ValueKey(
+                'opening-${intValue(data, 'id') ?? 'draft'}-$expanded',
+              ),
+              title: stringValue(data, 'opening_no', 'Draft'),
+              subtitle: [
+                displayDate(nullableStringValue(data, 'opening_date')),
+                stringValue(data, 'opening_status'),
+                stringValue(data, 'remarks'),
+              ].where((value) => value.trim().isNotEmpty).join(' · '),
+              expanded: expanded,
+              highlighted: expanded,
+              onToggle: () async {
+                if (expanded) {
+                  setState(() => _showDraftTile = false);
+                  _viewModel.resetDraft();
+                  return;
+                }
+                setState(() => _showDraftTile = false);
+                await _viewModel.select(row);
+              },
+              child: _OpeningStockEditor(
+                vm: _viewModel,
+                fixedItemId: widget.fixedItemId,
+                fixedItemLabel: widget.fixedItemLabel,
+                onSave: (formContext) async {
+                  if (!Form.of(formContext).validate()) {
+                    return;
+                  }
+                  await _viewModel.save();
+                  _showActionSnackBar();
+                },
+                onPost: () async {
+                  await _viewModel.post();
+                  _showActionSnackBar();
+                },
+                onCancel: () async {
+                  await _viewModel.cancel();
+                  _showActionSnackBar();
+                },
+                onDelete: () async {
+                  await _viewModel.delete();
+                  _showActionSnackBar();
+                },
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }
@@ -156,6 +332,8 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
 class _OpeningStockEditor extends StatelessWidget {
   const _OpeningStockEditor({
     required this.vm,
+    this.fixedItemId,
+    this.fixedItemLabel,
     required this.onSave,
     required this.onPost,
     required this.onCancel,
@@ -163,6 +341,8 @@ class _OpeningStockEditor extends StatelessWidget {
   });
 
   final OpeningStockViewModel vm;
+  final int? fixedItemId;
+  final String? fixedItemLabel;
   final Future<void> Function(BuildContext formContext) onSave;
   final Future<void> Function() onPost;
   final Future<void> Function() onCancel;
@@ -304,27 +484,51 @@ class _OpeningStockEditor extends StatelessWidget {
                       children: [
                         AppSearchPickerField<int>(
                           labelText: 'Item',
-                          selectedLabel: vm.itemOptions
-                              .cast<ItemModel?>()
-                              .firstWhere(
-                                (item) => item?.id == line.itemId,
-                                orElse: () => null,
-                              )
-                              ?.toString(),
-                          options: vm.itemOptions
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppSearchPickerOption<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                  subtitle: item.itemCode,
-                                ),
-                              )
-                              .toList(growable: false),
+                          selectedLabel:
+                              fixedItemId != null
+                                  ? (fixedItemLabel ??
+                                        vm.itemOptions
+                                            .cast<ItemModel?>()
+                                            .firstWhere(
+                                              (item) => item?.id == fixedItemId,
+                                              orElse: () => null,
+                                            )
+                                            ?.toString())
+                                  : vm.itemOptions
+                                        .cast<ItemModel?>()
+                                        .firstWhere(
+                                          (item) => item?.id == line.itemId,
+                                          orElse: () => null,
+                                        )
+                                        ?.toString(),
+                          options:
+                              fixedItemId != null
+                                  ? vm.itemOptions
+                                        .where((item) => item.id == fixedItemId)
+                                        .map(
+                                          (item) => AppSearchPickerOption<int>(
+                                            value: item.id!,
+                                            label: item.toString(),
+                                            subtitle: item.itemCode,
+                                          ),
+                                        )
+                                        .toList(growable: false)
+                                  : vm.itemOptions
+                                        .where((item) => item.id != null)
+                                        .map(
+                                          (item) => AppSearchPickerOption<int>(
+                                            value: item.id!,
+                                            label: item.toString(),
+                                            subtitle: item.itemCode,
+                                          ),
+                                        )
+                                        .toList(growable: false),
                           validator: (_) =>
-                              line.itemId == null ? 'Item is required' : null,
+                              (fixedItemId ?? line.itemId) == null
+                                  ? 'Item is required'
+                                  : null,
                           onChanged: (value) {
-                            if (!canEdit) {
+                            if (!canEdit || fixedItemId != null) {
                               return;
                             }
                             vm.onLineItemChanged(index, value);

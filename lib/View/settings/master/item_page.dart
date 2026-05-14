@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../inventory/opening_stock_page.dart';
 import 'item_alternate_page.dart';
 import 'item_price_page.dart';
 import 'item_supplier_map_page.dart';
@@ -1378,9 +1379,10 @@ class _ItemManagementPageState extends State<ItemManagementPage>
       return _buildPendingItemSelectionState('opening stock');
     }
 
-    return _ItemOpeningStockSection(
+    return OpeningStockPage(
       key: ValueKey('opening-${item!.id}'),
-      item: item,
+      fixedItemId: item.id,
+      fixedItemLabel: item.toString(),
     );
   }
 
@@ -1390,177 +1392,6 @@ class _ItemManagementPageState extends State<ItemManagementPage>
       title: 'Select Or Save Item',
       message:
           'Use the Primary tab to select an existing item or save this item first before managing $featureLabel.',
-    );
-  }
-}
-
-class _ItemOpeningStockSection extends StatefulWidget {
-  const _ItemOpeningStockSection({super.key, required this.item});
-
-  final ItemModel item;
-
-  @override
-  State<_ItemOpeningStockSection> createState() =>
-      _ItemOpeningStockSectionState();
-}
-
-class _ItemOpeningStockSectionState extends State<_ItemOpeningStockSection> {
-  final InventoryService _inventoryService = InventoryService();
-
-  bool _loading = true;
-  String? _error;
-  List<OpeningStockModel> _entries = const <OpeningStockModel>[];
-  int? _expandedEntryId;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  @override
-  void dispose() => super.dispose();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      final response = await _inventoryService.openingStocks(
-        filters: {
-          'item_id': widget.item.id,
-          'company_id': widget.item.companyId,
-          'per_page': 100,
-          'sort_by': 'opening_date',
-          'sort_order': 'desc',
-        },
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _entries = response.data ?? const <OpeningStockModel>[];
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AppLoadingView(message: 'Loading opening stock...');
-    }
-
-    if (_error != null) {
-      return AppErrorStateView.inline(message: _error!);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Opening stock history for ${widget.item.itemName}',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        Align(
-          alignment: Alignment.centerRight,
-          child: AppActionButton(
-            icon: Icons.add_business_outlined,
-            label: 'Add Opening Stock',
-            onPressed: () {
-              final route =
-                  '/inventory/opening-stocks?item_id=${widget.item.id}';
-              final shellNavigate = ShellRouteScope.maybeOf(context);
-              if (shellNavigate != null) {
-                shellNavigate(route);
-                return;
-              }
-              Navigator.of(context).pushNamed(route);
-            },
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (_entries.isEmpty)
-          const Text('No opening stock entries found for this item.')
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _entries.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final entry = _entries[index].toJson();
-              final entryId = int.tryParse(entry['id']?.toString() ?? '');
-              final status = entry['opening_status']?.toString() ?? '';
-              final expanded = _expandedEntryId == entryId;
-              return SettingsExpandableTile(
-                key: ValueKey('opening-$entryId-$expanded'),
-                title: entry['opening_no']?.toString() ?? 'Opening Stock',
-                subtitle: [
-                  entry['opening_date']?.toString() ?? '',
-                  status,
-                  if ((entry['remarks']?.toString() ?? '').trim().isNotEmpty)
-                    entry['remarks'].toString(),
-                ].where((value) => value.trim().isNotEmpty).join(' · '),
-                expanded: expanded,
-                onToggle: () {
-                  setState(() {
-                    _expandedEntryId = expanded ? null : entryId;
-                  });
-                },
-                trailing: SettingsStatusPill(
-                  label: status.isEmpty ? 'Draft' : status,
-                  active: status.toLowerCase() == 'posted',
-                ),
-                child: SettingsFormWrap(
-                  children: [
-                    SettingsFieldBox(
-                      child: Text(
-                        'Warehouse\n${entry['warehouse_name']?.toString() ?? '-'}',
-                      ),
-                    ),
-                    SettingsFieldBox(
-                      child: Text(
-                        'UOM\n${entry['uom_name']?.toString() ?? '-'}',
-                      ),
-                    ),
-                    SettingsFieldBox(
-                      child: Text(
-                        'Quantity\n${entry['qty']?.toString() ?? '-'}',
-                      ),
-                    ),
-                    SettingsFieldBox(
-                      child: Text(
-                        'Unit Cost\n${entry['unit_cost']?.toString() ?? '-'}',
-                      ),
-                    ),
-                    SettingsFieldBox(
-                      child: Text(
-                        'Total Value\n${entry['total_value']?.toString() ?? '-'}',
-                      ),
-                    ),
-                    SettingsFieldBox(
-                      child: Text(
-                        'Remarks\n${entry['remarks']?.toString() ?? '-'}',
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-      ],
     );
   }
 }

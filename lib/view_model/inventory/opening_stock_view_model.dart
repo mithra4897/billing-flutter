@@ -62,7 +62,7 @@ class OpeningStockLineDraft {
 }
 
 class OpeningStockViewModel extends ChangeNotifier {
-  OpeningStockViewModel({this.initialItemId}) {
+  OpeningStockViewModel({this.initialItemId, this.filterItemId}) {
     searchController.addListener(_notifyListenersSafely);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
@@ -73,6 +73,7 @@ class OpeningStockViewModel extends ChangeNotifier {
   }
 
   final int? initialItemId;
+  final int? filterItemId;
   final InventoryService _inventoryService = InventoryService();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
@@ -221,7 +222,11 @@ class OpeningStockViewModel extends ChangeNotifier {
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.openingStocks(
-          filters: const {'per_page': 200, 'sort_by': 'opening_date'},
+          filters: {
+            'per_page': 200,
+            'sort_by': 'opening_date',
+            if (filterItemId != null) 'item_id': filterItemId,
+          },
         ),
         _masterService.companies(filters: const {'per_page': 200}),
         _masterService.branches(filters: const {'per_page': 300}),
@@ -498,9 +503,11 @@ class OpeningStockViewModel extends ChangeNotifier {
   }
 
   void addLine() {
+    final itemId = _defaultItemId();
     lines = List<OpeningStockLineDraft>.from(lines)
       ..add(
         OpeningStockLineDraft(
+          itemId: itemId,
           warehouseId: warehouseOptions.isNotEmpty
               ? warehouseOptions.first.id
               : null,
