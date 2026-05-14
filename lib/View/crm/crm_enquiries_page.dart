@@ -359,6 +359,24 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     );
   }
 
+  CrmLeadModel? _leadById(int? leadId) {
+    if (leadId == null) {
+      return null;
+    }
+    return _leads.cast<CrmLeadModel?>().firstWhere(
+      (item) => intValue(item?.toJson() ?? const {}, 'id') == leadId,
+      orElse: () => null,
+    );
+  }
+
+  int? _assignedToFromLead(int? leadId) {
+    final lead = _leadById(leadId);
+    if (lead == null) {
+      return null;
+    }
+    return intValue(lead.toJson(), 'assigned_to');
+  }
+
   Future<List<ErpLinkFieldOption<int>>> _searchLeadOptions(String query) async {
     final normalized = query.trim().toLowerCase();
     return _leads
@@ -853,6 +871,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       onChanged: (value) {
                         setState(() {
                           _leadId = value;
+                          _assignedTo = _assignedToFromLead(value);
                           _formError = null;
                         });
                       },

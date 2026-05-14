@@ -716,6 +716,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                             )
                             .toList(growable: false),
                         initialValue: _assignedTo,
+                        validator: Validators.requiredSelection('Assigned To'),
                         onChanged: (value) =>
                             setState(() => _assignedTo = value),
                       ),
