@@ -355,6 +355,8 @@ class _DocumentTaxLinesRegisterPageState
                               controller: _dateFromController,
                               labelText: 'From',
                               hintText: 'YYYY-MM-DD',
+                              keyboardType: TextInputType.datetime,
+                              inputFormatters: const [DateInputFormatter()],
                             ),
                           ),
                           _filterBox(
@@ -362,6 +364,8 @@ class _DocumentTaxLinesRegisterPageState
                               controller: _dateToController,
                               labelText: 'To',
                               hintText: 'YYYY-MM-DD',
+                              keyboardType: TextInputType.datetime,
+                              inputFormatters: const [DateInputFormatter()],
                             ),
                           ),
                           _filterBox(

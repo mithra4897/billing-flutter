@@ -408,21 +408,21 @@ class _LoginHistoryPageState extends State<LoginHistoryPage> {
           ),
         ),
         _filterBox(
-          child: TextField(
+          child: AppFormTextField(
             controller: _dateFromController,
-            decoration: const InputDecoration(
-              labelText: 'Date From',
-              hintText: 'YYYY-MM-DD',
-            ),
+            labelText: 'Date From',
+            hintText: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
           ),
         ),
         _filterBox(
-          child: TextField(
+          child: AppFormTextField(
             controller: _dateToController,
-            decoration: const InputDecoration(
-              labelText: 'Date To',
-              hintText: 'YYYY-MM-DD',
-            ),
+            labelText: 'Date To',
+            hintText: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
+            inputFormatters: const [DateInputFormatter()],
           ),
         ),
       ],

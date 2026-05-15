@@ -115,6 +115,7 @@ class _ShellHistoryButtons extends StatelessWidget {
     required this.canNavigateForward,
     required this.onBackPressed,
     required this.onForwardPressed,
+    this.compact = false,
   });
 
   final Color foregroundColor;
@@ -122,9 +123,32 @@ class _ShellHistoryButtons extends StatelessWidget {
   final bool canNavigateForward;
   final VoidCallback onBackPressed;
   final VoidCallback onForwardPressed;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    if (compact) {
+      return Column(
+        children: [
+          _ShellHistoryButton(
+            icon: Icons.arrow_back_rounded,
+            label: 'Back',
+            foregroundColor: foregroundColor,
+            onPressed: canNavigateBack ? onBackPressed : null,
+            compact: true,
+          ),
+          const SizedBox(height: AppUiConstants.spacingXs),
+          _ShellHistoryButton(
+            icon: Icons.arrow_forward_rounded,
+            label: 'Forward',
+            foregroundColor: foregroundColor,
+            onPressed: canNavigateForward ? onForwardPressed : null,
+            compact: true,
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
         Expanded(
@@ -155,12 +179,14 @@ class _ShellHistoryButton extends StatelessWidget {
     required this.label,
     required this.foregroundColor,
     required this.onPressed,
+    this.compact = false,
   });
 
   final IconData icon;
   final String label;
   final Color foregroundColor;
   final VoidCallback? onPressed;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +194,31 @@ class _ShellHistoryButton extends StatelessWidget {
 
     return Opacity(
       opacity: enabled ? 1 : 0.45,
-      child: OutlinedButton.icon(
+      child: compact
+          ? Tooltip(
+              message: label,
+              child: OutlinedButton(
+                onPressed: onPressed,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(42, 42),
+                  maximumSize: const Size(42, 42),
+                  padding: EdgeInsets.zero,
+                  side: BorderSide(
+                    color: foregroundColor.withValues(alpha: 0.18),
+                  ),
+                  foregroundColor: foregroundColor,
+                  disabledForegroundColor: foregroundColor,
+                  disabledBackgroundColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.buttonRadius,
+                    ),
+                  ),
+                ),
+                child: Icon(icon, size: 18),
+              ),
+            )
+          : OutlinedButton.icon(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           alignment: Alignment.centerLeft,
@@ -607,13 +657,30 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: collapsed
-                  ? Center(
-                      child: AppBrandingLogo(
-                        branding: widget.branding,
-                        showName: false,
-                        size: 42,
-                        textColor: foregroundColor,
-                      ),
+                  ? Column(
+                      children: [
+                        Center(
+                          child: AppBrandingLogo(
+                            branding: widget.branding,
+                            showName: false,
+                            size: 42,
+                            textColor: foregroundColor,
+                          ),
+                        ),
+                        const SizedBox(height: AppUiConstants.spacingSm),
+                        _ShellHistoryButtons(
+                          foregroundColor: foregroundColor,
+                          canNavigateBack: _canNavigateBack,
+                          canNavigateForward: _canNavigateForward,
+                          onBackPressed: () => _handleBackTap(
+                            showPermanentDrawer: showPermanentDrawer,
+                          ),
+                          onForwardPressed: () => _handleForwardTap(
+                            showPermanentDrawer: showPermanentDrawer,
+                          ),
+                          compact: true,
+                        ),
+                      ],
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

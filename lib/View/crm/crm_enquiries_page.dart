@@ -506,21 +506,21 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         ),
                       ),
                       _filterBox(
-                        child: TextField(
+                        child: AppFormTextField(
                           controller: _filterDateFromController,
-                          decoration: const InputDecoration(
-                            labelText: 'Date From',
-                            hintText: 'YYYY-MM-DD',
-                          ),
+                          labelText: 'Date From',
+                          hintText: 'YYYY-MM-DD',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: const [DateInputFormatter()],
                         ),
                       ),
                       _filterBox(
-                        child: TextField(
+                        child: AppFormTextField(
                           controller: _filterDateToController,
-                          decoration: const InputDecoration(
-                            labelText: 'Date To',
-                            hintText: 'YYYY-MM-DD',
-                          ),
+                          labelText: 'Date To',
+                          hintText: 'YYYY-MM-DD',
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: const [DateInputFormatter()],
                         ),
                       ),
                     ],
