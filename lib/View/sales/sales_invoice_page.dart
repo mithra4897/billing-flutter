@@ -2147,61 +2147,17 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         ? 'INR'
         : _currencyCodeController.text.trim();
     final isInterState = _isInterStateForSummary();
-    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
-
-    Widget metric(String label, double value, {bool emphasize = false}) {
-      final valueStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-        fontWeight: emphasize ? FontWeight.w800 : FontWeight.w700,
-        color: emphasize ? Theme.of(context).colorScheme.primary : null,
-      );
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: appTheme.mutedText),
-          ),
-          const SizedBox(height: AppUiConstants.spacingXs),
-          Text(value.toStringAsFixed(2), style: valueStyle),
-        ],
-      );
-    }
-
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'GST Summary',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: AppUiConstants.spacingXs),
-          Text(
-            isInterState == null
-                ? 'Live totals for the current invoice lines in $currency'
-                : 'Live totals for the current invoice lines in $currency · ${isInterState ? 'Inter-state (IGST)' : 'Intra-state (CGST + SGST)'}',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          Wrap(
-            spacing: AppUiConstants.spacingLg,
-            runSpacing: AppUiConstants.spacingMd,
-            children: [
-              metric('Taxable', summary.taxable),
-              metric('CGST', summary.cgst),
-              metric('SGST', summary.sgst),
-              metric('IGST', summary.igst),
-              metric('Total', summary.total, emphasize: true),
-            ],
-          ),
-        ],
-      ),
+    return SalesGstSummaryCard(
+      taxable: summary.taxable,
+      cgst: summary.cgst,
+      sgst: summary.sgst,
+      igst: summary.igst,
+      cess: 0,
+      total: summary.total,
+      currencyCode: currency,
+      subtitle: isInterState == null
+          ? 'Live totals for the current invoice lines.'
+          : 'Live totals for the current invoice lines. ${isInterState ? 'Inter-state invoice using IGST.' : 'Intra-state invoice using CGST and SGST.'}',
     );
   }
 
