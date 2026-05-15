@@ -37,8 +37,12 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         AppDropdownItem(value: 'contacted', label: 'Contacted'),
         AppDropdownItem(value: 'qualified', label: 'Qualified'),
         AppDropdownItem(value: 'unqualified', label: 'Unqualified'),
-        AppDropdownItem(value: 'converted', label: 'Converted'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
+      ];
+  static const List<AppDropdownItem<String>> _leadFilterStatuses =
+      <AppDropdownItem<String>>[
+        ..._leadStatuses,
+        AppDropdownItem(value: 'converted', label: 'Converted'),
       ];
   static const List<AppDropdownItem<String>> _activityTypes =
       <AppDropdownItem<String>>[
@@ -48,6 +52,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         AppDropdownItem(value: 'note', label: 'Note'),
         AppDropdownItem(value: 'whatsapp', label: 'WhatsApp'),
       ];
+
+  static bool _isCompletedLead(CrmLeadModel item) =>
+      stringValue(item.toJson(), 'lead_status') == 'converted';
 
   final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
@@ -268,6 +275,11 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               })
               .where((item) {
                 final data = item.toJson();
+                final isCompletedLead = _isCompletedLead(item);
+                final requestedStatus = (_filterLeadStatus ?? '').trim();
+                if (isCompletedLead && requestedStatus != 'converted') {
+                  return false;
+                }
                 if (_filterCompanyId != null &&
                     intValue(data, 'company_id') != _filterCompanyId) {
                   return false;
@@ -387,7 +399,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
                           initialValue: _filterLeadStatus,
-                          mappedItems: _leadStatuses,
+                          mappedItems: _leadFilterStatuses,
                           onChanged: (value) =>
                               setState(() => _filterLeadStatus = value),
                         ),

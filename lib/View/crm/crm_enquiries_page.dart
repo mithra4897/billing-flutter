@@ -33,8 +33,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'in_progress', label: 'In Progress'),
-        AppDropdownItem(value: 'converted', label: 'Converted'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
+      ];
+  static const List<AppDropdownItem<String>> _filterStatusItems =
+      <AppDropdownItem<String>>[
+        ..._statusItems,
+        AppDropdownItem(value: 'converted', label: 'Converted'),
       ];
   static const List<AppDropdownItem<String>> _followupStatuses =
       <AppDropdownItem<String>>[
@@ -93,6 +97,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   int? _expandedFollowupIndex;
   Map<String, dynamic>? _salesChain;
   BuildContext? _primaryFormContext;
+
+  static bool _isCompletedEnquiry(CrmEnquiryModel item) =>
+      stringValue(item.toJson(), 'enquiry_status') == 'converted';
 
   String _normalizedStageType(CrmStageModel stage) {
     return stringValue(stage.toJson(), 'stage_type').trim().toLowerCase();
@@ -339,6 +346,11 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               })
               .where((item) {
                 final data = item.toJson();
+                final isCompletedEnquiry = _isCompletedEnquiry(item);
+                final requestedStatus = (_filterEnquiryStatus ?? '').trim();
+                if (isCompletedEnquiry && requestedStatus != 'converted') {
+                  return false;
+                }
                 final enquiryDate = displayDate(
                   nullableStringValue(data, 'enquiry_date'),
                 );
@@ -500,7 +512,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
                           initialValue: _filterEnquiryStatus,
-                          mappedItems: _statusItems,
+                          mappedItems: _filterStatusItems,
                           onChanged: (value) =>
                               setState(() => _filterEnquiryStatus = value),
                         ),

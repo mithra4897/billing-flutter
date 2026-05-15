@@ -21,8 +21,12 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'open', label: 'Open'),
-        AppDropdownItem(value: 'won', label: 'Won'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
+      ];
+  static const List<AppDropdownItem<String>> _filterStatusItems =
+      <AppDropdownItem<String>>[
+        ..._statusItems,
+        AppDropdownItem(value: 'won', label: 'Won'),
       ];
 
   final CrmService _crmService = CrmService();
@@ -64,6 +68,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   List<_OpportunityProductDraft> _products = <_OpportunityProductDraft>[];
   int? _expandedProductIndex;
   Map<String, dynamic>? _salesChain;
+
+  static bool _isCompletedOpportunity(CrmOpportunityModel item) =>
+      stringValue(item.toJson(), 'status') == 'won';
 
   String _normalizedStageType(CrmStageModel stage) {
     return stringValue(stage.toJson(), 'stage_type').trim().toLowerCase();
@@ -217,6 +224,11 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               })
               .where((item) {
                 final data = item.toJson();
+                final isCompletedOpportunity = _isCompletedOpportunity(item);
+                final requestedStatus = (_filterStatus ?? '').trim();
+                if (isCompletedOpportunity && requestedStatus != 'won') {
+                  return false;
+                }
                 final closeDate = displayDate(
                   nullableStringValue(data, 'expected_close_date'),
                 );
@@ -328,7 +340,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
                           initialValue: _filterStatus,
-                          mappedItems: _statusItems,
+                          mappedItems: _filterStatusItems,
                           onChanged: (value) =>
                               setState(() => _filterStatus = value),
                         ),
