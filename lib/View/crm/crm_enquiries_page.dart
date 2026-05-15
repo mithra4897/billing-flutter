@@ -55,6 +55,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   final TextEditingController _enquiryNoController = TextEditingController();
   final TextEditingController _enquiryDateController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
+  final TextEditingController _filterDateFromController =
+      TextEditingController();
+  final TextEditingController _filterDateToController = TextEditingController();
 
   late final TabController _tabController;
   int _activeTabIndex = 0;
@@ -77,6 +80,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   int? _customerPartyId;
   int? _stageId;
   int? _assignedTo;
+  int? _filterCompanyId;
+  int? _filterLeadId;
+  int? _filterCustomerPartyId;
+  int? _filterStageId;
+  int? _filterAssignedTo;
+  String? _filterEnquiryStatus;
   String _enquiryStatus = 'open';
   List<_EnquiryLineDraft> _lines = <_EnquiryLineDraft>[];
   List<_FollowupDraft> _followups = <_FollowupDraft>[];
@@ -132,6 +141,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     _enquiryNoController.dispose();
     _enquiryDateController.dispose();
     _remarksController.dispose();
+    _filterDateFromController.dispose();
+    _filterDateToController.dispose();
     _disposeLines(_lines);
     _disposeFollowups(_followups);
     super.dispose();
@@ -316,15 +327,298 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
 
   void _applySearch() {
     setState(() {
-      _filteredItems = filterMasterList(_items, _searchController.text, (item) {
-        final data = item.toJson();
-        return [
-          stringValue(data, 'enquiry_no'),
-          stringValue(data, 'enquiry_status'),
-          stringValue(data, 'remarks'),
-        ];
-      });
+      _filteredItems =
+          filterMasterList(_items, _searchController.text, (item) {
+                final data = item.toJson();
+                return [
+                  stringValue(data, 'enquiry_no'),
+                  displayDate(nullableStringValue(data, 'enquiry_date')),
+                  stringValue(data, 'enquiry_status'),
+                  stringValue(data, 'remarks'),
+                ];
+              })
+              .where((item) {
+                final data = item.toJson();
+                final enquiryDate = displayDate(
+                  nullableStringValue(data, 'enquiry_date'),
+                );
+                final filterFrom = _filterDateFromController.text.trim();
+                final filterTo = _filterDateToController.text.trim();
+                if (_filterCompanyId != null &&
+                    intValue(data, 'company_id') != _filterCompanyId) {
+                  return false;
+                }
+                if (_filterLeadId != null &&
+                    intValue(data, 'lead_id') != _filterLeadId) {
+                  return false;
+                }
+                if (_filterCustomerPartyId != null &&
+                    intValue(data, 'customer_party_id') !=
+                        _filterCustomerPartyId) {
+                  return false;
+                }
+                if (_filterStageId != null &&
+                    intValue(data, 'stage_id') != _filterStageId) {
+                  return false;
+                }
+                if (_filterAssignedTo != null &&
+                    intValue(data, 'assigned_to') != _filterAssignedTo) {
+                  return false;
+                }
+                if ((_filterEnquiryStatus ?? '').isNotEmpty &&
+                    stringValue(data, 'enquiry_status') !=
+                        _filterEnquiryStatus) {
+                  return false;
+                }
+                if (filterFrom.isNotEmpty &&
+                    (enquiryDate.isEmpty ||
+                        enquiryDate.compareTo(filterFrom) < 0)) {
+                  return false;
+                }
+                if (filterTo.isNotEmpty &&
+                    (enquiryDate.isEmpty ||
+                        enquiryDate.compareTo(filterTo) > 0)) {
+                  return false;
+                }
+                return true;
+              })
+              .toList(growable: false);
     });
+  }
+
+  Future<void> _openFilterPanel() async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                dialogPadding,
+                dialogPadding,
+                dialogPadding,
+                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Filter CRM Enquiries',
+                          style: Theme.of(dialogContext).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        tooltip: 'Close',
+                        icon: const Icon(Icons.close),
+                        color: appTheme.mutedText,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      _filterBox(
+                        child: AppDropdownField<int>.fromMapped(
+                          labelText: 'Customer',
+                          initialValue: _filterCustomerPartyId,
+                          mappedItems: _customers
+                              .where((item) => item.id != null)
+                              .map(
+                                (item) => AppDropdownItem(
+                                  value: item.id!,
+                                  label: item.toString(),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _filterCustomerPartyId = value),
+                        ),
+                      ),
+                      _filterBox(
+                        child: AppDropdownField<int>.fromMapped(
+                          labelText: 'Stage',
+                          initialValue: _filterStageId,
+                          mappedItems: _stages
+                              .where(
+                                (item) => intValue(item.toJson(), 'id') != null,
+                              )
+                              .map(
+                                (item) => AppDropdownItem(
+                                  value: intValue(item.toJson(), 'id')!,
+                                  label: item.toString(),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _filterStageId = value),
+                        ),
+                      ),
+                      _filterBox(
+                        child: AppDropdownField<int>.fromMapped(
+                          labelText: 'Assigned To',
+                          initialValue: _filterAssignedTo,
+                          mappedItems: _users
+                              .where((item) => item.id != null)
+                              .map(
+                                (item) => AppDropdownItem(
+                                  value: item.id!,
+                                  label:
+                                      item.displayName ?? item.username ?? '',
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _filterAssignedTo = value),
+                        ),
+                      ),
+                      _filterBox(
+                        child: AppDropdownField<String>.fromMapped(
+                          labelText: 'Status',
+                          initialValue: _filterEnquiryStatus,
+                          mappedItems: _statusItems,
+                          onChanged: (value) =>
+                              setState(() => _filterEnquiryStatus = value),
+                        ),
+                      ),
+                      _filterBox(
+                        child: TextField(
+                          controller: _filterDateFromController,
+                          decoration: const InputDecoration(
+                            labelText: 'Date From',
+                            hintText: 'YYYY-MM-DD',
+                          ),
+                        ),
+                      ),
+                      _filterBox(
+                        child: TextField(
+                          controller: _filterDateToController,
+                          decoration: const InputDecoration(
+                            labelText: 'Date To',
+                            hintText: 'YYYY-MM-DD',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        icon: const Icon(Icons.search),
+                        label: const Text('Apply Filters'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _filterCustomerPartyId = null;
+                            _filterStageId = null;
+                            _filterAssignedTo = null;
+                            _filterEnquiryStatus = null;
+                            _filterDateFromController.clear();
+                            _filterDateToController.clear();
+                          });
+                          Navigator.of(dialogContext).pop(true);
+                        },
+                        icon: const Icon(Icons.clear),
+                        label: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (applied == true) {
+      _applySearch();
+    }
+  }
+
+  Widget _buildAppliedFilters(BuildContext context) {
+    final chips = <String>[
+      if (_searchController.text.trim().isNotEmpty)
+        'Search: ${_searchController.text.trim()}',
+      if (_filterCompanyId != null)
+        'Company: ${_companies.cast<CompanyModel?>().firstWhere((item) => item?.id == _filterCompanyId, orElse: () => null)?.toString() ?? _filterCompanyId}',
+      if (_filterLeadId != null)
+        'Lead: ${_leads.cast<CrmLeadModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterLeadId, orElse: () => null)?.toString() ?? _filterLeadId}',
+      if (_filterCustomerPartyId != null)
+        'Customer: ${_customers.cast<PartyModel?>().firstWhere((item) => item?.id == _filterCustomerPartyId, orElse: () => null)?.toString() ?? _filterCustomerPartyId}',
+      if (_filterStageId != null)
+        'Stage: ${_stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterStageId, orElse: () => null)?.toString() ?? _filterStageId}',
+      if (_filterAssignedTo != null)
+        'Assigned: ${_users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.displayName ?? _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.username ?? _filterAssignedTo}',
+      if ((_filterEnquiryStatus ?? '').isNotEmpty)
+        'Status: $_filterEnquiryStatus',
+      if (_filterDateFromController.text.trim().isNotEmpty)
+        'From: ${_filterDateFromController.text.trim()}',
+      if (_filterDateToController.text.trim().isNotEmpty)
+        'To: ${_filterDateToController.text.trim()}',
+    ];
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.cardShadow,
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: chips
+              .map((chip) => Chip(label: Text(chip)))
+              .toList(growable: false),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterBox({required Widget child}) {
+    return SizedBox(width: 240, child: child);
   }
 
   ErpLinkFieldOption<int>? _selectedLeadOption() {
@@ -689,6 +983,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   Widget build(BuildContext context) {
     final actions = <Widget>[
       AdaptiveShellActionButton(
+        onPressed: _openFilterPanel,
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
         onPressed: () {
           _resetForm();
           if (!Responsive.isDesktop(context)) {
@@ -729,29 +1029,45 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       scrollController: _pageScrollController,
       controller: _workspaceController,
       editorTitle: _selectedItem?.toString() ?? 'New Enquiry',
-      list: SettingsListCard<CrmEnquiryModel>(
-        searchController: _searchController,
-        searchHint: 'Search enquiries',
-        items: _filteredItems,
-        selectedItem: _selectedItem,
-        emptyMessage: 'No CRM enquiries found.',
-        itemBuilder: (item, selected) {
-          final data = item.toJson();
-          return SettingsListTile(
-            title: item.toString(),
-            subtitle: [
-              displayDate(nullableStringValue(data, 'enquiry_date')),
-              stringValue(data, 'enquiry_status'),
-            ].where((value) => value.isNotEmpty).join(' • '),
-            selected: selected,
-            onTap: () => _selectItem(item),
-            detail: stringValue(data, 'remarks'),
-            trailing: SettingsStatusPill(
-              label: stringValue(data, 'enquiry_status', 'open'),
-              active: stringValue(data, 'enquiry_status', 'open') != 'lost',
-            ),
-          );
-        },
+      list: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildAppliedFilters(context),
+          if (_searchController.text.trim().isNotEmpty ||
+              _filterCompanyId != null ||
+              _filterLeadId != null ||
+              _filterCustomerPartyId != null ||
+              _filterStageId != null ||
+              _filterAssignedTo != null ||
+              (_filterEnquiryStatus ?? '').isNotEmpty ||
+              _filterDateFromController.text.trim().isNotEmpty ||
+              _filterDateToController.text.trim().isNotEmpty)
+            const SizedBox(height: AppUiConstants.spacingMd),
+          SettingsListCard<CrmEnquiryModel>(
+            searchController: _searchController,
+            searchHint: 'Search enquiries',
+            items: _filteredItems,
+            selectedItem: _selectedItem,
+            emptyMessage: 'No CRM enquiries found.',
+            itemBuilder: (item, selected) {
+              final data = item.toJson();
+              return SettingsListTile(
+                title: item.toString(),
+                subtitle: [
+                  displayDate(nullableStringValue(data, 'enquiry_date')),
+                  stringValue(data, 'enquiry_status'),
+                ].where((value) => value.isNotEmpty).join(' • '),
+                selected: selected,
+                onTap: () => _selectItem(item),
+                detail: stringValue(data, 'remarks'),
+                trailing: SettingsStatusPill(
+                  label: stringValue(data, 'enquiry_status', 'open'),
+                  active: stringValue(data, 'enquiry_status', 'open') != 'lost',
+                ),
+              );
+            },
+          ),
+        ],
       ),
       editor: AnimatedBuilder(
         animation: _tabController,

@@ -225,6 +225,8 @@ class SettingsListCard<T> extends StatefulWidget {
   final String emptyMessage;
   final Widget Function(T item, bool selected) itemBuilder;
 
+  static const double listViewportHeight = 520;
+
   @override
   State<SettingsListCard<T>> createState() => _SettingsListCardState<T>();
 }
@@ -296,15 +298,17 @@ class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
               child: Text(widget.emptyMessage),
             )
           else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: visibleItems.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: AppUiConstants.spacingXs),
-              itemBuilder: (context, index) => widget.itemBuilder(
-                visibleItems[index],
-                identical(visibleItems[index], widget.selectedItem),
+            SizedBox(
+              height: SettingsListCard.listViewportHeight,
+              child: ListView.separated(
+                primary: false,
+                itemCount: visibleItems.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: AppUiConstants.spacingXs),
+                itemBuilder: (context, index) => widget.itemBuilder(
+                  visibleItems[index],
+                  identical(visibleItems[index], widget.selectedItem),
+                ),
               ),
             ),
           LocalPageNavigation(

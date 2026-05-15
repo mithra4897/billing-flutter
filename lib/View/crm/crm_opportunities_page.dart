@@ -38,6 +38,10 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   final TextEditingController _probabilityController = TextEditingController();
   final TextEditingController _expectedCloseDateController =
       TextEditingController();
+  final TextEditingController _filterCloseFromController =
+      TextEditingController();
+  final TextEditingController _filterCloseToController =
+      TextEditingController();
 
   late final TabController _tabController;
   int _activeTabIndex = 0;
@@ -53,6 +57,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   CrmOpportunityModel? _selectedItem;
   int? _enquiryId;
   int? _stageId;
+  int? _filterEnquiryId;
+  int? _filterStageId;
+  String? _filterStatus;
   String _status = 'open';
   List<_OpportunityProductDraft> _products = <_OpportunityProductDraft>[];
   int? _expandedProductIndex;
@@ -105,6 +112,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     _expectedValueController.dispose();
     _probabilityController.dispose();
     _expectedCloseDateController.dispose();
+    _filterCloseFromController.dispose();
+    _filterCloseToController.dispose();
     _disposeProducts(_products);
     super.dispose();
   }
@@ -197,15 +206,238 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
 
   void _applySearch() {
     setState(() {
-      _filteredItems = filterMasterList(_items, _searchController.text, (item) {
-        final data = item.toJson();
-        return [
-          stringValue(data, 'opportunity_name'),
-          stringValue(data, 'status'),
-          stringValue(data, 'expected_value'),
-        ];
-      });
+      _filteredItems =
+          filterMasterList(_items, _searchController.text, (item) {
+                final data = item.toJson();
+                return [
+                  stringValue(data, 'opportunity_name'),
+                  stringValue(data, 'status'),
+                  stringValue(data, 'expected_value'),
+                ];
+              })
+              .where((item) {
+                final data = item.toJson();
+                final closeDate = displayDate(
+                  nullableStringValue(data, 'expected_close_date'),
+                );
+                final filterFrom = _filterCloseFromController.text.trim();
+                final filterTo = _filterCloseToController.text.trim();
+                if (_filterEnquiryId != null &&
+                    intValue(data, 'enquiry_id') != _filterEnquiryId) {
+                  return false;
+                }
+                if (_filterStageId != null &&
+                    intValue(data, 'stage_id') != _filterStageId) {
+                  return false;
+                }
+                if ((_filterStatus ?? '').isNotEmpty &&
+                    stringValue(data, 'status') != _filterStatus) {
+                  return false;
+                }
+                if (filterFrom.isNotEmpty &&
+                    (closeDate.isEmpty ||
+                        closeDate.compareTo(filterFrom) < 0)) {
+                  return false;
+                }
+                if (filterTo.isNotEmpty &&
+                    (closeDate.isEmpty || closeDate.compareTo(filterTo) > 0)) {
+                  return false;
+                }
+                return true;
+              })
+              .toList(growable: false);
     });
+  }
+
+  Future<void> _openFilterPanel() async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                dialogPadding,
+                dialogPadding,
+                dialogPadding,
+                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Filter CRM Opportunities',
+                          style: Theme.of(dialogContext).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        tooltip: 'Close',
+                        icon: const Icon(Icons.close),
+                        color: appTheme.mutedText,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      _filterBox(
+                        child: AppDropdownField<int>.fromMapped(
+                          labelText: 'Stage',
+                          initialValue: _filterStageId,
+                          mappedItems: _stages
+                              .where(
+                                (item) => intValue(item.toJson(), 'id') != null,
+                              )
+                              .map(
+                                (item) => AppDropdownItem(
+                                  value: intValue(item.toJson(), 'id')!,
+                                  label: item.toString(),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _filterStageId = value),
+                        ),
+                      ),
+                      _filterBox(
+                        child: AppDropdownField<String>.fromMapped(
+                          labelText: 'Status',
+                          initialValue: _filterStatus,
+                          mappedItems: _statusItems,
+                          onChanged: (value) =>
+                              setState(() => _filterStatus = value),
+                        ),
+                      ),
+                      _filterBox(
+                        child: TextField(
+                          controller: _filterCloseFromController,
+                          decoration: const InputDecoration(
+                            labelText: 'Close From',
+                            hintText: 'YYYY-MM-DD',
+                          ),
+                        ),
+                      ),
+                      _filterBox(
+                        child: TextField(
+                          controller: _filterCloseToController,
+                          decoration: const InputDecoration(
+                            labelText: 'Close To',
+                            hintText: 'YYYY-MM-DD',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        icon: const Icon(Icons.search),
+                        label: const Text('Apply Filters'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _filterStageId = null;
+                            _filterStatus = null;
+                            _filterCloseFromController.clear();
+                            _filterCloseToController.clear();
+                          });
+                          Navigator.of(dialogContext).pop(true);
+                        },
+                        icon: const Icon(Icons.clear),
+                        label: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (applied == true) {
+      _applySearch();
+    }
+  }
+
+  Widget _buildAppliedFilters(BuildContext context) {
+    final chips = <String>[
+      if (_searchController.text.trim().isNotEmpty)
+        'Search: ${_searchController.text.trim()}',
+      if (_filterEnquiryId != null)
+        'Enquiry: ${_enquiries.cast<CrmEnquiryModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterEnquiryId, orElse: () => null)?.toString() ?? _filterEnquiryId}',
+      if (_filterStageId != null)
+        'Stage: ${_stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterStageId, orElse: () => null)?.toString() ?? _filterStageId}',
+      if ((_filterStatus ?? '').isNotEmpty) 'Status: $_filterStatus',
+      if (_filterCloseFromController.text.trim().isNotEmpty)
+        'Close From: ${_filterCloseFromController.text.trim()}',
+      if (_filterCloseToController.text.trim().isNotEmpty)
+        'Close To: ${_filterCloseToController.text.trim()}',
+    ];
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.cardShadow,
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: chips
+              .map((chip) => Chip(label: Text(chip)))
+              .toList(growable: false),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterBox({required Widget child}) {
+    return SizedBox(width: 240, child: child);
   }
 
   Future<void> _selectItem(CrmOpportunityModel item) async {
@@ -436,6 +668,12 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   Widget build(BuildContext context) {
     final actions = <Widget>[
       AdaptiveShellActionButton(
+        onPressed: _openFilterPanel,
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
         onPressed: () {
           _resetForm();
           if (!Responsive.isDesktop(context)) {
@@ -476,28 +714,41 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       scrollController: _pageScrollController,
       controller: _workspaceController,
       editorTitle: _selectedItem?.toString() ?? 'New Opportunity',
-      list: SettingsListCard<CrmOpportunityModel>(
-        searchController: _searchController,
-        searchHint: 'Search opportunities',
-        items: _filteredItems,
-        selectedItem: _selectedItem,
-        emptyMessage: 'No CRM opportunities found.',
-        itemBuilder: (item, selected) {
-          final data = item.toJson();
-          return SettingsListTile(
-            title: item.toString(),
-            subtitle: [
-              stringValue(data, 'status'),
-              stringValue(data, 'expected_value'),
-            ].where((value) => value.isNotEmpty).join(' • '),
-            selected: selected,
-            onTap: () => _selectItem(item),
-            trailing: SettingsStatusPill(
-              label: stringValue(data, 'status', 'open'),
-              active: stringValue(data, 'status', 'open') != 'lost',
-            ),
-          );
-        },
+      list: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildAppliedFilters(context),
+          if (_searchController.text.trim().isNotEmpty ||
+              _filterEnquiryId != null ||
+              _filterStageId != null ||
+              (_filterStatus ?? '').isNotEmpty ||
+              _filterCloseFromController.text.trim().isNotEmpty ||
+              _filterCloseToController.text.trim().isNotEmpty)
+            const SizedBox(height: AppUiConstants.spacingMd),
+          SettingsListCard<CrmOpportunityModel>(
+            searchController: _searchController,
+            searchHint: 'Search opportunities',
+            items: _filteredItems,
+            selectedItem: _selectedItem,
+            emptyMessage: 'No CRM opportunities found.',
+            itemBuilder: (item, selected) {
+              final data = item.toJson();
+              return SettingsListTile(
+                title: item.toString(),
+                subtitle: [
+                  stringValue(data, 'status'),
+                  stringValue(data, 'expected_value'),
+                ].where((value) => value.isNotEmpty).join(' • '),
+                selected: selected,
+                onTap: () => _selectItem(item),
+                trailing: SettingsStatusPill(
+                  label: stringValue(data, 'status', 'open'),
+                  active: stringValue(data, 'status', 'open') != 'lost',
+                ),
+              );
+            },
+          ),
+        ],
       ),
       editor: AnimatedBuilder(
         animation: _tabController,

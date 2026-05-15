@@ -78,6 +78,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   int? _companyId;
   int? _sourceId;
   int? _assignedTo;
+  int? _filterCompanyId;
+  int? _filterSourceId;
+  int? _filterAssignedTo;
+  String? _filterLeadStatus;
   String _leadStatus = 'new';
   List<_LeadActivityDraft> _activities = <_LeadActivityDraft>[];
   int? _expandedActivityIndex;
@@ -251,17 +255,227 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
 
   void _applySearch() {
     setState(() {
-      _filteredItems = filterMasterList(_items, _searchController.text, (item) {
-        final data = item.toJson();
-        return [
-          stringValue(data, 'lead_name'),
-          stringValue(data, 'company_name'),
-          stringValue(data, 'mobile'),
-          stringValue(data, 'email'),
-          stringValue(data, 'lead_status'),
-        ];
-      });
+      _filteredItems =
+          filterMasterList(_items, _searchController.text, (item) {
+                final data = item.toJson();
+                return [
+                  stringValue(data, 'lead_name'),
+                  stringValue(data, 'company_name'),
+                  stringValue(data, 'mobile'),
+                  stringValue(data, 'email'),
+                  stringValue(data, 'lead_status'),
+                ];
+              })
+              .where((item) {
+                final data = item.toJson();
+                if (_filterCompanyId != null &&
+                    intValue(data, 'company_id') != _filterCompanyId) {
+                  return false;
+                }
+                if (_filterSourceId != null &&
+                    intValue(data, 'source_id') != _filterSourceId) {
+                  return false;
+                }
+                if (_filterAssignedTo != null &&
+                    intValue(data, 'assigned_to') != _filterAssignedTo) {
+                  return false;
+                }
+                if ((_filterLeadStatus ?? '').isNotEmpty &&
+                    stringValue(data, 'lead_status') != _filterLeadStatus) {
+                  return false;
+                }
+                return true;
+              })
+              .toList(growable: false);
     });
+  }
+
+  Future<void> _openFilterPanel() async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                dialogPadding,
+                dialogPadding,
+                dialogPadding,
+                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Filter CRM Leads',
+                          style: Theme.of(dialogContext).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        tooltip: 'Close',
+                        icon: const Icon(Icons.close),
+                        color: appTheme.mutedText,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      _filterBox(
+                        child: AppDropdownField<int>.fromMapped(
+                          labelText: 'Source',
+                          initialValue: _filterSourceId,
+                          mappedItems: _sources
+                              .where(
+                                (item) => intValue(item.toJson(), 'id') != null,
+                              )
+                              .map(
+                                (item) => AppDropdownItem(
+                                  value: intValue(item.toJson(), 'id')!,
+                                  label: item.toString(),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _filterSourceId = value),
+                        ),
+                      ),
+                      _filterBox(
+                        child: AppDropdownField<int>.fromMapped(
+                          labelText: 'Assigned To',
+                          initialValue: _filterAssignedTo,
+                          mappedItems: _users
+                              .where((item) => item.id != null)
+                              .map(
+                                (item) => AppDropdownItem(
+                                  value: item.id!,
+                                  label:
+                                      item.displayName ?? item.username ?? '',
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) =>
+                              setState(() => _filterAssignedTo = value),
+                        ),
+                      ),
+                      _filterBox(
+                        child: AppDropdownField<String>.fromMapped(
+                          labelText: 'Status',
+                          initialValue: _filterLeadStatus,
+                          mappedItems: _leadStatuses,
+                          onChanged: (value) =>
+                              setState(() => _filterLeadStatus = value),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        icon: const Icon(Icons.search),
+                        label: const Text('Apply Filters'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _filterSourceId = null;
+                            _filterAssignedTo = null;
+                            _filterLeadStatus = null;
+                          });
+                          Navigator.of(dialogContext).pop(true);
+                        },
+                        icon: const Icon(Icons.clear),
+                        label: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (applied == true) {
+      _applySearch();
+    }
+  }
+
+  Widget _buildAppliedFilters(BuildContext context) {
+    final chips = <String>[
+      if (_searchController.text.trim().isNotEmpty)
+        'Search: ${_searchController.text.trim()}',
+      if (_filterCompanyId != null)
+        'Company: ${_companies.cast<CompanyModel?>().firstWhere((item) => item?.id == _filterCompanyId, orElse: () => null)?.toString() ?? _filterCompanyId}',
+      if (_filterSourceId != null)
+        'Source: ${_sources.cast<CrmSourceModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterSourceId, orElse: () => null)?.toString() ?? _filterSourceId}',
+      if (_filterAssignedTo != null)
+        'Assigned: ${_users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.displayName ?? _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.username ?? _filterAssignedTo}',
+      if ((_filterLeadStatus ?? '').isNotEmpty) 'Status: $_filterLeadStatus',
+    ];
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: appTheme.cardBackground,
+        borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: appTheme.cardShadow,
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+        child: Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: chips
+              .map((chip) => Chip(label: Text(chip)))
+              .toList(growable: false),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterBox({required Widget child}) {
+    return SizedBox(width: 240, child: child);
   }
 
   Future<void> _selectItem(CrmLeadModel item) async {
@@ -536,6 +750,12 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   Widget build(BuildContext context) {
     final actions = <Widget>[
       AdaptiveShellActionButton(
+        onPressed: _openFilterPanel,
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
         onPressed: () {
           _resetForm();
           if (!Responsive.isDesktop(context)) {
@@ -576,29 +796,41 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       scrollController: _pageScrollController,
       controller: _workspaceController,
       editorTitle: _selectedItem?.toString() ?? 'New Lead',
-      list: SettingsListCard<CrmLeadModel>(
-        searchController: _searchController,
-        searchHint: 'Search leads',
-        items: _filteredItems,
-        selectedItem: _selectedItem,
-        emptyMessage: 'No CRM leads found.',
-        itemBuilder: (item, selected) {
-          final data = item.toJson();
-          return SettingsListTile(
-            title: item.toString(),
-            subtitle: [
-              stringValue(data, 'company_name'),
-              stringValue(data, 'mobile'),
-              stringValue(data, 'lead_status'),
-            ].where((value) => value.trim().isNotEmpty).join(' • '),
-            selected: selected,
-            onTap: () => _selectItem(item),
-            trailing: SettingsStatusPill(
-              label: stringValue(data, 'lead_status', 'new'),
-              active: stringValue(data, 'lead_status', 'new') != 'lost',
-            ),
-          );
-        },
+      list: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildAppliedFilters(context),
+          if (_searchController.text.trim().isNotEmpty ||
+              _filterCompanyId != null ||
+              _filterSourceId != null ||
+              _filterAssignedTo != null ||
+              (_filterLeadStatus ?? '').isNotEmpty)
+            const SizedBox(height: AppUiConstants.spacingMd),
+          SettingsListCard<CrmLeadModel>(
+            searchController: _searchController,
+            searchHint: 'Search leads',
+            items: _filteredItems,
+            selectedItem: _selectedItem,
+            emptyMessage: 'No CRM leads found.',
+            itemBuilder: (item, selected) {
+              final data = item.toJson();
+              return SettingsListTile(
+                title: item.toString(),
+                subtitle: [
+                  stringValue(data, 'company_name'),
+                  stringValue(data, 'mobile'),
+                  stringValue(data, 'lead_status'),
+                ].where((value) => value.trim().isNotEmpty).join(' • '),
+                selected: selected,
+                onTap: () => _selectItem(item),
+                trailing: SettingsStatusPill(
+                  label: stringValue(data, 'lead_status', 'new'),
+                  active: stringValue(data, 'lead_status', 'new') != 'lost',
+                ),
+              );
+            },
+          ),
+        ],
       ),
       editor: AnimatedBuilder(
         animation: _tabController,
