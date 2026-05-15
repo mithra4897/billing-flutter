@@ -138,8 +138,7 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
                     title: widget.shellTitle ?? 'Module Dashboard',
                     subtitle: 'No dashboard data available.',
                   ),
-              showTrendControls:
-                  widget.moduleKey != 'crm' && snapshot.data?.trend != null,
+              showTrendControls: snapshot.data?.trend != null,
               trendControlValue: _mapTrendControlValue(_trendFilter.preset),
               onTrendControlChanged: _handleTrendControlChanged,
             ),

@@ -143,6 +143,11 @@ Color crmFollowupDateColor(CrmPendingFollowupItem item, {DateTime? today}) {
   return crmIsTodayFollowup(item, today: today) ? Colors.red : Colors.blueGrey;
 }
 
+bool crmIsCompletedFollowupStatus(String? status) {
+  final normalized = status?.trim().toLowerCase() ?? '';
+  return normalized == 'done' || normalized == 'completed';
+}
+
 int crmPriorityRank(String priority) {
   switch (crmNormalizePriority(priority)) {
     case 'high':

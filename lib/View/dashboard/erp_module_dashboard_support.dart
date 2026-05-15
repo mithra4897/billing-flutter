@@ -84,46 +84,76 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   required DateTime Function() now,
   ErpDashboardTrendFilter? trendFilter,
 }) async {
-  final leadResponse = await crmService.leads(
-    filters: const <String, dynamic>{'per_page': 1},
+  final activeFilter =
+      trendFilter ??
+      const ErpDashboardTrendFilter(preset: ErpDashboardTrendPreset.monthly);
+  final currentDate = now();
+  final pendingLeadResponses = await Future.wait(<Future<PaginatedResponse<CrmLeadModel>>>[
+    crmService.leads(
+      filters: const <String, dynamic>{'per_page': 1, 'lead_status': 'new'},
+    ),
+    crmService.leads(
+      filters: const <String, dynamic>{
+        'per_page': 1,
+        'lead_status': 'contacted',
+      },
+    ),
+    crmService.leads(
+      filters: const <String, dynamic>{
+        'per_page': 1,
+        'lead_status': 'qualified',
+      },
+    ),
+  ]);
+  final pendingLeadCount = pendingLeadResponses.fold<int>(
+    0,
+    (sum, response) => sum + (response.meta?.total ?? response.data?.length ?? 0),
   );
   final enquiryResponse = await crmService.enquiries(
     filters: const <String, dynamic>{'per_page': 1},
   );
   final pendingFollowupResponse = await crmService.pendingFollowups();
+  final followupItems = (pendingFollowupResponse.data ??
+          const <CrmFollowupModel>[])
+      .map((item) => CrmPendingFollowupItem.fromJson(item.toJson()))
+      .where(
+        (item) => _crmMatchesTrendFilter(
+          item,
+          activeFilter,
+          today: currentDate,
+        ),
+      )
+      .toList(growable: false);
+  final completedCount = followupItems
+      .where((item) => crmIsCompletedFollowupStatus(item.status))
+      .length;
 
   final pendingItems = sortCrmPendingFollowups(
-    (pendingFollowupResponse.data ?? const <CrmFollowupModel>[]).map(
-      (item) => CrmPendingFollowupItem.fromJson(item.toJson()),
-    ),
-    today: now(),
+    followupItems.where((item) => !crmIsCompletedFollowupStatus(item.status)),
+    today: currentDate,
   );
 
   final todayCount = pendingItems
       .where(
         (item) =>
-            crmFollowupBucket(item, today: now()) ==
+            crmFollowupBucket(item, today: currentDate) ==
             CrmFollowupTimingBucket.today,
       )
       .length;
   final overdueCount = pendingItems
       .where(
         (item) =>
-            crmFollowupBucket(item, today: now()) ==
+            crmFollowupBucket(item, today: currentDate) ==
             CrmFollowupTimingBucket.overdue,
       )
       .length;
   final upcomingCount = pendingItems
       .where(
         (item) =>
-            crmFollowupBucket(item, today: now()) ==
+            crmFollowupBucket(item, today: currentDate) ==
             CrmFollowupTimingBucket.upcoming,
       )
       .length;
-  final noDateCount = pendingItems
-      .where((item) => item.followupDate == null)
-      .length;
-
   final highPriority = pendingItems
       .where((item) => crmNormalizePriority(item.priority) == 'high')
       .length;
@@ -152,13 +182,12 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     ],
     stats: <ErpDashboardStat>[
       ErpDashboardStat(
-        label: 'Total Leads',
-        value: _formatInt(
-          leadResponse.meta?.total ?? leadResponse.data?.length ?? 0,
-        ),
-        helper: 'Live count from CRM leads',
+        label: 'Total Pending Leads',
+        value: _formatInt(pendingLeadCount),
+        helper: 'Open CRM leads in new, contacted, and qualified stages',
         icon: Icons.groups_2_outlined,
         color: const Color(0xFF2F6FED),
+        route: '/crm/leads',
       ),
       ErpDashboardStat(
         label: 'Total Enquiries',
@@ -168,6 +197,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         helper: 'Tracked across the sales pipeline',
         icon: Icons.mark_email_unread_outlined,
         color: const Color(0xFF19A7B8),
+        route: '/crm/enquiries',
       ),
       ErpDashboardStat(
         label: 'Due Today',
@@ -175,6 +205,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         helper: 'Follow-ups scheduled for today',
         icon: Icons.today_outlined,
         color: const Color(0xFFE67E22),
+        route: '/crm/enquiries',
       ),
       ErpDashboardStat(
         label: 'Open Follow-ups',
@@ -182,6 +213,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         helper: 'Pending calls, emails, and next steps',
         icon: Icons.assignment_late_outlined,
         color: const Color(0xFFDA4D78),
+        route: '/crm/enquiries',
       ),
     ],
     primarySections: <ErpDashboardListSection>[
@@ -215,21 +247,23 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       ),
     ],
     trend: ErpDashboardTrendCardData(
-      title: 'Follow-up Load',
-      subtitle: 'Live operational split across timing buckets.',
+      title: 'Follow-up Status',
+      subtitle:
+          'Completed and not completed follow-ups for ${_crmFilterLabel(activeFilter, currentDate)}.',
       points: <ErpDashboardTrendPoint>[
-        ErpDashboardTrendPoint(label: 'Today', value: todayCount.toDouble()),
         ErpDashboardTrendPoint(
-          label: 'Overdue',
-          value: overdueCount.toDouble(),
+          label: 'Completed',
+          value: completedCount.toDouble(),
+          color: const Color(0xFF1FA971),
         ),
         ErpDashboardTrendPoint(
-          label: 'Upcoming',
-          value: upcomingCount.toDouble(),
+          label: 'Not Completed',
+          value: pendingItems.length.toDouble(),
+          color: const Color(0xFFD84C4C),
         ),
-        ErpDashboardTrendPoint(label: 'No date', value: noDateCount.toDouble()),
       ],
-      color: const Color(0xFF2F6FED),
+      color: const Color(0xFF1FA971),
+      chartStyle: ErpDashboardTrendChartStyle.bar,
     ),
     distribution: ErpDashboardDistributionCardData(
       title: 'Priority Distribution',
@@ -277,6 +311,81 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       ],
     ),
   );
+}
+
+bool _crmMatchesTrendFilter(
+  CrmPendingFollowupItem item,
+  ErpDashboardTrendFilter filter, {
+  required DateTime today,
+}) {
+  final followupDate = item.followupDate;
+  if (followupDate == null) {
+    return false;
+  }
+
+  final range = _crmTrendRange(filter, today: today);
+  if (range == null) {
+    return true;
+  }
+
+  final normalizedDate = DateTime(
+    followupDate.year,
+    followupDate.month,
+    followupDate.day,
+  );
+  return !normalizedDate.isBefore(range.start) &&
+      !normalizedDate.isAfter(range.end);
+}
+
+ErpDashboardGraphRange? _crmTrendRange(
+  ErpDashboardTrendFilter filter, {
+  required DateTime today,
+}) {
+  switch (filter.preset) {
+    case ErpDashboardTrendPreset.monthly:
+      return ErpDashboardGraphRange(
+        start: DateTime(today.year, today.month, 1),
+        end: DateTime(today.year, today.month + 1, 0),
+      );
+    case ErpDashboardTrendPreset.weekly:
+      final start = _weekStart(today);
+      return ErpDashboardGraphRange(
+        start: start,
+        end: start.add(const Duration(days: 6)),
+      );
+    case ErpDashboardTrendPreset.yearly:
+      return ErpDashboardGraphRange(
+        start: DateTime(today.year, 1, 1),
+        end: DateTime(today.year, 12, 31),
+      );
+    case ErpDashboardTrendPreset.custom:
+      return filter.customRange;
+  }
+}
+
+String _crmFilterLabel(
+  ErpDashboardTrendFilter filter,
+  DateTime today,
+) {
+  switch (filter.preset) {
+    case ErpDashboardTrendPreset.monthly:
+      return _monthLabel(today);
+    case ErpDashboardTrendPreset.weekly:
+      final range = _crmTrendRange(filter, today: today)!;
+      return '${_compactDateLabel(range.start)} - ${_compactDateLabel(range.end)}';
+    case ErpDashboardTrendPreset.yearly:
+      return today.year.toString();
+    case ErpDashboardTrendPreset.custom:
+      final range = filter.customRange;
+      if (range == null) {
+        return 'selected range';
+      }
+      return '${_compactDateLabel(range.start)} - ${_compactDateLabel(range.end)}';
+  }
+}
+
+String _compactDateLabel(DateTime date) {
+  return '${date.day.toString().padLeft(2, '0')} ${_monthLabel(date)} ${date.year}';
 }
 
 Future<ErpDashboardSnapshot> _loadAccountingDashboard({

@@ -77,6 +77,8 @@ class ErpDashboardStat {
     required this.icon,
     this.helper,
     this.color = const Color(0xFF2F6FED),
+    this.route,
+    this.onPressed,
   });
 
   final String label;
@@ -84,6 +86,8 @@ class ErpDashboardStat {
   final String? helper;
   final IconData icon;
   final Color color;
+  final String? route;
+  final VoidCallback? onPressed;
 }
 
 class ErpDashboardListSection {
@@ -130,6 +134,7 @@ class ErpDashboardTrendCardData {
     this.emptyMessage =
         'Trend data will appear here once analytics is available.',
     this.color = const Color(0xFF2F6FED),
+    this.chartStyle = ErpDashboardTrendChartStyle.line,
   });
 
   final String title;
@@ -137,14 +142,22 @@ class ErpDashboardTrendCardData {
   final List<ErpDashboardTrendPoint> points;
   final String emptyMessage;
   final Color color;
+  final ErpDashboardTrendChartStyle chartStyle;
 }
 
 class ErpDashboardTrendPoint {
-  const ErpDashboardTrendPoint({required this.label, required this.value});
+  const ErpDashboardTrendPoint({
+    required this.label,
+    required this.value,
+    this.color,
+  });
 
   final String label;
   final double value;
+  final Color? color;
 }
+
+enum ErpDashboardTrendChartStyle { line, bar }
 
 class ErpDashboardDistributionCardData {
   const ErpDashboardDistributionCardData({
@@ -446,52 +459,79 @@ class _DashboardStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
+    final isInteractive =
+        stat.onPressed != null ||
+        (stat.route != null && stat.route!.trim().isNotEmpty);
 
-    return _DashboardSurfaceCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: stat.color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+      onTap: !isInteractive
+          ? null
+          : () {
+              final onPressed = stat.onPressed;
+              if (onPressed != null) {
+                onPressed();
+                return;
+              }
+
+              final route = stat.route;
+              if (route == null || route.trim().isEmpty) {
+                return;
+              }
+
+              final navigate = ShellRouteScope.maybeOf(context);
+              if (navigate != null) {
+                navigate(route);
+                return;
+              }
+              Navigator.of(context).pushNamed(route);
+            },
+      child: _DashboardSurfaceCard(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: stat.color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+              ),
+              child: Icon(stat.icon, color: stat.color),
             ),
-            child: Icon(stat.icon, color: stat.color),
-          ),
-          const SizedBox(width: AppUiConstants.spacingMd),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  stat.label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: appTheme.mutedText,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppUiConstants.spacingXs),
-                Text(
-                  stat.value,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                if ((stat.helper ?? '').trim().isNotEmpty) ...[
-                  const SizedBox(height: AppUiConstants.spacingXs),
+            const SizedBox(width: AppUiConstants.spacingMd),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    stat.helper!,
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    stat.label,
+                    style: theme.textTheme.labelLarge?.copyWith(
                       color: appTheme.mutedText,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  Text(
+                    stat.value,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if ((stat.helper ?? '').trim().isNotEmpty) ...[
+                    const SizedBox(height: AppUiConstants.spacingXs),
+                    Text(
+                      stat.helper!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: appTheme.mutedText,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -776,13 +816,21 @@ class _DashboardTrendCard extends StatelessWidget {
             SizedBox(
               height: AppUiConstants.dashboardChartHeight,
               child: CustomPaint(
-                painter: _TrendChartPainter(
-                  points: data.points,
-                  color: data.color,
-                  gridColor: Theme.of(
-                    context,
-                  ).dividerColor.withValues(alpha: 0.12),
-                ),
+                painter: data.chartStyle == ErpDashboardTrendChartStyle.bar
+                    ? _TrendBarChartPainter(
+                        points: data.points,
+                        color: data.color,
+                        gridColor: Theme.of(
+                          context,
+                        ).dividerColor.withValues(alpha: 0.12),
+                      )
+                    : _TrendChartPainter(
+                        points: data.points,
+                        color: data.color,
+                        gridColor: Theme.of(
+                          context,
+                        ).dividerColor.withValues(alpha: 0.12),
+                      ),
                 child: const SizedBox.expand(),
               ),
             ),
@@ -1366,6 +1414,107 @@ class _TrendChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TrendChartPainter other) {
+    return other.points != points ||
+        other.color != color ||
+        other.gridColor != gridColor;
+  }
+}
+
+class _TrendBarChartPainter extends CustomPainter {
+  _TrendBarChartPainter({
+    required this.points,
+    required this.color,
+    required this.gridColor,
+  });
+
+  final List<ErpDashboardTrendPoint> points;
+  final Color color;
+  final Color gridColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.isEmpty) {
+      return;
+    }
+
+    const horizontalPadding = 20.0;
+    const verticalPadding = 18.0;
+    const minBarWidth = 22.0;
+    final chartWidth = size.width - (horizontalPadding * 2);
+    final chartHeight = size.height - (verticalPadding * 2);
+    if (chartWidth <= 0 || chartHeight <= 0) {
+      return;
+    }
+
+    final gridPaint = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
+    for (var index = 0; index < 4; index += 1) {
+      final y = verticalPadding + (chartHeight / 3) * index;
+      canvas.drawLine(
+        Offset(horizontalPadding, y),
+        Offset(horizontalPadding + chartWidth, y),
+        gridPaint,
+      );
+    }
+
+    final maxValue = points
+        .map((point) => point.value)
+        .fold<double>(0, math.max)
+        .clamp(1, double.infinity);
+
+    final slotWidth = chartWidth / points.length;
+    final barWidth = math.max(
+      minBarWidth,
+      math.min(slotWidth * 0.56, 56.0),
+    );
+
+    for (var index = 0; index < points.length; index += 1) {
+      final point = points[index];
+      final barColor = point.color ?? color;
+      final barHeight = (point.value / maxValue) * chartHeight;
+      final left =
+          horizontalPadding + (slotWidth * index) + ((slotWidth - barWidth) / 2);
+      final top = verticalPadding + chartHeight - barHeight;
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(left, top, barWidth, barHeight),
+        const Radius.circular(12),
+      );
+
+      canvas.drawRRect(
+        rect,
+        Paint()..color = barColor.withValues(alpha: 0.18),
+      );
+      canvas.drawRRect(
+        rect,
+        Paint()..color = barColor,
+      );
+
+      final countPainter = TextPainter(
+        text: TextSpan(
+          text: point.value == point.value.roundToDouble()
+              ? point.value.toStringAsFixed(0)
+              : point.value.toStringAsFixed(1),
+          style: TextStyle(
+            color: barColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: slotWidth);
+      countPainter.paint(
+        canvas,
+        Offset(
+          left + ((barWidth - countPainter.width) / 2),
+          math.max(0, top - countPainter.height - 6),
+        ),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrendBarChartPainter other) {
     return other.points != points ||
         other.color != color ||
         other.gridColor != gridColor;
