@@ -203,7 +203,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
   }
 }
 
-class SettingsListCard<T> extends StatelessWidget {
+class SettingsListCard<T> extends StatefulWidget {
   const SettingsListCard({
     super.key,
     this.searchController,
@@ -226,42 +226,92 @@ class SettingsListCard<T> extends StatelessWidget {
   final Widget Function(T item, bool selected) itemBuilder;
 
   @override
+  State<SettingsListCard<T>> createState() => _SettingsListCardState<T>();
+}
+
+class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
+  int _currentPage = 1;
+
+  @override
+  void didUpdateWidget(covariant SettingsListCard<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.items, widget.items)) {
+      _currentPage = 1;
+    }
+
+    final totalPages = _totalPages(widget.items.length);
+    if (_currentPage > totalPages) {
+      _currentPage = totalPages;
+    }
+  }
+
+  int _totalPages(int itemCount) {
+    if (itemCount <= 0) {
+      return 1;
+    }
+    return ((itemCount + kLocalListPageSize - 1) / kLocalListPageSize).floor();
+  }
+
+  List<T> _pagedItems() {
+    if (widget.items.isEmpty) {
+      return <T>[];
+    }
+
+    final start = (_currentPage - 1) * kLocalListPageSize;
+    if (start >= widget.items.length) {
+      return <T>[];
+    }
+
+    final end = (start + kLocalListPageSize) > widget.items.length
+        ? widget.items.length
+        : (start + kLocalListPageSize);
+    return widget.items.sublist(start, end);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final visibleItems = _pagedItems();
+
     return AppSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showSearchBar &&
-              searchController != null &&
-              (searchHint?.isNotEmpty ?? false)) ...[
+          if (widget.showSearchBar &&
+              widget.searchController != null &&
+              (widget.searchHint?.isNotEmpty ?? false)) ...[
             TextField(
-              controller: searchController,
+              controller: widget.searchController,
               decoration: InputDecoration(
-                hintText: searchHint,
+                hintText: widget.searchHint,
                 prefixIcon: const Icon(Icons.search),
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
-          if (items.isEmpty)
+          if (widget.items.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(
                 vertical: AppUiConstants.spacingXl,
               ),
-              child: Text(emptyMessage),
+              child: Text(widget.emptyMessage),
             )
           else
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
+              itemCount: visibleItems.length,
               separatorBuilder: (context, index) =>
                   const SizedBox(height: AppUiConstants.spacingXs),
-              itemBuilder: (context, index) => itemBuilder(
-                items[index],
-                identical(items[index], selectedItem),
+              itemBuilder: (context, index) => widget.itemBuilder(
+                visibleItems[index],
+                identical(visibleItems[index], widget.selectedItem),
               ),
             ),
+          LocalPageNavigation(
+            totalItems: widget.items.length,
+            currentPage: _currentPage,
+            onPageChanged: (page) => setState(() => _currentPage = page),
+          ),
         ],
       ),
     );

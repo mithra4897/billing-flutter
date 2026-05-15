@@ -35,8 +35,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _expectedValueController =
       TextEditingController();
-  final TextEditingController _probabilityController =
-      TextEditingController();
+  final TextEditingController _probabilityController = TextEditingController();
   final TextEditingController _expectedCloseDateController =
       TextEditingController();
 
@@ -124,7 +123,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         _crmService.enquiries(
           filters: const {'per_page': 300, 'sort_by': 'enquiry_no'},
         ),
-        _crmService.stages(filters: const {'per_page': 200, 'sort_by': 'sequence_no'}),
+        _crmService.stages(
+          filters: const {'per_page': 200, 'sort_by': 'sequence_no'},
+        ),
         _inventoryService.items(
           filters: const {'per_page': 300, 'sort_by': 'item_name'},
         ),
@@ -141,21 +142,20 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         _enquiries =
             (responses[1] as PaginatedResponse<CrmEnquiryModel>).data ??
             const <CrmEnquiryModel>[];
-        _stages =
-            () {
-              final allStages =
-                  ((responses[2] as PaginatedResponse<CrmStageModel>).data ??
-                          const <CrmStageModel>[])
-                      .where(
-                        (item) =>
-                            boolValue(item.toJson(), 'is_active', fallback: true),
-                      )
-                      .toList(growable: false);
-              final filtered = allStages
-                  .where(_isAllowedOpportunityStage)
+        _stages = () {
+          final allStages =
+              ((responses[2] as PaginatedResponse<CrmStageModel>).data ??
+                      const <CrmStageModel>[])
+                  .where(
+                    (item) =>
+                        boolValue(item.toJson(), 'is_active', fallback: true),
+                  )
                   .toList(growable: false);
-              return filtered.isNotEmpty ? filtered : allStages;
-            }();
+          final filtered = allStages
+              .where(_isAllowedOpportunityStage)
+              .toList(growable: false);
+          return filtered.isNotEmpty ? filtered : allStages;
+        }();
         _itemsLookup =
             ((responses[3] as PaginatedResponse<ItemModel>).data ??
                     const <ItemModel>[])
@@ -245,8 +245,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
 
   Future<void> _refreshSalesChainForOpportunity(int opportunityId) async {
     try {
-      final response =
-          await _crmService.salesChain(opportunityId: opportunityId);
+      final response = await _crmService.salesChain(
+        opportunityId: opportunityId,
+      );
       if (!mounted) {
         return;
       }
@@ -344,7 +345,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(response.data?.toJson() ?? const {}, 'id'));
+      await _loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -542,7 +545,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
           if (_selectedOpportunityId() != null) ...[
-            CrmSalesPipelineBar(data: _salesChain),
+            CrmSalesPipelineBar(data: _salesChain, hideOpportunityChip: true),
             AppActionButton(
               icon: Icons.request_quote_outlined,
               label: 'New quotation (this deal)',
@@ -666,9 +669,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
           children: [
             Text(
               'Products',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             AppActionButton(
@@ -684,7 +687,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
           const SettingsEmptyState(
             icon: Icons.inventory_2_outlined,
             title: 'No Products',
-            message: 'Add item-wise deal products, quantity, and estimated price.',
+            message:
+                'Add item-wise deal products, quantity, and estimated price.',
             minHeight: 180,
           )
         else

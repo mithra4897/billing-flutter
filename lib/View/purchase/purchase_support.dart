@@ -20,16 +20,18 @@ List<PartyModel> purchaseSuppliers({
 
 bool _looksLikeSupplierType(PartyTypeModel type) {
   final data = type.toJson();
-  final code = (stringValue(data, 'code').isNotEmpty
-          ? stringValue(data, 'code')
-          : stringValue(data, 'type_code'))
-      .trim()
-      .toLowerCase();
-  final name = (stringValue(data, 'name').isNotEmpty
-          ? stringValue(data, 'name')
-          : stringValue(data, 'type_name'))
-      .trim()
-      .toLowerCase();
+  final code =
+      (stringValue(data, 'code').isNotEmpty
+              ? stringValue(data, 'code')
+              : stringValue(data, 'type_code'))
+          .trim()
+          .toLowerCase();
+  final name =
+      (stringValue(data, 'name').isNotEmpty
+              ? stringValue(data, 'name')
+              : stringValue(data, 'type_name'))
+          .trim()
+          .toLowerCase();
   return code.contains('supplier') ||
       code.contains('vendor') ||
       name.contains('supplier') ||
@@ -154,7 +156,7 @@ int? defaultUomIdForItem(
   return allowed.isNotEmpty ? allowed.first.id : null;
 }
 
-class PurchaseListCard<T> extends StatelessWidget {
+class PurchaseListCard<T> extends StatefulWidget {
   const PurchaseListCard({
     super.key,
     required this.items,
@@ -179,47 +181,98 @@ class PurchaseListCard<T> extends StatelessWidget {
   final Widget Function(T item, bool selected) itemBuilder;
 
   @override
+  State<PurchaseListCard<T>> createState() => _PurchaseListCardState<T>();
+}
+
+class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
+  int _currentPage = 1;
+
+  @override
+  void didUpdateWidget(covariant PurchaseListCard<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.items, widget.items)) {
+      _currentPage = 1;
+    }
+
+    final totalPages = _totalPages(widget.items.length);
+    if (_currentPage > totalPages) {
+      _currentPage = totalPages;
+    }
+  }
+
+  int _totalPages(int itemCount) {
+    if (itemCount <= 0) {
+      return 1;
+    }
+    return ((itemCount + kLocalListPageSize - 1) / kLocalListPageSize).floor();
+  }
+
+  List<T> _pagedItems() {
+    if (widget.items.isEmpty) {
+      return <T>[];
+    }
+
+    final start = (_currentPage - 1) * kLocalListPageSize;
+    if (start >= widget.items.length) {
+      return <T>[];
+    }
+
+    final end = (start + kLocalListPageSize) > widget.items.length
+        ? widget.items.length
+        : (start + kLocalListPageSize);
+    return widget.items.sublist(start, end);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final visibleItems = _pagedItems();
+
     return AppSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
-            controller: searchController,
+            controller: widget.searchController,
             decoration: InputDecoration(
-              hintText: searchHint,
+              hintText: widget.searchHint,
               prefixIcon: const Icon(Icons.search),
             ),
           ),
-          if (statusItems.isNotEmpty && onStatusChanged != null) ...[
+          if (widget.statusItems.isNotEmpty &&
+              widget.onStatusChanged != null) ...[
             const SizedBox(height: AppUiConstants.spacingSm),
             AppDropdownField<String>.fromMapped(
               labelText: 'Status',
-              mappedItems: statusItems,
-              initialValue: statusValue,
-              onChanged: onStatusChanged!,
+              mappedItems: widget.statusItems,
+              initialValue: widget.statusValue,
+              onChanged: widget.onStatusChanged!,
             ),
           ],
           const SizedBox(height: AppUiConstants.spacingMd),
-          if (items.isEmpty)
+          if (widget.items.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(
                 vertical: AppUiConstants.spacingXl,
               ),
-              child: Text(emptyMessage),
+              child: Text(widget.emptyMessage),
             )
           else
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
+              itemCount: visibleItems.length,
               separatorBuilder: (context, index) =>
                   const SizedBox(height: AppUiConstants.spacingXs),
-              itemBuilder: (context, index) => itemBuilder(
-                items[index],
-                identical(items[index], selectedItem),
+              itemBuilder: (context, index) => widget.itemBuilder(
+                visibleItems[index],
+                identical(visibleItems[index], widget.selectedItem),
               ),
             ),
+          LocalPageNavigation(
+            totalItems: widget.items.length,
+            currentPage: _currentPage,
+            onPageChanged: (page) => setState(() => _currentPage = page),
+          ),
         ],
       ),
     );

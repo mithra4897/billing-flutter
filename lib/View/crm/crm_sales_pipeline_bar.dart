@@ -15,10 +15,24 @@ class CrmSalesPipelineBar extends StatelessWidget {
     super.key,
     required this.data,
     this.title = 'Sales pipeline',
+    this.hideLeadChip = false,
+    this.hideEnquiryChip = false,
+    this.hideOpportunityChip = false,
+    this.hideQuotationChip = false,
+    this.hideOrderChip = false,
+    this.hideInvoiceChip = false,
+    this.hideReceiptChip = false,
   });
 
   final Map<String, dynamic>? data;
   final String title;
+  final bool hideLeadChip;
+  final bool hideEnquiryChip;
+  final bool hideOpportunityChip;
+  final bool hideQuotationChip;
+  final bool hideOrderChip;
+  final bool hideInvoiceChip;
+  final bool hideReceiptChip;
 
   static Map<String, dynamic>? _asMap(dynamic v) {
     if (v is Map<String, dynamic>) {
@@ -67,29 +81,19 @@ class CrmSalesPipelineBar extends StatelessWidget {
     final invoices = _asMapList(data!['invoices']);
     final receipts = _asMapList(data!['receipts']);
 
-    final hasAny = lead != null ||
-        enquiry != null ||
-        opportunity != null ||
-        quotations.isNotEmpty ||
-        orders.isNotEmpty ||
-        invoices.isNotEmpty ||
-        receipts.isNotEmpty;
-
-    if (!hasAny) {
-      return const SizedBox.shrink();
-    }
-
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
 
     final chips = <Widget>[
-      if (lead != null && intValue(lead, 'id') != null)
+      if (!hideLeadChip && lead != null && intValue(lead, 'id') != null)
         _PipelineChip(
           label: _docLabel('Lead', lead, 'lead_name'),
           subtitle: stringValue(lead, 'lead_status'),
           onTap: () => openModuleShellRoute(context, '/crm/leads'),
         ),
-      if (enquiry != null && intValue(enquiry, 'id') != null)
+      if (!hideEnquiryChip &&
+          enquiry != null &&
+          intValue(enquiry, 'id') != null)
         _PipelineChip(
           label: _docLabel('Enquiry', enquiry, 'enquiry_no'),
           subtitle: stringValue(enquiry, 'enquiry_status'),
@@ -98,7 +102,9 @@ class CrmSalesPipelineBar extends StatelessWidget {
             '/crm/enquiries?select_id=${intValue(enquiry, 'id')}',
           ),
         ),
-      if (opportunity != null && intValue(opportunity, 'id') != null)
+      if (!hideOpportunityChip &&
+          opportunity != null &&
+          intValue(opportunity, 'id') != null)
         _PipelineChip(
           label: _docLabel('Opportunity', opportunity, 'opportunity_name'),
           subtitle: stringValue(opportunity, 'status'),
@@ -108,7 +114,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
           ),
         ),
       for (final q in quotations)
-        if (intValue(q, 'id') != null)
+        if (!hideQuotationChip && intValue(q, 'id') != null)
           _PipelineChip(
             label: _docLabel('Quote', q, 'quotation_no'),
             subtitle: stringValue(q, 'quotation_status'),
@@ -118,7 +124,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
             ),
           ),
       for (final o in orders)
-        if (intValue(o, 'id') != null)
+        if (!hideOrderChip && intValue(o, 'id') != null)
           _PipelineChip(
             label: _docLabel('Order', o, 'order_no'),
             subtitle: stringValue(o, 'order_status'),
@@ -128,7 +134,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
             ),
           ),
       for (final inv in invoices)
-        if (intValue(inv, 'id') != null)
+        if (!hideInvoiceChip && intValue(inv, 'id') != null)
           _PipelineChip(
             label: _docLabel('Invoice', inv, 'invoice_no'),
             subtitle: stringValue(inv, 'invoice_status'),
@@ -138,7 +144,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
             ),
           ),
       for (final r in receipts)
-        if (intValue(r, 'id') != null)
+        if (!hideReceiptChip && intValue(r, 'id') != null)
           _PipelineChip(
             label: _docLabel('Receipt', r, 'receipt_no'),
             subtitle: stringValue(r, 'receipt_status'),
@@ -148,6 +154,10 @@ class CrmSalesPipelineBar extends StatelessWidget {
             ),
           ),
     ];
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),

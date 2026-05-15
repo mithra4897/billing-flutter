@@ -12,7 +12,7 @@ class PurchaseRegisterColumn<T> {
   final int flex;
 }
 
-class PurchaseRegisterPage<T> extends StatelessWidget {
+class PurchaseRegisterPage<T> extends StatefulWidget {
   const PurchaseRegisterPage({
     super.key,
     required this.title,
@@ -41,28 +41,74 @@ class PurchaseRegisterPage<T> extends StatelessWidget {
   final bool embedded;
 
   @override
+  State<PurchaseRegisterPage<T>> createState() =>
+      _PurchaseRegisterPageState<T>();
+}
+
+class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
+  int _currentPage = 1;
+
+  @override
+  void didUpdateWidget(covariant PurchaseRegisterPage<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.rows, widget.rows)) {
+      _currentPage = 1;
+    }
+
+    final totalPages = _totalPages(widget.rows.length);
+    if (_currentPage > totalPages) {
+      _currentPage = totalPages;
+    }
+  }
+
+  int _totalPages(int itemCount) {
+    if (itemCount <= 0) {
+      return 1;
+    }
+    return ((itemCount + kLocalListPageSize - 1) / kLocalListPageSize).floor();
+  }
+
+  List<T> _pagedRows() {
+    if (widget.rows.isEmpty) {
+      return <T>[];
+    }
+
+    final start = (_currentPage - 1) * kLocalListPageSize;
+    if (start >= widget.rows.length) {
+      return <T>[];
+    }
+
+    final end = (start + kLocalListPageSize) > widget.rows.length
+        ? widget.rows.length
+        : (start + kLocalListPageSize);
+    return widget.rows.sublist(start, end);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final content = _buildContent(context);
-    if (embedded) {
-      return ShellPageActions(actions: actions, child: content);
+    if (widget.embedded) {
+      return ShellPageActions(actions: widget.actions, child: content);
     }
     return AppStandaloneShell(
-      title: title,
+      title: widget.title,
       scrollController: ScrollController(),
-      actions: actions,
+      actions: widget.actions,
       child: content,
     );
   }
 
   Widget _buildContent(BuildContext context) {
-    if (loading) {
-      return AppLoadingView(message: 'Loading $title...');
+    final visibleRows = _pagedRows();
+
+    if (widget.loading) {
+      return AppLoadingView(message: 'Loading ${widget.title}...');
     }
-    if (errorMessage != null) {
+    if (widget.errorMessage != null) {
       return AppErrorStateView(
-        title: 'Unable to load $title',
-        message: errorMessage!,
-        onRetry: onRetry,
+        title: 'Unable to load ${widget.title}',
+        message: widget.errorMessage!,
+        onRetry: widget.onRetry,
       );
     }
 
@@ -71,25 +117,39 @@ class PurchaseRegisterPage<T> extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppSectionCard(child: filters),
+          AppSectionCard(child: widget.filters),
           const SizedBox(height: AppUiConstants.spacingLg),
           AppSectionCard(
-            child: rows.isEmpty
+            child: widget.rows.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.symmetric(
                       vertical: AppUiConstants.spacingXl,
                     ),
-                    child: Text(emptyMessage),
+                    child: Text(widget.emptyMessage),
                   )
                 : Column(
                     children: [
-                      _RegisterHeader<T>(columns: columns),
+                      _RegisterHeader<T>(columns: widget.columns),
                       const Divider(height: 1),
-                      ...rows.map(
+                      ...visibleRows.map(
                         (row) => _RegisterRow<T>(
                           row: row,
-                          columns: columns,
-                          onTap: () => onRowTap(row),
+                          columns: widget.columns,
+                          onTap: () => widget.onRowTap(row),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppUiConstants.spacingSm,
+                          0,
+                          AppUiConstants.spacingSm,
+                          AppUiConstants.spacingSm,
+                        ),
+                        child: LocalPageNavigation(
+                          totalItems: widget.rows.length,
+                          currentPage: _currentPage,
+                          onPageChanged: (page) =>
+                              setState(() => _currentPage = page),
                         ),
                       ),
                     ],

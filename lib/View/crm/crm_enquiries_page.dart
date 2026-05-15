@@ -637,18 +637,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     if (id == null) {
       return;
     }
+    final messenger = ScaffoldMessenger.maybeOf(context);
     try {
       final response = await _crmService.convertEnquiry(id);
       if (!mounted) {
         return;
       }
-      final payload = response.data ?? const <String, dynamic>{};
-      final oppRaw = payload['opportunity'];
-      Map<String, dynamic>? oppMap;
-      if (oppRaw is Map) {
-        oppMap = Map<String, dynamic>.from(oppRaw);
-      }
-      final opportunityId = oppMap != null ? intValue(oppMap, 'id') : null;
 
       await _loadPage(selectId: id);
 
@@ -656,24 +650,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         return;
       }
 
-      if (opportunityId != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message),
-            action: SnackBarAction(
-              label: 'Open deal',
-              onPressed: () => _openCrmShellRoute(
-                context,
-                '/crm/opportunities?select_id=$opportunityId',
-              ),
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-      }
+      messenger?.clearSnackBars();
+      messenger?.showSnackBar(SnackBar(content: Text(response.message)));
     } catch (error) {
       if (!mounted) {
         return;
@@ -832,7 +810,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               ],
               if (intValue(_selectedItem?.toJson() ?? const {}, 'id') !=
                   null) ...[
-                CrmSalesPipelineBar(data: _salesChain),
+                CrmSalesPipelineBar(data: _salesChain, hideEnquiryChip: true),
                 if (_pipelineOpportunityId() != null) ...[
                   AppActionButton(
                     icon: Icons.request_quote_outlined,

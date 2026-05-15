@@ -954,7 +954,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            CrmSalesPipelineBar(data: _salesChain),
+            CrmSalesPipelineBar(data: _salesChain, hideOrderChip: true),
             if (_selectedItem != null && totalStr.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(

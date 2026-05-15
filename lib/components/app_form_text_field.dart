@@ -103,6 +103,9 @@ class AppFormTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final autoPickerEnabled = _isAutoDateField || _isAutoDateTimeField;
+    final visuallyReadOnly = enabled == false;
+    final effectiveReadOnly =
+        readOnly || visuallyReadOnly || (autoPickerEnabled && !allowType);
 
     return AppFieldBox(
       width: width,
@@ -115,9 +118,11 @@ class AppFormTextField extends StatelessWidget {
         obscureText: obscureText,
         validator: validator,
         onChanged: onChanged,
-        readOnly: readOnly || (autoPickerEnabled && !allowType),
-        enabled: enabled,
-        onTap: (autoPickerEnabled && !allowType) ? () => _handlePickerTap(context) : null,
+        readOnly: effectiveReadOnly,
+        enabled: true,
+        onTap: (!visuallyReadOnly && autoPickerEnabled && !allowType)
+            ? () => _handlePickerTap(context)
+            : null,
         inputFormatters: inputFormatters,
         textCapitalization: textCapitalization,
         decoration: InputDecoration(
@@ -128,29 +133,29 @@ class AppFormTextField extends StatelessWidget {
           suffixIcon:
               suffixIcon ??
               (autoPickerEnabled
-                  ? (allowType
-                      ? MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () => _handlePickerTap(context),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12.0,
-                              ),
-                              child: Icon(
-                                _isAutoDateTimeField
-                                    ? Icons.schedule_outlined
-                                    : Icons.calendar_month_outlined,
-                                size: 18,
+                  ? (!visuallyReadOnly && allowType
+                        ? MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () => _handlePickerTap(context),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12.0,
+                                ),
+                                child: Icon(
+                                  _isAutoDateTimeField
+                                      ? Icons.schedule_outlined
+                                      : Icons.calendar_month_outlined,
+                                  size: 18,
+                                ),
                               ),
                             ),
-                          ),
-                        )
-                      : Icon(
-                          _isAutoDateTimeField
-                              ? Icons.schedule_outlined
-                              : Icons.calendar_month_outlined,
-                        ))
+                          )
+                        : Icon(
+                            _isAutoDateTimeField
+                                ? Icons.schedule_outlined
+                                : Icons.calendar_month_outlined,
+                          ))
                   : null),
         ),
       ),

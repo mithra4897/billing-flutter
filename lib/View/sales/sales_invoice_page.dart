@@ -2549,7 +2549,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               AppErrorStateView.inline(message: _formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            CrmSalesPipelineBar(data: _salesChain),
+            CrmSalesPipelineBar(data: _salesChain, hideInvoiceChip: true),
             if (_selectedItem != null && totalStr.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(
