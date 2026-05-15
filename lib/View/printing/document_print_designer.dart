@@ -53,6 +53,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final _DocumentPrintTemplateRepository _repository =
       _DocumentPrintTemplateRepository();
   final GlobalKey _previewBoundaryKey = GlobalKey();
+  final ScrollController _pageScrollController = ScrollController();
   _DocumentPrintTemplate? _template;
   String? _selectedShapeId;
   bool _editMode = false;
@@ -64,6 +65,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   void initState() {
     super.initState();
     _loadTemplate();
+  }
+
+  @override
+  void dispose() {
+    _pageScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTemplate() async {
@@ -95,67 +102,109 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final template = _template;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.title} Preview'),
-        actions: [
-          if (!_loading)
-            IconButton(
-              tooltip: _editMode ? 'Preview mode' : 'Edit template',
-              onPressed: () => setState(() {
-                _editMode = !_editMode;
-                if (!_editMode) {
-                  _selectedShapeId = null;
-                }
-              }),
-              icon: Icon(_editMode ? Icons.visibility_outlined : Icons.edit),
-            ),
-          if (_editMode)
-            IconButton(
-              tooltip: 'Save template',
-              onPressed: _saving ? null : _saveTemplate,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save_outlined),
-            ),
-          if (!_loading)
-            IconButton(
-              tooltip: 'Print',
-              onPressed: _printingPdf ? null : _printPdf,
-              icon: _printingPdf
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.print_outlined),
-            ),
-        ],
+    return AppStandaloneShell(
+      title: '${widget.title} Preview',
+      scrollController: _pageScrollController,
+      actions: _buildShellActions(),
+      child: _buildContent(),
+    );
+  }
+
+  List<Widget> _buildShellActions() {
+    final actions = <Widget>[
+      AdaptiveShellActionButton(
+        onPressed: () => Navigator.of(context).pop(),
+        icon: Icons.close,
+        label: 'Close',
+        filled: false,
       ),
-      body: _loading
-          ? const AppLoadingView(message: 'Loading print designer...')
-          : template == null
-          ? const AppErrorStateView(
-              title: 'Unable to open designer',
-              message: 'Print template could not be loaded.',
-            )
-          : Column(
-              children: [
-                if (_editMode) _buildToolbar(),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
+    ];
+
+    if (_loading) {
+      return actions;
+    }
+
+    actions.add(
+      AdaptiveShellActionButton(
+        onPressed: () => setState(() {
+          _editMode = !_editMode;
+          if (!_editMode) {
+            _selectedShapeId = null;
+          }
+        }),
+        icon: _editMode ? Icons.visibility_outlined : Icons.edit_outlined,
+        label: _editMode ? 'Preview Mode' : 'Edit Template',
+        filled: false,
+      ),
+    );
+
+    if (_editMode) {
+      actions.add(
+        AdaptiveShellActionButton(
+          onPressed: _saving ? null : _saveTemplate,
+          icon: Icons.save_outlined,
+          label: _saving ? 'Saving...' : 'Save Template',
+        ),
+      );
+    }
+
+    actions.add(
+      AdaptiveShellActionButton(
+        onPressed: _printingPdf ? null : _printPdf,
+        icon: Icons.print_outlined,
+        label: _printingPdf ? 'Printing...' : 'Print',
+      ),
+    );
+
+    return actions;
+  }
+
+  Widget _buildContent() {
+    final template = _template;
+    if (_loading) {
+      return const AppLoadingView(message: 'Loading print designer...');
+    }
+    if (template == null) {
+      return const AppErrorStateView(
+        title: 'Unable to open designer',
+        message: 'Print template could not be loaded.',
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showInspector =
+            _editMode &&
+            constraints.maxWidth >= 980 + AppUiConstants.settingsSidebarWidth;
+
+        return Padding(
+          padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_editMode) ...[
+                AppSectionCard(
+                  padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+                  child: _buildToolbar(),
+                ),
+                const SizedBox(height: AppUiConstants.spacingLg),
+              ],
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: AppSectionCard(
+                        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
                         child: Container(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerLowest,
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(
+                              AppUiConstants.panelRadius,
+                            ),
+                          ),
                           padding: const EdgeInsets.all(
                             AppUiConstants.spacingMd,
                           ),
@@ -178,23 +227,27 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                           ),
                         ),
                       ),
-                      if (_editMode)
-                        SizedBox(
-                          width: AppUiConstants.settingsSidebarWidth,
-                          child: _buildInspector(template),
-                        ),
+                    ),
+                    if (_editMode && showInspector) ...[
+                      const SizedBox(width: AppUiConstants.spacingLg),
+                      SizedBox(
+                        width: AppUiConstants.settingsSidebarWidth,
+                        child: _buildInspector(template),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildToolbar() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.all(AppUiConstants.spacingSm),
       child: Row(
         children: [
           _toolbarButton(Icons.text_fields, 'Text', () => _addShape('text')),
@@ -671,13 +724,16 @@ class _DocumentImageShape extends StatelessWidget {
   }
 
   Widget _fallback() {
-    return Image.asset(
-      _defaultPrintLogoAsset,
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) => Container(
+    return Container(
+      decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        alignment: Alignment.center,
-        child: const Icon(Icons.broken_image_outlined),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.image_outlined,
+        color: Color(0xFF94A3B8),
+        size: 28,
       ),
     );
   }

@@ -77,8 +77,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
   List<SalesQuotationModel> _items = const <SalesQuotationModel>[];
   List<SalesQuotationModel> _filteredItems = const <SalesQuotationModel>[];
   List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> _customers = const <PartyModel>[];
@@ -125,12 +123,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     'quotation_status',
     'draft',
   );
-
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
 
   List<DocumentSeriesModel> _seriesOptions() {
     return _documentSeries
@@ -263,12 +255,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         _companies =
             (responses[1] as PaginatedResponse<CompanyModel>).data ??
             const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -621,8 +607,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     return <String, dynamic>{
       'company_name': companyNameById(_companies, _companyId),
       'company_logo_url':
-          AppConfig.resolvePublicFileUrl(company?.logoPath) ??
-          'assets/sakthicontroller logo.jpg',
+          AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
       'document_number': nullIfEmpty(_quotationNoController.text) ?? 'Draft',
       'document_date': _quotationDateController.text.trim(),
       'reference_number': _customerRefNoController.text.trim(),
