@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import '../app/constants/app_ui_constants.dart';
 import '../app/navigation/app_navigation.dart';
 import '../app/theme/app_theme_extension.dart';
+import '../core/navigation/app_route_state.dart';
 import '../core/storage/session_storage.dart';
 import '../model/app/public_branding_model.dart';
 import '../model/auth/module_model.dart';
@@ -104,6 +105,86 @@ class AdaptiveShellActionButton extends StatelessWidget {
           );
 
     return Tooltip(message: label, child: button);
+  }
+}
+
+class _ShellHistoryButtons extends StatelessWidget {
+  const _ShellHistoryButtons({
+    required this.foregroundColor,
+    required this.canNavigateBack,
+    required this.canNavigateForward,
+    required this.onBackPressed,
+    required this.onForwardPressed,
+  });
+
+  final Color foregroundColor;
+  final bool canNavigateBack;
+  final bool canNavigateForward;
+  final VoidCallback onBackPressed;
+  final VoidCallback onForwardPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _ShellHistoryButton(
+            icon: Icons.arrow_back_rounded,
+            label: 'Back',
+            foregroundColor: foregroundColor,
+            onPressed: canNavigateBack ? onBackPressed : null,
+          ),
+        ),
+        const SizedBox(width: AppUiConstants.spacingXs),
+        Expanded(
+          child: _ShellHistoryButton(
+            icon: Icons.arrow_forward_rounded,
+            label: 'Forward',
+            foregroundColor: foregroundColor,
+            onPressed: canNavigateForward ? onForwardPressed : null,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShellHistoryButton extends StatelessWidget {
+  const _ShellHistoryButton({
+    required this.icon,
+    required this.label,
+    required this.foregroundColor,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color foregroundColor;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          minimumSize: const Size.fromHeight(42),
+          side: BorderSide(color: foregroundColor.withValues(alpha: 0.18)),
+          foregroundColor: foregroundColor,
+          disabledForegroundColor: foregroundColor,
+          disabledBackgroundColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+          ),
+        ),
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+      ),
+    );
   }
 }
 
@@ -534,14 +615,31 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                         textColor: foregroundColor,
                       ),
                     )
-                  : AppBrandingLogo(
-                      branding: widget.branding,
-                      size: 42,
-                      textColor: foregroundColor,
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AppBrandingLogo(
+                          branding: widget.branding,
+                          size: 42,
+                          textColor: foregroundColor,
+                        ),
+                        const SizedBox(height: AppUiConstants.spacingSm),
+                        _ShellHistoryButtons(
+                          foregroundColor: foregroundColor,
+                          canNavigateBack: _canNavigateBack,
+                          canNavigateForward: _canNavigateForward,
+                          onBackPressed: () => _handleBackTap(
+                            showPermanentDrawer: showPermanentDrawer,
+                          ),
+                          onForwardPressed: () => _handleForwardTap(
+                            showPermanentDrawer: showPermanentDrawer,
+                          ),
+                        ),
+                      ],
                     ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppUiConstants.spacingXs),
           Expanded(
             child: ListView(
               key: _drawerListKey,
@@ -563,7 +661,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppUiConstants.spacingSm),
         ],
       ),
     );
@@ -854,6 +952,30 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     }
 
     Navigator.of(context).pushReplacementNamed(route);
+  }
+
+  bool get _canNavigateBack {
+    return AppRouteState.canGoBack;
+  }
+
+  bool get _canNavigateForward {
+    return AppRouteState.canGoForward;
+  }
+
+  void _handleBackTap({required bool showPermanentDrawer}) {
+    final previousRoute = AppRouteState.goBack();
+    if (previousRoute == null || previousRoute.trim().isEmpty) {
+      return;
+    }
+    _handleRouteTap(previousRoute, showPermanentDrawer: showPermanentDrawer);
+  }
+
+  void _handleForwardTap({required bool showPermanentDrawer}) {
+    final nextRoute = AppRouteState.goForward();
+    if (nextRoute == null || nextRoute.trim().isEmpty) {
+      return;
+    }
+    _handleRouteTap(nextRoute, showPermanentDrawer: showPermanentDrawer);
   }
 
   void _syncExpandedParentsForRoute(String path) {
