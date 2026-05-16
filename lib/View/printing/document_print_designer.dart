@@ -1728,20 +1728,26 @@ class _ColorField extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   static const _palette = <String, int>{
-    'Black': 0xFF111827,
+    'Transparent': 0x00000000,
+    'White': 0xFFFFFFFF,
+    'Default Gray': 0xFFF1F5F9,
     'Slate': 0xFF475569,
+    'Black': 0xFF111827,
     'Blue': 0xFF2563EB,
     'Green': 0xFF059669,
     'Red': 0xFFDC2626,
     'Amber': 0xFFF59E0B,
+    'Orange': 0xFFEA580C,
     'Gray': 0xFFD1D5DB,
   };
 
   @override
   Widget build(BuildContext context) {
+    // Ensure the current value is visible in the dropdown even if not in palette
     final current = _palette.values.contains(value)
         ? value
         : _palette.values.first;
+    
     return AppDropdownField<int>.fromMapped(
       labelText: label,
       initialValue: current,
@@ -1759,6 +1765,7 @@ class _ColorField extends StatelessWidget {
     );
   }
 }
+
 
 class _TableColumnInspector extends StatelessWidget {
   const _TableColumnInspector({required this.columns, required this.onChanged});

@@ -790,7 +790,26 @@ double _toDouble(dynamic value, double fallback) {
 }
 
 int _toInt(dynamic value, int fallback) {
-  return int.tryParse(value?.toString() ?? '') ?? fallback;
+  if (value == null) {
+    return fallback;
+  }
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.round();
+  }
+
+  final raw = value.toString().trim();
+  if (raw.isEmpty) {
+    return fallback;
+  }
+
+  if (raw.startsWith('0x') || raw.startsWith('0X')) {
+    return int.tryParse(raw.substring(2), radix: 16) ?? fallback;
+  }
+
+  return int.tryParse(raw) ?? double.tryParse(raw)?.round() ?? fallback;
 }
 
 String _documentTitleForType(String documentType) {
