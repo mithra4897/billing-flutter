@@ -60,6 +60,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   bool _loading = true;
   bool _saving = false;
   bool _printingPdf = false;
+  final FocusNode _designerFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -70,6 +71,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _designerFocusNode.dispose();
     super.dispose();
   }
 
@@ -173,9 +175,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final showInspector =
-            _editMode &&
-            constraints.maxWidth >= 980 + AppUiConstants.settingsSidebarWidth;
+        final showInspector = _editMode && constraints.maxWidth >= 980 + 420;
 
         return Padding(
           padding: const EdgeInsets.all(AppUiConstants.pagePadding),
@@ -206,23 +206,57 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                             ),
                           ),
                           padding: const EdgeInsets.all(
-                            AppUiConstants.spacingMd,
+                            AppUiConstants.spacingLg,
                           ),
-                          child: RepaintBoundary(
-                            key: _previewBoundaryKey,
-                            child: _DesignerCanvas(
-                              template: template,
-                              documentData: widget.documentData,
-                              editMode: _editMode,
-                              selectedShapeId: _selectedShapeId,
-                              onSelectShape: (shapeId) {
-                                if (!_editMode) {
-                                  return;
-                                }
-                                setState(() => _selectedShapeId = shapeId);
-                              },
-                              onMoveShape: _moveShape,
-                              onResizeShape: _resizeShape,
+                          alignment: Alignment.center,
+                          child: KeyboardListener(
+                            focusNode: _designerFocusNode,
+                            autofocus: true,
+                            onKeyEvent: (event) {
+                              if (event is! KeyDownEvent) {
+                                return;
+                              }
+                              final shapeId = _selectedShapeId;
+                              if (shapeId == null) {
+                                return;
+                              }
+                              final isShift =
+                                  HardwareKeyboard.instance.isShiftPressed;
+                              final delta = isShift ? 10.0 : 1.0;
+
+                              if (event.logicalKey ==
+                                  LogicalKeyboardKey.delete) {
+                                _deleteSelectedShape();
+                              } else if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowLeft) {
+                                _moveShape(shapeId, Offset(-delta, 0));
+                              } else if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowRight) {
+                                _moveShape(shapeId, Offset(delta, 0));
+                              } else if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowUp) {
+                                _moveShape(shapeId, Offset(0, -delta));
+                              } else if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowDown) {
+                                _moveShape(shapeId, Offset(0, delta));
+                              }
+                            },
+                            child: RepaintBoundary(
+                              key: _previewBoundaryKey,
+                              child: _DesignerCanvas(
+                                template: template,
+                                documentData: widget.documentData,
+                                editMode: _editMode,
+                                selectedShapeId: _selectedShapeId,
+                                onSelectShape: (shapeId) {
+                                  if (!_editMode) {
+                                    return;
+                                  }
+                                  setState(() => _selectedShapeId = shapeId);
+                                },
+                                onMoveShape: _moveShape,
+                                onResizeShape: _resizeShape,
+                              ),
                             ),
                           ),
                         ),
@@ -230,10 +264,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                     ),
                     if (_editMode && showInspector) ...[
                       const SizedBox(width: AppUiConstants.spacingLg),
-                      SizedBox(
-                        width: AppUiConstants.settingsSidebarWidth,
-                        child: _buildInspector(template),
-                      ),
+                      SizedBox(width: 420, child: _buildInspector(template)),
                     ],
                   ],
                 ),
@@ -313,6 +344,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                   onChanged: (next) => setState(() => _template = next),
                 )
               : _ShapeInspector(
+                  key: ValueKey(selected.id),
                   shape: selected,
                   bindings: _availableBindings(widget.documentData),
                   onChanged: _updateShape,
@@ -327,7 +359,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   void _resetTemplate() {
     setState(() {
-      _template = _DocumentPrintTemplate.defaults(widget.title);
+      _template = _DocumentPrintTemplate.defaults(
+        widget.documentType,
+        title: widget.title,
+      );
       _selectedShapeId = null;
     });
   }
@@ -364,12 +399,15 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (shape == null) {
       return;
     }
-    _updateShape(
-      shape.copyWith(
-        x: math.max(0, shape.x + delta.dx),
-        y: math.max(0, shape.y + delta.dy),
-      ),
-    );
+    var nextX = shape.x + delta.dx;
+    var nextY = shape.y + delta.dy;
+
+    if (template.showGrid) {
+      nextX = (nextX / template.gridSize).round() * template.gridSize;
+      nextY = (nextY / template.gridSize).round() * template.gridSize;
+    }
+
+    _updateShape(shape.copyWith(x: math.max(0, nextX), y: math.max(0, nextY)));
   }
 
   void _resizeShape(String shapeId, Offset delta) {
@@ -381,11 +419,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (shape == null) {
       return;
     }
+    var nextW = shape.width + delta.dx;
+    var nextH = shape.height + delta.dy;
+
+    if (template.showGrid) {
+      nextW = (nextW / template.gridSize).round() * template.gridSize;
+      nextH = (nextH / template.gridSize).round() * template.gridSize;
+    }
+
     _updateShape(
-      shape.copyWith(
-        width: math.max(32, shape.width + delta.dx),
-        height: math.max(16, shape.height + delta.dy),
-      ),
+      shape.copyWith(width: math.max(16, nextW), height: math.max(16, nextH)),
     );
   }
 
@@ -753,13 +796,30 @@ class _DocumentCanvasPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final borderPaint = Paint()
+      ..color = const Color(0xFFE2E8F0)
       ..style = PaintingStyle.stroke
-      ..color = const Color(0xFFD9DEE7)
       ..strokeWidth = 1;
+
+    canvas.drawRect(
+      (Offset.zero & size).translate(4, 4),
+      Paint()
+        ..color = const Color(0x0D000000)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
+
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)),
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(4)),
+      Paint()..color = Colors.white,
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(4)),
       borderPaint,
     );
+
+    if (template.showGrid) {
+      _drawGrid(canvas, size);
+    }
 
     for (final shape in template.shapes) {
       final rect = Rect.fromLTWH(
@@ -767,6 +827,10 @@ class _DocumentCanvasPainter extends CustomPainter {
         shape.y * scale,
         shape.width * scale,
         shape.height * scale,
+      );
+      final rrect = RRect.fromRectAndRadius(
+        rect,
+        Radius.circular(shape.borderRadius * scale),
       );
       final stroke = Paint()
         ..style = PaintingStyle.stroke
@@ -779,23 +843,32 @@ class _DocumentCanvasPainter extends CustomPainter {
       switch (shape.type) {
         case 'rectangle':
           if (shape.fillAlpha > 0) {
-            canvas.drawRect(rect, fill);
+            canvas.drawRRect(rrect, fill);
           }
-          canvas.drawRect(rect, stroke);
+          canvas.drawRRect(rrect, stroke);
           break;
         case 'line':
           canvas.drawLine(rect.topLeft, rect.bottomRight, stroke);
           break;
         case 'table':
+          if (shape.fillAlpha > 0) {
+            canvas.drawRRect(rrect, fill);
+          }
           _paintTable(canvas, rect, shape);
           break;
         case 'image':
           break;
         case 'barcode':
+          if (shape.fillAlpha > 0) {
+            canvas.drawRRect(rrect, fill);
+          }
           _paintBarcode(canvas, rect, shape);
           break;
         case 'text':
         default:
+          if (shape.fillAlpha > 0) {
+            canvas.drawRRect(rrect, fill);
+          }
           _paintText(canvas, rect, shape);
           break;
       }
@@ -816,6 +889,10 @@ class _DocumentCanvasPainter extends CustomPainter {
           color: Color(shape.strokeColor),
           fontSize: shape.fontSize * scale,
           fontWeight: shape.bold ? FontWeight.w700 : FontWeight.w400,
+          fontStyle: shape.italic ? FontStyle.italic : FontStyle.normal,
+          decoration: shape.underline
+              ? TextDecoration.underline
+              : TextDecoration.none,
         ),
       ),
       textAlign: align,
@@ -834,8 +911,8 @@ class _DocumentCanvasPainter extends CustomPainter {
     final rows =
         _resolvePath(documentData, shape.dataPath) as List<dynamic>? ??
         const <dynamic>[];
-    final headerHeight = 28 * scale;
-    final rowHeight = math.max(24.0, shape.rowHeight * scale);
+    final headerHeight = 32 * scale;
+    final minRowHeight = math.max(24.0, shape.rowHeight * scale);
     final columns = shape.columns.isEmpty
         ? _DocumentPrintShape.defaultTableColumns()
         : shape.columns;
@@ -847,14 +924,14 @@ class _DocumentCanvasPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..color = Color(shape.strokeColor)
       ..strokeWidth = 1;
-    final fill = Paint()
+    final headerFill = Paint()
       ..style = PaintingStyle.fill
-      ..color = const Color(0xFFF6F8FB);
+      ..color = Color(shape.headerColor);
 
     canvas.drawRect(rect, stroke);
     canvas.drawRect(
       Rect.fromLTWH(rect.left, rect.top, rect.width, headerHeight),
-      fill,
+      headerFill,
     );
 
     var cursorX = rect.left;
@@ -871,7 +948,12 @@ class _DocumentCanvasPainter extends CustomPainter {
         headerRect,
         column.label,
         TextAlign.left,
-        const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+        TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 12 * scale,
+          color: Color(shape.headerTextColor),
+        ),
+        centerVertically: true,
       );
       canvas.drawLine(
         Offset(cursorX, rect.top),
@@ -880,40 +962,82 @@ class _DocumentCanvasPainter extends CustomPainter {
       );
       cursorX += columnWidth;
     }
+
     canvas.drawLine(
       Offset(rect.left, rect.top + headerHeight),
       Offset(rect.right, rect.top + headerHeight),
       stroke,
     );
 
+    var currentY = rect.top + headerHeight;
     for (var index = 0; index < rows.length; index++) {
       final row = rows[index];
       if (row is! Map<String, dynamic>) {
         continue;
       }
-      final top = rect.top + headerHeight + (index * rowHeight);
-      if (top + rowHeight > rect.bottom) {
+
+      final rowHeight = _measureRowHeight(
+        row,
+        columns,
+        rect.width,
+        totalWeight,
+        minRowHeight,
+        scale,
+        shape.strokeColor,
+      );
+
+      if (currentY + rowHeight > rect.bottom) {
         break;
       }
+
       var x = rect.left;
       for (final column in columns) {
         final columnWidth = rect.width * (column.widthFactor / totalWeight);
-        final cellRect = Rect.fromLTWH(x, top, columnWidth, rowHeight);
+        final cellRect = Rect.fromLTWH(x, currentY, columnWidth, rowHeight);
         _paintTableCell(
           canvas,
           cellRect,
           _resolveCellValue(row, column.key),
           column.align == 'right' ? TextAlign.right : TextAlign.left,
-          const TextStyle(fontSize: 11),
+          TextStyle(fontSize: 11 * scale, color: Color(shape.strokeColor)),
+          centerVertically: true,
         );
         x += columnWidth;
       }
+
       canvas.drawLine(
-        Offset(rect.left, top + rowHeight),
-        Offset(rect.right, top + rowHeight),
+        Offset(rect.left, currentY + rowHeight),
+        Offset(rect.right, currentY + rowHeight),
         stroke,
       );
+      currentY += rowHeight;
     }
+  }
+
+  double _measureRowHeight(
+    Map<String, dynamic> row,
+    List<_DocumentPrintColumn> columns,
+    double totalWidth,
+    double totalWeight,
+    double minHeight,
+    double scale,
+    int strokeColor,
+  ) {
+    double maxHeight = minHeight;
+    for (final column in columns) {
+      final weight = totalWeight > 0 ? column.widthFactor / totalWeight : 0.0;
+      final columnWidth = totalWidth * weight;
+      final text = _resolveCellValue(row, column.key);
+      final painter = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(fontSize: 11 * scale, color: Color(strokeColor)),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: math.max(0.0, columnWidth - 12));
+      maxHeight = math.max(maxHeight, painter.height + 12);
+    }
+    return maxHeight;
   }
 
   void _paintBarcode(Canvas canvas, Rect rect, _DocumentPrintShape shape) {
@@ -1008,21 +1132,37 @@ class _DocumentCanvasPainter extends CustomPainter {
     Rect rect,
     String text,
     TextAlign align,
-    TextStyle style,
-  ) {
+    TextStyle style, {
+    bool centerVertically = false,
+  }) {
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),
       textAlign: align,
       textDirection: TextDirection.ltr,
-      maxLines: 2,
-      ellipsis: '...',
-    )..layout(maxWidth: rect.width - 10);
+    )..layout(maxWidth: math.max(0.0, rect.width - 12));
     final dx = switch (align) {
       TextAlign.right => rect.right - painter.width - 6,
       TextAlign.center => rect.left + ((rect.width - painter.width) / 2),
       _ => rect.left + 6,
     };
-    painter.paint(canvas, Offset(dx, rect.top + 6));
+    final dy = centerVertically
+        ? rect.top + ((rect.height - painter.height) / 2)
+        : rect.top + 6;
+    painter.paint(canvas, Offset(dx, dy));
+  }
+
+  void _drawGrid(Canvas canvas, Size size) {
+    final gridPaint = Paint()
+      ..color = const Color(0x12000000)
+      ..strokeWidth = 0.5;
+    final step = template.gridSize * scale;
+
+    for (var x = step; x < size.width; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+    for (var y = step; y < size.height; y += step) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
   }
 
   @override
@@ -1034,7 +1174,11 @@ class _DocumentCanvasPainter extends CustomPainter {
 }
 
 class _PageInspector extends StatelessWidget {
-  const _PageInspector({required this.template, required this.onChanged});
+  const _PageInspector({
+    super.key,
+    required this.template,
+    required this.onChanged,
+  });
 
   final _DocumentPrintTemplate template;
   final ValueChanged<_DocumentPrintTemplate> onChanged;
@@ -1100,6 +1244,20 @@ class _PageInspector extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
+        AppSwitchTile(
+          label: 'Show Grid',
+          value: template.showGrid,
+          onChanged: (value) => onChanged(template.copyWith(showGrid: value)),
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        _NumberField(
+          label: 'Grid Size',
+          value: template.gridSize,
+          onChanged: (value) => onChanged(
+            template.copyWith(gridSize: value.clamp(4, 64).toDouble()),
+          ),
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
         const SizedBox(height: AppUiConstants.spacingMd),
         Text(
           'Select a shape on the page to edit it.',
@@ -1112,6 +1270,7 @@ class _PageInspector extends StatelessWidget {
 
 class _ShapeInspector extends StatelessWidget {
   const _ShapeInspector({
+    super.key,
     required this.shape,
     required this.bindings,
     required this.onChanged,
@@ -1158,32 +1317,48 @@ class _ShapeInspector extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'X',
-          value: shape.x,
-          onChanged: (value) =>
-              onChanged(shape.copyWith(x: math.max(0, value))),
+        Row(
+          children: [
+            Expanded(
+              child: _NumberField(
+                label: 'X',
+                value: shape.x,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(x: math.max(0, value))),
+              ),
+            ),
+            const SizedBox(width: AppUiConstants.spacingSm),
+            Expanded(
+              child: _NumberField(
+                label: 'Y',
+                value: shape.y,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(y: math.max(0, value))),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'Y',
-          value: shape.y,
-          onChanged: (value) =>
-              onChanged(shape.copyWith(y: math.max(0, value))),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'Width',
-          value: shape.width,
-          onChanged: (value) =>
-              onChanged(shape.copyWith(width: math.max(24, value))),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'Height',
-          value: shape.height,
-          onChanged: (value) =>
-              onChanged(shape.copyWith(height: math.max(16, value))),
+        Row(
+          children: [
+            Expanded(
+              child: _NumberField(
+                label: 'Width',
+                value: shape.width,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(width: math.max(24, value))),
+              ),
+            ),
+            const SizedBox(width: AppUiConstants.spacingSm),
+            Expanded(
+              child: _NumberField(
+                label: 'Height',
+                value: shape.height,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(height: math.max(16, value))),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
         _NumberField(
@@ -1194,7 +1369,14 @@ class _ShapeInspector extends StatelessWidget {
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
         _ColorField(
-          label: 'Stroke Color',
+          label: switch (shape.type) {
+            'text' => 'Text Color',
+            'rectangle' => 'Border Color',
+            'line' => 'Line Color',
+            'table' => 'Grid Color',
+            'barcode' => 'Barcode Color',
+            _ => 'Stroke Color',
+          },
           value: shape.strokeColor,
           onChanged: (value) => onChanged(shape.copyWith(strokeColor: value)),
         ),
@@ -1202,8 +1384,29 @@ class _ShapeInspector extends StatelessWidget {
         _ColorField(
           label: 'Fill Color',
           value: shape.fillColor,
-          onChanged: (value) => onChanged(shape.copyWith(fillColor: value)),
+          onChanged: (value) {
+            var next = shape.copyWith(fillColor: value);
+            if (value != 0xFFFFFFFF && shape.fillAlpha == 0) {
+              next = next.copyWith(fillAlpha: 1.0);
+            }
+            onChanged(next);
+          },
         ),
+        if (shape.type == 'table') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _ColorField(
+            label: 'Header Color',
+            value: shape.headerColor,
+            onChanged: (value) => onChanged(shape.copyWith(headerColor: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _ColorField(
+            label: 'Header Text Color',
+            value: shape.headerTextColor,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(headerTextColor: value)),
+          ),
+        ],
         const SizedBox(height: AppUiConstants.spacingSm),
         _NumberField(
           label: 'Fill Alpha (0-1)',
@@ -1251,6 +1454,18 @@ class _ShapeInspector extends StatelessWidget {
             onChanged: (value) => onChanged(shape.copyWith(bold: value)),
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
+          AppSwitchTile(
+            label: 'Italic',
+            value: shape.italic,
+            onChanged: (value) => onChanged(shape.copyWith(italic: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppSwitchTile(
+            label: 'Underline',
+            value: shape.underline,
+            onChanged: (value) => onChanged(shape.copyWith(underline: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
           Text('Bindings', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: AppUiConstants.spacingXs),
           Wrap(
@@ -1272,6 +1487,15 @@ class _ShapeInspector extends StatelessWidget {
                 .toList(growable: false),
           ),
         ],
+        if (shape.type == 'rectangle') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _NumberField(
+            label: 'Border Radius',
+            value: shape.borderRadius,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(borderRadius: math.max(0, value))),
+          ),
+        ],
         if (shape.type == 'table') ...[
           const SizedBox(height: AppUiConstants.spacingSm),
           _StringField(
@@ -1285,6 +1509,11 @@ class _ShapeInspector extends StatelessWidget {
             value: shape.rowHeight,
             onChanged: (value) =>
                 onChanged(shape.copyWith(rowHeight: math.max(20, value))),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _TableColumnInspector(
+            columns: shape.columns,
+            onChanged: (columns) => onChanged(shape.copyWith(columns: columns)),
           ),
         ],
         if (shape.type == 'image') ...[
@@ -1329,8 +1558,9 @@ class _ShapeInspector extends StatelessWidget {
   }
 }
 
-class _StringField extends StatelessWidget {
+class _StringField extends StatefulWidget {
   const _StringField({
+    super.key,
     required this.label,
     required this.value,
     required this.onChanged,
@@ -1343,19 +1573,46 @@ class _StringField extends StatelessWidget {
   final int maxLines;
 
   @override
+  State<_StringField> createState() => _StringFieldState();
+}
+
+class _StringFieldState extends State<_StringField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(_StringField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _controller.text) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AppFormTextField(
-      key: ValueKey('$label:$value'),
-      labelText: label,
-      initialValue: value,
-      maxLines: maxLines,
-      onChanged: onChanged,
+      controller: _controller,
+      labelText: widget.label,
+      maxLines: widget.maxLines,
+      onChanged: widget.onChanged,
     );
   }
 }
 
-class _NumberField extends StatelessWidget {
+class _NumberField extends StatefulWidget {
   const _NumberField({
+    super.key,
     required this.label,
     required this.value,
     required this.onChanged,
@@ -1368,19 +1625,49 @@ class _NumberField extends StatelessWidget {
   final int fractionDigits;
 
   @override
-  Widget build(BuildContext context) {
-    final text = fractionDigits == 0
+  State<_NumberField> createState() => _NumberFieldState();
+}
+
+class _NumberFieldState extends State<_NumberField> {
+  late final TextEditingController _controller;
+
+  String _formatValue(double value) {
+    return widget.fractionDigits == 0
         ? value.toStringAsFixed(0)
-        : value.toStringAsFixed(fractionDigits);
+        : value.toStringAsFixed(widget.fractionDigits);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _formatValue(widget.value));
+  }
+
+  @override
+  void didUpdateWidget(_NumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final text = _formatValue(widget.value);
+    if (text != _controller.text && double.tryParse(_controller.text) != widget.value) {
+      _controller.text = text;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AppFormTextField(
-      key: ValueKey('$label:$text'),
-      labelText: label,
-      initialValue: text,
+      controller: _controller,
+      labelText: widget.label,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onChanged: (next) {
         final parsed = double.tryParse(next.trim());
         if (parsed != null) {
-          onChanged(parsed);
+          widget.onChanged(parsed);
         }
       },
     );
@@ -1431,6 +1718,135 @@ class _ColorField extends StatelessWidget {
   }
 }
 
+class _TableColumnInspector extends StatelessWidget {
+  const _TableColumnInspector({required this.columns, required this.onChanged});
+
+  final List<_DocumentPrintColumn> columns;
+  final ValueChanged<List<_DocumentPrintColumn>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Columns',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Add column',
+              onPressed: () {
+                onChanged([
+                  ...columns,
+                  _DocumentPrintColumn(
+                    key: 'new_key',
+                    label: 'New Column',
+                    widthFactor: 1.0,
+                  ),
+                ]);
+              },
+              icon: const Icon(Icons.add_circle_outline),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingXs),
+        ...columns.asMap().entries.map((entry) {
+          final index = entry.key;
+          final column = entry.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+            child: AppSectionCard(
+              padding: const EdgeInsets.all(AppUiConstants.spacingSm),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StringField(
+                          key: ValueKey('col-$index-label'),
+                          label: 'Label',
+                          value: column.label,
+                          onChanged: (val) =>
+                              _updateColumn(index, column.copyWith(label: val)),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _deleteColumn(index),
+                        icon: const Icon(Icons.remove_circle_outline),
+                        color: Theme.of(context).colorScheme.error,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StringField(
+                          key: ValueKey('col-$index-key'),
+                          label: 'Key',
+                          value: column.key,
+                          onChanged: (val) =>
+                              _updateColumn(index, column.copyWith(key: val)),
+                        ),
+                      ),
+                      const SizedBox(width: AppUiConstants.spacingSm),
+                      SizedBox(
+                        width: 80,
+                        child: _NumberField(
+                          key: ValueKey('col-$index-weight'),
+                          label: 'Weight',
+                          value: column.widthFactor,
+                          onChanged: (val) => _updateColumn(
+                            index,
+                            column.copyWith(widthFactor: val),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Align',
+                    initialValue: column.align,
+                    mappedItems: const [
+                      AppDropdownItem(value: 'left', label: 'Left'),
+                      AppDropdownItem(value: 'center', label: 'Center'),
+                      AppDropdownItem(value: 'right', label: 'Right'),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        _updateColumn(index, column.copyWith(align: val));
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  void _updateColumn(int index, _DocumentPrintColumn next) {
+    final list = [...columns];
+    list[index] = next;
+    onChanged(list);
+  }
+
+  void _deleteColumn(int index) {
+    final list = [...columns];
+    list.removeAt(index);
+    onChanged(list);
+  }
+}
+
 class _DocumentPrintTemplateRepository {
   static const _prefix = 'document_print_template_v1_';
 
@@ -1445,7 +1861,7 @@ class _DocumentPrintTemplateRepository {
       if (decoded is Map<String, dynamic>) {
         return _DocumentPrintTemplate.fromJson(
           decoded,
-        ).withoutUnsupportedShapes();
+        ).withoutUnsupportedShapes().normalizedFor(documentType);
       }
     } catch (_) {}
     return _DocumentPrintTemplate.defaults(documentType);
@@ -1472,6 +1888,8 @@ class _DocumentPrintTemplate {
     this.backgroundOpacity = 0.18,
     this.mediaPreset = 'A4',
     this.orientation = 'portrait',
+    this.gridSize = 8,
+    this.showGrid = false,
   });
 
   final double pageWidth;
@@ -1481,6 +1899,8 @@ class _DocumentPrintTemplate {
   final double backgroundOpacity;
   final String mediaPreset;
   final String orientation;
+  final double gridSize;
+  final bool showGrid;
 
   factory _DocumentPrintTemplate.fromJson(Map<String, dynamic> json) {
     return _DocumentPrintTemplate(
@@ -1490,6 +1910,8 @@ class _DocumentPrintTemplate {
       backgroundOpacity: _toDouble(json['backgroundOpacity'], 0.18),
       mediaPreset: stringValue(json, 'mediaPreset', 'A4'),
       orientation: stringValue(json, 'orientation', 'portrait'),
+      gridSize: _toDouble(json['gridSize'], 8),
+      showGrid: boolValue(json, 'showGrid'),
       shapes: (json['shapes'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .map(_DocumentPrintShape.fromJson)
@@ -1497,7 +1919,136 @@ class _DocumentPrintTemplate {
     );
   }
 
-  factory _DocumentPrintTemplate.defaults(String title) {
+  factory _DocumentPrintTemplate.defaults(
+    String documentType, {
+    String? title,
+  }) {
+    final resolvedTitle = (title ?? _documentTitleForType(documentType))
+        .toUpperCase();
+    if (documentType == 'sales_quotation') {
+      return _DocumentPrintTemplate(
+        pageWidth: 595,
+        pageHeight: 842,
+        mediaPreset: 'A4',
+        orientation: 'portrait',
+        shapes: [
+          const _DocumentPrintShape(
+            id: 'company-logo',
+            type: 'image',
+            x: 28,
+            y: 26,
+            width: 72,
+            height: 72,
+            strokeWidth: 0,
+            assetPath: '{{company_logo_url}}',
+          ),
+          _DocumentPrintShape(
+            id: 'text-title',
+            type: 'text',
+            x: 112,
+            y: 28,
+            width: 250,
+            height: 28,
+            text: '{{company_name}}',
+            fontSize: 18,
+            bold: true,
+          ),
+          _DocumentPrintShape(
+            id: 'text-doc-type',
+            type: 'text',
+            x: 112,
+            y: 56,
+            width: 180,
+            height: 16,
+            text: resolvedTitle,
+            fontSize: 10,
+            strokeColor: 0xFF475569,
+          ),
+          _DocumentPrintShape(
+            id: 'meta-text',
+            type: 'text',
+            x: 408,
+            y: 30,
+            width: 154,
+            height: 56,
+            text:
+                'No: {{document_number}}\nDate: {{document_date}}\nRef: {{reference_number}}',
+            fontSize: 10,
+            multiline: true,
+            align: 'right',
+          ),
+          const _DocumentPrintShape(
+            id: 'header-divider',
+            type: 'line',
+            x: 28,
+            y: 108,
+            width: 538,
+            height: 0,
+            strokeColor: 0xFF111827,
+          ),
+          _DocumentPrintShape(
+            id: 'party-text',
+            type: 'text',
+            x: 28,
+            y: 122,
+            width: 340,
+            height: 56,
+            text:
+                'Party: {{party_name}}\nAddress: {{party_address}}\nContact: {{party_contact}}',
+            fontSize: 10,
+            multiline: true,
+          ),
+          _DocumentPrintShape(
+            id: 'lines-table',
+            type: 'table',
+            x: 28,
+            y: 196,
+            width: 538,
+            height: 470,
+            dataPath: 'lines',
+            rowHeight: 34,
+            columns: _DocumentPrintShape.defaultTableColumns(),
+          ),
+          _DocumentPrintShape(
+            id: 'notes-title',
+            type: 'text',
+            x: 28,
+            y: 684,
+            width: 100,
+            height: 16,
+            text: 'Notes',
+            fontSize: 10,
+            bold: true,
+          ),
+          _DocumentPrintShape(
+            id: 'notes-text',
+            type: 'text',
+            x: 28,
+            y: 702,
+            width: 320,
+            height: 68,
+            text: '{{notes}}',
+            fontSize: 10,
+            multiline: true,
+          ),
+          _DocumentPrintShape(
+            id: 'totals-text',
+            type: 'text',
+            x: 386,
+            y: 690,
+            width: 180,
+            height: 66,
+            text:
+                'Subtotal: {{subtotal}}\nTax: {{tax_amount}}\nTotal: {{total_amount}}',
+            fontSize: 12,
+            multiline: true,
+            align: 'right',
+            bold: true,
+          ),
+        ],
+      );
+    }
+
     return _DocumentPrintTemplate(
       pageWidth: 595,
       pageHeight: 842,
@@ -1532,7 +2083,7 @@ class _DocumentPrintTemplate {
           y: 60,
           width: 210,
           height: 18,
-          text: title.toUpperCase(),
+          text: resolvedTitle,
           fontSize: 11,
           strokeColor: 0xFF475569,
         ),
@@ -1655,6 +2206,114 @@ class _DocumentPrintTemplate {
     );
   }
 
+  _DocumentPrintTemplate normalizedFor(String documentType) {
+    if (documentType != 'sales_quotation') {
+      return this;
+    }
+
+    final nextShapes = shapes
+        .where(
+          (shape) =>
+              !const {'party-box', 'totals-box', 'meta-box'}.contains(shape.id),
+        )
+        .map((shape) {
+          switch (shape.id) {
+            case 'company-logo':
+              return shape.copyWith(x: 28, y: 26, width: 72, height: 72);
+            case 'text-title':
+              return shape.copyWith(
+                x: 112,
+                y: 28,
+                width: 250,
+                height: 28,
+                fontSize: 18,
+              );
+            case 'text-doc-type':
+              return shape.copyWith(
+                x: 112,
+                y: 56,
+                width: 180,
+                height: 16,
+                fontSize: 10,
+              );
+            case 'meta-text':
+              return shape.copyWith(
+                x: 408,
+                y: 30,
+                width: 154,
+                height: 56,
+                fontSize: 10,
+                align: 'right',
+                multiline: true,
+              );
+            case 'party-text':
+              return shape.copyWith(
+                x: 28,
+                y: 122,
+                width: 340,
+                height: 56,
+                fontSize: 10,
+                multiline: true,
+              );
+            case 'lines-table':
+              return shape.copyWith(
+                x: 28,
+                y: 196,
+                width: 538,
+                height: 470,
+                rowHeight: math.max(34, shape.rowHeight),
+                columns: shape.columns.isEmpty
+                    ? _DocumentPrintShape.defaultTableColumns()
+                    : shape.columns,
+              );
+            case 'notes-title':
+              return shape.copyWith(x: 28, y: 684, width: 100, height: 16);
+            case 'notes-text':
+              return shape.copyWith(
+                x: 28,
+                y: 702,
+                width: 320,
+                height: 68,
+                fontSize: 10,
+              );
+            case 'totals-text':
+              return shape.copyWith(
+                x: 386,
+                y: 690,
+                width: 180,
+                height: 66,
+                fontSize: 12,
+                align: 'right',
+                multiline: true,
+                bold: true,
+              );
+            default:
+              return shape;
+          }
+        })
+        .toList(growable: false);
+
+    final hasHeaderDivider = nextShapes.any(
+      (shape) => shape.id == 'header-divider',
+    );
+
+    return copyWith(
+      shapes: [
+        ...nextShapes,
+        if (!hasHeaderDivider)
+          const _DocumentPrintShape(
+            id: 'header-divider',
+            type: 'line',
+            x: 28,
+            y: 108,
+            width: 538,
+            height: 0,
+            strokeColor: 0xFF111827,
+          ),
+      ],
+    );
+  }
+
   _DocumentPrintTemplate copyWith({
     double? pageWidth,
     double? pageHeight,
@@ -1663,6 +2322,8 @@ class _DocumentPrintTemplate {
     double? backgroundOpacity,
     String? mediaPreset,
     String? orientation,
+    double? gridSize,
+    bool? showGrid,
   }) {
     return _DocumentPrintTemplate(
       pageWidth: pageWidth ?? this.pageWidth,
@@ -1672,6 +2333,8 @@ class _DocumentPrintTemplate {
       backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
       mediaPreset: mediaPreset ?? this.mediaPreset,
       orientation: orientation ?? this.orientation,
+      gridSize: gridSize ?? this.gridSize,
+      showGrid: showGrid ?? this.showGrid,
     );
   }
 
@@ -1683,6 +2346,8 @@ class _DocumentPrintTemplate {
       'backgroundOpacity': backgroundOpacity,
       'mediaPreset': mediaPreset,
       'orientation': orientation,
+      'gridSize': gridSize,
+      'showGrid': showGrid,
       'shapes': shapes.map((shape) => shape.toJson()).toList(growable: false),
     };
   }
@@ -1700,11 +2365,16 @@ class _DocumentPrintShape {
     this.align = 'left',
     this.fontSize = 12,
     this.bold = false,
+    this.italic = false,
+    this.underline = false,
     this.multiline = false,
     this.strokeColor = 0xFF111827,
     this.fillColor = 0xFFFFFFFF,
     this.fillAlpha = 0,
     this.strokeWidth = 1,
+    this.borderRadius = 0,
+    this.headerColor = 0xFFF1F5F9,
+    this.headerTextColor = 0xFF111827,
     this.dataPath = 'lines',
     this.rowHeight = 30,
     this.columns = const <_DocumentPrintColumn>[],
@@ -1723,11 +2393,16 @@ class _DocumentPrintShape {
   final String align;
   final double fontSize;
   final bool bold;
+  final bool italic;
+  final bool underline;
   final bool multiline;
   final int strokeColor;
   final int fillColor;
   final double fillAlpha;
   final double strokeWidth;
+  final double borderRadius;
+  final int headerColor;
+  final int headerTextColor;
   final String dataPath;
   final double rowHeight;
   final List<_DocumentPrintColumn> columns;
@@ -1747,11 +2422,16 @@ class _DocumentPrintShape {
       align: stringValue(json, 'align', 'left'),
       fontSize: _toDouble(json['fontSize'], 12),
       bold: boolValue(json, 'bold'),
+      italic: boolValue(json, 'italic'),
+      underline: boolValue(json, 'underline'),
       multiline: boolValue(json, 'multiline'),
       strokeColor: _toInt(json['strokeColor'], 0xFF111827),
       fillColor: _toInt(json['fillColor'], 0xFFFFFFFF),
       fillAlpha: _toDouble(json['fillAlpha'], 0),
       strokeWidth: _toDouble(json['strokeWidth'], 1),
+      borderRadius: _toDouble(json['borderRadius'], 0),
+      headerColor: _toInt(json['headerColor'], 0xFFF1F5F9),
+      headerTextColor: _toInt(json['headerTextColor'], 0xFF111827),
       dataPath: stringValue(json, 'dataPath', 'lines'),
       rowHeight: _toDouble(json['rowHeight'], 30),
       assetPath: _normalizeLegacyImageSource(
@@ -1777,6 +2457,7 @@ class _DocumentPrintShape {
           width: 180,
           height: 72,
           strokeColor: 0xFF94A3B8,
+          fillAlpha: 1.0,
         );
       case 'line':
         return _DocumentPrintShape(
@@ -1797,6 +2478,7 @@ class _DocumentPrintShape {
           height: 240,
           strokeColor: 0xFF94A3B8,
           columns: defaultTableColumns(),
+          fillAlpha: 0.0,
         );
       case 'image':
         return _DocumentPrintShape(
@@ -1820,6 +2502,7 @@ class _DocumentPrintShape {
           text: '{{document_number}}',
           fontSize: 11,
           barcodeType: 'code128',
+          fillAlpha: 0.0,
         );
       case 'text':
       default:
@@ -1831,6 +2514,7 @@ class _DocumentPrintShape {
           width: 200,
           height: 28,
           text: 'Text {{document_number}}',
+          fillAlpha: 0.0,
         );
     }
   }
@@ -1890,11 +2574,16 @@ class _DocumentPrintShape {
     String? align,
     double? fontSize,
     bool? bold,
+    bool? italic,
+    bool? underline,
     bool? multiline,
     int? strokeColor,
     int? fillColor,
     double? fillAlpha,
     double? strokeWidth,
+    double? borderRadius,
+    int? headerColor,
+    int? headerTextColor,
     String? dataPath,
     double? rowHeight,
     List<_DocumentPrintColumn>? columns,
@@ -1913,11 +2602,16 @@ class _DocumentPrintShape {
       align: align ?? this.align,
       fontSize: fontSize ?? this.fontSize,
       bold: bold ?? this.bold,
+      italic: italic ?? this.italic,
+      underline: underline ?? this.underline,
       multiline: multiline ?? this.multiline,
       strokeColor: strokeColor ?? this.strokeColor,
       fillColor: fillColor ?? this.fillColor,
       fillAlpha: fillAlpha ?? this.fillAlpha,
       strokeWidth: strokeWidth ?? this.strokeWidth,
+      borderRadius: borderRadius ?? this.borderRadius,
+      headerColor: headerColor ?? this.headerColor,
+      headerTextColor: headerTextColor ?? this.headerTextColor,
       dataPath: dataPath ?? this.dataPath,
       rowHeight: rowHeight ?? this.rowHeight,
       columns: columns ?? this.columns,
@@ -1925,6 +2619,14 @@ class _DocumentPrintShape {
       sides: sides ?? this.sides,
       barcodeType: barcodeType ?? this.barcodeType,
     );
+  }
+
+  @override
+  String toString() {
+    if (type == 'text' && text.isNotEmpty) {
+      return text.length > 20 ? '${text.substring(0, 20)}...' : text;
+    }
+    return '${type[0].toUpperCase()}${type.substring(1)}: $id';
   }
 
   Map<String, dynamic> toJson() {
@@ -1939,11 +2641,16 @@ class _DocumentPrintShape {
       'align': align,
       'fontSize': fontSize,
       'bold': bold,
+      'italic': italic,
+      'underline': underline,
       'multiline': multiline,
       'strokeColor': strokeColor,
       'fillColor': fillColor,
       'fillAlpha': fillAlpha,
       'strokeWidth': strokeWidth,
+      'borderRadius': borderRadius,
+      'headerColor': headerColor,
+      'headerTextColor': headerTextColor,
       'dataPath': dataPath,
       'rowHeight': rowHeight,
       'assetPath': assetPath,
@@ -1996,6 +2703,20 @@ class _DocumentPrintColumn {
       'widthFactor': widthFactor,
       'align': align,
     };
+  }
+
+  _DocumentPrintColumn copyWith({
+    String? key,
+    String? label,
+    double? widthFactor,
+    String? align,
+  }) {
+    return _DocumentPrintColumn(
+      key: key ?? this.key,
+      label: label ?? this.label,
+      widthFactor: widthFactor ?? this.widthFactor,
+      align: align ?? this.align,
+    );
   }
 }
 
@@ -2102,6 +2823,28 @@ String _normalizeLegacyImageSource(String source) {
     return _defaultPrintLogoAsset;
   }
   return trimmed;
+}
+
+String _documentTitleForType(String documentType) {
+  switch (documentType) {
+    case 'sales_quotation':
+      return 'Quotation';
+    case 'sales_invoice':
+      return 'Invoice';
+    case 'sales_delivery':
+      return 'Delivery';
+    case 'purchase_invoice':
+      return 'Purchase Invoice';
+    default:
+      return documentType
+          .split('_')
+          .where((part) => part.trim().isNotEmpty)
+          .map(
+            (part) =>
+                '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+          )
+          .join(' ');
+  }
 }
 
 List<String> _availableBindings(
