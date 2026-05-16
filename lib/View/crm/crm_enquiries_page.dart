@@ -33,7 +33,6 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'open', label: 'Open'),
         AppDropdownItem(value: 'in_progress', label: 'In Progress'),
-        AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
   static const List<AppDropdownItem<String>> _filterStatusItems =
       <AppDropdownItem<String>>[
@@ -100,6 +99,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
 
   static bool _isCompletedEnquiry(CrmEnquiryModel item) =>
       stringValue(item.toJson(), 'enquiry_status') == 'converted';
+
+  static bool _isLockedEnquiryStatus(String status) =>
+      status == 'converted' || status == 'lost';
 
   String _normalizedStageType(CrmStageModel stage) {
     return stringValue(stage.toJson(), 'stage_type').trim().toLowerCase();
@@ -767,6 +769,15 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     return null;
   }
 
+  bool _isSelectedEnquiryLocked() {
+    final status = stringValue(
+      _selectedItem?.toJson() ?? const <String, dynamic>{},
+      'enquiry_status',
+      _enquiryStatus,
+    );
+    return _isLockedEnquiryStatus(status);
+  }
+
   Future<void> _refreshSalesChainForEnquiry(int enquiryId) async {
     try {
       final response = await _crmService.salesChain(enquiryId: enquiryId);
@@ -1125,6 +1136,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   }
 
   Widget _buildPrimaryTab() {
+    final isLocked = _isSelectedEnquiryLocked();
+    final hasOpportunity = _pipelineOpportunityId() != null;
+    final canConvert =
+        _selectedItem != null && !isLocked && !hasOpportunity && _enquiryStatus == 'in_progress';
+    final canLose = _selectedItem != null && !isLocked;
+
     return Form(
       child: Builder(
         builder: (formContext) {
@@ -1151,138 +1168,189 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   ),
                   const SizedBox(height: AppUiConstants.spacingSm),
                 ],
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppFormTextField(
-                    controller: _enquiryNoController,
-                    labelText: 'Enquiry No',
-                    hintText: 'Leave blank — we assign a number for you',
-                  ),
-                  AppDateSelectorField(
-                    controller: _enquiryDateController,
-                    labelText: 'Enquiry Date',
-                    onTap: _pickEnquiryDate,
-                  ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 300),
-                    child: ErpLinkField<int>(
-                      labelText: 'Lead',
-                      doctypeLabel: 'Lead',
-                      allowCreate: true,
-                      hintText: 'Search or create lead',
-                      initialSelection: _selectedLeadOption(),
-                      search: _searchLeadOptions,
-                      onNavigateToCreateNew: _openNewLeadForm,
-                      onChanged: (value) {
-                        setState(() {
-                          _leadId = value;
-                          _assignedTo = _assignedToFromLead(value);
-                          _formError = null;
-                        });
-                      },
+                if (isLocked) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(
+                        alpha: 0.08,
+                      ),
+                      borderRadius: BorderRadius.circular(
+                        AppUiConstants.cardRadius,
+                      ),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary.withValues(
+                          alpha: 0.18,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.lock_outline,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppUiConstants.spacingSm),
+                        Expanded(
+                          child: Text(
+                            'This enquiry is ${_enquiryStatus.replaceAll('_', ' ')} and is now read-only.',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Customer',
-                    doctypeLabel: 'Customer',
-                    allowCreate: true,
-                    onNavigateToCreateNew: (name) {
-                      final uri = Uri(
-                        path: '/parties',
-                        queryParameters: {
-                          'new': '1',
-                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                        },
-                      );
-                      openModuleShellRoute(context, uri.toString());
-                    },
-                    mappedItems: _customers
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _customerPartyId,
-                    onChanged: (value) =>
-                        setState(() => _customerPartyId = value),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Stage',
-                    mappedItems: _stages
-                        .where((item) => intValue(item.toJson(), 'id') != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: intValue(item.toJson(), 'id')!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _stageId,
-                    onChanged: (value) => setState(() => _stageId = value),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Assigned To',
-                    mappedItems: _users
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.displayName ?? item.username ?? '',
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _assignedTo,
-                    onChanged: (value) => setState(() => _assignedTo = value),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Status',
-                    mappedItems: _statusItems,
-                    initialValue: _enquiryStatus,
-                    onChanged: (value) => setState(
-                      () => _enquiryStatus = value ?? _enquiryStatus,
-                    ),
-                  ),
-                  AppFormTextField(
-                    controller: _remarksController,
-                    labelText: 'Remarks',
-                    maxLines: 3,
-                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
                 ],
+              ],
+              AbsorbPointer(
+                absorbing: isLocked,
+                child: SettingsFormWrap(
+                  children: [
+                    AppFormTextField(
+                      controller: _enquiryNoController,
+                      labelText: 'Enquiry No',
+                      hintText: 'Leave blank — we assign a number for you',
+                    ),
+                    AppDateSelectorField(
+                      controller: _enquiryDateController,
+                      labelText: 'Enquiry Date',
+                      onTap: _pickEnquiryDate,
+                    ),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 300),
+                      child: ErpLinkField<int>(
+                        labelText: 'Lead',
+                        doctypeLabel: 'Lead',
+                        allowCreate: true,
+                        hintText: 'Search or create lead',
+                        initialSelection: _selectedLeadOption(),
+                        search: _searchLeadOptions,
+                        onNavigateToCreateNew: _openNewLeadForm,
+                        onChanged: (value) {
+                          setState(() {
+                            _leadId = value;
+                            _assignedTo = _assignedToFromLead(value);
+                            _formError = null;
+                          });
+                        },
+                      ),
+                    ),
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Customer',
+                      doctypeLabel: 'Customer',
+                      allowCreate: true,
+                      onNavigateToCreateNew: (name) {
+                        final uri = Uri(
+                          path: '/parties',
+                          queryParameters: {
+                            'new': '1',
+                            if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                          },
+                        );
+                        openModuleShellRoute(context, uri.toString());
+                      },
+                      mappedItems: _customers
+                          .where((item) => item.id != null)
+                          .map(
+                            (item) => AppDropdownItem(
+                              value: item.id!,
+                              label: item.toString(),
+                            ),
+                          )
+                          .toList(growable: false),
+                      initialValue: _customerPartyId,
+                      onChanged: (value) =>
+                          setState(() => _customerPartyId = value),
+                    ),
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Stage',
+                      mappedItems: _stages
+                          .where((item) => intValue(item.toJson(), 'id') != null)
+                          .map(
+                            (item) => AppDropdownItem(
+                              value: intValue(item.toJson(), 'id')!,
+                              label: item.toString(),
+                            ),
+                          )
+                          .toList(growable: false),
+                      initialValue: _stageId,
+                      onChanged: (value) => setState(() => _stageId = value),
+                    ),
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Assigned To',
+                      mappedItems: _users
+                          .where((item) => item.id != null)
+                          .map(
+                            (item) => AppDropdownItem(
+                              value: item.id!,
+                              label: item.displayName ?? item.username ?? '',
+                            ),
+                          )
+                          .toList(growable: false),
+                      initialValue: _assignedTo,
+                      onChanged: (value) => setState(() => _assignedTo = value),
+                    ),
+                    if (isLocked)
+                      AppFormTextField(
+                        labelText: 'Status',
+                        initialValue: _enquiryStatus.replaceAll('_', ' '),
+                        readOnly: true,
+                        enabled: false,
+                      )
+                    else
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Status',
+                        mappedItems: _statusItems,
+                        initialValue: _enquiryStatus,
+                        onChanged: (value) => setState(
+                          () => _enquiryStatus = value ?? _enquiryStatus,
+                        ),
+                      ),
+                    AppFormTextField(
+                      controller: _remarksController,
+                      labelText: 'Remarks',
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
               Wrap(
                 spacing: AppUiConstants.spacingSm,
                 runSpacing: AppUiConstants.spacingSm,
                 children: [
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: _selectedItem == null
-                        ? 'Save Enquiry'
-                        : 'Update Enquiry',
-                    onPressed: () => _save(formContext),
-                    busy: _saving,
-                  ),
+                  if (!isLocked)
+                    AppActionButton(
+                      icon: Icons.save_outlined,
+                      label: _selectedItem == null
+                          ? 'Save Enquiry'
+                          : 'Update Enquiry',
+                      onPressed: () => _save(formContext),
+                      busy: _saving,
+                    ),
                   if (_selectedItem != null) ...[
-                    AppActionButton(
-                      icon: Icons.auto_graph_outlined,
-                      label: 'Start deal',
-                      filled: false,
-                      onPressed:
-                          (_pipelineOpportunityId() != null ||
-                              _enquiryStatus == 'converted')
-                          ? null
-                          : _convert,
-                    ),
-                    AppActionButton(
-                      icon: Icons.cancel_outlined,
-                      label: 'Lose',
-                      filled: false,
-                      onPressed: _lose,
-                    ),
+                    if (!isLocked)
+                      AppActionButton(
+                        icon: Icons.auto_graph_outlined,
+                        label: 'Convert to Opportunity',
+                        filled: false,
+                        onPressed: canConvert ? _convert : null,
+                      ),
+                    if (!isLocked)
+                      AppActionButton(
+                        icon: Icons.cancel_outlined,
+                        label: 'Lost',
+                        filled: false,
+                        onPressed: canLose ? _lose : null,
+                      ),
                     AppActionButton(
                       icon: Icons.delete_outline,
                       label: 'Delete',
@@ -1300,6 +1368,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   }
 
   Widget _buildLinesTab() {
+    final isLocked = _isSelectedEnquiryLocked();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1316,11 +1386,20 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               icon: Icons.add_outlined,
               label: 'Add Line',
               filled: false,
-              onPressed: _addLine,
+              onPressed: isLocked ? null : _addLine,
             ),
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
+        if (isLocked) ...[
+          Text(
+            'Requested items are read-only after the enquiry is converted or lost.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+        ],
         if (_lines.isEmpty)
           const SettingsEmptyState(
             icon: Icons.playlist_add_check_outlined,
@@ -1342,7 +1421,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 highlighted: expanded,
                 leadingIcon: Icons.inventory_2_outlined,
                 trailing: IconButton(
-                  onPressed: () => _removeLine(index),
+                  onPressed: isLocked ? null : () => _removeLine(index),
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -1351,63 +1430,71 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     _expandedLineIndex = expanded ? null : index;
                   });
                 },
-                child: PurchaseCompactFieldGrid(
-                  children: [
-                    AppSearchPickerField<int>(
-                      labelText: 'Item',
-                      selectedLabel: _itemsLookup
-                          .cast<ItemModel?>()
-                          .firstWhere(
-                            (item) => item?.id == line.itemId,
-                            orElse: () => null,
-                          )
-                          ?.toString(),
-                      options: _itemsLookup
-                          .where((item) => item.id != null)
-                          .map(
-                            (item) => AppSearchPickerOption<int>(
-                              value: item.id!,
-                              label: item.toString(),
-                              subtitle: item.itemCode,
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) => setState(() => line.itemId = value),
-                    ),
-                    AppFormTextField(
-                      controller: line.descriptionController,
-                      labelText: 'Description',
-                    ),
-                    AppFormTextField(
-                      controller: line.qtyController,
-                      labelText: 'Quantity',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                child: AbsorbPointer(
+                  absorbing: isLocked,
+                  child: PurchaseCompactFieldGrid(
+                    children: [
+                      AppSearchPickerField<int>(
+                        labelText: 'Item',
+                        selectedLabel: _itemsLookup
+                            .cast<ItemModel?>()
+                            .firstWhere(
+                              (item) => item?.id == line.itemId,
+                              orElse: () => null,
+                            )
+                            ?.toString(),
+                        options: _itemsLookup
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppSearchPickerOption<int>(
+                                value: item.id!,
+                                label: item.toString(),
+                                subtitle: item.itemCode,
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (value) =>
+                            setState(() => line.itemId = value),
                       ),
-                    ),
-                  ],
+                      AppFormTextField(
+                        controller: line.descriptionController,
+                        labelText: 'Description',
+                      ),
+                      AppFormTextField(
+                        controller: line.qtyController,
+                        labelText: 'Quantity',
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
           }),
-        const SizedBox(height: AppUiConstants.spacingMd),
-        Wrap(
-          spacing: AppUiConstants.spacingSm,
-          runSpacing: AppUiConstants.spacingSm,
-          children: [
-            AppActionButton(
-              icon: Icons.save_outlined,
-              label: _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
-              onPressed: () => _save(_primaryFormContext ?? context),
-              busy: _saving,
-            ),
-          ],
-        ),
+        if (!isLocked) ...[
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
+            children: [
+              AppActionButton(
+                icon: Icons.save_outlined,
+                label: _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
+                onPressed: () => _save(_primaryFormContext ?? context),
+                busy: _saving,
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
 
   Widget _buildFollowupsTab() {
+    final isLocked = _isSelectedEnquiryLocked();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1424,11 +1511,20 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               icon: Icons.add_outlined,
               label: 'Add Followup',
               filled: false,
-              onPressed: _addFollowup,
+              onPressed: isLocked ? null : _addFollowup,
             ),
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
+        if (isLocked) ...[
+          Text(
+            'Followups are read-only after the enquiry is converted or lost.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+        ],
         if (_followups.isEmpty)
           const SettingsEmptyState(
             icon: Icons.alarm_outlined,
@@ -1453,7 +1549,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 highlighted: expanded,
                 leadingIcon: Icons.alarm_outlined,
                 trailing: IconButton(
-                  onPressed: () => _removeFollowup(index),
+                  onPressed: isLocked ? null : () => _removeFollowup(index),
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -1462,65 +1558,71 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     _expandedFollowupIndex = expanded ? null : index;
                   });
                 },
-                child: PurchaseCompactFieldGrid(
-                  children: [
-                    AppDateTimeSelectorField(
-                      controller: followup.followupDateController,
-                      labelText: 'Followup Date',
-                      hintText: 'YYYY-MM-DD HH:MM:SS',
-                      onTap: () => _pickFollowupDate(followup),
-                    ),
-                    AppDateTimeSelectorField(
-                      controller: followup.nextFollowupController,
-                      labelText: 'Next Followup',
-                      hintText: 'YYYY-MM-DD HH:MM:SS',
-                      onTap: () => _pickNextFollowupDate(followup),
-                    ),
-                    AppDropdownField<int>.fromMapped(
-                      labelText: 'Assigned To',
-                      mappedItems: _users
-                          .where((item) => item.id != null)
-                          .map(
-                            (item) => AppDropdownItem(
-                              value: item.id!,
-                              label: item.displayName ?? item.username ?? '',
-                            ),
-                          )
-                          .toList(growable: false),
-                      initialValue: followup.assignedTo,
-                      onChanged: (value) =>
-                          setState(() => followup.assignedTo = value),
-                    ),
-                    AppDropdownField<String>.fromMapped(
-                      labelText: 'Status',
-                      mappedItems: _followupStatuses,
-                      initialValue: followup.status,
-                      onChanged: (value) =>
-                          setState(() => followup.status = value ?? 'pending'),
-                    ),
-                    AppFormTextField(
-                      controller: followup.notesController,
-                      labelText: 'Notes',
-                      maxLines: 2,
-                    ),
-                  ],
+                child: AbsorbPointer(
+                  absorbing: isLocked,
+                  child: PurchaseCompactFieldGrid(
+                    children: [
+                      AppDateTimeSelectorField(
+                        controller: followup.followupDateController,
+                        labelText: 'Followup Date',
+                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        onTap: () => _pickFollowupDate(followup),
+                      ),
+                      AppDateTimeSelectorField(
+                        controller: followup.nextFollowupController,
+                        labelText: 'Next Followup',
+                        hintText: 'YYYY-MM-DD HH:MM:SS',
+                        onTap: () => _pickNextFollowupDate(followup),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Assigned To',
+                        mappedItems: _users
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.displayName ?? item.username ?? '',
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: followup.assignedTo,
+                        onChanged: (value) =>
+                            setState(() => followup.assignedTo = value),
+                      ),
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Status',
+                        mappedItems: _followupStatuses,
+                        initialValue: followup.status,
+                        onChanged: (value) => setState(
+                          () => followup.status = value ?? 'pending',
+                        ),
+                      ),
+                      AppFormTextField(
+                        controller: followup.notesController,
+                        labelText: 'Notes',
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
           }),
-        const SizedBox(height: AppUiConstants.spacingMd),
-        Wrap(
-          spacing: AppUiConstants.spacingSm,
-          runSpacing: AppUiConstants.spacingSm,
-          children: [
-            AppActionButton(
-              icon: Icons.save_outlined,
-              label: _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
-              onPressed: () => _save(_primaryFormContext ?? context),
-              busy: _saving,
-            ),
-          ],
-        ),
+        if (!isLocked) ...[
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
+            children: [
+              AppActionButton(
+                icon: Icons.save_outlined,
+                label: _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
+                onPressed: () => _save(_primaryFormContext ?? context),
+                busy: _saving,
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

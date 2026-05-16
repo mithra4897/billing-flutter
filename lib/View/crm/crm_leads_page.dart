@@ -37,7 +37,6 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         AppDropdownItem(value: 'contacted', label: 'Contacted'),
         AppDropdownItem(value: 'qualified', label: 'Qualified'),
         AppDropdownItem(value: 'unqualified', label: 'Unqualified'),
-        AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
   static const List<AppDropdownItem<String>> _leadFilterStatuses =
       <AppDropdownItem<String>>[
@@ -55,6 +54,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
 
   static bool _isCompletedLead(CrmLeadModel item) =>
       stringValue(item.toJson(), 'lead_status') == 'converted';
+
+  static bool _isLockedLeadStatus(String status) =>
+      status == 'converted' || status == 'lost';
 
   final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
@@ -539,7 +541,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   }
 
   bool get _isSelectedLeadReadOnly =>
-      _selectedItem != null && _leadStatus == 'converted';
+      _selectedItem != null && _isLockedLeadStatus(_leadStatus);
 
   int? _enquiryIdFromSalesChain() {
     final chain = _salesChain;
@@ -682,6 +684,53 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         return;
       }
       setState(() => _formError = error.toString());
+    }
+  }
+
+  Future<void> _markLost() async {
+    final id = intValue(_selectedItem?.toJson() ?? const {}, 'id');
+    if (id == null) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _formError = null;
+    });
+
+    final payload = CrmLeadModel({
+      'company_id': _companyId,
+      'lead_name': _leadNameController.text.trim(),
+      'company_name': nullIfEmpty(_companyNameController.text),
+      'mobile': nullIfEmpty(_mobileController.text),
+      'email': nullIfEmpty(_emailController.text),
+      'source_id': _sourceId,
+      'assigned_to': _assignedTo,
+      'lead_status': 'lost',
+      'remarks': nullIfEmpty(_remarksController.text),
+      'activities': _activities
+          .map((item) => item.toJson())
+          .toList(growable: false),
+    });
+
+    try {
+      final response = await _crmService.updateLead(id, payload);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(response.message)));
+      await _loadPage(selectId: id);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _formError = error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -895,7 +944,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 CrmSalesPipelineBar(data: _salesChain, hideLeadChip: true),
               if (_isSelectedLeadReadOnly) ...[
                 Text(
-                  'This lead is converted. Details are read-only. Use Open enquiry if one exists, or delete the lead if needed.',
+                  _leadStatus == 'converted'
+                      ? 'This lead is converted. Details are read-only. Use Open enquiry if one exists, or delete the lead if needed.'
+                      : 'This lead is lost. Details are read-only.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -961,13 +1012,21 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       validator: Validators.requiredSelection('Assigned To'),
                       onChanged: (value) => setState(() => _assignedTo = value),
                     ),
-                    AppDropdownField<String>.fromMapped(
-                      labelText: 'Status',
-                      mappedItems: _leadStatuses,
-                      initialValue: _leadStatus,
-                      onChanged: (value) =>
-                          setState(() => _leadStatus = value ?? _leadStatus),
-                    ),
+                    if (_isSelectedLeadReadOnly)
+                      AppFormTextField(
+                        labelText: 'Status',
+                        initialValue: _leadStatus.replaceAll('_', ' '),
+                        readOnly: true,
+                        enabled: false,
+                      )
+                    else
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Status',
+                        mappedItems: _leadStatuses,
+                        initialValue: _leadStatus,
+                        onChanged: (value) =>
+                            setState(() => _leadStatus = value ?? _leadStatus),
+                      ),
                     AppFormTextField(
                       controller: _remarksController,
                       labelText: 'Remarks',
@@ -994,16 +1053,14 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   if (_selectedItem != null && !_isSelectedLeadReadOnly) ...[
                     AppActionButton(
                       icon: Icons.forward_outlined,
-                      label: _enquiryIdFromSalesChain() != null
-                          ? 'Open enquiry'
-                          : 'Create enquiry',
+                      label: 'Convert to Enquiry',
                       onPressed: _handleEnquiryFromLead,
                     ),
                     AppActionButton(
-                      icon: Icons.check_circle_outline,
-                      label: 'Mark converted only',
+                      icon: Icons.cancel_outlined,
+                      label: 'Lost',
                       filled: false,
-                      onPressed: () => _convert(createEnquiry: false),
+                      onPressed: _markLost,
                     ),
                   ],
                   if (_selectedItem != null &&

@@ -21,7 +21,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'open', label: 'Open'),
-        AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
   static const List<AppDropdownItem<String>> _filterStatusItems =
       <AppDropdownItem<String>>[
@@ -875,12 +874,11 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                 keyboardType: TextInputType.datetime,
                 inputFormatters: const [DateInputFormatter()],
               ),
-              AppDropdownField<String>.fromMapped(
+              AppFormTextField(
                 labelText: 'Status',
-                mappedItems: _statusItems,
-                initialValue: _status,
-                onChanged: (value) =>
-                    setState(() => _status = value ?? _status),
+                initialValue: _status.replaceAll('_', ' '),
+                readOnly: true,
+                enabled: false,
               ),
             ],
           ),
@@ -900,13 +898,13 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               if (_selectedItem != null) ...[
                 AppActionButton(
                   icon: Icons.emoji_events_outlined,
-                  label: 'Win',
+                  label: 'Won',
                   filled: false,
                   onPressed: _win,
                 ),
                 AppActionButton(
                   icon: Icons.cancel_outlined,
-                  label: 'Lose',
+                  label: 'Lost',
                   filled: false,
                   onPressed: _lose,
                 ),
