@@ -51,11 +51,13 @@ class DocumentPrintDesignerPage extends StatefulWidget {
 
 class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final PrintTemplateService _service = PrintTemplateService();
+  final MediaService _mediaService = MediaService();
   final GlobalKey _previewBoundaryKey = GlobalKey();
   final ScrollController _pageScrollController = ScrollController();
   DocumentPrintTemplate? _template;
   String? _selectedShapeId;
   double _canvasZoom = 1.0;
+  bool _uploadingImage = false;
   bool _editMode = false;
   bool _loading = true;
   bool _saving = false;
@@ -425,7 +427,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                   key: ValueKey(selected.id),
                   shape: selected,
                   bindings: _availableBindings(widget.documentData),
+                  isUploadingImage: _uploadingImage,
                   onChanged: _updateShape,
+                  onUploadImage: () => _uploadImageForShape(selected),
                   onDelete: _deleteSelectedShape,
                   onBringForward: _bringSelectedForward,
                   onSendBackward: _sendSelectedBackward,
@@ -466,6 +470,37 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         .map((shape) => shape.id == next.id ? next : shape)
         .toList(growable: false);
     setState(() => _template = template.copyWith(shapes: shapes));
+  }
+
+  Future<void> _uploadImageForShape(DocumentPrintShape shape) async {
+    if (shape.type != 'image') {
+      return;
+    }
+    await MediaUploadHelper.uploadImage(
+      context: context,
+      mediaService: _mediaService,
+      module: 'printing',
+      documentType: widget.documentType,
+      purpose: 'print_template_image',
+      folder: 'print-templates',
+      isPublic: true,
+      onLoading: (loading) {
+        if (mounted) {
+          setState(() => _uploadingImage = loading);
+        }
+      },
+      onSuccess: (filePath) {
+        _updateShape(shape.copyWith(assetPath: filePath));
+      },
+      onError: (message) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      },
+    );
   }
 
   void _moveShape(String shapeId, Offset delta) {
@@ -1361,7 +1396,9 @@ class _ShapeInspector extends StatelessWidget {
     super.key,
     required this.shape,
     required this.bindings,
+    required this.isUploadingImage,
     required this.onChanged,
+    required this.onUploadImage,
     required this.onDelete,
     required this.onBringForward,
     required this.onSendBackward,
@@ -1369,7 +1406,9 @@ class _ShapeInspector extends StatelessWidget {
 
   final DocumentPrintShape shape;
   final List<String> bindings;
+  final bool isUploadingImage;
   final ValueChanged<DocumentPrintShape> onChanged;
+  final Future<void> Function() onUploadImage;
   final VoidCallback onDelete;
   final VoidCallback onBringForward;
   final VoidCallback onSendBackward;
@@ -1606,10 +1645,11 @@ class _ShapeInspector extends StatelessWidget {
         ],
         if (shape.type == 'image') ...[
           const SizedBox(height: AppUiConstants.spacingSm),
-          _StringField(
-            label: 'Image Source',
+          _ImageShapeUploadField(
             value: shape.assetPath,
+            isUploading: isUploadingImage,
             onChanged: (value) => onChanged(shape.copyWith(assetPath: value)),
+            onUpload: onUploadImage,
           ),
         ],
         if (shape.type == 'barcode') ...[
@@ -1671,6 +1711,7 @@ class _StringFieldState extends State<_StringField> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value);
+    _controller.addListener(_handleChanged);
   }
 
   @override
@@ -1683,8 +1724,15 @@ class _StringFieldState extends State<_StringField> {
 
   @override
   void dispose() {
+    _controller.removeListener(_handleChanged);
     _controller.dispose();
     super.dispose();
+  }
+
+  void _handleChanged() {
+    if (_controller.text != widget.value) {
+      widget.onChanged(_controller.text);
+    }
   }
 
   @override
@@ -1939,6 +1987,59 @@ class _TableColumnInspector extends StatelessWidget {
     final list = [...columns];
     list.removeAt(index);
     onChanged(list);
+  }
+}
+
+class _ImageShapeUploadField extends StatefulWidget {
+  const _ImageShapeUploadField({
+    required this.value,
+    required this.isUploading,
+    required this.onChanged,
+    required this.onUpload,
+  });
+
+  final String value;
+  final bool isUploading;
+  final ValueChanged<String> onChanged;
+  final Future<void> Function() onUpload;
+
+  @override
+  State<_ImageShapeUploadField> createState() => _ImageShapeUploadFieldState();
+}
+
+class _ImageShapeUploadFieldState extends State<_ImageShapeUploadField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ImageShapeUploadField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return UploadPathField(
+      controller: _controller,
+      labelText: 'Image Source',
+      isUploading: widget.isUploading,
+      previewUrl: _resolveImageSource(widget.value),
+      previewIcon: Icons.image_outlined,
+      onUpload: widget.onUpload,
+    );
   }
 }
 
