@@ -436,6 +436,39 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     );
   }
 
+  PurchaseLineTaxBreakdown _taxBreakdownForLine(_PurchaseOrderLineDraft line) {
+    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+    final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+    final discount = double.tryParse(line.discountController.text.trim()) ?? 0;
+    return computePurchaseLineTaxBreakdown(
+      qty: qty,
+      rate: rate,
+      discountPercent: discount,
+      taxCode: purchaseTaxCodeById(_taxCodes, line.taxCodeId),
+    );
+  }
+
+  PurchaseDocumentTaxSummary _orderTaxSummary() {
+    return summarizePurchaseLineTaxes(_lines.map(_taxBreakdownForLine));
+  }
+
+  Widget _buildTaxSummaryCard(BuildContext context) {
+    final summary = _orderTaxSummary();
+    final currency = _currencyCodeController.text.trim().isEmpty
+        ? 'INR'
+        : _currencyCodeController.text.trim();
+    return GstSummaryCard(
+      taxable: summary.taxable,
+      cgst: summary.cgst,
+      sgst: summary.sgst,
+      igst: summary.igst,
+      cess: 0,
+      total: summary.total,
+      currencyCode: currency,
+      subtitle: 'Live totals for the current purchase order lines.',
+    );
+  }
+
   List<DocumentSeriesModel> _seriesOptions() {
     return _documentSeries
         .where((item) {
@@ -1584,6 +1617,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                 ),
               );
             }),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildTaxSummaryCard(context),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

@@ -73,6 +73,105 @@ String currentDateTimeInput() {
   return displayDateTime(DateTime.now().toIso8601String());
 }
 
+TaxCodeModel? purchaseTaxCodeById(List<TaxCodeModel> taxCodes, int? taxCodeId) {
+  if (taxCodeId == null) {
+    return null;
+  }
+
+  return taxCodes.cast<TaxCodeModel?>().firstWhere(
+    (taxCode) => taxCode?.id == taxCodeId,
+    orElse: () => null,
+  );
+}
+
+class PurchaseLineTaxBreakdown {
+  const PurchaseLineTaxBreakdown({
+    required this.taxable,
+    required this.cgst,
+    required this.sgst,
+    required this.igst,
+    required this.total,
+  });
+
+  final double taxable;
+  final double cgst;
+  final double sgst;
+  final double igst;
+  final double total;
+}
+
+class PurchaseDocumentTaxSummary {
+  const PurchaseDocumentTaxSummary({
+    required this.taxable,
+    required this.cgst,
+    required this.sgst,
+    required this.igst,
+    required this.total,
+  });
+
+  final double taxable;
+  final double cgst;
+  final double sgst;
+  final double igst;
+  final double total;
+}
+
+PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
+  required double qty,
+  required double rate,
+  required double discountPercent,
+  required TaxCodeModel? taxCode,
+  double? taxPercent,
+  String? taxType,
+}) {
+  final gross = qty > 0 && rate >= 0 ? qty * rate : 0.0;
+  final clampedDiscount = discountPercent.clamp(0, 100).toDouble();
+  final taxable = gross * (1 - (clampedDiscount / 100));
+  final resolvedTaxPercent = (taxPercent ?? taxCode?.taxRate ?? 0).toDouble();
+  final resolvedTaxType =
+      (taxType ??
+              taxCode?.taxType ??
+              taxCode?.raw?['tax_application']?.toString() ??
+              '')
+          .trim()
+          .toLowerCase();
+  final useIgst = resolvedTaxType.contains('igst');
+  final igst = useIgst ? taxable * resolvedTaxPercent / 100 : 0.0;
+  final halfTax = useIgst ? 0.0 : taxable * resolvedTaxPercent / 200;
+
+  return PurchaseLineTaxBreakdown(
+    taxable: taxable,
+    cgst: halfTax,
+    sgst: halfTax,
+    igst: igst,
+    total: taxable + halfTax + halfTax + igst,
+  );
+}
+
+PurchaseDocumentTaxSummary summarizePurchaseLineTaxes(
+  Iterable<PurchaseLineTaxBreakdown> lines,
+) {
+  double taxable = 0;
+  double cgst = 0;
+  double sgst = 0;
+  double igst = 0;
+
+  for (final line in lines) {
+    taxable += line.taxable;
+    cgst += line.cgst;
+    sgst += line.sgst;
+    igst += line.igst;
+  }
+
+  return PurchaseDocumentTaxSummary(
+    taxable: taxable,
+    cgst: cgst,
+    sgst: sgst,
+    igst: igst,
+    total: taxable + cgst + sgst + igst,
+  );
+}
+
 Set<int> allowedUomIdsForItem(
   ItemModel? item,
   List<UomConversionModel> conversions,

@@ -4,8 +4,8 @@ import '../app/constants/app_ui_constants.dart';
 import '../app/theme/app_theme_extension.dart';
 import 'app_section_card.dart';
 
-class SalesGstSummaryCard extends StatelessWidget {
-  const SalesGstSummaryCard({
+class GstSummaryCard extends StatelessWidget {
+  const GstSummaryCard({
     super.key,
     required this.taxable,
     required this.cgst,
@@ -231,8 +231,8 @@ class SalesGstSummaryCard extends StatelessWidget {
   }
 }
 
-class SalesLineTaxPreview extends StatelessWidget {
-  const SalesLineTaxPreview({
+class GstLineTaxPreview extends StatelessWidget {
+  const GstLineTaxPreview({
     super.key,
     required this.gross,
     required this.taxable,

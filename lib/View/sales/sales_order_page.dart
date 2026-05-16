@@ -707,7 +707,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         ? null
         : 'Live GST totals for the current lines in $_currencyCodeForTaxSummary · includes round off ${roundOff.toStringAsFixed(2)}';
     final summary = _taxSummary();
-    return SalesGstSummaryCard(
+    return GstSummaryCard(
       taxable: summary.taxable,
       cgst: summary.cgst,
       sgst: summary.sgst,
@@ -1436,7 +1436,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                         ],
                       ),
                       const SizedBox(height: AppUiConstants.spacingSm),
-                      SalesLineTaxPreview(
+                      GstLineTaxPreview(
                         gross: breakdown.gross,
                         taxable: breakdown.taxable,
                         cgst: breakdown.cgst,

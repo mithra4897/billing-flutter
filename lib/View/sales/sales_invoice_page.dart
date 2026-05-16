@@ -2192,7 +2192,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         ? 'INR'
         : _currencyCodeController.text.trim();
     final isInterState = _isInterStateForSummary();
-    return SalesGstSummaryCard(
+    return GstSummaryCard(
       taxable: summary.taxable,
       cgst: summary.cgst,
       sgst: summary.sgst,

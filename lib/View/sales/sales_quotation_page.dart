@@ -531,7 +531,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
   Widget _buildTaxSummaryCard(BuildContext context) {
     final summary = _taxSummary();
-    return SalesGstSummaryCard(
+    return GstSummaryCard(
       taxable: summary.taxable,
       cgst: summary.cgst,
       sgst: summary.sgst,
@@ -1225,7 +1225,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                         ],
                       ),
                       const SizedBox(height: AppUiConstants.spacingSm),
-                      SalesLineTaxPreview(
+                      GstLineTaxPreview(
                         gross: breakdown.gross,
                         taxable: breakdown.taxable,
                         cgst: breakdown.cgst,

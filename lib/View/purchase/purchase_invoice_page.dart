@@ -474,6 +474,38 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     );
   }
 
+  PurchaseLineTaxBreakdown _taxBreakdownForLine(PurchaseInvoiceLineModel line) {
+    return computePurchaseLineTaxBreakdown(
+      qty: line.invoicedQty,
+      rate: line.rate,
+      discountPercent: line.discountPercent ?? 0,
+      taxCode: purchaseTaxCodeById(_taxCodes, line.taxCodeId),
+      taxPercent: line.taxPercent,
+      taxType: line.taxType,
+    );
+  }
+
+  PurchaseDocumentTaxSummary _invoiceTaxSummary() {
+    return summarizePurchaseLineTaxes(_lines.map(_taxBreakdownForLine));
+  }
+
+  Widget _buildTaxSummaryCard(BuildContext context) {
+    final summary = _invoiceTaxSummary();
+    final currency = _currencyCodeController.text.trim().isEmpty
+        ? 'INR'
+        : _currencyCodeController.text.trim();
+    return GstSummaryCard(
+      taxable: summary.taxable,
+      cgst: summary.cgst,
+      sgst: summary.sgst,
+      igst: summary.igst,
+      cess: 0,
+      total: summary.total,
+      currencyCode: currency,
+      subtitle: 'Live totals for the current purchase invoice lines.',
+    );
+  }
+
   List<UomModel> _uomOptionsForItem(int? itemId) {
     final item = _itemsLookup.cast<ItemModel?>().firstWhere(
       (entry) => entry?.id == itemId,
@@ -1384,6 +1416,8 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                 ),
               );
             }),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            _buildTaxSummaryCard(context),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
