@@ -10,6 +10,8 @@ import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../screen.dart';
+import '../../model/printing/print_template_model.dart';
+import '../../service/printing/print_template_service.dart';
 
 const String _defaultPrintLogoAsset = 'assets/sakthicontroller logo.jpg';
 const String _legacyPbsLogoAsset = 'assets/pbs_logo.png';
@@ -50,11 +52,10 @@ class DocumentPrintDesignerPage extends StatefulWidget {
 }
 
 class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
-  final _DocumentPrintTemplateRepository _repository =
-      _DocumentPrintTemplateRepository();
+  final PrintTemplateService _service = PrintTemplateService();
   final GlobalKey _previewBoundaryKey = GlobalKey();
   final ScrollController _pageScrollController = ScrollController();
-  _DocumentPrintTemplate? _template;
+  DocumentPrintTemplate? _template;
   String? _selectedShapeId;
   bool _editMode = false;
   bool _loading = true;
@@ -76,14 +77,37 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   Future<void> _loadTemplate() async {
-    final template = await _repository.load(widget.documentType);
-    if (!mounted) {
-      return;
+    try {
+      final response = await _service.getTemplate(widget.documentType);
+      if (!mounted) {
+        return;
+      }
+      if (response.success && response.data != null) {
+        setState(() {
+          _template = response.data;
+          _loading = false;
+        });
+      } else {
+        setState(() {
+          _template = DocumentPrintTemplate.defaults(
+            widget.documentType,
+            title: widget.title,
+          );
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _template = DocumentPrintTemplate.defaults(
+          widget.documentType,
+          title: widget.title,
+        );
+        _loading = false;
+      });
     }
-    setState(() {
-      _template = template;
-      _loading = false;
-    });
   }
 
   Future<void> _saveTemplate() async {
@@ -92,14 +116,32 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       return;
     }
     setState(() => _saving = true);
-    await _repository.save(widget.documentType, template);
-    if (!mounted) {
-      return;
+    try {
+      final response = await _service.saveTemplate(widget.documentType, template);
+      if (!mounted) {
+        return;
+      }
+      if (response.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Print template saved successfully.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.message ?? 'Failed to save template.')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving template: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
-    setState(() => _saving = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Print template saved.')));
   }
 
   @override
@@ -327,7 +369,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     );
   }
 
-  Widget _buildInspector(_DocumentPrintTemplate template) {
+  Widget _buildInspector(DocumentPrintTemplate template) {
     final selected = template.shapeById(_selectedShapeId);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -359,7 +401,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   void _resetTemplate() {
     setState(() {
-      _template = _DocumentPrintTemplate.defaults(
+      _template = DocumentPrintTemplate.defaults(
         widget.documentType,
         title: widget.title,
       );
@@ -372,14 +414,14 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (template == null) {
       return;
     }
-    final shape = _DocumentPrintShape.defaults(type, template.shapes.length);
+    final shape = DocumentPrintShape.defaults(type, template.shapes.length);
     setState(() {
       _template = template.copyWith(shapes: [...template.shapes, shape]);
       _selectedShapeId = shape.id;
     });
   }
 
-  void _updateShape(_DocumentPrintShape next) {
+  void _updateShape(DocumentPrintShape next) {
     final template = _template;
     if (template == null) {
       return;
@@ -507,7 +549,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return byteData?.buffer.asUint8List();
   }
 
-  PdfPageFormat _pageFormatForTemplate(_DocumentPrintTemplate template) {
+  PdfPageFormat _pageFormatForTemplate(DocumentPrintTemplate template) {
     return PdfPageFormat(template.pageWidth, template.pageHeight, marginAll: 0);
   }
 
@@ -575,7 +617,7 @@ class _DesignerCanvas extends StatelessWidget {
     required this.onResizeShape,
   });
 
-  final _DocumentPrintTemplate template;
+  final DocumentPrintTemplate template;
   final Map<String, dynamic> documentData;
   final bool editMode;
   final String? selectedShapeId;
@@ -619,7 +661,7 @@ class _DesignerCanvas extends StatelessWidget {
                   children: [
                     Positioned.fill(
                       child: CustomPaint(
-                        painter: _DocumentCanvasPainter(
+                        painter: DocumentCanvasPainter(
                           template: template,
                           documentData: documentData,
                           scale: scale,
@@ -782,14 +824,14 @@ class _DocumentImageShape extends StatelessWidget {
   }
 }
 
-class _DocumentCanvasPainter extends CustomPainter {
-  _DocumentCanvasPainter({
+class DocumentCanvasPainter extends CustomPainter {
+  DocumentCanvasPainter({
     required this.template,
     required this.documentData,
     required this.scale,
   });
 
-  final _DocumentPrintTemplate template;
+  final DocumentPrintTemplate template;
   final Map<String, dynamic> documentData;
   final double scale;
 
@@ -875,7 +917,7 @@ class _DocumentCanvasPainter extends CustomPainter {
     }
   }
 
-  void _paintText(Canvas canvas, Rect rect, _DocumentPrintShape shape) {
+  void _paintText(Canvas canvas, Rect rect, DocumentPrintShape shape) {
     final text = _resolveTemplateText(shape.text, documentData);
     final align = switch (shape.align) {
       'center' => TextAlign.center,
@@ -907,14 +949,14 @@ class _DocumentCanvasPainter extends CustomPainter {
     painter.paint(canvas, Offset(dx, rect.top));
   }
 
-  void _paintTable(Canvas canvas, Rect rect, _DocumentPrintShape shape) {
+  void _paintTable(Canvas canvas, Rect rect, DocumentPrintShape shape) {
     final rows =
         _resolvePath(documentData, shape.dataPath) as List<dynamic>? ??
         const <dynamic>[];
     final headerHeight = 32 * scale;
     final minRowHeight = math.max(24.0, shape.rowHeight * scale);
     final columns = shape.columns.isEmpty
-        ? _DocumentPrintShape.defaultTableColumns()
+        ? DocumentPrintShape.defaultTableColumns()
         : shape.columns;
     final totalWeight = columns.fold<double>(
       0,
@@ -1016,7 +1058,7 @@ class _DocumentCanvasPainter extends CustomPainter {
 
   double _measureRowHeight(
     Map<String, dynamic> row,
-    List<_DocumentPrintColumn> columns,
+    List<DocumentPrintColumn> columns,
     double totalWidth,
     double totalWeight,
     double minHeight,
@@ -1040,7 +1082,7 @@ class _DocumentCanvasPainter extends CustomPainter {
     return maxHeight;
   }
 
-  void _paintBarcode(Canvas canvas, Rect rect, _DocumentPrintShape shape) {
+  void _paintBarcode(Canvas canvas, Rect rect, DocumentPrintShape shape) {
     final value = _resolveTemplateText(shape.text, documentData);
     if (value.trim().isEmpty) {
       return;
@@ -1166,7 +1208,7 @@ class _DocumentCanvasPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DocumentCanvasPainter oldDelegate) {
+  bool shouldRepaint(covariant DocumentCanvasPainter oldDelegate) {
     return oldDelegate.template != template ||
         oldDelegate.documentData != documentData ||
         oldDelegate.scale != scale;
@@ -1180,8 +1222,8 @@ class _PageInspector extends StatelessWidget {
     required this.onChanged,
   });
 
-  final _DocumentPrintTemplate template;
-  final ValueChanged<_DocumentPrintTemplate> onChanged;
+  final DocumentPrintTemplate template;
+  final ValueChanged<DocumentPrintTemplate> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1279,9 +1321,9 @@ class _ShapeInspector extends StatelessWidget {
     required this.onSendBackward,
   });
 
-  final _DocumentPrintShape shape;
+  final DocumentPrintShape shape;
   final List<String> bindings;
-  final ValueChanged<_DocumentPrintShape> onChanged;
+  final ValueChanged<DocumentPrintShape> onChanged;
   final VoidCallback onDelete;
   final VoidCallback onBringForward;
   final VoidCallback onSendBackward;
@@ -1721,8 +1763,8 @@ class _ColorField extends StatelessWidget {
 class _TableColumnInspector extends StatelessWidget {
   const _TableColumnInspector({required this.columns, required this.onChanged});
 
-  final List<_DocumentPrintColumn> columns;
-  final ValueChanged<List<_DocumentPrintColumn>> onChanged;
+  final List<DocumentPrintColumn> columns;
+  final ValueChanged<List<DocumentPrintColumn>> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1742,7 +1784,7 @@ class _TableColumnInspector extends StatelessWidget {
               onPressed: () {
                 onChanged([
                   ...columns,
-                  _DocumentPrintColumn(
+                  DocumentPrintColumn(
                     key: 'new_key',
                     label: 'New Column',
                     widthFactor: 1.0,
@@ -1834,7 +1876,7 @@ class _TableColumnInspector extends StatelessWidget {
     );
   }
 
-  void _updateColumn(int index, _DocumentPrintColumn next) {
+  void _updateColumn(int index, DocumentPrintColumn next) {
     final list = [...columns];
     list[index] = next;
     onChanged(list);
@@ -1847,878 +1889,10 @@ class _TableColumnInspector extends StatelessWidget {
   }
 }
 
-class _DocumentPrintTemplateRepository {
-  static const _prefix = 'document_print_template_v1_';
 
-  Future<_DocumentPrintTemplate> load(String documentType) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('$_prefix$documentType');
-    if (raw == null || raw.trim().isEmpty) {
-      return _DocumentPrintTemplate.defaults(documentType);
-    }
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is Map<String, dynamic>) {
-        return _DocumentPrintTemplate.fromJson(
-          decoded,
-        ).withoutUnsupportedShapes().normalizedFor(documentType);
-      }
-    } catch (_) {}
-    return _DocumentPrintTemplate.defaults(documentType);
-  }
 
-  Future<void> save(
-    String documentType,
-    _DocumentPrintTemplate template,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      '$_prefix$documentType',
-      jsonEncode(template.toJson()),
-    );
-  }
-}
 
-class _DocumentPrintTemplate {
-  const _DocumentPrintTemplate({
-    required this.pageWidth,
-    required this.pageHeight,
-    required this.shapes,
-    this.backgroundImagePath,
-    this.backgroundOpacity = 0.18,
-    this.mediaPreset = 'A4',
-    this.orientation = 'portrait',
-    this.gridSize = 8,
-    this.showGrid = false,
-  });
 
-  final double pageWidth;
-  final double pageHeight;
-  final List<_DocumentPrintShape> shapes;
-  final String? backgroundImagePath;
-  final double backgroundOpacity;
-  final String mediaPreset;
-  final String orientation;
-  final double gridSize;
-  final bool showGrid;
-
-  factory _DocumentPrintTemplate.fromJson(Map<String, dynamic> json) {
-    return _DocumentPrintTemplate(
-      pageWidth: _toDouble(json['pageWidth'], 595),
-      pageHeight: _toDouble(json['pageHeight'], 842),
-      backgroundImagePath: nullableStringValue(json, 'backgroundImagePath'),
-      backgroundOpacity: _toDouble(json['backgroundOpacity'], 0.18),
-      mediaPreset: stringValue(json, 'mediaPreset', 'A4'),
-      orientation: stringValue(json, 'orientation', 'portrait'),
-      gridSize: _toDouble(json['gridSize'], 8),
-      showGrid: boolValue(json, 'showGrid'),
-      shapes: (json['shapes'] as List<dynamic>? ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .map(_DocumentPrintShape.fromJson)
-          .toList(growable: false),
-    );
-  }
-
-  factory _DocumentPrintTemplate.defaults(
-    String documentType, {
-    String? title,
-  }) {
-    final resolvedTitle = (title ?? _documentTitleForType(documentType))
-        .toUpperCase();
-    if (documentType == 'sales_quotation') {
-      return _DocumentPrintTemplate(
-        pageWidth: 595,
-        pageHeight: 842,
-        mediaPreset: 'A4',
-        orientation: 'portrait',
-        shapes: [
-          const _DocumentPrintShape(
-            id: 'company-logo',
-            type: 'image',
-            x: 28,
-            y: 26,
-            width: 72,
-            height: 72,
-            strokeWidth: 0,
-            assetPath: '{{company_logo_url}}',
-          ),
-          _DocumentPrintShape(
-            id: 'text-title',
-            type: 'text',
-            x: 112,
-            y: 28,
-            width: 250,
-            height: 28,
-            text: '{{company_name}}',
-            fontSize: 18,
-            bold: true,
-          ),
-          _DocumentPrintShape(
-            id: 'text-doc-type',
-            type: 'text',
-            x: 112,
-            y: 56,
-            width: 180,
-            height: 16,
-            text: resolvedTitle,
-            fontSize: 10,
-            strokeColor: 0xFF475569,
-          ),
-          _DocumentPrintShape(
-            id: 'meta-text',
-            type: 'text',
-            x: 408,
-            y: 30,
-            width: 154,
-            height: 56,
-            text:
-                'No: {{document_number}}\nDate: {{document_date}}\nRef: {{reference_number}}',
-            fontSize: 10,
-            multiline: true,
-            align: 'right',
-          ),
-          const _DocumentPrintShape(
-            id: 'header-divider',
-            type: 'line',
-            x: 28,
-            y: 108,
-            width: 538,
-            height: 0,
-            strokeColor: 0xFF111827,
-          ),
-          _DocumentPrintShape(
-            id: 'party-text',
-            type: 'text',
-            x: 28,
-            y: 122,
-            width: 340,
-            height: 56,
-            text:
-                'Party: {{party_name}}\nAddress: {{party_address}}\nContact: {{party_contact}}',
-            fontSize: 10,
-            multiline: true,
-          ),
-          _DocumentPrintShape(
-            id: 'lines-table',
-            type: 'table',
-            x: 28,
-            y: 196,
-            width: 538,
-            height: 470,
-            dataPath: 'lines',
-            rowHeight: 34,
-            columns: _DocumentPrintShape.defaultTableColumns(),
-          ),
-          _DocumentPrintShape(
-            id: 'notes-title',
-            type: 'text',
-            x: 28,
-            y: 684,
-            width: 100,
-            height: 16,
-            text: 'Notes',
-            fontSize: 10,
-            bold: true,
-          ),
-          _DocumentPrintShape(
-            id: 'notes-text',
-            type: 'text',
-            x: 28,
-            y: 702,
-            width: 320,
-            height: 68,
-            text: '{{notes}}',
-            fontSize: 10,
-            multiline: true,
-          ),
-          _DocumentPrintShape(
-            id: 'totals-text',
-            type: 'text',
-            x: 386,
-            y: 690,
-            width: 180,
-            height: 66,
-            text:
-                'Subtotal: {{subtotal}}\nTax: {{tax_amount}}\nTotal: {{total_amount}}',
-            fontSize: 12,
-            multiline: true,
-            align: 'right',
-            bold: true,
-          ),
-        ],
-      );
-    }
-
-    return _DocumentPrintTemplate(
-      pageWidth: 595,
-      pageHeight: 842,
-      mediaPreset: 'A4',
-      orientation: 'portrait',
-      shapes: [
-        const _DocumentPrintShape(
-          id: 'company-logo',
-          type: 'image',
-          x: 28,
-          y: 28,
-          width: 84,
-          height: 84,
-          strokeWidth: 0,
-          assetPath: '{{company_logo_url}}',
-        ),
-        _DocumentPrintShape(
-          id: 'text-title',
-          type: 'text',
-          x: 126,
-          y: 28,
-          width: 220,
-          height: 32,
-          text: '{{company_name}}',
-          fontSize: 20,
-          bold: true,
-        ),
-        _DocumentPrintShape(
-          id: 'text-doc-type',
-          type: 'text',
-          x: 126,
-          y: 60,
-          width: 210,
-          height: 18,
-          text: resolvedTitle,
-          fontSize: 11,
-          strokeColor: 0xFF475569,
-        ),
-        _DocumentPrintShape(
-          id: 'meta-box',
-          type: 'rectangle',
-          x: 360,
-          y: 28,
-          width: 206,
-          height: 88,
-          strokeColor: 0xFFCBD5E1,
-        ),
-        _DocumentPrintShape(
-          id: 'meta-text',
-          type: 'text',
-          x: 376,
-          y: 40,
-          width: 170,
-          height: 60,
-          text:
-              'No: {{document_number}}\nDate: {{document_date}}\nRef: {{reference_number}}',
-          fontSize: 11,
-          multiline: true,
-        ),
-        _DocumentPrintShape(
-          id: 'party-box',
-          type: 'rectangle',
-          x: 28,
-          y: 132,
-          width: 538,
-          height: 88,
-          strokeColor: 0xFFCBD5E1,
-        ),
-        _DocumentPrintShape(
-          id: 'party-text',
-          type: 'text',
-          x: 40,
-          y: 144,
-          width: 514,
-          height: 64,
-          text:
-              'Party: {{party_name}}\nAddress: {{party_address}}\nContact: {{party_contact}}',
-          fontSize: 11,
-          multiline: true,
-        ),
-        _DocumentPrintShape(
-          id: 'lines-table',
-          type: 'table',
-          x: 28,
-          y: 238,
-          width: 538,
-          height: 390,
-          dataPath: 'lines',
-          columns: _DocumentPrintShape.defaultTableColumns(),
-        ),
-        _DocumentPrintShape(
-          id: 'notes-title',
-          type: 'text',
-          x: 28,
-          y: 648,
-          width: 100,
-          height: 16,
-          text: 'Notes',
-          fontSize: 11,
-          bold: true,
-        ),
-        _DocumentPrintShape(
-          id: 'notes-text',
-          type: 'text',
-          x: 28,
-          y: 668,
-          width: 300,
-          height: 88,
-          text: '{{notes}}',
-          fontSize: 10,
-          multiline: true,
-        ),
-        _DocumentPrintShape(
-          id: 'totals-box',
-          type: 'rectangle',
-          x: 350,
-          y: 648,
-          width: 216,
-          height: 108,
-          strokeColor: 0xFFCBD5E1,
-        ),
-        _DocumentPrintShape(
-          id: 'totals-text',
-          type: 'text',
-          x: 366,
-          y: 662,
-          width: 184,
-          height: 80,
-          text:
-              'Subtotal: {{subtotal}}\nTax: {{tax_amount}}\nTotal: {{total_amount}}',
-          fontSize: 12,
-          multiline: true,
-          align: 'right',
-          bold: true,
-        ),
-      ],
-    );
-  }
-
-  _DocumentPrintShape? shapeById(String? shapeId) {
-    if (shapeId == null) {
-      return null;
-    }
-    return shapes.cast<_DocumentPrintShape?>().firstWhere(
-      (shape) => shape?.id == shapeId,
-      orElse: () => null,
-    );
-  }
-
-  _DocumentPrintTemplate withoutUnsupportedShapes() {
-    return copyWith(
-      shapes: shapes
-          .where((shape) => shape.isSupported)
-          .toList(growable: false),
-    );
-  }
-
-  _DocumentPrintTemplate normalizedFor(String documentType) {
-    if (documentType != 'sales_quotation') {
-      return this;
-    }
-
-    final nextShapes = shapes
-        .where(
-          (shape) =>
-              !const {'party-box', 'totals-box', 'meta-box'}.contains(shape.id),
-        )
-        .map((shape) {
-          switch (shape.id) {
-            case 'company-logo':
-              return shape.copyWith(x: 28, y: 26, width: 72, height: 72);
-            case 'text-title':
-              return shape.copyWith(
-                x: 112,
-                y: 28,
-                width: 250,
-                height: 28,
-                fontSize: 18,
-              );
-            case 'text-doc-type':
-              return shape.copyWith(
-                x: 112,
-                y: 56,
-                width: 180,
-                height: 16,
-                fontSize: 10,
-              );
-            case 'meta-text':
-              return shape.copyWith(
-                x: 408,
-                y: 30,
-                width: 154,
-                height: 56,
-                fontSize: 10,
-                align: 'right',
-                multiline: true,
-              );
-            case 'party-text':
-              return shape.copyWith(
-                x: 28,
-                y: 122,
-                width: 340,
-                height: 56,
-                fontSize: 10,
-                multiline: true,
-              );
-            case 'lines-table':
-              return shape.copyWith(
-                x: 28,
-                y: 196,
-                width: 538,
-                height: 470,
-                rowHeight: math.max(34, shape.rowHeight),
-                columns: shape.columns.isEmpty
-                    ? _DocumentPrintShape.defaultTableColumns()
-                    : shape.columns,
-              );
-            case 'notes-title':
-              return shape.copyWith(x: 28, y: 684, width: 100, height: 16);
-            case 'notes-text':
-              return shape.copyWith(
-                x: 28,
-                y: 702,
-                width: 320,
-                height: 68,
-                fontSize: 10,
-              );
-            case 'totals-text':
-              return shape.copyWith(
-                x: 386,
-                y: 690,
-                width: 180,
-                height: 66,
-                fontSize: 12,
-                align: 'right',
-                multiline: true,
-                bold: true,
-              );
-            default:
-              return shape;
-          }
-        })
-        .toList(growable: false);
-
-    final hasHeaderDivider = nextShapes.any(
-      (shape) => shape.id == 'header-divider',
-    );
-
-    return copyWith(
-      shapes: [
-        ...nextShapes,
-        if (!hasHeaderDivider)
-          const _DocumentPrintShape(
-            id: 'header-divider',
-            type: 'line',
-            x: 28,
-            y: 108,
-            width: 538,
-            height: 0,
-            strokeColor: 0xFF111827,
-          ),
-      ],
-    );
-  }
-
-  _DocumentPrintTemplate copyWith({
-    double? pageWidth,
-    double? pageHeight,
-    List<_DocumentPrintShape>? shapes,
-    String? backgroundImagePath,
-    double? backgroundOpacity,
-    String? mediaPreset,
-    String? orientation,
-    double? gridSize,
-    bool? showGrid,
-  }) {
-    return _DocumentPrintTemplate(
-      pageWidth: pageWidth ?? this.pageWidth,
-      pageHeight: pageHeight ?? this.pageHeight,
-      shapes: shapes ?? this.shapes,
-      backgroundImagePath: backgroundImagePath ?? this.backgroundImagePath,
-      backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
-      mediaPreset: mediaPreset ?? this.mediaPreset,
-      orientation: orientation ?? this.orientation,
-      gridSize: gridSize ?? this.gridSize,
-      showGrid: showGrid ?? this.showGrid,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'pageWidth': pageWidth,
-      'pageHeight': pageHeight,
-      'backgroundImagePath': backgroundImagePath,
-      'backgroundOpacity': backgroundOpacity,
-      'mediaPreset': mediaPreset,
-      'orientation': orientation,
-      'gridSize': gridSize,
-      'showGrid': showGrid,
-      'shapes': shapes.map((shape) => shape.toJson()).toList(growable: false),
-    };
-  }
-}
-
-class _DocumentPrintShape {
-  const _DocumentPrintShape({
-    required this.id,
-    required this.type,
-    required this.x,
-    required this.y,
-    required this.width,
-    required this.height,
-    this.text = '',
-    this.align = 'left',
-    this.fontSize = 12,
-    this.bold = false,
-    this.italic = false,
-    this.underline = false,
-    this.multiline = false,
-    this.strokeColor = 0xFF111827,
-    this.fillColor = 0xFFFFFFFF,
-    this.fillAlpha = 0,
-    this.strokeWidth = 1,
-    this.borderRadius = 0,
-    this.headerColor = 0xFFF1F5F9,
-    this.headerTextColor = 0xFF111827,
-    this.dataPath = 'lines',
-    this.rowHeight = 30,
-    this.columns = const <_DocumentPrintColumn>[],
-    this.assetPath = _defaultPrintLogoAsset,
-    this.sides = 5,
-    this.barcodeType = 'code128',
-  });
-
-  final String id;
-  final String type;
-  final double x;
-  final double y;
-  final double width;
-  final double height;
-  final String text;
-  final String align;
-  final double fontSize;
-  final bool bold;
-  final bool italic;
-  final bool underline;
-  final bool multiline;
-  final int strokeColor;
-  final int fillColor;
-  final double fillAlpha;
-  final double strokeWidth;
-  final double borderRadius;
-  final int headerColor;
-  final int headerTextColor;
-  final String dataPath;
-  final double rowHeight;
-  final List<_DocumentPrintColumn> columns;
-  final String assetPath;
-  final int sides;
-  final String barcodeType;
-
-  factory _DocumentPrintShape.fromJson(Map<String, dynamic> json) {
-    return _DocumentPrintShape(
-      id: stringValue(json, 'id'),
-      type: stringValue(json, 'type', 'text'),
-      x: _toDouble(json['x'], 0),
-      y: _toDouble(json['y'], 0),
-      width: _toDouble(json['width'], 120),
-      height: _toDouble(json['height'], 24),
-      text: stringValue(json, 'text'),
-      align: stringValue(json, 'align', 'left'),
-      fontSize: _toDouble(json['fontSize'], 12),
-      bold: boolValue(json, 'bold'),
-      italic: boolValue(json, 'italic'),
-      underline: boolValue(json, 'underline'),
-      multiline: boolValue(json, 'multiline'),
-      strokeColor: _toInt(json['strokeColor'], 0xFF111827),
-      fillColor: _toInt(json['fillColor'], 0xFFFFFFFF),
-      fillAlpha: _toDouble(json['fillAlpha'], 0),
-      strokeWidth: _toDouble(json['strokeWidth'], 1),
-      borderRadius: _toDouble(json['borderRadius'], 0),
-      headerColor: _toInt(json['headerColor'], 0xFFF1F5F9),
-      headerTextColor: _toInt(json['headerTextColor'], 0xFF111827),
-      dataPath: stringValue(json, 'dataPath', 'lines'),
-      rowHeight: _toDouble(json['rowHeight'], 30),
-      assetPath: _normalizeLegacyImageSource(
-        stringValue(json, 'assetPath', _defaultPrintLogoAsset),
-      ),
-      sides: int.tryParse(json['sides']?.toString() ?? '') ?? 5,
-      barcodeType: stringValue(json, 'barcodeType', 'code128'),
-      columns: (json['columns'] as List<dynamic>? ?? const <dynamic>[])
-          .whereType<Map<String, dynamic>>()
-          .map(_DocumentPrintColumn.fromJson)
-          .toList(growable: false),
-    );
-  }
-
-  factory _DocumentPrintShape.defaults(String type, int index) {
-    switch (type) {
-      case 'rectangle':
-        return _DocumentPrintShape(
-          id: '$type-$index',
-          type: type,
-          x: 36,
-          y: 36 + (index * 12),
-          width: 180,
-          height: 72,
-          strokeColor: 0xFF94A3B8,
-          fillAlpha: 1.0,
-        );
-      case 'line':
-        return _DocumentPrintShape(
-          id: '$type-$index',
-          type: type,
-          x: 36,
-          y: 36 + (index * 12),
-          width: 220,
-          height: 0,
-        );
-      case 'table':
-        return _DocumentPrintShape(
-          id: '$type-$index',
-          type: type,
-          x: 36,
-          y: 36 + (index * 12),
-          width: 500,
-          height: 240,
-          strokeColor: 0xFF94A3B8,
-          columns: defaultTableColumns(),
-          fillAlpha: 0.0,
-        );
-      case 'image':
-        return _DocumentPrintShape(
-          id: '$type-$index',
-          type: 'image',
-          x: 36,
-          y: 36,
-          width: 84,
-          height: 84,
-          strokeWidth: 0,
-          assetPath: '{{company_logo_url}}',
-        );
-      case 'barcode':
-        return _DocumentPrintShape(
-          id: '$type-$index',
-          type: 'barcode',
-          x: 36,
-          y: 36 + (index * 12),
-          width: 180,
-          height: 72,
-          text: '{{document_number}}',
-          fontSize: 11,
-          barcodeType: 'code128',
-          fillAlpha: 0.0,
-        );
-      case 'text':
-      default:
-        return _DocumentPrintShape(
-          id: '$type-$index',
-          type: 'text',
-          x: 36,
-          y: 36 + (index * 12),
-          width: 200,
-          height: 28,
-          text: 'Text {{document_number}}',
-          fillAlpha: 0.0,
-        );
-    }
-  }
-
-  static List<_DocumentPrintColumn> defaultTableColumns() {
-    return const [
-      _DocumentPrintColumn(key: 'item_name', label: 'Item', widthFactor: 3.2),
-      _DocumentPrintColumn(
-        key: 'description',
-        label: 'Description',
-        widthFactor: 3,
-      ),
-      _DocumentPrintColumn(
-        key: 'qty',
-        label: 'Qty',
-        widthFactor: 1.1,
-        align: 'right',
-      ),
-      _DocumentPrintColumn(
-        key: 'rate',
-        label: 'Rate',
-        widthFactor: 1.2,
-        align: 'right',
-      ),
-      _DocumentPrintColumn(
-        key: 'line_total',
-        label: 'Amount',
-        widthFactor: 1.5,
-        align: 'right',
-      ),
-    ];
-  }
-
-  String get typeLabel {
-    switch (type) {
-      case 'rectangle':
-        return 'Rectangle';
-      case 'line':
-        return 'Line';
-      case 'table':
-        return 'Table';
-      case 'image':
-        return 'Image';
-      case 'barcode':
-        return 'Barcode';
-      default:
-        return 'Text';
-    }
-  }
-
-  _DocumentPrintShape copyWith({
-    double? x,
-    double? y,
-    double? width,
-    double? height,
-    String? text,
-    String? align,
-    double? fontSize,
-    bool? bold,
-    bool? italic,
-    bool? underline,
-    bool? multiline,
-    int? strokeColor,
-    int? fillColor,
-    double? fillAlpha,
-    double? strokeWidth,
-    double? borderRadius,
-    int? headerColor,
-    int? headerTextColor,
-    String? dataPath,
-    double? rowHeight,
-    List<_DocumentPrintColumn>? columns,
-    String? assetPath,
-    int? sides,
-    String? barcodeType,
-  }) {
-    return _DocumentPrintShape(
-      id: id,
-      type: type,
-      x: x ?? this.x,
-      y: y ?? this.y,
-      width: width ?? this.width,
-      height: height ?? this.height,
-      text: text ?? this.text,
-      align: align ?? this.align,
-      fontSize: fontSize ?? this.fontSize,
-      bold: bold ?? this.bold,
-      italic: italic ?? this.italic,
-      underline: underline ?? this.underline,
-      multiline: multiline ?? this.multiline,
-      strokeColor: strokeColor ?? this.strokeColor,
-      fillColor: fillColor ?? this.fillColor,
-      fillAlpha: fillAlpha ?? this.fillAlpha,
-      strokeWidth: strokeWidth ?? this.strokeWidth,
-      borderRadius: borderRadius ?? this.borderRadius,
-      headerColor: headerColor ?? this.headerColor,
-      headerTextColor: headerTextColor ?? this.headerTextColor,
-      dataPath: dataPath ?? this.dataPath,
-      rowHeight: rowHeight ?? this.rowHeight,
-      columns: columns ?? this.columns,
-      assetPath: assetPath ?? this.assetPath,
-      sides: sides ?? this.sides,
-      barcodeType: barcodeType ?? this.barcodeType,
-    );
-  }
-
-  @override
-  String toString() {
-    if (type == 'text' && text.isNotEmpty) {
-      return text.length > 20 ? '${text.substring(0, 20)}...' : text;
-    }
-    return '${type[0].toUpperCase()}${type.substring(1)}: $id';
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'type': type,
-      'x': x,
-      'y': y,
-      'width': width,
-      'height': height,
-      'text': text,
-      'align': align,
-      'fontSize': fontSize,
-      'bold': bold,
-      'italic': italic,
-      'underline': underline,
-      'multiline': multiline,
-      'strokeColor': strokeColor,
-      'fillColor': fillColor,
-      'fillAlpha': fillAlpha,
-      'strokeWidth': strokeWidth,
-      'borderRadius': borderRadius,
-      'headerColor': headerColor,
-      'headerTextColor': headerTextColor,
-      'dataPath': dataPath,
-      'rowHeight': rowHeight,
-      'assetPath': assetPath,
-      'sides': sides,
-      'barcodeType': barcodeType,
-      'columns': columns
-          .map((column) => column.toJson())
-          .toList(growable: false),
-    };
-  }
-
-  bool get isSupported {
-    return const {
-      'text',
-      'rectangle',
-      'line',
-      'table',
-      'image',
-      'barcode',
-    }.contains(type);
-  }
-}
-
-class _DocumentPrintColumn {
-  const _DocumentPrintColumn({
-    required this.key,
-    required this.label,
-    required this.widthFactor,
-    this.align = 'left',
-  });
-
-  final String key;
-  final String label;
-  final double widthFactor;
-  final String align;
-
-  factory _DocumentPrintColumn.fromJson(Map<String, dynamic> json) {
-    return _DocumentPrintColumn(
-      key: stringValue(json, 'key'),
-      label: stringValue(json, 'label'),
-      widthFactor: _toDouble(json['widthFactor'], 1),
-      align: stringValue(json, 'align', 'left'),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'key': key,
-      'label': label,
-      'widthFactor': widthFactor,
-      'align': align,
-    };
-  }
-
-  _DocumentPrintColumn copyWith({
-    String? key,
-    String? label,
-    double? widthFactor,
-    String? align,
-  }) {
-    return _DocumentPrintColumn(
-      key: key ?? this.key,
-      label: label ?? this.label,
-      widthFactor: widthFactor ?? this.widthFactor,
-      align: align ?? this.align,
-    );
-  }
-}
 
 double _toDouble(dynamic value, double fallback) {
   return double.tryParse(value?.toString() ?? '') ?? fallback;
@@ -2728,8 +1902,8 @@ int _toInt(dynamic value, int fallback) {
   return int.tryParse(value?.toString() ?? '') ?? fallback;
 }
 
-_DocumentPrintTemplate _applyPagePreset(
-  _DocumentPrintTemplate template, {
+DocumentPrintTemplate _applyPagePreset(
+  DocumentPrintTemplate template, {
   String? mediaPreset,
   String? orientation,
 }) {
