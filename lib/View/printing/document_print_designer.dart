@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -7,7 +6,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../screen.dart';
 import '../../model/printing/print_template_model.dart';
@@ -57,6 +55,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final ScrollController _pageScrollController = ScrollController();
   DocumentPrintTemplate? _template;
   String? _selectedShapeId;
+  double _canvasZoom = 1.0;
   bool _editMode = false;
   bool _loading = true;
   bool _saving = false;
@@ -127,7 +126,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message ?? 'Failed to save template.')),
+          SnackBar(content: Text(response.message)),
         );
       }
     } catch (e) {
@@ -217,7 +216,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final showInspector = _editMode && constraints.maxWidth >= 980 + 420;
+        final showSideInspector = _editMode && constraints.maxWidth >= 1400;
 
         return Padding(
           padding: const EdgeInsets.all(AppUiConstants.pagePadding),
@@ -232,84 +231,39 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                 const SizedBox(height: AppUiConstants.spacingLg),
               ],
               Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: AppSectionCard(
-                        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(
-                              AppUiConstants.panelRadius,
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(
-                            AppUiConstants.spacingLg,
-                          ),
-                          alignment: Alignment.center,
-                          child: KeyboardListener(
-                            focusNode: _designerFocusNode,
-                            autofocus: true,
-                            onKeyEvent: (event) {
-                              if (event is! KeyDownEvent) {
-                                return;
-                              }
-                              final shapeId = _selectedShapeId;
-                              if (shapeId == null) {
-                                return;
-                              }
-                              final isShift =
-                                  HardwareKeyboard.instance.isShiftPressed;
-                              final delta = isShift ? 10.0 : 1.0;
-
-                              if (event.logicalKey ==
-                                  LogicalKeyboardKey.delete) {
-                                _deleteSelectedShape();
-                              } else if (event.logicalKey ==
-                                  LogicalKeyboardKey.arrowLeft) {
-                                _moveShape(shapeId, Offset(-delta, 0));
-                              } else if (event.logicalKey ==
-                                  LogicalKeyboardKey.arrowRight) {
-                                _moveShape(shapeId, Offset(delta, 0));
-                              } else if (event.logicalKey ==
-                                  LogicalKeyboardKey.arrowUp) {
-                                _moveShape(shapeId, Offset(0, -delta));
-                              } else if (event.logicalKey ==
-                                  LogicalKeyboardKey.arrowDown) {
-                                _moveShape(shapeId, Offset(0, delta));
-                              }
-                            },
-                            child: RepaintBoundary(
-                              key: _previewBoundaryKey,
-                              child: _DesignerCanvas(
-                                template: template,
-                                documentData: widget.documentData,
-                                editMode: _editMode,
-                                selectedShapeId: _selectedShapeId,
-                                onSelectShape: (shapeId) {
-                                  if (!_editMode) {
-                                    return;
-                                  }
-                                  setState(() => _selectedShapeId = shapeId);
-                                },
-                                onMoveShape: _moveShape,
-                                onResizeShape: _resizeShape,
+                child: showSideInspector
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCanvasCard(template)),
+                          const SizedBox(width: AppUiConstants.spacingLg),
+                          SizedBox(
+                            width: 420,
+                            child: _buildInspector(
+                              template,
+                              padding: const EdgeInsets.all(
+                                AppUiConstants.spacingMd,
                               ),
                             ),
                           ),
-                        ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCanvasCard(template)),
+                          if (_editMode) ...[
+                            const SizedBox(height: AppUiConstants.spacingLg),
+                            SizedBox(
+                              height: 320,
+                              child: _buildInspector(
+                                template,
+                                padding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                    if (_editMode && showInspector) ...[
-                      const SizedBox(width: AppUiConstants.spacingLg),
-                      SizedBox(width: 420, child: _buildInspector(template)),
-                    ],
-                  ],
-                ),
               ),
             ],
           ),
@@ -356,6 +310,31 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             icon: const Icon(Icons.refresh_outlined),
             label: const Text('Reset'),
           ),
+          const SizedBox(width: AppUiConstants.spacingXs),
+          OutlinedButton.icon(
+            onPressed: _canvasZoom <= 0.7
+                ? null
+                : () => setState(
+                    () => _canvasZoom = (_canvasZoom - 0.15).clamp(0.55, 2.5),
+                  ),
+            icon: const Icon(Icons.zoom_out_outlined),
+            label: const Text('Zoom -'),
+          ),
+          const SizedBox(width: AppUiConstants.spacingXs),
+          OutlinedButton(
+            onPressed: () => setState(() => _canvasZoom = 1.0),
+            child: const Text('Fit'),
+          ),
+          const SizedBox(width: AppUiConstants.spacingXs),
+          OutlinedButton.icon(
+            onPressed: _canvasZoom >= 2.5
+                ? null
+                : () => setState(
+                    () => _canvasZoom = (_canvasZoom + 0.15).clamp(0.55, 2.5),
+                  ),
+            icon: const Icon(Icons.zoom_in_outlined),
+            label: const Text('Zoom +'),
+          ),
         ],
       ),
     );
@@ -369,15 +348,72 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     );
   }
 
-  Widget _buildInspector(DocumentPrintTemplate template) {
+  Widget _buildCanvasCard(DocumentPrintTemplate template) {
+    return AppSectionCard(
+      padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(AppUiConstants.panelRadius),
+        ),
+        padding: const EdgeInsets.all(AppUiConstants.spacingLg),
+        alignment: Alignment.center,
+        child: KeyboardListener(
+          focusNode: _designerFocusNode,
+          autofocus: true,
+          onKeyEvent: (event) {
+            if (event is! KeyDownEvent) {
+              return;
+            }
+            final shapeId = _selectedShapeId;
+            if (shapeId == null) {
+              return;
+            }
+            final isShift = HardwareKeyboard.instance.isShiftPressed;
+            final delta = isShift ? 10.0 : 1.0;
+
+            if (event.logicalKey == LogicalKeyboardKey.delete) {
+              _deleteSelectedShape();
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              _moveShape(shapeId, Offset(-delta, 0));
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              _moveShape(shapeId, Offset(delta, 0));
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              _moveShape(shapeId, Offset(0, -delta));
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              _moveShape(shapeId, Offset(0, delta));
+            }
+          },
+          child: RepaintBoundary(
+            key: _previewBoundaryKey,
+            child: _DesignerCanvas(
+              template: template,
+              documentData: widget.documentData,
+              editMode: _editMode,
+              selectedShapeId: _selectedShapeId,
+              zoom: _canvasZoom,
+              onSelectShape: (shapeId) {
+                if (!_editMode) {
+                  return;
+                }
+                setState(() => _selectedShapeId = shapeId);
+              },
+              onMoveShape: _moveShape,
+              onResizeShape: _resizeShape,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInspector(
+    DocumentPrintTemplate template, {
+    required EdgeInsets padding,
+  }) {
     final selected = template.shapeById(_selectedShapeId);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        0,
-        AppUiConstants.spacingMd,
-        AppUiConstants.spacingMd,
-        AppUiConstants.spacingMd,
-      ),
+      padding: padding,
       child: AppSectionCard(
         child: SingleChildScrollView(
           child: selected == null
@@ -612,6 +648,7 @@ class _DesignerCanvas extends StatelessWidget {
     required this.documentData,
     required this.editMode,
     required this.selectedShapeId,
+    required this.zoom,
     required this.onSelectShape,
     required this.onMoveShape,
     required this.onResizeShape,
@@ -621,6 +658,7 @@ class _DesignerCanvas extends StatelessWidget {
   final Map<String, dynamic> documentData;
   final bool editMode;
   final String? selectedShapeId;
+  final double zoom;
   final ValueChanged<String?> onSelectShape;
   final void Function(String shapeId, Offset delta) onMoveShape;
   final void Function(String shapeId, Offset delta) onResizeShape;
@@ -629,90 +667,99 @@ class _DesignerCanvas extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final scale = math.max(
-          0.35,
-          math.min(
-            (constraints.maxWidth - 24) / template.pageWidth,
-            (constraints.maxHeight - 24) / template.pageHeight,
-          ),
+        final fitScale = math.min(
+          (constraints.maxWidth - 24) / template.pageWidth,
+          (constraints.maxHeight - 24) / template.pageHeight,
         );
+        final baseScale = math.max(0.45, fitScale);
+        final scale = (baseScale * zoom).clamp(0.45, 2.5);
         final canvasWidth = template.pageWidth * scale;
         final canvasHeight = template.pageHeight * scale;
 
         return SingleChildScrollView(
-          child: Center(
-            child: GestureDetector(
-              onTap: () => onSelectShape(null),
-              child: Container(
-                width: canvasWidth,
-                height: canvasHeight,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x18000000),
-                      blurRadius: 24,
-                      offset: Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: DocumentCanvasPainter(
-                          template: template,
-                          documentData: documentData,
-                          scale: scale,
+          scrollDirection: Axis.horizontal,
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: math.max(0, constraints.maxWidth - 24),
+                minHeight: math.max(0, constraints.maxHeight - 24),
+              ),
+              child: Center(
+                child: GestureDetector(
+                  onTap: () => onSelectShape(null),
+                  child: Container(
+                    width: canvasWidth,
+                    height: canvasHeight,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x18000000),
+                          blurRadius: 24,
+                          offset: Offset(0, 12),
                         ),
-                      ),
+                      ],
                     ),
-                    ...template.shapes
-                        .where((shape) => shape.type == 'image')
-                        .map(
-                          (shape) => Positioned(
-                            left: shape.x * scale,
-                            top: shape.y * scale,
-                            width: math.max(24, shape.width * scale),
-                            height: math.max(24, shape.height * scale),
-                            child: IgnorePointer(
-                              child: DecoratedBox(
-                                decoration: shape.strokeWidth > 0
-                                    ? BoxDecoration(
-                                        border: Border.all(
-                                          color: Color(shape.strokeColor),
-                                          width: shape.strokeWidth * scale,
-                                        ),
-                                      )
-                                    : const BoxDecoration(),
-                                child: _DocumentImageShape(
-                                  source: _resolveTemplateText(
-                                    shape.assetPath,
-                                    documentData,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: DocumentCanvasPainter(
+                              template: template,
+                              documentData: documentData,
+                              scale: scale,
+                            ),
+                          ),
+                        ),
+                        ...template.shapes
+                            .where((shape) => shape.type == 'image')
+                            .map(
+                              (shape) => Positioned(
+                                left: shape.x * scale,
+                                top: shape.y * scale,
+                                width: math.max(24, shape.width * scale),
+                                height: math.max(24, shape.height * scale),
+                                child: IgnorePointer(
+                                  child: DecoratedBox(
+                                    decoration: shape.strokeWidth > 0
+                                        ? BoxDecoration(
+                                            border: Border.all(
+                                              color: Color(shape.strokeColor),
+                                              width: shape.strokeWidth * scale,
+                                            ),
+                                          )
+                                        : const BoxDecoration(),
+                                    child: _DocumentImageShape(
+                                      source: _resolveTemplateText(
+                                        shape.assetPath,
+                                        documentData,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                    if (editMode)
-                      ...template.shapes.map((shape) {
-                        final isSelected = shape.id == selectedShapeId;
-                        return Positioned(
-                          left: shape.x * scale,
-                          top: shape.y * scale,
-                          width: math.max(24, shape.width * scale),
-                          height: math.max(24, shape.height * scale),
-                          child: _ShapeSelectionOverlay(
-                            selected: isSelected,
-                            onTap: () => onSelectShape(shape.id),
-                            onMove: (delta) => onMoveShape(shape.id, delta),
-                            onResize: (delta) => onResizeShape(shape.id, delta),
-                          ),
-                        );
-                      }),
-                  ],
+                        if (editMode)
+                          ...template.shapes.map((shape) {
+                            final isSelected = shape.id == selectedShapeId;
+                            return Positioned(
+                              left: shape.x * scale,
+                              top: shape.y * scale,
+                              width: math.max(24, shape.width * scale),
+                              height: math.max(24, shape.height * scale),
+                              child: _ShapeSelectionOverlay(
+                                selected: isSelected,
+                                onTap: () => onSelectShape(shape.id),
+                                onMove: (delta) => onMoveShape(shape.id, delta),
+                                onResize: (delta) =>
+                                    onResizeShape(shape.id, delta),
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1217,7 +1264,6 @@ class DocumentCanvasPainter extends CustomPainter {
 
 class _PageInspector extends StatelessWidget {
   const _PageInspector({
-    super.key,
     required this.template,
     required this.onChanged,
   });
@@ -1896,19 +1942,6 @@ class _TableColumnInspector extends StatelessWidget {
   }
 }
 
-
-
-
-
-
-double _toDouble(dynamic value, double fallback) {
-  return double.tryParse(value?.toString() ?? '') ?? fallback;
-}
-
-int _toInt(dynamic value, int fallback) {
-  return int.tryParse(value?.toString() ?? '') ?? fallback;
-}
-
 DocumentPrintTemplate _applyPagePreset(
   DocumentPrintTemplate template, {
   String? mediaPreset,
@@ -2004,28 +2037,6 @@ String _normalizeLegacyImageSource(String source) {
     return _defaultPrintLogoAsset;
   }
   return trimmed;
-}
-
-String _documentTitleForType(String documentType) {
-  switch (documentType) {
-    case 'sales_quotation':
-      return 'Quotation';
-    case 'sales_invoice':
-      return 'Invoice';
-    case 'sales_delivery':
-      return 'Delivery';
-    case 'purchase_invoice':
-      return 'Purchase Invoice';
-    default:
-      return documentType
-          .split('_')
-          .where((part) => part.trim().isNotEmpty)
-          .map(
-            (part) =>
-                '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
-          )
-          .join(' ');
-  }
 }
 
 List<String> _availableBindings(
