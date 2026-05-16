@@ -53,6 +53,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final PrintTemplateService _service = PrintTemplateService();
   final MediaService _mediaService = MediaService();
   final GlobalKey _previewBoundaryKey = GlobalKey();
+  final GlobalKey _pdfPreviewBoundaryKey = GlobalKey();
   final ScrollController _pageScrollController = ScrollController();
   DocumentPrintTemplate? _template;
   String? _selectedShapeId;
@@ -62,6 +63,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   bool _loading = true;
   bool _saving = false;
   bool _printingPdf = false;
+  bool _downloadingPdf = false;
   final FocusNode _designerFocusNode = FocusNode();
 
   @override
@@ -195,6 +197,15 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
     actions.add(
       AdaptiveShellActionButton(
+        onPressed: _downloadingPdf ? null : _downloadPdf,
+        icon: Icons.download_outlined,
+        label: _downloadingPdf ? 'Preparing PDF...' : 'Download PDF',
+        filled: false,
+      ),
+    );
+
+    actions.add(
+      AdaptiveShellActionButton(
         onPressed: _printingPdf ? null : _printPdf,
         icon: Icons.print_outlined,
         label: _printingPdf ? 'Printing...' : 'Print',
@@ -216,61 +227,100 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final showSideInspector = _editMode && constraints.maxWidth >= 1400;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final showSideInspector = _editMode && constraints.maxWidth >= 1400;
 
-        return Padding(
-          padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_editMode) ...[
-                AppSectionCard(
-                  padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-                  child: _buildToolbar(),
-                ),
-                const SizedBox(height: AppUiConstants.spacingLg),
-              ],
-              Expanded(
-                child: showSideInspector
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(child: _buildCanvasCard(template)),
-                          const SizedBox(width: AppUiConstants.spacingLg),
-                          SizedBox(
-                            width: 420,
-                            child: _buildInspector(
-                              template,
-                              padding: const EdgeInsets.all(
-                                AppUiConstants.spacingMd,
+            return Padding(
+              padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_editMode) ...[
+                    AppSectionCard(
+                      padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+                      child: _buildToolbar(),
+                    ),
+                    const SizedBox(height: AppUiConstants.spacingLg),
+                  ],
+                  Expanded(
+                    child: showSideInspector
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: _buildCanvasCard(template)),
+                              const SizedBox(width: AppUiConstants.spacingLg),
+                              SizedBox(
+                                width: 420,
+                                child: _buildInspector(
+                                  template,
+                                  padding: const EdgeInsets.all(
+                                    AppUiConstants.spacingMd,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(child: _buildCanvasCard(template)),
+                              if (_editMode) ...[
+                                const SizedBox(height: AppUiConstants.spacingLg),
+                                SizedBox(
+                                  height: 320,
+                                  child: _buildInspector(
+                                    template,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(child: _buildCanvasCard(template)),
-                          if (_editMode) ...[
-                            const SizedBox(height: AppUiConstants.spacingLg),
-                            SizedBox(
-                              height: 320,
-                              child: _buildInspector(
-                                template,
-                                padding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                  ),
+                ],
               ),
-            ],
+            );
+          },
+        ),
+        Positioned(
+          left: 0,
+          top: 0,
+          child: SizedBox(
+            width: 0,
+            height: 0,
+            child: OverflowBox(
+              alignment: Alignment.topLeft,
+              minWidth: 0,
+              minHeight: 0,
+              maxWidth: template.pageWidth,
+              maxHeight: template.pageHeight,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.01,
+                  child: RepaintBoundary(
+                    key: _pdfPreviewBoundaryKey,
+                    child: _DocumentPageSurface(
+                      template: template,
+                      documentData: widget.documentData,
+                      scale: 1,
+                      editMode: false,
+                      selectedShapeId: null,
+                      showDecoration: false,
+                      onSelectShape: (_) {},
+                      onMoveShape: (shapeId, delta) {},
+                      onResizeShape: (shapeId, delta) {},
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -598,7 +648,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     await Future<void>.delayed(const Duration(milliseconds: 32));
     await SchedulerBinding.instance.endOfFrame;
     final boundary =
-        _previewBoundaryKey.currentContext?.findRenderObject()
+        _pdfPreviewBoundaryKey.currentContext?.findRenderObject()
             as RenderRepaintBoundary?;
     if (boundary == null) {
       return null;
@@ -675,6 +725,27 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       }
     }
   }
+
+  Future<void> _downloadPdf() async {
+    setState(() => _downloadingPdf = true);
+    try {
+      final bytes = await _buildPdfBytes();
+      if (bytes == null) {
+        throw Exception('Unable to generate PDF from preview.');
+      }
+      await Printing.sharePdf(bytes: bytes, filename: '${widget.title}.pdf');
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('PDF download failed: $error')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _downloadingPdf = false);
+      }
+    }
+  }
 }
 
 class _DesignerCanvas extends StatelessWidget {
@@ -708,8 +779,6 @@ class _DesignerCanvas extends StatelessWidget {
         );
         final baseScale = math.max(0.45, fitScale);
         final scale = (baseScale * zoom).clamp(0.45, 2.5);
-        final canvasWidth = template.pageWidth * scale;
-        final canvasHeight = template.pageHeight * scale;
 
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -722,78 +791,15 @@ class _DesignerCanvas extends StatelessWidget {
               child: Center(
                 child: GestureDetector(
                   onTap: () => onSelectShape(null),
-                  child: Container(
-                    width: canvasWidth,
-                    height: canvasHeight,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x18000000),
-                          blurRadius: 24,
-                          offset: Offset(0, 12),
-                        ),
-                      ],
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: DocumentCanvasPainter(
-                              template: template,
-                              documentData: documentData,
-                              scale: scale,
-                            ),
-                          ),
-                        ),
-                        ...template.shapes
-                            .where((shape) => shape.type == 'image')
-                            .map(
-                              (shape) => Positioned(
-                                left: shape.x * scale,
-                                top: shape.y * scale,
-                                width: math.max(24, shape.width * scale),
-                                height: math.max(24, shape.height * scale),
-                                child: IgnorePointer(
-                                  child: DecoratedBox(
-                                    decoration: shape.strokeWidth > 0
-                                        ? BoxDecoration(
-                                            border: Border.all(
-                                              color: Color(shape.strokeColor),
-                                              width: shape.strokeWidth * scale,
-                                            ),
-                                          )
-                                        : const BoxDecoration(),
-                                    child: _DocumentImageShape(
-                                      source: _resolveTemplateText(
-                                        shape.assetPath,
-                                        documentData,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        if (editMode)
-                          ...template.shapes.map((shape) {
-                            final isSelected = shape.id == selectedShapeId;
-                            return Positioned(
-                              left: shape.x * scale,
-                              top: shape.y * scale,
-                              width: math.max(24, shape.width * scale),
-                              height: math.max(24, shape.height * scale),
-                              child: _ShapeSelectionOverlay(
-                                selected: isSelected,
-                                onTap: () => onSelectShape(shape.id),
-                                onMove: (delta) => onMoveShape(shape.id, delta),
-                                onResize: (delta) =>
-                                    onResizeShape(shape.id, delta),
-                              ),
-                            );
-                          }),
-                      ],
-                    ),
+                  child: _DocumentPageSurface(
+                    template: template,
+                    documentData: documentData,
+                    scale: scale,
+                    editMode: editMode,
+                    selectedShapeId: selectedShapeId,
+                    onSelectShape: onSelectShape,
+                    onMoveShape: onMoveShape,
+                    onResizeShape: onResizeShape,
                   ),
                 ),
               ),
@@ -801,6 +807,107 @@ class _DesignerCanvas extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _DocumentPageSurface extends StatelessWidget {
+  const _DocumentPageSurface({
+    required this.template,
+    required this.documentData,
+    required this.scale,
+    required this.editMode,
+    required this.selectedShapeId,
+    required this.onSelectShape,
+    required this.onMoveShape,
+    required this.onResizeShape,
+    this.showDecoration = true,
+  });
+
+  final DocumentPrintTemplate template;
+  final Map<String, dynamic> documentData;
+  final double scale;
+  final bool editMode;
+  final String? selectedShapeId;
+  final ValueChanged<String?> onSelectShape;
+  final void Function(String shapeId, Offset delta) onMoveShape;
+  final void Function(String shapeId, Offset delta) onResizeShape;
+  final bool showDecoration;
+
+  @override
+  Widget build(BuildContext context) {
+    final canvasWidth = template.pageWidth * scale;
+    final canvasHeight = template.pageHeight * scale;
+
+    return Container(
+      width: canvasWidth,
+      height: canvasHeight,
+      decoration: showDecoration
+          ? BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x18000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 12),
+                ),
+              ],
+            )
+          : const BoxDecoration(color: Colors.white),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: DocumentCanvasPainter(
+                template: template,
+                documentData: documentData,
+                scale: scale,
+                showPageChrome: showDecoration,
+              ),
+            ),
+          ),
+          ...template.shapes.where((shape) => shape.type == 'image').map(
+            (shape) => Positioned(
+              left: shape.x * scale,
+              top: shape.y * scale,
+              width: math.max(24, shape.width * scale),
+              height: math.max(24, shape.height * scale),
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: shape.strokeWidth > 0
+                      ? BoxDecoration(
+                          border: Border.all(
+                            color: Color(shape.strokeColor),
+                            width: shape.strokeWidth * scale,
+                          ),
+                        )
+                      : const BoxDecoration(),
+                  child: _DocumentImageShape(
+                    source: _resolveTemplateText(shape.assetPath, documentData),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (editMode)
+            ...template.shapes.map((shape) {
+              final isSelected = shape.id == selectedShapeId;
+              return Positioned(
+                left: shape.x * scale,
+                top: shape.y * scale,
+                width: math.max(24, shape.width * scale),
+                height: math.max(24, shape.height * scale),
+                child: _ShapeSelectionOverlay(
+                  selected: isSelected,
+                  onTap: () => onSelectShape(shape.id),
+                  onMove: (delta) => onMoveShape(shape.id, delta),
+                  onResize: (delta) => onResizeShape(shape.id, delta),
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 }
@@ -911,35 +1018,41 @@ class DocumentCanvasPainter extends CustomPainter {
     required this.template,
     required this.documentData,
     required this.scale,
+    this.showPageChrome = true,
   });
 
   final DocumentPrintTemplate template;
   final Map<String, dynamic> documentData;
   final double scale;
+  final bool showPageChrome;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final borderPaint = Paint()
-      ..color = const Color(0xFFE2E8F0)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+    if (showPageChrome) {
+      final borderPaint = Paint()
+        ..color = const Color(0xFFE2E8F0)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1;
 
-    canvas.drawRect(
-      (Offset.zero & size).translate(4, 4),
-      Paint()
-        ..color = const Color(0x0D000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
-    );
+      canvas.drawRect(
+        (Offset.zero & size).translate(4, 4),
+        Paint()
+          ..color = const Color(0x0D000000)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+      );
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(4)),
-      Paint()..color = Colors.white,
-    );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(4)),
+        Paint()..color = Colors.white,
+      );
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(4)),
-      borderPaint,
-    );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(4)),
+        borderPaint,
+      );
+    } else {
+      canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white);
+    }
 
     if (template.showGrid) {
       _drawGrid(canvas, size);
@@ -1293,7 +1406,8 @@ class DocumentCanvasPainter extends CustomPainter {
   bool shouldRepaint(covariant DocumentCanvasPainter oldDelegate) {
     return oldDelegate.template != template ||
         oldDelegate.documentData != documentData ||
-        oldDelegate.scale != scale;
+        oldDelegate.scale != scale ||
+        oldDelegate.showPageChrome != showPageChrome;
   }
 }
 

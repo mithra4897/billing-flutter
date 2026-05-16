@@ -11,6 +11,7 @@ class MediaFileModel {
     this.mimeType,
     this.fileSize,
     this.downloadUrl,
+    this.publicUrl,
     this.isPublic = false,
     this.raw,
   });
@@ -26,6 +27,7 @@ class MediaFileModel {
   final String? mimeType;
   final int? fileSize;
   final String? downloadUrl;
+  final String? publicUrl;
   final bool isPublic;
   final Map<String, dynamic>? raw;
 
@@ -42,6 +44,7 @@ class MediaFileModel {
       mimeType: json['mime_type']?.toString(),
       fileSize: _nullableInt(json['file_size']),
       downloadUrl: json['download_url']?.toString(),
+      publicUrl: json['public_url']?.toString(),
       isPublic: json['is_public'] == true || json['is_public'] == 1,
       raw: json,
     );

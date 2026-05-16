@@ -29,7 +29,12 @@ class AppConfig {
       return path;
     }
 
-    final normalized = path.startsWith('/') ? path : '/$path';
-    return '$baseHost$normalized';
+    final normalized = path.trim();
+    if (normalized.startsWith('uploads/')) {
+      return '$apiBaseUrl/public/media/file?path=${Uri.encodeComponent(normalized)}';
+    }
+
+    final normalizedPath = normalized.startsWith('/') ? normalized : '/$normalized';
+    return '$baseHost$normalizedPath';
   }
 }

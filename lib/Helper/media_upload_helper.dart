@@ -56,7 +56,7 @@ class MediaUploadHelper {
         return;
       }
 
-      onSuccess(uploaded.filePath);
+      onSuccess(uploaded.publicUrl ?? uploaded.filePath);
     } catch (error) {
       onError(error.toString());
     } finally {
