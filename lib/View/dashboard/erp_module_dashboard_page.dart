@@ -22,6 +22,8 @@ class ErpModuleDashboardPage extends StatefulWidget {
 
 class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
   late Future<ErpDashboardSnapshot> _snapshotFuture;
+  ErpDashboardSnapshot? _snapshotCache;
+  bool _isTrendReloading = false;
   ErpDashboardTrendFilter _trendFilter = const ErpDashboardTrendFilter(
     preset: ErpDashboardTrendPreset.monthly,
   );
@@ -29,7 +31,7 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
   @override
   void initState() {
     super.initState();
-    _snapshotFuture = _loadSnapshot();
+    _snapshotFuture = _loadSnapshot(cacheResult: true);
   }
 
   @override
@@ -37,18 +39,28 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.moduleKey != widget.moduleKey ||
         oldWidget.loader != widget.loader) {
-      _snapshotFuture = _loadSnapshot();
+      _snapshotCache = null;
+      _isTrendReloading = false;
+      _snapshotFuture = _loadSnapshot(cacheResult: true);
     }
   }
 
-  Future<ErpDashboardSnapshot> _loadSnapshot() {
-    return widget.loader?.call(_trendFilter) ??
-        loadErpDashboardSnapshot(widget.moduleKey, trendFilter: _trendFilter);
+  Future<ErpDashboardSnapshot> _loadSnapshot({bool cacheResult = false}) async {
+    final snapshot =
+        await (widget.loader?.call(_trendFilter) ??
+            loadErpDashboardSnapshot(
+              widget.moduleKey,
+              trendFilter: _trendFilter,
+            ));
+    if (cacheResult) {
+      _snapshotCache = snapshot;
+    }
+    return snapshot;
   }
 
   void _reload() {
     setState(() {
-      _snapshotFuture = _loadSnapshot();
+      _snapshotFuture = _loadSnapshot(cacheResult: true);
     });
   }
 
@@ -81,8 +93,33 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
           end: selected.end,
         ),
       );
-      _snapshotFuture = _loadSnapshot();
     });
+    await _refreshTrendSnapshot();
+  }
+
+  Future<void> _refreshTrendSnapshot() async {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isTrendReloading = true;
+    });
+
+    final future = _loadSnapshot(cacheResult: true);
+    setState(() {
+      _snapshotFuture = future;
+    });
+
+    try {
+      await future;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTrendReloading = false;
+        });
+      }
+    }
   }
 
   Future<void> _handleTrendControlChanged(
@@ -94,22 +131,22 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
           _trendFilter = const ErpDashboardTrendFilter(
             preset: ErpDashboardTrendPreset.monthly,
           );
-          _snapshotFuture = _loadSnapshot();
         });
+        await _refreshTrendSnapshot();
       case ErpDashboardTrendControlValue.weekly:
         setState(() {
           _trendFilter = const ErpDashboardTrendFilter(
             preset: ErpDashboardTrendPreset.weekly,
           );
-          _snapshotFuture = _loadSnapshot();
         });
+        await _refreshTrendSnapshot();
       case ErpDashboardTrendControlValue.yearly:
         setState(() {
           _trendFilter = const ErpDashboardTrendFilter(
             preset: ErpDashboardTrendPreset.yearly,
           );
-          _snapshotFuture = _loadSnapshot();
         });
+        await _refreshTrendSnapshot();
       case ErpDashboardTrendControlValue.custom:
         await _pickCustomRange();
     }
@@ -120,8 +157,10 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
     final content = FutureBuilder<ErpDashboardSnapshot>(
       future: _snapshotFuture,
       builder: (context, snapshot) {
+        final data = snapshot.data ?? _snapshotCache;
         final body = switch (snapshot.connectionState) {
-          ConnectionState.waiting || ConnectionState.active => AppLoadingView(
+          ConnectionState.waiting ||
+          ConnectionState.active when data == null => AppLoadingView(
             message: 'Loading ${widget.shellTitle ?? "module"} dashboard...',
           ),
           _ when snapshot.hasError => AppErrorStateView(
@@ -133,14 +172,15 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
             padding: const EdgeInsets.all(AppUiConstants.pagePadding),
             child: ErpModuleDashboard(
               snapshot:
-                  snapshot.data ??
+                  data ??
                   ErpDashboardSnapshot(
                     title: widget.shellTitle ?? 'Module Dashboard',
                     subtitle: 'No dashboard data available.',
                   ),
-              showTrendControls: snapshot.data?.trend != null,
+              showTrendControls: data?.trend != null,
               trendControlValue: _mapTrendControlValue(_trendFilter.preset),
               onTrendControlChanged: _handleTrendControlChanged,
+              trendLoading: _isTrendReloading,
             ),
           ),
         };

@@ -221,12 +221,14 @@ class ErpModuleDashboard extends StatelessWidget {
     this.trendControlValue,
     this.onTrendControlChanged,
     this.showTrendControls = false,
+    this.trendLoading = false,
   });
 
   final ErpDashboardSnapshot snapshot;
   final ErpDashboardTrendControlValue? trendControlValue;
   final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
   final bool showTrendControls;
+  final bool trendLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -264,6 +266,7 @@ class ErpModuleDashboard extends StatelessWidget {
                   trendControlValue: trendControlValue,
                   onTrendControlChanged: onTrendControlChanged,
                   showTrendControls: showTrendControls,
+                  trendLoading: trendLoading,
                 ),
               ),
             ],
@@ -279,6 +282,7 @@ class ErpModuleDashboard extends StatelessWidget {
                 trendControlValue: trendControlValue,
                 onTrendControlChanged: onTrendControlChanged,
                 showTrendControls: showTrendControls,
+                trendLoading: trendLoading,
               ),
             ],
           ),
@@ -495,7 +499,9 @@ class _DashboardStatCard extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: stat.color.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
+                ),
               ),
               child: Icon(stat.icon, color: stat.color),
             ),
@@ -573,12 +579,14 @@ class _DashboardInsightsColumn extends StatelessWidget {
     required this.trendControlValue,
     required this.onTrendControlChanged,
     required this.showTrendControls,
+    required this.trendLoading,
   });
 
   final ErpDashboardSnapshot snapshot;
   final ErpDashboardTrendControlValue? trendControlValue;
   final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
   final bool showTrendControls;
+  final bool trendLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -589,6 +597,7 @@ class _DashboardInsightsColumn extends StatelessWidget {
           trendControlValue: trendControlValue,
           onTrendControlChanged: onTrendControlChanged,
           showTrendControls: showTrendControls,
+          isLoading: trendLoading,
         ),
       if (snapshot.distribution != null)
         _DashboardDistributionCard(data: snapshot.distribution!),
@@ -776,12 +785,14 @@ class _DashboardTrendCard extends StatelessWidget {
     required this.trendControlValue,
     required this.onTrendControlChanged,
     required this.showTrendControls,
+    required this.isLoading,
   });
 
   final ErpDashboardTrendCardData data;
   final ErpDashboardTrendControlValue? trendControlValue;
   final ValueChanged<ErpDashboardTrendControlValue>? onTrendControlChanged;
   final bool showTrendControls;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -807,7 +818,18 @@ class _DashboardTrendCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: AppUiConstants.spacingMd),
-          if (data.points.isEmpty)
+          if (isLoading)
+            const SizedBox(
+              height: AppUiConstants.dashboardChartHeight,
+              child: Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+              ),
+            )
+          else if (data.points.isEmpty)
             _DashboardInlineEmptyState(
               title: 'No trend points yet',
               message: data.emptyMessage,
@@ -1464,31 +1486,24 @@ class _TrendBarChartPainter extends CustomPainter {
         .clamp(1, double.infinity);
 
     final slotWidth = chartWidth / points.length;
-    final barWidth = math.max(
-      minBarWidth,
-      math.min(slotWidth * 0.56, 56.0),
-    );
+    final barWidth = math.max(minBarWidth, math.min(slotWidth * 0.56, 56.0));
 
     for (var index = 0; index < points.length; index += 1) {
       final point = points[index];
       final barColor = point.color ?? color;
       final barHeight = (point.value / maxValue) * chartHeight;
       final left =
-          horizontalPadding + (slotWidth * index) + ((slotWidth - barWidth) / 2);
+          horizontalPadding +
+          (slotWidth * index) +
+          ((slotWidth - barWidth) / 2);
       final top = verticalPadding + chartHeight - barHeight;
       final rect = RRect.fromRectAndRadius(
         Rect.fromLTWH(left, top, barWidth, barHeight),
         const Radius.circular(12),
       );
 
-      canvas.drawRRect(
-        rect,
-        Paint()..color = barColor.withValues(alpha: 0.18),
-      );
-      canvas.drawRRect(
-        rect,
-        Paint()..color = barColor,
-      );
+      canvas.drawRRect(rect, Paint()..color = barColor.withValues(alpha: 0.18));
+      canvas.drawRRect(rect, Paint()..color = barColor);
 
       final countPainter = TextPainter(
         text: TextSpan(
