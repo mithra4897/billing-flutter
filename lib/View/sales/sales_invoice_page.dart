@@ -16,6 +16,7 @@ class SalesInvoicePage extends StatefulWidget {
     this.editorOnly = false,
     this.initialId,
     this.initialQuotationId,
+    this.initialOrderId,
   });
 
   final bool embedded;
@@ -24,6 +25,7 @@ class SalesInvoicePage extends StatefulWidget {
 
   /// Prefills a **standalone** invoice from a quotation (API has no `sales_quotation_id` on invoices).
   final int? initialQuotationId;
+  final int? initialOrderId;
 
   @override
   State<SalesInvoicePage> createState() => _SalesInvoicePageState();
@@ -892,6 +894,12 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     }
   }
 
+  void _syncInventoryOptionsForLines(Iterable<_InvoiceLineDraft> lines) {
+    _syncWarehouseOptionsForLines(lines);
+    _syncBatchOptionsForLines(lines);
+    _syncSerialOptionsForLines(lines);
+  }
+
   Future<void> _refreshSerialAvailabilityForSave() async {
     final serialManagedLines = _lines
         .where((line) => _isSerialManagedItem(line.itemId))
@@ -1314,6 +1322,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         }
         _applyAutoInvoiceLinesFromSources();
       });
+      _syncInventoryOptionsForLines(_lines);
       unawaited(_ensureCustomerTaxContext(_customerPartyId));
       await _reloadSourceDocumentsForCompany(_companyId);
     } else {
@@ -1369,6 +1378,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         }
         _applyAutoInvoiceLinesFromSources();
       });
+      _syncInventoryOptionsForLines(_lines);
       unawaited(_ensureCustomerTaxContext(_customerPartyId));
       await _reloadSourceDocumentsForCompany(_companyId);
     } else {
@@ -1801,9 +1811,14 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         await _selectDocument(selected);
       } else {
         _resetForm();
-        final qPref = widget.initialQuotationId;
-        if (qPref != null && widget.editorOnly) {
-          await _prefillNewInvoiceFromQuotation(qPref);
+        final orderPref = widget.initialOrderId;
+        if (orderPref != null && widget.editorOnly) {
+          await _prefillNewInvoiceFromOrder(orderPref);
+        } else {
+          final qPref = widget.initialQuotationId;
+          if (qPref != null && widget.editorOnly) {
+            await _prefillNewInvoiceFromQuotation(qPref);
+          }
         }
       }
     } catch (error) {
@@ -1852,9 +1867,41 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             : lines;
         _formError = null;
       });
+      _syncInventoryOptionsForLines(_lines);
       unawaited(_ensureCustomerTaxContext(_customerPartyId));
       await _reloadSourceDocumentsForCompany(_companyId);
       await _refreshSalesChain(quotationId: quotationId);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _formError = e.toString());
+      }
+    }
+  }
+
+  Future<void> _prefillNewInvoiceFromOrder(int orderId) async {
+    try {
+      final orderJson = await _fetchOrderDetail(orderId);
+      if (orderJson == null || !mounted) {
+        return;
+      }
+      setState(() {
+        _salesOrderId = orderId;
+        _salesDeliveryId = null;
+        _deliveryLinesCache = null;
+        _applyInvoiceHeaderFromOrderJson(orderJson);
+        _invoiceNoController.clear();
+        _invoiceDateController.text = DateTime.now()
+            .toIso8601String()
+            .split('T')
+            .first;
+        _isActive = true;
+        _applyLinesFromOrderCache();
+        _formError = null;
+      });
+      _syncInventoryOptionsForLines(_lines);
+      unawaited(_ensureCustomerTaxContext(_customerPartyId));
+      await _reloadSourceDocumentsForCompany(_companyId);
+      await _refreshSalesChain();
     } catch (e) {
       if (mounted) {
         setState(() => _formError = e.toString());
@@ -1908,9 +1955,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       _lines = lines.isEmpty ? <_InvoiceLineDraft>[_InvoiceLineDraft()] : lines;
       _formError = null;
     });
-    _syncWarehouseOptionsForLines(_lines);
-    _syncBatchOptionsForLines(_lines);
-    _syncSerialOptionsForLines(_lines);
+    _syncInventoryOptionsForLines(_lines);
     unawaited(_ensureCustomerTaxContext(_customerPartyId));
     await _hydrateSourceCaches();
     if (!mounted) {

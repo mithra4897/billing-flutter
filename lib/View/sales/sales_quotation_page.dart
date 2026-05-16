@@ -39,6 +39,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'posted', label: 'Posted'),
         AppDropdownItem(value: 'sent', label: 'Sent'),
         AppDropdownItem(value: 'accepted', label: 'Accepted'),
         AppDropdownItem(value: 'rejected', label: 'Rejected'),
@@ -83,7 +84,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
   List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
-  List<WarehouseModel> _warehouses = const <WarehouseModel>[];
   List<TaxCodeModel> _taxCodes = const <TaxCodeModel>[];
   SalesQuotationModel? _selectedItem;
   int? _contextCompanyId;
@@ -211,9 +211,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         _inventoryService.uomConversionsAll(
           filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
         ),
-        _masterService.warehouses(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
         _inventoryService.taxCodes(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
@@ -286,13 +283,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     const <UomConversionModel>[])
                 .where((item) => item.isActive)
                 .toList();
-        _warehouses =
-            ((responses[11] as PaginatedResponse<WarehouseModel>).data ??
-                    const <WarehouseModel>[])
-                .where((item) => item.isActive)
-                .toList();
         _taxCodes =
-            ((responses[12] as PaginatedResponse<TaxCodeModel>).data ??
+            ((responses[11] as PaginatedResponse<TaxCodeModel>).data ??
                     const <TaxCodeModel>[])
                 .where((item) => item.isActive)
                 .toList();
@@ -1118,9 +1110,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                                   setUom: (u) => line.uomId = u,
                                   currentUomId: line.uomId,
                                   setTaxCodeId: (t) => line.taxCodeId = t,
-                                  setWarehouseId: (w) => line.warehouseId = w,
-                                  currentWarehouseId: line.warehouseId,
-                                  warehouses: _warehouses,
                                 );
                               });
                             },
@@ -1163,25 +1152,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                                       : null;
                                 },
                               );
-                            },
-                          ),
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Warehouse',
-                            mappedItems: _warehouses
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.warehouseId,
-                            onChanged: (value) {
-                              if (!_canEdit) {
-                                return;
-                              }
-                              setState(() => line.warehouseId = value);
                             },
                           ),
                           AppFormTextField(
@@ -1299,39 +1269,61 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       'expired',
                       'cancelled',
                     }.contains(_status)) ...[
-                  AppActionButton(
-                    icon: Icons.shopping_cart_outlined,
-                    label: 'Sales order',
-                    filled: false,
-                    onPressed: () {
-                      final id = intValue(_selectedItem!.toJson(), 'id');
-                      if (id == null) {
-                        return;
-                      }
-                      _openSalesShellRoute(
-                        context,
-                        '/sales/orders/new?quotation_id=$id',
-                      );
-                    },
-                  ),
-                  AppActionButton(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'Invoice',
-                    filled: false,
-                    onPressed: () {
-                      final id = intValue(_selectedItem!.toJson(), 'id');
-                      if (id == null) {
-                        return;
-                      }
-                      _openSalesShellRoute(
-                        context,
-                        '/sales/invoices/new?quotation_id=$id',
-                      );
-                    },
-                  ),
+                  if (_status == 'draft')
+                    AppActionButton(
+                      icon: Icons.publish_outlined,
+                      label: 'Post',
+                      filled: false,
+                      onPressed: () => _docAction(
+                        () => _salesService.postQuotation(
+                          intValue(_selectedItem!.toJson(), 'id')!,
+                          SalesQuotationModel(const <String, dynamic>{}),
+                        ),
+                      ),
+                    ),
+                  if (const {'posted', 'sent', 'accepted'}.contains(_status))
+                    AppActionButton(
+                      icon: Icons.shopping_cart_outlined,
+                      label: 'Sales order',
+                      filled: false,
+                      onPressed: () {
+                        final id = intValue(_selectedItem!.toJson(), 'id');
+                        if (id == null) {
+                          return;
+                        }
+                        _openSalesShellRoute(
+                          context,
+                          '/sales/orders/new?quotation_id=$id',
+                        );
+                      },
+                    ),
+                  if (const {'posted', 'sent', 'accepted'}.contains(_status))
+                    AppActionButton(
+                      icon: Icons.receipt_long_outlined,
+                      label: 'Invoice',
+                      filled: false,
+                      onPressed: () {
+                        final id = intValue(_selectedItem!.toJson(), 'id');
+                        if (id == null) {
+                          return;
+                        }
+                        _openSalesShellRoute(
+                          context,
+                          '/sales/invoices/new?quotation_id=$id',
+                        );
+                      },
+                    ),
                 ],
                 if (_selectedItem != null) ...[
                   if (_status == 'draft') ...[
+                    AppActionButton(
+                      icon: Icons.delete_outline,
+                      label: 'Delete',
+                      filled: false,
+                      onPressed: _delete,
+                    ),
+                  ],
+                  if (_status == 'posted')
                     AppActionButton(
                       icon: Icons.send_outlined,
                       label: 'Send to customer',
@@ -1343,13 +1335,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                         ),
                       ),
                     ),
-                    AppActionButton(
-                      icon: Icons.delete_outline,
-                      label: 'Delete',
-                      filled: false,
-                      onPressed: _delete,
-                    ),
-                  ],
                   if (_status == 'sent') ...[
                     AppActionButton(
                       icon: Icons.check_circle_outline,
@@ -1385,7 +1370,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       ),
                     ),
                   ],
-                  if (const {'draft', 'sent'}.contains(_status))
+                  if (const {'draft', 'posted', 'sent'}.contains(_status))
                     AppActionButton(
                       icon: Icons.block_outlined,
                       label: 'Cancel quote',
@@ -1409,8 +1394,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
 class _QuotationLineDraft {
   _QuotationLineDraft({
+    this.id,
     this.itemId,
-    this.warehouseId,
     this.uomId,
     this.taxCodeId,
     String? description,
@@ -1426,8 +1411,8 @@ class _QuotationLineDraft {
 
   factory _QuotationLineDraft.fromJson(Map<String, dynamic> json) {
     return _QuotationLineDraft(
+      id: intValue(json, 'id'),
       itemId: intValue(json, 'item_id'),
-      warehouseId: intValue(json, 'warehouse_id'),
       uomId: intValue(json, 'uom_id'),
       taxCodeId: intValue(json, 'tax_code_id'),
       description: stringValue(json, 'description'),
@@ -1438,8 +1423,8 @@ class _QuotationLineDraft {
     );
   }
 
+  int? id;
   int? itemId;
-  int? warehouseId;
   int? uomId;
   int? taxCodeId;
   final TextEditingController descriptionController;
@@ -1450,8 +1435,8 @@ class _QuotationLineDraft {
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      if (id != null) 'id': id,
       'item_id': itemId,
-      'warehouse_id': warehouseId,
       'uom_id': uomId,
       'tax_code_id': taxCodeId,
       'description': nullIfEmpty(descriptionController.text),

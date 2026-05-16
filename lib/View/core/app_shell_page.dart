@@ -905,6 +905,9 @@ class _AppShellPageState extends State<AppShellPage> {
           initialQuotationId: int.tryParse(
             _currentQueryParameters['quotation_id'] ?? '',
           ),
+          initialOrderId: int.tryParse(
+            _currentQueryParameters['order_id'] ?? '',
+          ),
         );
       case 'deliveries':
         return SalesDeliveryPage(

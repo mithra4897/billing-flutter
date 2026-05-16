@@ -74,6 +74,12 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   List<ItemModel> _itemsLookup = const <ItemModel>[];
   List<UomModel> _uoms = const <UomModel>[];
   List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
+  final Map<String, List<Map<String, dynamic>>>
+  _availableBatchesByItemWarehouse = <String, List<Map<String, dynamic>>>{};
+  final Set<String> _batchOptionsLoadingKeys = <String>{};
+  final Map<String, List<Map<String, dynamic>>>
+  _availableSerialsByItemWarehouse = <String, List<Map<String, dynamic>>>{};
+  final Set<String> _serialOptionsLoadingKeys = <String>{};
   SalesDeliveryModel? _selectedItem;
   int? _contextCompanyId;
   int? _contextBranchId;
@@ -115,7 +121,297 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     _lrNoController.dispose();
     _lrDateController.dispose();
     _notesController.dispose();
+    for (final line in _lines) {
+      line.dispose();
+    }
     super.dispose();
+  }
+
+  ItemModel? _itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    return _itemsLookup.cast<ItemModel?>().firstWhere(
+      (item) => item?.id == itemId,
+      orElse: () => null,
+    );
+  }
+
+  bool _isSerialManagedItem(int? itemId) => _itemById(itemId)?.hasSerial == true;
+
+  bool _isBatchManagedItem(int? itemId) => _itemById(itemId)?.hasBatch == true;
+
+  String _batchCacheKey(int? itemId, int? warehouseId) =>
+      '${itemId ?? 0}:${warehouseId ?? 0}:${_companyId ?? 0}';
+
+  String _serialCacheKey(int? itemId, int? warehouseId, [int? batchId]) =>
+      '${itemId ?? 0}:${warehouseId ?? 0}:${batchId ?? 0}:${_companyId ?? 0}';
+
+  List<String> _lineSerialNumbers(_SalesDeliveryLineDraft line) {
+    if (line.serialNumbers.isNotEmpty) {
+      return List<String>.from(line.serialNumbers);
+    }
+    final serialNo = line.serialNoController.text.trim();
+    return serialNo.isEmpty ? const <String>[] : <String>[serialNo];
+  }
+
+  void _setLineSerialNumbers(
+    _SalesDeliveryLineDraft line,
+    List<String> values,
+  ) {
+    final normalized = values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    line.serialNumbers = List<String>.from(normalized);
+    line.serialNoController.text = normalized.isEmpty ? '' : normalized.first;
+    if (_isSerialManagedItem(line.itemId)) {
+      line.deliveredQtyController.text = normalized.length.toString();
+    }
+  }
+
+  List<Map<String, dynamic>> _batchOptionsForLine(_SalesDeliveryLineDraft line) {
+    if (!_isBatchManagedItem(line.itemId) ||
+        line.itemId == null ||
+        line.warehouseId == null) {
+      return const <Map<String, dynamic>>[];
+    }
+    return _availableBatchesByItemWarehouse[_batchCacheKey(
+          line.itemId,
+          line.warehouseId,
+        )] ??
+        const <Map<String, dynamic>>[];
+  }
+
+  List<Map<String, dynamic>> _serialOptionsForLine(
+    _SalesDeliveryLineDraft line,
+  ) {
+    if (!_isSerialManagedItem(line.itemId) ||
+        line.itemId == null ||
+        line.warehouseId == null) {
+      return const <Map<String, dynamic>>[];
+    }
+    return _availableSerialsByItemWarehouse[_serialCacheKey(
+          line.itemId,
+          line.warehouseId,
+          line.batchId,
+        )] ??
+        const <Map<String, dynamic>>[];
+  }
+
+  Future<void> _syncBatchOptionsForLine(_SalesDeliveryLineDraft line) async {
+    final itemId = line.itemId;
+    final warehouseId = line.warehouseId;
+    if (itemId == null || warehouseId == null || !_isBatchManagedItem(itemId)) {
+      return;
+    }
+    final cacheKey = _batchCacheKey(itemId, warehouseId);
+    final cachedBatches = _availableBatchesByItemWarehouse[cacheKey];
+    if (cachedBatches != null) {
+      if (!mounted) {
+        return;
+      }
+      final hasSelectedBatch = cachedBatches.any(
+        (batch) =>
+            int.tryParse(batch['batch_id']?.toString() ?? '') == line.batchId,
+      );
+      if ((line.batchId != null && !hasSelectedBatch) ||
+          (line.batchId == null && cachedBatches.length == 1)) {
+        setState(() {
+          line.batchId = cachedBatches.length == 1
+              ? int.tryParse(cachedBatches.first['batch_id']?.toString() ?? '')
+              : null;
+        });
+      }
+      return;
+    }
+    if (_batchOptionsLoadingKeys.contains(cacheKey)) {
+      return;
+    }
+    _batchOptionsLoadingKeys.add(cacheKey);
+    try {
+      final response = await _inventoryService.inquiryBatchWiseStock(
+        itemId: itemId,
+        warehouseId: warehouseId,
+        companyId: _companyId,
+      );
+      final raw = response.data;
+      final batches = raw is List
+          ? raw
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .where((batch) {
+                  final qty =
+                      double.tryParse(batch['balance_qty']?.toString() ?? '') ??
+                      0;
+                  return qty > 0;
+                })
+                .toList(growable: false)
+          : const <Map<String, dynamic>>[];
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _availableBatchesByItemWarehouse[cacheKey] = batches;
+        final hasSelectedBatch = batches.any(
+          (batch) =>
+              int.tryParse(batch['batch_id']?.toString() ?? '') == line.batchId,
+        );
+        if (line.itemId == itemId &&
+            line.warehouseId == warehouseId &&
+            line.batchId != null &&
+            !hasSelectedBatch) {
+          line.batchId = batches.length == 1
+              ? int.tryParse(batches.first['batch_id']?.toString() ?? '')
+              : null;
+        } else if (line.itemId == itemId &&
+            line.warehouseId == warehouseId &&
+            line.batchId == null &&
+            batches.length == 1) {
+          line.batchId = int.tryParse(
+            batches.first['batch_id']?.toString() ?? '',
+          );
+        }
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _availableBatchesByItemWarehouse[cacheKey] =
+            const <Map<String, dynamic>>[];
+      });
+    } finally {
+      _batchOptionsLoadingKeys.remove(cacheKey);
+    }
+  }
+
+  Future<void> _syncSerialOptionsForLine(_SalesDeliveryLineDraft line) async {
+    final itemId = line.itemId;
+    final warehouseId = line.warehouseId;
+    if (itemId == null ||
+        warehouseId == null ||
+        !_isSerialManagedItem(itemId)) {
+      return;
+    }
+    final cacheKey = _serialCacheKey(itemId, warehouseId, line.batchId);
+    final cachedSerials = _availableSerialsByItemWarehouse[cacheKey];
+    if (cachedSerials != null) {
+      return;
+    }
+    if (_serialOptionsLoadingKeys.contains(cacheKey)) {
+      return;
+    }
+    _serialOptionsLoadingKeys.add(cacheKey);
+    try {
+      final response = await _inventoryService.inquiryAvailableSerials(
+        itemId: itemId,
+        warehouseId: warehouseId,
+        batchId: line.batchId,
+      );
+      final raw = response.data;
+      final serials = raw is List
+          ? raw
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList(growable: false)
+          : const <Map<String, dynamic>>[];
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _availableSerialsByItemWarehouse[cacheKey] = serials;
+        final validLabels = serials
+            .map(
+              (serial) =>
+                  (serial['serial_no']?.toString().trim().toLowerCase() ?? ''),
+            )
+            .where((value) => value.isNotEmpty)
+            .toSet();
+        final filtered = _lineSerialNumbers(line)
+            .where((value) => validLabels.contains(value.toLowerCase()))
+            .toList(growable: false);
+        _setLineSerialNumbers(line, filtered);
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _availableSerialsByItemWarehouse[cacheKey] =
+            const <Map<String, dynamic>>[];
+      });
+    } finally {
+      _serialOptionsLoadingKeys.remove(cacheKey);
+    }
+  }
+
+  void _syncInventoryOptionsForLines(Iterable<_SalesDeliveryLineDraft> lines) {
+    for (final line in lines) {
+      unawaited(_syncBatchOptionsForLine(line));
+      unawaited(_syncSerialOptionsForLine(line));
+    }
+  }
+
+  List<Map<String, dynamic>> _linesForSave() {
+    return _lines
+        .expand((line) {
+          final deliveredQty =
+              double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
+          final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+          final description = nullIfEmpty(line.descriptionController.text);
+          final remarks = nullIfEmpty(line.remarksController.text);
+
+          if (_isSerialManagedItem(line.itemId)) {
+            final serials = _lineSerialNumbers(line);
+            return serials.map((serialNo) {
+              final matched = _serialOptionsForLine(line)
+                  .cast<Map<String, dynamic>?>()
+                  .firstWhere(
+                    (serial) =>
+                        (serial?['serial_no']
+                                ?.toString()
+                                .trim()
+                                .toLowerCase() ??
+                            '') ==
+                        serialNo.toLowerCase(),
+                    orElse: () => null,
+                  );
+              return <String, dynamic>{
+                if (line.salesOrderLineId != null)
+                  'sales_order_line_id': line.salesOrderLineId,
+                'item_id': line.itemId,
+                'warehouse_id': line.warehouseId,
+                'uom_id': line.uomId,
+                if (line.batchId != null) 'batch_id': line.batchId,
+                if (matched != null)
+                  'serial_id': int.tryParse(
+                    matched['serial_id']?.toString() ?? '',
+                  ),
+                'description': description,
+                'delivered_qty': 1,
+                'rate': rate,
+                'remarks': remarks,
+              };
+            });
+          }
+
+          return <Map<String, dynamic>>[
+            <String, dynamic>{
+              if (line.salesOrderLineId != null)
+                'sales_order_line_id': line.salesOrderLineId,
+              'item_id': line.itemId,
+              'warehouse_id': line.warehouseId,
+              'uom_id': line.uomId,
+              if (line.batchId != null) 'batch_id': line.batchId,
+              'description': description,
+              'delivered_qty': deliveredQty,
+              'rate': rate,
+              'remarks': remarks,
+            },
+          ];
+        })
+        .toList(growable: false);
   }
 
   Future<void> _loadPage({int? selectId}) async {
@@ -280,6 +576,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         .whereType<Map<String, dynamic>>()
         .map(_SalesDeliveryLineDraft.fromJson)
         .toList(growable: true);
+    for (final old in _lines) {
+      old.dispose();
+    }
     setState(() {
       _selectedItem = full;
       _companyId = intValue(data, 'company_id');
@@ -306,6 +605,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           : lines;
       _formError = null;
     });
+    _syncInventoryOptionsForLines(_lines);
     await _refreshSalesChain();
   }
 
@@ -333,6 +633,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   }
 
   void _resetForm() {
+    for (final line in _lines) {
+      line.dispose();
+    }
     final series = _seriesOptions();
     setState(() {
       _selectedItem = null;
@@ -431,6 +734,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   }
 
   void _applyLinesFromOrderJson(Map<String, dynamic> data) {
+    for (final line in _lines) {
+      line.dispose();
+    }
     final drafts = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .map((line) {
@@ -443,6 +749,12 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             salesOrderLineId: intValue(line, 'id'),
             itemId: intValue(line, 'item_id'),
             warehouseId: intValue(line, 'warehouse_id'),
+            batchId: intValue(line, 'batch_id'),
+            serialNumbers: <String>[
+              if (stringValue(line, 'serial_no').trim().isNotEmpty)
+                stringValue(line, 'serial_no').trim(),
+            ],
+            serialNo: stringValue(line, 'serial_no'),
             uomId: intValue(line, 'uom_id'),
             description: stringValue(line, 'description'),
             deliveredQty: pending > 0 ? pending.toString() : '',
@@ -541,6 +853,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         _applyLinesFromOrderJson(data);
         _formError = null;
       });
+      _syncInventoryOptionsForLines(_lines);
     } catch (error) {
       if (!mounted) {
         return;
@@ -558,13 +871,16 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
 
   void _removeLine(int index) {
     setState(() {
-      _lines = List<_SalesDeliveryLineDraft>.from(_lines)..removeAt(index);
+      final next = List<_SalesDeliveryLineDraft>.from(_lines);
+      next.removeAt(index).dispose();
+      _lines = next;
       if (_lines.isEmpty) _lines.add(_SalesDeliveryLineDraft());
     });
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    _syncInventoryOptionsForLines(_lines);
     if (_lines.any(
       (line) =>
           line.itemId == null ||
@@ -598,7 +914,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       'lr_date': nullIfEmpty(_lrDateController.text),
       'notes': nullIfEmpty(_notesController.text),
       'is_active': _isActive,
-      'lines': _lines.map((line) => line.toJson()).toList(growable: false),
+      'lines': _linesForSave(),
     };
     try {
       final response = _selectedItem == null
@@ -921,6 +1237,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                             .toList(growable: false),
                         onChanged: (value) => setState(() {
                           line.itemId = value;
+                          line.batchId = null;
+                          line.serialNumbers = <String>[];
+                          line.serialNoController.clear();
                           final item = _itemsLookup
                               .cast<ItemModel?>()
                               .firstWhere(
@@ -938,6 +1257,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                             currentWarehouseId: line.warehouseId,
                             warehouses: _warehouses,
                           );
+                          if (_isSerialManagedItem(value)) {
+                            line.deliveredQtyController.text = '';
+                          }
                         }),
                         validator: (_) =>
                             line.itemId == null ? 'Item is required' : null,
@@ -954,10 +1276,63 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                             )
                             .toList(growable: false),
                         initialValue: line.warehouseId,
-                        onChanged: (value) =>
-                            setState(() => line.warehouseId = value),
+                        onChanged: (value) {
+                          setState(() {
+                            line.warehouseId = value;
+                            line.batchId = null;
+                            line.serialNumbers = <String>[];
+                            line.serialNoController.clear();
+                          });
+                          unawaited(_syncBatchOptionsForLine(line));
+                          unawaited(_syncSerialOptionsForLine(line));
+                        },
                         validator: Validators.requiredSelection('Warehouse'),
                       ),
+                      if (_isBatchManagedItem(line.itemId))
+                        AppDropdownField<int>.fromMapped(
+                          labelText: 'Batch',
+                          mappedItems: _batchOptionsForLine(line)
+                              .map(
+                                (batch) => AppDropdownItem<int>(
+                                  value:
+                                      int.tryParse(
+                                        batch['batch_id']?.toString() ?? '',
+                                      ) ??
+                                      0,
+                                  label: stringValue(
+                                    batch,
+                                    'batch_no',
+                                    'Batch',
+                                  ),
+                                ),
+                              )
+                              .where((item) => item.value != 0)
+                              .toList(growable: false),
+                          initialValue: line.batchId,
+                          onChanged: (value) {
+                            setState(() {
+                              line.batchId = value;
+                              line.serialNumbers = <String>[];
+                              line.serialNoController.clear();
+                            });
+                            unawaited(_syncSerialOptionsForLine(line));
+                          },
+                          validator: (_) {
+                            if (!_isBatchManagedItem(line.itemId)) {
+                              return null;
+                            }
+                            if (line.warehouseId == null) {
+                              return 'Select warehouse first';
+                            }
+                            final batches = _batchOptionsForLine(line);
+                            if (batches.isEmpty) {
+                              return 'No batches found for the selected warehouse';
+                            }
+                            return line.batchId == null
+                                ? 'Batch is required'
+                                : null;
+                          },
+                        ),
                       Builder(
                         builder: (context) {
                           final options = _uomOptionsForItem(line.itemId);
@@ -992,16 +1367,83 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                           );
                         },
                       ),
+                      if (_isSerialManagedItem(line.itemId))
+                        AppSerialNumbersField(
+                          values: line.serialNumbers,
+                          canOpen:
+                              ((_isBatchManagedItem(line.itemId)
+                                  ? line.batchId != null
+                                  : line.warehouseId != null) ||
+                              line.serialNumbers.isNotEmpty),
+                          beforeOpen: () => _syncSerialOptionsForLine(line),
+                          validator: (values) {
+                            final serialOptions = _serialOptionsForLine(line);
+                            if (line.warehouseId == null) {
+                              return 'Select warehouse first';
+                            }
+                            if (_isBatchManagedItem(line.itemId) &&
+                                line.batchId == null) {
+                              return 'Select batch first';
+                            }
+                            if (serialOptions.isEmpty) {
+                              return 'No serials found in backend for the selected warehouse.';
+                            }
+                            final serialLabelSet = serialOptions
+                                .map(
+                                  (serial) =>
+                                      (serial['serial_no']
+                                          ?.toString()
+                                          .trim()
+                                          .toLowerCase() ??
+                                      ''),
+                                )
+                                .where((value) => value.isNotEmpty)
+                                .toSet();
+                            for (final value in values) {
+                              if (!serialLabelSet.contains(
+                                value.trim().toLowerCase(),
+                              )) {
+                                return 'Serial "$value" is not available for the selected warehouse/batch.';
+                              }
+                            }
+                            return null;
+                          },
+                          onChanged: (values) {
+                            setState(() {
+                              _setLineSerialNumbers(line, values);
+                            });
+                          },
+                        ),
                       AppFormTextField(
                         labelText: 'Delivered Qty',
                         controller: line.deliveredQtyController,
+                        enabled: !_isSerialManagedItem(line.itemId),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        validator: Validators.compose([
-                          Validators.required('Delivered Qty'),
-                          Validators.optionalNonNegativeNumber('Delivered Qty'),
-                        ]),
+                        validator: (_) {
+                          final text = line.deliveredQtyController.text.trim();
+                          if (text.isEmpty) {
+                            return 'Delivered Qty is required';
+                          }
+                          final qty = double.tryParse(text);
+                          if (qty == null || qty < 0) {
+                            return 'Delivered Qty must be a valid non-negative number';
+                          }
+                          if (qty <= 0) {
+                            return 'Delivered Qty must be greater than zero';
+                          }
+                          if (_isSerialManagedItem(line.itemId)) {
+                            final serialCount = _lineSerialNumbers(line).length;
+                            if (serialCount == 0) {
+                              return 'Add at least one serial number';
+                            }
+                            if (qty != serialCount) {
+                              return 'Qty must match serial count';
+                            }
+                          }
+                          return null;
+                        },
                       ),
                       AppFormTextField(
                         labelText: 'Rate',
@@ -1082,7 +1524,10 @@ class _SalesDeliveryLineDraft {
     this.salesOrderLineId,
     this.itemId,
     this.warehouseId,
+    this.batchId,
     this.uomId,
+    List<String>? serialNumbers,
+    String? serialNo,
     String? description,
     String? deliveredQty,
     String? rate,
@@ -1090,14 +1535,22 @@ class _SalesDeliveryLineDraft {
   }) : descriptionController = TextEditingController(text: description ?? ''),
        deliveredQtyController = TextEditingController(text: deliveredQty ?? ''),
        rateController = TextEditingController(text: rate ?? ''),
-       remarksController = TextEditingController(text: remarks ?? '');
+       remarksController = TextEditingController(text: remarks ?? ''),
+       serialNoController = TextEditingController(text: serialNo ?? ''),
+       serialNumbers = List<String>.from(serialNumbers ?? const <String>[]);
 
   factory _SalesDeliveryLineDraft.fromJson(Map<String, dynamic> json) {
     return _SalesDeliveryLineDraft(
       salesOrderLineId: intValue(json, 'sales_order_line_id'),
       itemId: intValue(json, 'item_id'),
       warehouseId: intValue(json, 'warehouse_id'),
+      batchId: intValue(json, 'batch_id'),
       uomId: intValue(json, 'uom_id'),
+      serialNumbers: <String>[
+        if (stringValue(json, 'serial_no').trim().isNotEmpty)
+          stringValue(json, 'serial_no').trim(),
+      ],
+      serialNo: stringValue(json, 'serial_no'),
       description: stringValue(json, 'description'),
       deliveredQty: stringValue(json, 'delivered_qty'),
       rate: stringValue(json, 'rate'),
@@ -1108,22 +1561,34 @@ class _SalesDeliveryLineDraft {
   int? salesOrderLineId;
   int? itemId;
   int? warehouseId;
+  int? batchId;
   int? uomId;
+  List<String> serialNumbers;
   final TextEditingController descriptionController;
   final TextEditingController deliveredQtyController;
   final TextEditingController rateController;
   final TextEditingController remarksController;
+  final TextEditingController serialNoController;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       if (salesOrderLineId != null) 'sales_order_line_id': salesOrderLineId,
       'item_id': itemId,
       'warehouse_id': warehouseId,
+      if (batchId != null) 'batch_id': batchId,
       'uom_id': uomId,
       'description': nullIfEmpty(descriptionController.text),
       'delivered_qty': double.tryParse(deliveredQtyController.text.trim()) ?? 0,
       'rate': double.tryParse(rateController.text.trim()) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),
     };
+  }
+
+  void dispose() {
+    descriptionController.dispose();
+    deliveredQtyController.dispose();
+    rateController.dispose();
+    remarksController.dispose();
+    serialNoController.dispose();
   }
 }

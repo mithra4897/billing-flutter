@@ -48,6 +48,14 @@ class SalesService extends ErpModuleService {
   );
   Future<ApiResponse<dynamic>> deleteQuotation(int id) =>
       destroy('/sales/quotations/$id');
+  Future<ApiResponse<SalesQuotationModel>> postQuotation(
+    int id,
+    SalesQuotationModel body,
+  ) => actionModel<SalesQuotationModel>(
+    '/sales/quotations/$id/post',
+    body: body,
+    fromJson: SalesQuotationModel.fromJson,
+  );
   Future<ApiResponse<SalesQuotationModel>> sendQuotation(
     int id,
     SalesQuotationModel body,

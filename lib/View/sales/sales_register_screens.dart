@@ -27,10 +27,12 @@ class SalesQuotationRegisterPage extends StatefulWidget {
       _SalesQuotationRegisterPageState();
 }
 
-class _SalesQuotationRegisterPageState extends State<SalesQuotationRegisterPage> {
+class _SalesQuotationRegisterPageState
+    extends State<SalesQuotationRegisterPage> {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
+    AppDropdownItem(value: 'posted', label: 'Posted'),
     AppDropdownItem(value: 'sent', label: 'Sent'),
     AppDropdownItem(value: 'accepted', label: 'Accepted'),
     AppDropdownItem(value: 'rejected', label: 'Rejected'),
@@ -90,13 +92,15 @@ class _SalesQuotationRegisterPageState extends State<SalesQuotationRegisterPage>
     return _rows
         .where((row) {
           final data = row.toJson();
-          final statusOk = _status.isEmpty ||
+          final statusOk =
+              _status.isEmpty ||
               stringValue(data, 'quotation_status') == _status;
           final customer = data['customer'];
           final custName = customer is Map
               ? stringValue(Map<String, dynamic>.from(customer), 'party_name')
               : '';
-          final searchOk = query.isEmpty ||
+          final searchOk =
+              query.isEmpty ||
               [
                 stringValue(data, 'quotation_no'),
                 stringValue(data, 'quotation_status'),
@@ -118,7 +122,8 @@ class _SalesQuotationRegisterPageState extends State<SalesQuotationRegisterPage>
       emptyMessage: 'No quotations yet. Create a quote for your customer.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () => _openSalesShellRoute(context, '/sales/quotations/new'),
+          onPressed: () =>
+              _openSalesShellRoute(context, '/sales/quotations/new'),
           icon: Icons.add_outlined,
           label: 'New quotation',
         ),
@@ -138,9 +143,8 @@ class _SalesQuotationRegisterPageState extends State<SalesQuotationRegisterPage>
         ),
         PurchaseRegisterColumn(
           label: 'Date',
-          valueBuilder: (row) => displayDate(
-            nullableStringValue(row.toJson(), 'quotation_date'),
-          ),
+          valueBuilder: (row) =>
+              displayDate(nullableStringValue(row.toJson(), 'quotation_date')),
         ),
         PurchaseRegisterColumn(
           label: 'Customer',
@@ -156,14 +160,12 @@ class _SalesQuotationRegisterPageState extends State<SalesQuotationRegisterPage>
         ),
         PurchaseRegisterColumn(
           label: 'Valid until',
-          valueBuilder: (row) => displayDate(
-            nullableStringValue(row.toJson(), 'valid_until'),
-          ),
+          valueBuilder: (row) =>
+              displayDate(nullableStringValue(row.toJson(), 'valid_until')),
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) =>
-              stringValue(row.toJson(), 'quotation_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'quotation_status'),
         ),
         PurchaseRegisterColumn(
           label: 'Total',
@@ -184,8 +186,7 @@ class SalesOrderRegisterPage extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<SalesOrderRegisterPage> createState() =>
-      _SalesOrderRegisterPageState();
+  State<SalesOrderRegisterPage> createState() => _SalesOrderRegisterPageState();
 }
 
 class _SalesOrderRegisterPageState extends State<SalesOrderRegisterPage> {
@@ -253,13 +254,14 @@ class _SalesOrderRegisterPageState extends State<SalesOrderRegisterPage> {
     return _rows
         .where((row) {
           final data = row.toJson();
-          final statusOk = _status.isEmpty ||
-              stringValue(data, 'order_status') == _status;
+          final statusOk =
+              _status.isEmpty || stringValue(data, 'order_status') == _status;
           final customer = data['customer'];
           final custName = customer is Map
               ? stringValue(Map<String, dynamic>.from(customer), 'party_name')
               : '';
-          final searchOk = query.isEmpty ||
+          final searchOk =
+              query.isEmpty ||
               [
                 stringValue(data, 'order_no'),
                 stringValue(data, 'order_status'),
@@ -278,7 +280,8 @@ class _SalesOrderRegisterPageState extends State<SalesOrderRegisterPage> {
       loading: _loading,
       errorMessage: _error,
       onRetry: _load,
-      emptyMessage: 'No sales orders yet. Create an order from a quote or directly.',
+      emptyMessage:
+          'No sales orders yet. Create an order from a quote or directly.',
       actions: [
         AdaptiveShellActionButton(
           onPressed: () => _openSalesShellRoute(context, '/sales/orders/new'),
@@ -301,9 +304,8 @@ class _SalesOrderRegisterPageState extends State<SalesOrderRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Date',
-          valueBuilder: (row) => displayDate(
-            nullableStringValue(row.toJson(), 'order_date'),
-          ),
+          valueBuilder: (row) =>
+              displayDate(nullableStringValue(row.toJson(), 'order_date')),
         ),
         PurchaseRegisterColumn(
           label: 'Customer',
@@ -418,7 +420,8 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
           final custName = customer is Map
               ? stringValue(Map<String, dynamic>.from(customer), 'party_name')
               : '';
-          final searchOk = query.isEmpty ||
+          final searchOk =
+              query.isEmpty ||
               [
                 row.invoiceNo ?? '',
                 st,
@@ -460,9 +463,8 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Date',
-          valueBuilder: (row) => displayDate(
-            row.invoiceDate.isEmpty ? null : row.invoiceDate,
-          ),
+          valueBuilder: (row) =>
+              displayDate(row.invoiceDate.isEmpty ? null : row.invoiceDate),
         ),
         PurchaseRegisterColumn(
           label: 'Customer',
@@ -493,10 +495,8 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
           valueBuilder: (row) => row.balanceAmount?.toStringAsFixed(2) ?? '',
         ),
       ],
-      onRowTap: (row) => _openSalesShellRoute(
-        context,
-        '/sales/invoices/${row.id}',
-      ),
+      onRowTap: (row) =>
+          _openSalesShellRoute(context, '/sales/invoices/${row.id}'),
     );
   }
 }
@@ -516,10 +516,7 @@ class _SalesDeliveryRegisterPageState extends State<SalesDeliveryRegisterPage> {
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
     AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(
-      value: 'partially_invoiced',
-      label: 'Partially invoiced',
-    ),
+    AppDropdownItem(value: 'partially_invoiced', label: 'Partially invoiced'),
     AppDropdownItem(value: 'fully_invoiced', label: 'Fully invoiced'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
@@ -576,9 +573,11 @@ class _SalesDeliveryRegisterPageState extends State<SalesDeliveryRegisterPage> {
     return _rows
         .where((row) {
           final data = row.toJson();
-          final statusOk = _status.isEmpty ||
+          final statusOk =
+              _status.isEmpty ||
               stringValue(data, 'delivery_status') == _status;
-          final searchOk = query.isEmpty ||
+          final searchOk =
+              query.isEmpty ||
               [
                 stringValue(data, 'delivery_no'),
                 stringValue(data, 'delivery_status'),
@@ -621,9 +620,8 @@ class _SalesDeliveryRegisterPageState extends State<SalesDeliveryRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Date',
-          valueBuilder: (row) => displayDate(
-            nullableStringValue(row.toJson(), 'delivery_date'),
-          ),
+          valueBuilder: (row) =>
+              displayDate(nullableStringValue(row.toJson(), 'delivery_date')),
         ),
         PurchaseRegisterColumn(
           label: 'Customer',
@@ -632,8 +630,7 @@ class _SalesDeliveryRegisterPageState extends State<SalesDeliveryRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) =>
-              stringValue(row.toJson(), 'delivery_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'delivery_status'),
         ),
       ],
       onRowTap: (row) => _openSalesShellRoute(
@@ -659,10 +656,7 @@ class _SalesReceiptRegisterPageState extends State<SalesReceiptRegisterPage> {
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
     AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(
-      value: 'partially_allocated',
-      label: 'Partially allocated',
-    ),
+    AppDropdownItem(value: 'partially_allocated', label: 'Partially allocated'),
     AppDropdownItem(value: 'fully_allocated', label: 'Fully allocated'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
@@ -719,9 +713,10 @@ class _SalesReceiptRegisterPageState extends State<SalesReceiptRegisterPage> {
     return _rows
         .where((row) {
           final data = row.toJson();
-          final statusOk = _status.isEmpty ||
-              stringValue(data, 'receipt_status') == _status;
-          final searchOk = query.isEmpty ||
+          final statusOk =
+              _status.isEmpty || stringValue(data, 'receipt_status') == _status;
+          final searchOk =
+              query.isEmpty ||
               [
                 stringValue(data, 'receipt_no'),
                 stringValue(data, 'receipt_status'),
@@ -743,8 +738,7 @@ class _SalesReceiptRegisterPageState extends State<SalesReceiptRegisterPage> {
       emptyMessage: 'No receipts yet. Record customer payments here.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () =>
-              _openSalesShellRoute(context, '/sales/receipts/new'),
+          onPressed: () => _openSalesShellRoute(context, '/sales/receipts/new'),
           icon: Icons.add_outlined,
           label: 'New receipt',
         ),
@@ -764,9 +758,8 @@ class _SalesReceiptRegisterPageState extends State<SalesReceiptRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Date',
-          valueBuilder: (row) => displayDate(
-            nullableStringValue(row.toJson(), 'receipt_date'),
-          ),
+          valueBuilder: (row) =>
+              displayDate(nullableStringValue(row.toJson(), 'receipt_date')),
         ),
         PurchaseRegisterColumn(
           label: 'Customer',
@@ -775,13 +768,11 @@ class _SalesReceiptRegisterPageState extends State<SalesReceiptRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Mode',
-          valueBuilder: (row) =>
-              stringValue(row.toJson(), 'payment_mode'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'payment_mode'),
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) =>
-              stringValue(row.toJson(), 'receipt_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'receipt_status'),
         ),
         PurchaseRegisterColumn(
           label: 'Paid',
@@ -866,9 +857,10 @@ class _SalesReturnRegisterPageState extends State<SalesReturnRegisterPage> {
     return _rows
         .where((row) {
           final data = row.toJson();
-          final statusOk = _status.isEmpty ||
-              stringValue(data, 'return_status') == _status;
-          final searchOk = query.isEmpty ||
+          final statusOk =
+              _status.isEmpty || stringValue(data, 'return_status') == _status;
+          final searchOk =
+              query.isEmpty ||
               [
                 stringValue(data, 'return_no'),
                 stringValue(data, 'return_status'),
@@ -910,9 +902,8 @@ class _SalesReturnRegisterPageState extends State<SalesReturnRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Date',
-          valueBuilder: (row) => displayDate(
-            nullableStringValue(row.toJson(), 'return_date'),
-          ),
+          valueBuilder: (row) =>
+              displayDate(nullableStringValue(row.toJson(), 'return_date')),
         ),
         PurchaseRegisterColumn(
           label: 'Customer',
@@ -921,8 +912,7 @@ class _SalesReturnRegisterPageState extends State<SalesReturnRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) =>
-              stringValue(row.toJson(), 'return_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'return_status'),
         ),
       ],
       onRowTap: (row) => _openSalesShellRoute(

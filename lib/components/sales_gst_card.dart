@@ -257,25 +257,6 @@ class SalesLineTaxPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final appTheme = theme.extension<AppThemeExtension>()!;
-    final pieces = <String>[
-      'Gross ${gross.toStringAsFixed(2)}',
-      'Taxable ${taxable.toStringAsFixed(2)}',
-      if (cgst > 0) 'CGST ${cgst.toStringAsFixed(2)}',
-      if (sgst > 0) 'SGST ${sgst.toStringAsFixed(2)}',
-      if (igst > 0) 'IGST ${igst.toStringAsFixed(2)}',
-      if (cess > 0) 'CESS ${cess.toStringAsFixed(2)}',
-      'Line total ${total.toStringAsFixed(2)}',
-      currencyCode,
-    ];
-    if (taxCodeLabel != null && taxCodeLabel!.trim().isNotEmpty) {
-      pieces.insert(0, taxCodeLabel!.trim());
-    }
-
-    return Text(
-      pieces.join(' · '),
-      style: theme.textTheme.bodySmall?.copyWith(color: appTheme.mutedText),
-    );
+    return const SizedBox.shrink();
   }
 }

@@ -7,6 +7,15 @@ import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
 
+void _openSalesShellRoute(BuildContext context, String route) {
+  final navigate = ShellRouteScope.maybeOf(context);
+  if (navigate != null) {
+    navigate(route);
+    return;
+  }
+  Navigator.of(context).pushNamed(route);
+}
+
 class SalesOrderPage extends StatefulWidget {
   const SalesOrderPage({
     super.key,
@@ -137,7 +146,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             return false;
           }
           final st = stringValue(j, 'quotation_status');
-          return const {'accepted', 'sent', 'draft'}.contains(st);
+          return const {'posted', 'sent', 'accepted'}.contains(st);
         })
         .toList(growable: false);
   }
@@ -1460,6 +1469,26 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   busy: _saving,
                 ),
                 if (_selectedItem != null) ...[
+                  if (const {
+                    'confirmed',
+                    'partially_delivered',
+                    'partially_invoiced',
+                  }.contains(_status))
+                    AppActionButton(
+                      icon: Icons.receipt_long_outlined,
+                      label: 'Invoice',
+                      filled: false,
+                      onPressed: () {
+                        final id = intValue(_selectedItem!.toJson(), 'id');
+                        if (id == null) {
+                          return;
+                        }
+                        _openSalesShellRoute(
+                          context,
+                          '/sales/invoices/new?order_id=$id',
+                        );
+                      },
+                    ),
                   if (_status == 'draft') ...[
                     AppActionButton(
                       icon: Icons.check_circle_outline,
