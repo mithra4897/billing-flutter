@@ -1,9 +1,16 @@
 import '../../screen.dart';
 
 class CrmSourcesPage extends StatefulWidget {
-  const CrmSourcesPage({super.key, this.embedded = false});
+  const CrmSourcesPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.startInNewMode = false,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final bool startInNewMode;
 
   @override
   State<CrmSourcesPage> createState() => _CrmSourcesPageState();
@@ -26,6 +33,7 @@ class _CrmSourcesPageState extends State<CrmSourcesPage> {
   List<CrmSourceModel> _filteredItems = const <CrmSourceModel>[];
   CrmSourceModel? _selectedItem;
   bool _isActive = true;
+  bool _appliedInitialNewMode = false;
 
   @override
   void initState() {
@@ -63,6 +71,14 @@ class _CrmSourcesPageState extends State<CrmSourcesPage> {
         _initialLoading = false;
       });
       _applySearch();
+
+      if (widget.startInNewMode &&
+          selectId == null &&
+          !_appliedInitialNewMode) {
+        _appliedInitialNewMode = true;
+        _resetForm();
+        return;
+      }
 
       final selected = selectId != null
           ? items.cast<CrmSourceModel?>().firstWhere(
@@ -150,7 +166,9 @@ class _CrmSourcesPageState extends State<CrmSourcesPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(response.data?.toJson() ?? const {}, 'id'));
+      await _loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -229,6 +247,7 @@ class _CrmSourcesPageState extends State<CrmSourcesPage> {
       title: 'CRM Sources',
       scrollController: _pageScrollController,
       controller: _workspaceController,
+      editorOnly: widget.editorOnly,
       editorTitle: _selectedItem?.toString() ?? 'New Source',
       list: SettingsListCard<CrmSourceModel>(
         searchController: _searchController,
@@ -282,7 +301,9 @@ class _CrmSourcesPageState extends State<CrmSourcesPage> {
               children: [
                 AppActionButton(
                   icon: Icons.save_outlined,
-                  label: _selectedItem == null ? 'Save Source' : 'Update Source',
+                  label: _selectedItem == null
+                      ? 'Save Source'
+                      : 'Update Source',
                   onPressed: _save,
                   busy: _saving,
                 ),

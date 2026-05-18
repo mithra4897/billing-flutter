@@ -6,10 +6,14 @@ class CrmOpportunitiesPage extends StatefulWidget {
   const CrmOpportunitiesPage({
     super.key,
     this.embedded = false,
+    this.editorOnly = false,
+    this.startInNewMode = false,
     this.initialSelectId,
   });
 
   final bool embedded;
+  final bool editorOnly;
+  final bool startInNewMode;
   final int? initialSelectId;
 
   @override
@@ -18,10 +22,10 @@ class CrmOpportunitiesPage extends StatefulWidget {
 
 class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     with SingleTickerProviderStateMixin {
+  static const int _allFilterIntValue = 0;
+  static const String _allFilterStringValue = '__all__';
   static const List<AppDropdownItem<String>> _statusItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'open', label: 'Open'),
-      ];
+      <AppDropdownItem<String>>[AppDropdownItem(value: 'open', label: 'Open')];
   static const List<AppDropdownItem<String>> _filterStatusItems =
       <AppDropdownItem<String>>[
         ..._statusItems,
@@ -67,6 +71,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   List<_OpportunityProductDraft> _products = <_OpportunityProductDraft>[];
   int? _expandedProductIndex;
   Map<String, dynamic>? _salesChain;
+  bool _appliedInitialNewMode = false;
+  bool _filtersApplied = false;
 
   static bool _isCompletedOpportunity(CrmOpportunityModel item) =>
       stringValue(item.toJson(), 'status') == 'won';
@@ -102,6 +108,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   @override
   void didUpdateWidget(covariant CrmOpportunitiesPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.startInNewMode != oldWidget.startInNewMode) {
+      _appliedInitialNewMode = false;
+    }
     if (widget.initialSelectId != null &&
         widget.initialSelectId != oldWidget.initialSelectId) {
       _loadPage(selectId: widget.initialSelectId);
@@ -180,6 +189,14 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       });
       _applySearch();
 
+      if (widget.startInNewMode &&
+          selectId == null &&
+          !_appliedInitialNewMode) {
+        _appliedInitialNewMode = true;
+        _resetForm();
+        return;
+      }
+
       final selected = selectId != null
           ? _items.cast<CrmOpportunityModel?>().firstWhere(
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
@@ -224,8 +241,16 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               .where((item) {
                 final data = item.toJson();
                 final isCompletedOpportunity = _isCompletedOpportunity(item);
-                final requestedStatus = (_filterStatus ?? '').trim();
-                if (isCompletedOpportunity && requestedStatus != 'won') {
+                final requestedStatus =
+                    (_filtersApplied
+                            ? (_filterStatus ?? _allFilterStringValue)
+                            : (_filterStatus ?? ''))
+                        .trim();
+                final showAllStatuses =
+                    _filtersApplied && requestedStatus == _allFilterStringValue;
+                if (isCompletedOpportunity &&
+                    !showAllStatuses &&
+                    requestedStatus != 'won') {
                   return false;
                 }
                 final closeDate = displayDate(
@@ -242,6 +267,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                   return false;
                 }
                 if ((_filterStatus ?? '').isNotEmpty &&
+                    _filterStatus != _allFilterStringValue &&
                     stringValue(data, 'status') != _filterStatus) {
                   return false;
                 }
@@ -319,27 +345,42 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Stage',
-                          initialValue: _filterStageId,
-                          mappedItems: _stages
-                              .where(
-                                (item) => intValue(item.toJson(), 'id') != null,
-                              )
-                              .map(
-                                (item) => AppDropdownItem(
-                                  value: intValue(item.toJson(), 'id')!,
-                                  label: item.toString(),
+                          initialValue: _filterStageId ?? _allFilterIntValue,
+                          mappedItems: <AppDropdownItem<int>>[
+                            const AppDropdownItem<int>(
+                              value: _allFilterIntValue,
+                              label: 'All',
+                            ),
+                            ..._stages
+                                .where(
+                                  (item) =>
+                                      intValue(item.toJson(), 'id') != null,
+                                )
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item.toJson(), 'id')!,
+                                    label: item.toString(),
+                                  ),
                                 ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) =>
-                              setState(() => _filterStageId = value),
+                          ],
+                          onChanged: (value) => setState(
+                            () => _filterStageId = value == _allFilterIntValue
+                                ? null
+                                : value,
+                          ),
                         ),
                       ),
                       _filterBox(
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
-                          initialValue: _filterStatus,
-                          mappedItems: _filterStatusItems,
+                          initialValue: _filterStatus ?? _allFilterStringValue,
+                          mappedItems: <AppDropdownItem<String>>[
+                            const AppDropdownItem<String>(
+                              value: _allFilterStringValue,
+                              label: 'All',
+                            ),
+                            ..._filterStatusItems,
+                          ],
                           onChanged: (value) =>
                               setState(() => _filterStatus = value),
                         ),
@@ -370,7 +411,10 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                     runSpacing: 12,
                     children: [
                       FilledButton.icon(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        onPressed: () {
+                          setState(() => _filtersApplied = true);
+                          Navigator.of(dialogContext).pop(true);
+                        },
                         icon: const Icon(Icons.search),
                         label: const Text('Apply Filters'),
                       ),
@@ -379,6 +423,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                           setState(() {
                             _filterStageId = null;
                             _filterStatus = null;
+                            _filtersApplied = false;
                             _filterCloseFromController.clear();
                             _filterCloseToController.clear();
                           });
@@ -408,9 +453,10 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         'Search: ${_searchController.text.trim()}',
       if (_filterEnquiryId != null)
         'Enquiry: ${_enquiries.cast<CrmEnquiryModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterEnquiryId, orElse: () => null)?.toString() ?? _filterEnquiryId}',
-      if (_filterStageId != null)
-        'Stage: ${_stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterStageId, orElse: () => null)?.toString() ?? _filterStageId}',
-      if ((_filterStatus ?? '').isNotEmpty) 'Status: $_filterStatus',
+      if (_filterStageId != null || _filtersApplied)
+        'Stage: ${_filterStageId == null ? 'All' : _stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterStageId, orElse: () => null)?.toString() ?? _filterStageId}',
+      if ((_filterStatus ?? '').isNotEmpty || _filtersApplied)
+        'Status: ${(_filterStatus ?? _allFilterStringValue) == _allFilterStringValue ? 'All' : _filterStatus}',
       if (_filterCloseFromController.text.trim().isNotEmpty)
         'Close From: ${_filterCloseFromController.text.trim()}',
       if (_filterCloseToController.text.trim().isNotEmpty)
@@ -724,6 +770,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       title: 'CRM Opportunities',
       scrollController: _pageScrollController,
       controller: _workspaceController,
+      editorOnly: widget.editorOnly,
       editorTitle: _selectedItem?.toString() ?? 'New Opportunity',
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -733,6 +780,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               _filterEnquiryId != null ||
               _filterStageId != null ||
               (_filterStatus ?? '').isNotEmpty ||
+              _filtersApplied ||
               _filterCloseFromController.text.trim().isNotEmpty ||
               _filterCloseToController.text.trim().isNotEmpty)
             const SizedBox(height: AppUiConstants.spacingMd),

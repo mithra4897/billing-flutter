@@ -597,9 +597,7 @@ class _AppShellPageState extends State<AppShellPage> {
         return CrmLeadsPage(
           key: routeKey,
           embedded: true,
-          startInNewMode:
-              (_currentQueryParameters['new'] ?? '') == '1' ||
-              (_currentQueryParameters['new'] ?? '').toLowerCase() == 'true',
+          startInNewMode: true,
           initialLeadName: _currentQueryParameters['lead_name'],
           initialCompanyId: int.tryParse(
             _currentQueryParameters['company_id'] ?? '',
@@ -609,6 +607,7 @@ class _AppShellPageState extends State<AppShellPage> {
         return CrmEnquiriesPage(
           key: routeKey,
           embedded: true,
+          startInNewMode: _currentQueryParameters['select_id'] == null,
           initialSelectId: int.tryParse(
             _currentQueryParameters['select_id'] ?? '',
           ),
@@ -617,14 +616,23 @@ class _AppShellPageState extends State<AppShellPage> {
         return CrmOpportunitiesPage(
           key: routeKey,
           embedded: true,
+          startInNewMode: _currentQueryParameters['select_id'] == null,
           initialSelectId: int.tryParse(
             _currentQueryParameters['select_id'] ?? '',
           ),
         );
       case '/crm/sources':
-        return CrmSourcesPage(key: routeKey, embedded: true);
+        return CrmSourcesPage(
+          key: routeKey,
+          embedded: true,
+          startInNewMode: true,
+        );
       case '/crm/stages':
-        return CrmStagesPage(key: routeKey, embedded: true);
+        return CrmStagesPage(
+          key: routeKey,
+          embedded: true,
+          startInNewMode: true,
+        );
       case '/parties':
         return PartyManagementPage(
           key: routeKey,

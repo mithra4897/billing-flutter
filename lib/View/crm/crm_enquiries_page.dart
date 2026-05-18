@@ -15,10 +15,14 @@ class CrmEnquiriesPage extends StatefulWidget {
   const CrmEnquiriesPage({
     super.key,
     this.embedded = false,
+    this.editorOnly = false,
+    this.startInNewMode = false,
     this.initialSelectId,
   });
 
   final bool embedded;
+  final bool editorOnly;
+  final bool startInNewMode;
 
   /// Deep link from lead conversion: `/crm/enquiries?select_id=…`
   final int? initialSelectId;
@@ -29,6 +33,8 @@ class CrmEnquiriesPage extends StatefulWidget {
 
 class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     with SingleTickerProviderStateMixin {
+  static const int _allFilterIntValue = 0;
+  static const String _allFilterStringValue = '__all__';
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'open', label: 'Open'),
@@ -38,6 +44,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       <AppDropdownItem<String>>[
         ..._statusItems,
         AppDropdownItem(value: 'converted', label: 'Converted'),
+        AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
   static const List<AppDropdownItem<String>> _followupStatuses =
       <AppDropdownItem<String>>[
@@ -96,9 +103,13 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   int? _expandedFollowupIndex;
   Map<String, dynamic>? _salesChain;
   BuildContext? _primaryFormContext;
+  bool _appliedInitialNewMode = false;
+  bool _filtersApplied = false;
 
-  static bool _isCompletedEnquiry(CrmEnquiryModel item) =>
-      stringValue(item.toJson(), 'enquiry_status') == 'converted';
+  static bool _isHiddenByDefaultEnquiry(CrmEnquiryModel item) {
+    final status = stringValue(item.toJson(), 'enquiry_status');
+    return status == 'converted' || status == 'lost';
+  }
 
   static bool _isLockedEnquiryStatus(String status) =>
       status == 'converted' || status == 'lost';
@@ -135,6 +146,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   @override
   void didUpdateWidget(covariant CrmEnquiriesPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.startInNewMode != oldWidget.startInNewMode) {
+      _appliedInitialNewMode = false;
+    }
     if (widget.initialSelectId != null &&
         widget.initialSelectId != oldWidget.initialSelectId) {
       _loadPage(selectId: widget.initialSelectId);
@@ -304,6 +318,14 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       });
       _applySearch();
 
+      if (widget.startInNewMode &&
+          selectId == null &&
+          !_appliedInitialNewMode) {
+        _appliedInitialNewMode = true;
+        _resetForm();
+        return;
+      }
+
       final selected = selectId != null
           ? _items.cast<CrmEnquiryModel?>().firstWhere(
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
@@ -348,9 +370,17 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               })
               .where((item) {
                 final data = item.toJson();
-                final isCompletedEnquiry = _isCompletedEnquiry(item);
-                final requestedStatus = (_filterEnquiryStatus ?? '').trim();
-                if (isCompletedEnquiry && requestedStatus != 'converted') {
+                final isHiddenByDefault = _isHiddenByDefaultEnquiry(item);
+                final requestedStatus =
+                    (_filtersApplied
+                            ? (_filterEnquiryStatus ?? _allFilterStringValue)
+                            : (_filterEnquiryStatus ?? ''))
+                        .trim();
+                final showAllStatuses =
+                    _filtersApplied && requestedStatus == _allFilterStringValue;
+                if (isHiddenByDefault &&
+                    !showAllStatuses &&
+                    requestedStatus != stringValue(data, 'enquiry_status')) {
                   return false;
                 }
                 final enquiryDate = displayDate(
@@ -380,6 +410,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   return false;
                 }
                 if ((_filterEnquiryStatus ?? '').isNotEmpty &&
+                    _filterEnquiryStatus != _allFilterStringValue &&
                     stringValue(data, 'enquiry_status') !=
                         _filterEnquiryStatus) {
                   return false;
@@ -459,62 +490,93 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Customer',
-                          initialValue: _filterCustomerPartyId,
-                          mappedItems: _customers
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppDropdownItem(
-                                  value: item.id!,
-                                  label: item.toString(),
+                          initialValue:
+                              _filterCustomerPartyId ?? _allFilterIntValue,
+                          mappedItems: <AppDropdownItem<int>>[
+                            const AppDropdownItem<int>(
+                              value: _allFilterIntValue,
+                              label: 'All',
+                            ),
+                            ..._customers
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: item.id!,
+                                    label: item.toString(),
+                                  ),
                                 ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) =>
-                              setState(() => _filterCustomerPartyId = value),
+                          ],
+                          onChanged: (value) => setState(
+                            () => _filterCustomerPartyId =
+                                value == _allFilterIntValue ? null : value,
+                          ),
                         ),
                       ),
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Stage',
-                          initialValue: _filterStageId,
-                          mappedItems: _stages
-                              .where(
-                                (item) => intValue(item.toJson(), 'id') != null,
-                              )
-                              .map(
-                                (item) => AppDropdownItem(
-                                  value: intValue(item.toJson(), 'id')!,
-                                  label: item.toString(),
+                          initialValue: _filterStageId ?? _allFilterIntValue,
+                          mappedItems: <AppDropdownItem<int>>[
+                            const AppDropdownItem<int>(
+                              value: _allFilterIntValue,
+                              label: 'All',
+                            ),
+                            ..._stages
+                                .where(
+                                  (item) =>
+                                      intValue(item.toJson(), 'id') != null,
+                                )
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item.toJson(), 'id')!,
+                                    label: item.toString(),
+                                  ),
                                 ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) =>
-                              setState(() => _filterStageId = value),
+                          ],
+                          onChanged: (value) => setState(
+                            () => _filterStageId = value == _allFilterIntValue
+                                ? null
+                                : value,
+                          ),
                         ),
                       ),
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Assigned To',
-                          initialValue: _filterAssignedTo,
-                          mappedItems: _users
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppDropdownItem(
-                                  value: item.id!,
-                                  label:
-                                      item.displayName ?? item.username ?? '',
+                          initialValue: _filterAssignedTo ?? _allFilterIntValue,
+                          mappedItems: <AppDropdownItem<int>>[
+                            const AppDropdownItem<int>(
+                              value: _allFilterIntValue,
+                              label: 'All',
+                            ),
+                            ..._users
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: item.id!,
+                                    label:
+                                        item.displayName ?? item.username ?? '',
+                                  ),
                                 ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) =>
-                              setState(() => _filterAssignedTo = value),
+                          ],
+                          onChanged: (value) => setState(
+                            () => _filterAssignedTo =
+                                value == _allFilterIntValue ? null : value,
+                          ),
                         ),
                       ),
                       _filterBox(
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
-                          initialValue: _filterEnquiryStatus,
-                          mappedItems: _filterStatusItems,
+                          initialValue:
+                              _filterEnquiryStatus ?? _allFilterStringValue,
+                          mappedItems: <AppDropdownItem<String>>[
+                            const AppDropdownItem<String>(
+                              value: _allFilterStringValue,
+                              label: 'All',
+                            ),
+                            ..._filterStatusItems,
+                          ],
                           onChanged: (value) =>
                               setState(() => _filterEnquiryStatus = value),
                         ),
@@ -545,7 +607,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     runSpacing: 12,
                     children: [
                       FilledButton.icon(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        onPressed: () {
+                          setState(() => _filtersApplied = true);
+                          Navigator.of(dialogContext).pop(true);
+                        },
                         icon: const Icon(Icons.search),
                         label: const Text('Apply Filters'),
                       ),
@@ -556,6 +621,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                             _filterStageId = null;
                             _filterAssignedTo = null;
                             _filterEnquiryStatus = null;
+                            _filtersApplied = false;
                             _filterDateFromController.clear();
                             _filterDateToController.clear();
                           });
@@ -587,14 +653,14 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         'Company: ${_companies.cast<CompanyModel?>().firstWhere((item) => item?.id == _filterCompanyId, orElse: () => null)?.toString() ?? _filterCompanyId}',
       if (_filterLeadId != null)
         'Lead: ${_leads.cast<CrmLeadModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterLeadId, orElse: () => null)?.toString() ?? _filterLeadId}',
-      if (_filterCustomerPartyId != null)
-        'Customer: ${_customers.cast<PartyModel?>().firstWhere((item) => item?.id == _filterCustomerPartyId, orElse: () => null)?.toString() ?? _filterCustomerPartyId}',
-      if (_filterStageId != null)
-        'Stage: ${_stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterStageId, orElse: () => null)?.toString() ?? _filterStageId}',
-      if (_filterAssignedTo != null)
-        'Assigned: ${_users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.displayName ?? _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.username ?? _filterAssignedTo}',
-      if ((_filterEnquiryStatus ?? '').isNotEmpty)
-        'Status: $_filterEnquiryStatus',
+      if (_filterCustomerPartyId != null || _filtersApplied)
+        'Customer: ${_filterCustomerPartyId == null ? 'All' : _customers.cast<PartyModel?>().firstWhere((item) => item?.id == _filterCustomerPartyId, orElse: () => null)?.toString() ?? _filterCustomerPartyId}',
+      if (_filterStageId != null || _filtersApplied)
+        'Stage: ${_filterStageId == null ? 'All' : _stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterStageId, orElse: () => null)?.toString() ?? _filterStageId}',
+      if (_filterAssignedTo != null || _filtersApplied)
+        'Assigned: ${_filterAssignedTo == null ? 'All' : _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.displayName ?? _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.username ?? _filterAssignedTo}',
+      if ((_filterEnquiryStatus ?? '').isNotEmpty || _filtersApplied)
+        'Status: ${(_filterEnquiryStatus ?? _allFilterStringValue) == _allFilterStringValue ? 'All' : _filterEnquiryStatus}',
       if (_filterDateFromController.text.trim().isNotEmpty)
         'From: ${_filterDateFromController.text.trim()}',
       if (_filterDateToController.text.trim().isNotEmpty)
@@ -1051,6 +1117,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       title: 'CRM Enquiries',
       scrollController: _pageScrollController,
       controller: _workspaceController,
+      editorOnly: widget.editorOnly,
       editorTitle: _selectedItem?.toString() ?? 'New Enquiry',
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1063,6 +1130,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               _filterStageId != null ||
               _filterAssignedTo != null ||
               (_filterEnquiryStatus ?? '').isNotEmpty ||
+              _filtersApplied ||
               _filterDateFromController.text.trim().isNotEmpty ||
               _filterDateToController.text.trim().isNotEmpty)
             const SizedBox(height: AppUiConstants.spacingMd),
@@ -1139,7 +1207,10 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     final isLocked = _isSelectedEnquiryLocked();
     final hasOpportunity = _pipelineOpportunityId() != null;
     final canConvert =
-        _selectedItem != null && !isLocked && !hasOpportunity && _enquiryStatus == 'in_progress';
+        _selectedItem != null &&
+        !isLocked &&
+        !hasOpportunity &&
+        _enquiryStatus == 'in_progress';
     final canLose = _selectedItem != null && !isLocked;
 
     return Form(
@@ -1173,16 +1244,16 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     width: double.infinity,
                     padding: const EdgeInsets.all(AppUiConstants.spacingMd),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(
-                        alpha: 0.08,
-                      ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(
                         AppUiConstants.cardRadius,
                       ),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.primary.withValues(
-                          alpha: 0.18,
-                        ),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.18),
                       ),
                     ),
                     child: Row(
@@ -1252,7 +1323,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                           path: '/parties',
                           queryParameters: {
                             'new': '1',
-                            if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                            if (name.trim().isNotEmpty)
+                              'party_name': name.trim(),
                           },
                         );
                         openModuleShellRoute(context, uri.toString());
@@ -1273,7 +1345,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     AppDropdownField<int>.fromMapped(
                       labelText: 'Stage',
                       mappedItems: _stages
-                          .where((item) => intValue(item.toJson(), 'id') != null)
+                          .where(
+                            (item) => intValue(item.toJson(), 'id') != null,
+                          )
                           .map(
                             (item) => AppDropdownItem(
                               value: intValue(item.toJson(), 'id')!,
@@ -1481,7 +1555,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             children: [
               AppActionButton(
                 icon: Icons.save_outlined,
-                label: _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
+                label: _selectedItem == null
+                    ? 'Save Enquiry'
+                    : 'Update Enquiry',
                 onPressed: () => _save(_primaryFormContext ?? context),
                 busy: _saving,
               ),
@@ -1616,7 +1692,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             children: [
               AppActionButton(
                 icon: Icons.save_outlined,
-                label: _selectedItem == null ? 'Save Enquiry' : 'Update Enquiry',
+                label: _selectedItem == null
+                    ? 'Save Enquiry'
+                    : 'Update Enquiry',
                 onPressed: () => _save(_primaryFormContext ?? context),
                 busy: _saving,
               ),

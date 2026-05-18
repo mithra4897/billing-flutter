@@ -1,9 +1,16 @@
 import '../../screen.dart';
 
 class CrmStagesPage extends StatefulWidget {
-  const CrmStagesPage({super.key, this.embedded = false});
+  const CrmStagesPage({
+    super.key,
+    this.embedded = false,
+    this.editorOnly = false,
+    this.startInNewMode = false,
+  });
 
   final bool embedded;
+  final bool editorOnly;
+  final bool startInNewMode;
 
   @override
   State<CrmStagesPage> createState() => _CrmStagesPageState();
@@ -39,6 +46,7 @@ class _CrmStagesPageState extends State<CrmStagesPage> {
   String _stageType = 'lead';
   bool _isDefault = false;
   bool _isActive = true;
+  bool _appliedInitialNewMode = false;
 
   @override
   void initState() {
@@ -78,6 +86,14 @@ class _CrmStagesPageState extends State<CrmStagesPage> {
         _initialLoading = false;
       });
       _applySearch();
+
+      if (widget.startInNewMode &&
+          selectId == null &&
+          !_appliedInitialNewMode) {
+        _appliedInitialNewMode = true;
+        _resetForm();
+        return;
+      }
 
       final selected = selectId != null
           ? items.cast<CrmStageModel?>().firstWhere(
@@ -182,7 +198,9 @@ class _CrmStagesPageState extends State<CrmStagesPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(response.data?.toJson() ?? const {}, 'id'));
+      await _loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -261,6 +279,7 @@ class _CrmStagesPageState extends State<CrmStagesPage> {
       title: 'CRM Stages',
       scrollController: _pageScrollController,
       controller: _workspaceController,
+      editorOnly: widget.editorOnly,
       editorTitle: _selectedItem?.toString() ?? 'New Stage',
       list: SettingsListCard<CrmStageModel>(
         searchController: _searchController,

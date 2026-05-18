@@ -15,12 +15,14 @@ class CrmLeadsPage extends StatefulWidget {
   const CrmLeadsPage({
     super.key,
     this.embedded = false,
+    this.editorOnly = false,
     this.startInNewMode = false,
     this.initialLeadName,
     this.initialCompanyId,
   });
 
   final bool embedded;
+  final bool editorOnly;
   final bool startInNewMode;
   final String? initialLeadName;
   final int? initialCompanyId;
@@ -31,6 +33,8 @@ class CrmLeadsPage extends StatefulWidget {
 
 class _CrmLeadsPageState extends State<CrmLeadsPage>
     with SingleTickerProviderStateMixin {
+  static const int _allFilterIntValue = 0;
+  static const String _allFilterStringValue = '__all__';
   static const List<AppDropdownItem<String>> _leadStatuses =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'new', label: 'New'),
@@ -96,6 +100,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   int? _expandedActivityIndex;
   Map<String, dynamic>? _salesChain;
   bool _appliedInitialNewMode = false;
+  bool _filtersApplied = false;
   BuildContext? _primaryFormContext;
 
   @override
@@ -278,8 +283,16 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               .where((item) {
                 final data = item.toJson();
                 final isCompletedLead = _isCompletedLead(item);
-                final requestedStatus = (_filterLeadStatus ?? '').trim();
-                if (isCompletedLead && requestedStatus != 'converted') {
+                final requestedStatus =
+                    (_filtersApplied
+                            ? (_filterLeadStatus ?? _allFilterStringValue)
+                            : (_filterLeadStatus ?? ''))
+                        .trim();
+                final showAllStatuses =
+                    _filtersApplied && requestedStatus == _allFilterStringValue;
+                if (isCompletedLead &&
+                    !showAllStatuses &&
+                    requestedStatus != 'converted') {
                   return false;
                 }
                 if (_filterCompanyId != null &&
@@ -287,14 +300,17 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   return false;
                 }
                 if (_filterSourceId != null &&
+                    _filterSourceId != _allFilterIntValue &&
                     intValue(data, 'source_id') != _filterSourceId) {
                   return false;
                 }
                 if (_filterAssignedTo != null &&
+                    _filterAssignedTo != _allFilterIntValue &&
                     intValue(data, 'assigned_to') != _filterAssignedTo) {
                   return false;
                 }
                 if ((_filterLeadStatus ?? '').isNotEmpty &&
+                    _filterLeadStatus != _allFilterStringValue &&
                     stringValue(data, 'lead_status') != _filterLeadStatus) {
                   return false;
                 }
@@ -363,18 +379,24 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Source',
-                          initialValue: _filterSourceId,
-                          mappedItems: _sources
-                              .where(
-                                (item) => intValue(item.toJson(), 'id') != null,
-                              )
-                              .map(
-                                (item) => AppDropdownItem(
-                                  value: intValue(item.toJson(), 'id')!,
-                                  label: item.toString(),
+                          initialValue: _filterSourceId ?? _allFilterIntValue,
+                          mappedItems: <AppDropdownItem<int>>[
+                            const AppDropdownItem<int>(
+                              value: _allFilterIntValue,
+                              label: 'All',
+                            ),
+                            ..._sources
+                                .where(
+                                  (item) =>
+                                      intValue(item.toJson(), 'id') != null,
+                                )
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: intValue(item.toJson(), 'id')!,
+                                    label: item.toString(),
+                                  ),
                                 ),
-                              )
-                              .toList(growable: false),
+                          ],
                           onChanged: (value) =>
                               setState(() => _filterSourceId = value),
                         ),
@@ -382,17 +404,22 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Assigned To',
-                          initialValue: _filterAssignedTo,
-                          mappedItems: _users
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppDropdownItem(
-                                  value: item.id!,
-                                  label:
-                                      item.displayName ?? item.username ?? '',
+                          initialValue: _filterAssignedTo ?? _allFilterIntValue,
+                          mappedItems: <AppDropdownItem<int>>[
+                            const AppDropdownItem<int>(
+                              value: _allFilterIntValue,
+                              label: 'All',
+                            ),
+                            ..._users
+                                .where((item) => item.id != null)
+                                .map(
+                                  (item) => AppDropdownItem<int>(
+                                    value: item.id!,
+                                    label:
+                                        item.displayName ?? item.username ?? '',
+                                  ),
                                 ),
-                              )
-                              .toList(growable: false),
+                          ],
                           onChanged: (value) =>
                               setState(() => _filterAssignedTo = value),
                         ),
@@ -400,8 +427,15 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       _filterBox(
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
-                          initialValue: _filterLeadStatus,
-                          mappedItems: _leadFilterStatuses,
+                          initialValue:
+                              _filterLeadStatus ?? _allFilterStringValue,
+                          mappedItems: <AppDropdownItem<String>>[
+                            const AppDropdownItem<String>(
+                              value: _allFilterStringValue,
+                              label: 'All',
+                            ),
+                            ..._leadFilterStatuses,
+                          ],
                           onChanged: (value) =>
                               setState(() => _filterLeadStatus = value),
                         ),
@@ -414,7 +448,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                     runSpacing: 12,
                     children: [
                       FilledButton.icon(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        onPressed: () {
+                          setState(() => _filtersApplied = true);
+                          Navigator.of(dialogContext).pop(true);
+                        },
                         icon: const Icon(Icons.search),
                         label: const Text('Apply Filters'),
                       ),
@@ -424,6 +461,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                             _filterSourceId = null;
                             _filterAssignedTo = null;
                             _filterLeadStatus = null;
+                            _filtersApplied = false;
                           });
                           Navigator.of(dialogContext).pop(true);
                         },
@@ -451,11 +489,12 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         'Search: ${_searchController.text.trim()}',
       if (_filterCompanyId != null)
         'Company: ${_companies.cast<CompanyModel?>().firstWhere((item) => item?.id == _filterCompanyId, orElse: () => null)?.toString() ?? _filterCompanyId}',
-      if (_filterSourceId != null)
-        'Source: ${_sources.cast<CrmSourceModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterSourceId, orElse: () => null)?.toString() ?? _filterSourceId}',
-      if (_filterAssignedTo != null)
-        'Assigned: ${_users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.displayName ?? _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.username ?? _filterAssignedTo}',
-      if ((_filterLeadStatus ?? '').isNotEmpty) 'Status: $_filterLeadStatus',
+      if (_filterSourceId != null || _filtersApplied)
+        'Source: ${_filterSourceId == null ? 'All' : _sources.cast<CrmSourceModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == _filterSourceId, orElse: () => null)?.toString() ?? _filterSourceId}',
+      if (_filterAssignedTo != null || _filtersApplied)
+        'Assigned: ${_filterAssignedTo == null ? 'All' : _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.displayName ?? _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.username ?? _filterAssignedTo}',
+      if ((_filterLeadStatus ?? '').isNotEmpty || _filtersApplied)
+        'Status: ${(_filterLeadStatus ?? _allFilterStringValue) == _allFilterStringValue ? 'All' : _filterLeadStatus}',
     ];
 
     if (chips.isEmpty) {
@@ -856,6 +895,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       title: 'CRM Leads',
       scrollController: _pageScrollController,
       controller: _workspaceController,
+      editorOnly: widget.editorOnly,
       editorTitle: _selectedItem?.toString() ?? 'New Lead',
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -865,7 +905,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               _filterCompanyId != null ||
               _filterSourceId != null ||
               _filterAssignedTo != null ||
-              (_filterLeadStatus ?? '').isNotEmpty)
+              (_filterLeadStatus ?? '').isNotEmpty ||
+              _filtersApplied)
             const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<CrmLeadModel>(
             searchController: _searchController,
