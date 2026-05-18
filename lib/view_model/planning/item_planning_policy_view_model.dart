@@ -1,4 +1,4 @@
-import 'package:billing/screen.dart';
+import '../../../screen.dart';
 
 class ItemPlanningPolicyViewModel extends ChangeNotifier {
   final PlanningService _service = PlanningService();

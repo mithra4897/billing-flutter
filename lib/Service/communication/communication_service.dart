@@ -1,11 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/communication/email_message_model.dart';
-import '../../model/communication/email_module_setting_model.dart';
-import '../../model/communication/email_rule_model.dart';
-import '../../model/communication/email_setting_model.dart';
-import '../../model/communication/email_template_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class CommunicationService extends ErpModuleService {
   CommunicationService({super.apiClient});
@@ -17,6 +10,7 @@ class CommunicationService extends ErpModuleService {
     filters: filters,
     fromJson: EmailSettingModel.fromJson,
   );
+
   Future<ApiResponse<EmailSettingModel>> createEmailSetting(
     EmailSettingModel body,
   ) => createModel<EmailSettingModel>(
@@ -24,6 +18,7 @@ class CommunicationService extends ErpModuleService {
     body,
     fromJson: EmailSettingModel.fromJson,
   );
+
   Future<ApiResponse<EmailSettingModel>> updateEmailSetting(
     int id,
     EmailSettingModel body,
@@ -40,6 +35,7 @@ class CommunicationService extends ErpModuleService {
     filters: filters,
     fromJson: EmailModuleSettingModel.fromJson,
   );
+
   Future<ApiResponse<EmailModuleSettingModel>> createEmailModuleSetting(
     EmailModuleSettingModel body,
   ) => createModel<EmailModuleSettingModel>(
@@ -47,6 +43,7 @@ class CommunicationService extends ErpModuleService {
     body,
     fromJson: EmailModuleSettingModel.fromJson,
   );
+
   Future<ApiResponse<EmailModuleSettingModel>> updateEmailModuleSetting(
     int id,
     EmailModuleSettingModel body,
@@ -63,11 +60,13 @@ class CommunicationService extends ErpModuleService {
     filters: filters,
     fromJson: EmailTemplateModel.fromJson,
   );
+
   Future<ApiResponse<EmailTemplateModel>> emailTemplate(int id) =>
       object<EmailTemplateModel>(
         '/communication/email-templates/$id',
         fromJson: EmailTemplateModel.fromJson,
       );
+
   Future<ApiResponse<EmailTemplateModel>> createEmailTemplate(
     EmailTemplateModel body,
   ) => createModel<EmailTemplateModel>(
@@ -75,6 +74,7 @@ class CommunicationService extends ErpModuleService {
     body,
     fromJson: EmailTemplateModel.fromJson,
   );
+
   Future<ApiResponse<EmailTemplateModel>> updateEmailTemplate(
     int id,
     EmailTemplateModel body,
@@ -83,6 +83,7 @@ class CommunicationService extends ErpModuleService {
     body,
     fromJson: EmailTemplateModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteEmailTemplate(int id) =>
       destroy('/communication/email-templates/$id');
 
@@ -93,17 +94,20 @@ class CommunicationService extends ErpModuleService {
     filters: filters,
     fromJson: EmailRuleModel.fromJson,
   );
+
   Future<ApiResponse<EmailRuleModel>> emailRule(int id) =>
       object<EmailRuleModel>(
         '/communication/email-rules/$id',
         fromJson: EmailRuleModel.fromJson,
       );
+
   Future<ApiResponse<EmailRuleModel>> createEmailRule(EmailRuleModel body) =>
       createModel<EmailRuleModel>(
         '/communication/email-rules',
         body,
         fromJson: EmailRuleModel.fromJson,
       );
+
   Future<ApiResponse<EmailRuleModel>> updateEmailRule(
     int id,
     EmailRuleModel body,
@@ -112,6 +116,7 @@ class CommunicationService extends ErpModuleService {
     body,
     fromJson: EmailRuleModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteEmailRule(int id) =>
       destroy('/communication/email-rules/$id');
 
@@ -122,11 +127,13 @@ class CommunicationService extends ErpModuleService {
     filters: filters,
     fromJson: EmailMessageModel.fromJson,
   );
+
   Future<ApiResponse<EmailMessageModel>> emailMessage(int id) =>
       object<EmailMessageModel>(
         '/communication/email-messages/$id',
         fromJson: EmailMessageModel.fromJson,
       );
+
   Future<ApiResponse<EmailMessageModel>> sendEmail(EmailMessageModel body) =>
       actionModel<EmailMessageModel>(
         '/communication/emails/send',

@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import 'hr_workflow_dialogs.dart';
 
 /// State/UT names for PT — slabs should match that jurisdiction's official schedule.
 const List<AppDropdownItem<String>> _kProfessionalTaxStateItems =

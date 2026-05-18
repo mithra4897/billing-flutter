@@ -1,9 +1,4 @@
-import '../../Model/sales/sales_order_model.dart';
-import '../../Model/sales/sales_quotation_model.dart';
-import '../../Model/sales/sales_receipt_model.dart';
 import '../../screen.dart';
-import '../purchase/purchase_support.dart';
-import 'crm_dashboard_support.dart';
 
 const List<Color> _dashboardPalette = <Color>[
   Color(0xFF2F6FED),

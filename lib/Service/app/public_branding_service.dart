@@ -1,8 +1,4 @@
-import '../../app/constants/app_config.dart';
-import '../../core/api/api_client.dart';
-import '../../core/models/api_response.dart';
-import '../../core/storage/session_storage.dart';
-import '../../model/app/public_branding_model.dart';
+import '../../screen.dart';
 
 class PublicBrandingService {
   PublicBrandingService({ApiClient? apiClient})

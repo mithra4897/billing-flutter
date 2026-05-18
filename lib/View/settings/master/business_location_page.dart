@@ -260,9 +260,7 @@ class _BusinessLocationManagementPageState
       final code = await _masterService.nextBusinessLocationCode(
         branchId: branchId,
       );
-      if (!mounted ||
-          !_isNewLocation ||
-          _branchId != branchId) {
+      if (!mounted || !_isNewLocation || _branchId != branchId) {
         return;
       }
       if (code != null && code.trim().isNotEmpty) {

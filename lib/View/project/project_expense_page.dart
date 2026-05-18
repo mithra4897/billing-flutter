@@ -274,7 +274,9 @@ class _ProjectExpenseManagementPageState
   }
 
   double? _doubleValue(String text) => double.tryParse(text.trim());
+
   int? _intValue(String text) => int.tryParse(text.trim());
+
   String _decimalText(double? value) => value == null
       ? ''
       : (value == value.roundToDouble()

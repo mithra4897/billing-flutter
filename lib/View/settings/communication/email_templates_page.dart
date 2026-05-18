@@ -91,8 +91,9 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
               .toList()
             ..sort();
       final records = recordsResponse.data ?? const <EmailTemplateModel>[];
-      final activeCompanies =
-          companies.where((item) => item.isActive).toList(growable: false);
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,

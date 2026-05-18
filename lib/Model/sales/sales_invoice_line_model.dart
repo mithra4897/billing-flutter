@@ -1,3 +1,5 @@
+import '../../screen.dart';
+
 class SalesInvoiceLineModel {
   const SalesInvoiceLineModel({
     required this.itemId,
@@ -52,7 +54,8 @@ class SalesInvoiceLineModel {
       warehouseId: _nullableInt(json['warehouse_id']),
       batchId: _nullableInt(json['batch_id']),
       serialId: _nullableInt(json['serial_id']),
-      serialNo: json['serial_no']?.toString() ??
+      serialNo:
+          json['serial_no']?.toString() ??
           (json['serial'] is Map
               ? (json['serial']['serial_no']?.toString())
               : null),

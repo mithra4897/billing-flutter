@@ -165,19 +165,22 @@ class _ProjectVendorWorkManagementPageState
   }
 
   List<_ProjectVendorWorkRow> _filterRows(List<_ProjectVendorWorkRow> rows) {
-    final scoped = rows.where((row) {
-      if (_filterProjectId != null && row.project.id != _filterProjectId) {
-        return false;
-      }
-      if (_filterTaskId != null && row.work.projectTaskId != _filterTaskId) {
-        return false;
-      }
-      if (_filterVendorPartyId != null &&
-          row.work.vendorPartyId != _filterVendorPartyId) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    final scoped = rows
+        .where((row) {
+          if (_filterProjectId != null && row.project.id != _filterProjectId) {
+            return false;
+          }
+          if (_filterTaskId != null &&
+              row.work.projectTaskId != _filterTaskId) {
+            return false;
+          }
+          if (_filterVendorPartyId != null &&
+              row.work.vendorPartyId != _filterVendorPartyId) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
 
     return filterMasterList(scoped, _searchController.text, (row) {
       return [
@@ -490,7 +493,9 @@ class _ProjectVendorWorkManagementPageState
   }
 
   int? _intValue(String text) => int.tryParse(text.trim());
+
   double? _doubleValue(String text) => double.tryParse(text.trim());
+
   String _decimalText(double? value) => value == null
       ? ''
       : (value == value.roundToDouble()

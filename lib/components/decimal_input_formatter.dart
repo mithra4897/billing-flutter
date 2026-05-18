@@ -1,4 +1,4 @@
-import 'package:flutter/services.dart';
+import '../screen.dart';
 
 class DecimalInputFormatter extends TextInputFormatter {
   const DecimalInputFormatter({this.allowSigned = false});
@@ -29,8 +29,10 @@ class DecimalInputFormatter extends TextInputFormatter {
     }
 
     final cursorDelta = normalized.length - newValue.text.length;
-    final selectionIndex =
-        (newValue.selection.end + cursorDelta).clamp(0, normalized.length);
+    final selectionIndex = (newValue.selection.end + cursorDelta).clamp(
+      0,
+      normalized.length,
+    );
 
     return TextEditingValue(
       text: normalized,

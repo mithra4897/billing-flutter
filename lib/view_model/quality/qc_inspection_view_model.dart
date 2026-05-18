@@ -1,4 +1,4 @@
-import 'package:billing/screen.dart';
+import '../../../screen.dart';
 
 const List<AppDropdownItem<String>> kQcInspectionScopeItems =
     <AppDropdownItem<String>>[

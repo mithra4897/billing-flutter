@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class ProductionMaterialIssueLineDraft {
   ProductionMaterialIssueLineDraft({
@@ -650,24 +649,28 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     int? batchId,
     int? serialId,
   }) {
-    return stockBalances.where((balance) {
-      final itemOk = itemId == null || balance.itemId == itemId;
-      final whOk = warehouseId == null || balance.warehouseId == warehouseId;
-      final companyOk = companyId == null || balance.companyId == companyId;
-      final branchOk = branchId == null || balance.branchId == branchId;
-      final locationOk = locationId == null || balance.locationId == locationId;
-      final batchOk = batchId == null || balance.batchId == batchId;
-      final serialOk = serialId == null || balance.serialId == serialId;
-      final qtyOk = (balance.qtyAvailable ?? 0) > 0;
-      return itemOk &&
-          whOk &&
-          companyOk &&
-          branchOk &&
-          locationOk &&
-          batchOk &&
-          serialOk &&
-          qtyOk;
-    }).toList(growable: false);
+    return stockBalances
+        .where((balance) {
+          final itemOk = itemId == null || balance.itemId == itemId;
+          final whOk =
+              warehouseId == null || balance.warehouseId == warehouseId;
+          final companyOk = companyId == null || balance.companyId == companyId;
+          final branchOk = branchId == null || balance.branchId == branchId;
+          final locationOk =
+              locationId == null || balance.locationId == locationId;
+          final batchOk = batchId == null || balance.batchId == batchId;
+          final serialOk = serialId == null || balance.serialId == serialId;
+          final qtyOk = (balance.qtyAvailable ?? 0) > 0;
+          return itemOk &&
+              whOk &&
+              companyOk &&
+              branchOk &&
+              locationOk &&
+              batchOk &&
+              serialOk &&
+              qtyOk;
+        })
+        .toList(growable: false);
   }
 
   List<WarehouseModel> warehouseOptionsForItem(int? itemId) {
@@ -675,10 +678,10 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
       return warehouses;
     }
 
-    final warehouseIds = _matchingBalancesForLine(itemId, null)
-        .map((balance) => balance.warehouseId)
-        .whereType<int>()
-        .toSet();
+    final warehouseIds = _matchingBalancesForLine(
+      itemId,
+      null,
+    ).map((balance) => balance.warehouseId).whereType<int>().toSet();
 
     if (warehouseIds.isEmpty) {
       return warehouses;
@@ -686,15 +689,13 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
 
     return warehouses
         .where(
-          (warehouse) => warehouse.id != null && warehouseIds.contains(warehouse.id),
+          (warehouse) =>
+              warehouse.id != null && warehouseIds.contains(warehouse.id),
         )
         .toList(growable: false);
   }
 
-  int? _preferredWarehouseIdForItem(
-    int? itemId,
-    int? preferredWarehouseId,
-  ) {
+  int? _preferredWarehouseIdForItem(int? itemId, int? preferredWarehouseId) {
     final options = warehouseOptionsForItem(itemId);
     if (preferredWarehouseId != null &&
         options.any((warehouse) => warehouse.id == preferredWarehouseId)) {
@@ -730,7 +731,9 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
 
     if (batchId != null && serialId == null) {
       final legacyAvailable = _matchingBalancesForLine(itemId, warehouseId)
-          .where((balance) => balance.batchId == null && balance.serialId == null)
+          .where(
+            (balance) => balance.batchId == null && balance.serialId == null,
+          )
           .fold<double>(0, (sum, balance) => sum + (balance.qtyAvailable ?? 0));
       return legacyAvailable >= requiredQty;
     }
@@ -799,7 +802,8 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
       final data = batch.toJson();
       return intValue(data, 'id') == batchId &&
           (itemId == null || intValue(data, 'item_id') == itemId) &&
-          (warehouseId == null || intValue(data, 'warehouse_id') == warehouseId);
+          (warehouseId == null ||
+              intValue(data, 'warehouse_id') == warehouseId);
     });
   }
 
@@ -937,7 +941,8 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
           return 'Line ${i + 1}: item must belong to the selected production order.';
         }
       }
-      final issueQty = double.tryParse(line.issueQtyController.text.trim()) ?? 0;
+      final issueQty =
+          double.tryParse(line.issueQtyController.text.trim()) ?? 0;
       if (issueQty <= 0) {
         return 'Line ${i + 1}: issue qty must be > 0.';
       }
@@ -1025,7 +1030,8 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
         continue;
       }
       final selectedSerialIds = lineSerialIds(line);
-      final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+      final unitCost =
+          double.tryParse(line.unitCostController.text.trim()) ?? 0;
       final remarks = nullIfEmpty(line.remarksController.text);
       for (final selectedSerialId in selectedSerialIds) {
         expanded.add(<String, dynamic>{
@@ -1181,7 +1187,10 @@ class _ProductionMaterialIssueGroupedLine {
     final serialId = intValue(rawLine, 'serial_id');
     return _ProductionMaterialIssueGroupedLine(
       itemId: intValue(rawLine, 'item_id'),
-      productionOrderMaterialId: intValue(rawLine, 'production_order_material_id'),
+      productionOrderMaterialId: intValue(
+        rawLine,
+        'production_order_material_id',
+      ),
       batchId: intValue(rawLine, 'batch_id'),
       serialId: serialId,
       serialIds: serialId == null ? <int>[] : <int>[serialId],
@@ -1204,18 +1213,19 @@ class _ProductionMaterialIssueGroupedLine {
   double unitCost;
   String remarks;
 
-  ProductionMaterialIssueLineDraft toDraft() => ProductionMaterialIssueLineDraft(
-    itemId: itemId,
-    productionOrderMaterialId: productionOrderMaterialId,
-    batchId: batchId,
-    serialId: serialId,
-    serialIds: serialIds,
-    uomId: uomId,
-    warehouseId: warehouseId,
-    issueQty: _productionIssueFormatNumber(issueQty),
-    unitCost: _productionIssueFormatNumber(unitCost),
-    remarks: remarks,
-  );
+  ProductionMaterialIssueLineDraft toDraft() =>
+      ProductionMaterialIssueLineDraft(
+        itemId: itemId,
+        productionOrderMaterialId: productionOrderMaterialId,
+        batchId: batchId,
+        serialId: serialId,
+        serialIds: serialIds,
+        uomId: uomId,
+        warehouseId: warehouseId,
+        issueQty: _productionIssueFormatNumber(issueQty),
+        unitCost: _productionIssueFormatNumber(unitCost),
+        remarks: remarks,
+      );
 }
 
 String _productionIssueFormatNumber(double value) {

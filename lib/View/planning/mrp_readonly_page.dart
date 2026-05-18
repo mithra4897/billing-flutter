@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import '../../screen.dart';
-import '../../view_model/planning/mrp_readonly_view_model.dart';
 
 class MrpReadonlyPage extends StatefulWidget {
   const MrpReadonlyPage({

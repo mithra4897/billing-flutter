@@ -154,7 +154,8 @@ class _DocumentSeriesManagementPageState
     final scoped = items
         .where(
           (series) =>
-              (_contextCompanyId == null || series.companyId == _contextCompanyId) &&
+              (_contextCompanyId == null ||
+                  series.companyId == _contextCompanyId) &&
               (_contextFinancialYearId == null ||
                   series.financialYearId == _contextFinancialYearId),
         )
@@ -326,118 +327,116 @@ class _DocumentSeriesManagementPageState
         ),
       ),
       editor: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 12),
-              ],
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Series Name'),
-                validator: Validators.compose([
-                  Validators.required('Series Name'),
-                  Validators.optionalMaxLength(100, 'Series Name'),
-                ]),
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _documentTypeController,
-                decoration: const InputDecoration(labelText: 'Document Type'),
-                validator: Validators.compose([
-                  Validators.required('Document Type'),
-                  Validators.optionalMaxLength(50, 'Document Type'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _prefixController,
-                      decoration: const InputDecoration(labelText: 'Prefix'),
-                      validator: Validators.optionalMaxLength(20, 'Prefix'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _suffixController,
-                      decoration: const InputDecoration(labelText: 'Suffix'),
-                      validator: Validators.optionalMaxLength(20, 'Suffix'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _nextNumberController,
-                      decoration: const InputDecoration(
-                        labelText: 'Next Number',
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: Validators.optionalNonNegativeInteger(
-                        'Next Number',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _numberLengthController,
-                      decoration: const InputDecoration(
-                        labelText: 'Number Length',
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: Validators.optionalNonNegativeInteger(
-                        'Number Length',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _remarksController,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks',
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Default Series'),
-                value: _isDefault,
-                onChanged: (value) => setState(() => _isDefault = value),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Active'),
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
-                  onPressed: _saving ? null : _save,
-                  icon: const Icon(Icons.save_outlined),
-                  label: Text(_saving ? 'Saving...' : 'Save'),
-                ),
-              ),
             ],
-          ),
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Series Name'),
+              validator: Validators.compose([
+                Validators.required('Series Name'),
+                Validators.optionalMaxLength(100, 'Series Name'),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _documentTypeController,
+              decoration: const InputDecoration(labelText: 'Document Type'),
+              validator: Validators.compose([
+                Validators.required('Document Type'),
+                Validators.optionalMaxLength(50, 'Document Type'),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _prefixController,
+                    decoration: const InputDecoration(labelText: 'Prefix'),
+                    validator: Validators.optionalMaxLength(20, 'Prefix'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _suffixController,
+                    decoration: const InputDecoration(labelText: 'Suffix'),
+                    validator: Validators.optionalMaxLength(20, 'Suffix'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _nextNumberController,
+                    decoration: const InputDecoration(labelText: 'Next Number'),
+                    keyboardType: TextInputType.number,
+                    validator: Validators.optionalNonNegativeInteger(
+                      'Next Number',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _numberLengthController,
+                    decoration: const InputDecoration(
+                      labelText: 'Number Length',
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: Validators.optionalNonNegativeInteger(
+                      'Number Length',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _remarksController,
+              decoration: const InputDecoration(
+                labelText: 'Remarks',
+                alignLabelWithHint: true,
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Default Series'),
+              value: _isDefault,
+              onChanged: (value) => setState(() => _isDefault = value),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Active'),
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(_saving ? 'Saving...' : 'Save'),
+              ),
+            ),
+          ],
         ),
+      ),
     );
   }
 }

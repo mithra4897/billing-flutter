@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/service/service_feedback_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 String _feedbackListTitle(ServiceFeedbackModel row) {
   final data = row.toJson();
@@ -221,17 +219,17 @@ class _ServiceFeedbackEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Work order (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.workOrdersForTicket
                           .where((w) => intValue(w.toJson(), 'id') != null)
                           .map(
                             (w) => AppDropdownItem<int?>(
                               value: intValue(w.toJson(), 'id'),
-                              label: stringValue(w.toJson(), 'work_order_no')
-                                      .isNotEmpty
+                              label:
+                                  stringValue(
+                                    w.toJson(),
+                                    'work_order_no',
+                                  ).isNotEmpty
                                   ? stringValue(w.toJson(), 'work_order_no')
                                   : 'WO #${intValue(w.toJson(), 'id')}',
                             ),

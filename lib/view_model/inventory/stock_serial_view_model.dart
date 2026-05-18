@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 const List<AppDropdownItem<String>> stockSerialStatusItems =
     <AppDropdownItem<String>>[
@@ -91,10 +90,12 @@ class StockSerialViewModel extends ChangeNotifier {
         .where((item) => item.id != null)
         .map((item) => item.id!)
         .toSet();
-    return batches.where((batch) {
-      final itemId = intValue(batch.toJson(), 'item_id');
-      return itemId != null && serialItemIds.contains(itemId);
-    }).toList(growable: false);
+    return batches
+        .where((batch) {
+          final itemId = intValue(batch.toJson(), 'item_id');
+          return itemId != null && serialItemIds.contains(itemId);
+        })
+        .toList(growable: false);
   }
 
   Future<void> load({int? selectId}) async {
@@ -239,7 +240,8 @@ class StockSerialViewModel extends ChangeNotifier {
       warehouseId = intValue(batchJson, 'warehouse_id');
       final purchaseRate = nullableStringValue(batchJson, 'purchase_rate');
       final salesRate = nullableStringValue(batchJson, 'sales_rate');
-      if ((purchaseRateController.text.trim()).isEmpty && purchaseRate != null) {
+      if ((purchaseRateController.text.trim()).isEmpty &&
+          purchaseRate != null) {
         purchaseRateController.text = purchaseRate;
       }
       if ((salesRateController.text.trim()).isEmpty && salesRate != null) {
@@ -267,7 +269,8 @@ class StockSerialViewModel extends ChangeNotifier {
       warehouseId = intValue(batchJson, 'warehouse_id');
       final purchaseRate = nullableStringValue(batchJson, 'purchase_rate');
       final salesRate = nullableStringValue(batchJson, 'sales_rate');
-      if ((purchaseRateController.text.trim()).isEmpty && purchaseRate != null) {
+      if ((purchaseRateController.text.trim()).isEmpty &&
+          purchaseRate != null) {
         purchaseRateController.text = purchaseRate;
       }
       if ((salesRateController.text.trim()).isEmpty && salesRate != null) {

@@ -1,10 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/masters/state_model.dart';
-import '../../model/tax/document_tax_line_model.dart';
-import '../../model/tax/gst_registration_model.dart';
-import '../../model/tax/gst_tax_rule_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class TaxesService extends ErpModuleService {
   TaxesService({super.apiClient});

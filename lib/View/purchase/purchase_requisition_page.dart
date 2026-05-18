@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import 'purchase_support.dart';
 
 class PurchaseRequisitionPage extends StatefulWidget {
   const PurchaseRequisitionPage({
@@ -56,9 +55,6 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   List<PurchaseRequisitionModel> _items = const <PurchaseRequisitionModel>[];
   List<PurchaseRequisitionModel> _filteredItems =
       const <PurchaseRequisitionModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<UserModel> _users = const <UserModel>[];
@@ -220,9 +216,6 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
 
       setState(() {
         _items = documents;
-        _companies = companies;
-        _branches = branches;
-        _locations = locations;
         _financialYears = financialYears;
         _documentSeries = documentSeries
             .where((item) => item.isActive)
@@ -398,10 +391,6 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
         .toList(growable: false);
   }
 
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
   List<AppDropdownItem<String>> get _departmentItems {
     final items = _departments
         .where((item) => item.departmentName != null)

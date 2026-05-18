@@ -27,8 +27,6 @@ class _DocumentTaxLinesRegisterPageState
   int _page = 1;
   int _perPage = 20;
 
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   int? _companyId;
   int? _branchId;
@@ -51,16 +49,6 @@ class _DocumentTaxLinesRegisterPageState
     _searchController.dispose();
     super.dispose();
   }
-
-  List<BranchModel> get _branchOptions => _branches
-      .where(
-        (BranchModel b) =>
-            b.isActive &&
-            (_companyId == null ||
-                b.companyId == null ||
-                b.companyId == _companyId),
-      )
-      .toList(growable: false);
 
   List<FinancialYearModel> get _financialYearOptions => _financialYears
       .where(
@@ -122,8 +110,6 @@ class _DocumentTaxLinesRegisterPageState
       }
 
       setState(() {
-        _companies = activeCompanies;
-        _branches = activeBranches;
         _financialYears = activeYears;
         _companyId = contextSelection.companyId;
         _branchId = contextSelection.branchId;
@@ -255,21 +241,6 @@ class _DocumentTaxLinesRegisterPageState
   }
 
   Future<void> _openFilterPanel() async {
-    final companyItems = _companies
-        .map(
-          (CompanyModel c) =>
-              AppDropdownItem<int?>(value: c.id, label: c.toString()),
-        )
-        .toList(growable: false);
-
-    final branchItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All branches'),
-      ..._branchOptions.map(
-        (BranchModel b) =>
-            AppDropdownItem<int?>(value: b.id, label: b.name ?? 'Branch'),
-      ),
-    ];
-
     final fyItems = <AppDropdownItem<int?>>[
       const AppDropdownItem<int?>(value: null, label: 'All financial years'),
       ..._financialYearOptions.map(

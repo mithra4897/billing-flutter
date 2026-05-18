@@ -1,15 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/project/project_billing_model.dart';
-import '../../model/project/project_dashboard_model.dart';
-import '../../model/project/project_expense_model.dart';
-import '../../model/project/project_milestone_model.dart';
-import '../../model/project/project_model.dart';
-import '../../model/project/project_resource_usage_model.dart';
-import '../../model/project/project_task_model.dart';
-import '../../model/project/project_timesheet_model.dart';
-import '../../model/project/project_vendor_work_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class ProjectService extends ErpModuleService {
   ProjectService({super.apiClient});

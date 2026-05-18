@@ -1,14 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/crm/crm_enquiry_model.dart';
-import '../../model/crm/crm_followup_model.dart';
-import '../../model/crm/crm_lead_model.dart';
-import '../../model/crm/crm_opportunity_model.dart';
-import '../../model/crm/crm_source_model.dart';
-import '../../model/crm/crm_stage_model.dart';
-import '../../core/api/api_endpoints.dart';
-import '../../core/error/api_exception.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class CrmService extends ErpModuleService {
   CrmService({super.apiClient});

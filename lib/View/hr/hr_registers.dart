@@ -1,8 +1,4 @@
 import '../../screen.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
-import 'hr_list_filter_helpers.dart';
-import 'hr_workflow_dialogs.dart';
 
 void _showNeedCompanySnack(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
@@ -49,8 +45,7 @@ String _payslipPayrollPeriod(Map<String, dynamic> payslipData) {
   if (line == null) {
     return '';
   }
-  final run =
-      _asJsonMap(line['payroll_run']) ?? _asJsonMap(line['payrollRun']);
+  final run = _asJsonMap(line['payroll_run']) ?? _asJsonMap(line['payrollRun']);
   if (run == null) {
     return '';
   }
@@ -149,13 +144,13 @@ class _HrCompanyContextFilters extends StatelessWidget {
 
 const List<AppDropdownItem<String?>> _hrAttendanceStatusFilterItems =
     <AppDropdownItem<String?>>[
-  AppDropdownItem<String?>(value: null, label: 'All statuses'),
-  AppDropdownItem<String?>(value: 'present', label: 'Present'),
-  AppDropdownItem<String?>(value: 'absent', label: 'Absent'),
-  AppDropdownItem<String?>(value: 'leave', label: 'Leave'),
-  AppDropdownItem<String?>(value: 'half_day', label: 'Half day'),
-  AppDropdownItem<String?>(value: 'holiday', label: 'Holiday'),
-];
+      AppDropdownItem<String?>(value: null, label: 'All statuses'),
+      AppDropdownItem<String?>(value: 'present', label: 'Present'),
+      AppDropdownItem<String?>(value: 'absent', label: 'Absent'),
+      AppDropdownItem<String?>(value: 'leave', label: 'Leave'),
+      AppDropdownItem<String?>(value: 'half_day', label: 'Half day'),
+      AppDropdownItem<String?>(value: 'holiday', label: 'Holiday'),
+    ];
 
 String _payrollPeriodLabel(Map<String, dynamic> data) {
   final y = stringValue(data, 'payroll_year');
@@ -172,8 +167,7 @@ class AttendanceRegisterPage extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<AttendanceRegisterPage> createState() =>
-      _AttendanceRegisterPageState();
+  State<AttendanceRegisterPage> createState() => _AttendanceRegisterPageState();
 }
 
 class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
@@ -236,9 +230,7 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
         return;
       }
 
-      final ctxRes = await _service.expenseClaimsLinkedEmployee(
-        companyId: cid,
-      );
+      final ctxRes = await _service.expenseClaimsLinkedEmployee(companyId: cid);
       final ctx = ctxRes.data ?? const <String, dynamic>{};
       final viewAll =
           ctx['can_view_all_hr_records'] == true ||
@@ -277,10 +269,7 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
         employees = empResp.data ?? const <EmployeeModel>[];
       }
 
-      final filters = <String, dynamic>{
-        'company_id': cid,
-        'per_page': 200,
-      };
+      final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
       if (viewAll && _filterEmployeeId != null) {
         filters['employee_id'] = _filterEmployeeId;
       }
@@ -364,8 +353,7 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
         'Search: ${_searchController.text.trim()}',
       if (_canViewAllHr && _filterEmployeeId != null)
         'Employee: ${_attendanceSelectedEmployeeLabel()}',
-      if (_canViewAllHr &&
-          (_filterAttendanceStatus ?? '').isNotEmpty)
+      if (_canViewAllHr && (_filterAttendanceStatus ?? '').isNotEmpty)
         'Status: ${hrDropdownLabel(_hrAttendanceStatusFilterItems, _filterAttendanceStatus)}',
       if (_dateFromController.text.trim().isNotEmpty)
         'From: ${_dateFromController.text.trim()}',
@@ -513,9 +501,8 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
         ),
         PurchaseRegisterColumn<AttendanceRecordModel>(
           label: 'Date',
-          valueBuilder: (AttendanceRecordModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'attendance_date'),
-          ),
+          valueBuilder: (AttendanceRecordModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'attendance_date')),
         ),
         PurchaseRegisterColumn<AttendanceRecordModel>(
           label: 'Status',
@@ -524,9 +511,8 @@ class _AttendanceRegisterPageState extends State<AttendanceRegisterPage> {
         ),
         PurchaseRegisterColumn<AttendanceRecordModel>(
           label: 'Check in',
-          valueBuilder: (AttendanceRecordModel row) => displayDateTime(
-            nullableStringValue(row.toJson(), 'check_in'),
-          ),
+          valueBuilder: (AttendanceRecordModel row) =>
+              displayDateTime(nullableStringValue(row.toJson(), 'check_in')),
         ),
       ],
       onRowTap: (AttendanceRecordModel row) async {
@@ -560,8 +546,7 @@ class PayrollRunRegisterPage extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<PayrollRunRegisterPage> createState() =>
-      _PayrollRunRegisterPageState();
+  State<PayrollRunRegisterPage> createState() => _PayrollRunRegisterPageState();
 }
 
 class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
@@ -686,9 +671,8 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
         ),
         PurchaseRegisterColumn<PayrollRunModel>(
           label: 'Run date',
-          valueBuilder: (PayrollRunModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'run_date'),
-          ),
+          valueBuilder: (PayrollRunModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'run_date')),
         ),
         PurchaseRegisterColumn<PayrollRunModel>(
           label: 'Status',
@@ -794,9 +778,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
         return;
       }
 
-      final ctxRes = await _service.expenseClaimsLinkedEmployee(
-        companyId: cid,
-      );
+      final ctxRes = await _service.expenseClaimsLinkedEmployee(companyId: cid);
       final ctx = ctxRes.data ?? const <String, dynamic>{};
       final viewAll =
           ctx['can_view_all_hr_records'] == true ||
@@ -835,10 +817,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
         employees = empResp.data ?? const <EmployeeModel>[];
       }
 
-      final filters = <String, dynamic>{
-        'company_id': cid,
-        'per_page': 200,
-      };
+      final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
       if (viewAll && _filterEmployeeId != null) {
         filters['employee_id'] = _filterEmployeeId;
       }
@@ -1019,17 +998,13 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
           onPressed: _load,
         ),
       ],
-      filters: hrListAppliedFiltersCard(
-        context,
-        _payslipAppliedFilterChips(),
-      ),
+      filters: hrListAppliedFiltersCard(context, _payslipAppliedFilterChips()),
       rows: _filtered,
       columns: [
         PurchaseRegisterColumn<PayslipModel>(
           label: 'Date',
-          valueBuilder: (PayslipModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'payslip_date'),
-          ),
+          valueBuilder: (PayslipModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'payslip_date')),
         ),
         PurchaseRegisterColumn<PayslipModel>(
           label: 'Employee',
@@ -1043,8 +1018,7 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
         ),
         PurchaseRegisterColumn<PayslipModel>(
           label: 'Net',
-          valueBuilder: (PayslipModel row) =>
-              _payslipNetSalary(row.toJson()),
+          valueBuilder: (PayslipModel row) => _payslipNetSalary(row.toJson()),
         ),
       ],
       onRowTap: (PayslipModel row) {

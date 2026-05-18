@@ -1,6 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class AssetTransferViewModel extends ChangeNotifier {
   AssetTransferViewModel() {
@@ -171,8 +169,7 @@ class AssetTransferViewModel extends ChangeNotifier {
   }
 
   Future<void> refreshDetail() async {
-    final id =
-        intValue(detail?.toJson() ?? selected?.toJson() ?? {}, 'id');
+    final id = intValue(detail?.toJson() ?? selected?.toJson() ?? {}, 'id');
     if (id == null) {
       return;
     }

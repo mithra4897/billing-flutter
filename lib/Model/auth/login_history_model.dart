@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import '../common/model_value.dart';
+import '../../screen.dart';
 
 class LoginHistoryModel implements JsonModel {
   const LoginHistoryModel({

@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class ServiceTicketModel implements JsonModel {
   const ServiceTicketModel(this.data);

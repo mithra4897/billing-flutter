@@ -7,11 +7,15 @@ class AppRouteState {
   static bool _redirectingToLogin = false;
 
   static String get currentRoute => _currentRoute;
+
   static String get previousRoute =>
       _backHistory.isEmpty ? '' : _backHistory.last;
+
   static String get nextRoute =>
       _forwardHistory.isEmpty ? '' : _forwardHistory.last;
+
   static bool get canGoBack => _backHistory.isNotEmpty;
+
   static bool get canGoForward => _forwardHistory.isNotEmpty;
 
   static bool get redirectingToLogin => _redirectingToLogin;

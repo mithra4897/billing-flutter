@@ -1,7 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../app/constants/app_config.dart';
-import '../model/app/public_branding_model.dart';
+import '../screen.dart';
 
 class AppBrandingLogo extends StatelessWidget {
   const AppBrandingLogo({

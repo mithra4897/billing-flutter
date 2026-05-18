@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/service/service_work_order_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 const List<AppDropdownItem<String>> _kExecutionModeItems =
     <AppDropdownItem<String>>[

@@ -1,9 +1,4 @@
-import 'dart:convert';
-
 import '../../screen.dart';
-import '../hr/hr_workflow_dialogs.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
 
 void _openManufacturingShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -25,8 +20,8 @@ Map<String, dynamic>? _asJsonMap(dynamic value) {
 }
 
 String _outputItemLabel(Map<String, dynamic> data) {
-  final item = _asJsonMap(data['outputItem']) ??
-      _asJsonMap(data['output_item']);
+  final item =
+      _asJsonMap(data['outputItem']) ?? _asJsonMap(data['output_item']);
   if (item == null) {
     return '';
   }
@@ -42,7 +37,8 @@ String _outputItemLabel(Map<String, dynamic> data) {
 }
 
 String _productionOrderNo(Map<String, dynamic> data) {
-  final po = _asJsonMap(data['productionOrder']) ??
+  final po =
+      _asJsonMap(data['productionOrder']) ??
       _asJsonMap(data['production_order']);
   if (po == null) {
     return '';
@@ -212,9 +208,7 @@ class _BomDetailDialogState extends State<_BomDetailDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete BOM'),
-        content: const Text(
-          'Only non-approved BOMs can be deleted. Continue?',
-        ),
+        content: const Text('Only non-approved BOMs can be deleted. Continue?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -242,9 +236,9 @@ class _BomDetailDialogState extends State<_BomDetailDialog> {
         ).showSnackBar(SnackBar(content: Text(response.message)));
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('BOM deleted.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('BOM deleted.')));
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -308,11 +302,11 @@ class _BomDetailDialogState extends State<_BomDetailDialog> {
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _service.approveBom(
-                                widget.bomId,
-                                BomModel(<String, dynamic>{}),
-                              ),
+                            () => _service.approveBom(
+                              widget.bomId,
+                              BomModel(<String, dynamic>{}),
                             ),
+                          ),
                     child: const Text('Approve'),
                   ),
                 if (canDelete)
@@ -327,9 +321,7 @@ class _BomDetailDialogState extends State<_BomDetailDialog> {
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
+            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
           ],
         ),
       ),
@@ -534,11 +526,11 @@ class _ProductionOrderDetailDialogState
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _service.releaseProductionOrder(
-                                widget.orderId,
-                                ProductionOrderModel(<String, dynamic>{}),
-                              ),
+                            () => _service.releaseProductionOrder(
+                              widget.orderId,
+                              ProductionOrderModel(<String, dynamic>{}),
                             ),
+                          ),
                     child: const Text('Release'),
                   ),
                 if (canClose)
@@ -546,11 +538,11 @@ class _ProductionOrderDetailDialogState
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _service.closeProductionOrder(
-                                widget.orderId,
-                                ProductionOrderModel(<String, dynamic>{}),
-                              ),
+                            () => _service.closeProductionOrder(
+                              widget.orderId,
+                              ProductionOrderModel(<String, dynamic>{}),
                             ),
+                          ),
                     child: const Text('Close'),
                   ),
                 if (canCancel)
@@ -558,11 +550,11 @@ class _ProductionOrderDetailDialogState
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _service.cancelProductionOrder(
-                                widget.orderId,
-                                ProductionOrderModel(<String, dynamic>{}),
-                              ),
+                            () => _service.cancelProductionOrder(
+                              widget.orderId,
+                              ProductionOrderModel(<String, dynamic>{}),
                             ),
+                          ),
                     child: const Text('Cancel order'),
                   ),
                 if (canDelete)
@@ -577,9 +569,7 @@ class _ProductionOrderDetailDialogState
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
+            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
           ],
         ),
       ),
@@ -603,7 +593,8 @@ class _MaterialIssueDetailDialog extends StatefulWidget {
       _MaterialIssueDetailDialogState();
 }
 
-class _MaterialIssueDetailDialogState extends State<_MaterialIssueDetailDialog> {
+class _MaterialIssueDetailDialogState
+    extends State<_MaterialIssueDetailDialog> {
   final ManufacturingService _service = ManufacturingService();
   bool _loading = true;
   String? _error;
@@ -663,9 +654,9 @@ class _MaterialIssueDetailDialogState extends State<_MaterialIssueDetailDialog> 
         ).showSnackBar(SnackBar(content: Text(response.message)));
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Material issue updated.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Material issue updated.')));
       await _load();
     } catch (e) {
       if (mounted) {
@@ -717,9 +708,9 @@ class _MaterialIssueDetailDialogState extends State<_MaterialIssueDetailDialog> 
         ).showSnackBar(SnackBar(content: Text(response.message)));
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Material issue deleted.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Material issue deleted.')));
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -784,13 +775,11 @@ class _MaterialIssueDetailDialogState extends State<_MaterialIssueDetailDialog> 
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _service.postProductionMaterialIssue(
-                                widget.issueId,
-                                ProductionMaterialIssueModel(
-                                  <String, dynamic>{},
-                                ),
-                              ),
+                            () => _service.postProductionMaterialIssue(
+                              widget.issueId,
+                              ProductionMaterialIssueModel(<String, dynamic>{}),
                             ),
+                          ),
                     child: const Text('Post'),
                   ),
                 if (canCancel)
@@ -798,13 +787,11 @@ class _MaterialIssueDetailDialogState extends State<_MaterialIssueDetailDialog> 
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _service.cancelProductionMaterialIssue(
-                                widget.issueId,
-                                ProductionMaterialIssueModel(
-                                  <String, dynamic>{},
-                                ),
-                              ),
+                            () => _service.cancelProductionMaterialIssue(
+                              widget.issueId,
+                              ProductionMaterialIssueModel(<String, dynamic>{}),
                             ),
+                          ),
                     child: const Text('Cancel doc'),
                   ),
                 if (canDelete)
@@ -819,9 +806,7 @@ class _MaterialIssueDetailDialogState extends State<_MaterialIssueDetailDialog> 
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
+            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
           ],
         ),
       ),
@@ -928,9 +913,7 @@ class _ProductionReceiptDetailDialogState
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete production receipt'),
-        content: const Text(
-          'Only draft receipts can be deleted. Continue?',
-        ),
+        content: const Text('Only draft receipts can be deleted. Continue?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -958,9 +941,9 @@ class _ProductionReceiptDetailDialogState
         ).showSnackBar(SnackBar(content: Text(response.message)));
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Receipt deleted.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Receipt deleted.')));
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -1025,11 +1008,11 @@ class _ProductionReceiptDetailDialogState
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _service.postProductionReceipt(
-                                widget.receiptId,
-                                ProductionReceiptModel(<String, dynamic>{}),
-                              ),
+                            () => _service.postProductionReceipt(
+                              widget.receiptId,
+                              ProductionReceiptModel(<String, dynamic>{}),
                             ),
+                          ),
                     child: const Text('Post'),
                   ),
                 if (canCancel)
@@ -1037,11 +1020,11 @@ class _ProductionReceiptDetailDialogState
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _service.cancelProductionReceipt(
-                                widget.receiptId,
-                                ProductionReceiptModel(<String, dynamic>{}),
-                              ),
+                            () => _service.cancelProductionReceipt(
+                              widget.receiptId,
+                              ProductionReceiptModel(<String, dynamic>{}),
                             ),
+                          ),
                     child: const Text('Cancel doc'),
                   ),
                 if (canDelete)
@@ -1056,9 +1039,7 @@ class _ProductionReceiptDetailDialogState
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
+            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
           ],
         ),
       ),
@@ -1330,9 +1311,8 @@ class _ProductionOrderRegisterPageState
         ),
         PurchaseRegisterColumn<ProductionOrderModel>(
           label: 'Date',
-          valueBuilder: (ProductionOrderModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'production_date'),
-          ),
+          valueBuilder: (ProductionOrderModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'production_date')),
         ),
         PurchaseRegisterColumn<ProductionOrderModel>(
           label: 'Output',
@@ -1351,7 +1331,10 @@ class _ProductionOrderRegisterPageState
         if (id == null) {
           return;
         }
-        _openManufacturingShellRoute(context, '/manufacturing/production-orders/$id');
+        _openManufacturingShellRoute(
+          context,
+          '/manufacturing/production-orders/$id',
+        );
       },
     );
   }
@@ -1477,9 +1460,8 @@ class _ProductionMaterialIssueRegisterPageState
         ),
         PurchaseRegisterColumn<ProductionMaterialIssueModel>(
           label: 'Date',
-          valueBuilder: (ProductionMaterialIssueModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'issue_date'),
-          ),
+          valueBuilder: (ProductionMaterialIssueModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'issue_date')),
         ),
         PurchaseRegisterColumn<ProductionMaterialIssueModel>(
           label: 'Prod. order',
@@ -1624,9 +1606,8 @@ class _ProductionReceiptRegisterPageState
         ),
         PurchaseRegisterColumn<ProductionReceiptModel>(
           label: 'Date',
-          valueBuilder: (ProductionReceiptModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'receipt_date'),
-          ),
+          valueBuilder: (ProductionReceiptModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'receipt_date')),
         ),
         PurchaseRegisterColumn<ProductionReceiptModel>(
           label: 'Prod. order',

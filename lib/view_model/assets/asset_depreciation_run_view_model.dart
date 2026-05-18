@@ -1,6 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class AssetDepreciationRunViewModel extends ChangeNotifier {
   AssetDepreciationRunViewModel() {
@@ -85,23 +83,20 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       filters: const {'per_page': 400},
     );
     final cid = sessionCompanyId;
-    final rows =
-        (response.data ?? const <DocumentSeriesModel>[])
-            .where((DocumentSeriesModel s) {
-              if (!s.isActive) {
-                return false;
-              }
-              if ((s.documentType ?? '').trim() != 'ASSET_DEPRECIATION_RUN') {
-                return false;
-              }
-              if (cid != null &&
-                  s.companyId != null &&
-                  s.companyId != cid) {
-                return false;
-              }
-              return true;
-            })
-            .toList(growable: false);
+    final rows = (response.data ?? const <DocumentSeriesModel>[])
+        .where((DocumentSeriesModel s) {
+          if (!s.isActive) {
+            return false;
+          }
+          if ((s.documentType ?? '').trim() != 'ASSET_DEPRECIATION_RUN') {
+            return false;
+          }
+          if (cid != null && s.companyId != null && s.companyId != cid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
     DocumentSeriesModel? chosen;
     for (final DocumentSeriesModel s in rows) {
       if (s.isDefault) {
@@ -252,8 +247,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
   }
 
   Future<void> refreshDetail() async {
-    final id =
-        intValue(detail?.toJson() ?? selected?.toJson() ?? {}, 'id');
+    final id = intValue(detail?.toJson() ?? selected?.toJson() ?? {}, 'id');
     if (id == null) {
       return;
     }

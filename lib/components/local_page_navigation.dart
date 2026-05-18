@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../app/constants/app_ui_constants.dart';
+import '../screen.dart';
 
 const int kLocalListPageSize = 20;
 

@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/maintenance/asset_downtime_log_view_model.dart';
 
 class AssetDowntimeLogPage extends StatefulWidget {
   const AssetDowntimeLogPage({
@@ -223,10 +222,7 @@ class _DowntimeLogEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Maintenance work order',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.workOrders
                           .where((w) => intValue(w.toJson(), 'id') != null)
                           .map(

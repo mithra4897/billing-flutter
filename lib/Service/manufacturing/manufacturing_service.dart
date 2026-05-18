@@ -1,10 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/manufacturing/bom_model.dart';
-import '../../model/manufacturing/production_material_issue_model.dart';
-import '../../model/manufacturing/production_order_model.dart';
-import '../../model/manufacturing/production_receipt_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class ManufacturingService extends ErpModuleService {
   ManufacturingService({super.apiClient});
@@ -15,26 +9,31 @@ class ManufacturingService extends ErpModuleService {
         filters: filters,
         fromJson: BomModel.fromJson,
       );
+
   Future<ApiResponse<BomModel>> bom(int id) =>
       object<BomModel>('/manufacturing/boms/$id', fromJson: BomModel.fromJson);
+
   Future<ApiResponse<BomModel>> createBom(BomModel body) =>
       createModel<BomModel>(
         '/manufacturing/boms',
         body,
         fromJson: BomModel.fromJson,
       );
+
   Future<ApiResponse<BomModel>> updateBom(int id, BomModel body) =>
       updateModel<BomModel>(
         '/manufacturing/boms/$id',
         body,
         fromJson: BomModel.fromJson,
       );
+
   Future<ApiResponse<BomModel>> approveBom(int id, BomModel body) =>
       actionModel<BomModel>(
         '/manufacturing/boms/$id/approve',
         body: body,
         fromJson: BomModel.fromJson,
       );
+
   Future<ApiResponse<dynamic>> deleteBom(int id) =>
       destroy('/manufacturing/boms/$id');
 
@@ -45,11 +44,13 @@ class ManufacturingService extends ErpModuleService {
     filters: filters,
     fromJson: ProductionOrderModel.fromJson,
   );
+
   Future<ApiResponse<ProductionOrderModel>> productionOrder(int id) =>
       object<ProductionOrderModel>(
         '/manufacturing/production-orders/$id',
         fromJson: ProductionOrderModel.fromJson,
       );
+
   Future<ApiResponse<ProductionOrderModel>> createProductionOrder(
     ProductionOrderModel body,
   ) {
@@ -68,6 +69,7 @@ class ManufacturingService extends ErpModuleService {
     body,
     fromJson: ProductionOrderModel.fromJson,
   );
+
   Future<ApiResponse<ProductionOrderModel>> releaseProductionOrder(
     int id,
     ProductionOrderModel body,
@@ -76,6 +78,7 @@ class ManufacturingService extends ErpModuleService {
     body: body,
     fromJson: ProductionOrderModel.fromJson,
   );
+
   Future<ApiResponse<ProductionOrderModel>> closeProductionOrder(
     int id,
     ProductionOrderModel body,
@@ -84,6 +87,7 @@ class ManufacturingService extends ErpModuleService {
     body: body,
     fromJson: ProductionOrderModel.fromJson,
   );
+
   Future<ApiResponse<ProductionOrderModel>> cancelProductionOrder(
     int id,
     ProductionOrderModel body,
@@ -92,6 +96,7 @@ class ManufacturingService extends ErpModuleService {
     body: body,
     fromJson: ProductionOrderModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteProductionOrder(int id) =>
       destroy('/manufacturing/production-orders/$id');
 
@@ -102,12 +107,14 @@ class ManufacturingService extends ErpModuleService {
         filters: filters,
         fromJson: ProductionMaterialIssueModel.fromJson,
       );
+
   Future<ApiResponse<ProductionMaterialIssueModel>> productionMaterialIssue(
     int id,
   ) => object<ProductionMaterialIssueModel>(
     '/manufacturing/production-material-issues/$id',
     fromJson: ProductionMaterialIssueModel.fromJson,
   );
+
   Future<ApiResponse<List<Map<String, dynamic>>>>
   productionMaterialIssueAuditTrail(int id) {
     return client.get<List<Map<String, dynamic>>>(
@@ -139,6 +146,7 @@ class ManufacturingService extends ErpModuleService {
         body,
         fromJson: ProductionMaterialIssueModel.fromJson,
       );
+
   Future<ApiResponse<ProductionMaterialIssueModel>>
   updateProductionMaterialIssue(int id, ProductionMaterialIssueModel body) =>
       updateModel<ProductionMaterialIssueModel>(
@@ -146,6 +154,7 @@ class ManufacturingService extends ErpModuleService {
         body,
         fromJson: ProductionMaterialIssueModel.fromJson,
       );
+
   Future<ApiResponse<ProductionMaterialIssueModel>> postProductionMaterialIssue(
     int id,
     ProductionMaterialIssueModel body,
@@ -154,6 +163,7 @@ class ManufacturingService extends ErpModuleService {
     body: body,
     fromJson: ProductionMaterialIssueModel.fromJson,
   );
+
   Future<ApiResponse<ProductionMaterialIssueModel>>
   cancelProductionMaterialIssue(int id, ProductionMaterialIssueModel body) =>
       actionModel<ProductionMaterialIssueModel>(
@@ -161,6 +171,7 @@ class ManufacturingService extends ErpModuleService {
         body: body,
         fromJson: ProductionMaterialIssueModel.fromJson,
       );
+
   Future<ApiResponse<dynamic>> deleteProductionMaterialIssue(int id) =>
       destroy('/manufacturing/production-material-issues/$id');
 
@@ -171,11 +182,13 @@ class ManufacturingService extends ErpModuleService {
     filters: filters,
     fromJson: ProductionReceiptModel.fromJson,
   );
+
   Future<ApiResponse<ProductionReceiptModel>> productionReceipt(int id) =>
       object<ProductionReceiptModel>(
         '/manufacturing/production-receipts/$id',
         fromJson: ProductionReceiptModel.fromJson,
       );
+
   Future<ApiResponse<ProductionReceiptModel>> createProductionReceipt(
     ProductionReceiptModel body,
   ) => createModel<ProductionReceiptModel>(
@@ -183,6 +196,7 @@ class ManufacturingService extends ErpModuleService {
     body,
     fromJson: ProductionReceiptModel.fromJson,
   );
+
   Future<ApiResponse<ProductionReceiptModel>> updateProductionReceipt(
     int id,
     ProductionReceiptModel body,
@@ -191,6 +205,7 @@ class ManufacturingService extends ErpModuleService {
     body,
     fromJson: ProductionReceiptModel.fromJson,
   );
+
   Future<ApiResponse<ProductionReceiptModel>> postProductionReceipt(
     int id,
     ProductionReceiptModel body,
@@ -199,6 +214,7 @@ class ManufacturingService extends ErpModuleService {
     body: body,
     fromJson: ProductionReceiptModel.fromJson,
   );
+
   Future<ApiResponse<ProductionReceiptModel>> cancelProductionReceipt(
     int id,
     ProductionReceiptModel body,
@@ -207,6 +223,7 @@ class ManufacturingService extends ErpModuleService {
     body: body,
     fromJson: ProductionReceiptModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteProductionReceipt(int id) =>
       destroy('/manufacturing/production-receipts/$id');
 }

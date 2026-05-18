@@ -1,9 +1,4 @@
-import 'dart:convert';
-
-import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../model/app/public_branding_model.dart';
-import '../../model/auth/auth_context_model.dart';
+import '../../screen.dart';
 
 class SessionStorage {
   const SessionStorage._();

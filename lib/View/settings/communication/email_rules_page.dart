@@ -110,8 +110,9 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
             ..sort();
       final templates = templatesResponse.data ?? const <EmailTemplateModel>[];
       final rules = rulesResponse.data ?? const <EmailRuleModel>[];
-      final activeCompanies =
-          companies.where((item) => item.isActive).toList(growable: false);
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,

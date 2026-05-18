@@ -1,6 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class AssetDowntimeLogViewModel extends ChangeNotifier {
   AssetDowntimeLogViewModel() {
@@ -11,10 +9,12 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
   final AssetsService _assets = AssetsService();
 
   final TextEditingController searchController = TextEditingController();
-  final TextEditingController downtimeReasonController = TextEditingController();
+  final TextEditingController downtimeReasonController =
+      TextEditingController();
   final TextEditingController downtimeStartController = TextEditingController();
   final TextEditingController downtimeEndController = TextEditingController();
-  final TextEditingController productionImpactController = TextEditingController();
+  final TextEditingController productionImpactController =
+      TextEditingController();
 
   bool loading = true;
   bool detailLoading = false;
@@ -25,7 +25,8 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
 
   List<AssetDowntimeLogModel> rows = const <AssetDowntimeLogModel>[];
   List<AssetModel> assets = const <AssetModel>[];
-  List<MaintenanceWorkOrderModel> workOrders = const <MaintenanceWorkOrderModel>[];
+  List<MaintenanceWorkOrderModel> workOrders =
+      const <MaintenanceWorkOrderModel>[];
 
   AssetDowntimeLogModel? selected;
 
@@ -40,16 +41,18 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
 
   List<AssetDowntimeLogModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      return [
-        stringValue(data, 'downtime_reason'),
-        downtimeAssetLabel(data),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'downtime_reason'),
+            downtimeAssetLabel(data),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String downtimeAssetLabel(Map<String, dynamic> data) {
@@ -102,13 +105,15 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
 
       rows =
           (responses[0] as PaginatedResponse<AssetDowntimeLogModel>).data ??
-              const <AssetDowntimeLogModel>[];
-      assets = ((responses[1] as PaginatedResponse<AssetModel>).data ??
-              const <AssetModel>[])
-          .where((a) => intValue(a.toJson(), 'id') != null)
-          .toList(growable: false);
+          const <AssetDowntimeLogModel>[];
+      assets =
+          ((responses[1] as PaginatedResponse<AssetModel>).data ??
+                  const <AssetModel>[])
+              .where((a) => intValue(a.toJson(), 'id') != null)
+              .toList(growable: false);
       workOrders =
-          ((responses[2] as PaginatedResponse<MaintenanceWorkOrderModel>).data ??
+          ((responses[2] as PaginatedResponse<MaintenanceWorkOrderModel>)
+                      .data ??
                   const <MaintenanceWorkOrderModel>[])
               .where((w) => intValue(w.toJson(), 'id') != null)
               .toList(growable: false);
@@ -127,9 +132,7 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(
-          AssetDowntimeLogModel(<String, dynamic>{'id': selectId}),
-        );
+        await select(AssetDowntimeLogModel(<String, dynamic>{'id': selectId}));
         return;
       }
       resetDraft();
@@ -195,12 +198,16 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
     assetId = intValue(data, 'asset_id');
     maintenanceWorkOrderId = intValue(data, 'maintenance_work_order_id');
     downtimeReasonController.text = stringValue(data, 'downtime_reason');
-    downtimeStartController.text =
-        _formatDateTimeField(nullableStringValue(data, 'downtime_start'));
-    downtimeEndController.text =
-        _formatDateTimeField(nullableStringValue(data, 'downtime_end'));
-    productionImpactController.text =
-        stringValue(data, 'production_impact_notes');
+    downtimeStartController.text = _formatDateTimeField(
+      nullableStringValue(data, 'downtime_start'),
+    );
+    downtimeEndController.text = _formatDateTimeField(
+      nullableStringValue(data, 'downtime_end'),
+    );
+    productionImpactController.text = stringValue(
+      data,
+      'production_impact_notes',
+    );
     final planned = data['is_planned'];
     isPlanned = planned == true || planned == 1 || planned == '1';
   }

@@ -277,16 +277,20 @@ class _ProjectBillingManagementPageState
         _amountController.text = _decimalText(billingAmount);
       }
       if (resolvedProject != null && billingAmount != null) {
-        final milestoneMatches = resolvedProject.milestones.where((milestone) {
-          final milestoneAmount = milestone.milestoneAmount;
-          if (milestone.id == null || milestoneAmount == null) {
-            return false;
-          }
-          return (milestoneAmount - billingAmount).abs() < 0.01;
-        }).toList(growable: false);
+        final milestoneMatches = resolvedProject.milestones
+            .where((milestone) {
+              final milestoneAmount = milestone.milestoneAmount;
+              if (milestone.id == null || milestoneAmount == null) {
+                return false;
+              }
+              return (milestoneAmount - billingAmount).abs() < 0.01;
+            })
+            .toList(growable: false);
         if (milestoneMatches.length == 1) {
           resolvedMilestoneId = milestoneMatches.first.id;
-        } else if (!_milestoneItems.any((item) => item.value == resolvedMilestoneId)) {
+        } else if (!_milestoneItems.any(
+          (item) => item.value == resolvedMilestoneId,
+        )) {
           resolvedMilestoneId = null;
         }
       }
@@ -296,15 +300,14 @@ class _ProjectBillingManagementPageState
       _salesInvoiceId = invoiceId;
       _projectId = resolvedProjectId;
       _milestoneId = resolvedMilestoneId;
-      if (invoice != null &&
-          resolvedMilestoneId != null &&
-          _basis == 'fixed') {
+      if (invoice != null && resolvedMilestoneId != null && _basis == 'fixed') {
         _basis = 'milestone';
       }
     });
   }
 
   double? _doubleValue(String text) => double.tryParse(text.trim());
+
   String _decimalText(double? value) => value == null
       ? ''
       : (value == value.roundToDouble()

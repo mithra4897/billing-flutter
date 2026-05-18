@@ -1,6 +1,4 @@
-import '../common/json_model.dart';
-import 'jobwork_order_material_model.dart';
-import 'jobwork_order_output_model.dart';
+import '../../screen.dart';
 
 /// Header + lines for `/jobwork/orders` API.
 class JobworkOrderModel implements JsonModel {

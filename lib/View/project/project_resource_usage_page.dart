@@ -248,8 +248,11 @@ class _ProjectResourceUsageManagementPageState
   }
 
   int? _rawInt(dynamic value) => int.tryParse(value?.toString() ?? '');
+
   int? _intValue(String text) => int.tryParse(text.trim());
+
   double? _doubleValue(String text) => double.tryParse(text.trim());
+
   String _decimalText(double? value) => value == null
       ? ''
       : (value == value.roundToDouble()

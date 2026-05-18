@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/planning/stock_reservation_view_model.dart';
 
 class StockReservationPage extends StatefulWidget {
   const StockReservationPage({

@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import 'jobwork_receipt_line_model.dart';
+import '../../screen.dart';
 
 class JobworkReceiptModel implements JsonModel {
   const JobworkReceiptModel({
@@ -129,11 +128,9 @@ class JobworkReceiptModel implements JsonModel {
       'supplier_dc_date': supplierDcDate!.trim(),
     if (vehicleNo != null && vehicleNo!.trim().isNotEmpty)
       'vehicle_no': vehicleNo!.trim(),
-    if (transporterPartyId != null)
-      'transporter_party_id': transporterPartyId,
+    if (transporterPartyId != null) 'transporter_party_id': transporterPartyId,
     if (lrNo != null && lrNo!.trim().isNotEmpty) 'lr_no': lrNo!.trim(),
-    if (lrDate != null && lrDate!.trim().isNotEmpty)
-      'lr_date': lrDate!.trim(),
+    if (lrDate != null && lrDate!.trim().isNotEmpty) 'lr_date': lrDate!.trim(),
     'receipt_mode': receiptMode,
     if (remarks != null && remarks!.trim().isNotEmpty)
       'remarks': remarks!.trim(),

@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class QcPlanLineModel implements JsonModel {
   const QcPlanLineModel({
@@ -46,7 +46,9 @@ class QcPlanLineModel implements JsonModel {
       expectedText: json['expected_text']?.toString(),
       unit: json['unit']?.toString(),
       isCritical: _b(json['is_critical']),
-      isMandatory: json['is_mandatory'] == null ? true : _b(json['is_mandatory']),
+      isMandatory: json['is_mandatory'] == null
+          ? true
+          : _b(json['is_mandatory']),
       sequenceNo: _i(json['sequence_no']) ?? 1,
       remarks: json['remarks']?.toString(),
     );

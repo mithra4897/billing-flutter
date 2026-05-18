@@ -1,10 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/service/service_contract_model.dart';
-import '../../model/service/service_feedback_model.dart';
-import '../../model/service/service_ticket_model.dart';
-import '../../model/service/service_work_order_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class ServiceModuleService extends ErpModuleService {
   ServiceModuleService({super.apiClient});
@@ -16,11 +10,13 @@ class ServiceModuleService extends ErpModuleService {
     filters: filters,
     fromJson: ServiceContractModel.fromJson,
   );
+
   Future<ApiResponse<ServiceContractModel>> contract(int id) =>
       object<ServiceContractModel>(
         '/service/contracts/$id',
         fromJson: ServiceContractModel.fromJson,
       );
+
   Future<ApiResponse<ServiceContractModel>> createContract(
     ServiceContractModel body,
   ) => createModel<ServiceContractModel>(
@@ -28,6 +24,7 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceContractModel.fromJson,
   );
+
   Future<ApiResponse<ServiceContractModel>> updateContract(
     int id,
     ServiceContractModel body,
@@ -36,21 +33,25 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceContractModel.fromJson,
   );
+
   Future<ApiResponse<ServiceContractModel>> approveContract(int id) =>
       actionModel<ServiceContractModel>(
         '/service/contracts/$id/approve',
         fromJson: ServiceContractModel.fromJson,
       );
+
   Future<ApiResponse<ServiceContractModel>> terminateContract(int id) =>
       actionModel<ServiceContractModel>(
         '/service/contracts/$id/terminate',
         fromJson: ServiceContractModel.fromJson,
       );
+
   Future<ApiResponse<ServiceContractModel>> cancelContract(int id) =>
       actionModel<ServiceContractModel>(
         '/service/contracts/$id/cancel',
         fromJson: ServiceContractModel.fromJson,
       );
+
   Future<ApiResponse<dynamic>> deleteContract(int id) =>
       destroy('/service/contracts/$id');
 
@@ -61,11 +62,13 @@ class ServiceModuleService extends ErpModuleService {
     filters: filters,
     fromJson: ServiceTicketModel.fromJson,
   );
+
   Future<ApiResponse<ServiceTicketModel>> ticket(int id) =>
       object<ServiceTicketModel>(
         '/service/tickets/$id',
         fromJson: ServiceTicketModel.fromJson,
       );
+
   Future<ApiResponse<ServiceTicketModel>> createTicket(
     ServiceTicketModel body,
   ) => createModel<ServiceTicketModel>(
@@ -73,6 +76,7 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceTicketModel.fromJson,
   );
+
   Future<ApiResponse<ServiceTicketModel>> updateTicket(
     int id,
     ServiceTicketModel body,
@@ -99,16 +103,19 @@ class ServiceModuleService extends ErpModuleService {
         '/service/tickets/$id/resolve',
         fromJson: ServiceTicketModel.fromJson,
       );
+
   Future<ApiResponse<ServiceTicketModel>> closeTicket(int id) =>
       actionModel<ServiceTicketModel>(
         '/service/tickets/$id/close',
         fromJson: ServiceTicketModel.fromJson,
       );
+
   Future<ApiResponse<ServiceTicketModel>> cancelTicket(int id) =>
       actionModel<ServiceTicketModel>(
         '/service/tickets/$id/cancel',
         fromJson: ServiceTicketModel.fromJson,
       );
+
   Future<ApiResponse<dynamic>> deleteTicket(int id) =>
       destroy('/service/tickets/$id');
 
@@ -119,11 +126,13 @@ class ServiceModuleService extends ErpModuleService {
     filters: filters,
     fromJson: ServiceWorkOrderModel.fromJson,
   );
+
   Future<ApiResponse<ServiceWorkOrderModel>> workOrder(int id) =>
       object<ServiceWorkOrderModel>(
         '/service/work-orders/$id',
         fromJson: ServiceWorkOrderModel.fromJson,
       );
+
   Future<ApiResponse<ServiceWorkOrderModel>> createWorkOrder(
     ServiceWorkOrderModel body,
   ) => createModel<ServiceWorkOrderModel>(
@@ -131,6 +140,7 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceWorkOrderModel.fromJson,
   );
+
   Future<ApiResponse<ServiceWorkOrderModel>> updateWorkOrder(
     int id,
     ServiceWorkOrderModel body,
@@ -139,26 +149,31 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceWorkOrderModel.fromJson,
   );
+
   Future<ApiResponse<ServiceWorkOrderModel>> startWorkOrder(int id) =>
       actionModel<ServiceWorkOrderModel>(
         '/service/work-orders/$id/start',
         fromJson: ServiceWorkOrderModel.fromJson,
       );
+
   Future<ApiResponse<ServiceWorkOrderModel>> completeWorkOrder(int id) =>
       actionModel<ServiceWorkOrderModel>(
         '/service/work-orders/$id/complete',
         fromJson: ServiceWorkOrderModel.fromJson,
       );
+
   Future<ApiResponse<ServiceWorkOrderModel>> closeWorkOrder(int id) =>
       actionModel<ServiceWorkOrderModel>(
         '/service/work-orders/$id/close',
         fromJson: ServiceWorkOrderModel.fromJson,
       );
+
   Future<ApiResponse<ServiceWorkOrderModel>> cancelWorkOrder(int id) =>
       actionModel<ServiceWorkOrderModel>(
         '/service/work-orders/$id/cancel',
         fromJson: ServiceWorkOrderModel.fromJson,
       );
+
   Future<ApiResponse<dynamic>> deleteWorkOrder(int id) =>
       destroy('/service/work-orders/$id');
 
@@ -169,11 +184,13 @@ class ServiceModuleService extends ErpModuleService {
     filters: filters,
     fromJson: ServiceFeedbackModel.fromJson,
   );
+
   Future<ApiResponse<ServiceFeedbackModel>> feedback(int id) =>
       object<ServiceFeedbackModel>(
         '/service/feedbacks/$id',
         fromJson: ServiceFeedbackModel.fromJson,
       );
+
   Future<ApiResponse<ServiceFeedbackModel>> createFeedback(
     ServiceFeedbackModel body,
   ) => createModel<ServiceFeedbackModel>(
@@ -181,6 +198,7 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceFeedbackModel.fromJson,
   );
+
   Future<ApiResponse<ServiceFeedbackModel>> updateFeedback(
     int id,
     ServiceFeedbackModel body,
@@ -189,6 +207,7 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceFeedbackModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteFeedback(int id) =>
       destroy('/service/feedbacks/$id');
 
@@ -199,11 +218,13 @@ class ServiceModuleService extends ErpModuleService {
     filters: filters,
     fromJson: ServiceTicketModel.fromJson,
   );
+
   Future<ApiResponse<ServiceTicketModel>> warrantyClaim(int id) =>
       object<ServiceTicketModel>(
         '/service/warranty-claims/$id',
         fromJson: ServiceTicketModel.fromJson,
       );
+
   Future<ApiResponse<ServiceTicketModel>> createWarrantyClaim(
     ServiceTicketModel body,
   ) => createModel<ServiceTicketModel>(
@@ -211,6 +232,7 @@ class ServiceModuleService extends ErpModuleService {
     body,
     fromJson: ServiceTicketModel.fromJson,
   );
+
   Future<ApiResponse<ServiceTicketModel>> updateWarrantyClaim(
     int id,
     ServiceTicketModel body,
@@ -244,16 +266,19 @@ class ServiceModuleService extends ErpModuleService {
         '/service/warranty-claims/$id/resolve',
         fromJson: ServiceTicketModel.fromJson,
       );
+
   Future<ApiResponse<ServiceTicketModel>> closeWarrantyClaim(int id) =>
       actionModel<ServiceTicketModel>(
         '/service/warranty-claims/$id/close',
         fromJson: ServiceTicketModel.fromJson,
       );
+
   Future<ApiResponse<ServiceTicketModel>> cancelWarrantyClaim(int id) =>
       actionModel<ServiceTicketModel>(
         '/service/warranty-claims/$id/cancel',
         fromJson: ServiceTicketModel.fromJson,
       );
+
   Future<ApiResponse<dynamic>> deleteWarrantyClaim(int id) =>
       destroy('/service/warranty-claims/$id');
 }

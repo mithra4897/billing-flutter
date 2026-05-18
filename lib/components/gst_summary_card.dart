@@ -1,8 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../app/constants/app_ui_constants.dart';
-import '../app/theme/app_theme_extension.dart';
-import 'app_section_card.dart';
+import '../screen.dart';
 
 class GstSummaryCard extends StatelessWidget {
   const GstSummaryCard({

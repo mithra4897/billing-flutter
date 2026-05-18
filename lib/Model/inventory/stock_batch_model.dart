@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class StockBatchModel implements JsonModel {
   const StockBatchModel(this.data);

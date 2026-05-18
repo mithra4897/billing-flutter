@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class PartyAddressModel implements JsonModel {
   const PartyAddressModel({

@@ -87,8 +87,9 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
               .toList()
             ..sort();
       final messages = messagesResponse.data ?? const <EmailMessageModel>[];
-      final activeCompanies =
-          companies.where((item) => item.isActive).toList(growable: false);
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,
@@ -127,7 +128,6 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
       setState(() {
         _selectedMessage = selected;
       });
-
     } catch (error) {
       if (!mounted) {
         return;
@@ -381,10 +381,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Send Email',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Send Email', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppUiConstants.spacingSm),
             Text(
               'Compose and send an email from this route-first page.',

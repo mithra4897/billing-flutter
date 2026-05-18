@@ -17,53 +17,32 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
         AppDropdownItem(value: 'credit', label: 'Credit'),
       ];
 
-  static const List<AppDropdownItem<String>> _accountSourceItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'fixed_account', label: 'Fixed account'),
-        AppDropdownItem(
-          value: 'customer_control_account',
-          label: 'Customer control',
-        ),
-        AppDropdownItem(
-          value: 'supplier_control_account',
-          label: 'Supplier control',
-        ),
-        AppDropdownItem(value: 'item_sales_account', label: 'Item sales'),
-        AppDropdownItem(
-          value: 'item_purchase_account',
-          label: 'Item purchase',
-        ),
-        AppDropdownItem(
-          value: 'tax_output_cgst_account',
-          label: 'Tax output CGST',
-        ),
-        AppDropdownItem(
-          value: 'tax_output_sgst_account',
-          label: 'Tax output SGST',
-        ),
-        AppDropdownItem(
-          value: 'tax_output_igst_account',
-          label: 'Tax output IGST',
-        ),
-        AppDropdownItem(
-          value: 'tax_input_cgst_account',
-          label: 'Tax input CGST',
-        ),
-        AppDropdownItem(
-          value: 'tax_input_sgst_account',
-          label: 'Tax input SGST',
-        ),
-        AppDropdownItem(
-          value: 'tax_input_igst_account',
-          label: 'Tax input IGST',
-        ),
-        AppDropdownItem(value: 'cash_bank_account', label: 'Cash / bank'),
-        AppDropdownItem(value: 'round_off_account', label: 'Round off'),
-        AppDropdownItem(value: 'discount_account', label: 'Discount'),
-        AppDropdownItem(value: 'returns_account', label: 'Returns'),
-        AppDropdownItem(value: 'stock_account', label: 'Stock'),
-        AppDropdownItem(value: 'cogs_account', label: 'COGS'),
-      ];
+  static const List<AppDropdownItem<String>>
+  _accountSourceItems = <AppDropdownItem<String>>[
+    AppDropdownItem(value: 'fixed_account', label: 'Fixed account'),
+    AppDropdownItem(
+      value: 'customer_control_account',
+      label: 'Customer control',
+    ),
+    AppDropdownItem(
+      value: 'supplier_control_account',
+      label: 'Supplier control',
+    ),
+    AppDropdownItem(value: 'item_sales_account', label: 'Item sales'),
+    AppDropdownItem(value: 'item_purchase_account', label: 'Item purchase'),
+    AppDropdownItem(value: 'tax_output_cgst_account', label: 'Tax output CGST'),
+    AppDropdownItem(value: 'tax_output_sgst_account', label: 'Tax output SGST'),
+    AppDropdownItem(value: 'tax_output_igst_account', label: 'Tax output IGST'),
+    AppDropdownItem(value: 'tax_input_cgst_account', label: 'Tax input CGST'),
+    AppDropdownItem(value: 'tax_input_sgst_account', label: 'Tax input SGST'),
+    AppDropdownItem(value: 'tax_input_igst_account', label: 'Tax input IGST'),
+    AppDropdownItem(value: 'cash_bank_account', label: 'Cash / bank'),
+    AppDropdownItem(value: 'round_off_account', label: 'Round off'),
+    AppDropdownItem(value: 'discount_account', label: 'Discount'),
+    AppDropdownItem(value: 'returns_account', label: 'Returns'),
+    AppDropdownItem(value: 'stock_account', label: 'Stock'),
+    AppDropdownItem(value: 'cogs_account', label: 'COGS'),
+  ];
 
   static const List<AppDropdownItem<String>> _amountSourceItems =
       <AppDropdownItem<String>>[
@@ -148,7 +127,9 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
         _accountsService.postingRules(
           filters: const {'per_page': 500, 'sort_by': 'line_no'},
         ),
-        _accountsService.accountsAll(filters: const {'sort_by': 'account_name'}),
+        _accountsService.accountsAll(
+          filters: const {'sort_by': 'account_name'},
+        ),
       ]);
       final groups =
           (results[0] as ApiResponse<List<PostingRuleGroupModel>>).data ??
@@ -421,9 +402,8 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
                   labelText: 'Account source',
                   mappedItems: _accountSourceItems,
                   initialValue: _accountSourceType,
-                  onChanged: (v) => setState(
-                    () => _accountSourceType = v ?? 'fixed_account',
-                  ),
+                  onChanged: (v) =>
+                      setState(() => _accountSourceType = v ?? 'fixed_account'),
                 ),
                 if (_accountSourceType == 'fixed_account')
                   AppDropdownField<int>.fromMapped(

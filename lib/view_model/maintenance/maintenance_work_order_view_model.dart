@@ -1,6 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class MaintenanceWorkOrderViewModel extends ChangeNotifier {
   MaintenanceWorkOrderViewModel() {
@@ -51,8 +49,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
   List<PartyModel> parties = const <PartyModel>[];
   List<PartyTypeModel> partyTypes = const <PartyTypeModel>[];
   List<AssetModel> assets = const <AssetModel>[];
-  List<MaintenancePlanModel> maintenancePlans =
-      const <MaintenancePlanModel>[];
+  List<MaintenancePlanModel> maintenancePlans = const <MaintenancePlanModel>[];
   List<MaintenanceRequestModel> maintenanceRequests =
       const <MaintenanceRequestModel>[];
 
@@ -73,8 +70,10 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
   int? get selectedId =>
       intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
 
-  String get workOrderStatus =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'work_order_status');
+  String get workOrderStatus => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'work_order_status',
+  );
 
   bool get canEdit {
     if (selected == null) {
@@ -109,18 +108,20 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
 
   List<DocumentSeriesModel> get seriesOptions {
     final cid = companyId;
-    return documentSeries.where((s) {
-      if (!s.isActive) {
-        return false;
-      }
-      if ((s.documentType ?? '').trim() != 'MAINTENANCE_WORK_ORDER') {
-        return false;
-      }
-      if (cid != null && s.companyId != null && s.companyId != cid) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return documentSeries
+        .where((s) {
+          if (!s.isActive) {
+            return false;
+          }
+          if ((s.documentType ?? '').trim() != 'MAINTENANCE_WORK_ORDER') {
+            return false;
+          }
+          if (cid != null && s.companyId != null && s.companyId != cid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<BranchModel> get branchOptions =>
@@ -131,12 +132,14 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
 
   List<FinancialYearModel> get financialYearOptions {
     final cid = companyId;
-    return financialYears.where((fy) {
-      if (cid == null) {
-        return true;
-      }
-      return fy.companyId == null || fy.companyId == cid;
-    }).toList(growable: false);
+    return financialYears
+        .where((fy) {
+          if (cid == null) {
+            return true;
+          }
+          return fy.companyId == null || fy.companyId == cid;
+        })
+        .toList(growable: false);
   }
 
   List<PartyModel> get vendorOptions =>
@@ -144,18 +147,20 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
 
   List<MaintenanceWorkOrderModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      return [
-        stringValue(data, 'work_order_no'),
-        stringValue(data, 'work_order_status'),
-        stringValue(data, 'work_order_type'),
-        listAssetSubtitle(data),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'work_order_no'),
+            stringValue(data, 'work_order_status'),
+            stringValue(data, 'work_order_type'),
+            listAssetSubtitle(data),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String listAssetSubtitle(Map<String, dynamic> data) {
@@ -223,11 +228,12 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
 
       rows =
           (responses[0] as PaginatedResponse<MaintenanceWorkOrderModel>).data ??
-              const <MaintenanceWorkOrderModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <MaintenanceWorkOrderModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       documentSeries =
           ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
                   const <DocumentSeriesModel>[])
@@ -248,13 +254,14 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
                   const <FinancialYearModel>[])
               .where((fy) => fy.id != null && fy.isActive)
               .toList(growable: false);
-      parties = ((responses[6] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      parties =
+          ((responses[6] as PaginatedResponse<PartyModel>).data ??
+                  const <PartyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       partyTypes =
           (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
-              const <PartyTypeModel>[];
+          const <PartyTypeModel>[];
 
       loading = false;
 
@@ -295,23 +302,21 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     }
     try {
       final responses = await Future.wait<dynamic>([
-        _assets.assets(filters: <String, dynamic>{
-          'company_id': cid,
-          'per_page': 200,
-        }),
-        _maintenance.plans(filters: <String, dynamic>{
-          'company_id': cid,
-          'per_page': 200,
-        }),
-        _maintenance.requests(filters: <String, dynamic>{
-          'company_id': cid,
-          'per_page': 200,
-        }),
+        _assets.assets(
+          filters: <String, dynamic>{'company_id': cid, 'per_page': 200},
+        ),
+        _maintenance.plans(
+          filters: <String, dynamic>{'company_id': cid, 'per_page': 200},
+        ),
+        _maintenance.requests(
+          filters: <String, dynamic>{'company_id': cid, 'per_page': 200},
+        ),
       ]);
-      assets = ((responses[0] as PaginatedResponse<AssetModel>).data ??
-              const <AssetModel>[])
-          .where((a) => intValue(a.toJson(), 'id') != null)
-          .toList(growable: false);
+      assets =
+          ((responses[0] as PaginatedResponse<AssetModel>).data ??
+                  const <AssetModel>[])
+              .where((a) => intValue(a.toJson(), 'id') != null)
+              .toList(growable: false);
       maintenancePlans =
           ((responses[1] as PaginatedResponse<MaintenancePlanModel>).data ??
                   const <MaintenancePlanModel>[])
@@ -333,10 +338,9 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId = _sessionCompanyId ??
-        (companies.isNotEmpty ? companies.first.id : null);
-    documentSeriesId =
-        seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    companyId =
+        _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     assetId = null;
     branchId = null;
     locationId = null;
@@ -345,8 +349,10 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     maintenancePlanId = null;
     vendorPartyId = null;
     workOrderNoController.clear();
-    workOrderDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    workOrderDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     workOrderTypeController.clear();
     executionModeController.clear();
     assignedTechnicianController.clear();
@@ -371,8 +377,9 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
   void _revalidateSeries() {
     if (documentSeriesId != null &&
         !seriesOptions.any((s) => s.id == documentSeriesId)) {
-      documentSeriesId =
-          seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+      documentSeriesId = seriesOptions.isNotEmpty
+          ? seriesOptions.first.id
+          : null;
     }
   }
 
@@ -502,17 +509,19 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     maintenancePlanId = intValue(data, 'maintenance_plan_id');
     vendorPartyId = intValue(data, 'vendor_party_id');
     workOrderNoController.text = stringValue(data, 'work_order_no');
-    workOrderDateController.text =
-        displayDate(nullableStringValue(data, 'work_order_date'));
+    workOrderDateController.text = displayDate(
+      nullableStringValue(data, 'work_order_date'),
+    );
     workOrderTypeController.text = stringValue(data, 'work_order_type');
     executionModeController.text = stringValue(data, 'execution_mode');
-    assignedTechnicianController.text =
-        stringValue(data, 'assigned_technician');
+    assignedTechnicianController.text = stringValue(
+      data,
+      'assigned_technician',
+    );
     assignedTeamController.text = stringValue(data, 'assigned_team');
     faultDescriptionController.text = stringValue(data, 'fault_description');
     actionTakenController.text = stringValue(data, 'action_taken');
-    resolutionSummaryController.text =
-        stringValue(data, 'resolution_summary');
+    resolutionSummaryController.text = stringValue(data, 'resolution_summary');
     plannedStartController.text =
         nullableStringValue(data, 'planned_start_datetime')?.trim() ?? '';
     plannedEndController.text =
@@ -571,24 +580,26 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       'maintenance_request_id': ?maintenanceRequestId,
       'maintenance_plan_id': ?maintenancePlanId,
       'vendor_party_id': ?vendorPartyId,
-      'planned_start_datetime':
-          ?nullIfEmpty(plannedStartController.text.trim()),
-      'planned_end_datetime':
-          ?nullIfEmpty(plannedEndController.text.trim()),
-      'actual_start_datetime':
-          ?nullIfEmpty(actualStartController.text.trim()),
+      'planned_start_datetime': ?nullIfEmpty(
+        plannedStartController.text.trim(),
+      ),
+      'planned_end_datetime': ?nullIfEmpty(plannedEndController.text.trim()),
+      'actual_start_datetime': ?nullIfEmpty(actualStartController.text.trim()),
       'actual_end_datetime': ?nullIfEmpty(actualEndController.text.trim()),
-      'downtime_minutes':
-          ?double.tryParse(downtimeMinutesController.text.trim()),
+      'downtime_minutes': ?double.tryParse(
+        downtimeMinutesController.text.trim(),
+      ),
     };
   }
 
   Map<String, dynamic> _buildUpdatePayload() {
     final data = selected?.toJson() ?? const <String, dynamic>{};
-    final labor = double.tryParse(laborCostController.text.trim()) ??
+    final labor =
+        double.tryParse(laborCostController.text.trim()) ??
         double.tryParse(_numStr(data, 'labor_cost')) ??
         0;
-    final other = double.tryParse(otherCostController.text.trim()) ??
+    final other =
+        double.tryParse(otherCostController.text.trim()) ??
         double.tryParse(_numStr(data, 'other_cost')) ??
         0;
     final spare = double.tryParse(_numStr(data, 'spare_cost')) ?? 0;
@@ -596,7 +607,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     final total = double.tryParse(_numStr(data, 'total_cost')) ?? 0;
     final dm =
         double.tryParse(downtimeMinutesController.text.trim()) ??
-            double.tryParse(_numStr(data, 'downtime_minutes'));
+        double.tryParse(_numStr(data, 'downtime_minutes'));
 
     return <String, dynamic>{
       'company_id': companyId,
@@ -623,12 +634,11 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       'maintenance_request_id': ?maintenanceRequestId,
       'maintenance_plan_id': ?maintenancePlanId,
       'vendor_party_id': ?vendorPartyId,
-      'planned_start_datetime':
-          ?nullIfEmpty(plannedStartController.text.trim()),
-      'planned_end_datetime':
-          ?nullIfEmpty(plannedEndController.text.trim()),
-      'actual_start_datetime':
-          ?nullIfEmpty(actualStartController.text.trim()),
+      'planned_start_datetime': ?nullIfEmpty(
+        plannedStartController.text.trim(),
+      ),
+      'planned_end_datetime': ?nullIfEmpty(plannedEndController.text.trim()),
+      'actual_start_datetime': ?nullIfEmpty(actualStartController.text.trim()),
       'actual_end_datetime': ?nullIfEmpty(actualEndController.text.trim()),
       'downtime_minutes': ?dm,
     };
@@ -684,8 +694,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     try {
-      final response =
-          await _maintenance.approveWorkOrder(id, _emptyBody);
+      final response = await _maintenance.approveWorkOrder(id, _emptyBody);
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
@@ -715,8 +724,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     try {
-      final response =
-          await _maintenance.completeWorkOrder(id, _emptyBody);
+      final response = await _maintenance.completeWorkOrder(id, _emptyBody);
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
@@ -746,8 +754,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     try {
-      final response =
-          await _maintenance.cancelWorkOrder(id, _emptyBody);
+      final response = await _maintenance.cancelWorkOrder(id, _emptyBody);
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {

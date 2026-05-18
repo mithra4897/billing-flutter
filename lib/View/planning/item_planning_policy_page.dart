@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/planning/item_planning_policy_view_model.dart';
 
 class ItemPlanningPolicyPage extends StatefulWidget {
   const ItemPlanningPolicyPage({
@@ -160,6 +159,7 @@ class _ItemPolicyEditor extends StatelessWidget {
     required this.onSave,
     required this.onDelete,
   });
+
   final ItemPlanningPolicyViewModel vm;
   final Future<void> Function() onSave;
   final Future<void> Function() onDelete;

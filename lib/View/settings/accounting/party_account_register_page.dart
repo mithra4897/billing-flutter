@@ -62,7 +62,6 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
   int _page = 1;
   int _perPage = 20;
 
-  List<CompanyModel> _companies = const <CompanyModel>[];
   List<PartyModel> _parties = const <PartyModel>[];
   List<AccountModel> _accounts = const <AccountModel>[];
   int? _companyId;
@@ -143,7 +142,6 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
         return;
       }
       setState(() {
-        _companies = companies;
         _companyId = contextSelection.companyId;
         _parties =
             partiesResponse.data
@@ -412,14 +410,6 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
   }
 
   Future<void> _openFilterPanel() async {
-    final companyItems = <AppDropdownItem<int?>>[
-      const AppDropdownItem<int?>(value: null, label: 'All companies'),
-      ..._companies.map(
-        (CompanyModel c) =>
-            AppDropdownItem<int?>(value: c.id, label: c.toString()),
-      ),
-    ];
-
     final screenWidth = MediaQuery.of(context).size.width;
     final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
     final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;

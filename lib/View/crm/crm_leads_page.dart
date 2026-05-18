@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../purchase/purchase_support.dart';
-import 'crm_sales_pipeline_bar.dart';
 
 void _openCrmShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);

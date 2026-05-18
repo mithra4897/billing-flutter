@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class JobworkChargeLineDraft {
   JobworkChargeLineDraft({
@@ -140,6 +139,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
 
   List<BranchModel> get branchOptions =>
       branchesForCompany(branches, companyId);
+
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
 

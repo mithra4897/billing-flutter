@@ -1,10 +1,4 @@
-import 'dart:convert';
-
 import '../../screen.dart';
-import '../hr/hr_workflow_dialogs.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
-import 'asset_shell_route.dart';
 
 Map<String, dynamic>? _asJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -272,9 +266,9 @@ class _CostCenterDetailDialogState extends State<_CostCenterDetailDialog> {
         ).showSnackBar(SnackBar(content: Text(response.message)));
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cost center deleted.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cost center deleted.')));
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -340,9 +334,7 @@ class _CostCenterDetailDialogState extends State<_CostCenterDetailDialog> {
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
+            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
           ],
         ),
       ),
@@ -465,28 +457,28 @@ class _AssetBooksDialogState extends State<_AssetBooksDialog> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
-                ? Text(_error!)
-                : _busy
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                        itemCount: _books.length,
-                        itemBuilder: (ctx, i) {
-                          final b = _books[i].toJson();
-                          final id = intValue(b, 'id');
-                          final type = stringValue(b, 'book_type');
-                          final nbv = b['net_book_value']?.toString() ?? '';
-                          return ListTile(
-                            title: Text(type.isEmpty ? 'Book' : type),
-                            subtitle: Text('NBV: $nbv'),
-                            trailing: id == null
-                                ? null
-                                : IconButton(
-                                    icon: const Icon(Icons.delete_outline),
-                                    onPressed: () => _deleteBook(id),
-                                  ),
-                          );
-                        },
-                      ),
+            ? Text(_error!)
+            : _busy
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                itemCount: _books.length,
+                itemBuilder: (ctx, i) {
+                  final b = _books[i].toJson();
+                  final id = intValue(b, 'id');
+                  final type = stringValue(b, 'book_type');
+                  final nbv = b['net_book_value']?.toString() ?? '';
+                  return ListTile(
+                    title: Text(type.isEmpty ? 'Book' : type),
+                    subtitle: Text('NBV: $nbv'),
+                    trailing: id == null
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _deleteBook(id),
+                          ),
+                  );
+                },
+              ),
       ),
       actions: [
         TextButton(onPressed: _load, child: const Text('Refresh')),
@@ -569,9 +561,9 @@ class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
         ).showSnackBar(SnackBar(content: Text(response.message)));
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Asset updated.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Asset updated.')));
       await _load();
     } catch (e) {
       if (mounted) {
@@ -621,9 +613,9 @@ class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
         ).showSnackBar(SnackBar(content: Text(response.message)));
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Asset deleted.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Asset deleted.')));
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -698,8 +690,8 @@ class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
                     onPressed: _busy
                         ? null
                         : () => _act(
-                              () => _api.activateAsset(widget.assetId, empty),
-                            ),
+                            () => _api.activateAsset(widget.assetId, empty),
+                          ),
                     child: const Text('Activate'),
                   ),
                 FilledButton.tonal(
@@ -717,9 +709,7 @@ class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(
-              child: SingleChildScrollView(child: SelectableText(text)),
-            ),
+            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
           ],
         ),
       ),
@@ -732,7 +722,6 @@ class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
     );
   }
 }
-
 
 // --- Reports hub -------------------------------------------------------
 
@@ -864,7 +853,8 @@ class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final lines = _reportLines(_payload);
-    final summaryEntries = _payload?.entries
+    final summaryEntries =
+        _payload?.entries
             .where((e) => e.key != 'lines')
             .toList(growable: false) ??
         const <MapEntry<String, dynamic>>[];
@@ -929,11 +919,7 @@ class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
             spacing: AppUiConstants.spacingMd,
             runSpacing: AppUiConstants.spacingSm,
             children: summaryEntries
-                .map(
-                  (e) => Chip(
-                    label: Text('${e.key}: ${e.value}'),
-                  ),
-                )
+                .map((e) => Chip(label: Text('${e.key}: ${e.value}')))
                 .toList(growable: false),
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
@@ -1127,7 +1113,8 @@ class AssetCostCenterRegisterPage extends StatefulWidget {
       _AssetCostCenterRegisterPageState();
 }
 
-class _AssetCostCenterRegisterPageState extends State<AssetCostCenterRegisterPage> {
+class _AssetCostCenterRegisterPageState
+    extends State<AssetCostCenterRegisterPage> {
   final AssetsService _api = AssetsService();
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
@@ -1419,8 +1406,7 @@ class _AssetDepreciationRunRegisterPageState
   bool _loading = true;
   String? _error;
   String? _companyBanner;
-  List<AssetDepreciationRunModel> _rows =
-      const <AssetDepreciationRunModel>[];
+  List<AssetDepreciationRunModel> _rows = const <AssetDepreciationRunModel>[];
 
   @override
   void initState() {
@@ -1498,10 +1484,8 @@ class _AssetDepreciationRunRegisterPageState
       emptyMessage: 'No depreciation runs found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () => openAssetShellRoute(
-            context,
-            '/assets/depreciation-runs/new',
-          ),
+          onPressed: () =>
+              openAssetShellRoute(context, '/assets/depreciation-runs/new'),
           icon: Icons.add_outlined,
           label: 'New depreciation run',
         ),
@@ -1521,9 +1505,8 @@ class _AssetDepreciationRunRegisterPageState
         ),
         PurchaseRegisterColumn<AssetDepreciationRunModel>(
           label: 'Date',
-          valueBuilder: (AssetDepreciationRunModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'run_date'),
-          ),
+          valueBuilder: (AssetDepreciationRunModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'run_date')),
         ),
         PurchaseRegisterColumn<AssetDepreciationRunModel>(
           label: 'Status',
@@ -1662,15 +1645,13 @@ class _AssetTransferRegisterPageState extends State<AssetTransferRegisterPage> {
         ),
         PurchaseRegisterColumn<AssetTransferModel>(
           label: 'Date',
-          valueBuilder: (AssetTransferModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'transfer_date'),
-          ),
+          valueBuilder: (AssetTransferModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'transfer_date')),
         ),
         PurchaseRegisterColumn<AssetTransferModel>(
           label: 'Branches',
           flex: 2,
-          valueBuilder: (AssetTransferModel row) =>
-              _branchPair(row.toJson()),
+          valueBuilder: (AssetTransferModel row) => _branchPair(row.toJson()),
         ),
         PurchaseRegisterColumn<AssetTransferModel>(
           label: 'Status',
@@ -1818,9 +1799,8 @@ class _AssetDisposalRegisterPageState extends State<AssetDisposalRegisterPage> {
         ),
         PurchaseRegisterColumn<AssetDisposalModel>(
           label: 'Date',
-          valueBuilder: (AssetDisposalModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'disposal_date'),
-          ),
+          valueBuilder: (AssetDisposalModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'disposal_date')),
         ),
         PurchaseRegisterColumn<AssetDisposalModel>(
           label: 'Asset',

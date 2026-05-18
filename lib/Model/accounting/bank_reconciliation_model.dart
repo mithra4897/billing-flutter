@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class BankReconciliationModel implements JsonModel {
   const BankReconciliationModel({
@@ -57,9 +57,7 @@ class BankReconciliationModel implements JsonModel {
     return BankReconciliationModel(
       id: _nullableInt(json['id']),
       accountId: _nullableInt(json['account_id'] ?? account['id']),
-      voucherId: _nullableInt(
-        voucher['id'] ?? voucherLine['voucher_id'],
-      ),
+      voucherId: _nullableInt(voucher['id'] ?? voucherLine['voucher_id']),
       voucherLineId: _nullableInt(json['voucher_line_id'] ?? voucherLine['id']),
       bankDate: json['bank_date']?.toString(),
       clearedDate: json['cleared_date']?.toString(),

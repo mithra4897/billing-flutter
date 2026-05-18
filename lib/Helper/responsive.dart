@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import '../screen.dart';
 
 class Responsive {
   const Responsive._();

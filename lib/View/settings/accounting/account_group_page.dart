@@ -10,7 +10,8 @@ class AccountGroupManagementPage extends StatefulWidget {
       _AccountGroupManagementPageState();
 }
 
-class _AccountGroupManagementPageState extends State<AccountGroupManagementPage> {
+class _AccountGroupManagementPageState
+    extends State<AccountGroupManagementPage> {
   static const List<AppDropdownItem<String>> _natureItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'asset', label: 'Asset'),
@@ -35,10 +36,7 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
         AppDropdownItem(value: 'indirect_expense', label: 'Indirect Expense'),
         AppDropdownItem(value: 'fixed_asset', label: 'Fixed Asset'),
         AppDropdownItem(value: 'current_asset', label: 'Current Asset'),
-        AppDropdownItem(
-          value: 'current_liability',
-          label: 'Current Liability',
-        ),
+        AppDropdownItem(value: 'current_liability', label: 'Current Liability'),
         AppDropdownItem(
           value: 'long_term_liability',
           label: 'Long Term Liability',
@@ -212,7 +210,10 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
     try {
       final response = _selectedGroup == null
           ? await _accountsService.createAccountGroup(model)
-          : await _accountsService.updateAccountGroup(_selectedGroup!.id!, model);
+          : await _accountsService.updateAccountGroup(
+              _selectedGroup!.id!,
+              model,
+            );
       final saved = response.data;
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -317,115 +318,115 @@ class _AccountGroupManagementPageState extends State<AccountGroupManagementPage>
         ),
       ),
       editor: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: AppUiConstants.spacingSm),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppFormTextField(
-                    labelText: 'Group Code',
-                    controller: _groupCodeController,
-                    validator: Validators.compose([
-                      Validators.required('Group Code'),
-                      Validators.optionalMaxLength(50, 'Group Code'),
-                    ]),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Group Name',
-                    controller: _groupNameController,
-                    validator: Validators.compose([
-                      Validators.required('Group Name'),
-                      Validators.optionalMaxLength(150, 'Group Name'),
-                    ]),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Parent Group',
-                    mappedItems: _parentOptions
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem<int>(
-                            value: item.id!,
-                            label: item.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _parentGroupId,
-                    onChanged: (value) => setState(() => _parentGroupId = value),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Group Nature',
-                    mappedItems: _natureItems,
-                    initialValue: _groupNature,
-                    onChanged: (value) =>
-                        setState(() => _groupNature = value ?? 'asset'),
-                    validator: Validators.requiredSelection('Group Nature'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Group Category',
-                    mappedItems: _categoryItems,
-                    initialValue: _groupCategory,
-                    onChanged: (value) =>
-                        setState(() => _groupCategory = value ?? 'other'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Remarks',
-                    controller: _remarksController,
-                    maxLines: 3,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Wrap(
-                spacing: AppUiConstants.spacingMd,
-                runSpacing: AppUiConstants.spacingSm,
-                children: [
-                  SizedBox(
-                    width: AppUiConstants.switchFieldWidth,
-                    child: AppSwitchTile(
-                      label: 'Affects P&L',
-                      value: _affectsProfitLoss,
-                      onChanged: (value) =>
-                          setState(() => _affectsProfitLoss = value),
-                    ),
-                  ),
-                  SizedBox(
-                    width: AppUiConstants.switchFieldWidth,
-                    child: AppSwitchTile(
-                      label: 'Active',
-                      value: _isActive,
-                      onChanged: (value) => setState(() => _isActive = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingLg),
-              Wrap(
-                spacing: AppUiConstants.spacingSm,
-                runSpacing: AppUiConstants.spacingSm,
-                children: [
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: _selectedGroup == null ? 'Save Group' : 'Update Group',
-                    onPressed: _save,
-                    busy: _saving,
-                  ),
-                  if (_selectedGroup?.id != null)
-                    AppActionButton(
-                      icon: Icons.delete_outline,
-                      label: 'Delete',
-                      onPressed: _saving ? null : _delete,
-                      filled: false,
-                    ),
-                ],
-              ),
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
+              const SizedBox(height: AppUiConstants.spacingSm),
             ],
-          ),
+            SettingsFormWrap(
+              children: [
+                AppFormTextField(
+                  labelText: 'Group Code',
+                  controller: _groupCodeController,
+                  validator: Validators.compose([
+                    Validators.required('Group Code'),
+                    Validators.optionalMaxLength(50, 'Group Code'),
+                  ]),
+                ),
+                AppFormTextField(
+                  labelText: 'Group Name',
+                  controller: _groupNameController,
+                  validator: Validators.compose([
+                    Validators.required('Group Name'),
+                    Validators.optionalMaxLength(150, 'Group Name'),
+                  ]),
+                ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Parent Group',
+                  mappedItems: _parentOptions
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: _parentGroupId,
+                  onChanged: (value) => setState(() => _parentGroupId = value),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Group Nature',
+                  mappedItems: _natureItems,
+                  initialValue: _groupNature,
+                  onChanged: (value) =>
+                      setState(() => _groupNature = value ?? 'asset'),
+                  validator: Validators.requiredSelection('Group Nature'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Group Category',
+                  mappedItems: _categoryItems,
+                  initialValue: _groupCategory,
+                  onChanged: (value) =>
+                      setState(() => _groupCategory = value ?? 'other'),
+                ),
+                AppFormTextField(
+                  labelText: 'Remarks',
+                  controller: _remarksController,
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Wrap(
+              spacing: AppUiConstants.spacingMd,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                SizedBox(
+                  width: AppUiConstants.switchFieldWidth,
+                  child: AppSwitchTile(
+                    label: 'Affects P&L',
+                    value: _affectsProfitLoss,
+                    onChanged: (value) =>
+                        setState(() => _affectsProfitLoss = value),
+                  ),
+                ),
+                SizedBox(
+                  width: AppUiConstants.switchFieldWidth,
+                  child: AppSwitchTile(
+                    label: 'Active',
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedGroup == null ? 'Save Group' : 'Update Group',
+                  onPressed: _save,
+                  busy: _saving,
+                ),
+                if (_selectedGroup?.id != null)
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    onPressed: _saving ? null : _delete,
+                    filled: false,
+                  ),
+              ],
+            ),
+          ],
         ),
+      ),
     );
   }
 }

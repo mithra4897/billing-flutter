@@ -142,17 +142,15 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                       )
                       .toList(growable: false);
                   final scopedLocations = snapshot.locations
-                      .where(
-                        (BusinessLocationModel item) {
-                          final companyMatches =
-                              companyId.value == null ||
-                              item.companyId == companyId.value;
-                          final branchMatches =
-                              branchId.value == null ||
-                              item.branchId == branchId.value;
-                          return companyMatches && branchMatches;
-                        },
-                      )
+                      .where((BusinessLocationModel item) {
+                        final companyMatches =
+                            companyId.value == null ||
+                            item.companyId == companyId.value;
+                        final branchMatches =
+                            branchId.value == null ||
+                            item.branchId == branchId.value;
+                        return companyMatches && branchMatches;
+                      })
                       .toList(growable: false);
                   final scopedFinancialYears = snapshot.financialYears
                       .where(

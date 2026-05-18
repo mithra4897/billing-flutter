@@ -1,18 +1,12 @@
-import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../screen.dart';
-import '../../components/printing/document_designer_inspector.dart';
-import '../../model/printing/print_template_model.dart';
-import '../../service/printing/print_template_service.dart';
-import 'document_print_designer_support.dart';
 
 Future<void> openDocumentPrintDesigner(
   BuildContext context, {

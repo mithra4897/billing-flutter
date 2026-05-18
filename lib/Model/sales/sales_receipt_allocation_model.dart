@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class SalesReceiptAllocationModel implements JsonModel {
   const SalesReceiptAllocationModel(this.data);

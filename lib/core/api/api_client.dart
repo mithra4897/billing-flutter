@@ -1,21 +1,8 @@
-import 'dart:convert';
-import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:typed_data';
 
+import 'package:http/http.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-
-import '../../app/constants/app_config.dart';
-import '../error/api_exception.dart';
-import '../models/api_response.dart';
-import '../models/paginated_response.dart';
-import '../navigation/app_route_state.dart';
-import '../storage/session_storage.dart';
-import 'api_cache_store.dart';
-import '../../main.dart';
-import '../../service/app/app_session_service.dart';
-import 'api_endpoints.dart';
+import '../../screen.dart';
 
 class ApiClient {
   ApiClient({http.Client? client}) : _client = client ?? http.Client();

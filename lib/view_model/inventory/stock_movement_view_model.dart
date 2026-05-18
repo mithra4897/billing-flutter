@@ -1,28 +1,31 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 const List<AppDropdownItem<String>> stockMovementTypeItems =
     <AppDropdownItem<String>>[
-  AppDropdownItem<String>(value: 'opening', label: 'Opening'),
-  AppDropdownItem<String>(value: 'purchase', label: 'Purchase'),
-  AppDropdownItem<String>(value: 'purchase_return', label: 'Purchase return'),
-  AppDropdownItem<String>(value: 'sales', label: 'Sales'),
-  AppDropdownItem<String>(value: 'sales_return', label: 'Sales return'),
-  AppDropdownItem<String>(value: 'transfer_in', label: 'Transfer in'),
-  AppDropdownItem<String>(value: 'transfer_out', label: 'Transfer out'),
-  AppDropdownItem<String>(value: 'adjustment_in', label: 'Adjustment in'),
-  AppDropdownItem<String>(value: 'adjustment_out', label: 'Adjustment out'),
-  AppDropdownItem<String>(value: 'production_in', label: 'Production in'),
-  AppDropdownItem<String>(value: 'production_out', label: 'Production out'),
-  AppDropdownItem<String>(value: 'jobwork_in', label: 'Jobwork in'),
-  AppDropdownItem<String>(value: 'jobwork_out', label: 'Jobwork out'),
-];
+      AppDropdownItem<String>(value: 'opening', label: 'Opening'),
+      AppDropdownItem<String>(value: 'purchase', label: 'Purchase'),
+      AppDropdownItem<String>(
+        value: 'purchase_return',
+        label: 'Purchase return',
+      ),
+      AppDropdownItem<String>(value: 'sales', label: 'Sales'),
+      AppDropdownItem<String>(value: 'sales_return', label: 'Sales return'),
+      AppDropdownItem<String>(value: 'transfer_in', label: 'Transfer in'),
+      AppDropdownItem<String>(value: 'transfer_out', label: 'Transfer out'),
+      AppDropdownItem<String>(value: 'adjustment_in', label: 'Adjustment in'),
+      AppDropdownItem<String>(value: 'adjustment_out', label: 'Adjustment out'),
+      AppDropdownItem<String>(value: 'production_in', label: 'Production in'),
+      AppDropdownItem<String>(value: 'production_out', label: 'Production out'),
+      AppDropdownItem<String>(value: 'jobwork_in', label: 'Jobwork in'),
+      AppDropdownItem<String>(value: 'jobwork_out', label: 'Jobwork out'),
+    ];
 
-const List<AppDropdownItem<String>> stockEffectItems = <AppDropdownItem<String>>[
-  AppDropdownItem<String>(value: 'in', label: 'In'),
-  AppDropdownItem<String>(value: 'out', label: 'Out'),
-  AppDropdownItem<String>(value: 'none', label: 'None'),
-];
+const List<AppDropdownItem<String>> stockEffectItems =
+    <AppDropdownItem<String>>[
+      AppDropdownItem<String>(value: 'in', label: 'In'),
+      AppDropdownItem<String>(value: 'out', label: 'Out'),
+      AppDropdownItem<String>(value: 'none', label: 'None'),
+    ];
 
 class StockMovementViewModel extends ChangeNotifier {
   StockMovementViewModel({this.initialItemId}) {
@@ -65,31 +68,38 @@ class StockMovementViewModel extends ChangeNotifier {
   String movementType = 'opening';
   String stockEffect = 'in';
 
-  bool get isTransferType => movementType == 'transfer_in' || movementType == 'transfer_out';
+  bool get isTransferType =>
+      movementType == 'transfer_in' || movementType == 'transfer_out';
 
-  List<ItemModel> get itemOptions => items.where((i) {
+  List<ItemModel> get itemOptions => items
+      .where((i) {
         if (i.id == null) return false;
         if (companyId != null && i.companyId != companyId) return false;
         return i.isActive;
-      }).toList(growable: false);
+      })
+      .toList(growable: false);
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((w) {
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((w) {
         if (w.id == null) return false;
         if (companyId != null && w.companyId != companyId) return false;
         return w.isActive;
-      }).toList(growable: false);
+      })
+      .toList(growable: false);
 
   List<StockMovementModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) return true;
-      return [
-        stringValue(data, 'movement_type'),
-        stringValue(data, 'reference_no'),
-        stringValue(data, 'reference_module'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) return true;
+          return [
+            stringValue(data, 'movement_type'),
+            stringValue(data, 'reference_no'),
+            stringValue(data, 'reference_module'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   Future<void> load({int? selectId}) async {
@@ -98,27 +108,45 @@ class StockMovementViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final responses = await Future.wait<dynamic>([
-        _inventoryService.stockMovements(filters: const {'per_page': 200, 'sort_by': 'movement_date'}),
+        _inventoryService.stockMovements(
+          filters: const {'per_page': 200, 'sort_by': 'movement_date'},
+        ),
         _masterService.companies(filters: const {'per_page': 200}),
-        _inventoryService.items(filters: const {'per_page': 500, 'sort_by': 'item_name'}),
+        _inventoryService.items(
+          filters: const {'per_page': 500, 'sort_by': 'item_name'},
+        ),
         _masterService.warehouses(filters: const {'per_page': 300}),
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
       ]);
-      rows = (responses[0] as PaginatedResponse<StockMovementModel>).data ?? const <StockMovementModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ?? const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      items = (responses[2] as PaginatedResponse<ItemModel>).data ?? const <ItemModel>[];
-      warehouses = (responses[3] as PaginatedResponse<WarehouseModel>).data ?? const <WarehouseModel>[];
-      batches = (responses[4] as PaginatedResponse<StockBatchModel>).data ?? const <StockBatchModel>[];
-      serials = (responses[5] as PaginatedResponse<StockSerialModel>).data ?? const <StockSerialModel>[];
+      rows =
+          (responses[0] as PaginatedResponse<StockMovementModel>).data ??
+          const <StockMovementModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      items =
+          (responses[2] as PaginatedResponse<ItemModel>).data ??
+          const <ItemModel>[];
+      warehouses =
+          (responses[3] as PaginatedResponse<WarehouseModel>).data ??
+          const <WarehouseModel>[];
+      batches =
+          (responses[4] as PaginatedResponse<StockBatchModel>).data ??
+          const <StockBatchModel>[];
+      serials =
+          (responses[5] as PaginatedResponse<StockSerialModel>).data ??
+          const <StockSerialModel>[];
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<StockMovementModel?>().firstWhere(
-              (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
-              orElse: () => null,
-            );
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
+          orElse: () => null,
+        );
         if (existing != null) {
           await select(existing);
           return;
@@ -140,7 +168,9 @@ class StockMovementViewModel extends ChangeNotifier {
     final now = DateTime.now().toIso8601String().split('T').first;
     companyId = companies.isNotEmpty ? companies.first.id : null;
     itemId = initialItemId;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     batchId = null;
     serialId = null;
     sourceWarehouseId = null;
@@ -181,7 +211,9 @@ class StockMovementViewModel extends ChangeNotifier {
       referenceTypeController.text = stringValue(data, 'reference_type');
       referenceIdController.text = stringValue(data, 'reference_id');
       referenceNoController.text = stringValue(data, 'reference_no');
-      voucherDateController.text = displayDate(nullableStringValue(data, 'voucher_date'));
+      voucherDateController.text = displayDate(
+        nullableStringValue(data, 'voucher_date'),
+      );
       qtyController.text = stringValue(data, 'qty');
       rateController.text = stringValue(data, 'rate');
       amountController.text = stringValue(data, 'amount');
@@ -198,7 +230,9 @@ class StockMovementViewModel extends ChangeNotifier {
   void onCompanyChanged(int? value) {
     companyId = value;
     itemId = null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     batchId = null;
     serialId = null;
     sourceWarehouseId = null;
@@ -260,7 +294,8 @@ class StockMovementViewModel extends ChangeNotifier {
         .map((e) => e.toJson())
         .where((b) {
           final itemOk = itemId == null || intValue(b, 'item_id') == itemId;
-          final whOk = warehouseId == null || intValue(b, 'warehouse_id') == warehouseId;
+          final whOk =
+              warehouseId == null || intValue(b, 'warehouse_id') == warehouseId;
           return itemOk && whOk;
         })
         .toList(growable: false);
@@ -271,7 +306,8 @@ class StockMovementViewModel extends ChangeNotifier {
         .map((e) => e.toJson())
         .where((s) {
           final itemOk = itemId == null || intValue(s, 'item_id') == itemId;
-          final whOk = warehouseId == null || intValue(s, 'warehouse_id') == warehouseId;
+          final whOk =
+              warehouseId == null || intValue(s, 'warehouse_id') == warehouseId;
           final batchOk = batchId == null || intValue(s, 'batch_id') == batchId;
           return itemOk && whOk && batchOk;
         })
@@ -298,7 +334,8 @@ class StockMovementViewModel extends ChangeNotifier {
       if (amount == null) return 'Amount must be a valid number.';
       if (amount < 0) return 'Amount cannot be negative.';
     }
-    if (voucherDateController.text.trim().isEmpty) return 'Voucher date is required.';
+    if (voucherDateController.text.trim().isEmpty)
+      return 'Voucher date is required.';
     if (isTransferType) {
       if (sourceWarehouseId == null || destinationWarehouseId == null) {
         return 'Source and destination warehouse are required for transfer movement.';
@@ -346,12 +383,17 @@ class StockMovementViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createStockMovement(StockMovementModel(payload))
+          ? await _inventoryService.createStockMovement(
+              StockMovementModel(payload),
+            )
           : await _inventoryService.updateStockMovement(
               intValue(selected!.toJson(), 'id')!,
               StockMovementModel(payload),
             );
-      final id = intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id');
+      final id = intValue(
+        response.data?.toJson() ?? const <String, dynamic>{},
+        'id',
+      );
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();

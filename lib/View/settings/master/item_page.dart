@@ -1,8 +1,4 @@
 import '../../../screen.dart';
-import '../../inventory/opening_stock_page.dart';
-import 'item_alternate_page.dart';
-import 'item_price_page.dart';
-import 'item_supplier_map_page.dart';
 
 class ItemManagementPage extends StatefulWidget {
   const ItemManagementPage({super.key, this.embedded = false});

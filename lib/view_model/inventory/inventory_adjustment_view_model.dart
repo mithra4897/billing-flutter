@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 const List<AppDropdownItem<String>> inventoryAdjustmentTypeItems =
     <AppDropdownItem<String>>[
@@ -154,8 +153,10 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
 
   List<BranchModel> get branchOptions =>
       branchesForCompany(branches, companyId);
+
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
+
   List<String> get contextLabels => workingContextLabels(
     companies: companies,
     branches: branches,
@@ -166,6 +167,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     locationId: locationId,
     financialYearId: financialYearId,
   );
+
   List<WarehouseModel> get warehouseOptions => warehouses
       .where((w) {
         if (w.id == null) return false;

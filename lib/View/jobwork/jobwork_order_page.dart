@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/jobwork/jobwork_order_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 const List<AppDropdownItem<String>> _processTypeItems =
     <AppDropdownItem<String>>[

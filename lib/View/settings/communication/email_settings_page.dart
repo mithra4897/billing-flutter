@@ -96,8 +96,9 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
 
       final companies = companiesResponse.data ?? const <CompanyModel>[];
       final settings = settingsResponse.data ?? const <EmailSettingModel>[];
-      final activeCompanies =
-          companies.where((item) => item.isActive).toList(growable: false);
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,

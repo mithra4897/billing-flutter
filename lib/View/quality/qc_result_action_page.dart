@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/quality/qc_result_action_view_model.dart';
 
 String _inspectionNoLabel(QcInspectionModel i) {
   final no = stringValue(i.toJson(), 'inspection_no');
@@ -101,8 +100,7 @@ class _QcResultActionPageState extends State<QcResultActionPage> {
     return SettingsWorkspace(
       controller: _workspaceController,
       title: 'QC result actions',
-      editorTitle:
-          _viewModel.selected?.toString() ?? 'New QC result action',
+      editorTitle: _viewModel.selected?.toString() ?? 'New QC result action',
       editorOnly: widget.editorOnly,
       scrollController: _pageScrollController,
       list: SettingsListCard<QcResultActionModel>(

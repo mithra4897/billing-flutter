@@ -1,14 +1,4 @@
-import 'dart:async';
-
-import '../../model/sales/sales_delivery_model.dart';
-import '../../model/sales/sales_invoice_line_model.dart';
-import '../../model/sales/sales_order_model.dart';
 import '../../screen.dart';
-import '../printing/document_print_designer.dart';
-import '../printing/print_template_support.dart';
-import '../crm/crm_sales_pipeline_bar.dart';
-import '../purchase/purchase_support.dart';
-import 'sales_support.dart';
 
 class SalesInvoicePage extends StatefulWidget {
   const SalesInvoicePage({

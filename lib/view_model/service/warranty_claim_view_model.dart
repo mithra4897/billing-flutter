@@ -1,6 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../screen.dart';
 
 class WarrantyClaimViewModel extends ChangeNotifier {
   WarrantyClaimViewModel() {

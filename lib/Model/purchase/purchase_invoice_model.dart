@@ -1,5 +1,4 @@
-import '../accounting/voucher_model.dart';
-import 'purchase_invoice_line_model.dart';
+import '../../screen.dart';
 
 class PurchaseInvoiceModel {
   const PurchaseInvoiceModel({

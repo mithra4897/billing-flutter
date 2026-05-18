@@ -313,99 +313,96 @@ class _ItemCategoryManagementPageState
         ),
       ),
       editor: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 12),
-              ],
-              TextFormField(
-                controller: _codeController,
-                decoration: const InputDecoration(labelText: 'Category Code'),
-                validator: Validators.compose([
-                  Validators.required('Category Code'),
-                  Validators.optionalMaxLength(50, 'Category Code'),
-                ]),
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Category Name'),
-                validator: Validators.compose([
-                  Validators.required('Category Name'),
-                  Validators.optionalMaxLength(150, 'Category Name'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int?>(
-                initialValue: _parentCategoryId,
-                decoration: const InputDecoration(labelText: 'Parent Category'),
-                items: <DropdownMenuItem<int?>>[
-                  const DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text('None'),
-                  ),
-                  ...parentOptions.map(
-                    (item) => DropdownMenuItem<int?>(
-                      value: item.id,
-                      child: Text(item.categoryName),
-                    ),
-                  ),
-                ],
-                onChanged: (value) => setState(() => _parentCategoryId = value),
-              ),
-              const SizedBox(height: 12),
-              UploadPathField(
-                controller: _imagePathController,
-                labelText: 'Image Path',
-                isUploading: _uploadingImage,
-                onUpload: _uploadCategoryImage,
-                previewUrl: AppConfig.resolvePublicFileUrl(
-                  _imagePathController.text,
-                ),
-                previewIcon: Icons.category_outlined,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _remarksController,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks',
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Active'),
-                value: _isActive,
-                onChanged: (value) => setState(() => _isActive = value),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (_selectedItem?.id != null)
-                    TextButton(
-                      onPressed: _saving ? null : _delete,
-                      child: const Text('Delete'),
-                    ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _save,
-                    icon: const Icon(Icons.save_outlined),
-                    label: Text(_saving ? 'Saving...' : 'Save'),
-                  ),
-                ],
-              ),
             ],
-          ),
+            TextFormField(
+              controller: _codeController,
+              decoration: const InputDecoration(labelText: 'Category Code'),
+              validator: Validators.compose([
+                Validators.required('Category Code'),
+                Validators.optionalMaxLength(50, 'Category Code'),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Category Name'),
+              validator: Validators.compose([
+                Validators.required('Category Name'),
+                Validators.optionalMaxLength(150, 'Category Name'),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int?>(
+              initialValue: _parentCategoryId,
+              decoration: const InputDecoration(labelText: 'Parent Category'),
+              items: <DropdownMenuItem<int?>>[
+                const DropdownMenuItem<int?>(value: null, child: Text('None')),
+                ...parentOptions.map(
+                  (item) => DropdownMenuItem<int?>(
+                    value: item.id,
+                    child: Text(item.categoryName),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setState(() => _parentCategoryId = value),
+            ),
+            const SizedBox(height: 12),
+            UploadPathField(
+              controller: _imagePathController,
+              labelText: 'Image Path',
+              isUploading: _uploadingImage,
+              onUpload: _uploadCategoryImage,
+              previewUrl: AppConfig.resolvePublicFileUrl(
+                _imagePathController.text,
+              ),
+              previewIcon: Icons.category_outlined,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _remarksController,
+              decoration: const InputDecoration(
+                labelText: 'Remarks',
+                alignLabelWithHint: true,
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Active'),
+              value: _isActive,
+              onChanged: (value) => setState(() => _isActive = value),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_selectedItem?.id != null)
+                  TextButton(
+                    onPressed: _saving ? null : _delete,
+                    child: const Text('Delete'),
+                  ),
+                const SizedBox(width: 12),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(_saving ? 'Saving...' : 'Save'),
+                ),
+              ],
+            ),
+          ],
         ),
+      ),
     );
   }
 }

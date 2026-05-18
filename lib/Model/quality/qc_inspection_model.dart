@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class QcInspectionModel implements JsonModel {
   const QcInspectionModel(this.data);

@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 /// Mutable line state for the opening stock editor (View binds controllers).
 class OpeningStockLineDraft {
@@ -126,6 +125,7 @@ class OpeningStockViewModel extends ChangeNotifier {
 
   List<BranchModel> get branchOptions =>
       branchesForCompany(branches, companyId);
+
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
 
@@ -139,6 +139,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     locationId: locationId,
     financialYearId: financialYearId,
   );
+
   List<ItemModel> get itemOptions => items
       .where((item) {
         if (!item.trackInventory) {
@@ -594,27 +595,28 @@ class OpeningStockViewModel extends ChangeNotifier {
     }
     return batchFieldOptions(line.itemId, line.warehouseId)
         .cast<ErpLinkFieldOption<int>?>()
-        .firstWhere(
-          (option) => option?.value == batchId,
-          orElse: () => null,
-        );
+        .firstWhere((option) => option?.value == batchId, orElse: () => null);
   }
 
   List<ErpLinkFieldOption<int>> batchFieldOptions(
     int? itemId,
     int? warehouseId,
   ) {
-    return batchOptions(itemId, warehouseId).map((batch) {
-      final batchNo = stringValue(batch, 'batch_no');
-      final balanceQty = stringValue(batch, 'balance_qty');
-      final subtitle = balanceQty.trim().isEmpty ? null : 'Balance: $balanceQty';
-      return ErpLinkFieldOption<int>(
-        value: intValue(batch, 'id')!,
-        label: batchNo,
-        subtitle: subtitle,
-        searchText: [batchNo, subtitle ?? ''].join(' '),
-      );
-    }).toList(growable: false);
+    return batchOptions(itemId, warehouseId)
+        .map((batch) {
+          final batchNo = stringValue(batch, 'batch_no');
+          final balanceQty = stringValue(batch, 'balance_qty');
+          final subtitle = balanceQty.trim().isEmpty
+              ? null
+              : 'Balance: $balanceQty';
+          return ErpLinkFieldOption<int>(
+            value: intValue(batch, 'id')!,
+            label: batchNo,
+            subtitle: subtitle,
+            searchText: [batchNo, subtitle ?? ''].join(' '),
+          );
+        })
+        .toList(growable: false);
   }
 
   Future<ErpLinkFieldOption<int>?> createBatchForLine(
@@ -633,7 +635,8 @@ class OpeningStockViewModel extends ChangeNotifier {
     final existing = batchFieldOptions(line.itemId, line.warehouseId)
         .cast<ErpLinkFieldOption<int>?>()
         .firstWhere(
-          (option) => option?.label.trim().toLowerCase() == batchNo.toLowerCase(),
+          (option) =>
+              option?.label.trim().toLowerCase() == batchNo.toLowerCase(),
           orElse: () => null,
         );
     if (existing != null) {
@@ -672,10 +675,15 @@ class OpeningStockViewModel extends ChangeNotifier {
       if (createdId == null) {
         return null;
       }
-      batches = <StockBatchModel>[
-        ...batches.where((batch) => batch.id != createdId),
-        created,
-      ]..sort((a, b) => a.toString().toLowerCase().compareTo(b.toString().toLowerCase()));
+      batches =
+          <StockBatchModel>[
+            ...batches.where((batch) => batch.id != createdId),
+            created,
+          ]..sort(
+            (a, b) => a.toString().toLowerCase().compareTo(
+              b.toString().toLowerCase(),
+            ),
+          );
       formError = null;
       onLineBatchChanged(index, createdId);
       return selectedBatchOption(lines[index]);

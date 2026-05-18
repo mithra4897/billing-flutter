@@ -1,14 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/masters/party_address_model.dart';
-import '../../model/masters/party_bank_account_model.dart';
-import '../../model/masters/party_contact_model.dart';
-import '../../model/masters/party_credit_limit_model.dart';
-import '../../model/masters/party_gst_detail_model.dart';
-import '../../model/masters/party_model.dart';
-import '../../model/masters/party_payment_term_model.dart';
-import '../../model/masters/party_type_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class PartiesService extends ErpModuleService {
   PartiesService({super.apiClient});

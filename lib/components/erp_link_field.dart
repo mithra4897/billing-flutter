@@ -1,9 +1,4 @@
-import 'dart:async';
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
-import 'app_field_box.dart';
+import '../screen.dart';
 
 class ErpLinkFieldOption<T> {
   const ErpLinkFieldOption({
@@ -297,9 +292,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
         .map(_ErpMenuEntry<T>.result)
         .toList(growable: true);
     final canCreate =
-        widget.allowCreate &&
-        query.isNotEmpty &&
-        !_hasExactMatch(query);
+        widget.allowCreate && query.isNotEmpty && !_hasExactMatch(query);
 
     if (entries.isEmpty) {
       entries.add(

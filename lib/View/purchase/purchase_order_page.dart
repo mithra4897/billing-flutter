@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import 'purchase_support.dart';
 
 class PurchaseOrderPage extends StatefulWidget {
   const PurchaseOrderPage({
@@ -61,9 +60,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   String _statusFilter = '';
   List<PurchaseOrderModel> _items = const <PurchaseOrderModel>[];
   List<PurchaseOrderModel> _filteredItems = const <PurchaseOrderModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PurchaseRequisitionModel> _requisitions =
@@ -102,10 +98,13 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   }
 
   bool get _isAllSupplierSelected => _supplierPartyId == _allSelectionId;
+
   bool get _isAllRequisitionSelected =>
       _purchaseRequisitionId == _allSelectionId;
+
   bool get _hasSpecificSupplierSelection =>
       _supplierPartyId != null && !_isAllSupplierSelected;
+
   bool get _hasSpecificRequisitionSelection =>
       _purchaseRequisitionId != null && !_isAllRequisitionSelected;
 
@@ -222,15 +221,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         _items =
             (responses[0] as PaginatedResponse<PurchaseOrderModel>).data ??
             const <PurchaseOrderModel>[];
-        _companies =
-            (responses[1] as PaginatedResponse<CompanyModel>).data ??
-            const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -483,11 +473,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         })
         .toList(growable: false);
   }
-
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
 
   void _addLine() {
     setState(() {

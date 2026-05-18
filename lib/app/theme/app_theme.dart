@@ -1,7 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../constants/app_ui_constants.dart';
-import 'app_theme_extension.dart';
+import '../../screen.dart';
 
 class AppTheme {
   const AppTheme._();

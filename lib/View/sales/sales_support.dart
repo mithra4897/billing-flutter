@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../purchase/purchase_support.dart';
 
 List<PartyModel> salesCustomers({
   required List<PartyModel> parties,

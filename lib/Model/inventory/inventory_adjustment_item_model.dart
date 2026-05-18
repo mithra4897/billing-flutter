@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class InventoryAdjustmentItemModel implements JsonModel {
   const InventoryAdjustmentItemModel(this.data);

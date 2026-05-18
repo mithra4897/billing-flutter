@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/quality/qc_plan_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 const List<AppDropdownItem<String>> _qcScopeItems = <AppDropdownItem<String>>[
   AppDropdownItem(value: 'all', label: 'All'),

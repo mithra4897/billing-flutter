@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/planning/mrp_recommendation_view_model.dart';
 
 class MrpRecommendationPage extends StatefulWidget {
   const MrpRecommendationPage({

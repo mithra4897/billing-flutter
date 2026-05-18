@@ -1,8 +1,4 @@
-import '../../model/sales/sales_invoice_line_model.dart';
-import '../../model/sales/sales_return_model.dart';
 import '../../screen.dart';
-import '../purchase/purchase_support.dart';
-import 'sales_support.dart';
 
 class SalesReturnPage extends StatefulWidget {
   const SalesReturnPage({
@@ -346,8 +342,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
 
   List<BranchModel> get _branchOptions =>
       branchesForCompany(_branches, _companyId);
+
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
+
   List<SalesInvoiceModel> get _invoiceOptions => _invoices
       .where((item) {
         if (item.id == _salesInvoiceId) {

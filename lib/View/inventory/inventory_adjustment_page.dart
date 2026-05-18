@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/inventory/inventory_adjustment_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class InventoryAdjustmentPage extends StatefulWidget {
   const InventoryAdjustmentPage({

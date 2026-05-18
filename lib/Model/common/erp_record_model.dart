@@ -1,4 +1,4 @@
-import 'json_model.dart';
+import '../../screen.dart';
 
 class ErpRecordModel implements JsonModel {
   const ErpRecordModel(this.data);

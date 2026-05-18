@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class EmailModuleSettingModel implements JsonModel {
   const EmailModuleSettingModel(this.data);

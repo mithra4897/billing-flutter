@@ -1,7 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/service/service_ticket_view_model.dart';
-import '../purchase/purchase_support.dart';
-import 'service_assign_prompt.dart';
 
 String _ticketListTitle(ServiceTicketModel row) {
   final data = row.toJson();

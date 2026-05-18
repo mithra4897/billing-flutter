@@ -1,5 +1,4 @@
 import '../../../screen.dart';
-import 'financial_report_views.dart';
 
 class FinancialReportsPage extends StatefulWidget {
   const FinancialReportsPage({super.key, this.embedded = false});
@@ -59,8 +58,14 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
   @override
   void initState() {
     super.initState();
-    _asOfDateController.text = DateTime.now().toIso8601String().split('T').first;
-    _dateFromController.text = DateTime.now().toIso8601String().split('T').first;
+    _asOfDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
+    _dateFromController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     _dateToController.text = DateTime.now().toIso8601String().split('T').first;
     _loadLookups();
   }
@@ -85,7 +90,9 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
-        _accountsService.accountsAll(filters: const {'sort_by': 'account_name'}),
+        _accountsService.accountsAll(
+          filters: const {'sort_by': 'account_name'},
+        ),
         _masterService.branches(
           filters: const {'per_page': 500, 'sort_by': 'name'},
         ),
@@ -94,13 +101,17 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
         ),
       ]);
 
-      final companies = (responses[0] as PaginatedResponse<CompanyModel>).data ??
+      final companies =
+          (responses[0] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
-      final accounts = (responses[1] as ApiResponse<List<AccountModel>>).data ??
+      final accounts =
+          (responses[1] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
-      final branches = (responses[2] as PaginatedResponse<BranchModel>).data ??
+      final branches =
+          (responses[2] as PaginatedResponse<BranchModel>).data ??
           const <BranchModel>[];
-      final parties = (responses[3] as PaginatedResponse<PartyModel>).data ??
+      final parties =
+          (responses[3] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
       final activeCompanies = companies
           .where((item) => item.isActive)
@@ -184,18 +195,23 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
       final response = switch (_reportType) {
         'day_book' => await _accountsService.reportDayBook(filters: filters),
         'general_ledger' => await _accountsService.reportGeneralLedger(
+          filters: filters,
+        ),
+        'accounts_receivable_aging' =>
+          await _accountsService.reportAccountsReceivableAging(
             filters: filters,
           ),
-        'accounts_receivable_aging' =>
-          await _accountsService.reportAccountsReceivableAging(filters: filters),
         'accounts_payable_aging' =>
           await _accountsService.reportAccountsPayableAging(filters: filters),
-        'trial_balance' =>
-          await _accountsService.reportTrialBalance(filters: filters),
-        'profit_and_loss' =>
-          await _accountsService.reportProfitAndLoss(filters: filters),
-        'balance_sheet' =>
-          await _accountsService.reportBalanceSheet(filters: filters),
+        'trial_balance' => await _accountsService.reportTrialBalance(
+          filters: filters,
+        ),
+        'profit_and_loss' => await _accountsService.reportProfitAndLoss(
+          filters: filters,
+        ),
+        'balance_sheet' => await _accountsService.reportBalanceSheet(
+          filters: filters,
+        ),
         'cash_flow' => await _accountsService.reportCashFlow(filters: filters),
         _ => await _accountsService.reportFinancialStatements(filters: filters),
       };
@@ -212,24 +228,31 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
   }
 
   bool get _needsAccount => _reportType == 'general_ledger';
+
   bool get _needsParty =>
       _reportType == 'general_ledger' ||
       _reportType == 'accounts_receivable_aging' ||
       _reportType == 'accounts_payable_aging';
+
   bool get _needsDayBookBranch => _reportType == 'day_book';
+
   List<BranchModel> get _branchOptions => _branches
       .where(
         (b) =>
             b.isActive &&
-            (_companyId == null || b.companyId == null || b.companyId == _companyId),
+            (_companyId == null ||
+                b.companyId == null ||
+                b.companyId == _companyId),
       )
       .toList(growable: false);
+
   bool get _usesDateRange =>
       _reportType == 'day_book' ||
       _reportType == 'general_ledger' ||
       _reportType == 'profit_and_loss' ||
       _reportType == 'cash_flow' ||
       _reportType == 'financial_statement_pack';
+
   bool get _usesAsOfDate =>
       _reportType == 'accounts_receivable_aging' ||
       _reportType == 'accounts_payable_aging' ||
@@ -264,7 +287,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 760),
-              child: SingleChildScrollView(
+            child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 dialogPadding,
                 dialogPadding,
@@ -287,7 +310,8 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(false),
+                          onPressed: () =>
+                              Navigator.of(dialogContext).pop(false),
                           tooltip: 'Close',
                           icon: const Icon(Icons.close),
                           color: appTheme.mutedText,
@@ -312,29 +336,29 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
                           icon: const Icon(Icons.play_arrow_outlined),
                           label: const Text('Run Report'),
                         ),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _reportType = 'day_book';
-                            _accountId = null;
-                            _partyId = null;
-                            _dayBookBranchId = null;
-                            final today = DateTime.now()
-                                .toIso8601String()
-                                .split('T')
-                                .first;
-                            _dateFromController.text = today;
-                            _dateToController.text = today;
-                            _asOfDateController.text = today;
-                          });
-                          Navigator.of(dialogContext).pop(true);
-                        },
-                        icon: const Icon(Icons.clear),
-                        label: const Text('Clear'),
-                      ),
-                    ],
-                  ),
-                ],
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _reportType = 'day_book';
+                              _accountId = null;
+                              _partyId = null;
+                              _dayBookBranchId = null;
+                              final today = DateTime.now()
+                                  .toIso8601String()
+                                  .split('T')
+                                  .first;
+                              _dateFromController.text = today;
+                              _dateToController.text = today;
+                              _asOfDateController.text = today;
+                            });
+                            Navigator.of(dialogContext).pop(true);
+                          },
+                          icon: const Icon(Icons.clear),
+                          label: const Text('Clear'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -433,14 +457,14 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
                     children: [
                       Text(
                         _reportItems
-                                .firstWhere(
-                                  (item) => item.value == _reportType,
-                                  orElse: () => const AppDropdownItem(
-                                    value: '',
-                                    label: 'Report',
-                                  ),
-                                )
-                                .label,
+                            .firstWhere(
+                              (item) => item.value == _reportType,
+                              orElse: () => const AppDropdownItem(
+                                value: '',
+                                label: 'Report',
+                              ),
+                            )
+                            .label,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -466,20 +490,18 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
           labelText: 'Report',
           mappedItems: _reportItems,
           initialValue: _reportType,
-          onChanged: (value) => setState(
-            () {
-              _reportType = value ?? 'day_book';
-              if (!_needsAccount) {
-                _accountId = null;
-              }
-              if (!_needsParty) {
-                _partyId = null;
-              }
-              if (!_needsDayBookBranch) {
-                _dayBookBranchId = null;
-              }
-            },
-          ),
+          onChanged: (value) => setState(() {
+            _reportType = value ?? 'day_book';
+            if (!_needsAccount) {
+              _accountId = null;
+            }
+            if (!_needsParty) {
+              _partyId = null;
+            }
+            if (!_needsDayBookBranch) {
+              _dayBookBranchId = null;
+            }
+          }),
         ),
         if (_needsDayBookBranch)
           AppDropdownField<int?>.fromMapped(
@@ -489,7 +511,8 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
               ..._branchOptions
                   .where((b) => b.id != null)
                   .map(
-                    (b) => AppDropdownItem<int?>(value: b.id, label: b.toString()),
+                    (b) =>
+                        AppDropdownItem<int?>(value: b.id, label: b.toString()),
                   ),
             ],
             initialValue: _dayBookBranchId,
@@ -501,10 +524,8 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
             mappedItems: _accounts
                 .where((item) => item.id != null)
                 .map(
-                  (item) => AppDropdownItem(
-                    value: item.id!,
-                    label: item.toString(),
-                  ),
+                  (item) =>
+                      AppDropdownItem(value: item.id!, label: item.toString()),
                 )
                 .toList(growable: false),
             initialValue: _accountId,
@@ -516,10 +537,8 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
             mappedItems: _parties
                 .where((item) => item.id != null)
                 .map(
-                  (item) => AppDropdownItem(
-                    value: item.id!,
-                    label: item.toString(),
-                  ),
+                  (item) =>
+                      AppDropdownItem(value: item.id!, label: item.toString()),
                 )
                 .toList(growable: false),
             initialValue: _partyId,

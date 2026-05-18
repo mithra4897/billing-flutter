@@ -1,7 +1,4 @@
-import '../common/json_model.dart';
-import 'employee_address_model.dart';
-import 'employee_relation_model.dart';
-import 'employee_salary_structure_model.dart';
+import '../../screen.dart';
 
 class EmployeeModel implements JsonModel {
   const EmployeeModel({

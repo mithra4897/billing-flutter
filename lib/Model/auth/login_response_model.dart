@@ -1,4 +1,4 @@
-import 'auth_user_model.dart';
+import '../../screen.dart';
 
 class LoginResponseModel {
   const LoginResponseModel({

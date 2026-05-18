@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import 'voucher_allocation_model.dart';
+import '../../screen.dart';
 
 class VoucherLineModel implements JsonModel {
   const VoucherLineModel({
@@ -64,8 +63,7 @@ class VoucherLineModel implements JsonModel {
       accountName: account['account_name']?.toString(),
       partyId: _nullableInt(json['party_id'] ?? party['id']),
       partyName:
-          party['display_name']?.toString() ??
-          party['party_name']?.toString(),
+          party['display_name']?.toString() ?? party['party_name']?.toString(),
       entryType: json['entry_type']?.toString(),
       amount: _double(json['amount']),
       billReferenceNo: json['bill_reference_no']?.toString(),

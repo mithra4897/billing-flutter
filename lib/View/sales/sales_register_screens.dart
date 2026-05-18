@@ -1,12 +1,4 @@
-import '../../model/sales/sales_delivery_model.dart';
-import '../../model/sales/sales_order_model.dart';
-import '../../model/sales/sales_quotation_model.dart';
-import '../../model/sales/sales_receipt_model.dart';
-import '../../model/sales/sales_return_model.dart';
 import '../../screen.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
-import 'sales_support.dart';
 
 void _openSalesShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);

@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../../model/auth/module_model.dart';
+import '../../screen.dart';
 
 class AppNavigationItem {
   const AppNavigationItem({

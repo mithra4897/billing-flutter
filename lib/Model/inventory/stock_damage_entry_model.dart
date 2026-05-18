@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class StockDamageEntryModel implements JsonModel {
   const StockDamageEntryModel(this.data);

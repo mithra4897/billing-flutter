@@ -1,4 +1,4 @@
-import 'package:billing/screen.dart';
+import '../../../screen.dart';
 
 enum MrpReadonlyModule { demand, supply, netRequirement }
 

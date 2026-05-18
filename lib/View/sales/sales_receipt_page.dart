@@ -1,7 +1,4 @@
-import '../../model/sales/sales_receipt_model.dart';
 import '../../screen.dart';
-import '../purchase/purchase_support.dart';
-import 'sales_support.dart';
 
 class SalesReceiptPage extends StatefulWidget {
   const SalesReceiptPage({
@@ -63,9 +60,6 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
   String _paymentMode = 'bank';
   List<SalesReceiptModel> _items = const <SalesReceiptModel>[];
   List<SalesReceiptModel> _filteredItems = const <SalesReceiptModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> _customers = const <PartyModel>[];
@@ -225,15 +219,6 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
         _items =
             (responses[0] as PaginatedResponse<SalesReceiptModel>).data ??
             const <SalesReceiptModel>[];
-        _companies =
-            (responses[1] as PaginatedResponse<CompanyModel>).data ??
-            const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -461,12 +446,6 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
         })
         .toList(growable: false);
   }
-
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
 
   List<SalesInvoiceModel> get _invoiceOptions => _invoices
       .where(

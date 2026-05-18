@@ -356,14 +356,6 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
     );
   }
 
-  List<AppDropdownItem<int>> get _companyItems => _companies
-      .map(
-        (item) =>
-            AppDropdownItem<int>(value: item.id ?? 0, label: item.toString()),
-      )
-      .where((item) => item.value != 0)
-      .toList(growable: false);
-
   List<AppDropdownItem<int>> get _partyItems => _parties
       .map(
         (item) =>

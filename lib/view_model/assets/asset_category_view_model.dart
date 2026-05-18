@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
+import '../../../screen.dart';
 
 class AssetCategoryViewModel extends ChangeNotifier {
   AssetCategoryViewModel() {
@@ -119,8 +118,10 @@ class AssetCategoryViewModel extends ChangeNotifier {
     categoryNameController.text = stringValue(d, 'category_name');
     assetTypeController.text = stringValue(d, 'asset_type');
     remarksController.text = stringValue(d, 'remarks');
-    defaultDepreciationMethodController.text =
-        stringValue(d, 'default_depreciation_method');
+    defaultDepreciationMethodController.text = stringValue(
+      d,
+      'default_depreciation_method',
+    );
     defaultUsefulLifeMonthsController.text =
         intValue(d, 'default_useful_life_months')?.toString() ?? '';
     defaultSalvageValueController.text =
@@ -171,8 +172,9 @@ class AssetCategoryViewModel extends ChangeNotifier {
       'category_name': nullIfEmpty(categoryNameController.text.trim()) ?? '',
       'asset_type': nullIfEmpty(assetTypeController.text.trim()),
       'remarks': nullIfEmpty(remarksController.text.trim()),
-      'default_depreciation_method':
-          nullIfEmpty(defaultDepreciationMethodController.text.trim()),
+      'default_depreciation_method': nullIfEmpty(
+        defaultDepreciationMethodController.text.trim(),
+      ),
       'is_active': isActive,
       'is_depreciable': isDepreciable,
       'is_tag_required': isTagRequired,
@@ -211,12 +213,14 @@ class AssetCategoryViewModel extends ChangeNotifier {
         _assets.categories(filters: filters),
         _master.companies(filters: const {'per_page': 200}),
       ]);
-      rows = (responses[0] as PaginatedResponse<AssetCategoryModel>).data ??
+      rows =
+          (responses[0] as PaginatedResponse<AssetCategoryModel>).data ??
           const <AssetCategoryModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((CompanyModel c) => c.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((CompanyModel c) => c.isActive)
+              .toList(growable: false);
       loading = false;
 
       if (selectId != null) {

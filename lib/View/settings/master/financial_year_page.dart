@@ -355,7 +355,8 @@ class _FinancialYearManagementPageState
           item.fyCode ?? '',
           if (widget.fixedCompanyId == null)
             item.companyName ?? companyNameById(_companies, item.companyId),
-          if ((item.startDate ?? '').isNotEmpty || (item.endDate ?? '').isNotEmpty)
+          if ((item.startDate ?? '').isNotEmpty ||
+              (item.endDate ?? '').isNotEmpty)
             '${item.startDate ?? ''} to ${item.endDate ?? ''}'.trim(),
         ].where((value) => value.trim().isNotEmpty).join(' • '),
         selected: selected,
@@ -396,8 +397,7 @@ class _FinancialYearManagementPageState
                             ),
                           )
                           .toList(growable: false),
-                      onChanged: (value) =>
-                          setState(() => _companyId = value),
+                      onChanged: (value) => setState(() => _companyId = value),
                       validator: Validators.requiredSelection('Company'),
                     ),
                   AppFormTextField(
@@ -481,8 +481,7 @@ class _FinancialYearManagementPageState
                     if (!value) {
                       _lockDateController.clear();
                     } else if (_lockDateController.text.trim().isEmpty) {
-                      _lockDateController.text =
-                          _endDateController.text.trim();
+                      _lockDateController.text = _endDateController.text.trim();
                     }
                   });
                 },

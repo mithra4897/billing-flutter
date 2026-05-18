@@ -84,8 +84,9 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
               .toList()
             ..sort();
       final records = recordsResponse.data ?? const <EmailModuleSettingModel>[];
-      final activeCompanies =
-          companies.where((item) => item.isActive).toList(growable: false);
+      final activeCompanies = companies
+          .where((item) => item.isActive)
+          .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,

@@ -1,8 +1,6 @@
 import 'dart:math' as math;
 
 import '../../screen.dart';
-import '../../model/printing/print_template_model.dart';
-import '../../View/printing/document_print_designer_support.dart';
 
 class DocumentDesignerPageInspector extends StatelessWidget {
   const DocumentDesignerPageInspector({

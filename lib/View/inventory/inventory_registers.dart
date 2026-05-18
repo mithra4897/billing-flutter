@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
 
 class OpeningStockRegisterPage extends StatefulWidget {
   const OpeningStockRegisterPage({super.key, this.embedded = false});
@@ -115,9 +113,8 @@ class _OpeningStockRegisterPageState extends State<OpeningStockRegisterPage> {
         ),
         PurchaseRegisterColumn<OpeningStockModel>(
           label: 'Date',
-          valueBuilder: (OpeningStockModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'opening_date'),
-          ),
+          valueBuilder: (OpeningStockModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'opening_date')),
         ),
         PurchaseRegisterColumn<OpeningStockModel>(
           label: 'Status',
@@ -293,9 +290,8 @@ class _StockIssueRegisterPageState extends State<StockIssueRegisterPage> {
         ),
         PurchaseRegisterColumn<StockIssueModel>(
           label: 'Date',
-          valueBuilder: (StockIssueModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'issue_date'),
-          ),
+          valueBuilder: (StockIssueModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'issue_date')),
         ),
         PurchaseRegisterColumn<StockIssueModel>(
           label: 'Purpose',
@@ -341,8 +337,7 @@ class _InternalStockReceiptRegisterPageState
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
   String? _error;
-  List<InternalStockReceiptModel> _rows =
-      const <InternalStockReceiptModel>[];
+  List<InternalStockReceiptModel> _rows = const <InternalStockReceiptModel>[];
 
   @override
   void initState() {
@@ -417,8 +412,9 @@ class _InternalStockReceiptRegisterPageState
               navigate('/inventory/internal-stock-receipts/new');
               return;
             }
-            Navigator.of(context)
-                .pushNamed('/inventory/internal-stock-receipts/new');
+            Navigator.of(
+              context,
+            ).pushNamed('/inventory/internal-stock-receipts/new');
           },
           icon: Icons.add_outlined,
           label: 'New Internal Receipt',
@@ -440,9 +436,8 @@ class _InternalStockReceiptRegisterPageState
         ),
         PurchaseRegisterColumn<InternalStockReceiptModel>(
           label: 'Date',
-          valueBuilder: (InternalStockReceiptModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'receipt_date'),
-          ),
+          valueBuilder: (InternalStockReceiptModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'receipt_date')),
         ),
         PurchaseRegisterColumn<InternalStockReceiptModel>(
           label: 'Status',
@@ -579,9 +574,8 @@ class _StockTransferRegisterPageState extends State<StockTransferRegisterPage> {
         ),
         PurchaseRegisterColumn<StockTransferModel>(
           label: 'Date',
-          valueBuilder: (StockTransferModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'transfer_date'),
-          ),
+          valueBuilder: (StockTransferModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'transfer_date')),
         ),
         PurchaseRegisterColumn<StockTransferModel>(
           label: 'Status',
@@ -719,9 +713,8 @@ class _StockDamageRegisterPageState extends State<StockDamageRegisterPage> {
         ),
         PurchaseRegisterColumn<StockDamageEntryModel>(
           label: 'Date',
-          valueBuilder: (StockDamageEntryModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'damage_date'),
-          ),
+          valueBuilder: (StockDamageEntryModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'damage_date')),
         ),
         PurchaseRegisterColumn<StockDamageEntryModel>(
           label: 'Type',
@@ -767,8 +760,7 @@ class _InventoryAdjustmentRegisterPageState
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
   String? _error;
-  List<InventoryAdjustmentModel> _rows =
-      const <InventoryAdjustmentModel>[];
+  List<InventoryAdjustmentModel> _rows = const <InventoryAdjustmentModel>[];
 
   @override
   void initState() {
@@ -866,9 +858,8 @@ class _InventoryAdjustmentRegisterPageState
         ),
         PurchaseRegisterColumn<InventoryAdjustmentModel>(
           label: 'Date',
-          valueBuilder: (InventoryAdjustmentModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'adjustment_date'),
-          ),
+          valueBuilder: (InventoryAdjustmentModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'adjustment_date')),
         ),
         PurchaseRegisterColumn<InventoryAdjustmentModel>(
           label: 'Type',
@@ -1007,9 +998,8 @@ class _StockMovementRegisterPageState extends State<StockMovementRegisterPage> {
         PurchaseRegisterColumn<StockMovementModel>(
           label: 'Date',
           flex: 2,
-          valueBuilder: (StockMovementModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'movement_date'),
-          ),
+          valueBuilder: (StockMovementModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'movement_date')),
         ),
         PurchaseRegisterColumn<StockMovementModel>(
           label: 'Type',
@@ -1162,9 +1152,8 @@ class _StockBatchRegisterPageState extends State<StockBatchRegisterPage> {
         ),
         PurchaseRegisterColumn<StockBatchModel>(
           label: 'Expiry',
-          valueBuilder: (StockBatchModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'expiry_date'),
-          ),
+          valueBuilder: (StockBatchModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'expiry_date')),
         ),
       ],
       onRowTap: (StockBatchModel row) {

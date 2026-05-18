@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/planning/planning_calendar_view_model.dart';
 
 class PlanningCalendarPage extends StatefulWidget {
   const PlanningCalendarPage({
@@ -160,6 +159,7 @@ class _CalendarEditor extends StatelessWidget {
     required this.onSave,
     required this.onDelete,
   });
+
   final PlanningCalendarViewModel vm;
   final Future<void> Function() onSave;
   final Future<void> Function() onDelete;

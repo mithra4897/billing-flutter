@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class AmcContractModel implements JsonModel {
   const AmcContractModel(this.data);

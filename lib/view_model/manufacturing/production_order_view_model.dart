@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class ProductionOrderViewModel extends ChangeNotifier {
   final ManufacturingService _service = ManufacturingService();

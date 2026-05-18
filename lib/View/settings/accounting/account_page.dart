@@ -92,21 +92,32 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
 
     try {
       final responses = await Future.wait<dynamic>([
-        _accountsService.accounts(filters: const {'per_page': 300, 'sort_by': 'account_name'}),
-        _masterService.companies(filters: const {'per_page': 200, 'sort_by': 'legal_name'}),
-        _masterService.branches(filters: const {'per_page': 300, 'sort_by': 'name'}),
-        _accountsService.accountGroupsAll(filters: const {'sort_by': 'group_name'}),
+        _accountsService.accounts(
+          filters: const {'per_page': 300, 'sort_by': 'account_name'},
+        ),
+        _masterService.companies(
+          filters: const {'per_page': 200, 'sort_by': 'legal_name'},
+        ),
+        _masterService.branches(
+          filters: const {'per_page': 300, 'sort_by': 'name'},
+        ),
+        _accountsService.accountGroupsAll(
+          filters: const {'sort_by': 'group_name'},
+        ),
       ]);
 
-      final accounts = (responses[0] as PaginatedResponse<AccountModel>).data ??
+      final accounts =
+          (responses[0] as PaginatedResponse<AccountModel>).data ??
           const <AccountModel>[];
-      final companies = (responses[1] as PaginatedResponse<CompanyModel>).data ??
+      final companies =
+          (responses[1] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
-      final branches = (responses[2] as PaginatedResponse<BranchModel>).data ??
+      final branches =
+          (responses[2] as PaginatedResponse<BranchModel>).data ??
           const <BranchModel>[];
       final groups =
           (responses[3] as ApiResponse<List<AccountGroupModel>>).data ??
-              const <AccountGroupModel>[];
+          const <AccountGroupModel>[];
       final activeCompanies = companies
           .where((item) => item.isActive)
           .toList(growable: false);
@@ -345,7 +356,8 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
           subtitle: [
             item.accountCode ?? '',
             item.accountType ?? '',
-            if ((item.accountGroupName ?? '').isNotEmpty) item.accountGroupName!,
+            if ((item.accountGroupName ?? '').isNotEmpty)
+              item.accountGroupName!,
           ].join(' · '),
           detail: item.companyName ?? '',
           selected: selected,
@@ -353,169 +365,170 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
         ),
       ),
       editor: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Use this screen for ledger creation and structure. Party-to-ledger mapping is maintained in the Parties screen under Party Accounts.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).extension<AppThemeExtension>()!.mutedText,
-              ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Use this screen for ledger creation and structure. Party-to-ledger mapping is maintained in the Parties screen under Party Accounts.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(
+                context,
+              ).extension<AppThemeExtension>()!.mutedText,
             ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_formError != null) ...[
-                    AppErrorStateView.inline(message: _formError!),
-                    const SizedBox(height: AppUiConstants.spacingSm),
-                  ],
-                  SettingsFormWrap(
-                    children: [
-                      AppFormTextField(
-                        labelText: 'Account Code',
-                        controller: _accountCodeController,
-                        validator: Validators.compose([
-                          Validators.required('Account Code'),
-                          Validators.optionalMaxLength(50, 'Account Code'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Account Name',
-                        controller: _accountNameController,
-                        validator: Validators.compose([
-                          Validators.required('Account Name'),
-                          Validators.optionalMaxLength(255, 'Account Name'),
-                        ]),
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Account Group',
-                        mappedItems: _groups
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: _accountGroupId,
-                        onChanged: (value) =>
-                            setState(() => _accountGroupId = value),
-                        validator: Validators.requiredSelection('Account Group'),
-                      ),
-                      AppDropdownField<String>.fromMapped(
-                        labelText: 'Account Type',
-                        mappedItems: _accountTypeItems,
-                        initialValue: _accountType,
-                        onChanged: (value) => setState(
-                          () => _accountType = value ?? 'general',
-                        ),
-                        validator: Validators.requiredSelection('Account Type'),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Opening Balance',
-                        controller: _openingBalanceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.optionalNonNegativeNumber(
-                          'Opening Balance',
-                        ),
-                      ),
-                      AppDropdownField<String>.fromMapped(
-                        labelText: 'Opening Balance Type',
-                        mappedItems: _openingBalanceTypeItems,
-                        initialValue: _openingBalanceType,
-                        onChanged: (value) => setState(
-                          () => _openingBalanceType = value ?? 'debit',
-                        ),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Currency Code',
-                        controller: _currencyCodeController,
-                        validator: Validators.compose([
-                          Validators.required('Currency Code'),
-                          Validators.optionalMaxLength(10, 'Currency Code'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Remarks',
-                        controller: _remarksController,
-                        maxLines: 3,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingMd),
-                  Wrap(
-                    spacing: AppUiConstants.spacingMd,
-                    runSpacing: AppUiConstants.spacingSm,
-                    children: [
-                      SizedBox(
-                        width: AppUiConstants.switchFieldWidth,
-                        child: AppSwitchTile(
-                          label: 'Allow Manual Entries',
-                          value: _allowManualEntries,
-                          onChanged: (value) =>
-                              setState(() => _allowManualEntries = value),
-                        ),
-                      ),
-                      SizedBox(
-                        width: AppUiConstants.switchFieldWidth,
-                        child: AppSwitchTile(
-                          label: 'Allow Reconciliation',
-                          value: _allowReconciliation,
-                          onChanged: (value) =>
-                              setState(() => _allowReconciliation = value),
-                        ),
-                      ),
-                      SizedBox(
-                        width: AppUiConstants.switchFieldWidth,
-                        child: AppSwitchTile(
-                          label: 'Control Account',
-                          value: _isControlAccount,
-                          onChanged: (value) =>
-                              setState(() => _isControlAccount = value),
-                        ),
-                      ),
-                      SizedBox(
-                        width: AppUiConstants.switchFieldWidth,
-                        child: AppSwitchTile(
-                          label: 'Active',
-                          value: _isActive,
-                          onChanged: (value) => setState(() => _isActive = value),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingLg),
-                  Wrap(
-                    spacing: AppUiConstants.spacingSm,
-                    runSpacing: AppUiConstants.spacingSm,
-                    children: [
-                      AppActionButton(
-                        icon: Icons.save_outlined,
-                        label: _selectedAccount == null
-                            ? 'Save Account'
-                            : 'Update Account',
-                        onPressed: _save,
-                        busy: _saving,
-                      ),
-                      if (_selectedAccount?.id != null)
-                        AppActionButton(
-                          icon: Icons.delete_outline,
-                          label: 'Delete',
-                          onPressed: _saving ? null : _delete,
-                          filled: false,
-                        ),
-                    ],
-                  ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_formError != null) ...[
+                  AppErrorStateView.inline(message: _formError!),
+                  const SizedBox(height: AppUiConstants.spacingSm),
                 ],
-              ),
+                SettingsFormWrap(
+                  children: [
+                    AppFormTextField(
+                      labelText: 'Account Code',
+                      controller: _accountCodeController,
+                      validator: Validators.compose([
+                        Validators.required('Account Code'),
+                        Validators.optionalMaxLength(50, 'Account Code'),
+                      ]),
+                    ),
+                    AppFormTextField(
+                      labelText: 'Account Name',
+                      controller: _accountNameController,
+                      validator: Validators.compose([
+                        Validators.required('Account Name'),
+                        Validators.optionalMaxLength(255, 'Account Name'),
+                      ]),
+                    ),
+                    AppDropdownField<int>.fromMapped(
+                      labelText: 'Account Group',
+                      mappedItems: _groups
+                          .where((item) => item.id != null)
+                          .map(
+                            (item) => AppDropdownItem<int>(
+                              value: item.id!,
+                              label: item.toString(),
+                            ),
+                          )
+                          .toList(growable: false),
+                      initialValue: _accountGroupId,
+                      onChanged: (value) =>
+                          setState(() => _accountGroupId = value),
+                      validator: Validators.requiredSelection('Account Group'),
+                    ),
+                    AppDropdownField<String>.fromMapped(
+                      labelText: 'Account Type',
+                      mappedItems: _accountTypeItems,
+                      initialValue: _accountType,
+                      onChanged: (value) =>
+                          setState(() => _accountType = value ?? 'general'),
+                      validator: Validators.requiredSelection('Account Type'),
+                    ),
+                    AppFormTextField(
+                      labelText: 'Opening Balance',
+                      controller: _openingBalanceController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: Validators.optionalNonNegativeNumber(
+                        'Opening Balance',
+                      ),
+                    ),
+                    AppDropdownField<String>.fromMapped(
+                      labelText: 'Opening Balance Type',
+                      mappedItems: _openingBalanceTypeItems,
+                      initialValue: _openingBalanceType,
+                      onChanged: (value) => setState(
+                        () => _openingBalanceType = value ?? 'debit',
+                      ),
+                    ),
+                    AppFormTextField(
+                      labelText: 'Currency Code',
+                      controller: _currencyCodeController,
+                      validator: Validators.compose([
+                        Validators.required('Currency Code'),
+                        Validators.optionalMaxLength(10, 'Currency Code'),
+                      ]),
+                    ),
+                    AppFormTextField(
+                      labelText: 'Remarks',
+                      controller: _remarksController,
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppUiConstants.spacingMd),
+                Wrap(
+                  spacing: AppUiConstants.spacingMd,
+                  runSpacing: AppUiConstants.spacingSm,
+                  children: [
+                    SizedBox(
+                      width: AppUiConstants.switchFieldWidth,
+                      child: AppSwitchTile(
+                        label: 'Allow Manual Entries',
+                        value: _allowManualEntries,
+                        onChanged: (value) =>
+                            setState(() => _allowManualEntries = value),
+                      ),
+                    ),
+                    SizedBox(
+                      width: AppUiConstants.switchFieldWidth,
+                      child: AppSwitchTile(
+                        label: 'Allow Reconciliation',
+                        value: _allowReconciliation,
+                        onChanged: (value) =>
+                            setState(() => _allowReconciliation = value),
+                      ),
+                    ),
+                    SizedBox(
+                      width: AppUiConstants.switchFieldWidth,
+                      child: AppSwitchTile(
+                        label: 'Control Account',
+                        value: _isControlAccount,
+                        onChanged: (value) =>
+                            setState(() => _isControlAccount = value),
+                      ),
+                    ),
+                    SizedBox(
+                      width: AppUiConstants.switchFieldWidth,
+                      child: AppSwitchTile(
+                        label: 'Active',
+                        value: _isActive,
+                        onChanged: (value) => setState(() => _isActive = value),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppUiConstants.spacingLg),
+                Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingSm,
+                  children: [
+                    AppActionButton(
+                      icon: Icons.save_outlined,
+                      label: _selectedAccount == null
+                          ? 'Save Account'
+                          : 'Update Account',
+                      onPressed: _save,
+                      busy: _saving,
+                    ),
+                    if (_selectedAccount?.id != null)
+                      AppActionButton(
+                        icon: Icons.delete_outline,
+                        label: 'Delete',
+                        onPressed: _saving ? null : _delete,
+                        filled: false,
+                      ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class PartyRoleModel implements JsonModel {
   const PartyRoleModel(this.data);

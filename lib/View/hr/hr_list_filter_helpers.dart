@@ -61,11 +61,7 @@ Future<bool?> showHrListFilterDialog({
                 ),
                 const SizedBox(height: 12),
                 if (header != null) ...[header, const SizedBox(height: 12)],
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: filterFields,
-                ),
+                Wrap(spacing: 16, runSpacing: 16, children: filterFields),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 12,

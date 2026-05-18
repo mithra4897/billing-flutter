@@ -1,8 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../app/constants/app_ui_constants.dart';
-import 'app_field_box.dart';
-import 'app_form_text_field.dart';
+import '../screen.dart';
 
 typedef AppSerialNumbersValidator = String? Function(List<String> values);
 

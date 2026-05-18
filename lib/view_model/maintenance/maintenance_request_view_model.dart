@@ -1,6 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class MaintenanceRequestViewModel extends ChangeNotifier {
   MaintenanceRequestViewModel() {
@@ -53,42 +51,46 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
   int? get selectedId =>
       intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
 
-  String get requestStatus =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'request_status');
+  String get requestStatus => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'request_status',
+  );
 
   bool get canEdit {
     if (selected == null) {
       return true;
     }
-    return !const {'completed', 'cancelled', 'rejected'}
-        .contains(requestStatus);
+    return !const {
+      'completed',
+      'cancelled',
+      'rejected',
+    }.contains(requestStatus);
   }
 
   bool get canApprove =>
-      selected != null &&
-      (requestStatus == 'draft' || requestStatus == 'open');
+      selected != null && (requestStatus == 'draft' || requestStatus == 'open');
 
-  bool get canCancel =>
-      selected != null && requestStatus != 'completed';
+  bool get canCancel => selected != null && requestStatus != 'completed';
 
   bool get canDelete =>
-      selected != null &&
-      (requestStatus == 'draft' || requestStatus == 'open');
+      selected != null && (requestStatus == 'draft' || requestStatus == 'open');
 
   List<DocumentSeriesModel> get seriesOptions {
     final cid = companyId;
-    return documentSeries.where((s) {
-      if (!s.isActive) {
-        return false;
-      }
-      if ((s.documentType ?? '').trim() != 'MAINTENANCE_REQUEST') {
-        return false;
-      }
-      if (cid != null && s.companyId != null && s.companyId != cid) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return documentSeries
+        .where((s) {
+          if (!s.isActive) {
+            return false;
+          }
+          if ((s.documentType ?? '').trim() != 'MAINTENANCE_REQUEST') {
+            return false;
+          }
+          if (cid != null && s.companyId != null && s.companyId != cid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<BranchModel> get branchOptions =>
@@ -99,18 +101,20 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
 
   List<MaintenanceRequestModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      return [
-        stringValue(data, 'request_no'),
-        stringValue(data, 'issue_title'),
-        stringValue(data, 'request_status'),
-        stringValue(data, 'request_type'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'request_no'),
+            stringValue(data, 'issue_title'),
+            stringValue(data, 'request_status'),
+            stringValue(data, 'request_type'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String listTitle(MaintenanceRequestModel row) {
@@ -156,11 +160,12 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
 
       rows =
           (responses[0] as PaginatedResponse<MaintenanceRequestModel>).data ??
-              const <MaintenanceRequestModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <MaintenanceRequestModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       documentSeries =
           ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
                   const <DocumentSeriesModel>[])
@@ -215,19 +220,18 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     }
     try {
       final responses = await Future.wait<dynamic>([
-        _assets.assets(filters: <String, dynamic>{
-          'company_id': cid,
-          'per_page': 200,
-        }),
-        _maintenance.plans(filters: <String, dynamic>{
-          'company_id': cid,
-          'per_page': 200,
-        }),
+        _assets.assets(
+          filters: <String, dynamic>{'company_id': cid, 'per_page': 200},
+        ),
+        _maintenance.plans(
+          filters: <String, dynamic>{'company_id': cid, 'per_page': 200},
+        ),
       ]);
-      assets = ((responses[0] as PaginatedResponse<AssetModel>).data ??
-              const <AssetModel>[])
-          .where((a) => intValue(a.toJson(), 'id') != null)
-          .toList(growable: false);
+      assets =
+          ((responses[0] as PaginatedResponse<AssetModel>).data ??
+                  const <AssetModel>[])
+              .where((a) => intValue(a.toJson(), 'id') != null)
+              .toList(growable: false);
       maintenancePlans =
           ((responses[1] as PaginatedResponse<MaintenancePlanModel>).data ??
                   const <MaintenancePlanModel>[])
@@ -243,17 +247,18 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId = _sessionCompanyId ??
-        (companies.isNotEmpty ? companies.first.id : null);
-    documentSeriesId =
-        seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    companyId =
+        _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     assetId = null;
     branchId = null;
     locationId = null;
     maintenancePlanId = null;
     requestNoController.clear();
-    requestDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    requestDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     issueTitleController.clear();
     issueDescriptionController.clear();
     requestTypeController.clear();
@@ -270,8 +275,9 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
   void _revalidateSeries() {
     if (documentSeriesId != null &&
         !seriesOptions.any((s) => s.id == documentSeriesId)) {
-      documentSeriesId =
-          seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+      documentSeriesId = seriesOptions.isNotEmpty
+          ? seriesOptions.first.id
+          : null;
     }
   }
 
@@ -414,8 +420,9 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       'location_id': ?locationId,
       'maintenance_plan_id': ?maintenancePlanId,
       'requested_by': ?rb,
-      'target_completion_date':
-          ?nullIfEmpty(targetCompletionController.text.trim()),
+      'target_completion_date': ?nullIfEmpty(
+        targetCompletionController.text.trim(),
+      ),
       'remarks': nullIfEmpty(remarksController.text),
       'document_series_id': ?documentSeriesId,
       'request_no': ?nullIfEmpty(requestNoController.text.trim()),
@@ -439,8 +446,9 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       'location_id': ?locationId,
       'maintenance_plan_id': ?maintenancePlanId,
       'requested_by': ?rb,
-      'target_completion_date':
-          ?nullIfEmpty(targetCompletionController.text.trim()),
+      'target_completion_date': ?nullIfEmpty(
+        targetCompletionController.text.trim(),
+      ),
       'remarks': nullIfEmpty(remarksController.text),
       'request_no': ?nullIfEmpty(requestNoController.text.trim()),
     };

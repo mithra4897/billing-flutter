@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../dashboard/erp_module_dashboard_page.dart';
 
 class ProjectDashboardPage extends StatelessWidget {
   const ProjectDashboardPage({super.key, this.embedded = false});

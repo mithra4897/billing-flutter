@@ -255,51 +255,51 @@ class _ModulePreferencesPageState extends State<ModulePreferencesPage> {
         ),
       ),
       editor: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_selectedModule == null)
-              const Text('Select a module to manage its menu preference.')
-            else ...[
-              if (_formError != null) ...[
-                Text(
-                  _formError!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                const SizedBox(height: 12),
-              ],
-              Text('Module Code: ${_selectedModule!.moduleCode ?? ''}'),
-              const SizedBox(height: 8),
-              Text('Group: ${_selectedModule!.moduleGroup ?? '-'}'),
-              const SizedBox(height: 8),
-              Text('Route: ${_selectedModule!.routePath ?? '-'}'),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _sortOrderController,
-                decoration: const InputDecoration(labelText: 'Menu Sort Order'),
-                keyboardType: TextInputType.number,
-                validator: Validators.optionalNonNegativeInteger(
-                  'Menu Sort Order',
-                ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_selectedModule == null)
+            const Text('Select a module to manage its menu preference.')
+          else ...[
+            if (_formError != null) ...[
+              Text(
+                _formError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Hide This Module In Menu'),
-                value: _isHidden,
-                onChanged: (value) => setState(() => _isHidden = value),
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
-                  onPressed: _saving ? null : _save,
-                  icon: const Icon(Icons.save_outlined),
-                  label: Text(_saving ? 'Saving...' : 'Save'),
-                ),
-              ),
             ],
+            Text('Module Code: ${_selectedModule!.moduleCode ?? ''}'),
+            const SizedBox(height: 8),
+            Text('Group: ${_selectedModule!.moduleGroup ?? '-'}'),
+            const SizedBox(height: 8),
+            Text('Route: ${_selectedModule!.routePath ?? '-'}'),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _sortOrderController,
+              decoration: const InputDecoration(labelText: 'Menu Sort Order'),
+              keyboardType: TextInputType.number,
+              validator: Validators.optionalNonNegativeInteger(
+                'Menu Sort Order',
+              ),
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Hide This Module In Menu'),
+              value: _isHidden,
+              onChanged: (value) => setState(() => _isHidden = value),
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(_saving ? 'Saving...' : 'Save'),
+              ),
+            ),
           ],
-        ),
+        ],
+      ),
     );
   }
 }

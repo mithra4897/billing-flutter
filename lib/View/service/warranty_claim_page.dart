@@ -1,7 +1,5 @@
 import '../../screen.dart';
-import '../../view_model/service/warranty_claim_view_model.dart';
-import '../purchase/purchase_support.dart';
-import 'service_assign_prompt.dart';
+
 
 String _claimListTitle(ServiceTicketModel row) {
   final data = row.toJson();

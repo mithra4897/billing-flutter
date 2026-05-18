@@ -33,8 +33,7 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _documentTypeController =
-      TextEditingController();
+  final TextEditingController _documentTypeController = TextEditingController();
 
   bool _initialLoading = true;
   bool _saving = false;
@@ -289,113 +288,111 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
         ),
       ),
       editor: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: AppUiConstants.spacingSm),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppFormTextField(
-                    labelText: 'Code',
-                    controller: _codeController,
-                    validator: Validators.compose([
-                      Validators.required('Code'),
-                      Validators.optionalMaxLength(50, 'Code'),
-                    ]),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Name',
-                    controller: _nameController,
-                    validator: Validators.compose([
-                      Validators.required('Name'),
-                      Validators.optionalMaxLength(100, 'Name'),
-                    ]),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Voucher Category',
-                    mappedItems: _categoryItems,
-                    initialValue: _voucherCategory,
-                    onChanged: (value) => setState(
-                      () => _voucherCategory = value ?? 'journal',
-                    ),
-                    validator: Validators.requiredSelection('Voucher Category'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Document Type',
-                    controller: _documentTypeController,
-                    validator: Validators.optionalMaxLength(50, 'Document Type'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Wrap(
-                spacing: AppUiConstants.spacingMd,
-                runSpacing: AppUiConstants.spacingSm,
-                children: [
-                  SizedBox(
-                    width: AppUiConstants.switchFieldWidth,
-                    child: AppSwitchTile(
-                      label: 'Auto Post',
-                      value: _autoPost,
-                      onChanged: (value) => setState(() => _autoPost = value),
-                    ),
-                  ),
-                  SizedBox(
-                    width: AppUiConstants.switchFieldWidth,
-                    child: AppSwitchTile(
-                      label: 'Requires Approval',
-                      value: _requiresApproval,
-                      onChanged: (value) =>
-                          setState(() => _requiresApproval = value),
-                    ),
-                  ),
-                  SizedBox(
-                    width: AppUiConstants.switchFieldWidth,
-                    child: AppSwitchTile(
-                      label: 'Reference Allocation',
-                      value: _allowsReferenceAllocation,
-                      onChanged: (value) => setState(
-                        () => _allowsReferenceAllocation = value,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: AppUiConstants.switchFieldWidth,
-                    child: AppSwitchTile(
-                      label: 'Active',
-                      value: _isActive,
-                      onChanged: (value) => setState(() => _isActive = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingLg),
-              Wrap(
-                spacing: AppUiConstants.spacingSm,
-                runSpacing: AppUiConstants.spacingSm,
-                children: [
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: _selectedType == null ? 'Save Type' : 'Update Type',
-                    onPressed: _save,
-                    busy: _saving,
-                  ),
-                  if (_selectedType?.id != null)
-                    AppActionButton(
-                      icon: Icons.delete_outline,
-                      label: 'Delete',
-                      onPressed: _saving ? null : _delete,
-                      filled: false,
-                    ),
-                ],
-              ),
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
+              const SizedBox(height: AppUiConstants.spacingSm),
             ],
-          ),
+            SettingsFormWrap(
+              children: [
+                AppFormTextField(
+                  labelText: 'Code',
+                  controller: _codeController,
+                  validator: Validators.compose([
+                    Validators.required('Code'),
+                    Validators.optionalMaxLength(50, 'Code'),
+                  ]),
+                ),
+                AppFormTextField(
+                  labelText: 'Name',
+                  controller: _nameController,
+                  validator: Validators.compose([
+                    Validators.required('Name'),
+                    Validators.optionalMaxLength(100, 'Name'),
+                  ]),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Voucher Category',
+                  mappedItems: _categoryItems,
+                  initialValue: _voucherCategory,
+                  onChanged: (value) =>
+                      setState(() => _voucherCategory = value ?? 'journal'),
+                  validator: Validators.requiredSelection('Voucher Category'),
+                ),
+                AppFormTextField(
+                  labelText: 'Document Type',
+                  controller: _documentTypeController,
+                  validator: Validators.optionalMaxLength(50, 'Document Type'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            Wrap(
+              spacing: AppUiConstants.spacingMd,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                SizedBox(
+                  width: AppUiConstants.switchFieldWidth,
+                  child: AppSwitchTile(
+                    label: 'Auto Post',
+                    value: _autoPost,
+                    onChanged: (value) => setState(() => _autoPost = value),
+                  ),
+                ),
+                SizedBox(
+                  width: AppUiConstants.switchFieldWidth,
+                  child: AppSwitchTile(
+                    label: 'Requires Approval',
+                    value: _requiresApproval,
+                    onChanged: (value) =>
+                        setState(() => _requiresApproval = value),
+                  ),
+                ),
+                SizedBox(
+                  width: AppUiConstants.switchFieldWidth,
+                  child: AppSwitchTile(
+                    label: 'Reference Allocation',
+                    value: _allowsReferenceAllocation,
+                    onChanged: (value) =>
+                        setState(() => _allowsReferenceAllocation = value),
+                  ),
+                ),
+                SizedBox(
+                  width: AppUiConstants.switchFieldWidth,
+                  child: AppSwitchTile(
+                    label: 'Active',
+                    value: _isActive,
+                    onChanged: (value) => setState(() => _isActive = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedType == null ? 'Save Type' : 'Update Type',
+                  onPressed: _save,
+                  busy: _saving,
+                ),
+                if (_selectedType?.id != null)
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    onPressed: _saving ? null : _delete,
+                    filled: false,
+                  ),
+              ],
+            ),
+          ],
         ),
+      ),
     );
   }
 }

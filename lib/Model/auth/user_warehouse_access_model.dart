@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class UserWarehouseAccessModel implements JsonModel {
   const UserWarehouseAccessModel(this.data);

@@ -1,5 +1,4 @@
-import '../accounting/voucher_model.dart';
-import 'sales_invoice_line_model.dart';
+import '../../screen.dart';
 
 class SalesInvoiceModel {
   const SalesInvoiceModel({
@@ -146,8 +145,7 @@ class SalesInvoiceModel {
       if (termsConditions != null) 'terms_conditions': termsConditions,
       if (customerReferenceNo != null && customerReferenceNo!.isNotEmpty)
         'customer_reference_no': customerReferenceNo,
-      if (customerReferenceDate != null &&
-          customerReferenceDate!.isNotEmpty)
+      if (customerReferenceDate != null && customerReferenceDate!.isNotEmpty)
         'customer_reference_date': customerReferenceDate,
       if (isActive != null) 'is_active': isActive,
       'lines': lines.map((line) => line.toJson()).toList(growable: false),

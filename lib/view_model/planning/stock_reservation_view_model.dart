@@ -1,4 +1,4 @@
-import 'package:billing/screen.dart';
+import '../../../screen.dart';
 
 class StockReservationViewModel extends ChangeNotifier {
   final PlanningService _service = PlanningService();

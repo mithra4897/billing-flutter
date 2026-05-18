@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 /// Backend `receipt_source` enum values; labels are UI-facing.
 const List<AppDropdownItem<String>> internalStockReceiptSourceItems =
@@ -130,8 +129,10 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
 
   List<BranchModel> get branchOptions =>
       branchesForCompany(branches, companyId);
+
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
+
   List<String> get contextLabels => workingContextLabels(
     companies: companies,
     branches: branches,

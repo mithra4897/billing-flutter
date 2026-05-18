@@ -85,17 +85,21 @@ class _BankReconciliationManagementPageState
           },
         ),
         _accountsService.vouchersAll(
-          filters: const {'posting_status': 'posted', 'sort_by': 'voucher_date'},
+          filters: const {
+            'posting_status': 'posted',
+            'sort_by': 'voucher_date',
+          },
         ),
       ]);
 
       final records =
           (responses[0] as ApiResponse<List<BankReconciliationModel>>).data ??
-              const <BankReconciliationModel>[];
+          const <BankReconciliationModel>[];
       final bankAccounts =
           (responses[1] as ApiResponse<List<AccountModel>>).data ??
-              const <AccountModel>[];
-      final vouchers = (responses[2] as ApiResponse<List<VoucherModel>>).data ??
+          const <AccountModel>[];
+      final vouchers =
+          (responses[2] as ApiResponse<List<VoucherModel>>).data ??
           const <VoucherModel>[];
 
       if (!mounted) return;
@@ -171,8 +175,7 @@ class _BankReconciliationManagementPageState
     final options = (voucher?.lines ?? const <VoucherLineModel>[])
         .where(
           (item) =>
-              item.accountId == _accountId &&
-              !usedLineIds.contains(item.id),
+              item.accountId == _accountId && !usedLineIds.contains(item.id),
         )
         .toList(growable: false);
 
@@ -191,8 +194,10 @@ class _BankReconciliationManagementPageState
     _voucherId = item.voucherId;
     _voucherLineId = item.voucherLineId;
     _status = item.reconciliationStatus ?? 'pending';
-    _bankDateController.text = item.bankDate?.split('T').first.split(' ').first ?? '';
-    _clearedDateController.text = item.clearedDate?.split('T').first.split(' ').first ?? '';
+    _bankDateController.text =
+        item.bankDate?.split('T').first.split(' ').first ?? '';
+    _clearedDateController.text =
+        item.clearedDate?.split('T').first.split(' ').first ?? '';
     _bankReferenceController.text = item.bankReferenceNo ?? '';
     _remarksController.text = item.remarks ?? '';
     _formError = null;
@@ -318,126 +323,135 @@ class _BankReconciliationManagementPageState
         ),
       ),
       editor: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
-                const SizedBox(height: AppUiConstants.spacingSm),
-              ],
-              SettingsFormWrap(
-                children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Bank Account',
-                    mappedItems: _bankAccounts
-                        .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                        .toList(growable: false),
-                    initialValue: _accountId,
-                    onChanged: (value) async {
-                      setState(() {
-                        _accountId = value;
-                        _voucherLineId = null;
-                      });
-                      await _loadVoucherLinesForSelection();
-                    },
-                    validator: Validators.requiredSelection('Bank Account'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Voucher',
-                    mappedItems: _vouchers
-                        .where((item) => item.id != null)
-                        .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
-                        .toList(growable: false),
-                    initialValue: _voucherId,
-                    onChanged: (value) async {
-                      setState(() {
-                        _voucherId = value;
-                        _voucherLineId = null;
-                      });
-                      await _loadVoucherLinesForSelection();
-                    },
-                  ),
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Voucher Line',
-                    mappedItems: _voucherLineOptions
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label:
-                                '${item.entryType?.toUpperCase() ?? ''} · ${item.amount ?? 0} · ${item.accountName ?? item.accountCode ?? ''}',
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: _voucherLineId,
-                    onChanged: (value) =>
-                        setState(() => _voucherLineId = value),
-                    validator: Validators.requiredSelection('Voucher Line'),
-                  ),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Status',
-                    mappedItems: _statusItems,
-                    initialValue: _status,
-                    onChanged: (value) =>
-                        setState(() => _status = value ?? 'pending'),
-                  ),
-                  if (_status == 'bounced' || _status == 'cancelled') ...[
-                    const SizedBox(height: AppUiConstants.spacingSm),
-                    Text(
-                      'Bounced/cancelled here only updates this reconciliation row. '
-                      'It does not reverse GL vouchers or change sales/purchase payment status—post dishonour/reversal entries and update source documents separately.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.tertiary,
-                          ),
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            SettingsFormWrap(
+              children: [
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Bank Account',
+                  mappedItems: _bankAccounts
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: _accountId,
+                  onChanged: (value) async {
+                    setState(() {
+                      _accountId = value;
+                      _voucherLineId = null;
+                    });
+                    await _loadVoucherLinesForSelection();
+                  },
+                  validator: Validators.requiredSelection('Bank Account'),
+                ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Voucher',
+                  mappedItems: _vouchers
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: _voucherId,
+                  onChanged: (value) async {
+                    setState(() {
+                      _voucherId = value;
+                      _voucherLineId = null;
+                    });
+                    await _loadVoucherLinesForSelection();
+                  },
+                ),
+                AppDropdownField<int>.fromMapped(
+                  labelText: 'Voucher Line',
+                  mappedItems: _voucherLineOptions
+                      .where((item) => item.id != null)
+                      .map(
+                        (item) => AppDropdownItem(
+                          value: item.id!,
+                          label:
+                              '${item.entryType?.toUpperCase() ?? ''} · ${item.amount ?? 0} · ${item.accountName ?? item.accountCode ?? ''}',
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: _voucherLineId,
+                  onChanged: (value) => setState(() => _voucherLineId = value),
+                  validator: Validators.requiredSelection('Voucher Line'),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Status',
+                  mappedItems: _statusItems,
+                  initialValue: _status,
+                  onChanged: (value) =>
+                      setState(() => _status = value ?? 'pending'),
+                ),
+                if (_status == 'bounced' || _status == 'cancelled') ...[
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  Text(
+                    'Bounced/cancelled here only updates this reconciliation row. '
+                    'It does not reverse GL vouchers or change sales/purchase payment status—post dishonour/reversal entries and update source documents separately.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.tertiary,
                     ),
-                  ],
-                  AppFormTextField(
-                    labelText: 'Bank Date',
-                    controller: _bankDateController,
-                    validator: Validators.optionalDate('Bank Date'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Cleared Date',
-                    controller: _clearedDateController,
-                    validator: Validators.optionalDate('Cleared Date'),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Bank Reference No',
-                    controller: _bankReferenceController,
-                    validator: Validators.optionalMaxLength(
-                      100,
-                      'Bank Reference No',
-                    ),
-                  ),
-                  AppFormTextField(
-                    labelText: 'Remarks',
-                    controller: _remarksController,
-                    maxLines: 3,
-                    validator: (value) {
-                      if (_status == 'bounced' || _status == 'cancelled') {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Remarks required for bounced or cancelled';
-                        }
-                      }
-                      return null;
-                    },
                   ),
                 ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingLg),
-              AppActionButton(
-                icon: Icons.save_outlined,
-                label: _selectedRecord == null
-                    ? 'Save Reconciliation'
-                    : 'Update Reconciliation',
-                onPressed: _save,
-                busy: _saving,
-              ),
-            ],
-          ),
+                AppFormTextField(
+                  labelText: 'Bank Date',
+                  controller: _bankDateController,
+                  validator: Validators.optionalDate('Bank Date'),
+                ),
+                AppFormTextField(
+                  labelText: 'Cleared Date',
+                  controller: _clearedDateController,
+                  validator: Validators.optionalDate('Cleared Date'),
+                ),
+                AppFormTextField(
+                  labelText: 'Bank Reference No',
+                  controller: _bankReferenceController,
+                  validator: Validators.optionalMaxLength(
+                    100,
+                    'Bank Reference No',
+                  ),
+                ),
+                AppFormTextField(
+                  labelText: 'Remarks',
+                  controller: _remarksController,
+                  maxLines: 3,
+                  validator: (value) {
+                    if (_status == 'bounced' || _status == 'cancelled') {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Remarks required for bounced or cancelled';
+                      }
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            AppActionButton(
+              icon: Icons.save_outlined,
+              label: _selectedRecord == null
+                  ? 'Save Reconciliation'
+                  : 'Update Reconciliation',
+              onPressed: _save,
+              busy: _saving,
+            ),
+          ],
         ),
+      ),
     );
   }
 }

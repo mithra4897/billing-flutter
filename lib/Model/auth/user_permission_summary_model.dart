@@ -1,7 +1,4 @@
-import '../common/json_model.dart';
-import '../admin/user_model.dart';
-import 'user_permission_model.dart';
-import 'user_role_model.dart';
+import '../../screen.dart';
 
 class UserPermissionSummaryModel implements JsonModel {
   const UserPermissionSummaryModel({

@@ -1,9 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/admin/permission_model.dart';
-import '../../model/admin/role_model.dart';
-import '../../model/admin/user_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class AdminService extends ErpModuleService {
   AdminService({super.apiClient});

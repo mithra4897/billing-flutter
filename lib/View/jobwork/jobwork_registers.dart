@@ -1,7 +1,4 @@
 import '../../screen.dart';
-import '../hr/hr_workflow_dialogs.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
 
 void _openJobworkShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -84,7 +81,6 @@ class _JwFilters extends StatelessWidget {
     );
   }
 }
-
 
 // --- Registers ----------------------------------------------------------
 
@@ -182,7 +178,8 @@ class _JobworkOrderRegisterPageState extends State<JobworkOrderRegisterPage> {
       emptyMessage: 'No jobwork orders found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () => _openJobworkShellRoute(context, '/jobwork/orders/new'),
+          onPressed: () =>
+              _openJobworkShellRoute(context, '/jobwork/orders/new'),
           icon: Icons.add_outlined,
           label: 'New jobwork order',
         ),
@@ -200,9 +197,8 @@ class _JobworkOrderRegisterPageState extends State<JobworkOrderRegisterPage> {
         ),
         PurchaseRegisterColumn<JobworkOrderModel>(
           label: 'Date',
-          valueBuilder: (JobworkOrderModel row) => displayDate(
-            row.jobworkDate.isNotEmpty ? row.jobworkDate : null,
-          ),
+          valueBuilder: (JobworkOrderModel row) =>
+              displayDate(row.jobworkDate.isNotEmpty ? row.jobworkDate : null),
         ),
         PurchaseRegisterColumn<JobworkOrderModel>(
           label: 'Supplier',
@@ -374,7 +370,8 @@ class JobworkReceiptRegisterPage extends StatefulWidget {
       _JobworkReceiptRegisterPageState();
 }
 
-class _JobworkReceiptRegisterPageState extends State<JobworkReceiptRegisterPage> {
+class _JobworkReceiptRegisterPageState
+    extends State<JobworkReceiptRegisterPage> {
   final JobworkService _service = JobworkService();
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
@@ -477,9 +474,8 @@ class _JobworkReceiptRegisterPageState extends State<JobworkReceiptRegisterPage>
         ),
         PurchaseRegisterColumn<JobworkReceiptModel>(
           label: 'Date',
-          valueBuilder: (JobworkReceiptModel row) => displayDate(
-            row.receiptDate.isNotEmpty ? row.receiptDate : null,
-          ),
+          valueBuilder: (JobworkReceiptModel row) =>
+              displayDate(row.receiptDate.isNotEmpty ? row.receiptDate : null),
         ),
         PurchaseRegisterColumn<JobworkReceiptModel>(
           label: 'Jobwork order',
@@ -616,9 +612,8 @@ class _JobworkChargeRegisterPageState extends State<JobworkChargeRegisterPage> {
         ),
         PurchaseRegisterColumn<JobworkChargeModel>(
           label: 'Date',
-          valueBuilder: (JobworkChargeModel row) => displayDate(
-            row.chargeDate.isNotEmpty ? row.chargeDate : null,
-          ),
+          valueBuilder: (JobworkChargeModel row) =>
+              displayDate(row.chargeDate.isNotEmpty ? row.chargeDate : null),
         ),
         PurchaseRegisterColumn<JobworkChargeModel>(
           label: 'Jobwork order',

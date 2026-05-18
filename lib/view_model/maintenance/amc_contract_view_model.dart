@@ -1,6 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class AmcContractViewModel extends ChangeNotifier {
   AmcContractViewModel() {
@@ -18,9 +16,11 @@ class AmcContractViewModel extends ChangeNotifier {
   final TextEditingController startDateController = TextEditingController();
   final TextEditingController endDateController = TextEditingController();
   final TextEditingController coverageController = TextEditingController();
-  final TextEditingController visitFrequencyController = TextEditingController();
+  final TextEditingController visitFrequencyController =
+      TextEditingController();
   final TextEditingController responseTimeController = TextEditingController();
-  final TextEditingController resolutionTimeController = TextEditingController();
+  final TextEditingController resolutionTimeController =
+      TextEditingController();
   final TextEditingController contractValueController = TextEditingController();
   final TextEditingController taxAmountController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
@@ -49,15 +49,20 @@ class AmcContractViewModel extends ChangeNotifier {
   int? get selectedId =>
       intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
 
-  String get contractStatus =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'contract_status');
+  String get contractStatus => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'contract_status',
+  );
 
   bool get canEdit {
     if (selected == null) {
       return true;
     }
-    return !const {'expired', 'terminated', 'cancelled'}
-        .contains(contractStatus);
+    return !const {
+      'expired',
+      'terminated',
+      'cancelled',
+    }.contains(contractStatus);
   }
 
   bool get canApprove => selected != null && contractStatus == 'draft';
@@ -72,18 +77,20 @@ class AmcContractViewModel extends ChangeNotifier {
 
   List<DocumentSeriesModel> get seriesOptions {
     final cid = companyId;
-    return documentSeries.where((s) {
-      if (!s.isActive) {
-        return false;
-      }
-      if ((s.documentType ?? '').trim() != 'AMC_CONTRACT') {
-        return false;
-      }
-      if (cid != null && s.companyId != null && s.companyId != cid) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return documentSeries
+        .where((s) {
+          if (!s.isActive) {
+            return false;
+          }
+          if ((s.documentType ?? '').trim() != 'AMC_CONTRACT') {
+            return false;
+          }
+          if (cid != null && s.companyId != null && s.companyId != cid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<PartyModel> get vendorOptions =>
@@ -91,18 +98,20 @@ class AmcContractViewModel extends ChangeNotifier {
 
   List<AmcContractModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      return [
-        stringValue(data, 'contract_no'),
-        stringValue(data, 'contract_status'),
-        stringValue(data, 'contract_type'),
-        _vendorLabel(data),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'contract_no'),
+            stringValue(data, 'contract_status'),
+            stringValue(data, 'contract_type'),
+            _vendorLabel(data),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String _vendorLabel(Map<String, dynamic> data) {
@@ -158,23 +167,25 @@ class AmcContractViewModel extends ChangeNotifier {
 
       rows =
           (responses[0] as PaginatedResponse<AmcContractModel>).data ??
-              const <AmcContractModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <AmcContractModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       documentSeries =
           ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
                   const <DocumentSeriesModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      parties = ((responses[3] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      parties =
+          ((responses[3] as PaginatedResponse<PartyModel>).data ??
+                  const <PartyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       partyTypes =
           (responses[4] as PaginatedResponse<PartyTypeModel>).data ??
-              const <PartyTypeModel>[];
+          const <PartyTypeModel>[];
 
       loading = false;
 
@@ -205,17 +216,20 @@ class AmcContractViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId = _sessionCompanyId ??
-        (companies.isNotEmpty ? companies.first.id : null);
-    documentSeriesId =
-        seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    companyId =
+        _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     vendorPartyId = null;
     contractNoController.clear();
-    contractDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    contractDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     contractTypeController.clear();
-    startDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    startDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     endDateController.clear();
     coverageController.clear();
     visitFrequencyController.clear();
@@ -233,11 +247,11 @@ class AmcContractViewModel extends ChangeNotifier {
     }
     companyId = value;
     if (documentSeriesId != null) {
-      final stillValid =
-          seriesOptions.any((s) => s.id == documentSeriesId);
+      final stillValid = seriesOptions.any((s) => s.id == documentSeriesId);
       if (!stillValid) {
-        documentSeriesId =
-            seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+        documentSeriesId = seriesOptions.isNotEmpty
+            ? seriesOptions.first.id
+            : null;
       }
     }
     notifyListeners();
@@ -360,10 +374,12 @@ class AmcContractViewModel extends ChangeNotifier {
       'contract_type': nullIfEmpty(contractTypeController.text),
       'coverage_scope': nullIfEmpty(coverageController.text),
       'visit_frequency': nullIfEmpty(visitFrequencyController.text),
-      'response_time_hours':
-          double.tryParse(responseTimeController.text.trim()),
-      'resolution_time_hours':
-          double.tryParse(resolutionTimeController.text.trim()),
+      'response_time_hours': double.tryParse(
+        responseTimeController.text.trim(),
+      ),
+      'resolution_time_hours': double.tryParse(
+        resolutionTimeController.text.trim(),
+      ),
       'contract_value': amounts['contract_value'],
       'tax_amount': amounts['tax_amount'],
       'total_value': amounts['total_value'],
@@ -387,10 +403,12 @@ class AmcContractViewModel extends ChangeNotifier {
       'contract_type': nullIfEmpty(contractTypeController.text),
       'coverage_scope': nullIfEmpty(coverageController.text),
       'visit_frequency': nullIfEmpty(visitFrequencyController.text),
-      'response_time_hours':
-          double.tryParse(responseTimeController.text.trim()),
-      'resolution_time_hours':
-          double.tryParse(resolutionTimeController.text.trim()),
+      'response_time_hours': double.tryParse(
+        responseTimeController.text.trim(),
+      ),
+      'resolution_time_hours': double.tryParse(
+        resolutionTimeController.text.trim(),
+      ),
       'contract_value': amounts['contract_value'],
       'tax_amount': amounts['tax_amount'],
       'total_value': amounts['total_value'],

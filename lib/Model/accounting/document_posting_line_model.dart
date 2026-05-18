@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class DocumentPostingLineModel implements JsonModel {
   const DocumentPostingLineModel(this.data);

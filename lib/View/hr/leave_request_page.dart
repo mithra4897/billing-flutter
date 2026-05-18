@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import 'hr_list_filter_helpers.dart';
-import 'hr_workflow_dialogs.dart';
 
 class LeaveRequestManagementPage extends StatefulWidget {
   const LeaveRequestManagementPage({super.key, this.embedded = false});
@@ -144,10 +142,7 @@ class _LeaveRequestManagementPageState
         return;
       }
 
-      final filters = <String, dynamic>{
-        'company_id': cid,
-        'per_page': 200,
-      };
+      final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
       if (viewAll && _listFilterEmployeeId != null) {
         filters['employee_id'] = _listFilterEmployeeId;
       }
@@ -246,9 +241,7 @@ class _LeaveRequestManagementPageState
       return const <EmployeeModel>[];
     }
     final base = _employees
-        .where(
-          (item) => item.companyId == _sessionCompanyId && item.id != null,
-        )
+        .where((item) => item.companyId == _sessionCompanyId && item.id != null)
         .toList(growable: false);
     if (_canViewAllHr) {
       return base;
@@ -320,8 +313,9 @@ class _LeaveRequestManagementPageState
 
   void _resetForm() {
     _selectedLeaveRequest = null;
-    _employeeId =
-        (!_canViewAllHr && _linkedEmployeeId != null) ? _linkedEmployeeId : null;
+    _employeeId = (!_canViewAllHr && _linkedEmployeeId != null)
+        ? _linkedEmployeeId
+        : null;
     _leaveTypeId = null;
     _fromDateController.clear();
     _toDateController.clear();
@@ -534,8 +528,7 @@ class _LeaveRequestManagementPageState
         'Search: ${_searchController.text.trim()}',
       if (_canViewAllHr && _listFilterEmployeeId != null)
         'Employee: ${_leaveListSelectedEmployeeLabel()}',
-      if (_canViewAllHr &&
-          (_listFilterStatus ?? '').isNotEmpty)
+      if (_canViewAllHr && (_listFilterStatus ?? '').isNotEmpty)
         'Status: ${hrDropdownLabel(_listStatusFilterItems, _listFilterStatus)}',
       if (_listDateFromController.text.trim().isNotEmpty)
         'From: ${_listDateFromController.text.trim()}',
@@ -584,8 +577,7 @@ class _LeaveRequestManagementPageState
                 ),
                 ..._employees
                     .where(
-                      (e) =>
-                          e.companyId == _sessionCompanyId && e.id != null,
+                      (e) => e.companyId == _sessionCompanyId && e.id != null,
                     )
                     .map(
                       (e) => AppDropdownItem<int?>(
@@ -595,8 +587,7 @@ class _LeaveRequestManagementPageState
                     ),
               ],
               initialValue: _listFilterEmployeeId,
-              onChanged: (int? v) =>
-                  setState(() => _listFilterEmployeeId = v),
+              onChanged: (int? v) => setState(() => _listFilterEmployeeId = v),
             ),
           ),
           hrListFilterBox(
@@ -604,8 +595,7 @@ class _LeaveRequestManagementPageState
               labelText: 'Status filter',
               mappedItems: _listStatusFilterItems,
               initialValue: _listFilterStatus,
-              onChanged: (String? v) =>
-                  setState(() => _listFilterStatus = v),
+              onChanged: (String? v) => setState(() => _listFilterStatus = v),
             ),
           ),
         ],
@@ -696,17 +686,17 @@ class _LeaveRequestManagementPageState
             emptyMessage: 'No leave requests found.',
             itemBuilder: (LeaveRequestModel item, bool selected) =>
                 SettingsListTile(
-              title: item.employeeName ?? item.employeeCode ?? '-',
-              subtitle: [
-                item.leaveTypeName ?? '',
-                item.fromDate ?? '',
-                item.toDate ?? '',
-                item.status ?? '',
-              ].where((String value) => value.isNotEmpty).join(' • '),
-              detail: item.reason ?? '',
-              selected: selected,
-              onTap: () => _selectLeaveRequest(item),
-            ),
+                  title: item.employeeName ?? item.employeeCode ?? '-',
+                  subtitle: [
+                    item.leaveTypeName ?? '',
+                    item.fromDate ?? '',
+                    item.toDate ?? '',
+                    item.status ?? '',
+                  ].where((String value) => value.isNotEmpty).join(' • '),
+                  detail: item.reason ?? '',
+                  selected: selected,
+                  onTap: () => _selectLeaveRequest(item),
+                ),
           ),
         ],
       ),
@@ -733,7 +723,8 @@ class _LeaveRequestManagementPageState
                       )
                       .toList(growable: false),
                   initialValue: _employeeId,
-                  onChanged: (int? value) => setState(() => _employeeId = value),
+                  onChanged: (int? value) =>
+                      setState(() => _employeeId = value),
                   validator: Validators.requiredSelection('Employee'),
                 ),
                 InlineFieldAction(

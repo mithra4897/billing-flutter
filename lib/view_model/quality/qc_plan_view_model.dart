@@ -1,4 +1,4 @@
-import 'package:billing/screen.dart';
+import '../../../screen.dart';
 
 class QcPlanLineDraft {
   QcPlanLineDraft({

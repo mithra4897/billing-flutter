@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/maintenance/maintenance_plan_view_model.dart';
 
 class MaintenancePlanPage extends StatefulWidget {
   const MaintenancePlanPage({

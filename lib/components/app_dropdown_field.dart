@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
-
-import 'erp_link_field.dart';
+import '../screen.dart';
 
 class AppDropdownItem<T> {
   const AppDropdownItem({required this.value, required this.label});

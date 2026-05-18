@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class PurchaseRequisitionLineModel implements JsonModel {
   const PurchaseRequisitionLineModel(this.data);

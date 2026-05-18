@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class MrpRecommendationModel implements JsonModel {
   const MrpRecommendationModel(this.data);

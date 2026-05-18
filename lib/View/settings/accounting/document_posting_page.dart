@@ -72,9 +72,6 @@ class _DocumentPostingManagementPageState
   List<DocumentPostingModel> _filtered = const <DocumentPostingModel>[];
   DocumentPostingModel? _selected;
 
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _years = const <FinancialYearModel>[];
   List<PostingRuleGroupModel> _groups = const <PostingRuleGroupModel>[];
   List<AccountModel> _accounts = const <AccountModel>[];
@@ -116,26 +113,6 @@ class _DocumentPostingManagementPageState
 
   Map<String, dynamic> _json(DocumentPostingModel? m) =>
       m?.data ?? const <String, dynamic>{};
-
-  List<BranchModel> get _branchOptions => _branches
-      .where(
-        (b) =>
-            b.isActive &&
-            (_companyId == null ||
-                b.companyId == null ||
-                b.companyId == _companyId),
-      )
-      .toList(growable: false);
-
-  List<BusinessLocationModel> get _locationOptions => _locations
-      .where(
-        (loc) =>
-            loc.isActive &&
-            (_branchId == null ||
-                loc.branchId == null ||
-                loc.branchId == _branchId),
-      )
-      .toList(growable: false);
 
   Future<void> _load({int? selectId}) async {
     setState(() {
@@ -213,9 +190,6 @@ class _DocumentPostingManagementPageState
 
       if (!mounted) return;
       setState(() {
-        _companies = activeCompanies;
-        _branches = activeBranches;
-        _locations = activeLocations;
         _years = activeYears;
         _companyId ??= ctx.companyId;
         _branchId ??= ctx.branchId;

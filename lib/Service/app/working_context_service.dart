@@ -1,11 +1,4 @@
-import 'package:flutter/foundation.dart';
-
-import '../../core/storage/session_storage.dart';
-import '../../model/masters/branch_model.dart';
-import '../../model/masters/business_location_model.dart';
-import '../../model/masters/company_model.dart';
-import '../../model/masters/financial_year_model.dart';
-import '../master/master_service.dart';
+import '../../screen.dart';
 
 class WorkingContextSelection {
   const WorkingContextSelection({
@@ -61,26 +54,22 @@ class WorkingContextService {
       ),
     ]);
 
-    final companies =
-        responses[0].data
-            .whereType<CompanyModel>()
-            .where((CompanyModel item) => item.isActive)
-            .toList(growable: false);
-    final branches =
-        responses[1].data
-            .whereType<BranchModel>()
-            .where((BranchModel item) => item.isActive)
-            .toList(growable: false);
-    final locations =
-        responses[2].data
-            .whereType<BusinessLocationModel>()
-            .where((BusinessLocationModel item) => item.isActive)
-            .toList(growable: false);
-    final financialYears =
-        responses[3].data
-            .whereType<FinancialYearModel>()
-            .where((FinancialYearModel item) => item.isActive)
-            .toList(growable: false);
+    final companies = responses[0].data
+        .whereType<CompanyModel>()
+        .where((CompanyModel item) => item.isActive)
+        .toList(growable: false);
+    final branches = responses[1].data
+        .whereType<BranchModel>()
+        .where((BranchModel item) => item.isActive)
+        .toList(growable: false);
+    final locations = responses[2].data
+        .whereType<BusinessLocationModel>()
+        .where((BusinessLocationModel item) => item.isActive)
+        .toList(growable: false);
+    final financialYears = responses[3].data
+        .whereType<FinancialYearModel>()
+        .where((FinancialYearModel item) => item.isActive)
+        .toList(growable: false);
 
     final selection = await resolveSelection(
       companies: companies,
@@ -108,8 +97,10 @@ class WorkingContextService {
     int? locationId,
     int? financialYearId,
   }) async {
-    final storedCompanyId = companyId ?? await SessionStorage.getCurrentCompanyId();
-    final storedBranchId = branchId ?? await SessionStorage.getCurrentBranchId();
+    final storedCompanyId =
+        companyId ?? await SessionStorage.getCurrentCompanyId();
+    final storedBranchId =
+        branchId ?? await SessionStorage.getCurrentBranchId();
     final storedLocationId =
         locationId ?? await SessionStorage.getCurrentLocationId();
     final storedFinancialYearId =
@@ -117,7 +108,10 @@ class WorkingContextService {
 
     final resolvedCompanyId = _resolveCompanyId(companies, storedCompanyId);
     final scopedBranches = branches
-        .where((BranchModel item) => resolvedCompanyId == null || item.companyId == resolvedCompanyId)
+        .where(
+          (BranchModel item) =>
+              resolvedCompanyId == null || item.companyId == resolvedCompanyId,
+        )
         .toList(growable: false);
     final resolvedBranchId = _resolveBranchId(
       scopedBranches,
@@ -127,7 +121,8 @@ class WorkingContextService {
     final scopedLocations = locations
         .where(
           (BusinessLocationModel item) =>
-              (resolvedCompanyId == null || item.companyId == resolvedCompanyId) &&
+              (resolvedCompanyId == null ||
+                  item.companyId == resolvedCompanyId) &&
               (resolvedBranchId == null || item.branchId == resolvedBranchId),
         )
         .toList(growable: false);
@@ -137,7 +132,10 @@ class WorkingContextService {
       forceSingleOption: resolvedBranchId != null || resolvedCompanyId != null,
     );
     final scopedFinancialYears = financialYears
-        .where((FinancialYearModel item) => resolvedCompanyId == null || item.companyId == resolvedCompanyId)
+        .where(
+          (FinancialYearModel item) =>
+              resolvedCompanyId == null || item.companyId == resolvedCompanyId,
+        )
         .toList(growable: false);
     final resolvedFinancialYearId = _resolveFinancialYearId(
       scopedFinancialYears,
@@ -188,7 +186,8 @@ class WorkingContextService {
     if (forceSingleOption && branches.length == 1) {
       return branches.first.id;
     }
-    if (preferredId != null && branches.any((BranchModel item) => item.id == preferredId)) {
+    if (preferredId != null &&
+        branches.any((BranchModel item) => item.id == preferredId)) {
       return preferredId;
     }
     if (branches.isEmpty) {
@@ -220,7 +219,9 @@ class WorkingContextService {
     int? preferredId,
   ) {
     if (preferredId != null &&
-        financialYears.any((FinancialYearModel item) => item.id == preferredId)) {
+        financialYears.any(
+          (FinancialYearModel item) => item.id == preferredId,
+        )) {
       return preferredId;
     }
     final current = financialYears.cast<FinancialYearModel?>().firstWhere(

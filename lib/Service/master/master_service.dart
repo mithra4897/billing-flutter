@@ -1,15 +1,4 @@
-import '../../core/api/api_endpoints.dart';
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/masters/branch_model.dart';
-import '../../model/masters/brand_model.dart';
-import '../../model/masters/business_location_model.dart';
-import '../../model/masters/company_model.dart';
-import '../../model/masters/document_series_model.dart';
-import '../../model/masters/financial_year_model.dart';
-import '../../model/masters/party_model.dart';
-import '../../model/masters/warehouse_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class MasterService extends ErpModuleService {
   MasterService({super.apiClient});

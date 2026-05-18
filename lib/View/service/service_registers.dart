@@ -1,7 +1,4 @@
 import '../../screen.dart';
-import '../hr/hr_workflow_dialogs.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
 
 void _openServiceShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -123,10 +120,6 @@ class _SvcFilters extends StatelessWidget {
   }
 }
 
-
-
-
-
 // --- Registers ----------------------------------------------------------
 
 class ServiceContractRegisterPage extends StatefulWidget {
@@ -139,7 +132,8 @@ class ServiceContractRegisterPage extends StatefulWidget {
       _ServiceContractRegisterPageState();
 }
 
-class _ServiceContractRegisterPageState extends State<ServiceContractRegisterPage> {
+class _ServiceContractRegisterPageState
+    extends State<ServiceContractRegisterPage> {
   final ServiceModuleService _service = ServiceModuleService();
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
@@ -244,9 +238,8 @@ class _ServiceContractRegisterPageState extends State<ServiceContractRegisterPag
         ),
         PurchaseRegisterColumn<ServiceContractModel>(
           label: 'Date',
-          valueBuilder: (ServiceContractModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'contract_date'),
-          ),
+          valueBuilder: (ServiceContractModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'contract_date')),
         ),
         PurchaseRegisterColumn<ServiceContractModel>(
           label: 'Customer',
@@ -400,8 +393,7 @@ class _ServiceTicketRegisterPageState extends State<ServiceTicketRegisterPage> {
         PurchaseRegisterColumn<ServiceTicketModel>(
           label: 'Customer',
           flex: 2,
-          valueBuilder: (ServiceTicketModel row) =>
-              _customerName(row.toJson()),
+          valueBuilder: (ServiceTicketModel row) => _customerName(row.toJson()),
         ),
         PurchaseRegisterColumn<ServiceTicketModel>(
           label: 'Status',
@@ -542,8 +534,7 @@ class _WarrantyClaimRegisterPageState extends State<WarrantyClaimRegisterPage> {
         PurchaseRegisterColumn<ServiceTicketModel>(
           label: 'Customer',
           flex: 2,
-          valueBuilder: (ServiceTicketModel row) =>
-              _customerName(row.toJson()),
+          valueBuilder: (ServiceTicketModel row) => _customerName(row.toJson()),
         ),
         PurchaseRegisterColumn<ServiceTicketModel>(
           label: 'Status',
@@ -572,7 +563,8 @@ class ServiceWorkOrderRegisterPage extends StatefulWidget {
       _ServiceWorkOrderRegisterPageState();
 }
 
-class _ServiceWorkOrderRegisterPageState extends State<ServiceWorkOrderRegisterPage> {
+class _ServiceWorkOrderRegisterPageState
+    extends State<ServiceWorkOrderRegisterPage> {
   final ServiceModuleService _service = ServiceModuleService();
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
@@ -677,9 +669,8 @@ class _ServiceWorkOrderRegisterPageState extends State<ServiceWorkOrderRegisterP
         ),
         PurchaseRegisterColumn<ServiceWorkOrderModel>(
           label: 'Date',
-          valueBuilder: (ServiceWorkOrderModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'work_order_date'),
-          ),
+          valueBuilder: (ServiceWorkOrderModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'work_order_date')),
         ),
         PurchaseRegisterColumn<ServiceWorkOrderModel>(
           label: 'Ticket',
@@ -713,7 +704,8 @@ class ServiceFeedbackRegisterPage extends StatefulWidget {
       _ServiceFeedbackRegisterPageState();
 }
 
-class _ServiceFeedbackRegisterPageState extends State<ServiceFeedbackRegisterPage> {
+class _ServiceFeedbackRegisterPageState
+    extends State<ServiceFeedbackRegisterPage> {
   final ServiceModuleService _service = ServiceModuleService();
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
@@ -817,9 +809,8 @@ class _ServiceFeedbackRegisterPageState extends State<ServiceFeedbackRegisterPag
       columns: [
         PurchaseRegisterColumn<ServiceFeedbackModel>(
           label: 'Date',
-          valueBuilder: (ServiceFeedbackModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'feedback_date'),
-          ),
+          valueBuilder: (ServiceFeedbackModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'feedback_date')),
         ),
         PurchaseRegisterColumn<ServiceFeedbackModel>(
           label: 'Ticket',

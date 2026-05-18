@@ -1,13 +1,4 @@
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/assets/asset_book_model.dart';
-import '../../model/assets/asset_category_model.dart';
-import '../../model/assets/asset_depreciation_run_model.dart';
-import '../../model/assets/asset_disposal_model.dart';
-import '../../model/assets/asset_model.dart';
-import '../../model/assets/asset_transfer_model.dart';
-import '../../model/assets/cost_center_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class AssetsService extends ErpModuleService {
   AssetsService({super.apiClient});
@@ -19,11 +10,13 @@ class AssetsService extends ErpModuleService {
     filters: filters,
     fromJson: AssetCategoryModel.fromJson,
   );
+
   Future<ApiResponse<AssetCategoryModel>> category(int id) =>
       object<AssetCategoryModel>(
         '/assets/categories/$id',
         fromJson: AssetCategoryModel.fromJson,
       );
+
   Future<ApiResponse<AssetCategoryModel>> createCategory(
     AssetCategoryModel body,
   ) => createModel<AssetCategoryModel>(
@@ -31,6 +24,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetCategoryModel.fromJson,
   );
+
   Future<ApiResponse<AssetCategoryModel>> updateCategory(
     int id,
     AssetCategoryModel body,
@@ -39,6 +33,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetCategoryModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteCategory(int id) =>
       destroy('/assets/categories/$id');
 
@@ -49,17 +44,20 @@ class AssetsService extends ErpModuleService {
     filters: filters,
     fromJson: CostCenterModel.fromJson,
   );
+
   Future<ApiResponse<CostCenterModel>> costCenter(int id) =>
       object<CostCenterModel>(
         '/assets/cost-centers/$id',
         fromJson: CostCenterModel.fromJson,
       );
+
   Future<ApiResponse<CostCenterModel>> createCostCenter(CostCenterModel body) =>
       createModel<CostCenterModel>(
         '/assets/cost-centers',
         body,
         fromJson: CostCenterModel.fromJson,
       );
+
   Future<ApiResponse<CostCenterModel>> updateCostCenter(
     int id,
     CostCenterModel body,
@@ -68,6 +66,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: CostCenterModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteCostCenter(int id) =>
       destroy('/assets/cost-centers/$id');
 
@@ -78,26 +77,31 @@ class AssetsService extends ErpModuleService {
     filters: filters,
     fromJson: AssetModel.fromJson,
   );
+
   Future<ApiResponse<AssetModel>> asset(int id) =>
       object<AssetModel>('/assets/register/$id', fromJson: AssetModel.fromJson);
+
   Future<ApiResponse<AssetModel>> createAsset(AssetModel body) =>
       createModel<AssetModel>(
         '/assets/register',
         body,
         fromJson: AssetModel.fromJson,
       );
+
   Future<ApiResponse<AssetModel>> updateAsset(int id, AssetModel body) =>
       updateModel<AssetModel>(
         '/assets/register/$id',
         body,
         fromJson: AssetModel.fromJson,
       );
+
   Future<ApiResponse<AssetModel>> activateAsset(int id, AssetModel body) =>
       actionModel<AssetModel>(
         '/assets/register/$id/activate',
         body: body,
         fromJson: AssetModel.fromJson,
       );
+
   Future<ApiResponse<dynamic>> deleteAsset(int id) =>
       destroy('/assets/register/$id');
 
@@ -109,11 +113,13 @@ class AssetsService extends ErpModuleService {
     filters: filters,
     fromJson: AssetBookModel.fromJson,
   );
+
   Future<ApiResponse<AssetBookModel>> assetBook(int assetId, int id) =>
       object<AssetBookModel>(
         '/assets/register/$assetId/books/$id',
         fromJson: AssetBookModel.fromJson,
       );
+
   Future<ApiResponse<AssetBookModel>> createAssetBook(
     int assetId,
     AssetBookModel body,
@@ -122,6 +128,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetBookModel.fromJson,
   );
+
   Future<ApiResponse<AssetBookModel>> updateAssetBook(
     int assetId,
     int id,
@@ -131,6 +138,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetBookModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteAssetBook(int assetId, int id) =>
       destroy('/assets/register/$assetId/books/$id');
 
@@ -141,11 +149,13 @@ class AssetsService extends ErpModuleService {
     filters: filters,
     fromJson: AssetDepreciationRunModel.fromJson,
   );
+
   Future<ApiResponse<AssetDepreciationRunModel>> depreciationRun(int id) =>
       object<AssetDepreciationRunModel>(
         '/assets/depreciation-runs/$id',
         fromJson: AssetDepreciationRunModel.fromJson,
       );
+
   Future<ApiResponse<AssetDepreciationRunModel>> createDepreciationRun(
     AssetDepreciationRunModel body,
   ) => createModel<AssetDepreciationRunModel>(
@@ -153,6 +163,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetDepreciationRunModel.fromJson,
   );
+
   Future<ApiResponse<AssetDepreciationRunModel>> updateDepreciationRun(
     int id,
     AssetDepreciationRunModel body,
@@ -161,6 +172,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetDepreciationRunModel.fromJson,
   );
+
   Future<ApiResponse<AssetDepreciationRunModel>> processDepreciationRun(
     int id,
     AssetDepreciationRunModel body,
@@ -169,6 +181,7 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetDepreciationRunModel.fromJson,
   );
+
   Future<ApiResponse<AssetDepreciationRunModel>> postDepreciationRun(
     int id,
     AssetDepreciationRunModel body,
@@ -177,6 +190,7 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetDepreciationRunModel.fromJson,
   );
+
   Future<ApiResponse<AssetDepreciationRunModel>> cancelDepreciationRun(
     int id,
     AssetDepreciationRunModel body,
@@ -185,6 +199,7 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetDepreciationRunModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteDepreciationRun(int id) =>
       destroy('/assets/depreciation-runs/$id');
 
@@ -195,11 +210,13 @@ class AssetsService extends ErpModuleService {
     filters: filters,
     fromJson: AssetTransferModel.fromJson,
   );
+
   Future<ApiResponse<AssetTransferModel>> transfer(int id) =>
       object<AssetTransferModel>(
         '/assets/transfers/$id',
         fromJson: AssetTransferModel.fromJson,
       );
+
   Future<ApiResponse<AssetTransferModel>> createTransfer(
     AssetTransferModel body,
   ) => createModel<AssetTransferModel>(
@@ -207,6 +224,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetTransferModel.fromJson,
   );
+
   Future<ApiResponse<AssetTransferModel>> updateTransfer(
     int id,
     AssetTransferModel body,
@@ -215,6 +233,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetTransferModel.fromJson,
   );
+
   Future<ApiResponse<AssetTransferModel>> approveTransfer(
     int id,
     AssetTransferModel body,
@@ -223,6 +242,7 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetTransferModel.fromJson,
   );
+
   Future<ApiResponse<AssetTransferModel>> completeTransfer(
     int id,
     AssetTransferModel body,
@@ -231,6 +251,7 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetTransferModel.fromJson,
   );
+
   Future<ApiResponse<AssetTransferModel>> cancelTransfer(
     int id,
     AssetTransferModel body,
@@ -239,6 +260,7 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetTransferModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteTransfer(int id) =>
       destroy('/assets/transfers/$id');
 
@@ -249,11 +271,13 @@ class AssetsService extends ErpModuleService {
     filters: filters,
     fromJson: AssetDisposalModel.fromJson,
   );
+
   Future<ApiResponse<AssetDisposalModel>> disposal(int id) =>
       object<AssetDisposalModel>(
         '/assets/disposals/$id',
         fromJson: AssetDisposalModel.fromJson,
       );
+
   Future<ApiResponse<AssetDisposalModel>> createDisposal(
     AssetDisposalModel body,
   ) => createModel<AssetDisposalModel>(
@@ -261,6 +285,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetDisposalModel.fromJson,
   );
+
   Future<ApiResponse<AssetDisposalModel>> updateDisposal(
     int id,
     AssetDisposalModel body,
@@ -269,6 +294,7 @@ class AssetsService extends ErpModuleService {
     body,
     fromJson: AssetDisposalModel.fromJson,
   );
+
   Future<ApiResponse<AssetDisposalModel>> approveDisposal(
     int id,
     AssetDisposalModel body,
@@ -277,6 +303,7 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetDisposalModel.fromJson,
   );
+
   Future<ApiResponse<AssetDisposalModel>> postDisposal(
     int id,
     AssetDisposalModel body,
@@ -285,6 +312,7 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetDisposalModel.fromJson,
   );
+
   Future<ApiResponse<AssetDisposalModel>> cancelDisposal(
     int id,
     AssetDisposalModel body,
@@ -293,58 +321,56 @@ class AssetsService extends ErpModuleService {
     body: body,
     fromJson: AssetDisposalModel.fromJson,
   );
+
   Future<ApiResponse<dynamic>> deleteDisposal(int id) =>
       destroy('/assets/disposals/$id');
 
   /// Finance reports return `{ lines: [...], ...totals }` in `data`, not pagination.
   Future<ApiResponse<Map<String, dynamic>>> fetchAssetRegisterReport({
     Map<String, dynamic>? filters,
-  }) =>
-      client.get<Map<String, dynamic>>(
-        '/assets/reports/register',
-        queryParameters: filters,
-        fromData: (dynamic json) {
-          if (json is Map<String, dynamic>) {
-            return json;
-          }
-          if (json is Map) {
-            return Map<String, dynamic>.from(json);
-          }
-          return <String, dynamic>{};
-        },
-      );
+  }) => client.get<Map<String, dynamic>>(
+    '/assets/reports/register',
+    queryParameters: filters,
+    fromData: (dynamic json) {
+      if (json is Map<String, dynamic>) {
+        return json;
+      }
+      if (json is Map) {
+        return Map<String, dynamic>.from(json);
+      }
+      return <String, dynamic>{};
+    },
+  );
 
   Future<ApiResponse<Map<String, dynamic>>> fetchDepreciationSummaryReport({
     Map<String, dynamic>? filters,
-  }) =>
-      client.get<Map<String, dynamic>>(
-        '/assets/reports/depreciation-summary',
-        queryParameters: filters,
-        fromData: (dynamic json) {
-          if (json is Map<String, dynamic>) {
-            return json;
-          }
-          if (json is Map) {
-            return Map<String, dynamic>.from(json);
-          }
-          return <String, dynamic>{};
-        },
-      );
+  }) => client.get<Map<String, dynamic>>(
+    '/assets/reports/depreciation-summary',
+    queryParameters: filters,
+    fromData: (dynamic json) {
+      if (json is Map<String, dynamic>) {
+        return json;
+      }
+      if (json is Map) {
+        return Map<String, dynamic>.from(json);
+      }
+      return <String, dynamic>{};
+    },
+  );
 
   Future<ApiResponse<Map<String, dynamic>>> fetchDisposalSummaryReport({
     Map<String, dynamic>? filters,
-  }) =>
-      client.get<Map<String, dynamic>>(
-        '/assets/reports/disposal-summary',
-        queryParameters: filters,
-        fromData: (dynamic json) {
-          if (json is Map<String, dynamic>) {
-            return json;
-          }
-          if (json is Map) {
-            return Map<String, dynamic>.from(json);
-          }
-          return <String, dynamic>{};
-        },
-      );
+  }) => client.get<Map<String, dynamic>>(
+    '/assets/reports/disposal-summary',
+    queryParameters: filters,
+    fromData: (dynamic json) {
+      if (json is Map<String, dynamic>) {
+        return json;
+      }
+      if (json is Map) {
+        return Map<String, dynamic>.from(json);
+      }
+      return <String, dynamic>{};
+    },
+  );
 }

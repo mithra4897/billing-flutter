@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import 'purchase_register_page.dart';
-import 'purchase_support.dart';
 
 void _openShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);

@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class QcNonConformanceLogModel implements JsonModel {
   const QcNonConformanceLogModel({
@@ -75,8 +75,7 @@ class QcNonConformanceLogModel implements JsonModel {
 
   Map<String, dynamic> toDocumentPayload() => <String, dynamic>{
     'qc_inspection_id': qcInspectionId,
-    if (qcInspectionLineId != null)
-      'qc_inspection_line_id': qcInspectionLineId,
+    if (qcInspectionLineId != null) 'qc_inspection_line_id': qcInspectionLineId,
     if (defectCode != null && defectCode!.trim().isNotEmpty)
       'defect_code': defectCode!.trim(),
     'defect_name': defectName.trim(),

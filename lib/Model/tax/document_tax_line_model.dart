@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class DocumentTaxLineModel implements JsonModel {
   const DocumentTaxLineModel(this.data);

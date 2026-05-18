@@ -53,7 +53,6 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
   List<BudgetModel> _rows = const <BudgetModel>[];
   List<BudgetModel> _filtered = const <BudgetModel>[];
   BudgetModel? _selected;
-  List<CompanyModel> _companies = const <CompanyModel>[];
   List<FinancialYearModel> _years = const <FinancialYearModel>[];
   List<AccountModel> _accounts = const <AccountModel>[];
 
@@ -130,7 +129,6 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
       setState(() {
         _rows = budgets;
         _filtered = _filter(budgets, _searchController.text);
-        _companies = companies.where((c) => c.isActive).toList();
         _years = years.where((y) => y.isActive).toList();
         _accounts = accounts.where((a) => a.isActive).toList();
         _companyId ??= ctx.companyId;

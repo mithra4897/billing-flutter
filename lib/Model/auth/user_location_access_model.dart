@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class UserLocationAccessModel implements JsonModel {
   const UserLocationAccessModel(this.data);

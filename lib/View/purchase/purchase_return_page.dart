@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import 'purchase_support.dart';
 
 class PurchaseReturnPage extends StatefulWidget {
   const PurchaseReturnPage({
@@ -335,8 +334,10 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
 
   List<BranchModel> get _branchOptions =>
       branchesForCompany(_branches, _companyId);
+
   List<BusinessLocationModel> get _locationOptions =>
       locationsForBranch(_locations, _branchId);
+
   List<PurchaseInvoiceModel> get _invoiceOptions => _invoices
       .where((item) => (_companyId == null || item.companyId == _companyId))
       .toList(growable: false);

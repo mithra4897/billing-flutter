@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
+import '../../../screen.dart';
 
 class MaintenancePlanViewModel extends ChangeNotifier {
   MaintenancePlanViewModel() {
@@ -17,7 +16,8 @@ class MaintenancePlanViewModel extends ChangeNotifier {
   final TextEditingController scheduleBasisController = TextEditingController();
   final TextEditingController frequencyValueController =
       TextEditingController();
-  final TextEditingController checklistNotesController = TextEditingController();
+  final TextEditingController checklistNotesController =
+      TextEditingController();
 
   bool loading = true;
   bool detailLoading = false;
@@ -42,18 +42,20 @@ class MaintenancePlanViewModel extends ChangeNotifier {
 
   List<MaintenancePlanModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      return [
-        stringValue(data, 'plan_code'),
-        stringValue(data, 'plan_name'),
-        stringValue(data, 'maintenance_type'),
-        stringValue(data, 'schedule_basis'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'plan_code'),
+            stringValue(data, 'plan_name'),
+            stringValue(data, 'maintenance_type'),
+            stringValue(data, 'schedule_basis'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String listTitle(MaintenancePlanModel row) {
@@ -96,12 +98,13 @@ class MaintenancePlanViewModel extends ChangeNotifier {
 
       rows =
           (responses[0] as PaginatedResponse<MaintenancePlanModel>).data ??
-              const <MaintenancePlanModel>[];
+          const <MaintenancePlanModel>[];
 
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
 
       loading = false;
 
@@ -132,8 +135,8 @@ class MaintenancePlanViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId = _sessionCompanyId ??
-        (companies.isNotEmpty ? companies.first.id : null);
+    companyId =
+        _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
     planCodeController.clear();
     planNameController.clear();
     maintenanceTypeController.clear();
@@ -188,8 +191,7 @@ class MaintenancePlanViewModel extends ChangeNotifier {
     planNameController.text = stringValue(data, 'plan_name');
     maintenanceTypeController.text = stringValue(data, 'maintenance_type');
     scheduleBasisController.text = stringValue(data, 'schedule_basis');
-    frequencyValueController.text =
-        data['frequency_value']?.toString() ?? '';
+    frequencyValueController.text = data['frequency_value']?.toString() ?? '';
     checklistNotesController.text = stringValue(data, 'checklist_notes');
     final auto = data['is_auto_generate_request'];
     isAutoGenerateRequest = auto == true || auto == 1 || auto == '1';

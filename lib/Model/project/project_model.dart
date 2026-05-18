@@ -1,12 +1,4 @@
-import '../common/json_model.dart';
-import '../common/model_value.dart';
-import 'project_billing_model.dart';
-import 'project_expense_model.dart';
-import 'project_milestone_model.dart';
-import 'project_resource_usage_model.dart';
-import 'project_task_model.dart';
-import 'project_timesheet_model.dart';
-import 'project_vendor_work_model.dart';
+import '../../screen.dart';
 
 class ProjectModel implements JsonModel {
   const ProjectModel({

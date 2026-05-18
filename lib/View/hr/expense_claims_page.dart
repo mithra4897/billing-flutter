@@ -1,7 +1,4 @@
 import '../../screen.dart';
-import '../purchase/purchase_support.dart';
-import 'hr_list_filter_helpers.dart';
-import 'hr_workflow_dialogs.dart';
 
 void _expenseClaimsNeedCompanySnack(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
@@ -163,12 +160,8 @@ List<_ExpenseLineEditors> _editorsFromClaimJson(Map<String, dynamic> data) {
           description: TextEditingController(
             text: stringValue(m, 'description'),
           ),
-          amount: TextEditingController(
-            text: stringValue(m, 'amount'),
-          ),
-          remarks: TextEditingController(
-            text: stringValue(m, 'remarks'),
-          ),
+          amount: TextEditingController(text: stringValue(m, 'amount')),
+          remarks: TextEditingController(text: stringValue(m, 'remarks')),
           projectId: intValue(m, 'project_id'),
           projectTaskId: intValue(m, 'project_task_id'),
         ),
@@ -201,7 +194,8 @@ class ExpenseClaimsManagementPage extends StatefulWidget {
       _ExpenseClaimsManagementPageState();
 }
 
-class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPage> {
+class _ExpenseClaimsManagementPageState
+    extends State<ExpenseClaimsManagementPage> {
   final HrService _hr = HrService();
   final AccountsService _accounts = AccountsService();
   final ScrollController _scrollController = ScrollController();
@@ -241,21 +235,21 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
 
   static const List<AppDropdownItem<String?>> _paymentFilterItems =
       <AppDropdownItem<String?>>[
-    AppDropdownItem<String?>(value: null, label: 'All payments'),
-    AppDropdownItem<String?>(value: 'unpaid', label: 'Unpaid'),
-    AppDropdownItem<String?>(value: 'paid', label: 'Paid'),
-  ];
+        AppDropdownItem<String?>(value: null, label: 'All payments'),
+        AppDropdownItem<String?>(value: 'unpaid', label: 'Unpaid'),
+        AppDropdownItem<String?>(value: 'paid', label: 'Paid'),
+      ];
 
   static const List<AppDropdownItem<String?>> _statusFilterItems =
       <AppDropdownItem<String?>>[
-    AppDropdownItem<String?>(value: null, label: 'All statuses'),
-    AppDropdownItem<String?>(value: '0', label: 'Draft'),
-    AppDropdownItem<String?>(value: '1', label: 'Applied'),
-    AppDropdownItem<String?>(value: 'approved', label: 'Approved'),
-    AppDropdownItem<String?>(value: 'reimbursed', label: 'Reimbursed'),
-    AppDropdownItem<String?>(value: 'rejected', label: 'Rejected'),
-    AppDropdownItem<String?>(value: 'cancelled', label: 'Cancelled'),
-  ];
+        AppDropdownItem<String?>(value: null, label: 'All statuses'),
+        AppDropdownItem<String?>(value: '0', label: 'Draft'),
+        AppDropdownItem<String?>(value: '1', label: 'Applied'),
+        AppDropdownItem<String?>(value: 'approved', label: 'Approved'),
+        AppDropdownItem<String?>(value: 'reimbursed', label: 'Reimbursed'),
+        AppDropdownItem<String?>(value: 'rejected', label: 'Rejected'),
+        AppDropdownItem<String?>(value: 'cancelled', label: 'Cancelled'),
+      ];
 
   @override
   void initState() {
@@ -292,9 +286,11 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
   List<ExpenseClaimModel> get _filteredRows {
     final q = _searchController.text.trim().toLowerCase();
     final visibleRows = _canViewAllClaims
-        ? _rows.where((ExpenseClaimModel row) {
-            return _isHrApprovalQueueRow(row.toJson());
-          }).toList(growable: false)
+        ? _rows
+              .where((ExpenseClaimModel row) {
+                return _isHrApprovalQueueRow(row.toJson());
+              })
+              .toList(growable: false)
         : _rows;
     if (q.isEmpty) {
       return visibleRows;
@@ -378,10 +374,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
       );
       _employees = empResp.data ?? const <EmployeeModel>[];
 
-      final filters = <String, dynamic>{
-        'company_id': cid,
-        'per_page': 200,
-      };
+      final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
       if (viewAll && _filterEmployeeId != null) {
         filters['employee_id'] = _filterEmployeeId;
       }
@@ -408,7 +401,8 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
         _initialLoading = false;
       });
 
-      final pickId = selectClaimId ??
+      final pickId =
+          selectClaimId ??
           (_selectedListRow != null
               ? intValue(_selectedListRow!.toJson(), 'id')
               : null);
@@ -664,14 +658,10 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
           return;
         }
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            applyNow
-                ? 'Expense claim applied successfully.'
-                : response.message,
+            applyNow ? 'Expense claim applied successfully.' : response.message,
           ),
         ),
       );
@@ -800,8 +790,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
             labelText: 'Payment',
             mappedItems: _paymentFilterItems,
             initialValue: _filterPaymentStatus,
-            onChanged: (String? v) =>
-                setState(() => _filterPaymentStatus = v),
+            onChanged: (String? v) => setState(() => _filterPaymentStatus = v),
           ),
         ),
         hrListFilterBox(
@@ -809,8 +798,7 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
             labelText: 'Status',
             mappedItems: _statusFilterItems,
             initialValue: _filterClaimStatus,
-            onChanged: (String? v) =>
-                setState(() => _filterClaimStatus = v),
+            onChanged: (String? v) => setState(() => _filterClaimStatus = v),
           ),
         ),
       ],
@@ -946,13 +934,18 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                   'reimbursement_voucher_id',
                 ));
     final showReimburse =
-        _canViewAllClaims && status == 'approved' && reimbursementVoucherId == null;
+        _canViewAllClaims &&
+        status == 'approved' &&
+        reimbursementVoucherId == null;
     final isDraft = status == null || status == 'draft';
     final isApplied = status == 'applied';
     final showSaveDraft = _isSelfServiceUser && _editorEditable && isDraft;
     final showApply = _isSelfServiceUser && _editorEditable && isDraft;
     final showCancelDraft =
-        _isSelfServiceUser && !_isNewClaim && _editingClaimId != null && status == 'draft';
+        _isSelfServiceUser &&
+        !_isNewClaim &&
+        _editingClaimId != null &&
+        status == 'draft';
     final showDelete =
         _canViewAllClaims &&
         !_isNewClaim &&
@@ -969,186 +962,190 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          if (_formError != null) ...[
-            AppErrorStateView.inline(message: _formError!),
-            const SizedBox(height: AppUiConstants.spacingSm),
-          ],
-          if (status != null && status.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-              child: Text(
-                'Status: ${_claimStatusLabel(status)}'
-                '${status == 'approved' && reimbursementVoucherId == null ? ' (unpaid)' : ''}'
-                '${status == 'reimbursed' ? ' (paid)' : ''}',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-          SettingsFormWrap(
-            children: [
-              if (_employeeFieldReadOnly)
-                AppFormTextField(
-                  key: ValueKey<String>(
-                    'emp-readonly-$_formGeneration-${_employeeId ?? 0}',
+              if (_formError != null) ...[
+                AppErrorStateView.inline(message: _formError!),
+                const SizedBox(height: AppUiConstants.spacingSm),
+              ],
+              if (status != null && status.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
                   ),
-                  initialValue: _editorEmployeeLabel(),
-                  labelText: 'Employee',
-                  readOnly: true,
-                  validator: Validators.required('Employee'),
-                )
-              else
-                AppDropdownField<int>.fromMapped(
-                  key: ValueKey<String>(
-                    'emp-$_formGeneration-${_employeeId ?? 0}',
+                  child: Text(
+                    'Status: ${_claimStatusLabel(status)}'
+                    '${status == 'approved' && reimbursementVoucherId == null ? ' (unpaid)' : ''}'
+                    '${status == 'reimbursed' ? ' (paid)' : ''}',
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  labelText: 'Employee',
-                  mappedItems: _employeesForEditor
-                      .map(
-                        (e) => AppDropdownItem<int>(
-                          value: e.id!,
-                          label: e.toString(),
-                        ),
-                      )
-                      .toList(),
-                  initialValue: _employeeId,
-                  onChanged: _editorEditable
-                      ? (v) => setState(() => _employeeId = v)
-                      : (_) {},
-                  validator: Validators.requiredSelection('Employee'),
                 ),
-              AppFormTextField(
-                controller: _claimNoCtrl,
-                labelText: 'Claim no. (optional)',
-                readOnly: !_editorEditable,
-              ),
-              AppFormTextField(
-                controller: _claimDateCtrl,
-                labelText: 'Claim date',
-                readOnly: !_editorEditable,
-                keyboardType: TextInputType.datetime,
-                inputFormatters: const [DateInputFormatter()],
-                validator: Validators.compose([
-                  Validators.required('Claim date'),
-                  Validators.date('Claim date'),
-                ]),
-              ),
-              AppFormTextField(
-                controller: _notesCtrl,
-                labelText: 'Notes (optional)',
-                readOnly: !_editorEditable,
-                maxLines: 2,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: _editorEditable
-                  ? () {
-                      setState(() {
-                        _lineEditors.add(
-                          _ExpenseLineEditors(
-                            expenseDate: TextEditingController(
-                              text: displayDate(
-                                DateTime.now().toIso8601String(),
-                              ),
+              SettingsFormWrap(
+                children: [
+                  if (_employeeFieldReadOnly)
+                    AppFormTextField(
+                      key: ValueKey<String>(
+                        'emp-readonly-$_formGeneration-${_employeeId ?? 0}',
+                      ),
+                      initialValue: _editorEmployeeLabel(),
+                      labelText: 'Employee',
+                      readOnly: true,
+                      validator: Validators.required('Employee'),
+                    )
+                  else
+                    AppDropdownField<int>.fromMapped(
+                      key: ValueKey<String>(
+                        'emp-$_formGeneration-${_employeeId ?? 0}',
+                      ),
+                      labelText: 'Employee',
+                      mappedItems: _employeesForEditor
+                          .map(
+                            (e) => AppDropdownItem<int>(
+                              value: e.id!,
+                              label: e.toString(),
                             ),
-                            category: TextEditingController(),
-                            description: TextEditingController(),
-                            amount: TextEditingController(),
-                            remarks: TextEditingController(),
-                          ),
-                        );
-                      });
-                    }
-                  : null,
-              icon: const Icon(Icons.add),
-              label: const Text('Add line'),
-            ),
-          ),
-          ...List<Widget>.generate(_lineEditors.length, (int i) {
-            final line = _lineEditors[i];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-              child: AppSectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                          )
+                          .toList(),
+                      initialValue: _employeeId,
+                      onChanged: _editorEditable
+                          ? (v) => setState(() => _employeeId = v)
+                          : (_) {},
+                      validator: Validators.requiredSelection('Employee'),
+                    ),
+                  AppFormTextField(
+                    controller: _claimNoCtrl,
+                    labelText: 'Claim no. (optional)',
+                    readOnly: !_editorEditable,
+                  ),
+                  AppFormTextField(
+                    controller: _claimDateCtrl,
+                    labelText: 'Claim date',
+                    readOnly: !_editorEditable,
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: const [DateInputFormatter()],
+                    validator: Validators.compose([
+                      Validators.required('Claim date'),
+                      Validators.date('Claim date'),
+                    ]),
+                  ),
+                  AppFormTextField(
+                    controller: _notesCtrl,
+                    labelText: 'Notes (optional)',
+                    readOnly: !_editorEditable,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _editorEditable
+                      ? () {
+                          setState(() {
+                            _lineEditors.add(
+                              _ExpenseLineEditors(
+                                expenseDate: TextEditingController(
+                                  text: displayDate(
+                                    DateTime.now().toIso8601String(),
+                                  ),
+                                ),
+                                category: TextEditingController(),
+                                description: TextEditingController(),
+                                amount: TextEditingController(),
+                                remarks: TextEditingController(),
+                              ),
+                            );
+                          });
+                        }
+                      : null,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add line'),
+                ),
+              ),
+              ...List<Widget>.generate(_lineEditors.length, (int i) {
+                final line = _lineEditors[i];
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
+                  child: AppSectionCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Line ${i + 1}',
-                          style: Theme.of(context).textTheme.titleSmall,
+                        Row(
+                          children: [
+                            Text(
+                              'Line ${i + 1}',
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            const Spacer(),
+                            if (_editorEditable && _lineEditors.length > 1)
+                              IconButton(
+                                tooltip: 'Remove line',
+                                onPressed: () {
+                                  setState(() {
+                                    _lineEditors[i].dispose();
+                                    _lineEditors.removeAt(i);
+                                  });
+                                },
+                                icon: const Icon(Icons.delete_outline),
+                              ),
+                          ],
                         ),
-                        const Spacer(),
-                        if (_editorEditable && _lineEditors.length > 1)
-                          IconButton(
-                            tooltip: 'Remove line',
-                            onPressed: () {
-                              setState(() {
-                                _lineEditors[i].dispose();
-                                _lineEditors.removeAt(i);
-                              });
-                            },
-                            icon: const Icon(Icons.delete_outline),
+                        AppFormTextField(
+                          controller: line.expenseDate,
+                          labelText: 'Expense date',
+                          readOnly: !_editorEditable,
+                          keyboardType: TextInputType.datetime,
+                          inputFormatters: const [DateInputFormatter()],
+                          validator: Validators.compose([
+                            Validators.required('Expense date'),
+                            Validators.date('Expense date'),
+                          ]),
+                        ),
+                        AppFormTextField(
+                          controller: line.category,
+                          labelText: 'Category',
+                          readOnly: !_editorEditable,
+                          validator: Validators.required('Category'),
+                        ),
+                        AppFormTextField(
+                          controller: line.description,
+                          labelText: 'Description',
+                          readOnly: !_editorEditable,
+                          validator: Validators.required('Description'),
+                        ),
+                        AppFormTextField(
+                          controller: line.amount,
+                          labelText: 'Amount',
+                          readOnly: !_editorEditable,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
                           ),
+                          validator: Validators.compose([
+                            Validators.required('Amount'),
+                            (String? v) {
+                              final t = v?.trim() ?? '';
+                              final d = double.tryParse(t);
+                              if (d == null) {
+                                return 'Amount must be a valid number';
+                              }
+                              if (d <= 0) {
+                                return 'Amount must be greater than zero';
+                              }
+                              return null;
+                            },
+                          ]),
+                        ),
+                        AppFormTextField(
+                          controller: line.remarks,
+                          labelText: 'Remarks (optional)',
+                          readOnly: !_editorEditable,
+                        ),
                       ],
                     ),
-                    AppFormTextField(
-                      controller: line.expenseDate,
-                      labelText: 'Expense date',
-                      readOnly: !_editorEditable,
-                      keyboardType: TextInputType.datetime,
-                      inputFormatters: const [DateInputFormatter()],
-                      validator: Validators.compose([
-                        Validators.required('Expense date'),
-                        Validators.date('Expense date'),
-                      ]),
-                    ),
-                    AppFormTextField(
-                      controller: line.category,
-                      labelText: 'Category',
-                      readOnly: !_editorEditable,
-                      validator: Validators.required('Category'),
-                    ),
-                    AppFormTextField(
-                      controller: line.description,
-                      labelText: 'Description',
-                      readOnly: !_editorEditable,
-                      validator: Validators.required('Description'),
-                    ),
-                    AppFormTextField(
-                      controller: line.amount,
-                      labelText: 'Amount',
-                      readOnly: !_editorEditable,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      validator: Validators.compose([
-                        Validators.required('Amount'),
-                        (String? v) {
-                          final t = v?.trim() ?? '';
-                          final d = double.tryParse(t);
-                          if (d == null) {
-                            return 'Amount must be a valid number';
-                          }
-                          if (d <= 0) {
-                            return 'Amount must be greater than zero';
-                          }
-                          return null;
-                        },
-                      ]),
-                    ),
-                    AppFormTextField(
-                      controller: line.remarks,
-                      labelText: 'Remarks (optional)',
-                      readOnly: !_editorEditable,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
+                  ),
+                );
+              }),
               const SizedBox(height: AppUiConstants.spacingMd),
             ],
           ),
@@ -1198,9 +1195,9 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                       if (!mounted) {
                         return;
                       }
-                      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                        SnackBar(content: Text(res.message)),
-                      );
+                      ScaffoldMessenger.maybeOf(
+                        context,
+                      )?.showSnackBar(SnackBar(content: Text(res.message)));
                       if (res.success == true) {
                         await _reloadEditorAndListAfterMutation(claimId: id);
                       } else {
@@ -1225,7 +1222,8 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                       context,
                       hr: _hr,
                       claimId: id,
-                      onChanged: () => _reloadEditorAndListAfterMutation(claimId: id),
+                      onChanged: () =>
+                          _reloadEditorAndListAfterMutation(claimId: id),
                     );
                   },
                   child: const Text('Reject'),
@@ -1279,9 +1277,9 @@ class _ExpenseClaimsManagementPageState extends State<ExpenseClaimsManagementPag
                     if (!mounted) {
                       return;
                     }
-                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                      SnackBar(content: Text(del.message)),
-                    );
+                    ScaffoldMessenger.maybeOf(
+                      context,
+                    )?.showSnackBar(SnackBar(content: Text(del.message)));
                     if (del.success == true) {
                       await _loadPage();
                     }

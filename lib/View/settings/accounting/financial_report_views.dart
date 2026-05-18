@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../../../screen.dart';
 
 /// Renders structured tables for accounting API report payloads (replacing raw JSON).
@@ -40,92 +38,88 @@ class FinancialReportViews {
     final b = StringBuffer();
     switch (reportType) {
       case 'day_book':
-        _tsvLines(
-          b,
-          [
-            'voucher_no',
-            'voucher_date',
-            'voucher_type',
-            'line_no',
-            'account_code',
-            'account_name',
-            'party_name',
-            'narration',
-            'debit',
-            'credit',
-          ],
-          _asList(data['lines']),
-        );
+        _tsvLines(b, [
+          'voucher_no',
+          'voucher_date',
+          'voucher_type',
+          'line_no',
+          'account_code',
+          'account_name',
+          'party_name',
+          'narration',
+          'debit',
+          'credit',
+        ], _asList(data['lines']));
         break;
       case 'general_ledger':
-        _tsvLines(
-          b,
-          [
-            'voucher_no',
-            'voucher_date',
-            'voucher_type',
-            'party_name',
-            'narration',
-            'debit',
-            'credit',
-            'running_balance',
-          ],
-          _asList(data['lines']),
-        );
+        _tsvLines(b, [
+          'voucher_no',
+          'voucher_date',
+          'voucher_type',
+          'party_name',
+          'narration',
+          'debit',
+          'credit',
+          'running_balance',
+        ], _asList(data['lines']));
         break;
       case 'trial_balance':
-        _tsvLines(
-          b,
-          ['account_code', 'account_name', 'group_name', 'debit', 'credit'],
-          _asList(data['lines']),
-        );
+        _tsvLines(b, [
+          'account_code',
+          'account_name',
+          'group_name',
+          'debit',
+          'credit',
+        ], _asList(data['lines']));
         break;
       case 'balance_sheet':
         for (final section in ['assets', 'liabilities', 'equity']) {
           b.writeln('# $section');
-          _tsvLines(
-            b,
-            ['account_code', 'account_name', 'group_name', 'amount'],
-            _asList(data[section]),
-          );
+          _tsvLines(b, [
+            'account_code',
+            'account_name',
+            'group_name',
+            'amount',
+          ], _asList(data[section]));
           b.writeln();
         }
         break;
       case 'profit_and_loss':
         b.writeln('# income');
-        _tsvLines(
-          b,
-          ['account_code', 'account_name', 'group_name', 'amount'],
-          _asList(data['income']),
-        );
+        _tsvLines(b, [
+          'account_code',
+          'account_name',
+          'group_name',
+          'amount',
+        ], _asList(data['income']));
         b.writeln('# expense');
-        _tsvLines(
-          b,
-          ['account_code', 'account_name', 'group_name', 'amount'],
-          _asList(data['expense']),
-        );
+        _tsvLines(b, [
+          'account_code',
+          'account_name',
+          'group_name',
+          'amount',
+        ], _asList(data['expense']));
         break;
       case 'cash_flow':
-        _tsvLines(
-          b,
-          ['voucher_no', 'voucher_date', 'account_name', 'narration', 'inflow', 'outflow'],
-          _asList(data['lines']),
-        );
+        _tsvLines(b, [
+          'voucher_no',
+          'voucher_date',
+          'account_name',
+          'narration',
+          'inflow',
+          'outflow',
+        ], _asList(data['lines']));
         break;
       case 'accounts_receivable_aging':
       case 'accounts_payable_aging':
-        _tsvLines(
-          b,
-          [
-            'invoice_no',
-            'invoice_date',
-            'due_date',
-            'age_days',
-            'outstanding_amount',
-            'bucket',
-          ],
-          _asList(data['lines']),
-        );
+        _tsvLines(b, [
+          'invoice_no',
+          'invoice_date',
+          'due_date',
+          'age_days',
+          'outstanding_amount',
+          'bucket',
+        ], _asList(data['lines']));
         break;
       case 'financial_statement_pack':
         b.writeln(const JsonEncoder.withIndent('  ').convert(data));
@@ -144,9 +138,7 @@ class FinancialReportViews {
     b.writeln(headers.join('\t'));
     for (final raw in rows) {
       final row = _mapDynamic(raw);
-      b.writeln(
-        headers.map((h) => _csvCell(row[h])).join('\t'),
-      );
+      b.writeln(headers.map((h) => _csvCell(row[h])).join('\t'));
     }
   }
 
@@ -163,7 +155,11 @@ class FinancialReportViews {
     Map<String, dynamic> data,
     ThemeData theme,
   ) {
-    Widget section(String title, Map<String, dynamic> payload, String innerType) {
+    Widget section(
+      String title,
+      Map<String, dynamic> payload,
+      String innerType,
+    ) {
       return Padding(
         padding: const EdgeInsets.only(bottom: AppUiConstants.spacingLg),
         child: Column(
@@ -226,20 +222,23 @@ class FinancialReportViews {
             'Debit',
             'Credit',
           ],
-          _asList(data['lines']).map((raw) {
-            final r = _mapDynamic(raw);
-            return [
-              r['voucher_date']?.toString() ?? '',
-              r['voucher_no']?.toString() ?? '',
-              r['voucher_type']?.toString() ?? '',
-              r['line_no']?.toString() ?? '',
-              '${r['account_code'] ?? ''} ${r['account_name'] ?? ''}'.trim(),
-              r['party_name']?.toString() ?? '',
-              r['narration']?.toString() ?? '',
-              _money(r['debit']),
-              _money(r['credit']),
-            ];
-          }).toList(growable: false),
+          _asList(data['lines'])
+              .map((raw) {
+                final r = _mapDynamic(raw);
+                return [
+                  r['voucher_date']?.toString() ?? '',
+                  r['voucher_no']?.toString() ?? '',
+                  r['voucher_type']?.toString() ?? '',
+                  r['line_no']?.toString() ?? '',
+                  '${r['account_code'] ?? ''} ${r['account_name'] ?? ''}'
+                      .trim(),
+                  r['party_name']?.toString() ?? '',
+                  r['narration']?.toString() ?? '',
+                  _money(r['debit']),
+                  _money(r['credit']),
+                ];
+              })
+              .toList(growable: false),
         ),
       ],
     );
@@ -254,7 +253,9 @@ class FinancialReportViews {
       children: [
         Text(
           '${account['account_code'] ?? ''} · ${account['account_name'] ?? ''}',
-          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: AppUiConstants.spacingSm),
         Wrap(
@@ -278,19 +279,21 @@ class FinancialReportViews {
             'Credit',
             'Balance',
           ],
-          _asList(data['lines']).map((raw) {
-            final r = _mapDynamic(raw);
-            return [
-              r['voucher_date']?.toString() ?? '',
-              r['voucher_no']?.toString() ?? '',
-              r['voucher_type']?.toString() ?? '',
-              r['party_name']?.toString() ?? '',
-              r['narration']?.toString() ?? '',
-              _money(r['debit']),
-              _money(r['credit']),
-              _money(r['running_balance']),
-            ];
-          }).toList(growable: false),
+          _asList(data['lines'])
+              .map((raw) {
+                final r = _mapDynamic(raw);
+                return [
+                  r['voucher_date']?.toString() ?? '',
+                  r['voucher_no']?.toString() ?? '',
+                  r['voucher_type']?.toString() ?? '',
+                  r['party_name']?.toString() ?? '',
+                  r['narration']?.toString() ?? '',
+                  _money(r['debit']),
+                  _money(r['credit']),
+                  _money(r['running_balance']),
+                ];
+              })
+              .toList(growable: false),
         ),
       ],
     );
@@ -312,17 +315,19 @@ class FinancialReportViews {
         _table(
           theme,
           const ['Code', 'Account', 'Group', 'Nature', 'Debit', 'Credit'],
-          _asList(data['lines']).map((raw) {
-            final r = _mapDynamic(raw);
-            return [
-              r['account_code']?.toString() ?? '',
-              r['account_name']?.toString() ?? '',
-              r['group_name']?.toString() ?? '',
-              r['group_nature']?.toString() ?? '',
-              _money(r['debit']),
-              _money(r['credit']),
-            ];
-          }).toList(growable: false),
+          _asList(data['lines'])
+              .map((raw) {
+                final r = _mapDynamic(raw);
+                return [
+                  r['account_code']?.toString() ?? '',
+                  r['account_name']?.toString() ?? '',
+                  r['group_name']?.toString() ?? '',
+                  r['group_nature']?.toString() ?? '',
+                  _money(r['debit']),
+                  _money(r['credit']),
+                ];
+              })
+              .toList(growable: false),
         ),
       ],
     );
@@ -358,21 +363,25 @@ class FinancialReportViews {
         children: [
           Text(
             title,
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: AppUiConstants.spacingXs),
           _table(
             theme,
             const ['Code', 'Account', 'Group', 'Amount'],
-            lines.map((raw) {
-              final r = _mapDynamic(raw);
-              return [
-                r['account_code']?.toString() ?? '',
-                r['account_name']?.toString() ?? '',
-                r['group_name']?.toString() ?? '',
-                _money(r['amount']),
-              ];
-            }).toList(growable: false),
+            lines
+                .map((raw) {
+                  final r = _mapDynamic(raw);
+                  return [
+                    r['account_code']?.toString() ?? '',
+                    r['account_name']?.toString() ?? '',
+                    r['group_name']?.toString() ?? '',
+                    _money(r['amount']),
+                  ];
+                })
+                .toList(growable: false),
           ),
         ],
       ),
@@ -407,22 +416,26 @@ class FinancialReportViews {
         children: [
           Text(
             title,
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: AppUiConstants.spacingXs),
           _table(
             theme,
             const ['Code', 'Account', 'Group', 'Category', 'Amount'],
-            lines.map((raw) {
-              final r = _mapDynamic(raw);
-              return [
-                r['account_code']?.toString() ?? '',
-                r['account_name']?.toString() ?? '',
-                r['group_name']?.toString() ?? '',
-                r['group_category']?.toString() ?? '',
-                _money(r['amount']),
-              ];
-            }).toList(growable: false),
+            lines
+                .map((raw) {
+                  final r = _mapDynamic(raw);
+                  return [
+                    r['account_code']?.toString() ?? '',
+                    r['account_name']?.toString() ?? '',
+                    r['group_name']?.toString() ?? '',
+                    r['group_category']?.toString() ?? '',
+                    _money(r['amount']),
+                  ];
+                })
+                .toList(growable: false),
           ),
         ],
       ),
@@ -447,18 +460,27 @@ class FinancialReportViews {
         const SizedBox(height: AppUiConstants.spacingMd),
         _table(
           theme,
-          const ['Date', 'Voucher', 'Account', 'Narration', 'Inflow', 'Outflow'],
-          _asList(data['lines']).map((raw) {
-            final r = _mapDynamic(raw);
-            return [
-              r['voucher_date']?.toString() ?? '',
-              r['voucher_no']?.toString() ?? '',
-              r['account_name']?.toString() ?? '',
-              r['narration']?.toString() ?? '',
-              _money(r['inflow']),
-              _money(r['outflow']),
-            ];
-          }).toList(growable: false),
+          const [
+            'Date',
+            'Voucher',
+            'Account',
+            'Narration',
+            'Inflow',
+            'Outflow',
+          ],
+          _asList(data['lines'])
+              .map((raw) {
+                final r = _mapDynamic(raw);
+                return [
+                  r['voucher_date']?.toString() ?? '',
+                  r['voucher_no']?.toString() ?? '',
+                  r['account_name']?.toString() ?? '',
+                  r['narration']?.toString() ?? '',
+                  _money(r['inflow']),
+                  _money(r['outflow']),
+                ];
+              })
+              .toList(growable: false),
         ),
       ],
     );
@@ -493,22 +515,24 @@ class FinancialReportViews {
             'Outstanding',
             'Bucket',
           ],
-          _asList(data['lines']).map((raw) {
-            final r = _mapDynamic(raw);
-            final partyName =
-                r['customer_name']?.toString() ??
-                r['supplier_name']?.toString() ??
-                '';
-            return [
-              partyName,
-              r['invoice_no']?.toString() ?? '',
-              r['invoice_date']?.toString() ?? '',
-              r['due_date']?.toString() ?? '',
-              r['age_days']?.toString() ?? '',
-              _money(r['outstanding_amount']),
-              r['bucket']?.toString() ?? '',
-            ];
-          }).toList(growable: false),
+          _asList(data['lines'])
+              .map((raw) {
+                final r = _mapDynamic(raw);
+                final partyName =
+                    r['customer_name']?.toString() ??
+                    r['supplier_name']?.toString() ??
+                    '';
+                return [
+                  partyName,
+                  r['invoice_no']?.toString() ?? '',
+                  r['invoice_date']?.toString() ?? '',
+                  r['due_date']?.toString() ?? '',
+                  r['age_days']?.toString() ?? '',
+                  _money(r['outstanding_amount']),
+                  r['bucket']?.toString() ?? '',
+                ];
+              })
+              .toList(growable: false),
         ),
       ],
     );

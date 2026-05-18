@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/inventory/stock_serial_view_model.dart';
 
 class StockSerialPage extends StatefulWidget {
   const StockSerialPage({

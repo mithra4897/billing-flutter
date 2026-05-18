@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import '../../screen.dart';
-import '../../model/printing/print_template_model.dart';
 
 const String defaultPrintLogoAsset = 'assets/sakthicontroller logo.jpg';
 const String legacyPbsLogoAsset = 'assets/pbs_logo.png';

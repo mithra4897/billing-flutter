@@ -1,9 +1,6 @@
 import 'dart:async' show unawaited;
 
 import '../../../screen.dart';
-import 'business_location_page.dart';
-import 'warehouse_page.dart';
-import '../tax/gst_registration_page.dart';
 
 class BranchManagementPage extends StatefulWidget {
   const BranchManagementPage({
@@ -87,8 +84,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
       final companiesResponse = await _masterService.companies(
         filters: const {'per_page': 100, 'sort_by': 'legal_name'},
       );
-      final companies =
-          companiesResponse.data ?? const <CompanyModel>[];
+      final companies = companiesResponse.data ?? const <CompanyModel>[];
       final activeCompanies = companies
           .where((company) => company.isActive)
           .toList(growable: false);
@@ -100,8 +96,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
             financialYears: const <FinancialYearModel>[],
           );
 
-      final filterCompanyId =
-          companyIdHint ?? contextSelection.companyId;
+      final filterCompanyId = companyIdHint ?? contextSelection.companyId;
       final branchFilters = <String, dynamic>{
         'per_page': 500,
         'sort_by': 'name',
@@ -138,7 +133,8 @@ class _BranchManagementPageState extends State<BranchManagementPage>
           } catch (_) {}
         }
       }
-      final resolvedContextCompanyId = selectTarget?.companyId ??
+      final resolvedContextCompanyId =
+          selectTarget?.companyId ??
           companyIdHint ??
           contextSelection.companyId;
 
@@ -313,10 +309,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData(
-        selectId: saved.id,
-        companyIdHint: saved.companyId,
-      );
+      await _loadData(selectId: saved.id, companyIdHint: saved.companyId);
     } catch (error) {
       setState(() => _formError = error.toString());
     } finally {
@@ -563,9 +556,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                 const SizedBox(height: 12),
                 Text(
                   _formError!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
               const SizedBox(height: 16),
@@ -573,9 +564,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
                 spacing: 12,
                 children: [
                   AppActionButton(
-                    onPressed: _saving
-                        ? null
-                        : () => _save(formContext),
+                    onPressed: _saving ? null : () => _save(formContext),
                     icon: _selectedBranch == null ? Icons.add : Icons.save,
                     label: _saving ? 'Saving...' : 'Save Branch',
                     busy: _saving,

@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class AssetCategoryModel implements JsonModel {
   const AssetCategoryModel(this.data);

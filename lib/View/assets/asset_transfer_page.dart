@@ -1,7 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/assets/asset_transfer_view_model.dart';
-import '../purchase/purchase_support.dart';
-import 'asset_shell_route.dart';
 
 Map<String, dynamic>? _jsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -542,8 +539,9 @@ class _TransferLineCard extends StatelessWidget {
               ),
               AppFormTextField(
                 labelText: 'Asset status',
-                initialValue:
-                    asset != null ? stringValue(asset, 'asset_status') : '—',
+                initialValue: asset != null
+                    ? stringValue(asset, 'asset_status')
+                    : '—',
                 readOnly: true,
               ),
               AppFormTextField(
@@ -554,8 +552,7 @@ class _TransferLineCard extends StatelessWidget {
               ),
               AppFormTextField(
                 labelText: 'To branch id',
-                initialValue:
-                    intValue(line, 'to_branch_id')?.toString() ?? '—',
+                initialValue: intValue(line, 'to_branch_id')?.toString() ?? '—',
                 readOnly: true,
               ),
               AppFormTextField(

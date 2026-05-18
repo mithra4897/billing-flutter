@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/jobwork/jobwork_charge_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class JobworkChargePage extends StatefulWidget {
   const JobworkChargePage({

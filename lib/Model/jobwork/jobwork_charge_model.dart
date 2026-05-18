@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import 'jobwork_charge_line_model.dart';
+import '../../screen.dart';
 
 class JobworkChargeModel implements JsonModel {
   const JobworkChargeModel({
@@ -126,8 +125,7 @@ class JobworkChargeModel implements JsonModel {
     'charge_date': chargeDate.trim(),
     'jobwork_order_id': jobworkOrderId,
     'supplier_party_id': supplierPartyId,
-    if (purchaseInvoiceId != null)
-      'purchase_invoice_id': purchaseInvoiceId,
+    if (purchaseInvoiceId != null) 'purchase_invoice_id': purchaseInvoiceId,
     if (remarks != null && remarks!.trim().isNotEmpty)
       'remarks': remarks!.trim(),
     'is_active': isActive ? 1 : 0,

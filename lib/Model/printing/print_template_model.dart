@@ -42,11 +42,9 @@ class DocumentPrintTemplate {
     );
   }
 
-  factory DocumentPrintTemplate.defaults(
-    String documentType, {
-    String? title,
-  }) {
-    final resolvedTitle = (title ?? _documentTitleForType(documentType)).toUpperCase();
+  factory DocumentPrintTemplate.defaults(String documentType, {String? title}) {
+    final resolvedTitle = (title ?? _documentTitleForType(documentType))
+        .toUpperCase();
 
     return DocumentPrintTemplate(
       pageWidth: 595,
@@ -54,7 +52,6 @@ class DocumentPrintTemplate {
       mediaPreset: 'A4',
       orientation: 'portrait',
       shapes: [
-
         const DocumentPrintShape(
           id: 'pbs-outer-border',
           type: 'rectangle',
@@ -428,7 +425,8 @@ class DocumentPrintTemplate {
           y: 582,
           width: 190,
           height: 72,
-          text: 'Subtotal : {{subtotal}}\nTax      : {{tax_amount}}\nTotal    : {{total_amount}}',
+          text:
+              'Subtotal : {{subtotal}}\nTax      : {{tax_amount}}\nTotal    : {{total_amount}}',
           fontSize: 10,
           bold: true,
           multiline: true,
@@ -538,16 +536,13 @@ class DocumentPrintTemplate {
         ),
       ],
     );
-
   }
 
   DocumentPrintTemplate normalizedFor(String documentType) {
-
     return this;
   }
 
   DocumentPrintShape? shapeById(String? shapeId) {
-
     if (shapeId == null) {
       return null;
     }
@@ -580,10 +575,8 @@ class DocumentPrintTemplate {
       pageWidth: pageWidth ?? this.pageWidth,
       pageHeight: pageHeight ?? this.pageHeight,
       shapes: shapes ?? this.shapes,
-      backgroundImagePath: identical(
-        backgroundImagePath,
-        _documentPrintTemplateUnset,
-      )
+      backgroundImagePath:
+          identical(backgroundImagePath, _documentPrintTemplateUnset)
           ? this.backgroundImagePath
           : backgroundImagePath as String?,
       backgroundOpacity: backgroundOpacity ?? this.backgroundOpacity,
@@ -1084,7 +1077,10 @@ String _documentTitleForType(String documentType) {
       return documentType
           .split('_')
           .where((part) => part.trim().isNotEmpty)
-          .map((part) => '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}')
+          .map(
+            (part) =>
+                '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+          )
           .join(' ');
   }
 }

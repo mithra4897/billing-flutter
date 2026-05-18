@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class CrmFollowupModel implements JsonModel {
   const CrmFollowupModel(this.data);

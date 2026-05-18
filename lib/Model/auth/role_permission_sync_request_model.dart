@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import 'role_permission_model.dart';
+import '../../screen.dart';
 
 class RolePermissionSyncRequestModel implements JsonModel {
   const RolePermissionSyncRequestModel({

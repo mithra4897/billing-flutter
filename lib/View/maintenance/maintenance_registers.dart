@@ -1,7 +1,4 @@
 import '../../screen.dart';
-import '../hr/hr_workflow_dialogs.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
 
 void _openMaintenanceShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -205,8 +202,10 @@ class _MaintenanceWorkOrderRegisterPageState
       emptyMessage: 'No work orders found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () =>
-              _openMaintenanceShellRoute(context, '/maintenance/work-orders/new'),
+          onPressed: () => _openMaintenanceShellRoute(
+            context,
+            '/maintenance/work-orders/new',
+          ),
           icon: Icons.add_outlined,
           label: 'New work order',
         ),
@@ -220,13 +219,13 @@ class _MaintenanceWorkOrderRegisterPageState
       columns: [
         PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
           label: 'WO no.',
-          valueBuilder: (MaintenanceWorkOrderModel row) => _workOrderNoLabel(row),
+          valueBuilder: (MaintenanceWorkOrderModel row) =>
+              _workOrderNoLabel(row),
         ),
         PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
           label: 'Date',
-          valueBuilder: (MaintenanceWorkOrderModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'work_order_date'),
-          ),
+          valueBuilder: (MaintenanceWorkOrderModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'work_order_date')),
         ),
         PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
           label: 'Asset',
@@ -245,10 +244,7 @@ class _MaintenanceWorkOrderRegisterPageState
         if (id == null) {
           return;
         }
-        _openMaintenanceShellRoute(
-          context,
-          '/maintenance/work-orders/$id',
-        );
+        _openMaintenanceShellRoute(context, '/maintenance/work-orders/$id');
       },
     );
   }

@@ -1,9 +1,4 @@
-import 'package:flutter/material.dart';
-
-import 'app_calendar_picker.dart';
-import 'app_form_text_field.dart';
-import 'date_input_formatter.dart';
-import '../app/constants/app_ui_constants.dart';
+import '../screen.dart';
 
 class AppDateField extends StatelessWidget {
   const AppDateField({
@@ -74,9 +69,7 @@ class AppDateField extends StatelessWidget {
       suffixIcon: GestureDetector(
         onTap: () => _openPicker(context),
         child: const Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppUiConstants.spacingSm,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: AppUiConstants.spacingSm),
           child: Icon(Icons.calendar_month_outlined, size: 18),
         ),
       ),

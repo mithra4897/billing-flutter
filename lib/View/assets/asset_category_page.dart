@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/assets/asset_category_view_model.dart';
-import 'asset_shell_route.dart';
 
 class AssetCategoryPage extends StatefulWidget {
   const AssetCategoryPage({

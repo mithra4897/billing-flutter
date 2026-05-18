@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/inventory/stock_batch_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class StockBatchPage extends StatefulWidget {
   const StockBatchPage({
@@ -182,7 +180,12 @@ class _StockBatchEditor extends StatelessWidget {
                   labelText: 'Warehouse',
                   mappedItems: vm.warehouseOptions
                       .where((item) => item.id != null)
-                      .map((item) => AppDropdownItem<int>(value: item.id!, label: item.toString()))
+                      .map(
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
+                        ),
+                      )
                       .toList(growable: false),
                   initialValue: vm.warehouseId,
                   validator: Validators.requiredSelection('Warehouse'),
@@ -215,37 +218,55 @@ class _StockBatchEditor extends StatelessWidget {
                 AppFormTextField(
                   labelText: 'Inward qty',
                   controller: vm.inwardQtyController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: Validators.optionalNonNegativeNumber('Inward qty'),
                 ),
                 AppFormTextField(
                   labelText: 'Outward qty',
                   controller: vm.outwardQtyController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: Validators.optionalNonNegativeNumber('Outward qty'),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Outward qty',
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Balance qty',
                   controller: vm.balanceQtyController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: Validators.optionalNonNegativeNumber('Balance qty'),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Balance qty',
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Purchase rate',
                   controller: vm.purchaseRateController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: Validators.optionalNonNegativeNumber('Purchase rate'),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Purchase rate',
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Sales rate',
                   controller: vm.salesRateController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: Validators.optionalNonNegativeNumber('Sales rate'),
                 ),
                 AppFormTextField(
                   labelText: 'MRP',
                   controller: vm.mrpController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: Validators.optionalNonNegativeNumber('MRP'),
                 ),
                 AppDropdownField<String>.fromMapped(

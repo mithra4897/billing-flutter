@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/inventory/stock_damage_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class StockDamagePage extends StatefulWidget {
   const StockDamagePage({

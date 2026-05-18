@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/quality/qc_non_conformance_log_view_model.dart';
 
 String _inspectionNoLabel(QcInspectionModel i) {
   final no = stringValue(i.toJson(), 'inspection_no');
@@ -224,15 +223,10 @@ class _QcNonConformanceEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Inspection line (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(
-                        value: null,
-                        label: '—',
-                      ),
+                      const AppDropdownItem<int?>(value: null, label: '—'),
                       ...vm.inspectionLineOptions.map(
-                        (o) => AppDropdownItem<int?>(
-                          value: o.id,
-                          label: o.label,
-                        ),
+                        (o) =>
+                            AppDropdownItem<int?>(value: o.id, label: o.label),
                       ),
                     ],
                     initialValue: vm.qcInspectionLineId,

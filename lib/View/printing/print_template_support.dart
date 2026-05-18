@@ -1,5 +1,4 @@
-import '../../model/masters/tax_code_model.dart';
-import '../../model/printing/document_print_data_model.dart';
+import '../../screen.dart';
 
 String printTemplateTaxLabel(TaxCodeModel? taxCode, double taxPercent) {
   final name = (taxCode?.taxName ?? taxCode?.taxCode ?? '').trim();

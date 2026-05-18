@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/inventory/stock_transfer_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class StockTransferPage extends StatefulWidget {
   const StockTransferPage({

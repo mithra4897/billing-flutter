@@ -1,7 +1,4 @@
 import '../../screen.dart';
-import '../hr/hr_workflow_dialogs.dart';
-import '../purchase/purchase_register_page.dart';
-import '../purchase/purchase_support.dart';
 
 Map<String, dynamic>? _asJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -127,7 +124,6 @@ class _QualityFilters extends StatelessWidget {
     );
   }
 }
-
 
 // --- Registers ----------------------------------------------------------
 
@@ -363,10 +359,8 @@ class _QcInspectionRegisterPageState extends State<QcInspectionRegisterPage> {
       emptyMessage: 'No QC inspections found.',
       actions: [
         AdaptiveShellActionButton(
-          onPressed: () => _openQualityShellRoute(
-            context,
-            '/quality/qc-inspections/new',
-          ),
+          onPressed: () =>
+              _openQualityShellRoute(context, '/quality/qc-inspections/new'),
           icon: Icons.add_outlined,
           label: 'New QC inspection',
         ),
@@ -385,15 +379,13 @@ class _QcInspectionRegisterPageState extends State<QcInspectionRegisterPage> {
         ),
         PurchaseRegisterColumn<QcInspectionModel>(
           label: 'Date',
-          valueBuilder: (QcInspectionModel row) => displayDate(
-            nullableStringValue(row.toJson(), 'inspection_date'),
-          ),
+          valueBuilder: (QcInspectionModel row) =>
+              displayDate(nullableStringValue(row.toJson(), 'inspection_date')),
         ),
         PurchaseRegisterColumn<QcInspectionModel>(
           label: 'Plan',
           flex: 2,
-          valueBuilder: (QcInspectionModel row) =>
-              _qcPlanLabel(row.toJson()),
+          valueBuilder: (QcInspectionModel row) => _qcPlanLabel(row.toJson()),
         ),
         PurchaseRegisterColumn<QcInspectionModel>(
           label: 'Status',

@@ -1,21 +1,4 @@
-import '../../core/api/api_endpoints.dart';
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/accounting/account_group_model.dart';
-import '../../model/accounting/accounting_report_model.dart';
-import '../../model/accounting/account_model.dart';
-import '../../model/accounting/bank_reconciliation_model.dart';
-import '../../model/accounting/budget_vs_actual_model.dart';
-import '../../model/accounting/budget_model.dart';
-import '../../model/accounting/cash_session_model.dart';
-import '../../model/accounting/document_posting_model.dart';
-import '../../model/accounting/party_account_model.dart';
-import '../../model/accounting/posting_rule_group_model.dart';
-import '../../model/accounting/posting_rule_model.dart';
-import '../../model/accounting/voucher_allocation_model.dart';
-import '../../model/accounting/voucher_model.dart';
-import '../../model/accounting/voucher_type_model.dart';
-import '../base/erp_module_service.dart';
+import '../../screen.dart';
 
 class AccountsService extends ErpModuleService {
   AccountsService({super.apiClient});
@@ -389,15 +372,18 @@ class AccountsService extends ErpModuleService {
         if (json is! List) {
           return <Map<String, dynamic>>[];
         }
-        return json.map((dynamic e) {
-          if (e is Map<String, dynamic>) {
-            return e;
-          }
-          if (e is Map) {
-            return Map<String, dynamic>.from(e);
-          }
-          return <String, dynamic>{};
-        }).where((m) => m.isNotEmpty).toList();
+        return json
+            .map((dynamic e) {
+              if (e is Map<String, dynamic>) {
+                return e;
+              }
+              if (e is Map) {
+                return Map<String, dynamic>.from(e);
+              }
+              return <String, dynamic>{};
+            })
+            .where((m) => m.isNotEmpty)
+            .toList();
       },
     );
   }

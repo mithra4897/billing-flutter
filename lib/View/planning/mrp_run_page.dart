@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/planning/mrp_run_view_model.dart';
 
 class MrpRunPage extends StatefulWidget {
   const MrpRunPage({
@@ -168,6 +167,7 @@ class _MrpRunEditor extends StatelessWidget {
     required this.onCancelRun,
     required this.onDelete,
   });
+
   final MrpRunViewModel vm;
   final Future<void> Function() onSave;
   final Future<void> Function() onProcess;

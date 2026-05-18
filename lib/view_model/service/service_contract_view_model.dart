@@ -1,6 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/hr/hr_workflow_dialogs.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../screen.dart';
 
 class ServiceContractViewModel extends ChangeNotifier {
   ServiceContractViewModel() {
@@ -18,12 +16,15 @@ class ServiceContractViewModel extends ChangeNotifier {
   final TextEditingController startDateController = TextEditingController();
   final TextEditingController endDateController = TextEditingController();
   final TextEditingController coverageController = TextEditingController();
-  final TextEditingController visitFrequencyController = TextEditingController();
+  final TextEditingController visitFrequencyController =
+      TextEditingController();
   final TextEditingController responseTimeController = TextEditingController();
-  final TextEditingController resolutionTimeController = TextEditingController();
+  final TextEditingController resolutionTimeController =
+      TextEditingController();
   final TextEditingController contractValueController = TextEditingController();
   final TextEditingController taxAmountController = TextEditingController();
-  final TextEditingController salesInvoiceIdController = TextEditingController();
+  final TextEditingController salesInvoiceIdController =
+      TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
   bool loading = true;
@@ -46,17 +47,17 @@ class ServiceContractViewModel extends ChangeNotifier {
 
   int? _sessionCompanyId;
 
-  String get contractStatus =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'contract_status');
+  String get contractStatus => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'contract_status',
+  );
 
   bool get canEdit {
     if (selected == null) {
       return true;
     }
     final st = contractStatus;
-    return st != 'expired' &&
-        st != 'terminated' &&
-        st != 'cancelled';
+    return st != 'expired' && st != 'terminated' && st != 'cancelled';
   }
 
   bool get canApprove => selected != null && contractStatus == 'draft';
@@ -69,38 +70,43 @@ class ServiceContractViewModel extends ChangeNotifier {
 
   bool get canDelete => selected != null && contractStatus == 'draft';
 
-  int? get selectedId => intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+  int? get selectedId =>
+      intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
 
   List<DocumentSeriesModel> get seriesOptions {
     final cid = companyId;
-    return documentSeries.where((s) {
-      if (!s.isActive) {
-        return false;
-      }
-      if (s.documentType != 'SERVICE_CONTRACT') {
-        return false;
-      }
-      if (cid != null && s.companyId != null && s.companyId != cid) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return documentSeries
+        .where((s) {
+          if (!s.isActive) {
+            return false;
+          }
+          if (s.documentType != 'SERVICE_CONTRACT') {
+            return false;
+          }
+          if (cid != null && s.companyId != null && s.companyId != cid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<ServiceContractModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      return [
-        stringValue(data, 'contract_no'),
-        stringValue(data, 'contract_status'),
-        stringValue(data, 'contract_type'),
-        _customerLabel(data),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'contract_no'),
+            stringValue(data, 'contract_status'),
+            stringValue(data, 'contract_type'),
+            _customerLabel(data),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String _customerLabel(Map<String, dynamic> data) {
@@ -145,20 +151,22 @@ class ServiceContractViewModel extends ChangeNotifier {
 
       rows =
           (responses[0] as PaginatedResponse<ServiceContractModel>).data ??
-              const <ServiceContractModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <ServiceContractModel>[];
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       documentSeries =
           ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
                   const <DocumentSeriesModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
-      parties = ((responses[3] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      parties =
+          ((responses[3] as PaginatedResponse<PartyModel>).data ??
+                  const <PartyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
 
       loading = false;
 
@@ -189,14 +197,15 @@ class ServiceContractViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId = _sessionCompanyId ??
-        (companies.isNotEmpty ? companies.first.id : null);
-    documentSeriesId =
-        seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    companyId =
+        _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     customerPartyId = null;
     contractNoController.clear();
-    contractDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    contractDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     contractTypeController.clear();
     startDateController.clear();
     endDateController.clear();
@@ -217,11 +226,11 @@ class ServiceContractViewModel extends ChangeNotifier {
     }
     companyId = value;
     if (documentSeriesId != null) {
-      final stillValid =
-          seriesOptions.any((s) => s.id == documentSeriesId);
+      final stillValid = seriesOptions.any((s) => s.id == documentSeriesId);
       if (!stillValid) {
-        documentSeriesId =
-            seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+        documentSeriesId = seriesOptions.isNotEmpty
+            ? seriesOptions.first.id
+            : null;
       }
     }
     notifyListeners();
@@ -281,12 +290,9 @@ class ServiceContractViewModel extends ChangeNotifier {
     );
     coverageController.text = stringValue(data, 'coverage_scope');
     visitFrequencyController.text = stringValue(data, 'visit_frequency');
-    responseTimeController.text =
-        _numString(data, 'response_time_hours');
-    resolutionTimeController.text =
-        _numString(data, 'resolution_time_hours');
-    contractValueController.text =
-        _numString(data, 'contract_value');
+    responseTimeController.text = _numString(data, 'response_time_hours');
+    resolutionTimeController.text = _numString(data, 'resolution_time_hours');
+    contractValueController.text = _numString(data, 'contract_value');
     taxAmountController.text = _numString(data, 'tax_amount');
     salesInvoiceIdController.text =
         intValue(data, 'sales_invoice_id')?.toString() ?? '';
@@ -324,8 +330,7 @@ class ServiceContractViewModel extends ChangeNotifier {
   }
 
   Map<String, dynamic> _amounts() {
-    final cv =
-        double.tryParse(contractValueController.text.trim()) ?? 0;
+    final cv = double.tryParse(contractValueController.text.trim()) ?? 0;
     final tax = double.tryParse(taxAmountController.text.trim()) ?? 0;
     return <String, dynamic>{
       'contract_value': cv,
@@ -346,10 +351,12 @@ class ServiceContractViewModel extends ChangeNotifier {
       'contract_end_date': nullIfEmpty(endDateController.text.trim()),
       'coverage_scope': nullIfEmpty(coverageController.text),
       'visit_frequency': nullIfEmpty(visitFrequencyController.text),
-      'response_time_hours':
-          double.tryParse(responseTimeController.text.trim()),
-      'resolution_time_hours':
-          double.tryParse(resolutionTimeController.text.trim()),
+      'response_time_hours': double.tryParse(
+        responseTimeController.text.trim(),
+      ),
+      'resolution_time_hours': double.tryParse(
+        resolutionTimeController.text.trim(),
+      ),
       'contract_value': amounts['contract_value'],
       'tax_amount': amounts['tax_amount'],
       'total_value': amounts['total_value'],
@@ -375,10 +382,12 @@ class ServiceContractViewModel extends ChangeNotifier {
       'contract_end_date': nullIfEmpty(endDateController.text.trim()),
       'coverage_scope': nullIfEmpty(coverageController.text),
       'visit_frequency': nullIfEmpty(visitFrequencyController.text),
-      'response_time_hours':
-          double.tryParse(responseTimeController.text.trim()),
-      'resolution_time_hours':
-          double.tryParse(resolutionTimeController.text.trim()),
+      'response_time_hours': double.tryParse(
+        responseTimeController.text.trim(),
+      ),
+      'resolution_time_hours': double.tryParse(
+        resolutionTimeController.text.trim(),
+      ),
       'contract_value': amounts['contract_value'],
       'tax_amount': amounts['tax_amount'],
       'total_value': amounts['total_value'],

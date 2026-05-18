@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/manufacturing/bom_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class BomPage extends StatefulWidget {
   const BomPage({

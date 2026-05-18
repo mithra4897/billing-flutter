@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import 'jobwork_dispatch_line_model.dart';
+import '../../screen.dart';
 
 class JobworkDispatchModel implements JsonModel {
   const JobworkDispatchModel({
@@ -122,8 +121,7 @@ class JobworkDispatchModel implements JsonModel {
     if (dcDate != null && dcDate!.trim().isNotEmpty) 'dc_date': dcDate!.trim(),
     if (vehicleNo != null && vehicleNo!.trim().isNotEmpty)
       'vehicle_no': vehicleNo!.trim(),
-    if (transporterPartyId != null)
-      'transporter_party_id': transporterPartyId,
+    if (transporterPartyId != null) 'transporter_party_id': transporterPartyId,
     if (lrNo != null && lrNo!.trim().isNotEmpty) 'lr_no': lrNo!.trim(),
     if (lrDate != null && lrDate!.trim().isNotEmpty) 'lr_date': lrDate!.trim(),
     if (remarks != null && remarks!.trim().isNotEmpty)

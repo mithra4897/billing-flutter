@@ -638,125 +638,122 @@ class _UomManagementPageState extends State<UomManagementPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-          Text(
-            'Conversions for ${currentUom.uomName ?? currentUom.uomCode}',
-            style: Theme.of(context).textTheme.headlineSmall,
+        Text(
+          'Conversions for ${currentUom.uomName ?? currentUom.uomCode}',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 16),
+        if (_displayConversions.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('No conversions defined for this UOM.'),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _displayConversions.length,
+            separatorBuilder: (_, index) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final item = _displayConversions[index];
+              return SettingsListTile(
+                title: item.otherLabel,
+                subtitle: [
+                  if (item.displayFactor != null)
+                    'Factor ${item.displayFactor}',
+                  if (item.reversed) 'Reverse view',
+                  if (item.isActive) 'Active',
+                ].join(' · '),
+                selected: identical(item.record, _selectedConversionRecord),
+                onTap: () => _selectConversion(item),
+              );
+            },
           ),
-          const SizedBox(height: 16),
-          if (_displayConversions.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('No conversions defined for this UOM.'),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _displayConversions.length,
-              separatorBuilder: (_, index) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final item = _displayConversions[index];
-                return SettingsListTile(
-                  title: item.otherLabel,
-                  subtitle: [
-                    if (item.displayFactor != null)
-                      'Factor ${item.displayFactor}',
-                    if (item.reversed) 'Reverse view',
-                    if (item.isActive) 'Active',
-                  ].join(' · '),
-                  selected: identical(item.record, _selectedConversionRecord),
-                  onTap: () => _selectConversion(item),
-                );
-              },
-            ),
-          const SizedBox(height: 20),
-          Form(
-            key: _conversionFormKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_conversionError != null) ...[
-                  AppErrorStateView.inline(message: _conversionError!),
-                  const SizedBox(height: 12),
-                ],
-                SettingsFormWrap(
-                  children: [
-                    DropdownButtonFormField<int>(
-                      initialValue: _conversionTargetUomId,
-                      decoration: const InputDecoration(labelText: 'To UOM'),
-                      items: targetOptions
-                          .map(
-                            (uom) => DropdownMenuItem<int>(
-                              value: uom.id,
-                              child: Text(uom.toString()),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) =>
-                          setState(() => _conversionTargetUomId = value),
-                      validator: Validators.requiredSelection('To UOM'),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Conversion Factor',
-                      controller: _conversionFactorController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      validator: Validators.compose([
-                        Validators.required('Conversion factor'),
-                        Validators.optionalNonNegativeNumber(
-                          'Conversion factor',
-                        ),
-                      ]),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Factor is from the selected UOM to the target UOM. Reverse view is calculated automatically.',
-                ),
+        const SizedBox(height: 20),
+        Form(
+          key: _conversionFormKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_conversionError != null) ...[
+                AppErrorStateView.inline(message: _conversionError!),
                 const SizedBox(height: 12),
-                AppSwitchTile(
-                  label: 'Active',
-                  value: _conversionActive,
-                  onChanged: (value) =>
-                      setState(() => _conversionActive = value),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    AppActionButton(
-                      icon: Icons.save_outlined,
-                      label: _selectedConversionRecord == null
-                          ? 'Save Conversion'
-                          : 'Update Conversion',
-                      onPressed: _saveConversion,
-                      busy: _savingConversion,
-                    ),
-                    AppActionButton(
-                      icon: Icons.refresh_outlined,
-                      label: 'New',
-                      filled: false,
-                      onPressed: _savingConversion
-                          ? null
-                          : () => setState(_resetConversionForm),
-                    ),
-                    if (_selectedConversionRecord?.id != null)
-                      AppActionButton(
-                        icon: Icons.delete_outline,
-                        label: 'Delete',
-                        filled: false,
-                        onPressed: _savingConversion ? null : _deleteConversion,
-                      ),
-                  ],
-                ),
               ],
-            ),
+              SettingsFormWrap(
+                children: [
+                  DropdownButtonFormField<int>(
+                    initialValue: _conversionTargetUomId,
+                    decoration: const InputDecoration(labelText: 'To UOM'),
+                    items: targetOptions
+                        .map(
+                          (uom) => DropdownMenuItem<int>(
+                            value: uom.id,
+                            child: Text(uom.toString()),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) =>
+                        setState(() => _conversionTargetUomId = value),
+                    validator: Validators.requiredSelection('To UOM'),
+                  ),
+                  AppFormTextField(
+                    labelText: 'Conversion Factor',
+                    controller: _conversionFactorController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: Validators.compose([
+                      Validators.required('Conversion factor'),
+                      Validators.optionalNonNegativeNumber('Conversion factor'),
+                    ]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Factor is from the selected UOM to the target UOM. Reverse view is calculated automatically.',
+              ),
+              const SizedBox(height: 12),
+              AppSwitchTile(
+                label: 'Active',
+                value: _conversionActive,
+                onChanged: (value) => setState(() => _conversionActive = value),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: _selectedConversionRecord == null
+                        ? 'Save Conversion'
+                        : 'Update Conversion',
+                    onPressed: _saveConversion,
+                    busy: _savingConversion,
+                  ),
+                  AppActionButton(
+                    icon: Icons.refresh_outlined,
+                    label: 'New',
+                    filled: false,
+                    onPressed: _savingConversion
+                        ? null
+                        : () => setState(_resetConversionForm),
+                  ),
+                  if (_selectedConversionRecord?.id != null)
+                    AppActionButton(
+                      icon: Icons.delete_outline,
+                      label: 'Delete',
+                      filled: false,
+                      onPressed: _savingConversion ? null : _deleteConversion,
+                    ),
+                ],
+              ),
+            ],
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 }
 

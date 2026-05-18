@@ -1,17 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-
-import '../app/constants/app_ui_constants.dart';
-import '../app/navigation/app_navigation.dart';
-import '../app/theme/app_theme_extension.dart';
-import '../core/navigation/app_route_state.dart';
-import '../core/storage/session_storage.dart';
-import '../model/app/public_branding_model.dart';
-import '../model/auth/module_model.dart';
-import '../service/app/app_session_service.dart';
-import 'app_branding_logo.dart';
-import 'session_context_button.dart';
+import '../screen.dart';
 
 class AdaptiveShell extends StatefulWidget {
   const AdaptiveShell({
@@ -219,21 +206,25 @@ class _ShellHistoryButton extends StatelessWidget {
               ),
             )
           : OutlinedButton.icon(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          alignment: Alignment.centerLeft,
-          minimumSize: const Size.fromHeight(42),
-          side: BorderSide(color: foregroundColor.withValues(alpha: 0.18)),
-          foregroundColor: foregroundColor,
-          disabledForegroundColor: foregroundColor,
-          disabledBackgroundColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-          ),
-        ),
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-      ),
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                minimumSize: const Size.fromHeight(42),
+                side: BorderSide(
+                  color: foregroundColor.withValues(alpha: 0.18),
+                ),
+                foregroundColor: foregroundColor,
+                disabledForegroundColor: foregroundColor,
+                disabledBackgroundColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.buttonRadius,
+                  ),
+                ),
+              ),
+              icon: Icon(icon, size: 18),
+              label: Text(label),
+            ),
     );
   }
 }
@@ -378,9 +369,7 @@ class AdaptiveShellSearchField extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
           ),
           filled: true,
-          fillColor: colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.4,
-          ),
+          fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         ),
       ),
     );
@@ -589,9 +578,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(
-                      left: showPermanentDrawer
-                          ? AppUiConstants.spacingMd
-                          : 0,
+                      left: showPermanentDrawer ? AppUiConstants.spacingMd : 0,
                     ),
                     child: widget.child,
                   ),
@@ -745,7 +732,8 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     required Color selectedBackground,
     required Color selectedForeground,
   }) {
-    final isSelected = item.path != null && AppNavigation.containsPath(item, currentPath);
+    final isSelected =
+        item.path != null && AppNavigation.containsPath(item, currentPath);
 
     if (!item.hasChildren) {
       return _buildLeafTile(

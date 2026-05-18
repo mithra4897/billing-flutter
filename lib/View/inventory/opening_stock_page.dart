@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/inventory/opening_stock_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class OpeningStockPage extends StatefulWidget {
   const OpeningStockPage({
@@ -73,13 +71,13 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
           ),
         ];
 
-    if (widget.fixedItemId != null) {
-      return content;
-    }
+        if (widget.fixedItemId != null) {
+          return content;
+        }
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
         return AppStandaloneShell(
           title: 'Opening Stock',
           scrollController: _pageScrollController,
@@ -186,7 +184,9 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
     required bool fixedItemMode,
   }) {
     if (fixedItemMode &&
-        _viewModel.itemOptions.where((item) => item.id == widget.fixedItemId).isEmpty) {
+        _viewModel.itemOptions
+            .where((item) => item.id == widget.fixedItemId)
+            .isEmpty) {
       return const SettingsEmptyState(
         icon: Icons.inventory_2_outlined,
         title: 'Item Not Found',
@@ -484,49 +484,46 @@ class _OpeningStockEditor extends StatelessWidget {
                       children: [
                         AppSearchPickerField<int>(
                           labelText: 'Item',
-                          selectedLabel:
-                              fixedItemId != null
-                                  ? (fixedItemLabel ??
-                                        vm.itemOptions
-                                            .cast<ItemModel?>()
-                                            .firstWhere(
-                                              (item) => item?.id == fixedItemId,
-                                              orElse: () => null,
-                                            )
-                                            ?.toString())
-                                  : vm.itemOptions
+                          selectedLabel: fixedItemId != null
+                              ? (fixedItemLabel ??
+                                    vm.itemOptions
                                         .cast<ItemModel?>()
                                         .firstWhere(
-                                          (item) => item?.id == line.itemId,
+                                          (item) => item?.id == fixedItemId,
                                           orElse: () => null,
                                         )
-                                        ?.toString(),
-                          options:
-                              fixedItemId != null
-                                  ? vm.itemOptions
-                                        .where((item) => item.id == fixedItemId)
-                                        .map(
-                                          (item) => AppSearchPickerOption<int>(
-                                            value: item.id!,
-                                            label: item.toString(),
-                                            subtitle: item.itemCode,
-                                          ),
-                                        )
-                                        .toList(growable: false)
-                                  : vm.itemOptions
-                                        .where((item) => item.id != null)
-                                        .map(
-                                          (item) => AppSearchPickerOption<int>(
-                                            value: item.id!,
-                                            label: item.toString(),
-                                            subtitle: item.itemCode,
-                                          ),
-                                        )
-                                        .toList(growable: false),
-                          validator: (_) =>
-                              (fixedItemId ?? line.itemId) == null
-                                  ? 'Item is required'
-                                  : null,
+                                        ?.toString())
+                              : vm.itemOptions
+                                    .cast<ItemModel?>()
+                                    .firstWhere(
+                                      (item) => item?.id == line.itemId,
+                                      orElse: () => null,
+                                    )
+                                    ?.toString(),
+                          options: fixedItemId != null
+                              ? vm.itemOptions
+                                    .where((item) => item.id == fixedItemId)
+                                    .map(
+                                      (item) => AppSearchPickerOption<int>(
+                                        value: item.id!,
+                                        label: item.toString(),
+                                        subtitle: item.itemCode,
+                                      ),
+                                    )
+                                    .toList(growable: false)
+                              : vm.itemOptions
+                                    .where((item) => item.id != null)
+                                    .map(
+                                      (item) => AppSearchPickerOption<int>(
+                                        value: item.id!,
+                                        label: item.toString(),
+                                        subtitle: item.itemCode,
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                          validator: (_) => (fixedItemId ?? line.itemId) == null
+                              ? 'Item is required'
+                              : null,
                           onChanged: (value) {
                             if (!canEdit || fixedItemId != null) {
                               return;
@@ -590,8 +587,9 @@ class _OpeningStockEditor extends StatelessWidget {
                               if (!vm.isBatchManagedItem(line.itemId)) {
                                 return null;
                               }
-                              final hasBatchNo =
-                                  line.batchNoController.text.trim().isNotEmpty;
+                              final hasBatchNo = line.batchNoController.text
+                                  .trim()
+                                  .isNotEmpty;
                               if (!hasBatchNo) {
                                 return 'Batch is required';
                               }

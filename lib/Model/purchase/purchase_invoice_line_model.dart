@@ -1,3 +1,5 @@
+import '../../screen.dart';
+
 class PurchaseInvoiceLineModel {
   const PurchaseInvoiceLineModel({
     required this.itemId,

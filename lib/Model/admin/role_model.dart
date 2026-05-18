@@ -1,7 +1,4 @@
-import '../common/json_model.dart';
-import '../common/model_value.dart';
-import '../auth/role_permission_model.dart';
-import 'permission_model.dart';
+import '../../screen.dart';
 
 class RoleModel implements JsonModel {
   const RoleModel({

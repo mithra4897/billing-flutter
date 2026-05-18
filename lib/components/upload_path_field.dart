@@ -1,7 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../app/constants/app_ui_constants.dart';
-import '../app/theme/app_theme_extension.dart';
+import '../screen.dart';
 
 class UploadPathField extends StatelessWidget {
   const UploadPathField({
@@ -65,7 +62,10 @@ class UploadPathField extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
             decoration: InputDecoration(
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 8,
+              ),
               suffixIcon: Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: isUploading

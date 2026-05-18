@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class AccountingReportModel implements JsonModel {
   const AccountingReportModel(this.data);

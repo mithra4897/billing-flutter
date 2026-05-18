@@ -1,9 +1,4 @@
-import 'dart:typed_data';
-import '../../core/api/api_client.dart';
-import '../../core/api/api_endpoints.dart';
-import '../../core/models/api_response.dart';
-import '../../core/models/paginated_response.dart';
-import '../../model/media/media_file_model.dart';
+import '../../screen.dart';
 
 class MediaService {
   MediaService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();

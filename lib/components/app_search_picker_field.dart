@@ -1,7 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../app/constants/app_ui_constants.dart';
-import 'app_field_box.dart';
+import '../screen.dart';
 
 class AppSearchPickerOption<T> {
   const AppSearchPickerOption({
@@ -49,9 +46,7 @@ class AppSearchPickerField<T> extends StatelessWidget {
           final theme = Theme.of(context);
           final hasValue = (selectedLabel ?? '').trim().isNotEmpty;
           final textStyle = theme.textTheme.bodyLarge?.copyWith(
-            color: hasValue
-                ? theme.colorScheme.onSurface
-                : theme.hintColor,
+            color: hasValue ? theme.colorScheme.onSurface : theme.hintColor,
           );
 
           return InkWell(
@@ -59,10 +54,8 @@ class AppSearchPickerField<T> extends StatelessWidget {
               FocusScope.of(context).unfocus();
               final value = await showDialog<T>(
                 context: context,
-                builder: (context) => _SearchPickerDialog<T>(
-                  title: labelText,
-                  options: options,
-                ),
+                builder: (context) =>
+                    _SearchPickerDialog<T>(title: labelText, options: options),
               );
               if (!context.mounted) {
                 return;
@@ -71,9 +64,9 @@ class AppSearchPickerField<T> extends StatelessWidget {
               final selectedOption = value == null
                   ? null
                   : options.cast<AppSearchPickerOption<T>?>().firstWhere(
-                        (option) => option?.value == value,
-                        orElse: () => null,
-                      );
+                      (option) => option?.value == value,
+                      orElse: () => null,
+                    );
               field.didChange(selectedOption?.label ?? '');
             },
             borderRadius: BorderRadius.circular(4),
@@ -88,9 +81,7 @@ class AppSearchPickerField<T> extends StatelessWidget {
                 errorText: field.errorText,
               ),
               child: Text(
-                hasValue
-                    ? selectedLabel!
-                    : (hintText ?? 'Search and select'),
+                hasValue ? selectedLabel! : (hintText ?? 'Search and select'),
                 style: textStyle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

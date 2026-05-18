@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class AssetDowntimeLogModel implements JsonModel {
   const AssetDowntimeLogModel(this.data);

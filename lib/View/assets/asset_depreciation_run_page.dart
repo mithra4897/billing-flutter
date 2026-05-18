@@ -1,7 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/assets/asset_depreciation_run_view_model.dart';
-import '../purchase/purchase_support.dart';
-import 'asset_shell_route.dart';
 
 Map<String, dynamic>? _jsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -51,8 +48,7 @@ class _AssetDepreciationRunPageState extends State<AssetDepreciationRunPage> {
   @override
   void initState() {
     super.initState();
-    _vm = AssetDepreciationRunViewModel()
-      ..load(selectId: widget.initialId);
+    _vm = AssetDepreciationRunViewModel()..load(selectId: widget.initialId);
   }
 
   @override
@@ -214,9 +210,9 @@ class _AssetDepreciationRunPageState extends State<AssetDepreciationRunPage> {
                   return;
                 }
                 if (deleted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Run deleted.')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Run deleted.')));
                   openAssetShellRoute(context, '/assets/depreciation-runs');
                 } else {
                   _snack();
@@ -264,18 +260,14 @@ class _AssetDepreciationRunEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (vm.detail == null && vm.selected == null) {
-      return _CreateDepreciationRunForm(
-        vm: vm,
-        onCreate: onCreate,
-      );
+      return _CreateDepreciationRunForm(vm: vm, onCreate: onCreate);
     }
     final detail = vm.detail;
     if (detail == null) {
       return const SettingsEmptyState(
         icon: Icons.trending_down_outlined,
         title: 'Select a depreciation run',
-        message:
-            'Choose a row from the list or create a new depreciation run.',
+        message: 'Choose a row from the list or create a new depreciation run.',
       );
     }
 
@@ -285,8 +277,7 @@ class _AssetDepreciationRunEditor extends StatelessWidget {
     final canProcess = st == 'draft' || st == 'failed';
     final canPost = st == 'completed' && (vid == null || vid == 0);
     final canCancel = st != 'posted';
-    final canDelete =
-        st == 'draft' || st == 'failed' || st == 'cancelled';
+    final canDelete = st == 'draft' || st == 'failed' || st == 'cancelled';
     final theme = Theme.of(context);
     final voucher = _jsonMap(data['voucher']);
     final creator = _jsonMap(data['creator']);
@@ -383,15 +374,19 @@ class _AssetDepreciationRunEditor extends StatelessWidget {
                     ),
                     AppFormTextField(
                       labelText: 'Total depreciation',
-                      initialValue:
-                          stringValue(data, 'total_depreciation_amount'),
+                      initialValue: stringValue(
+                        data,
+                        'total_depreciation_amount',
+                      ),
                       readOnly: true,
                     ),
                     AppFormTextField(
                       labelText: 'Assets processed',
                       initialValue:
-                          intValue(data, 'total_assets_processed')
-                              ?.toString() ??
+                          intValue(
+                            data,
+                            'total_assets_processed',
+                          )?.toString() ??
                           '—',
                       readOnly: true,
                     ),
@@ -447,18 +442,12 @@ class _AssetDepreciationRunEditor extends StatelessWidget {
                       ),
                       AppFormTextField(
                         labelText: 'Approval',
-                        initialValue: stringValue(
-                          voucher,
-                          'approval_status',
-                        ),
+                        initialValue: stringValue(voucher, 'approval_status'),
                         readOnly: true,
                       ),
                       AppFormTextField(
                         labelText: 'Posting',
-                        initialValue: stringValue(
-                          voucher,
-                          'posting_status',
-                        ),
+                        initialValue: stringValue(voucher, 'posting_status'),
                         readOnly: true,
                       ),
                     ],
@@ -567,10 +556,7 @@ class _DepreciationLineCard extends StatelessWidget {
 }
 
 class _CreateDepreciationRunForm extends StatelessWidget {
-  const _CreateDepreciationRunForm({
-    required this.vm,
-    required this.onCreate,
-  });
+  const _CreateDepreciationRunForm({required this.vm, required this.onCreate});
 
   final AssetDepreciationRunViewModel vm;
   final Future<void> Function() onCreate;
@@ -583,19 +569,18 @@ class _CreateDepreciationRunForm extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'New depreciation run',
-              style: theme.textTheme.headlineSmall,
-            ),
+            Text('New depreciation run', style: theme.textTheme.headlineSmall),
             const SizedBox(height: AppUiConstants.spacingMd),
             if (vm.sessionCompanyId == null)
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: Text(
                   'Select a session company in the header.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.error,
-                      ),
+                    color: theme.colorScheme.error,
+                  ),
                 ),
               ),
             AppFormTextField(
@@ -634,13 +619,15 @@ class _CreateDepreciationRunForm extends StatelessWidget {
             const SizedBox(height: AppUiConstants.spacingSm),
             if (vm.seriesOptions.isEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: Text(
                   'No ASSET_DEPRECIATION_RUN document series found for this '
                   'company.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.error,
-                      ),
+                    color: theme.colorScheme.error,
+                  ),
                 ),
               )
             else

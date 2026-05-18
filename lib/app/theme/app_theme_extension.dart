@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import '../../screen.dart';
 
 @immutable
 class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
@@ -133,8 +133,7 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
           crmOverdueChartAccent ?? this.crmOverdueChartAccent,
       crmUpcomingChartAccent:
           crmUpcomingChartAccent ?? this.crmUpcomingChartAccent,
-      crmNoDateChartAccent:
-          crmNoDateChartAccent ?? this.crmNoDateChartAccent,
+      crmNoDateChartAccent: crmNoDateChartAccent ?? this.crmNoDateChartAccent,
       crmActionBackground: crmActionBackground ?? this.crmActionBackground,
       crmActionShadow: crmActionShadow ?? this.crmActionShadow,
       crmChartGrid: crmChartGrid ?? this.crmChartGrid,
@@ -208,8 +207,7 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
           Color.lerp(crmEnquiryAccent, other.crmEnquiryAccent, t) ??
           crmEnquiryAccent,
       crmTodayAccent:
-          Color.lerp(crmTodayAccent, other.crmTodayAccent, t) ??
-          crmTodayAccent,
+          Color.lerp(crmTodayAccent, other.crmTodayAccent, t) ?? crmTodayAccent,
       crmPendingAccent:
           Color.lerp(crmPendingAccent, other.crmPendingAccent, t) ??
           crmPendingAccent,

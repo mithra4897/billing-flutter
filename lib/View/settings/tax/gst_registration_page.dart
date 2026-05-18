@@ -559,23 +559,6 @@ class _GstRegistrationManagementPageState
   }
 
   Widget _buildInlineEditor() {
-    final branchOptions = branchesForCompany(_branches, _companyId)
-        .where(
-          (branch) =>
-              widget.fixedBranchId == null || branch.id == widget.fixedBranchId,
-        )
-        .toList(growable: false);
-    final locationOptions = locationsForBranch(_locations, _branchId);
-    final companyValue = _companies.any((company) => company.id == _companyId)
-        ? _companyId
-        : null;
-    final branchValue = branchOptions.any((branch) => branch.id == _branchId)
-        ? _branchId
-        : null;
-    final locationValue =
-        locationOptions.any((location) => location.id == _locationId)
-        ? _locationId
-        : null;
     final stateValue = _states.any((state) => state.id == _stateId)
         ? _stateId
         : null;

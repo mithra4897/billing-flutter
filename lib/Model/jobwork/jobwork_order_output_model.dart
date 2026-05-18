@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 /// Output line on a jobwork order (`jobwork_order_outputs`).
 class JobworkOrderOutputModel implements JsonModel {

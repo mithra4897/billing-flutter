@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 /// Backend `issue_purpose` enum values; labels are UI-facing.
 const List<AppDropdownItem<String>> stockIssuePurposeItems =
@@ -120,8 +119,10 @@ class StockIssueViewModel extends ChangeNotifier {
 
   List<BranchModel> get branchOptions =>
       branchesForCompany(branches, companyId);
+
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
+
   List<String> get contextLabels => workingContextLabels(
     companies: companies,
     branches: branches,

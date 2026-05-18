@@ -1,3 +1,5 @@
+import '../../screen.dart';
+
 class EmployeeAddressModel {
   const EmployeeAddressModel({
     this.id,

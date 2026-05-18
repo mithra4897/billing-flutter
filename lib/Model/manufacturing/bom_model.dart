@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class BomModel implements JsonModel {
   const BomModel(this.data);

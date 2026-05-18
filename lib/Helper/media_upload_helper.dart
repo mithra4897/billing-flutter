@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../service/media/media_service.dart';
+
+import '../screen.dart';
 
 class MediaUploadHelper {
   static Future<void> uploadImage({

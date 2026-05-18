@@ -1,5 +1,4 @@
-import 'package:billing/screen.dart';
-import 'package:billing/view/purchase/purchase_support.dart';
+import '../../../screen.dart';
 
 class StockBatchViewModel extends ChangeNotifier {
   StockBatchViewModel({this.initialItemId}) {
@@ -47,28 +46,32 @@ class StockBatchViewModel extends ChangeNotifier {
 
   List<WarehouseModel> get warehouseOptions {
     final itemCompanyId = selectedItem?.companyId;
-    return warehouses.where((warehouse) {
-      if (warehouse.id == null) {
-        return false;
-      }
-      if (itemCompanyId != null && warehouse.companyId != itemCompanyId) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    return warehouses
+        .where((warehouse) {
+          if (warehouse.id == null) {
+            return false;
+          }
+          if (itemCompanyId != null && warehouse.companyId != itemCompanyId) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
   }
 
   List<StockBatchModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) return true;
-      return [
-        stringValue(data, 'batch_no'),
-        stringValue(data, 'item_code'),
-        stringValue(data, 'item_name'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) return true;
+          return [
+            stringValue(data, 'batch_no'),
+            stringValue(data, 'item_code'),
+            stringValue(data, 'item_name'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   Future<void> load({int? selectId}) async {
@@ -77,23 +80,35 @@ class StockBatchViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final responses = await Future.wait<dynamic>([
-        _inventoryService.stockBatches(filters: const {'per_page': 200, 'sort_by': 'batch_no'}),
-        _inventoryService.items(filters: const {'per_page': 500, 'sort_by': 'item_name'}),
+        _inventoryService.stockBatches(
+          filters: const {'per_page': 200, 'sort_by': 'batch_no'},
+        ),
+        _inventoryService.items(
+          filters: const {'per_page': 500, 'sort_by': 'item_name'},
+        ),
         _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
-      rows = (responses[0] as PaginatedResponse<StockBatchModel>).data ?? const <StockBatchModel>[];
-      items = ((responses[1] as PaginatedResponse<ItemModel>).data ?? const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      warehouses = ((responses[2] as PaginatedResponse<WarehouseModel>).data ?? const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      rows =
+          (responses[0] as PaginatedResponse<StockBatchModel>).data ??
+          const <StockBatchModel>[];
+      items =
+          ((responses[1] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[2] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<StockBatchModel?>().firstWhere(
-              (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
-              orElse: () => null,
-            );
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
+          orElse: () => null,
+        );
         if (existing != null) {
           await select(existing);
           return;
@@ -122,11 +137,14 @@ class StockBatchViewModel extends ChangeNotifier {
     salesRateController.clear();
     mrpController.clear();
     remarksController.clear();
-    itemId = (initialItemId != null &&
+    itemId =
+        (initialItemId != null &&
             itemOptions.any((item) => item.id == initialItemId))
         ? initialItemId
         : (itemOptions.isNotEmpty ? itemOptions.first.id : null);
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     isActive = true;
     notifyListeners();
   }
@@ -145,8 +163,12 @@ class StockBatchViewModel extends ChangeNotifier {
       itemId = intValue(data, 'item_id');
       warehouseId = intValue(data, 'warehouse_id');
       batchNoController.text = stringValue(data, 'batch_no');
-      mfgDateController.text = displayDate(nullableStringValue(data, 'mfg_date'));
-      expiryDateController.text = displayDate(nullableStringValue(data, 'expiry_date'));
+      mfgDateController.text = displayDate(
+        nullableStringValue(data, 'mfg_date'),
+      );
+      expiryDateController.text = displayDate(
+        nullableStringValue(data, 'expiry_date'),
+      );
       inwardQtyController.text = stringValue(data, 'inward_qty', '0');
       outwardQtyController.text = stringValue(data, 'outward_qty', '0');
       balanceQtyController.text = stringValue(data, 'balance_qty', '0');
@@ -167,7 +189,9 @@ class StockBatchViewModel extends ChangeNotifier {
   void onItemChanged(int? value) {
     itemId = value;
     if (!warehouseOptions.any((warehouse) => warehouse.id == warehouseId)) {
-      warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+      warehouseId = warehouseOptions.isNotEmpty
+          ? warehouseOptions.first.id
+          : null;
     }
     notifyListeners();
   }
@@ -196,8 +220,10 @@ class StockBatchViewModel extends ChangeNotifier {
     if (outward > inward) {
       return 'Outward quantity cannot be greater than inward quantity.';
     }
-    if (purchaseRate != null && purchaseRate < 0) return 'Purchase rate cannot be negative.';
-    if (salesRate != null && salesRate < 0) return 'Sales rate cannot be negative.';
+    if (purchaseRate != null && purchaseRate < 0)
+      return 'Purchase rate cannot be negative.';
+    if (salesRate != null && salesRate < 0)
+      return 'Sales rate cannot be negative.';
     if (mrp != null && mrp < 0) return 'MRP cannot be negative.';
     if (salesRate != null && mrp != null && salesRate > mrp) {
       return 'Sales rate cannot be greater than MRP.';
@@ -243,7 +269,10 @@ class StockBatchViewModel extends ChangeNotifier {
               intValue(selected!.toJson(), 'id')!,
               StockBatchModel(payload),
             );
-      final id = intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id');
+      final id = intValue(
+        response.data?.toJson() ?? const <String, dynamic>{},
+        'id',
+      );
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();

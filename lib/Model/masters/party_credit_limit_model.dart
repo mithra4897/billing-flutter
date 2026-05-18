@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class PartyCreditLimitModel implements JsonModel {
   const PartyCreditLimitModel(this.data);

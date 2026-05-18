@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import 'voucher_line_model.dart';
+import '../../screen.dart';
 
 class VoucherModel implements JsonModel {
   const VoucherModel({
@@ -73,7 +72,9 @@ class VoucherModel implements JsonModel {
     final company = _asMap(json['company']);
     final branch = _asMap(json['branch']);
     final location = _asMap(json['location']);
-    final financialYear = _asMap(json['financialYear'] ?? json['financial_year']);
+    final financialYear = _asMap(
+      json['financialYear'] ?? json['financial_year'],
+    );
     final voucherType = _asMap(json['voucherType'] ?? json['voucher_type']);
     final documentSeries = _asMap(
       json['documentSeries'] ?? json['document_series'],

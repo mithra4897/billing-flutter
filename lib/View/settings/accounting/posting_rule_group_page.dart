@@ -29,10 +29,8 @@ class _PostingRuleGroupManagementPageState
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _documentTypeController =
-      TextEditingController();
-  final TextEditingController _descriptionController =
-      TextEditingController();
+  final TextEditingController _documentTypeController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
   bool _initialLoading = true;
   bool _saving = false;
@@ -313,7 +311,8 @@ class _PostingRuleGroupManagementPageState
                   labelText: 'Trigger event',
                   mappedItems: _triggerItems,
                   initialValue: _triggerEvent,
-                  onChanged: (v) => setState(() => _triggerEvent = v ?? 'on_post'),
+                  onChanged: (v) =>
+                      setState(() => _triggerEvent = v ?? 'on_post'),
                 ),
                 AppFormTextField(
                   labelText: 'Description',

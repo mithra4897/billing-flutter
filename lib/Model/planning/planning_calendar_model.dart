@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class PlanningCalendarModel implements JsonModel {
   const PlanningCalendarModel(this.data);

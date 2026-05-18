@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import '../../screen.dart';
-import '../purchase/purchase_support.dart';
 
 /// When no company is stored but the user has exactly one active company, persist it
 /// so HR screens behave like the rest of the app without an extra header step.

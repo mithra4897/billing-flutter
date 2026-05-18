@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../hr/hr_workflow_dialogs.dart';
 
 Map<String, dynamic>? _assetJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -86,9 +85,6 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
   List<AssetModel> _rows = const <AssetModel>[];
   List<AssetCategoryModel> _categories = const <AssetCategoryModel>[];
   List<CostCenterModel> _costCenters = const <CostCenterModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<WarehouseModel> _warehouses = const <WarehouseModel>[];
   List<PartyModel> _parties = const <PartyModel>[];
 
@@ -192,31 +188,6 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
             return true;
           }
           return costCenter.companyId == _companyId;
-        })
-        .toList(growable: false);
-  }
-
-  List<BranchModel> get _branchOptions {
-    return _branches
-        .where((branch) {
-          if (_companyId == null) {
-            return true;
-          }
-          return branch.companyId == _companyId;
-        })
-        .toList(growable: false);
-  }
-
-  List<BusinessLocationModel> get _locationOptions {
-    return _locations
-        .where((location) {
-          if (_companyId != null && location.companyId != _companyId) {
-            return false;
-          }
-          if (_branchId != null && location.branchId != _branchId) {
-            return false;
-          }
-          return true;
         })
         .toList(growable: false);
   }
@@ -364,21 +335,6 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
       _costCenters =
           (responses[2] as PaginatedResponse<CostCenterModel>).data ??
           const <CostCenterModel>[];
-      _companies =
-          ((responses[3] as PaginatedResponse<CompanyModel>).data ??
-                  const <CompanyModel>[])
-              .where((company) => company.isActive)
-              .toList(growable: false);
-      _branches =
-          ((responses[4] as PaginatedResponse<BranchModel>).data ??
-                  const <BranchModel>[])
-              .where((branch) => branch.isActive)
-              .toList(growable: false);
-      _locations =
-          ((responses[5] as PaginatedResponse<BusinessLocationModel>).data ??
-                  const <BusinessLocationModel>[])
-              .where((location) => location.isActive)
-              .toList(growable: false);
       _warehouses =
           ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
                   const <WarehouseModel>[])

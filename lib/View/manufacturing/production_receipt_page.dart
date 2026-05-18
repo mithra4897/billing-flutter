@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/manufacturing/production_receipt_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class ProductionReceiptPage extends StatefulWidget {
   const ProductionReceiptPage({
@@ -124,7 +122,8 @@ class _ProductionReceiptPageState extends State<ProductionReceiptPage> {
               await _viewModel.select(item);
               if (!mounted) return;
               final id = intValue(data, 'id');
-              if (id != null) _openRoute('/manufacturing/production-receipts/$id');
+              if (id != null)
+                _openRoute('/manufacturing/production-receipts/$id');
               if (!isDesktop) _workspaceController.openEditor();
             },
           );
@@ -191,7 +190,11 @@ class _ProductionReceiptEditor extends StatelessWidget {
                       .map(
                         (x) => AppDropdownItem<int>(
                           value: intValue(x.toJson(), 'id')!,
-                          label: stringValue(x.toJson(), 'production_no', 'Order'),
+                          label: stringValue(
+                            x.toJson(),
+                            'production_no',
+                            'Order',
+                          ),
                         ),
                       )
                       .toList(growable: false),
@@ -228,15 +231,17 @@ class _ProductionReceiptEditor extends StatelessWidget {
                 Text(
                   'Lines',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const Spacer(),
                 AppActionButton(
                   icon: Icons.add_outlined,
                   label: 'Add line',
                   filled: false,
-                  onPressed: vm.isDraft || vm.selected == null ? vm.addLine : null,
+                  onPressed: vm.isDraft || vm.selected == null
+                      ? vm.addLine
+                      : null,
                 ),
               ],
             ),
@@ -244,11 +249,14 @@ class _ProductionReceiptEditor extends StatelessWidget {
             ...List<Widget>.generate(vm.lines.length, (index) {
               final line = vm.lines[index];
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
                 child: PurchaseCompactLineCard(
                   index: index,
                   total: vm.lines.length,
-                  removeEnabled: (vm.isDraft || vm.selected == null) &&
+                  removeEnabled:
+                      (vm.isDraft || vm.selected == null) &&
                       vm.lines.length > 1,
                   onRemove: (vm.isDraft || vm.selected == null)
                       ? () => vm.removeLine(index)
@@ -280,9 +288,15 @@ class _ProductionReceiptEditor extends StatelessWidget {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'UOM',
-                        mappedItems: vm.uomOptionsForItem(line.itemId)
+                        mappedItems: vm
+                            .uomOptionsForItem(line.itemId)
                             .where((x) => x.id != null)
-                            .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                            .map(
+                              (x) => AppDropdownItem<int>(
+                                value: x.id!,
+                                label: x.toString(),
+                              ),
+                            )
                             .toList(growable: false),
                         initialValue: line.uomId,
                         onChanged: (value) => vm.setLineUomId(index, value),
@@ -292,18 +306,28 @@ class _ProductionReceiptEditor extends StatelessWidget {
                         labelText: 'Warehouse',
                         mappedItems: vm.warehouses
                             .where((x) => x.id != null)
-                            .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                            .map(
+                              (x) => AppDropdownItem<int>(
+                                value: x.id!,
+                                label: x.toString(),
+                              ),
+                            )
                             .toList(growable: false),
                         initialValue: line.warehouseId,
-                        onChanged: (value) => vm.setLineWarehouseId(index, value),
+                        onChanged: (value) =>
+                            vm.setLineWarehouseId(index, value),
                         validator: Validators.requiredSelection('Warehouse'),
                       ),
                       AppFormTextField(
                         labelText: 'Receipt Qty',
                         controller: line.receiptQtyController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         enabled: vm.isDraft || vm.selected == null,
-                        validator: Validators.requiredPositiveNumber('Receipt Qty'),
+                        validator: Validators.requiredPositiveNumber(
+                          'Receipt Qty',
+                        ),
                       ),
                     ],
                   ),

@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/maintenance/amc_contract_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class AmcContractPage extends StatefulWidget {
   const AmcContractPage({

@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class PostingRuleModel implements JsonModel {
   const PostingRuleModel(this.data);

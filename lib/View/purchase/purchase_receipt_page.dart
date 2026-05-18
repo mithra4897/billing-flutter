@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import '../../screen.dart';
-import 'purchase_support.dart';
 
 class PurchaseReceiptPage extends StatefulWidget {
   const PurchaseReceiptPage({
@@ -60,9 +59,6 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
   String _statusFilter = '';
   List<PurchaseReceiptModel> _items = const <PurchaseReceiptModel>[];
   List<PurchaseReceiptModel> _filteredItems = const <PurchaseReceiptModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PurchaseOrderModel> _orders = const <PurchaseOrderModel>[];
@@ -190,15 +186,6 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
         _items =
             (responses[0] as PaginatedResponse<PurchaseReceiptModel>).data ??
             const <PurchaseReceiptModel>[];
-        _companies =
-            (responses[1] as PaginatedResponse<CompanyModel>).data ??
-            const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -646,11 +633,6 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
       }
     });
   }
-
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
 
   void _addLine() => setState(
     () =>

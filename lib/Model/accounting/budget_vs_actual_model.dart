@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class BudgetVsActualModel implements JsonModel {
   const BudgetVsActualModel(this.data);

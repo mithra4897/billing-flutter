@@ -1,8 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../core/storage/session_storage.dart';
-import '../model/app/public_branding_model.dart';
-import 'adaptive_shell.dart';
+import '../screen.dart';
 
 class AppStandaloneShell extends StatelessWidget {
   const AppStandaloneShell({

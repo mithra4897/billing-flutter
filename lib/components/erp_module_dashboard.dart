@@ -1,12 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
-
-import '../app/constants/app_ui_constants.dart';
-import '../app/theme/app_theme_extension.dart';
-import '../helper/responsive.dart';
-import '../View/core/page_shell_actions.dart';
-import 'adaptive_shell.dart';
+import '../screen.dart';
 
 enum ErpDashboardTrendControlValue { monthly, weekly, yearly, custom }
 

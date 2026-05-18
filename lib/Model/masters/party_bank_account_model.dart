@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class PartyBankAccountModel implements JsonModel {
   const PartyBankAccountModel(this.data);

@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/quality/qc_inspection_view_model.dart';
 
 class QcInspectionPage extends StatefulWidget {
   const QcInspectionPage({

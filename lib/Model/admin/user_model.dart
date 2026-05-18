@@ -1,8 +1,4 @@
-import '../common/json_model.dart';
-import '../common/model_value.dart';
-import 'role_model.dart';
-import '../auth/user_permission_model.dart';
-import '../auth/user_role_model.dart';
+import '../../screen.dart';
 
 class UserModel implements JsonModel {
   const UserModel({

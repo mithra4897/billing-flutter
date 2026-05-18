@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import 'purchase_support.dart';
 
 class PurchasePaymentPage extends StatefulWidget {
   const PurchasePaymentPage({
@@ -70,9 +69,6 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
   String _paymentMode = 'bank';
   List<PurchasePaymentModel> _items = const <PurchasePaymentModel>[];
   List<PurchasePaymentModel> _filteredItems = const <PurchasePaymentModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> _suppliers = const <PartyModel>[];
@@ -188,15 +184,6 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
         _items =
             (responses[0] as PaginatedResponse<PurchasePaymentModel>).data ??
             const <PurchasePaymentModel>[];
-        _companies =
-            (responses[1] as PaginatedResponse<CompanyModel>).data ??
-            const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -531,12 +518,6 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
       _formError = null;
     });
   }
-
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
 
   List<PurchaseInvoiceModel> get _invoiceOptions => _invoices
       .where(

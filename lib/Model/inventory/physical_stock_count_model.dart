@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import 'physical_stock_count_line_model.dart';
+import '../../screen.dart';
 
 class PhysicalStockCountModel implements JsonModel {
   const PhysicalStockCountModel({

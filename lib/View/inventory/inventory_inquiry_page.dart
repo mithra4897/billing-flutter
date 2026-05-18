@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import '../../screen.dart';
 
 class InventoryInquiryPage extends StatefulWidget {
@@ -92,7 +90,9 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
       }
       setState(() {
         _companies = activeCompanies;
-        _items = items.where((ItemModel i) => i.isActive).toList(growable: false);
+        _items = items
+            .where((ItemModel i) => i.isActive)
+            .toList(growable: false);
         _warehouses = warehouses
             .where((WarehouseModel w) => w.isActive)
             .toList(growable: false);
@@ -126,30 +126,30 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
     try {
       final ApiResponse<dynamic> response = switch (_mode) {
         'summary' => await _inventoryService.inquiryItemStockSummary(
-            itemId: itemId,
-            companyId: _companyId,
-          ),
+          itemId: itemId,
+          companyId: _companyId,
+        ),
         'warehouse' => await _inventoryService.inquiryWarehouseWiseStock(
-            itemId: itemId,
-            companyId: _companyId,
-          ),
+          itemId: itemId,
+          companyId: _companyId,
+        ),
         'batch' => await _inventoryService.inquiryBatchWiseStock(
-            itemId: itemId,
-            companyId: _companyId,
-            warehouseId: _warehouseId,
-          ),
+          itemId: itemId,
+          companyId: _companyId,
+          warehouseId: _warehouseId,
+        ),
         'serials' => await _inventoryService.inquiryAvailableSerials(
-            itemId: itemId,
-            warehouseId: _warehouseId,
-          ),
+          itemId: itemId,
+          warehouseId: _warehouseId,
+        ),
         'card' => await _inventoryService.inquiryStockCard(
-            itemId: itemId,
-            companyId: _companyId,
-          ),
+          itemId: itemId,
+          companyId: _companyId,
+        ),
         _ => await _inventoryService.inquiryReorderStatus(
-            itemId: itemId,
-            companyId: _companyId,
-          ),
+          itemId: itemId,
+          companyId: _companyId,
+        ),
       };
 
       if (!mounted) {
@@ -233,20 +233,16 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
 
     final companyItems = _companies
         .map(
-          (CompanyModel c) => AppDropdownItem<int?>(
-            value: c.id,
-            label: c.toString(),
-          ),
+          (CompanyModel c) =>
+              AppDropdownItem<int?>(value: c.id, label: c.toString()),
         )
         .toList(growable: false);
 
     final warehouseItems = <AppDropdownItem<int?>>[
       const AppDropdownItem<int?>(value: null, label: 'All warehouses'),
       ..._warehouses.map(
-        (WarehouseModel w) => AppDropdownItem<int?>(
-          value: w.id,
-          label: w.toString(),
-        ),
+        (WarehouseModel w) =>
+            AppDropdownItem<int?>(value: w.id, label: w.toString()),
       ),
     ];
 
@@ -323,8 +319,7 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
                       width: 320,
                       onChanged: (value) => setState(() => _itemId = value),
                     ),
-                    if (_mode == 'batch' ||
-                        _mode == 'serials') ...[
+                    if (_mode == 'batch' || _mode == 'serials') ...[
                       AppDropdownField<int?>.fromMapped(
                         labelText: 'Warehouse',
                         mappedItems: warehouseItems,

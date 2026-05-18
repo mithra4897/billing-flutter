@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class MrpSupplyModel implements JsonModel {
   const MrpSupplyModel(this.data);

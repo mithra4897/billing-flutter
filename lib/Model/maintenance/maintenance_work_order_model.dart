@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class MaintenanceWorkOrderModel implements JsonModel {
   const MaintenanceWorkOrderModel(this.data);

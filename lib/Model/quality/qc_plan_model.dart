@@ -1,5 +1,4 @@
-import '../common/json_model.dart';
-import 'qc_plan_line_model.dart';
+import '../../screen.dart';
 
 class QcPlanModel implements JsonModel {
   const QcPlanModel({
@@ -73,9 +72,7 @@ class QcPlanModel implements JsonModel {
           ? ln
                 .whereType<Map>()
                 .map(
-                  (e) => QcPlanLineModel.fromJson(
-                    Map<String, dynamic>.from(e),
-                  ),
+                  (e) => QcPlanLineModel.fromJson(Map<String, dynamic>.from(e)),
                 )
                 .toList()
           : const <QcPlanLineModel>[],

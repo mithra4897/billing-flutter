@@ -1,4 +1,4 @@
-import '../common/json_model.dart';
+import '../../screen.dart';
 
 class VoucherAllocationModel implements JsonModel {
   const VoucherAllocationModel(this.data);

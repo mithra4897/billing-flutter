@@ -270,62 +270,62 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-                if (_formError != null) ...[
-                  AppErrorStateView.inline(message: _formError!),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                ],
-                SettingsFormWrap(
-                  children: [
-                    AppFormTextField(
-                      labelText: 'Leave Name',
-                      controller: _leaveNameController,
-                      validator: Validators.compose([
-                        Validators.required('Leave Name'),
-                        Validators.optionalMaxLength(100, 'Leave Name'),
-                      ]),
-                    ),
-                    AppFormTextField(
-                      labelText: 'Max Days Per Year',
-                      controller: _maxDaysController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      validator: Validators.optionalNonNegativeNumber(
-                        'Max Days Per Year',
-                      ),
-                    ),
-                  ],
+            if (_formError != null) ...[
+              AppErrorStateView.inline(message: _formError!),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            SettingsFormWrap(
+              children: [
+                AppFormTextField(
+                  labelText: 'Leave Name',
+                  controller: _leaveNameController,
+                  validator: Validators.compose([
+                    Validators.required('Leave Name'),
+                    Validators.optionalMaxLength(100, 'Leave Name'),
+                  ]),
                 ),
-                const SizedBox(height: AppUiConstants.spacingMd),
-                AppSwitchTile(
-                  label: 'Paid Leave',
-                  value: _isPaid,
-                  onChanged: (value) => setState(() => _isPaid = value),
-                ),
-                const SizedBox(height: AppUiConstants.spacingLg),
-                Wrap(
-                  spacing: AppUiConstants.spacingSm,
-                  runSpacing: AppUiConstants.spacingSm,
-                  children: [
-                    AppActionButton(
-                      icon: Icons.save_outlined,
-                      label: _selectedLeaveType == null
-                          ? 'Save Leave Type'
-                          : 'Update Leave Type',
-                      onPressed: _saving ? null : _save,
-                      busy: _saving,
-                    ),
-                    if (_selectedLeaveType?.id != null)
-                      AppActionButton(
-                        icon: Icons.delete_outline,
-                        label: 'Delete',
-                        onPressed: _delete,
-                        busy: _saving,
-                        filled: false,
-                      ),
-                  ],
+                AppFormTextField(
+                  labelText: 'Max Days Per Year',
+                  controller: _maxDaysController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Max Days Per Year',
+                  ),
                 ),
               ],
+            ),
+            const SizedBox(height: AppUiConstants.spacingMd),
+            AppSwitchTile(
+              label: 'Paid Leave',
+              value: _isPaid,
+              onChanged: (value) => setState(() => _isPaid = value),
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+            Wrap(
+              spacing: AppUiConstants.spacingSm,
+              runSpacing: AppUiConstants.spacingSm,
+              children: [
+                AppActionButton(
+                  icon: Icons.save_outlined,
+                  label: _selectedLeaveType == null
+                      ? 'Save Leave Type'
+                      : 'Update Leave Type',
+                  onPressed: _saving ? null : _save,
+                  busy: _saving,
+                ),
+                if (_selectedLeaveType?.id != null)
+                  AppActionButton(
+                    icon: Icons.delete_outline,
+                    label: 'Delete',
+                    onPressed: _delete,
+                    busy: _saving,
+                    filled: false,
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

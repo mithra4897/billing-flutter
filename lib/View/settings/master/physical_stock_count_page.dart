@@ -135,10 +135,18 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
       final serials =
           (responses[10] as ApiResponse<List<StockSerialModel>>).data ??
           const <StockSerialModel>[];
-      final activeCompanies = companies.where((company) => company.isActive).toList();
-      final activeBranches = branches.where((branch) => branch.isActive).toList();
-      final activeLocations = locations.where((location) => location.isActive).toList();
-      final activeFinancialYears = financialYears.where((fy) => fy.isActive).toList();
+      final activeCompanies = companies
+          .where((company) => company.isActive)
+          .toList();
+      final activeBranches = branches
+          .where((branch) => branch.isActive)
+          .toList();
+      final activeLocations = locations
+          .where((location) => location.isActive)
+          .toList();
+      final activeFinancialYears = financialYears
+          .where((fy) => fy.isActive)
+          .toList();
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: activeCompanies,
@@ -229,7 +237,8 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
     _warehouseId = item.warehouseId;
     _countNoController.text = item.countNo ?? '';
     _countDateController.text =
-        item.countDate?.split('T').first.split(' ').first ?? DateTime.now().toIso8601String().split('T').first;
+        item.countDate?.split('T').first.split(' ').first ??
+        DateTime.now().toIso8601String().split('T').first;
     _remarksController.text = item.remarks ?? '';
     _countScope = item.countScope ?? 'selected_items';
     _lines = item.items.toList(growable: true);

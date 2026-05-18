@@ -1,7 +1,4 @@
-import 'package:flutter/material.dart';
-
-import '../purchase/purchase_support.dart';
-import '../settings/master/master_setup_helpers.dart';
+import '../../screen.dart';
 
 enum CrmFollowupTimingBucket { today, overdue, upcoming }
 

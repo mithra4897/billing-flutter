@@ -378,7 +378,6 @@ class _ItemSupplierMapManagementPageState
     );
   }
 
-
   Set<int> _allowedUomIdsForItem(ItemModel? item) {
     final seedIds = <int>{
       if (item?.baseUomId != null) item!.baseUomId!,

@@ -1,6 +1,4 @@
 import '../../screen.dart';
-import '../../view_model/inventory/internal_stock_receipt_view_model.dart';
-import '../purchase/purchase_support.dart';
 
 class InternalStockReceiptPage extends StatefulWidget {
   const InternalStockReceiptPage({
