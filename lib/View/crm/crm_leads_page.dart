@@ -35,17 +35,12 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     with SingleTickerProviderStateMixin {
   static const int _allFilterIntValue = 0;
   static const String _allFilterStringValue = '__all__';
-  static const List<AppDropdownItem<String>> _leadStatuses =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'new', label: 'New'),
-        AppDropdownItem(value: 'contacted', label: 'Contacted'),
-        AppDropdownItem(value: 'qualified', label: 'Qualified'),
-        AppDropdownItem(value: 'unqualified', label: 'Unqualified'),
-      ];
   static const List<AppDropdownItem<String>> _leadFilterStatuses =
       <AppDropdownItem<String>>[
-        ..._leadStatuses,
+        AppDropdownItem(value: 'new', label: 'New'),
+        AppDropdownItem(value: 'in_progress', label: 'In Progress'),
         AppDropdownItem(value: 'converted', label: 'Converted'),
+        AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
   static const List<AppDropdownItem<String>> _activityTypes =
       <AppDropdownItem<String>>[
@@ -56,8 +51,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         AppDropdownItem(value: 'whatsapp', label: 'WhatsApp'),
       ];
 
-  static bool _isCompletedLead(CrmLeadModel item) =>
-      stringValue(item.toJson(), 'lead_status') == 'converted';
+  static bool _isCompletedLead(CrmLeadModel item) {
+    final status = stringValue(item.toJson(), 'lead_status');
+    return status == 'converted' || status == 'lost';
+  }
 
   static bool _isLockedLeadStatus(String status) =>
       status == 'converted' || status == 'lost';
@@ -102,6 +99,31 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   bool _appliedInitialNewMode = false;
   bool _filtersApplied = false;
   BuildContext? _primaryFormContext;
+
+  String _effectiveLeadStatus() {
+    final status = _leadStatus.trim().toLowerCase();
+    if (status == 'converted' || status == 'lost') {
+      return status;
+    }
+    if (_activities.isNotEmpty) {
+      return 'in_progress';
+    }
+    return 'new';
+  }
+
+  String _leadStatusLabel([String? status]) {
+    switch ((status ?? _effectiveLeadStatus()).trim().toLowerCase()) {
+      case 'in_progress':
+        return 'In Progress';
+      case 'converted':
+        return 'Converted';
+      case 'lost':
+        return 'Lost';
+      case 'new':
+      default:
+        return 'New';
+    }
+  }
 
   @override
   void initState() {
@@ -277,12 +299,13 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   stringValue(data, 'company_name'),
                   stringValue(data, 'mobile'),
                   stringValue(data, 'email'),
-                  stringValue(data, 'lead_status'),
+                  _leadStatusLabel(stringValue(data, 'lead_status')),
                 ];
               })
               .where((item) {
                 final data = item.toJson();
                 final isCompletedLead = _isCompletedLead(item);
+                final rowStatus = stringValue(data, 'lead_status', 'new');
                 final requestedStatus =
                     (_filtersApplied
                             ? (_filterLeadStatus ?? _allFilterStringValue)
@@ -292,7 +315,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                     _filtersApplied && requestedStatus == _allFilterStringValue;
                 if (isCompletedLead &&
                     !showAllStatuses &&
-                    requestedStatus != 'converted') {
+                    requestedStatus != rowStatus) {
                   return false;
                 }
                 if (_filterCompanyId != null &&
@@ -311,7 +334,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 }
                 if ((_filterLeadStatus ?? '').isNotEmpty &&
                     _filterLeadStatus != _allFilterStringValue &&
-                    stringValue(data, 'lead_status') != _filterLeadStatus) {
+                    rowStatus != _filterLeadStatus) {
                   return false;
                 }
                 return true;
@@ -494,7 +517,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       if (_filterAssignedTo != null || _filtersApplied)
         'Assigned: ${_filterAssignedTo == null ? 'All' : _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.displayName ?? _users.cast<UserModel?>().firstWhere((item) => item?.id == _filterAssignedTo, orElse: () => null)?.username ?? _filterAssignedTo}',
       if ((_filterLeadStatus ?? '').isNotEmpty || _filtersApplied)
-        'Status: ${(_filterLeadStatus ?? _allFilterStringValue) == _allFilterStringValue ? 'All' : _filterLeadStatus}',
+        'Status: ${(_filterLeadStatus ?? _allFilterStringValue) == _allFilterStringValue ? 'All' : _leadStatusLabel(_filterLeadStatus)}',
     ];
 
     if (chips.isEmpty) {
@@ -594,10 +617,26 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     return intValue(Map<String, dynamic>.from(raw), 'id');
   }
 
+  int? _opportunityIdFromSalesChain() {
+    final chain = _salesChain;
+    if (chain == null) {
+      return null;
+    }
+    final raw = chain['opportunity'];
+    if (raw is! Map) {
+      return null;
+    }
+    return intValue(Map<String, dynamic>.from(raw), 'id');
+  }
+
   Future<void> _handleEnquiryFromLead() async {
-    final enquiryId = _enquiryIdFromSalesChain();
-    if (enquiryId != null) {
-      _openCrmShellRoute(context, '/crm/enquiries?select_id=$enquiryId');
+    final opportunityId =
+        _opportunityIdFromSalesChain() ?? _enquiryIdFromSalesChain();
+    if (opportunityId != null) {
+      _openCrmShellRoute(
+        context,
+        '/crm/opportunities?select_id=$opportunityId',
+      );
       return;
     }
     await _convert(createEnquiry: true);
@@ -669,7 +708,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       'email': nullIfEmpty(_emailController.text),
       'source_id': _sourceId,
       'assigned_to': _assignedTo,
-      'lead_status': _leadStatus,
+      'lead_status': _effectiveLeadStatus(),
       'remarks': nullIfEmpty(_remarksController.text),
       'activities': _activities
           .map((item) => item.toJson())
@@ -813,7 +852,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 TextButton(
                   onPressed: () {
                     messenger.hideCurrentSnackBar();
-                    final route = '/crm/enquiries?select_id=$enquiryId';
+                    final route = '/crm/opportunities?select_id=$enquiryId';
                     if (shellNavigate != null) {
                       shellNavigate(route);
                       return;
@@ -822,7 +861,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       navigator.pushNamed(route);
                     }
                   },
-                  child: const Text('Open enquiry'),
+                  child: const Text('Open opportunity'),
                 ),
               ],
             ),
@@ -921,12 +960,14 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 subtitle: [
                   stringValue(data, 'company_name'),
                   stringValue(data, 'mobile'),
-                  stringValue(data, 'lead_status'),
+                  _leadStatusLabel(stringValue(data, 'lead_status', 'new')),
                 ].where((value) => value.trim().isNotEmpty).join(' • '),
                 selected: selected,
                 onTap: () => _selectItem(item),
                 trailing: SettingsStatusPill(
-                  label: stringValue(data, 'lead_status', 'new'),
+                  label: _leadStatusLabel(
+                    stringValue(data, 'lead_status', 'new'),
+                  ),
                   active: stringValue(data, 'lead_status', 'new') != 'lost',
                 ),
               );
@@ -985,8 +1026,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 CrmSalesPipelineBar(data: _salesChain, hideLeadChip: true),
               if (_isSelectedLeadReadOnly) ...[
                 Text(
-                  _leadStatus == 'converted'
-                      ? 'This lead is converted. Details are read-only. Use Open enquiry if one exists, or delete the lead if needed.'
+                  _effectiveLeadStatus() == 'converted'
+                      ? 'This lead is converted. Details are read-only. Open the linked opportunity to continue the sales process.'
                       : 'This lead is lost. Details are read-only.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1053,21 +1094,15 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       validator: Validators.requiredSelection('Assigned To'),
                       onChanged: (value) => setState(() => _assignedTo = value),
                     ),
-                    if (_isSelectedLeadReadOnly)
-                      AppFormTextField(
-                        labelText: 'Status',
-                        initialValue: _leadStatus.replaceAll('_', ' '),
-                        readOnly: true,
-                        enabled: false,
-                      )
-                    else
-                      AppDropdownField<String>.fromMapped(
-                        labelText: 'Status',
-                        mappedItems: _leadStatuses,
-                        initialValue: _leadStatus,
-                        onChanged: (value) =>
-                            setState(() => _leadStatus = value ?? _leadStatus),
+                    AppFormTextField(
+                      key: ValueKey<String>(
+                        'lead-status-${_effectiveLeadStatus()}',
                       ),
+                      labelText: 'Status',
+                      initialValue: _leadStatusLabel(),
+                      readOnly: true,
+                      enabled: false,
+                    ),
                     AppFormTextField(
                       controller: _remarksController,
                       labelText: 'Remarks',
@@ -1094,7 +1129,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   if (_selectedItem != null && !_isSelectedLeadReadOnly) ...[
                     AppActionButton(
                       icon: Icons.forward_outlined,
-                      label: 'Convert to Enquiry',
+                      label: 'Create Opportunity',
                       onPressed: _handleEnquiryFromLead,
                     ),
                     AppActionButton(
@@ -1106,13 +1141,15 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   ],
                   if (_selectedItem != null &&
                       _isSelectedLeadReadOnly &&
-                      _enquiryIdFromSalesChain() != null)
+                      (_opportunityIdFromSalesChain() ??
+                              _enquiryIdFromSalesChain()) !=
+                          null)
                     AppActionButton(
                       icon: Icons.open_in_new_outlined,
-                      label: 'Open enquiry',
+                      label: 'Open Opportunity',
                       onPressed: () => _openCrmShellRoute(
                         context,
-                        '/crm/enquiries?select_id=${_enquiryIdFromSalesChain()}',
+                        '/crm/opportunities?select_id=${_opportunityIdFromSalesChain() ?? _enquiryIdFromSalesChain()}',
                       ),
                     ),
                   if (_selectedItem != null)

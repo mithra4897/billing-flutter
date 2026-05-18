@@ -67,6 +67,21 @@ class CrmSalesPipelineBar extends StatelessWidget {
     return '$prefix · #${id ?? '-'}';
   }
 
+  static String _crmStatusLabel(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'in_progress':
+        return 'In Progress';
+      case 'converted':
+      case 'won':
+        return 'Won';
+      case 'lost':
+        return 'Lost';
+      case 'open':
+      default:
+        return 'Open';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (data == null || data!.isEmpty) {
@@ -83,6 +98,27 @@ class CrmSalesPipelineBar extends StatelessWidget {
 
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
+    final enquiryId = enquiry == null ? null : intValue(enquiry, 'id');
+    final opportunityId = opportunity == null
+        ? null
+        : intValue(opportunity, 'id');
+    final sameCrmRecord =
+        enquiryId != null &&
+        opportunityId != null &&
+        enquiryId == opportunityId;
+    final enquiryStatus = enquiry == null
+        ? ''
+        : stringValue(enquiry, 'enquiry_status');
+    final showEnquiryChip =
+        !hideEnquiryChip &&
+        enquiry != null &&
+        enquiryId != null &&
+        (!sameCrmRecord || enquiryStatus != 'converted');
+    final showOpportunityChip =
+        !hideOpportunityChip &&
+        opportunity != null &&
+        opportunityId != null &&
+        (!sameCrmRecord || enquiryStatus == 'converted');
 
     final chips = <Widget>[
       if (!hideLeadChip && lead != null && intValue(lead, 'id') != null)
@@ -91,23 +127,19 @@ class CrmSalesPipelineBar extends StatelessWidget {
           subtitle: stringValue(lead, 'lead_status'),
           onTap: () => openModuleShellRoute(context, '/crm/leads'),
         ),
-      if (!hideEnquiryChip &&
-          enquiry != null &&
-          intValue(enquiry, 'id') != null)
+      if (showEnquiryChip)
         _PipelineChip(
-          label: _docLabel('Enquiry', enquiry, 'enquiry_no'),
-          subtitle: stringValue(enquiry, 'enquiry_status'),
+          label: _docLabel('Opportunity', enquiry, 'enquiry_no'),
+          subtitle: _crmStatusLabel(stringValue(enquiry, 'enquiry_status')),
           onTap: () => openModuleShellRoute(
             context,
-            '/crm/enquiries?select_id=${intValue(enquiry, 'id')}',
+            '/crm/opportunities?select_id=${intValue(enquiry, 'id')}',
           ),
         ),
-      if (!hideOpportunityChip &&
-          opportunity != null &&
-          intValue(opportunity, 'id') != null)
+      if (showOpportunityChip)
         _PipelineChip(
           label: _docLabel('Opportunity', opportunity, 'opportunity_name'),
-          subtitle: stringValue(opportunity, 'status'),
+          subtitle: _crmStatusLabel(stringValue(opportunity, 'status')),
           onTap: () => openModuleShellRoute(
             context,
             '/crm/opportunities?select_id=${intValue(opportunity, 'id')}',

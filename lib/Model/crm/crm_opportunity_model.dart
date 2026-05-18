@@ -12,7 +12,16 @@ class CrmOpportunityModel implements JsonModel {
   @override
   String toString() {
     final name = data['opportunity_name']?.toString().trim() ?? '';
-    return name.isNotEmpty ? name : 'New Opportunity';
+    if (name.isNotEmpty) {
+      return name;
+    }
+
+    final no = data['enquiry_no']?.toString().trim() ?? '';
+    if (no.isNotEmpty) {
+      return no;
+    }
+
+    return 'New Opportunity';
   }
 
   @override

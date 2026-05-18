@@ -43,7 +43,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   static const List<AppDropdownItem<String>> _filterStatusItems =
       <AppDropdownItem<String>>[
         ..._statusItems,
-        AppDropdownItem(value: 'converted', label: 'Converted'),
+        AppDropdownItem(value: 'converted', label: 'Won'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
   static const List<AppDropdownItem<String>> _followupStatuses =
@@ -97,6 +97,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   int? _filterAssignedTo;
   String? _filterEnquiryStatus;
   String _enquiryStatus = 'open';
+  String _opportunityStatus = 'open';
   List<_EnquiryLineDraft> _lines = <_EnquiryLineDraft>[];
   List<_FollowupDraft> _followups = <_FollowupDraft>[];
   int? _expandedLineIndex;
@@ -107,12 +108,14 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   bool _filtersApplied = false;
 
   static bool _isHiddenByDefaultEnquiry(CrmEnquiryModel item) {
-    final status = stringValue(item.toJson(), 'enquiry_status');
-    return status == 'converted' || status == 'lost';
+    final data = item.toJson();
+    final lifecycleStatus = stringValue(data, 'status') == 'won'
+        ? 'won'
+        : stringValue(data, 'enquiry_status');
+    return lifecycleStatus == 'won' || lifecycleStatus == 'lost';
   }
 
-  static bool _isLockedEnquiryStatus(String status) =>
-      status == 'converted' || status == 'lost';
+  static bool _isLockedEnquiryStatus(String status) => status == 'lost';
 
   String _normalizedStageType(CrmStageModel stage) {
     return stringValue(stage.toJson(), 'stage_type').trim().toLowerCase();
@@ -126,6 +129,62 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         type == 'closed_lost' ||
         type == 'closed won' ||
         type == 'closed lost';
+  }
+
+  String _lifecycleStatusForStageType(String type) {
+    switch (type.trim().toLowerCase()) {
+      case 'opportunity':
+        return 'in_progress';
+      case 'closed_won':
+      case 'closed won':
+        return 'won';
+      case 'closed_lost':
+      case 'closed lost':
+        return 'lost';
+      case 'lead':
+      case 'enquiry':
+      default:
+        return 'open';
+    }
+  }
+
+  String _effectiveLifecycleStatus() {
+    final opportunityStatus = _opportunityStatus.trim().toLowerCase();
+    if (opportunityStatus == 'won' || opportunityStatus == 'lost') {
+      return opportunityStatus;
+    }
+
+    final enquiryStatus = _enquiryStatus.trim().toLowerCase();
+    if (enquiryStatus == 'lost') {
+      return enquiryStatus;
+    }
+
+    final selectedStage = _stages.cast<CrmStageModel?>().firstWhere(
+      (item) => intValue(item?.toJson() ?? const {}, 'id') == _stageId,
+      orElse: () => null,
+    );
+    if (selectedStage != null) {
+      return _lifecycleStatusForStageType(_normalizedStageType(selectedStage));
+    }
+    if (enquiryStatus == 'in_progress') {
+      return enquiryStatus;
+    }
+    return opportunityStatus == 'open' ? enquiryStatus : opportunityStatus;
+  }
+
+  String _lifecycleStatusLabel([String? status]) {
+    final value = (status ?? _effectiveLifecycleStatus()).trim().toLowerCase();
+    switch (value) {
+      case 'in_progress':
+        return 'In Progress';
+      case 'won':
+        return 'Won';
+      case 'lost':
+        return 'Lost';
+      case 'open':
+      default:
+        return 'Open';
+    }
   }
 
   @override
@@ -175,7 +234,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     final now = DateTime.now();
     final selected = await showAppDatePickerDialog(
       context: context,
-      title: 'Select Enquiry Date',
+      title: 'Select Opportunity Date',
       initialDate: tryParseCalendarDate(_enquiryDateController.text) ?? now,
       firstDate: DateTime(now.year - 5, 1, 1),
       lastDate: DateTime(now.year + 5, 12, 31),
@@ -364,13 +423,20 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 return [
                   stringValue(data, 'enquiry_no'),
                   displayDate(nullableStringValue(data, 'enquiry_date')),
-                  stringValue(data, 'enquiry_status'),
+                  _lifecycleStatusLabel(
+                    stringValue(data, 'status') == 'won'
+                        ? 'won'
+                        : stringValue(data, 'enquiry_status'),
+                  ),
                   stringValue(data, 'remarks'),
                 ];
               })
               .where((item) {
                 final data = item.toJson();
                 final isHiddenByDefault = _isHiddenByDefaultEnquiry(item);
+                final rowStatus = stringValue(data, 'status') == 'won'
+                    ? 'converted'
+                    : stringValue(data, 'enquiry_status');
                 final requestedStatus =
                     (_filtersApplied
                             ? (_filterEnquiryStatus ?? _allFilterStringValue)
@@ -380,7 +446,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     _filtersApplied && requestedStatus == _allFilterStringValue;
                 if (isHiddenByDefault &&
                     !showAllStatuses &&
-                    requestedStatus != stringValue(data, 'enquiry_status')) {
+                    requestedStatus != rowStatus) {
                   return false;
                 }
                 final enquiryDate = displayDate(
@@ -411,8 +477,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 }
                 if ((_filterEnquiryStatus ?? '').isNotEmpty &&
                     _filterEnquiryStatus != _allFilterStringValue &&
-                    stringValue(data, 'enquiry_status') !=
-                        _filterEnquiryStatus) {
+                    rowStatus != _filterEnquiryStatus) {
                   return false;
                 }
                 if (filterFrom.isNotEmpty &&
@@ -469,7 +534,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     children: [
                       Expanded(
                         child: Text(
-                          'Filter CRM Enquiries',
+                          'Filter CRM Opportunities',
                           style: Theme.of(dialogContext).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
@@ -813,6 +878,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       _stageId = intValue(data, 'stage_id');
       _assignedTo = intValue(data, 'assigned_to');
       _enquiryStatus = stringValue(data, 'enquiry_status', 'open');
+      _opportunityStatus = stringValue(data, 'status', 'open');
       _enquiryNoController.text = stringValue(data, 'enquiry_no');
       _enquiryDateController.text = displayDate(
         nullableStringValue(data, 'enquiry_date'),
@@ -828,8 +894,16 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   }
 
   int? _pipelineOpportunityId() {
+    final lifecycleStatus = _effectiveLifecycleStatus();
+    if (lifecycleStatus == 'in_progress' || lifecycleStatus == 'won') {
+      final selectedId = intValue(_selectedItem?.toJson() ?? const {}, 'id');
+      if (selectedId != null) {
+        return selectedId;
+      }
+    }
     final raw = _salesChain?['opportunity'];
-    if (raw is Map) {
+    if (raw is Map &&
+        (lifecycleStatus == 'in_progress' || lifecycleStatus == 'won')) {
       return intValue(Map<String, dynamic>.from(raw), 'id');
     }
     return null;
@@ -841,7 +915,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       'enquiry_status',
       _enquiryStatus,
     );
-    return _isLockedEnquiryStatus(status);
+    return _isLockedEnquiryStatus(status) ||
+        _opportunityStatus == 'won' ||
+        _opportunityStatus == 'lost';
   }
 
   Future<void> _refreshSalesChainForEnquiry(int enquiryId) async {
@@ -870,6 +946,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       _stageId = null;
       _assignedTo = null;
       _enquiryStatus = 'open';
+      _opportunityStatus = 'open';
       _enquiryNoController.clear();
       _enquiryDateController.text = DateTime.now()
           .toIso8601String()
@@ -957,7 +1034,6 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       'customer_party_id': _customerPartyId,
       'stage_id': _stageId,
       'assigned_to': _assignedTo,
-      'enquiry_status': _enquiryStatus,
       'remarks': nullIfEmpty(_remarksController.text),
       'lines': _lines.map((item) => item.toJson()).toList(growable: false),
       'followups': _followups
@@ -1015,34 +1091,6 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     }
   }
 
-  Future<void> _convert() async {
-    final id = intValue(_selectedItem?.toJson() ?? const {}, 'id');
-    if (id == null) {
-      return;
-    }
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    try {
-      final response = await _crmService.convertEnquiry(id);
-      if (!mounted) {
-        return;
-      }
-
-      await _loadPage(selectId: id);
-
-      if (!mounted) {
-        return;
-      }
-
-      messenger?.clearSnackBars();
-      messenger?.showSnackBar(SnackBar(content: Text(response.message)));
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _formError = error.toString());
-    }
-  }
-
   Future<void> _lose() async {
     final id = intValue(_selectedItem?.toJson() ?? const {}, 'id');
     if (id == null) {
@@ -1052,6 +1100,31 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       final response = await _crmService.loseEnquiry(
         id,
         CrmEnquiryModel(const <String, dynamic>{}),
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(response.message)));
+      await _loadPage(selectId: id);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _formError = error.toString());
+    }
+  }
+
+  Future<void> _win() async {
+    final id = intValue(_selectedItem?.toJson() ?? const {}, 'id');
+    if (id == null) {
+      return;
+    }
+    try {
+      final response = await _crmService.winOpportunity(
+        id,
+        CrmOpportunityModel(const <String, dynamic>{}),
       );
       if (!mounted) {
         return;
@@ -1085,7 +1158,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           }
         },
         icon: Icons.add_outlined,
-        label: 'New Enquiry',
+        label: 'New Opportunity',
       ),
     ];
 
@@ -1094,7 +1167,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       return ShellPageActions(actions: actions, child: content);
     }
     return AppStandaloneShell(
-      title: 'CRM Enquiries',
+      title: 'CRM Opportunities',
       scrollController: _pageScrollController,
       actions: actions,
       child: content,
@@ -1103,22 +1176,22 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
 
   Widget _buildContent() {
     if (_initialLoading) {
-      return const AppLoadingView(message: 'Loading CRM enquiries...');
+      return const AppLoadingView(message: 'Loading CRM opportunities...');
     }
     if (_pageError != null) {
       return AppErrorStateView(
-        title: 'Unable to load CRM enquiries',
+        title: 'Unable to load CRM opportunities',
         message: _pageError!,
         onRetry: _loadPage,
       );
     }
 
     return SettingsWorkspace(
-      title: 'CRM Enquiries',
+      title: 'CRM Opportunities',
       scrollController: _pageScrollController,
       controller: _workspaceController,
       editorOnly: widget.editorOnly,
-      editorTitle: _selectedItem?.toString() ?? 'New Enquiry',
+      editorTitle: _selectedItem?.toString() ?? 'New Opportunity',
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1136,24 +1209,36 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<CrmEnquiryModel>(
             searchController: _searchController,
-            searchHint: 'Search enquiries',
+            searchHint: 'Search opportunities',
             items: _filteredItems,
             selectedItem: _selectedItem,
-            emptyMessage: 'No CRM enquiries found.',
+            emptyMessage: 'No CRM opportunities found.',
             itemBuilder: (item, selected) {
               final data = item.toJson();
               return SettingsListTile(
                 title: item.toString(),
                 subtitle: [
                   displayDate(nullableStringValue(data, 'enquiry_date')),
-                  stringValue(data, 'enquiry_status'),
+                  _lifecycleStatusLabel(
+                    stringValue(data, 'status') == 'won'
+                        ? 'won'
+                        : stringValue(data, 'enquiry_status'),
+                  ),
                 ].where((value) => value.isNotEmpty).join(' • '),
                 selected: selected,
                 onTap: () => _selectItem(item),
                 detail: stringValue(data, 'remarks'),
                 trailing: SettingsStatusPill(
-                  label: stringValue(data, 'enquiry_status', 'open'),
-                  active: stringValue(data, 'enquiry_status', 'open') != 'lost',
+                  label: _lifecycleStatusLabel(
+                    stringValue(data, 'status') == 'won'
+                        ? 'won'
+                        : stringValue(data, 'enquiry_status', 'open'),
+                  ),
+                  active:
+                      (stringValue(data, 'status') == 'won'
+                          ? 'won'
+                          : stringValue(data, 'enquiry_status', 'open')) !=
+                      'lost',
                 ),
               );
             },
@@ -1184,14 +1269,14 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       ? _buildDependentTabPlaceholder(
                           title: 'Lines',
                           message:
-                              'Save this enquiry first to manage requested items and descriptions.',
+                              'Save this opportunity first to manage requested items and descriptions.',
                         )
                       : _buildLinesTab(),
                   _selectedItem?.toJson()['id'] == null
                       ? _buildDependentTabPlaceholder(
                           title: 'Followups',
                           message:
-                              'Save this enquiry first to manage follow-up dates, notes, and next actions.',
+                              'Save this opportunity first to manage follow-up dates, notes, and next actions.',
                         )
                       : _buildFollowupsTab(),
                 ],
@@ -1205,12 +1290,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
 
   Widget _buildPrimaryTab() {
     final isLocked = _isSelectedEnquiryLocked();
-    final hasOpportunity = _pipelineOpportunityId() != null;
-    final canConvert =
+    final lifecycleStatus = _effectiveLifecycleStatus();
+    final canWin =
         _selectedItem != null &&
         !isLocked &&
-        !hasOpportunity &&
-        _enquiryStatus == 'in_progress';
+        lifecycleStatus == 'in_progress' &&
+        _opportunityStatus != 'won';
     final canLose = _selectedItem != null && !isLocked;
 
     return Form(
@@ -1226,8 +1311,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               ],
               if (intValue(_selectedItem?.toJson() ?? const {}, 'id') !=
                   null) ...[
-                CrmSalesPipelineBar(data: _salesChain, hideEnquiryChip: true),
-                if (_pipelineOpportunityId() != null) ...[
+                CrmSalesPipelineBar(
+                  data: _salesChain,
+                  hideEnquiryChip: true,
+                  hideOpportunityChip: true,
+                ),
+                if (!isLocked && _pipelineOpportunityId() != null) ...[
                   AppActionButton(
                     icon: Icons.request_quote_outlined,
                     label: 'New quotation (this deal)',
@@ -1267,7 +1356,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         const SizedBox(width: AppUiConstants.spacingSm),
                         Expanded(
                           child: Text(
-                            'This enquiry is ${_enquiryStatus.replaceAll('_', ' ')} and is now read-only.',
+                            'This opportunity is ${_lifecycleStatusLabel()} and is now read-only.',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: Theme.of(context).colorScheme.primary,
@@ -1287,12 +1376,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   children: [
                     AppFormTextField(
                       controller: _enquiryNoController,
-                      labelText: 'Enquiry No',
+                      labelText: 'Opportunity No',
                       hintText: 'Leave blank — we assign a number for you',
                     ),
                     AppDateSelectorField(
                       controller: _enquiryDateController,
-                      labelText: 'Enquiry Date',
+                      labelText: 'Opportunity Date',
                       onTap: _pickEnquiryDate,
                     ),
                     ConstrainedBox(
@@ -1372,22 +1461,15 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       initialValue: _assignedTo,
                       onChanged: (value) => setState(() => _assignedTo = value),
                     ),
-                    if (isLocked)
-                      AppFormTextField(
-                        labelText: 'Status',
-                        initialValue: _enquiryStatus.replaceAll('_', ' '),
-                        readOnly: true,
-                        enabled: false,
-                      )
-                    else
-                      AppDropdownField<String>.fromMapped(
-                        labelText: 'Status',
-                        mappedItems: _statusItems,
-                        initialValue: _enquiryStatus,
-                        onChanged: (value) => setState(
-                          () => _enquiryStatus = value ?? _enquiryStatus,
-                        ),
+                    AppFormTextField(
+                      key: ValueKey<String>(
+                        'opportunity-status-${_effectiveLifecycleStatus()}',
                       ),
+                      labelText: 'Status',
+                      initialValue: _lifecycleStatusLabel(),
+                      readOnly: true,
+                      enabled: false,
+                    ),
                     AppFormTextField(
                       controller: _remarksController,
                       labelText: 'Remarks',
@@ -1405,18 +1487,18 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     AppActionButton(
                       icon: Icons.save_outlined,
                       label: _selectedItem == null
-                          ? 'Save Enquiry'
-                          : 'Update Enquiry',
+                          ? 'Save Opportunity'
+                          : 'Update Opportunity',
                       onPressed: () => _save(formContext),
                       busy: _saving,
                     ),
                   if (_selectedItem != null) ...[
                     if (!isLocked)
                       AppActionButton(
-                        icon: Icons.auto_graph_outlined,
-                        label: 'Convert to Opportunity',
+                        icon: Icons.trending_up_outlined,
+                        label: 'Won',
                         filled: false,
-                        onPressed: canConvert ? _convert : null,
+                        onPressed: canWin ? _win : null,
                       ),
                     if (!isLocked)
                       AppActionButton(
@@ -1467,7 +1549,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         const SizedBox(height: AppUiConstants.spacingSm),
         if (isLocked) ...[
           Text(
-            'Requested items are read-only after the enquiry is converted or lost.',
+            'Requested items are read-only after the opportunity is won or lost.',
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
@@ -1556,8 +1638,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               AppActionButton(
                 icon: Icons.save_outlined,
                 label: _selectedItem == null
-                    ? 'Save Enquiry'
-                    : 'Update Enquiry',
+                    ? 'Save Opportunity'
+                    : 'Update Opportunity',
                 onPressed: () => _save(_primaryFormContext ?? context),
                 busy: _saving,
               ),
@@ -1594,7 +1676,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         const SizedBox(height: AppUiConstants.spacingSm),
         if (isLocked) ...[
           Text(
-            'Followups are read-only after the enquiry is converted or lost.',
+            'Followups are read-only after the opportunity is won or lost.',
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor),
@@ -1693,8 +1775,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               AppActionButton(
                 icon: Icons.save_outlined,
                 label: _selectedItem == null
-                    ? 'Save Enquiry'
-                    : 'Update Enquiry',
+                    ? 'Save Opportunity'
+                    : 'Update Opportunity',
                 onPressed: () => _save(_primaryFormContext ?? context),
                 busy: _saving,
               ),
@@ -1745,7 +1827,7 @@ class _EnquiryLineDraft {
       return itemLabel!.trim();
     }
     final description = descriptionController.text.trim();
-    return description.isNotEmpty ? description : 'Enquiry Line';
+    return description.isNotEmpty ? description : 'Opportunity Line';
   }
 
   String get qtySummary {

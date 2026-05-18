@@ -88,42 +88,36 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
       trendFilter ??
       const ErpDashboardTrendFilter(preset: ErpDashboardTrendPreset.monthly);
   final currentDate = now();
-  final pendingLeadResponses = await Future.wait(<Future<PaginatedResponse<CrmLeadModel>>>[
-    crmService.leads(
-      filters: const <String, dynamic>{'per_page': 1, 'lead_status': 'new'},
-    ),
-    crmService.leads(
-      filters: const <String, dynamic>{
-        'per_page': 1,
-        'lead_status': 'contacted',
-      },
-    ),
-    crmService.leads(
-      filters: const <String, dynamic>{
-        'per_page': 1,
-        'lead_status': 'qualified',
-      },
-    ),
-  ]);
+  final pendingLeadResponses = await Future.wait(
+    <Future<PaginatedResponse<CrmLeadModel>>>[
+      crmService.leads(
+        filters: const <String, dynamic>{'per_page': 1, 'lead_status': 'new'},
+      ),
+      crmService.leads(
+        filters: const <String, dynamic>{
+          'per_page': 1,
+          'lead_status': 'in_progress',
+        },
+      ),
+    ],
+  );
   final pendingLeadCount = pendingLeadResponses.fold<int>(
     0,
-    (sum, response) => sum + (response.meta?.total ?? response.data?.length ?? 0),
+    (sum, response) =>
+        sum + (response.meta?.total ?? response.data?.length ?? 0),
   );
   final enquiryResponse = await crmService.enquiries(
     filters: const <String, dynamic>{'per_page': 1},
   );
   final pendingFollowupResponse = await crmService.pendingFollowups();
-  final followupItems = (pendingFollowupResponse.data ??
-          const <CrmFollowupModel>[])
-      .map((item) => CrmPendingFollowupItem.fromJson(item.toJson()))
-      .where(
-        (item) => _crmMatchesTrendFilter(
-          item,
-          activeFilter,
-          today: currentDate,
-        ),
-      )
-      .toList(growable: false);
+  final followupItems =
+      (pendingFollowupResponse.data ?? const <CrmFollowupModel>[])
+          .map((item) => CrmPendingFollowupItem.fromJson(item.toJson()))
+          .where(
+            (item) =>
+                _crmMatchesTrendFilter(item, activeFilter, today: currentDate),
+          )
+          .toList(growable: false);
   final completedCount = followupItems
       .where((item) => crmIsCompletedFollowupStatus(item.status))
       .length;
@@ -167,7 +161,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   return ErpDashboardSnapshot(
     title: 'CRM Dashboard',
     subtitle:
-        'Live lead, enquiry, and follow-up activity in a reusable ERP dashboard layout.',
+        'Live lead, opportunity, and follow-up activity in a reusable ERP dashboard layout.',
     actions: const <ErpDashboardAction>[
       ErpDashboardAction(
         label: 'New lead',
@@ -175,29 +169,29 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         route: '/crm/leads',
       ),
       ErpDashboardAction(
-        label: 'New enquiry',
+        label: 'New opportunity',
         icon: Icons.add_comment_outlined,
-        route: '/crm/enquiries',
+        route: '/crm/opportunities',
       ),
     ],
     stats: <ErpDashboardStat>[
       ErpDashboardStat(
         label: 'Total Pending Leads',
         value: _formatInt(pendingLeadCount),
-        helper: 'Open CRM leads in new, contacted, and qualified stages',
+        helper: 'Open CRM leads in new and in progress stages',
         icon: Icons.groups_2_outlined,
         color: const Color(0xFF2F6FED),
         route: '/crm/leads',
       ),
       ErpDashboardStat(
-        label: 'Total Enquiries',
+        label: 'Total Opportunities',
         value: _formatInt(
           enquiryResponse.meta?.total ?? enquiryResponse.data?.length ?? 0,
         ),
         helper: 'Tracked across the sales pipeline',
         icon: Icons.mark_email_unread_outlined,
         color: const Color(0xFF19A7B8),
-        route: '/crm/enquiries',
+        route: '/crm/opportunities',
       ),
       ErpDashboardStat(
         label: 'Due Today',
@@ -205,7 +199,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         helper: 'Follow-ups scheduled for today',
         icon: Icons.today_outlined,
         color: const Color(0xFFE67E22),
-        route: '/crm/enquiries',
+        route: '/crm/opportunities',
       ),
       ErpDashboardStat(
         label: 'Open Follow-ups',
@@ -213,7 +207,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         helper: 'Pending calls, emails, and next steps',
         icon: Icons.assignment_late_outlined,
         color: const Color(0xFFDA4D78),
-        route: '/crm/enquiries',
+        route: '/crm/opportunities',
       ),
     ],
     primarySections: <ErpDashboardListSection>[
@@ -236,8 +230,8 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
                 statusLabel: item.status.toUpperCase(),
                 statusColor: crmPriorityColor(item.priority),
                 route: item.enquiryId == null
-                    ? '/crm/enquiries'
-                    : '/crm/enquiries?select_id=${item.enquiryId}',
+                    ? '/crm/opportunities'
+                    : '/crm/opportunities?select_id=${item.enquiryId}',
               ),
             )
             .toList(growable: false),
@@ -363,10 +357,7 @@ ErpDashboardGraphRange? _crmTrendRange(
   }
 }
 
-String _crmFilterLabel(
-  ErpDashboardTrendFilter filter,
-  DateTime today,
-) {
+String _crmFilterLabel(ErpDashboardTrendFilter filter, DateTime today) {
   switch (filter.preset) {
     case ErpDashboardTrendPreset.monthly:
       return _monthLabel(today);

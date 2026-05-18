@@ -7,6 +7,9 @@ class Validators {
   );
   static final RegExp _wholeNumberPattern = RegExp(r'^\d+$');
   static final RegExp _datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+  static final RegExp _mobilePattern = RegExp(r'^[6-9]\d{9}$');
+  static final RegExp _phoneAllowedCharsPattern = RegExp(r'^[0-9+\-\s()]+$');
+  static final RegExp _phoneDigitPattern = RegExp(r'^\d{6,15}$');
 
   static String? Function(String?) required(String fieldName) {
     return (value) => requiredField(value, fieldName);
@@ -85,6 +88,16 @@ class Validators {
 
   static String? Function(String?) optionalEmail({String fieldName = 'Email'}) {
     return (value) => emailField(value, fieldName: fieldName);
+  }
+
+  static String? Function(String?) optionalPhone({String fieldName = 'Phone'}) {
+    return (value) => phoneField(value, fieldName: fieldName);
+  }
+
+  static String? Function(String?) optionalMobile({
+    String fieldName = 'Mobile',
+  }) {
+    return (value) => mobileField(value, fieldName: fieldName);
   }
 
   static String? Function(String?) compose(
@@ -329,6 +342,37 @@ class Validators {
 
     if (!_emailPattern.hasMatch(trimmed)) {
       return '$fieldName is invalid';
+    }
+
+    return null;
+  }
+
+  static String? phoneField(String? value, {String fieldName = 'Phone'}) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+
+    if (!_phoneAllowedCharsPattern.hasMatch(trimmed)) {
+      return '$fieldName is invalid';
+    }
+
+    final digitsOnly = trimmed.replaceAll(RegExp(r'\D'), '');
+    if (!_phoneDigitPattern.hasMatch(digitsOnly)) {
+      return '$fieldName must contain 6 to 15 digits';
+    }
+
+    return null;
+  }
+
+  static String? mobileField(String? value, {String fieldName = 'Mobile'}) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+
+    if (!_mobilePattern.hasMatch(trimmed)) {
+      return '$fieldName must be a valid 10-digit mobile number';
     }
 
     return null;

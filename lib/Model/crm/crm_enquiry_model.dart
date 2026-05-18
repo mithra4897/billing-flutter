@@ -28,10 +28,10 @@ class CrmEnquiryModel implements JsonModel {
 
     final id = data['id']?.toString().trim() ?? '';
     if (id.isNotEmpty) {
-      return 'Enquiry #$id';
+      return 'Opportunity #$id';
     }
 
-    return 'New Enquiry';
+    return 'New Opportunity';
   }
 
   @override

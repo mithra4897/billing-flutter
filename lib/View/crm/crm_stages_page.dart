@@ -20,10 +20,8 @@ class _CrmStagesPageState extends State<CrmStagesPage> {
   static const List<AppDropdownItem<String>> _stageTypes =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'lead', label: 'Lead'),
-        AppDropdownItem(value: 'enquiry', label: 'Enquiry'),
-        AppDropdownItem(value: 'opportunity', label: 'Opportunity'),
-        AppDropdownItem(value: 'closed_won', label: 'Closed Won'),
-        AppDropdownItem(value: 'closed_lost', label: 'Closed Lost'),
+        AppDropdownItem(value: 'enquiry', label: 'Open'),
+        AppDropdownItem(value: 'opportunity', label: 'In Progress'),
       ];
 
   final CrmService _crmService = CrmService();

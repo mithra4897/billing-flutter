@@ -570,13 +570,6 @@ class AppNavigation {
           requiredPermissions: ['crm.view'],
         ),
         AppNavigationItem(
-          key: 'crm-enquiries',
-          title: 'Enquiries',
-          icon: Icons.contact_support_outlined,
-          path: '/crm/enquiries',
-          requiredPermissions: ['crm.view'],
-        ),
-        AppNavigationItem(
           key: 'crm-opportunities',
           title: 'Opportunities',
           icon: Icons.auto_graph_outlined,

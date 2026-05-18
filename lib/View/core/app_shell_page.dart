@@ -2,7 +2,6 @@ import '../../core/navigation/app_route_state.dart';
 import '../../screen.dart';
 import '../crm/crm_enquiries_page.dart';
 import '../crm/crm_leads_page.dart';
-import '../crm/crm_opportunities_page.dart';
 import '../crm/crm_sources_page.dart';
 import '../crm/crm_stages_page.dart';
 import '../dashboard/crm_dashboard_page.dart';
@@ -613,7 +612,7 @@ class _AppShellPageState extends State<AppShellPage> {
           ),
         );
       case '/crm/opportunities':
-        return CrmOpportunitiesPage(
+        return CrmEnquiriesPage(
           key: routeKey,
           embedded: true,
           startInNewMode: _currentQueryParameters['select_id'] == null,
