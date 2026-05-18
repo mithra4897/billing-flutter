@@ -35,7 +35,6 @@ class SalesInvoiceModel {
     this.isActive,
     this.lines = const [],
     this.voucher,
-    this.raw,
   });
 
   final int id;
@@ -71,7 +70,6 @@ class SalesInvoiceModel {
   final bool? isActive;
   final List<SalesInvoiceLineModel> lines;
   final VoucherModel? voucher;
-  final Map<String, dynamic>? raw;
 
   factory SalesInvoiceModel.fromJson(Map<String, dynamic> json) {
     return SalesInvoiceModel(
@@ -112,7 +110,6 @@ class SalesInvoiceModel {
       voucher: json['voucher'] is Map<String, dynamic>
           ? VoucherModel.fromJson(json['voucher'] as Map<String, dynamic>)
           : null,
-      raw: json,
     );
   }
 
@@ -151,6 +148,15 @@ class SalesInvoiceModel {
       'lines': lines.map((line) => line.toJson()).toList(growable: false),
     };
   }
+
+  Map<String, dynamic> toJson() => {
+    if (id != 0) 'id': id,
+    ...toCreateJson(),
+    if (totalAmount != null) 'total_amount': totalAmount,
+    if (balanceAmount != null) 'balance_amount': balanceAmount,
+    if (invoiceStatus != null) 'invoice_status': invoiceStatus,
+    if (voucher != null) 'voucher': voucher!.toJson(),
+  };
 
   static List<SalesInvoiceLineModel> _mapLines(dynamic value) {
     if (value is! List) {

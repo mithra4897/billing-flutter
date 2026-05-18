@@ -488,11 +488,11 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     try {
       final response = _selectedItem == null
           ? await _purchaseService.createRequisition(
-              PurchaseRequisitionModel(payload),
+              PurchaseRequisitionModel.fromJson(payload),
             )
           : await _purchaseService.updateRequisition(
               intValue(_selectedItem!.toJson(), 'id')!,
-              PurchaseRequisitionModel(payload),
+              PurchaseRequisitionModel.fromJson(payload),
             );
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -780,7 +780,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     onPressed: () => _executeAction(
                       () => _purchaseService.approveRequisition(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseRequisitionModel(const <String, dynamic>{}),
+                        PurchaseRequisitionModel.fromJson(
+                          const <String, dynamic>{},
+                        ),
                       ),
                     ),
                     filled: false,
@@ -791,7 +793,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     onPressed: () => _executeAction(
                       () => _purchaseService.closeRequisition(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseRequisitionModel(const <String, dynamic>{}),
+                        PurchaseRequisitionModel.fromJson(
+                          const <String, dynamic>{},
+                        ),
                       ),
                     ),
                     filled: false,
@@ -802,7 +806,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     onPressed: () => _executeAction(
                       () => _purchaseService.cancelRequisition(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseRequisitionModel(const <String, dynamic>{}),
+                        PurchaseRequisitionModel.fromJson(
+                          const <String, dynamic>{},
+                        ),
                       ),
                     ),
                     filled: false,

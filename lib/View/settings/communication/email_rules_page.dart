@@ -135,10 +135,10 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
           rules,
           _searchController.text,
           (record) => [
-            stringValue(record.data, 'rule_code'),
-            stringValue(record.data, 'rule_name'),
-            stringValue(record.data, 'module'),
-            stringValue(record.data, 'event_code'),
+            stringValue(record.toJson(), 'rule_code'),
+            stringValue(record.toJson(), 'rule_name'),
+            stringValue(record.toJson(), 'module'),
+            stringValue(record.toJson(), 'event_code'),
           ],
         );
         _initialLoading = false;
@@ -146,15 +146,15 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
 
       final selected = selectId != null
           ? rules.cast<EmailRuleModel?>().firstWhere(
-              (item) => intValue(item?.data ?? const {}, 'id') == selectId,
+              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
           : (_selectedRecord == null
                 ? (rules.isNotEmpty ? rules.first : null)
                 : rules.cast<EmailRuleModel?>().firstWhere(
                     (item) =>
-                        intValue(item?.data ?? const {}, 'id') ==
-                        intValue(_selectedRecord?.data ?? const {}, 'id'),
+                        intValue(item?.toJson() ?? const {}, 'id') ==
+                        intValue(_selectedRecord?.toJson() ?? const {}, 'id'),
                     orElse: () => rules.isNotEmpty ? rules.first : null,
                   ));
 
@@ -180,17 +180,17 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
         _records,
         _searchController.text,
         (record) => [
-          stringValue(record.data, 'rule_code'),
-          stringValue(record.data, 'rule_name'),
-          stringValue(record.data, 'module'),
-          stringValue(record.data, 'event_code'),
+          stringValue(record.toJson(), 'rule_code'),
+          stringValue(record.toJson(), 'rule_name'),
+          stringValue(record.toJson(), 'module'),
+          stringValue(record.toJson(), 'event_code'),
         ],
       );
     });
   }
 
   void _selectRecord(EmailRuleModel record) {
-    final data = record.data;
+    final data = record.toJson();
     _selectedRecord = record;
     _companyId = intValue(data, 'company_id');
     _templateId = intValue(data, 'template_id');
@@ -250,9 +250,9 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
       _formError = null;
     });
 
-    final body = EmailRuleModel({
-      if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
-        'id': intValue(_selectedRecord!.data, 'id'),
+    final body = EmailRuleModel.fromJson({
+      if (intValue(_selectedRecord?.toJson() ?? const {}, 'id') != null)
+        'id': intValue(_selectedRecord!.toJson(), 'id'),
       if (_companyId != null) 'company_id': _companyId,
       'rule_code': _codeController.text.trim(),
       'rule_name': _nameController.text.trim(),
@@ -275,7 +275,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
     });
 
     try {
-      final id = intValue(_selectedRecord?.data ?? const {}, 'id');
+      final id = intValue(_selectedRecord?.toJson() ?? const {}, 'id');
       final response = id == null
           ? await _communicationService.createEmailRule(body)
           : await _communicationService.updateEmailRule(id, body);
@@ -294,7 +294,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(saved.data, 'id'));
+      await _loadPage(selectId: intValue(saved.toJson(), 'id'));
     } catch (error) {
       setState(() {
         _formError = error.toString();
@@ -309,7 +309,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
   }
 
   Future<void> _delete() async {
-    final id = intValue(_selectedRecord?.data ?? const {}, 'id');
+    final id = intValue(_selectedRecord?.toJson() ?? const {}, 'id');
     if (id == null) {
       return;
     }
@@ -389,11 +389,11 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
     final templateItems = _templates
         .map(
           (template) => AppDropdownItem<int>(
-            value: intValue(template.data, 'id') ?? 0,
+            value: intValue(template.toJson(), 'id') ?? 0,
             label: stringValue(
-              template.data,
+              template.toJson(),
               'template_name',
-              stringValue(template.data, 'template_code', 'Template'),
+              stringValue(template.toJson(), 'template_code', 'Template'),
             ),
           ),
         )
@@ -411,19 +411,19 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
         selectedItem: _selectedRecord,
         emptyMessage: 'No email rules found.',
         itemBuilder: (record, selected) => SettingsListTile(
-          title: stringValue(record.data, 'rule_name', 'Rule'),
+          title: stringValue(record.toJson(), 'rule_name', 'Rule'),
           subtitle: [
-            stringValue(record.data, 'rule_code'),
-            stringValue(record.data, 'module'),
-            stringValue(record.data, 'event_code'),
+            stringValue(record.toJson(), 'rule_code'),
+            stringValue(record.toJson(), 'module'),
+            stringValue(record.toJson(), 'event_code'),
           ].where((value) => value.isNotEmpty).join(' • '),
           selected: selected,
           onTap: () => _selectRecord(record),
           trailing: SettingsStatusPill(
-            label: boolValue(record.data, 'is_active', fallback: true)
+            label: boolValue(record.toJson(), 'is_active', fallback: true)
                 ? 'Active'
                 : 'Inactive',
-            active: boolValue(record.data, 'is_active', fallback: true),
+            active: boolValue(record.toJson(), 'is_active', fallback: true),
           ),
         ),
       ),
@@ -566,7 +566,7 @@ class _EmailRulesPageState extends State<EmailRulesPage> {
                   onPressed: _save,
                   busy: _saving,
                 ),
-                if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
+                if (intValue(_selectedRecord?.toJson() ?? const {}, 'id') != null)
                   AppActionButton(
                     icon: Icons.delete_outline,
                     label: 'Delete',

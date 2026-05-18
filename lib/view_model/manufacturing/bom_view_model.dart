@@ -636,10 +636,10 @@ class BomViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _service.createBom(BomModel(payload))
+          ? await _service.createBom(BomModel.fromJson(payload))
           : await _service.updateBom(
               intValue(selected!.toJson(), 'id')!,
-              BomModel(payload),
+              BomModel.fromJson(payload),
             );
       actionMessage = response.message;
       await load(
@@ -663,7 +663,7 @@ class BomViewModel extends ChangeNotifier {
     try {
       final response = await _service.approveBom(
         id,
-        const BomModel(<String, dynamic>{}),
+        BomModel.fromJson(<String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

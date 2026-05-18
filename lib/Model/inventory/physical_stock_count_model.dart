@@ -23,7 +23,7 @@ class PhysicalStockCountModel implements JsonModel {
     this.documentSeriesName,
     this.warehouseName,
     this.itemsCount,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -47,7 +47,6 @@ class PhysicalStockCountModel implements JsonModel {
   final String? documentSeriesName;
   final String? warehouseName;
   final int? itemsCount;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => countNo ?? 'New Physical Count';
@@ -104,7 +103,6 @@ class PhysicalStockCountModel implements JsonModel {
           documentSeries['name']?.toString(),
       warehouseName: warehouse['name']?.toString(),
       itemsCount: _nullableInt(json['items_count']),
-      raw: json,
     );
   }
 

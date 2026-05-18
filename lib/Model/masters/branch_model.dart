@@ -10,7 +10,7 @@ class BranchModel implements JsonModel {
     this.isHeadOffice = false,
     this.isActive = true,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -21,7 +21,6 @@ class BranchModel implements JsonModel {
   final bool isHeadOffice;
   final bool isActive;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => name ?? code ?? 'New Branch';
@@ -41,7 +40,6 @@ class BranchModel implements JsonModel {
           json['is_head_office'] == true || json['is_head_office'] == 1,
       isActive: json['is_active'] != false && json['is_active'] != 0,
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

@@ -23,7 +23,7 @@ class CashSessionModel implements JsonModel {
     this.userDisplayName,
     this.cashAccountCode,
     this.cashAccountName,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -47,7 +47,6 @@ class CashSessionModel implements JsonModel {
   final String? userDisplayName;
   final String? cashAccountCode;
   final String? cashAccountName;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => cashAccountName ?? cashAccountCode ?? 'Cash Session';
@@ -83,7 +82,6 @@ class CashSessionModel implements JsonModel {
       userDisplayName: user['display_name']?.toString(),
       cashAccountCode: cashAccount['account_code']?.toString(),
       cashAccountName: cashAccount['account_name']?.toString(),
-      raw: json,
     );
   }
 

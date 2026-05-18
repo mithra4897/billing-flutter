@@ -113,15 +113,15 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
 
       final selected = selectId != null
           ? messages.cast<EmailMessageModel?>().firstWhere(
-              (item) => intValue(item?.data ?? const {}, 'id') == selectId,
+              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
           : (_selectedMessage == null
                 ? (messages.isNotEmpty ? messages.first : null)
                 : messages.cast<EmailMessageModel?>().firstWhere(
                     (item) =>
-                        intValue(item?.data ?? const {}, 'id') ==
-                        intValue(_selectedMessage?.data ?? const {}, 'id'),
+                        intValue(item?.toJson() ?? const {}, 'id') ==
+                        intValue(_selectedMessage?.toJson() ?? const {}, 'id'),
                     orElse: () => messages.isNotEmpty ? messages.first : null,
                   ));
 
@@ -153,7 +153,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     String query,
   ) {
     return filterMasterList(items, query, (message) {
-      final data = message.data;
+      final data = message.toJson();
       return [
         stringValue(data, 'subject'),
         stringValue(data, 'status'),
@@ -275,7 +275,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
 
                 try {
                   final response = await _communicationService.sendEmail(
-                    EmailMessageModel({
+                    EmailMessageModel.fromJson({
                       if (_contextCompanyId != null)
                         'company_id': _contextCompanyId,
                       'module': moduleController.text.trim(),
@@ -299,7 +299,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
                     SnackBar(content: Text(response.message)),
                   );
                   await _loadPage(
-                    selectId: intValue(response.data?.data ?? const {}, 'id'),
+                    selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
                   );
                 } catch (error) {
                   if (!mounted) {
@@ -399,7 +399,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
       );
     }
 
-    final selectedData = _selectedMessage?.data ?? const <String, dynamic>{};
+    final selectedData = _selectedMessage?.toJson() ?? const <String, dynamic>{};
 
     return SettingsWorkspace(
       title: _pageTitle,
@@ -412,7 +412,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
         selectedItem: _selectedMessage,
         emptyMessage: 'No email messages found.',
         itemBuilder: (message, selected) {
-          final data = message.data;
+          final data = message.toJson();
           return SettingsListTile(
             title: stringValue(data, 'subject', 'Message'),
             subtitle: [

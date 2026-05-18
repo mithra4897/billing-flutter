@@ -199,7 +199,7 @@ class _DocumentTaxLinesRegisterPageState
       );
 
   String _cell(DocumentTaxLineModel row, String key) {
-    final dynamic v = row.data[key];
+    final dynamic v = row.toJson()[key];
     if (v == null) {
       return '';
     }
@@ -207,7 +207,7 @@ class _DocumentTaxLinesRegisterPageState
   }
 
   String _itemLabel(DocumentTaxLineModel row) {
-    final dynamic item = row.data['item'];
+    final dynamic item = row.toJson()['item'];
     if (item is Map<String, dynamic>) {
       return item['item_name']?.toString() ??
           item['item_code']?.toString() ??
@@ -217,7 +217,7 @@ class _DocumentTaxLinesRegisterPageState
   }
 
   String _taxLabel(DocumentTaxLineModel row) {
-    final dynamic tax = row.data['tax_code'];
+    final dynamic tax = row.toJson()['tax_code'];
     if (tax is Map<String, dynamic>) {
       return tax['tax_name']?.toString() ?? tax['tax_code']?.toString() ?? '';
     }

@@ -422,13 +422,13 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
   }
 
   double _invoiceOutstanding(PurchaseInvoiceModel invoice) {
-    final rawBalance = invoice.raw?['balance_amount'];
+    final rawBalance = invoice.toJson()['balance_amount'];
     final balance = double.tryParse(rawBalance?.toString() ?? '');
     if (balance != null) {
       return balance;
     }
 
-    final rawTotal = invoice.raw?['total_amount'];
+    final rawTotal = invoice.toJson()['total_amount'];
     if (rawTotal is num) {
       return rawTotal.toDouble();
     }
@@ -438,10 +438,10 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
 
   String _nestedInvoiceSubtitle(PurchaseInvoiceModel invoice) {
     final supplierName =
-        invoice.raw?['supplier_name']?.toString() ??
-        ((invoice.raw?['supplier'] is Map<String, dynamic>)
+        invoice.toJson()['supplier_name']?.toString() ??
+        ((invoice.toJson()['supplier'] is Map<String, dynamic>)
             ? stringValue(
-                invoice.raw!['supplier'] as Map<String, dynamic>,
+                invoice.toJson()['supplier'] as Map<String, dynamic>,
                 'party_name',
               )
             : '');
@@ -575,10 +575,12 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
     };
     try {
       final response = _selectedItem == null
-          ? await _purchaseService.createPayment(PurchasePaymentModel(payload))
+          ? await _purchaseService.createPayment(
+              PurchasePaymentModel.fromJson(payload),
+            )
           : await _purchaseService.updatePayment(
               intValue(_selectedItem!.toJson(), 'id')!,
-              PurchasePaymentModel(payload),
+              PurchasePaymentModel.fromJson(payload),
             );
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -946,7 +948,9 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.postPayment(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchasePaymentModel(const <String, dynamic>{}),
+                        PurchasePaymentModel.fromJson(
+                          const <String, dynamic>{},
+                        ),
                       ),
                     ),
                   ),
@@ -957,7 +961,9 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.cancelPayment(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchasePaymentModel(const <String, dynamic>{}),
+                        PurchasePaymentModel.fromJson(
+                          const <String, dynamic>{},
+                        ),
                       ),
                     ),
                   ),

@@ -304,7 +304,7 @@ class _BomDetailDialogState extends State<_BomDetailDialog> {
                         : () => _act(
                             () => _service.approveBom(
                               widget.bomId,
-                              BomModel(<String, dynamic>{}),
+                              BomModel.fromJson(<String, dynamic>{}),
                             ),
                           ),
                     child: const Text('Approve'),
@@ -528,7 +528,9 @@ class _ProductionOrderDetailDialogState
                         : () => _act(
                             () => _service.releaseProductionOrder(
                               widget.orderId,
-                              ProductionOrderModel(<String, dynamic>{}),
+                              ProductionOrderModel.fromJson(
+                                <String, dynamic>{},
+                              ),
                             ),
                           ),
                     child: const Text('Release'),
@@ -540,7 +542,9 @@ class _ProductionOrderDetailDialogState
                         : () => _act(
                             () => _service.closeProductionOrder(
                               widget.orderId,
-                              ProductionOrderModel(<String, dynamic>{}),
+                              ProductionOrderModel.fromJson(
+                                <String, dynamic>{},
+                              ),
                             ),
                           ),
                     child: const Text('Close'),
@@ -552,7 +556,9 @@ class _ProductionOrderDetailDialogState
                         : () => _act(
                             () => _service.cancelProductionOrder(
                               widget.orderId,
-                              ProductionOrderModel(<String, dynamic>{}),
+                              ProductionOrderModel.fromJson(
+                                <String, dynamic>{},
+                              ),
                             ),
                           ),
                     child: const Text('Cancel order'),
@@ -777,7 +783,9 @@ class _MaterialIssueDetailDialogState
                         : () => _act(
                             () => _service.postProductionMaterialIssue(
                               widget.issueId,
-                              ProductionMaterialIssueModel(<String, dynamic>{}),
+                              ProductionMaterialIssueModel.fromJson(
+                                <String, dynamic>{},
+                              ),
                             ),
                           ),
                     child: const Text('Post'),
@@ -789,7 +797,9 @@ class _MaterialIssueDetailDialogState
                         : () => _act(
                             () => _service.cancelProductionMaterialIssue(
                               widget.issueId,
-                              ProductionMaterialIssueModel(<String, dynamic>{}),
+                              ProductionMaterialIssueModel.fromJson(
+                                <String, dynamic>{},
+                              ),
                             ),
                           ),
                     child: const Text('Cancel doc'),
@@ -1010,7 +1020,9 @@ class _ProductionReceiptDetailDialogState
                         : () => _act(
                             () => _service.postProductionReceipt(
                               widget.receiptId,
-                              ProductionReceiptModel(<String, dynamic>{}),
+                              ProductionReceiptModel.fromJson(
+                                <String, dynamic>{},
+                              ),
                             ),
                           ),
                     child: const Text('Post'),
@@ -1022,7 +1034,9 @@ class _ProductionReceiptDetailDialogState
                         : () => _act(
                             () => _service.cancelProductionReceipt(
                               widget.receiptId,
-                              ProductionReceiptModel(<String, dynamic>{}),
+                              ProductionReceiptModel.fromJson(
+                                <String, dynamic>{},
+                              ),
                             ),
                           ),
                     child: const Text('Cancel doc'),

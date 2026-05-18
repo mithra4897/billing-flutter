@@ -173,7 +173,7 @@ class _CrmStagesPageState extends State<CrmStagesPage> {
       _formError = null;
     });
 
-    final payload = CrmStageModel({
+    final payload = CrmStageModel.fromJson({
       'stage_name': _nameController.text.trim(),
       'stage_type': _stageType,
       'sequence_no': int.tryParse(_sequenceController.text.trim()) ?? 1,

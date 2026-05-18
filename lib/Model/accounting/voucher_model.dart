@@ -31,7 +31,7 @@ class VoucherModel implements JsonModel {
     this.voucherCategory,
     this.documentSeriesName,
     this.lines = const <VoucherLineModel>[],
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -63,7 +63,6 @@ class VoucherModel implements JsonModel {
   final String? voucherCategory;
   final String? documentSeriesName;
   final List<VoucherLineModel> lines;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => voucherNo ?? 'New Voucher';
@@ -120,7 +119,6 @@ class VoucherModel implements JsonModel {
           documentSeries['series_name']?.toString() ??
           documentSeries['prefix']?.toString(),
       lines: _mapLines(json['lines']),
-      raw: json,
     );
   }
 

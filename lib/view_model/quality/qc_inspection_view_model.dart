@@ -636,7 +636,7 @@ class QcInspectionViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       if (selectedId == null) {
-        final body = QcInspectionModel(_buildPayload(forCreate: true));
+        final body = QcInspectionModel.fromJson(_buildPayload(forCreate: true));
         final response = await _service.createQcInspection(body);
         actionMessage = response.message;
         if (response.data != null) {
@@ -652,7 +652,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       } else {
         final response = await _service.updateQcInspection(
           selectedId!,
-          QcInspectionModel(_mergeForUpdate()),
+          QcInspectionModel.fromJson(_mergeForUpdate()),
         );
         actionMessage = response.message;
         await _loadDetail(selectedId!);

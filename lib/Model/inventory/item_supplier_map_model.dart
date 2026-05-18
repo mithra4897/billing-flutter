@@ -23,7 +23,7 @@ class ItemSupplierMapModel implements JsonModel {
     this.purchaseUomCode = '',
     this.purchaseUomName = '',
     this.purchaseUomSymbol = '',
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -47,7 +47,6 @@ class ItemSupplierMapModel implements JsonModel {
   final String purchaseUomCode;
   final String purchaseUomName;
   final String purchaseUomSymbol;
-  final Map<String, dynamic>? raw;
 
   factory ItemSupplierMapModel.fromJson(Map<String, dynamic> json) {
     final item = json['item'] as Map<String, dynamic>?;
@@ -78,7 +77,6 @@ class ItemSupplierMapModel implements JsonModel {
       purchaseUomCode: ModelValue.stringOf(purchaseUom?['uom_code']),
       purchaseUomName: ModelValue.stringOf(purchaseUom?['uom_name']),
       purchaseUomSymbol: ModelValue.stringOf(purchaseUom?['symbol']),
-      raw: json,
     );
   }
 

@@ -217,11 +217,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final response = await _authService.changePassword(
-        ChangePasswordRequestModel({
-          'current_password': _currentPasswordController.text.trim(),
-          'new_password': _newPasswordController.text.trim(),
-          'confirm_password': _confirmPasswordController.text.trim(),
-        }),
+        ChangePasswordRequestModel(
+          currentPassword: _currentPasswordController.text.trim(),
+          newPassword: _newPasswordController.text.trim(),
+          confirmPassword: _confirmPasswordController.text.trim(),
+        ),
       );
 
       if (!mounted) {

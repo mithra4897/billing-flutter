@@ -16,7 +16,7 @@ class LeaveRequestModel implements JsonModel {
     this.employeeName,
     this.leaveTypeName,
     this.approverName,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -33,7 +33,6 @@ class LeaveRequestModel implements JsonModel {
   final String? employeeName;
   final String? leaveTypeName;
   final String? approverName;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => employeeName ?? employeeCode ?? 'New Leave Request';
@@ -59,7 +58,6 @@ class LeaveRequestModel implements JsonModel {
       approverName:
           approver['display_name']?.toString() ??
           approver['username']?.toString(),
-      raw: json,
     );
   }
 

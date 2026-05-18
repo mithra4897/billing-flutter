@@ -1,14 +1,69 @@
 import '../../screen.dart';
 
 class StockIssueLineModel implements JsonModel {
-  const StockIssueLineModel(this.data);
+  const StockIssueLineModel({
+    this.id,
+    this.stockIssueId,
+    this.lineNo,
+    this.itemId,
+    this.uomId,
+    this.batchId,
+    this.serialId,
+    this.issueQty,
+    this.unitCost,
+    this.totalCost,
+    this.remarks,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? stockIssueId;
+  final int? lineNo;
+  final int? itemId;
+  final int? uomId;
+  final int? batchId;
+  final int? serialId;
+  final double? issueQty;
+  final double? unitCost;
+  final double? totalCost;
+  final String? remarks;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory StockIssueLineModel.fromJson(Map<String, dynamic> json) {
-    return StockIssueLineModel(json);
+    return StockIssueLineModel(
+      id: ModelValue.nullableInt(json['id']),
+      stockIssueId: ModelValue.nullableInt(json['stock_issue_id']),
+      lineNo: ModelValue.nullableInt(json['line_no']),
+      itemId: ModelValue.nullableInt(json['item_id']),
+      uomId: ModelValue.nullableInt(json['uom_id']),
+      batchId: ModelValue.nullableInt(json['batch_id']),
+      serialId: ModelValue.nullableInt(json['serial_id']),
+      issueQty: ModelValue.nullableDouble(json['issue_qty']),
+      unitCost: ModelValue.nullableDouble(json['unit_cost']),
+      totalCost: ModelValue.nullableDouble(json['total_cost']),
+      remarks: json['remarks']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (stockIssueId != null) 'stock_issue_id': stockIssueId,
+    if (lineNo != null) 'line_no': lineNo,
+    if (itemId != null) 'item_id': itemId,
+    if (uomId != null) 'uom_id': uomId,
+    if (batchId != null) 'batch_id': batchId,
+    if (serialId != null) 'serial_id': serialId,
+    if (issueQty != null) 'issue_qty': issueQty,
+    if (unitCost != null) 'unit_cost': unitCost,
+    if (totalCost != null) 'total_cost': totalCost,
+    if (remarks != null) 'remarks': remarks,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

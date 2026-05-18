@@ -837,7 +837,7 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
         .where((item) => item.isNotEmpty)
         .toList(growable: false);
     final invoiceJsonRows = (invoices.data ?? const <SalesInvoiceModel>[])
-        .map((item) => _safeMap(() => _salesInvoiceJson(item)))
+        .map((item) => _safeMap(() => item.toJson()))
         .toList(growable: false);
     final receiptJsonRows = (receipts.data ?? const <SalesReceiptModel>[])
         .map((item) => _safeMap(item.toJson))
@@ -1185,7 +1185,7 @@ Future<ErpDashboardSnapshot> _loadPurchaseDashboard({
         ),
         _TrendSource(
           records: (invoices.data ?? const <PurchaseInvoiceModel>[]).map(
-            _purchaseInvoiceJson,
+            (item) => item.toJson(),
           ),
           dateKeys: const ['invoice_date', 'due_date', 'created_at'],
         ),
@@ -2894,31 +2894,6 @@ String _recordRoute(String baseRoute, Map<String, dynamic> data) {
     return baseRoute;
   }
   return '$baseRoute/$id';
-}
-
-Map<String, dynamic> _salesInvoiceJson(SalesInvoiceModel invoice) {
-  return invoice.raw ??
-      <String, dynamic>{
-        'id': invoice.id,
-        'invoice_no': invoice.invoiceNo,
-        'invoice_date': invoice.invoiceDate,
-        'due_date': invoice.dueDate,
-        'invoice_status': invoice.invoiceStatus,
-        'grand_total': invoice.totalAmount,
-        'balance_amount': invoice.balanceAmount,
-      };
-}
-
-Map<String, dynamic> _purchaseInvoiceJson(PurchaseInvoiceModel invoice) {
-  return invoice.raw ??
-      <String, dynamic>{
-        'id': invoice.id,
-        'invoice_no': invoice.invoiceNo,
-        'invoice_date': invoice.invoiceDate,
-        'due_date': invoice.dueDate,
-        'invoice_status': invoice.invoiceStatus,
-        'total_amount': invoice.totalAmount,
-      };
 }
 
 Future<PaginatedResponse<T>> _safePaginated<T>(

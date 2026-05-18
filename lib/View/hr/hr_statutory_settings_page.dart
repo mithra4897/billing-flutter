@@ -260,7 +260,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
     if (!mounted || row == null) {
       return;
     }
-    final d = row.data;
+    final d = row.toJson();
     _clearPtSlabs();
     _nameCtrl.text = d['profile_name']?.toString() ?? 'Default';
     _effFromCtrl.text = (d['effective_from']?.toString() ?? '')
@@ -525,7 +525,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                           (ErpRecordModel p) => AppDropdownItem<int?>(
                             value: p.id,
                             label:
-                                '${p.data['profile_name'] ?? 'Profile'} · ${p.data['effective_from'] ?? ''}',
+                                '${p.toJson()['profile_name'] ?? 'Profile'} · ${((p.toJson())['effective_from'] ?? '')}',
                           ),
                         ),
                       ],

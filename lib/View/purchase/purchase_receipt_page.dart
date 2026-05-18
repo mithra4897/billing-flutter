@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import '../../screen.dart';
 
 class PurchaseReceiptPage extends StatefulWidget {
@@ -704,10 +702,12 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
     };
     try {
       final response = _selectedItem == null
-          ? await _purchaseService.createReceipt(PurchaseReceiptModel(payload))
+          ? await _purchaseService.createReceipt(
+              PurchaseReceiptModel.fromJson(payload),
+            )
           : await _purchaseService.updateReceipt(
               intValue(_selectedItem!.toJson(), 'id')!,
-              PurchaseReceiptModel(payload),
+              PurchaseReceiptModel.fromJson(payload),
             );
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -1193,7 +1193,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.postReceipt(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseReceiptModel(const <String, dynamic>{}),
+                        PurchaseReceiptModel.fromJson(
+                          const <String, dynamic>{},
+                        ),
                       ),
                     ),
                   ),
@@ -1204,7 +1206,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.cancelReceipt(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseReceiptModel(const <String, dynamic>{}),
+                        PurchaseReceiptModel.fromJson(
+                          const <String, dynamic>{},
+                        ),
                       ),
                     ),
                   ),

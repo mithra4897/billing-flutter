@@ -7,7 +7,7 @@ class BrandModel implements JsonModel {
     this.brandName,
     this.isActive = true,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -15,7 +15,6 @@ class BrandModel implements JsonModel {
   final String? brandName;
   final bool isActive;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => brandName ?? brandCode ?? 'New Brand';
@@ -27,7 +26,6 @@ class BrandModel implements JsonModel {
       brandName: json['brand_name']?.toString() ?? '',
       isActive: json['is_active'] != false && json['is_active'] != 0,
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

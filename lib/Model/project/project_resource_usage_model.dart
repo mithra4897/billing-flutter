@@ -14,7 +14,7 @@ class ProjectResourceUsageModel implements JsonModel {
     this.totalCost,
     this.voucherId,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -29,7 +29,6 @@ class ProjectResourceUsageModel implements JsonModel {
   final double? totalCost;
   final int? voucherId;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   factory ProjectResourceUsageModel.fromJson(Map<String, dynamic> json) {
     return ProjectResourceUsageModel(
@@ -45,7 +44,6 @@ class ProjectResourceUsageModel implements JsonModel {
       totalCost: ModelValue.nullableDouble(json['total_cost']),
       voucherId: ModelValue.nullableInt(json['voucher_id']),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

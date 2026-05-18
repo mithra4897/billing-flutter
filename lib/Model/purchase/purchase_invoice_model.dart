@@ -31,7 +31,7 @@ class PurchaseInvoiceModel {
     this.termsConditions,
     this.lines = const [],
     this.voucher,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int id;
@@ -63,7 +63,6 @@ class PurchaseInvoiceModel {
   final String? termsConditions;
   final List<PurchaseInvoiceLineModel> lines;
   final VoucherModel? voucher;
-  final Map<String, dynamic>? raw;
 
   factory PurchaseInvoiceModel.fromJson(Map<String, dynamic> json) {
     return PurchaseInvoiceModel(
@@ -98,7 +97,6 @@ class PurchaseInvoiceModel {
       voucher: json['voucher'] is Map<String, dynamic>
           ? VoucherModel.fromJson(json['voucher'] as Map<String, dynamic>)
           : null,
-      raw: json,
     );
   }
 
@@ -132,6 +130,14 @@ class PurchaseInvoiceModel {
       'lines': lines.map((line) => line.toJson()).toList(growable: false),
     };
   }
+
+  Map<String, dynamic> toJson() => {
+    if (id != 0) 'id': id,
+    ...toCreateJson(),
+    if (totalAmount != null) 'total_amount': totalAmount,
+    if (invoiceStatus != null) 'invoice_status': invoiceStatus,
+    if (voucher != null) 'voucher': voucher!.toJson(),
+  };
 
   static List<PurchaseInvoiceLineModel> _mapLines(dynamic value) {
     if (value is! List) {

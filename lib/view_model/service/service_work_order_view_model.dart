@@ -240,7 +240,9 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(ServiceWorkOrderModel(<String, dynamic>{'id': selectId}));
+        await select(
+          ServiceWorkOrderModel.fromJson(<String, dynamic>{'id': selectId}),
+        );
         return;
       }
       resetDraft();
@@ -567,7 +569,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _service.createWorkOrder(
-          ServiceWorkOrderModel(_buildCreatePayload()),
+          ServiceWorkOrderModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -580,7 +582,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
         }
         final response = await _service.updateWorkOrder(
           id,
-          ServiceWorkOrderModel(_buildUpdatePayload()),
+          ServiceWorkOrderModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);

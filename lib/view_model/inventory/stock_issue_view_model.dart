@@ -835,10 +835,12 @@ class StockIssueViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createStockIssue(StockIssueModel(payload))
+          ? await _inventoryService.createStockIssue(
+              StockIssueModel.fromJson(payload),
+            )
           : await _inventoryService.updateStockIssue(
               intValue(selected!.toJson(), 'id')!,
-              StockIssueModel(payload),
+              StockIssueModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},
@@ -864,7 +866,7 @@ class StockIssueViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.postStockIssue(
         id,
-        StockIssueModel(const <String, dynamic>{}),
+        StockIssueModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -883,7 +885,7 @@ class StockIssueViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.cancelStockIssue(
         id,
-        StockIssueModel(const <String, dynamic>{}),
+        StockIssueModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

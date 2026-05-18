@@ -16,7 +16,7 @@ class PartyAddressModel implements JsonModel {
     this.countryCode,
     this.isDefault = false,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -33,7 +33,6 @@ class PartyAddressModel implements JsonModel {
   final String? countryCode;
   final bool isDefault;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   factory PartyAddressModel.fromJson(Map<String, dynamic> json) {
     return PartyAddressModel(
@@ -51,7 +50,6 @@ class PartyAddressModel implements JsonModel {
       countryCode: json['country_code']?.toString(),
       isDefault: json['is_default'] == true || json['is_default'] == 1,
       isActive: json['is_active'] != false && json['is_active'] != 0,
-      raw: json,
     );
   }
 

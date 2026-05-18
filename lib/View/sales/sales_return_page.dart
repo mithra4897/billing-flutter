@@ -45,9 +45,6 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
   String _statusFilter = '';
   List<SalesReturnModel> _items = const <SalesReturnModel>[];
   List<SalesReturnModel> _filteredItems = const <SalesReturnModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<SalesInvoiceModel> _invoices = const <SalesInvoiceModel>[];
@@ -166,15 +163,6 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         _items =
             (responses[0] as PaginatedResponse<SalesReturnModel>).data ??
             const <SalesReturnModel>[];
-        _companies =
-            (responses[1] as PaginatedResponse<CompanyModel>).data ??
-            const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -340,12 +328,6 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
         .toList(growable: false);
   }
 
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
-
   List<SalesInvoiceModel> get _invoiceOptions => _invoices
       .where((item) {
         if (item.id == _salesInvoiceId) {
@@ -445,13 +427,6 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
             ];
     });
     _syncLineDisplayNames();
-  }
-
-  void _clearInvoiceSelection() {
-    _salesInvoiceId = null;
-    _customerPartyId = null;
-    _invoiceLines = const <SalesInvoiceLineModel>[];
-    _lines = <_SalesReturnLineDraft>[_SalesReturnLineDraft()];
   }
 
   void _syncLineDisplayNames() {
@@ -577,10 +552,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     };
     try {
       final response = _selectedItem == null
-          ? await _salesService.createReturn(SalesReturnModel(payload))
+          ? await _salesService.createReturn(SalesReturnModel.fromJson(payload))
           : await _salesService.updateReturn(
               intValue(_selectedItem!.toJson(), 'id')!,
-              SalesReturnModel(payload),
+              SalesReturnModel.fromJson(payload),
             );
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -977,7 +952,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                     onPressed: () => _docAction(
                       () => _salesService.postReturn(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        SalesReturnModel(const <String, dynamic>{}),
+                        SalesReturnModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),
@@ -988,7 +963,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                     onPressed: () => _docAction(
                       () => _salesService.cancelReturn(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        SalesReturnModel(const <String, dynamic>{}),
+                        SalesReturnModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),

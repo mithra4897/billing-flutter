@@ -1,14 +1,115 @@
 import '../../screen.dart';
 
 class MrpRunModel implements JsonModel {
-  const MrpRunModel(this.data);
+  const MrpRunModel({
+    this.id,
+    this.companyId,
+    this.branchId,
+    this.locationId,
+    this.warehouseId,
+    this.planningCalendarId,
+    this.runNo,
+    this.runDate,
+    this.planningStartDate,
+    this.planningEndDate,
+    this.runScope,
+    this.runMode,
+    this.runStatus,
+    this.totalItemsProcessed,
+    this.totalShortageItems,
+    this.totalRecommendations,
+    this.notes,
+    this.errorMessage,
+    this.createdBy,
+    this.completedBy,
+    this.completedAt,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? companyId;
+  final int? branchId;
+  final int? locationId;
+  final int? warehouseId;
+  final int? planningCalendarId;
+  final String? runNo;
+  final String? runDate;
+  final String? planningStartDate;
+  final String? planningEndDate;
+  final String? runScope;
+  final String? runMode;
+  final String? runStatus;
+  final int? totalItemsProcessed;
+  final int? totalShortageItems;
+  final int? totalRecommendations;
+  final String? notes;
+  final String? errorMessage;
+  final int? createdBy;
+  final int? completedBy;
+  final String? completedAt;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory MrpRunModel.fromJson(Map<String, dynamic> json) {
-    return MrpRunModel(json);
+    return MrpRunModel(
+      id: ModelValue.nullableInt(json['id']),
+      companyId: ModelValue.nullableInt(json['company_id']),
+      branchId: ModelValue.nullableInt(json['branch_id']),
+      locationId: ModelValue.nullableInt(json['location_id']),
+      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
+      planningCalendarId: ModelValue.nullableInt(json['planning_calendar_id']),
+      runNo: json['run_no']?.toString(),
+      runDate: json['run_date']?.toString(),
+      planningStartDate: json['planning_start_date']?.toString(),
+      planningEndDate: json['planning_end_date']?.toString(),
+      runScope: json['run_scope']?.toString(),
+      runMode: json['run_mode']?.toString(),
+      runStatus: json['run_status']?.toString(),
+      totalItemsProcessed: ModelValue.nullableInt(
+        json['total_items_processed'],
+      ),
+      totalShortageItems: ModelValue.nullableInt(json['total_shortage_items']),
+      totalRecommendations: ModelValue.nullableInt(
+        json['total_recommendations'],
+      ),
+      notes: json['notes']?.toString(),
+      errorMessage: json['error_message']?.toString(),
+      createdBy: ModelValue.nullableInt(json['created_by']),
+      completedBy: ModelValue.nullableInt(json['completed_by']),
+      completedAt: json['completed_at']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (companyId != null) 'company_id': companyId,
+    if (branchId != null) 'branch_id': branchId,
+    if (locationId != null) 'location_id': locationId,
+    if (warehouseId != null) 'warehouse_id': warehouseId,
+    if (planningCalendarId != null) 'planning_calendar_id': planningCalendarId,
+    if (runNo != null) 'run_no': runNo,
+    if (runDate != null) 'run_date': runDate,
+    if (planningStartDate != null) 'planning_start_date': planningStartDate,
+    if (planningEndDate != null) 'planning_end_date': planningEndDate,
+    if (runScope != null) 'run_scope': runScope,
+    if (runMode != null) 'run_mode': runMode,
+    if (runStatus != null) 'run_status': runStatus,
+    if (totalItemsProcessed != null)
+      'total_items_processed': totalItemsProcessed,
+    if (totalShortageItems != null) 'total_shortage_items': totalShortageItems,
+    if (totalRecommendations != null)
+      'total_recommendations': totalRecommendations,
+    if (notes != null) 'notes': notes,
+    if (errorMessage != null) 'error_message': errorMessage,
+    if (createdBy != null) 'created_by': createdBy,
+    if (completedBy != null) 'completed_by': completedBy,
+    if (completedAt != null) 'completed_at': completedAt,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

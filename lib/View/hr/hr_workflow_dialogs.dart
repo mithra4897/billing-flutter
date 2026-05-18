@@ -26,8 +26,9 @@ Future<({int? companyId, String? banner})> hrSessionCompanyInfo() async {
       filters: const {'per_page': 200, 'sort_by': 'legal_name'},
     );
     final companies = companiesResp.data ?? const <CompanyModel>[];
-    final active =
-        companies.where((CompanyModel c) => c.isActive).toList(growable: false);
+    final active = companies
+        .where((CompanyModel c) => c.isActive)
+        .toList(growable: false);
 
     var storedId = await SessionStorage.getCurrentCompanyId();
     storedId ??= await _ensureStoredCompanyWhenSingleTenant(active);
@@ -290,10 +291,9 @@ Future<void> openAttendanceRecordEditor(
         'company_id': companyId,
       },
     );
-    employees =
-        (empResp.data ?? const <EmployeeModel>[]).where((e) {
-          return e.companyId == companyId && e.id != null;
-        }).toList();
+    employees = (empResp.data ?? const <EmployeeModel>[]).where((e) {
+      return e.companyId == companyId && e.id != null;
+    }).toList();
     if (recordId != null) {
       final detail = await hr.attendanceRecord(recordId);
       if (detail.success == true && detail.data != null) {
@@ -339,7 +339,9 @@ Future<void> openAttendanceRecordEditor(
       return StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: Text(recordId == null ? 'New attendance' : 'Edit attendance'),
+            title: Text(
+              recordId == null ? 'New attendance' : 'Edit attendance',
+            ),
             content: SizedBox(
               width: 420,
               child: Form(
@@ -446,7 +448,7 @@ Future<void> openAttendanceRecordEditor(
                   }
                   setDialogState(() => formError = null);
                   try {
-                    final model = AttendanceRecordModel(body);
+                    final model = AttendanceRecordModel.fromJson(body);
                     final response = recordId == null
                         ? await hr.createAttendance(model)
                         : await hr.updateAttendance(recordId, model);
@@ -457,9 +459,9 @@ Future<void> openAttendanceRecordEditor(
                       setDialogState(() => formError = response.message);
                       return;
                     }
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text(response.message)),
-                    );
+                    ScaffoldMessenger.of(
+                      dialogContext,
+                    ).showSnackBar(SnackBar(content: Text(response.message)));
                     Navigator.pop(dialogContext);
                     onSaved();
                   } catch (e) {
@@ -550,9 +552,9 @@ Future<void> showAttendanceRecordDetailDialog(
                       if (!ctx.mounted) {
                         return;
                       }
-                      ScaffoldMessenger.of(ctx).showSnackBar(
-                        SnackBar(content: Text(del.message)),
-                      );
+                      ScaffoldMessenger.of(
+                        ctx,
+                      ).showSnackBar(SnackBar(content: Text(del.message)));
                       if (del.success == true) {
                         Navigator.pop(ctx);
                         onChanged();
@@ -626,12 +628,8 @@ List<_ExpenseLineEditors> _editorsFromClaimJson(Map<String, dynamic> data) {
           description: TextEditingController(
             text: stringValue(m, 'description'),
           ),
-          amount: TextEditingController(
-            text: stringValue(m, 'amount'),
-          ),
-          remarks: TextEditingController(
-            text: stringValue(m, 'remarks'),
-          ),
+          amount: TextEditingController(text: stringValue(m, 'amount')),
+          remarks: TextEditingController(text: stringValue(m, 'remarks')),
         ),
       );
     }
@@ -677,10 +675,9 @@ Future<void> openExpenseClaimEditor(
         'company_id': companyId,
       },
     );
-    employees =
-        (empResp.data ?? const <EmployeeModel>[]).where((e) {
-          return e.companyId == companyId && e.id != null;
-        }).toList();
+    employees = (empResp.data ?? const <EmployeeModel>[]).where((e) {
+      return e.companyId == companyId && e.id != null;
+    }).toList();
 
     if (claimId != null) {
       final detail = await hr.expenseClaim(claimId);
@@ -933,7 +930,7 @@ Future<void> openExpenseClaimEditor(
                   }
                   setDialogState(() => formError = null);
                   try {
-                    final model = ExpenseClaimModel(body);
+                    final model = ExpenseClaimModel.fromJson(body);
                     final response = claimId == null
                         ? await hr.createExpenseClaim(model)
                         : await hr.updateExpenseClaim(claimId, model);
@@ -944,9 +941,9 @@ Future<void> openExpenseClaimEditor(
                       setDialogState(() => formError = response.message);
                       return;
                     }
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text(response.message)),
-                    );
+                    ScaffoldMessenger.of(
+                      dialogContext,
+                    ).showSnackBar(SnackBar(content: Text(response.message)));
                     Navigator.pop(dialogContext);
                     onSaved();
                   } catch (e) {
@@ -1018,16 +1015,16 @@ Future<void> openExpenseClaimRejectDialog(
                 final t = notes.text.trim();
                 final res = await hr.rejectExpenseClaim(
                   claimId,
-                  ExpenseClaimModel(<String, dynamic>{
+                  ExpenseClaimModel.fromJson(<String, dynamic>{
                     if (t.isNotEmpty) 'notes': t,
                   }),
                 );
                 if (!dialogContext.mounted) {
                   return;
                 }
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text(res.message)),
-                );
+                ScaffoldMessenger.of(
+                  dialogContext,
+                ).showSnackBar(SnackBar(content: Text(res.message)));
                 if (res.success == true) {
                   Navigator.pop(dialogContext);
                   onChanged();
@@ -1089,16 +1086,16 @@ Future<void> openExpenseClaimCancelDialog(
                 final t = notes.text.trim();
                 final res = await hr.cancelExpenseClaim(
                   claimId,
-                  ExpenseClaimModel(<String, dynamic>{
+                  ExpenseClaimModel.fromJson(<String, dynamic>{
                     if (t.isNotEmpty) 'notes': t,
                   }),
                 );
                 if (!dialogContext.mounted) {
                   return;
                 }
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text(res.message)),
-                );
+                ScaffoldMessenger.of(
+                  dialogContext,
+                ).showSnackBar(SnackBar(content: Text(res.message)));
                 if (res.success == true) {
                   Navigator.pop(dialogContext);
                   onChanged();
@@ -1203,7 +1200,9 @@ Future<void> openExpenseClaimReimburseDialog(
                           .toList(),
                       initialValue: accountId,
                       onChanged: (v) => setSt(() => accountId = v),
-                      validator: Validators.requiredSelection('Payment account'),
+                      validator: Validators.requiredSelection(
+                        'Payment account',
+                      ),
                     ),
                     AppFormTextField(
                       controller: paymentDateCtrl,
@@ -1230,20 +1229,17 @@ Future<void> openExpenseClaimReimburseDialog(
                     return;
                   }
                   try {
-                    final body = ExpenseClaimModel(<String, dynamic>{
+                    final body = ExpenseClaimModel.fromJson(<String, dynamic>{
                       'account_id': accountId,
                       'payment_date': paymentDateCtrl.text.trim(),
                     });
-                    final res = await hr.reimburseExpenseClaim(
-                      claimId,
-                      body,
-                    );
+                    final res = await hr.reimburseExpenseClaim(claimId, body);
                     if (!dialogContext.mounted) {
                       return;
                     }
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text(res.message)),
-                    );
+                    ScaffoldMessenger.of(
+                      dialogContext,
+                    ).showSnackBar(SnackBar(content: Text(res.message)));
                     if (res.success == true) {
                       Navigator.pop(dialogContext);
                       onChanged();
@@ -1284,9 +1280,7 @@ Future<void> showExpenseClaimDetailDialog(
       return;
     }
     final snapshot = response.data!;
-    final text = const JsonEncoder.withIndent(
-      '  ',
-    ).convert(snapshot.toJson());
+    final text = const JsonEncoder.withIndent('  ').convert(snapshot.toJson());
     final st = stringValue(snapshot.toJson(), 'claim_status');
 
     await showDialog<void>(
@@ -1352,14 +1346,14 @@ Future<void> showExpenseClaimDetailDialog(
                         try {
                           final res = await hr.approveExpenseClaim(
                             id,
-                            ExpenseClaimModel(<String, dynamic>{}),
+                            ExpenseClaimModel.fromJson(<String, dynamic>{}),
                           );
                           if (!ctx.mounted) {
                             return;
                           }
-                          ScaffoldMessenger.maybeOf(ctx)?.showSnackBar(
-                            SnackBar(content: Text(res.message)),
-                          );
+                          ScaffoldMessenger.maybeOf(
+                            ctx,
+                          )?.showSnackBar(SnackBar(content: Text(res.message)));
                           if (res.success == true) {
                             Navigator.pop(ctx);
                             onChanged();
@@ -1416,9 +1410,9 @@ Future<void> showExpenseClaimDetailDialog(
                         if (!ctx.mounted) {
                           return;
                         }
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(del.message)),
-                        );
+                        ScaffoldMessenger.of(
+                          ctx,
+                        ).showSnackBar(SnackBar(content: Text(del.message)));
                         if (del.success == true) {
                           Navigator.pop(ctx);
                           onChanged();
@@ -1596,7 +1590,7 @@ Future<void> openPayrollRunEditor(
                   if (formKey.currentState?.validate() != true) {
                     return;
                   }
-                  final body = PayrollRunModel(<String, dynamic>{
+                  final body = PayrollRunModel.fromJson(<String, dynamic>{
                     'company_id': companyId,
                     'payroll_month': int.parse(monthCtrl.text.trim()),
                     'payroll_year': int.parse(yearCtrl.text.trim()),
@@ -1615,9 +1609,9 @@ Future<void> openPayrollRunEditor(
                       setDialogState(() => formError = response.message);
                       return;
                     }
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text(response.message)),
-                    );
+                    ScaffoldMessenger.of(
+                      dialogContext,
+                    ).showSnackBar(SnackBar(content: Text(response.message)));
                     Navigator.pop(dialogContext);
                     onSaved();
                   } catch (e) {
@@ -1699,20 +1693,20 @@ Future<void> showPayrollRunDetailDialog(
                           ctx,
                           'Process payroll',
                           'Generate payroll lines and payslips for all active '
-                          'employees? This cannot be undone.',
+                              'employees? This cannot be undone.',
                         )) {
                           return;
                         }
                         final res = await hr.processPayrollRun(
                           id,
-                          PayrollRunModel(<String, dynamic>{}),
+                          PayrollRunModel.fromJson(<String, dynamic>{}),
                         );
                         if (!ctx.mounted) {
                           return;
                         }
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(res.message)),
-                        );
+                        ScaffoldMessenger.of(
+                          ctx,
+                        ).showSnackBar(SnackBar(content: Text(res.message)));
                         if (res.success == true) {
                           Navigator.pop(ctx);
                           onChanged();
@@ -1737,9 +1731,9 @@ Future<void> showPayrollRunDetailDialog(
                         if (!ctx.mounted) {
                           return;
                         }
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(del.message)),
-                        );
+                        ScaffoldMessenger.of(
+                          ctx,
+                        ).showSnackBar(SnackBar(content: Text(del.message)));
                         if (del.success == true) {
                           Navigator.pop(ctx);
                           onChanged();
@@ -1760,14 +1754,14 @@ Future<void> showPayrollRunDetailDialog(
                         }
                         final res = await hr.postPayrollRun(
                           id,
-                          PayrollRunModel(<String, dynamic>{}),
+                          PayrollRunModel.fromJson(<String, dynamic>{}),
                         );
                         if (!ctx.mounted) {
                           return;
                         }
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(res.message)),
-                        );
+                        ScaffoldMessenger.of(
+                          ctx,
+                        ).showSnackBar(SnackBar(content: Text(res.message)));
                         if (res.success == true) {
                           Navigator.pop(ctx);
                           onChanged();

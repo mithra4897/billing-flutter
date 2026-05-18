@@ -10,7 +10,7 @@ class EmployeeAccountModel implements JsonModel {
     this.isActive = true,
     this.accountCode,
     this.accountName,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -21,7 +21,6 @@ class EmployeeAccountModel implements JsonModel {
   final bool isActive;
   final String? accountCode;
   final String? accountName;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => accountName ?? accountCode ?? 'Employee Account';
@@ -37,7 +36,6 @@ class EmployeeAccountModel implements JsonModel {
       isActive: _bool(json['is_active'], fallback: true),
       accountCode: account['account_code']?.toString(),
       accountName: account['account_name']?.toString(),
-      raw: json,
     );
   }
 

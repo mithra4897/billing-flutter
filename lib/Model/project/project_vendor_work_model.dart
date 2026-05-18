@@ -13,7 +13,7 @@ class ProjectVendorWorkModel implements JsonModel {
     this.voucherId,
     this.workStatus,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -27,7 +27,6 @@ class ProjectVendorWorkModel implements JsonModel {
   final int? voucherId;
   final String? workStatus;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   factory ProjectVendorWorkModel.fromJson(Map<String, dynamic> json) {
     return ProjectVendorWorkModel(
@@ -42,7 +41,6 @@ class ProjectVendorWorkModel implements JsonModel {
       voucherId: ModelValue.nullableInt(json['voucher_id']),
       workStatus: json['work_status']?.toString(),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

@@ -8,7 +8,6 @@ class AuthUserModel {
     this.profilePhotoPath,
     this.isActive = true,
     this.isSuperAdmin = false,
-    this.raw,
   });
 
   final int id;
@@ -19,7 +18,6 @@ class AuthUserModel {
   final String? profilePhotoPath;
   final bool isActive;
   final bool isSuperAdmin;
-  final Map<String, dynamic>? raw;
 
   factory AuthUserModel.fromJson(Map<String, dynamic> json) {
     return AuthUserModel(
@@ -32,7 +30,6 @@ class AuthUserModel {
       isActive: json['is_active'] != false && json['is_active'] != 0,
       isSuperAdmin:
           json['is_super_admin'] == true || json['is_super_admin'] == 1,
-      raw: json,
     );
   }
 
@@ -46,7 +43,6 @@ class AuthUserModel {
       'profile_photo_path': profilePhotoPath,
       'is_active': isActive,
       'is_super_admin': isSuperAdmin,
-      if (raw != null) ...raw!,
     };
   }
 

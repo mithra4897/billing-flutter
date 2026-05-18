@@ -1,14 +1,26 @@
 import '../../screen.dart';
 
 class UserWarehousesSyncRequestModel implements JsonModel {
-  const UserWarehousesSyncRequestModel(this.data);
+  const UserWarehousesSyncRequestModel({
+    this.warehouses = const <Map<String, dynamic>>[],
+  });
 
-  final Map<String, dynamic> data;
+  final List<Map<String, dynamic>> warehouses;
 
   factory UserWarehousesSyncRequestModel.fromJson(Map<String, dynamic> json) {
-    return UserWarehousesSyncRequestModel(json);
+    return UserWarehousesSyncRequestModel(
+      warehouses: _mapList(json['warehouses']),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {'warehouses': warehouses};
+
+  static List<Map<String, dynamic>> _mapList(dynamic value) {
+    if (value is! List) return const <Map<String, dynamic>>[];
+    return value
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
+  }
 }

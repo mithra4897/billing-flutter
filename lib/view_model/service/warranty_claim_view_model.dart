@@ -213,7 +213,9 @@ class WarrantyClaimViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(ServiceTicketModel(<String, dynamic>{'id': selectId}));
+        await select(
+          ServiceTicketModel.fromJson(<String, dynamic>{'id': selectId}),
+        );
         return;
       }
       resetDraft();
@@ -494,7 +496,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _service.createWarrantyClaim(
-          ServiceTicketModel(_buildCreatePayload()),
+          ServiceTicketModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -507,7 +509,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
         }
         final response = await _service.updateWarrantyClaim(
           id,
-          ServiceTicketModel(_buildUpdatePayload()),
+          ServiceTicketModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);

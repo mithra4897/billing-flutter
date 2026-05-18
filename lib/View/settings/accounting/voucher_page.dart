@@ -1,4 +1,3 @@
-
 import '../../../screen.dart';
 
 class VoucherManagementPage extends StatefulWidget {
@@ -445,10 +444,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   }
 
   Map<String, dynamic>? _accountGroupJson(AccountModel a) {
-    final m = a.raw;
-    if (m == null) {
-      return null;
-    }
+    final m = a.toJson();
     final g = m['account_group'] ?? m['accountGroup'];
     if (g is Map<String, dynamic>) {
       return g;
@@ -1621,7 +1617,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         continue;
       }
       for (final alloc in line.allocations) {
-        final m = alloc.data;
+        final m = alloc.toJson();
         tiles.add(
           ListTile(
             dense: true,

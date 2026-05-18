@@ -1,27 +1,103 @@
 import '../../screen.dart';
 
 class InternalStockReceiptModel implements JsonModel {
-  const InternalStockReceiptModel(this.data);
+  const InternalStockReceiptModel({
+    this.id,
+    this.companyId,
+    this.branchId,
+    this.locationId,
+    this.financialYearId,
+    this.documentSeriesId,
+    this.receiptNo,
+    this.receiptDate,
+    this.warehouseId,
+    this.receiptSource,
+    this.receivedFrom,
+    this.receiptStatus,
+    this.remarks,
+    this.voucherId,
+    this.postedBy,
+    this.postedAt,
+    this.createdBy,
+    this.updatedBy,
+    this.isActive,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? companyId;
+  final int? branchId;
+  final int? locationId;
+  final int? financialYearId;
+  final int? documentSeriesId;
+  final String? receiptNo;
+  final String? receiptDate;
+  final int? warehouseId;
+  final String? receiptSource;
+  final String? receivedFrom;
+  final String? receiptStatus;
+  final String? remarks;
+  final int? voucherId;
+  final int? postedBy;
+  final String? postedAt;
+  final int? createdBy;
+  final int? updatedBy;
+  final bool? isActive;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory InternalStockReceiptModel.fromJson(Map<String, dynamic> json) {
-    return InternalStockReceiptModel(json);
+    return InternalStockReceiptModel(
+      id: ModelValue.nullableInt(json['id']),
+      companyId: ModelValue.nullableInt(json['company_id']),
+      branchId: ModelValue.nullableInt(json['branch_id']),
+      locationId: ModelValue.nullableInt(json['location_id']),
+      financialYearId: ModelValue.nullableInt(json['financial_year_id']),
+      documentSeriesId: ModelValue.nullableInt(json['document_series_id']),
+      receiptNo: json['receipt_no']?.toString(),
+      receiptDate: json['receipt_date']?.toString(),
+      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
+      receiptSource: json['receipt_source']?.toString(),
+      receivedFrom: json['received_from']?.toString(),
+      receiptStatus: json['receipt_status']?.toString(),
+      remarks: json['remarks']?.toString(),
+      voucherId: ModelValue.nullableInt(json['voucher_id']),
+      postedBy: ModelValue.nullableInt(json['posted_by']),
+      postedAt: json['posted_at']?.toString(),
+      createdBy: ModelValue.nullableInt(json['created_by']),
+      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      isActive: json['is_active'] == null
+          ? null
+          : ModelValue.boolOf(json['is_active']),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
-
-  @override
-  String toString() {
-    final no = data['receipt_no']?.toString().trim();
-    if (no != null && no.isNotEmpty) {
-      return no;
-    }
-    final id = data['id'];
-    if (id != null) {
-      return 'Receipt #$id';
-    }
-    return 'New internal receipt';
-  }
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (companyId != null) 'company_id': companyId,
+    if (branchId != null) 'branch_id': branchId,
+    if (locationId != null) 'location_id': locationId,
+    if (financialYearId != null) 'financial_year_id': financialYearId,
+    if (documentSeriesId != null) 'document_series_id': documentSeriesId,
+    if (receiptNo != null) 'receipt_no': receiptNo,
+    if (receiptDate != null) 'receipt_date': receiptDate,
+    if (warehouseId != null) 'warehouse_id': warehouseId,
+    if (receiptSource != null) 'receipt_source': receiptSource,
+    if (receivedFrom != null) 'received_from': receivedFrom,
+    if (receiptStatus != null) 'receipt_status': receiptStatus,
+    if (remarks != null) 'remarks': remarks,
+    if (voucherId != null) 'voucher_id': voucherId,
+    if (postedBy != null) 'posted_by': postedBy,
+    if (postedAt != null) 'posted_at': postedAt,
+    if (createdBy != null) 'created_by': createdBy,
+    if (updatedBy != null) 'updated_by': updatedBy,
+    if (isActive != null) 'is_active': isActive,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

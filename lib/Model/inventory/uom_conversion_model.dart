@@ -13,7 +13,7 @@ class UomConversionModel implements JsonModel {
     this.toUomCode = '',
     this.toUomName = '',
     this.toUomSymbol = '',
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -27,7 +27,6 @@ class UomConversionModel implements JsonModel {
   final String toUomCode;
   final String toUomName;
   final String toUomSymbol;
-  final Map<String, dynamic>? raw;
 
   factory UomConversionModel.fromJson(Map<String, dynamic> json) {
     final fromUom = json['from_uom'] as Map<String, dynamic>?;
@@ -47,7 +46,6 @@ class UomConversionModel implements JsonModel {
       toUomCode: ModelValue.stringOf(toUom?['uom_code']),
       toUomName: ModelValue.stringOf(toUom?['uom_name']),
       toUomSymbol: ModelValue.stringOf(toUom?['symbol']),
-      raw: json,
     );
   }
 

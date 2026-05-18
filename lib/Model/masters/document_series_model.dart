@@ -17,7 +17,7 @@ class DocumentSeriesModel implements JsonModel {
     this.isDefault = false,
     this.isActive = true,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -35,7 +35,6 @@ class DocumentSeriesModel implements JsonModel {
   final bool isDefault;
   final bool isActive;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => seriesName ?? seriesCode ?? 'New Document Series';
@@ -57,7 +56,6 @@ class DocumentSeriesModel implements JsonModel {
       isDefault: json['is_default'] == true || json['is_default'] == 1,
       isActive: json['is_active'] != false && json['is_active'] != 0,
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

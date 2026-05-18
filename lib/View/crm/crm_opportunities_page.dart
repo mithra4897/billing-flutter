@@ -604,7 +604,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       _formError = null;
     });
 
-    final payload = CrmOpportunityModel({
+    final payload = CrmOpportunityModel.fromJson({
       'enquiry_id': _enquiryId,
       'opportunity_name': _nameController.text.trim(),
       'expected_value':
@@ -677,7 +677,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     try {
       final response = await _crmService.winOpportunity(
         id,
-        CrmOpportunityModel(const <String, dynamic>{}),
+        CrmOpportunityModel.fromJson(const <String, dynamic>{}),
       );
       if (!mounted) {
         return;
@@ -702,7 +702,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     try {
       final response = await _crmService.loseOpportunity(
         id,
-        CrmOpportunityModel(const <String, dynamic>{}),
+        CrmOpportunityModel.fromJson(const <String, dynamic>{}),
       );
       if (!mounted) {
         return;

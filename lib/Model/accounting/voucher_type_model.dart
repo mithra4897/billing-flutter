@@ -12,7 +12,7 @@ class VoucherTypeModel implements JsonModel {
     this.allowsReferenceAllocation = true,
     this.isSystemType = false,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -25,7 +25,6 @@ class VoucherTypeModel implements JsonModel {
   final bool allowsReferenceAllocation;
   final bool isSystemType;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => name ?? code ?? 'New Voucher Type';
@@ -45,7 +44,6 @@ class VoucherTypeModel implements JsonModel {
       ),
       isSystemType: _bool(json['is_system_type']),
       isActive: _bool(json['is_active'], fallback: true),
-      raw: json,
     );
   }
 

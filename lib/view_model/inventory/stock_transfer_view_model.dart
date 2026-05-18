@@ -825,11 +825,11 @@ class StockTransferViewModel extends ChangeNotifier {
     try {
       final response = selected == null
           ? await _inventoryService.createStockTransfer(
-              StockTransferModel(payload),
+              StockTransferModel.fromJson(payload),
             )
           : await _inventoryService.updateStockTransfer(
               intValue(selected!.toJson(), 'id')!,
-              StockTransferModel(payload),
+              StockTransferModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},
@@ -855,7 +855,7 @@ class StockTransferViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.postStockTransfer(
         id,
-        StockTransferModel(const <String, dynamic>{}),
+        StockTransferModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -874,7 +874,7 @@ class StockTransferViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.cancelStockTransfer(
         id,
-        StockTransferModel(const <String, dynamic>{}),
+        StockTransferModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

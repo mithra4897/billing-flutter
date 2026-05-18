@@ -215,7 +215,9 @@ class ServiceTicketViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(ServiceTicketModel(<String, dynamic>{'id': selectId}));
+        await select(
+          ServiceTicketModel.fromJson(<String, dynamic>{'id': selectId}),
+        );
         return;
       }
       resetDraft();
@@ -489,7 +491,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _service.createTicket(
-          ServiceTicketModel(_buildCreatePayload()),
+          ServiceTicketModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -502,7 +504,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
         }
         final response = await _service.updateTicket(
           id,
-          ServiceTicketModel(_buildUpdatePayload()),
+          ServiceTicketModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);

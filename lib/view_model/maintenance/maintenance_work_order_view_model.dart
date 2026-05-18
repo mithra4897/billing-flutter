@@ -278,7 +278,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
           return;
         }
         await select(
-          MaintenanceWorkOrderModel(<String, dynamic>{'id': selectId}),
+          MaintenanceWorkOrderModel.fromJson(<String, dynamic>{'id': selectId}),
         );
         return;
       }
@@ -658,7 +658,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _maintenance.createWorkOrder(
-          MaintenanceWorkOrderModel(_buildCreatePayload()),
+          MaintenanceWorkOrderModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -671,7 +671,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
         }
         final response = await _maintenance.updateWorkOrder(
           id,
-          MaintenanceWorkOrderModel(_buildUpdatePayload()),
+          MaintenanceWorkOrderModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);
@@ -686,7 +686,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
   }
 
   MaintenanceWorkOrderModel get _emptyBody =>
-      MaintenanceWorkOrderModel(<String, dynamic>{});
+      MaintenanceWorkOrderModel.fromJson(<String, dynamic>{});
 
   Future<void> approveWorkOrder() async {
     final id = selectedId;

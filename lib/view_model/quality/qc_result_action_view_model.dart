@@ -9,16 +9,10 @@ const Set<String> _resultActionInspectionStatuses = <String>{
 const List<AppDropdownItem<String>> kQcResultActionTypeItems =
     <AppDropdownItem<String>>[
       AppDropdownItem(value: 'accept_to_stock', label: 'Accept to stock'),
-      AppDropdownItem(
-        value: 'reject_to_supplier',
-        label: 'Reject to supplier',
-      ),
+      AppDropdownItem(value: 'reject_to_supplier', label: 'Reject to supplier'),
       AppDropdownItem(value: 'reject_to_scrap', label: 'Reject to scrap'),
       AppDropdownItem(value: 'move_to_hold', label: 'Move to hold'),
-      AppDropdownItem(
-        value: 'move_to_quarantine',
-        label: 'Move to quarantine',
-      ),
+      AppDropdownItem(value: 'move_to_quarantine', label: 'Move to quarantine'),
       AppDropdownItem(value: 'send_for_rework', label: 'Send for rework'),
       AppDropdownItem(value: 'manual_override', label: 'Manual override'),
     ];
@@ -69,27 +63,30 @@ class QcResultActionViewModel extends ChangeNotifier {
 
   bool get canDelete => selected != null && actionStatus == 'pending';
 
-  List<QcInspectionModel> get inspectionOptions =>
-      inspections.where((i) {
+  List<QcInspectionModel> get inspectionOptions => inspections
+      .where((i) {
         if (intValue(i.toJson(), 'id') == null) {
           return false;
         }
         final st = stringValue(i.toJson(), 'inspection_status');
         return _resultActionInspectionStatuses.contains(st);
-      }).toList(growable: false);
+      })
+      .toList(growable: false);
 
   List<QcResultActionModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        row.actionType,
-        row.actionStatus,
-        row.inspectionNoLabel,
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            row.actionType,
+            row.actionStatus,
+            row.inspectionNoLabel,
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -112,14 +109,15 @@ class QcResultActionViewModel extends ChangeNotifier {
       ]);
       rows =
           (responses[0] as PaginatedResponse<QcResultActionModel>).data ??
-              const <QcResultActionModel>[];
+          const <QcResultActionModel>[];
       inspections =
           (responses[1] as PaginatedResponse<QcInspectionModel>).data ??
-              const <QcInspectionModel>[];
-      warehouses = ((responses[2] as PaginatedResponse<WarehouseModel>).data ??
-              const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+          const <QcInspectionModel>[];
+      warehouses =
+          ((responses[2] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
 
       loading = false;
 
@@ -173,13 +171,16 @@ class QcResultActionViewModel extends ChangeNotifier {
       final response = await _service.qcResultAction(id);
       final doc = response.data ?? row;
       qcInspectionId = doc.qcInspectionId;
-      actionType = doc.actionType.isNotEmpty ? doc.actionType : 'accept_to_stock';
-      actionQtyController.text = doc.actionQty > 0 ? doc.actionQty.toString() : '';
+      actionType = doc.actionType.isNotEmpty
+          ? doc.actionType
+          : 'accept_to_stock';
+      actionQtyController.text = doc.actionQty > 0
+          ? doc.actionQty.toString()
+          : '';
       targetWarehouseId = doc.targetWarehouseId;
       remarksController.text = doc.remarks ?? '';
       referenceDocTypeController.text = doc.referenceDocumentType ?? '';
-      referenceDocIdController.text =
-          doc.referenceDocumentId?.toString() ?? '';
+      referenceDocIdController.text = doc.referenceDocumentId?.toString() ?? '';
     } catch (e) {
       formError = e.toString();
     } finally {
@@ -221,12 +222,14 @@ class QcResultActionViewModel extends ChangeNotifier {
       }
     }
     final cid = ins != null ? intValue(ins.toJson(), 'company_id') : null;
-    return warehouses.where((w) {
-      if (w.id == null) {
-        return false;
-      }
-      return cid == null || w.companyId == cid;
-    }).toList(growable: false);
+    return warehouses
+        .where((w) {
+          if (w.id == null) {
+            return false;
+          }
+          return cid == null || w.companyId == cid;
+        })
+        .toList(growable: false);
   }
 
   String? _validate() {
@@ -272,8 +275,10 @@ class QcResultActionViewModel extends ChangeNotifier {
         actionMessage = response.message;
         await load(selectId: response.data?.id);
       } else {
-        final response =
-            await _service.updateQcResultAction(selected!.id!, doc);
+        final response = await _service.updateQcResultAction(
+          selected!.id!,
+          doc,
+        );
         actionMessage = response.message;
         await load(selectId: selected!.id);
       }

@@ -719,10 +719,12 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
     try {
       final response = _selectedItem == null
-          ? await _salesService.createQuotation(SalesQuotationModel(payload))
+          ? await _salesService.createQuotation(
+              SalesQuotationModel.fromJson(payload),
+            )
           : await _salesService.updateQuotation(
               intValue(_selectedItem!.toJson(), 'id')!,
-              SalesQuotationModel(payload),
+              SalesQuotationModel.fromJson(payload),
             );
       if (!mounted) {
         return;
@@ -1294,7 +1296,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       onPressed: () => _docAction(
                         () => _salesService.postQuotation(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel(const <String, dynamic>{}),
+                          SalesQuotationModel.fromJson(
+                            const <String, dynamic>{},
+                          ),
                         ),
                       ),
                     ),
@@ -1348,7 +1352,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       onPressed: () => _docAction(
                         () => _salesService.sendQuotation(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel(const <String, dynamic>{}),
+                          SalesQuotationModel.fromJson(
+                            const <String, dynamic>{},
+                          ),
                         ),
                       ),
                     ),
@@ -1360,7 +1366,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       onPressed: () => _docAction(
                         () => _salesService.acceptQuotation(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel(const <String, dynamic>{}),
+                          SalesQuotationModel.fromJson(
+                            const <String, dynamic>{},
+                          ),
                         ),
                       ),
                     ),
@@ -1371,7 +1379,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       onPressed: () => _docAction(
                         () => _salesService.rejectQuotation(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel(const <String, dynamic>{}),
+                          SalesQuotationModel.fromJson(
+                            const <String, dynamic>{},
+                          ),
                         ),
                       ),
                     ),
@@ -1382,7 +1392,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       onPressed: () => _docAction(
                         () => _salesService.expireQuotation(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel(const <String, dynamic>{}),
+                          SalesQuotationModel.fromJson(
+                            const <String, dynamic>{},
+                          ),
                         ),
                       ),
                     ),
@@ -1395,7 +1407,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       onPressed: () => _docAction(
                         () => _salesService.cancelQuotation(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel(const <String, dynamic>{}),
+                          SalesQuotationModel.fromJson(
+                            const <String, dynamic>{},
+                          ),
                         ),
                       ),
                     ),

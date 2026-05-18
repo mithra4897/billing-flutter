@@ -1,14 +1,57 @@
 import '../../screen.dart';
 
 class UserBranchAccessModel implements JsonModel {
-  const UserBranchAccessModel(this.data);
+  const UserBranchAccessModel({
+    this.id,
+    this.userId,
+    this.branchId,
+    this.isDefault,
+    this.isActive,
+    this.createdBy,
+    this.updatedBy,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? userId;
+  final int? branchId;
+  final bool? isDefault;
+  final bool? isActive;
+  final int? createdBy;
+  final int? updatedBy;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory UserBranchAccessModel.fromJson(Map<String, dynamic> json) {
-    return UserBranchAccessModel(json);
+    return UserBranchAccessModel(
+      id: ModelValue.nullableInt(json['id']),
+      userId: ModelValue.nullableInt(json['user_id']),
+      branchId: ModelValue.nullableInt(json['branch_id']),
+      isDefault: json['is_default'] == null
+          ? null
+          : ModelValue.boolOf(json['is_default']),
+      isActive: json['is_active'] == null
+          ? null
+          : ModelValue.boolOf(json['is_active']),
+      createdBy: ModelValue.nullableInt(json['created_by']),
+      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (userId != null) 'user_id': userId,
+    if (branchId != null) 'branch_id': branchId,
+    if (isDefault != null) 'is_default': isDefault,
+    if (isActive != null) 'is_active': isActive,
+    if (createdBy != null) 'created_by': createdBy,
+    if (updatedBy != null) 'updated_by': updatedBy,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

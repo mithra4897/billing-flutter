@@ -195,7 +195,7 @@ class AssetTransferViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AssetTransferModel(<String, dynamic>{});
+    final empty = AssetTransferModel.fromJson(<String, dynamic>{});
     await _runAction(() => _assets.approveTransfer(id, empty));
   }
 
@@ -204,7 +204,7 @@ class AssetTransferViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AssetTransferModel(<String, dynamic>{});
+    final empty = AssetTransferModel.fromJson(<String, dynamic>{});
     await _runAction(() => _assets.completeTransfer(id, empty));
   }
 
@@ -213,7 +213,7 @@ class AssetTransferViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AssetTransferModel(<String, dynamic>{});
+    final empty = AssetTransferModel.fromJson(<String, dynamic>{});
     await _runAction(() => _assets.cancelTransfer(id, empty));
   }
 

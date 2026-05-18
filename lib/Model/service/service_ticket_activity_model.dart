@@ -1,14 +1,58 @@
 import '../../screen.dart';
 
 class ServiceTicketActivityModel implements JsonModel {
-  const ServiceTicketActivityModel(this.data);
+  const ServiceTicketActivityModel({
+    this.id,
+    this.serviceTicketId,
+    this.activityType,
+    this.activityDatetime,
+    this.activityNotes,
+    this.nextFollowupDatetime,
+    this.visibility,
+    this.createdBy,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? serviceTicketId;
+  final String? activityType;
+  final String? activityDatetime;
+  final String? activityNotes;
+  final String? nextFollowupDatetime;
+  final String? visibility;
+  final int? createdBy;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory ServiceTicketActivityModel.fromJson(Map<String, dynamic> json) {
-    return ServiceTicketActivityModel(json);
+    return ServiceTicketActivityModel(
+      id: ModelValue.nullableInt(json['id']),
+      serviceTicketId: ModelValue.nullableInt(json['service_ticket_id']),
+      activityType: json['activity_type']?.toString(),
+      activityDatetime: json['activity_datetime']?.toString(),
+      activityNotes: json['activity_notes']?.toString(),
+      nextFollowupDatetime: json['next_followup_datetime']?.toString(),
+      visibility: json['visibility']?.toString(),
+      createdBy: ModelValue.nullableInt(json['created_by']),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (serviceTicketId != null) 'service_ticket_id': serviceTicketId,
+    if (activityType != null) 'activity_type': activityType,
+    if (activityDatetime != null) 'activity_datetime': activityDatetime,
+    if (activityNotes != null) 'activity_notes': activityNotes,
+    if (nextFollowupDatetime != null)
+      'next_followup_datetime': nextFollowupDatetime,
+    if (visibility != null) 'visibility': visibility,
+    if (createdBy != null) 'created_by': createdBy,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

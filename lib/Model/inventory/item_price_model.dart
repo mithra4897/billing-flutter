@@ -17,7 +17,7 @@ class ItemPriceModel implements JsonModel {
     this.uomCode,
     this.uomName,
     this.uomSymbol,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -35,7 +35,6 @@ class ItemPriceModel implements JsonModel {
   final String? uomCode;
   final String? uomName;
   final String? uomSymbol;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => itemName.isNotEmpty ? itemName : itemCode;
@@ -59,7 +58,6 @@ class ItemPriceModel implements JsonModel {
       uomCode: uom['uom_code']?.toString() ?? uom['code']?.toString(),
       uomName: uom['uom_name']?.toString() ?? uom['name']?.toString(),
       uomSymbol: uom['symbol']?.toString(),
-      raw: json,
     );
   }
 

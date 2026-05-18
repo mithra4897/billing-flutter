@@ -96,7 +96,7 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
   final resolvedTaxType =
       (taxType ??
               taxCode?.taxType ??
-              taxCode?.raw?['tax_application']?.toString() ??
+              taxCode?.toJson()['tax_application']?.toString() ??
               '')
           .trim()
           .toLowerCase();

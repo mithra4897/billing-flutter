@@ -25,7 +25,7 @@ class UserModel implements JsonModel {
     this.roles = const [],
     this.userRoles = const [],
     this.extraPermissions = const [],
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -51,7 +51,6 @@ class UserModel implements JsonModel {
   final List<RoleModel> roles;
   final List<UserRoleModel> userRoles;
   final List<UserPermissionModel> extraPermissions;
-  final Map<String, dynamic>? raw;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -85,7 +84,6 @@ class UserModel implements JsonModel {
       roles: _roles(json['roles']),
       userRoles: _userRoles(json['user_roles']),
       extraPermissions: _extraPermissions(json['user_permissions']),
-      raw: json,
     );
   }
 

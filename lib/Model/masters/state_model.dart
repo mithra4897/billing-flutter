@@ -9,7 +9,7 @@ class StateModel implements JsonModel {
     this.gstStateCode = '',
     this.isUnionTerritory = false,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -19,7 +19,6 @@ class StateModel implements JsonModel {
   final String gstStateCode;
   final bool isUnionTerritory;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   factory StateModel.fromJson(Map<String, dynamic> json) {
     return StateModel(
@@ -32,7 +31,6 @@ class StateModel implements JsonModel {
       isActive: json['is_active'] == null
           ? true
           : ModelValue.boolOf(json['is_active'], fallback: true),
-      raw: json,
     );
   }
 

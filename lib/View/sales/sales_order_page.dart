@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import '../../screen.dart';
 
 void _openSalesShellRoute(BuildContext context, String route) {
@@ -787,10 +785,10 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
 
     try {
       final response = _selectedItem == null
-          ? await _salesService.createOrder(SalesOrderModel(payload))
+          ? await _salesService.createOrder(SalesOrderModel.fromJson(payload))
           : await _salesService.updateOrder(
               intValue(_selectedItem!.toJson(), 'id')!,
-              SalesOrderModel(payload),
+              SalesOrderModel.fromJson(payload),
             );
       if (!mounted) {
         return;
@@ -1475,7 +1473,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       onPressed: () => _docAction(
                         () => _salesService.confirmOrder(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesOrderModel(const <String, dynamic>{}),
+                          SalesOrderModel.fromJson(const <String, dynamic>{}),
                         ),
                       ),
                     ),
@@ -1499,7 +1497,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       onPressed: () => _docAction(
                         () => _salesService.cancelOrder(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesOrderModel(const <String, dynamic>{}),
+                          SalesOrderModel.fromJson(const <String, dynamic>{}),
                         ),
                       ),
                     ),
@@ -1515,7 +1513,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       onPressed: () => _docAction(
                         () => _salesService.closeOrder(
                           intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesOrderModel(const <String, dynamic>{}),
+                          SalesOrderModel.fromJson(const <String, dynamic>{}),
                         ),
                       ),
                     ),

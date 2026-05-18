@@ -71,8 +71,9 @@ class _MrpRunPageState extends State<MrpRunPage> {
           ),
         ];
         final content = _buildContent();
-        if (widget.embedded)
+        if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
+        }
         return AppStandaloneShell(
           title: 'MRP Runs',
           scrollController: _pageScrollController,
@@ -84,8 +85,9 @@ class _MrpRunPageState extends State<MrpRunPage> {
   }
 
   Widget _buildContent() {
-    if (_viewModel.loading)
+    if (_viewModel.loading) {
       return const AppLoadingView(message: 'Loading MRP runs...');
+    }
     if (_viewModel.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load MRP runs',

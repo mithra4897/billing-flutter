@@ -115,10 +115,10 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
           records,
           _searchController.text,
           (record) => [
-            stringValue(record.data, 'template_code'),
-            stringValue(record.data, 'template_name'),
-            stringValue(record.data, 'module'),
-            stringValue(record.data, 'event_code'),
+            stringValue(record.toJson(), 'template_code'),
+            stringValue(record.toJson(), 'template_name'),
+            stringValue(record.toJson(), 'module'),
+            stringValue(record.toJson(), 'event_code'),
           ],
         );
         _initialLoading = false;
@@ -126,15 +126,15 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
 
       final selected = selectId != null
           ? records.cast<EmailTemplateModel?>().firstWhere(
-              (item) => intValue(item?.data ?? const {}, 'id') == selectId,
+              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
           : (_selectedRecord == null
                 ? (records.isNotEmpty ? records.first : null)
                 : records.cast<EmailTemplateModel?>().firstWhere(
                     (item) =>
-                        intValue(item?.data ?? const {}, 'id') ==
-                        intValue(_selectedRecord?.data ?? const {}, 'id'),
+                        intValue(item?.toJson() ?? const {}, 'id') ==
+                        intValue(_selectedRecord?.toJson() ?? const {}, 'id'),
                     orElse: () => records.isNotEmpty ? records.first : null,
                   ));
 
@@ -160,17 +160,17 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
         _records,
         _searchController.text,
         (record) => [
-          stringValue(record.data, 'template_code'),
-          stringValue(record.data, 'template_name'),
-          stringValue(record.data, 'module'),
-          stringValue(record.data, 'event_code'),
+          stringValue(record.toJson(), 'template_code'),
+          stringValue(record.toJson(), 'template_name'),
+          stringValue(record.toJson(), 'module'),
+          stringValue(record.toJson(), 'event_code'),
         ],
       );
     });
   }
 
   void _selectRecord(EmailTemplateModel record) {
-    final data = record.data;
+    final data = record.toJson();
     _selectedRecord = record;
     _companyId = intValue(data, 'company_id');
     _codeController.text = stringValue(data, 'template_code');
@@ -212,9 +212,9 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
       _formError = null;
     });
 
-    final body = EmailTemplateModel({
-      if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
-        'id': intValue(_selectedRecord!.data, 'id'),
+    final body = EmailTemplateModel.fromJson({
+      if (intValue(_selectedRecord?.toJson() ?? const {}, 'id') != null)
+        'id': intValue(_selectedRecord!.toJson(), 'id'),
       if (_companyId != null) 'company_id': _companyId,
       'template_code': _codeController.text.trim(),
       'template_name': _nameController.text.trim(),
@@ -228,7 +228,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
     });
 
     try {
-      final id = intValue(_selectedRecord?.data ?? const {}, 'id');
+      final id = intValue(_selectedRecord?.toJson() ?? const {}, 'id');
       final response = id == null
           ? await _communicationService.createEmailTemplate(body)
           : await _communicationService.updateEmailTemplate(id, body);
@@ -247,7 +247,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(saved.data, 'id'));
+      await _loadPage(selectId: intValue(saved.toJson(), 'id'));
     } catch (error) {
       setState(() {
         _formError = error.toString();
@@ -262,7 +262,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
   }
 
   Future<void> _delete() async {
-    final id = intValue(_selectedRecord?.data ?? const {}, 'id');
+    final id = intValue(_selectedRecord?.toJson() ?? const {}, 'id');
     if (id == null) {
       return;
     }
@@ -351,19 +351,19 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
         selectedItem: _selectedRecord,
         emptyMessage: 'No email templates found.',
         itemBuilder: (record, selected) => SettingsListTile(
-          title: stringValue(record.data, 'template_name', 'Template'),
+          title: stringValue(record.toJson(), 'template_name', 'Template'),
           subtitle: [
-            stringValue(record.data, 'template_code'),
-            stringValue(record.data, 'module'),
-            stringValue(record.data, 'event_code'),
+            stringValue(record.toJson(), 'template_code'),
+            stringValue(record.toJson(), 'module'),
+            stringValue(record.toJson(), 'event_code'),
           ].where((value) => value.isNotEmpty).join(' • '),
           selected: selected,
           onTap: () => _selectRecord(record),
           trailing: SettingsStatusPill(
-            label: boolValue(record.data, 'is_active', fallback: true)
+            label: boolValue(record.toJson(), 'is_active', fallback: true)
                 ? 'Active'
                 : 'Inactive',
-            active: boolValue(record.data, 'is_active', fallback: true),
+            active: boolValue(record.toJson(), 'is_active', fallback: true),
           ),
         ),
       ),
@@ -451,7 +451,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
                   onPressed: _save,
                   busy: _saving,
                 ),
-                if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
+                if (intValue(_selectedRecord?.toJson() ?? const {}, 'id') != null)
                   AppActionButton(
                     icon: Icons.delete_outline,
                     label: 'Delete',

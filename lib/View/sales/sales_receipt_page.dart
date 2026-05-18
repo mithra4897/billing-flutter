@@ -358,7 +358,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       if (inv == null || !mounted) {
         return;
       }
-      final data = inv.raw ?? <String, dynamic>{};
+      final data = inv.toJson();
       final balance =
           double.tryParse(data['balance_amount']?.toString() ?? '') ?? 0;
       if (balance <= 0) {
@@ -506,10 +506,12 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
     };
     try {
       final response = _selectedItem == null
-          ? await _salesService.createReceipt(SalesReceiptModel(payload))
+          ? await _salesService.createReceipt(
+              SalesReceiptModel.fromJson(payload),
+            )
           : await _salesService.updateReceipt(
               intValue(_selectedItem!.toJson(), 'id')!,
-              SalesReceiptModel(payload),
+              SalesReceiptModel.fromJson(payload),
             );
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -822,7 +824,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                                   value: item.id,
                                   label: item.invoiceNo ?? 'Invoice',
                                   subtitle: quotationCustomerLabel(
-                                    item.raw ?? <String, dynamic>{},
+                                    item.toJson(),
                                   ),
                                 ),
                               )
@@ -893,7 +895,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                     onPressed: () => _docAction(
                       () => _salesService.postReceipt(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        SalesReceiptModel(const <String, dynamic>{}),
+                        SalesReceiptModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),
@@ -904,7 +906,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                     onPressed: () => _docAction(
                       () => _salesService.cancelReceipt(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        SalesReceiptModel(const <String, dynamic>{}),
+                        SalesReceiptModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),

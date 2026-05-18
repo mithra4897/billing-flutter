@@ -15,7 +15,6 @@ class GstTaxRuleModel implements JsonModel {
     this.priorityOrder,
     this.isActive = true,
     this.remarks,
-    this.raw,
   });
 
   final int? id;
@@ -31,7 +30,6 @@ class GstTaxRuleModel implements JsonModel {
   final int? priorityOrder;
   final bool isActive;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   factory GstTaxRuleModel.fromJson(Map<String, dynamic> json) {
     return GstTaxRuleModel(
@@ -54,7 +52,6 @@ class GstTaxRuleModel implements JsonModel {
           ? true
           : ModelValue.boolOf(json['is_active'], fallback: true),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

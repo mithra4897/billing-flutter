@@ -29,22 +29,23 @@ class MrpRunViewModel extends ChangeNotifier {
   }
 
   void _handleWorkingContextChanged() {
-    final id =
-        intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
     load(selectId: id);
   }
 
   List<MrpRunModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) return true;
-      return [
-        stringValue(data, 'run_no'),
-        stringValue(data, 'run_status'),
-        stringValue(data, 'run_mode'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) return true;
+          return [
+            stringValue(data, 'run_no'),
+            stringValue(data, 'run_status'),
+            stringValue(data, 'run_mode'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -62,12 +63,14 @@ class MrpRunViewModel extends ChangeNotifier {
         _service.mrpRuns(filters: const {'per_page': 200}),
         _masterService.companies(filters: const {'per_page': 200}),
       ]);
-      rows = (responses[0] as PaginatedResponse<MrpRunModel>).data ??
+      rows =
+          (responses[0] as PaginatedResponse<MrpRunModel>).data ??
           const <MrpRunModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: companies,
@@ -79,7 +82,9 @@ class MrpRunViewModel extends ChangeNotifier {
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<MrpRunModel?>().firstWhere(
-          (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
           orElse: () => null,
         );
         if (existing != null) {
@@ -122,8 +127,10 @@ class MrpRunViewModel extends ChangeNotifier {
       companyId = intValue(data, 'company_id');
       runNoController.text = stringValue(data, 'run_no');
       runDateController.text = nullableStringValue(data, 'run_date') ?? '';
-      startDateController.text = nullableStringValue(data, 'planning_start_date') ?? '';
-      endDateController.text = nullableStringValue(data, 'planning_end_date') ?? '';
+      startDateController.text =
+          nullableStringValue(data, 'planning_start_date') ?? '';
+      endDateController.text =
+          nullableStringValue(data, 'planning_end_date') ?? '';
       notesController.text = stringValue(data, 'notes');
     } catch (e) {
       formError = e.toString();
@@ -138,14 +145,21 @@ class MrpRunViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  String get status =>
-      stringValue(selected?.toJson() ?? const <String, dynamic>{}, 'run_status', 'draft');
+  String get status => stringValue(
+    selected?.toJson() ?? const <String, dynamic>{},
+    'run_status',
+    'draft',
+  );
 
   String? _validate() {
     if (companyId == null) return 'Company is required.';
     if (runDateController.text.trim().isEmpty) return 'Run date is required.';
-    if (startDateController.text.trim().isEmpty) return 'Planning start date is required.';
-    if (endDateController.text.trim().isEmpty) return 'Planning end date is required.';
+    if (startDateController.text.trim().isEmpty) {
+      return 'Planning start date is required.';
+    }
+    if (endDateController.text.trim().isEmpty) {
+      return 'Planning end date is required.';
+    }
     return null;
   }
 
@@ -169,14 +183,17 @@ class MrpRunViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _service.createMrpRun(MrpRunModel(payload))
+          ? await _service.createMrpRun(MrpRunModel.fromJson(payload))
           : await _service.updateMrpRun(
               intValue(selected!.toJson(), 'id')!,
-              MrpRunModel(payload),
+              MrpRunModel.fromJson(payload),
             );
       actionMessage = response.message;
       await load(
-        selectId: intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id'),
+        selectId: intValue(
+          response.data?.toJson() ?? const <String, dynamic>{},
+          'id',
+        ),
       );
     } catch (e) {
       formError = e.toString();
@@ -191,7 +208,10 @@ class MrpRunViewModel extends ChangeNotifier {
     final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
     if (id == null) return;
     try {
-      final response = await _service.processMrpRun(id, const MrpRunModel(<String, dynamic>{}));
+      final response = await _service.processMrpRun(
+        id,
+        MrpRunModel.fromJson(<String, dynamic>{}),
+      );
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
@@ -204,7 +224,10 @@ class MrpRunViewModel extends ChangeNotifier {
     final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
     if (id == null) return;
     try {
-      final response = await _service.cancelMrpRun(id, const MrpRunModel(<String, dynamic>{}));
+      final response = await _service.cancelMrpRun(
+        id,
+        MrpRunModel.fromJson(<String, dynamic>{}),
+      );
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {

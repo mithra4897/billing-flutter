@@ -1,41 +1,41 @@
 import '../../screen.dart';
 
 class ErpRecordModel implements JsonModel {
-  const ErpRecordModel(this.data);
+  const ErpRecordModel({this.id, this.code, this.name, this.status});
 
-  final Map<String, dynamic> data;
-
+  final int? id;
+  final String? code;
+  final String? name;
+  final String? status;
   factory ErpRecordModel.fromJson(Map<String, dynamic> json) {
-    return ErpRecordModel(json);
+    return ErpRecordModel(
+      id: ModelValue.nullableInt(json['id']),
+      code:
+          json['code']?.toString() ??
+          json['item_code']?.toString() ??
+          json['project_code']?.toString() ??
+          json['account_code']?.toString(),
+      name:
+          json['name']?.toString() ??
+          json['display_name']?.toString() ??
+          json['party_name']?.toString() ??
+          json['item_name']?.toString() ??
+          json['project_name']?.toString() ??
+          json['account_name']?.toString(),
+      status:
+          json['status']?.toString() ??
+          json['invoice_status']?.toString() ??
+          json['order_status']?.toString() ??
+          json['request_status']?.toString() ??
+          json['work_order_status']?.toString(),
+    );
   }
 
-  int get id => int.tryParse(data['id']?.toString() ?? '') ?? 0;
-
-  String get code =>
-      data['code']?.toString() ??
-      data['item_code']?.toString() ??
-      data['project_code']?.toString() ??
-      data['account_code']?.toString() ??
-      '';
-
-  String get name =>
-      data['name']?.toString() ??
-      data['display_name']?.toString() ??
-      data['party_name']?.toString() ??
-      data['item_name']?.toString() ??
-      data['project_name']?.toString() ??
-      data['account_name']?.toString() ??
-      '';
-
-  String? get status =>
-      data['status']?.toString() ??
-      data['invoice_status']?.toString() ??
-      data['order_status']?.toString() ??
-      data['request_status']?.toString() ??
-      data['work_order_status']?.toString();
-
-  dynamic operator [](String key) => data[key];
-
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (code != null) 'code': code,
+    if (name != null) 'name': name,
+    if (status != null) 'status': status,
+  };
 }

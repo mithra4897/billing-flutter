@@ -405,7 +405,7 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
     final query = _searchController.text.trim().toLowerCase();
     return _rows
         .where((row) {
-          final data = row.raw ?? <String, dynamic>{};
+          final data = row.toJson();
           final st = row.invoiceStatus ?? '';
           final statusOk = _status.isEmpty || st == _status;
           final customer = data['customer'];
@@ -462,7 +462,7 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
           label: 'Customer',
           flex: 3,
           valueBuilder: (row) {
-            final data = row.raw ?? <String, dynamic>{};
+            final data = row.toJson();
             final c = data['customer'];
             if (c is Map) {
               return stringValue(Map<String, dynamic>.from(c), 'party_name');

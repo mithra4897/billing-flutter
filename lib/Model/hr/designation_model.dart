@@ -5,13 +5,12 @@ class DesignationModel implements JsonModel {
     this.id,
     this.designationName,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
   final String? designationName;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => designationName ?? 'New Designation';
@@ -21,7 +20,6 @@ class DesignationModel implements JsonModel {
       id: _nullableInt(json['id']),
       designationName: json['designation_name']?.toString(),
       isActive: _bool(json['is_active'], fallback: true),
-      raw: json,
     );
   }
 

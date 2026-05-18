@@ -655,7 +655,7 @@ class OpeningStockViewModel extends ChangeNotifier {
       return null;
     }
 
-    final payload = StockBatchModel(<String, dynamic>{
+    final payload = StockBatchModel.fromJson(<String, dynamic>{
       'item_id': line.itemId,
       'warehouse_id': line.warehouseId,
       'batch_no': batchNo,
@@ -1225,11 +1225,11 @@ class OpeningStockViewModel extends ChangeNotifier {
     try {
       final response = selected == null
           ? await _inventoryService.createOpeningStock(
-              OpeningStockModel(payload),
+              OpeningStockModel.fromJson(payload),
             )
           : await _inventoryService.updateOpeningStock(
               intValue(selected!.toJson(), 'id')!,
-              OpeningStockModel(payload),
+              OpeningStockModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},
@@ -1258,7 +1258,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.postOpeningStock(
         id,
-        OpeningStockModel(const <String, dynamic>{}),
+        OpeningStockModel.fromJson(const <String, dynamic>{}),
       );
       if (_isDisposed) {
         return;
@@ -1280,7 +1280,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.cancelOpeningStock(
         id,
-        OpeningStockModel(const <String, dynamic>{}),
+        OpeningStockModel.fromJson(const <String, dynamic>{}),
       );
       if (_isDisposed) {
         return;

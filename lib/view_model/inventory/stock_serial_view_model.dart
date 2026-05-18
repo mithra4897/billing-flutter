@@ -350,10 +350,12 @@ class StockSerialViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createStockSerial(StockSerialModel(payload))
+          ? await _inventoryService.createStockSerial(
+              StockSerialModel.fromJson(payload),
+            )
           : await _inventoryService.updateStockSerial(
               intValue(selected!.toJson(), 'id')!,
-              StockSerialModel(payload),
+              StockSerialModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

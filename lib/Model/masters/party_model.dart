@@ -19,7 +19,7 @@ class PartyModel implements JsonModel {
     this.isActive = true,
     this.addresses = const [],
     this.contacts = const [],
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -39,7 +39,6 @@ class PartyModel implements JsonModel {
   final bool isActive;
   final List<PartyAddressModel> addresses;
   final List<PartyContactModel> contacts;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => displayName ?? partyName ?? partyCode ?? 'New Party';
@@ -69,7 +68,6 @@ class PartyModel implements JsonModel {
         json['contacts'],
         (item) => PartyContactModel.fromJson(item),
       ),
-      raw: json,
     );
   }
 

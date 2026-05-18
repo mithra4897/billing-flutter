@@ -62,7 +62,7 @@ class _PostingRuleGroupManagementPageState
   }
 
   Map<String, dynamic> _json(PostingRuleGroupModel? m) =>
-      m?.data ?? const <String, dynamic>{};
+      m?.toJson() ?? const <String, dynamic>{};
 
   Future<void> _load({int? selectId}) async {
     setState(() {
@@ -113,7 +113,7 @@ class _PostingRuleGroupManagementPageState
     String q,
   ) {
     return filterMasterList(source, q, (item) {
-      final d = item.data;
+      final d = item.toJson();
       return [
         stringValue(d, 'group_code'),
         stringValue(d, 'group_name'),
@@ -127,7 +127,7 @@ class _PostingRuleGroupManagementPageState
   }
 
   void _applySelection(PostingRuleGroupModel item) {
-    final d = item.data;
+    final d = item.toJson();
     _selected = item;
     _codeController.text = stringValue(d, 'group_code');
     _nameController.text = stringValue(d, 'group_name');
@@ -259,7 +259,7 @@ class _PostingRuleGroupManagementPageState
         selectedItem: _selected,
         emptyMessage: 'No posting rule groups.',
         itemBuilder: (item, selected) {
-          final d = item.data;
+          final d = item.toJson();
           return SettingsListTile(
             title: stringValue(d, 'group_name'),
             subtitle: [

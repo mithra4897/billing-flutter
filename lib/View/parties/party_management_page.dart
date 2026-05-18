@@ -433,8 +433,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       ..._partyTypeFilterItemsBase,
       ..._partyTypes.map(
         (type) => AppDropdownItem<int>(
-          value: intValue(type.data, 'id') ?? 0,
-          label: stringValue(type.data, 'name'),
+          value: intValue(type.toJson(), 'id') ?? 0,
+          label: stringValue(type.toJson(), 'name'),
         ),
       ),
     ];
@@ -446,14 +446,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     }
 
     return _partyTypes.cast<PartyTypeModel?>().firstWhere(
-      (item) => intValue(item?.data ?? const {}, 'id') == id,
+      (item) => intValue(item?.toJson() ?? const {}, 'id') == id,
       orElse: () => null,
     );
   }
 
   bool _isNonBusinessPartyType(int? id) {
     final type = _partyTypeById(id);
-    final code = stringValue(type?.data ?? const {}, 'code').toUpperCase();
+    final code = stringValue(type?.toJson() ?? const {}, 'code').toUpperCase();
 
     return const {'BANK', 'CASH', 'EMPLOYEE', 'GENERAL'}.contains(code);
   }
@@ -470,9 +470,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     final matched = _partyTypeById(id);
 
     final source =
-        stringValue(matched?.data ?? const {}, 'code').trim().isNotEmpty
-        ? stringValue(matched?.data ?? const {}, 'code')
-        : stringValue(matched?.data ?? const {}, 'name', 'PTY');
+        stringValue(matched?.toJson() ?? const {}, 'code').trim().isNotEmpty
+        ? stringValue(matched?.toJson() ?? const {}, 'code')
+        : stringValue(matched?.toJson() ?? const {}, 'name', 'PTY');
     final normalized = source.replaceAll(RegExp(r'[^A-Za-z0-9]'), '');
     final prefix = normalized.isEmpty ? 'PTY' : normalized.toUpperCase();
 
@@ -898,7 +898,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   void _selectGstDetail(PartyGstDetailModel record) {
-    final data = record.data;
+    final data = record.toJson();
     _selectedGstDetail = record;
     _gstinDetailController.text = stringValue(data, 'gstin');
     _registrationType = stringValue(data, 'registration_type', 'regular');
@@ -928,9 +928,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     });
 
     try {
-      final body = PartyGstDetailModel({
-        if (intValue(_selectedGstDetail?.data ?? const {}, 'id') != null)
-          'id': intValue(_selectedGstDetail!.data, 'id'),
+      final body = PartyGstDetailModel.fromJson({
+        if (intValue(_selectedGstDetail?.toJson() ?? const {}, 'id') != null)
+          'id': intValue(_selectedGstDetail!.toJson(), 'id'),
         'gstin': nullIfEmpty(_gstinDetailController.text),
         'registration_type': _registrationType,
         'legal_name': nullIfEmpty(_gstLegalNameController.text),
@@ -946,7 +946,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         'is_active': _gstActive,
       });
 
-      final id = intValue(_selectedGstDetail?.data ?? const {}, 'id');
+      final id = intValue(_selectedGstDetail?.toJson() ?? const {}, 'id');
       final response = id == null
           ? await _partiesService.createPartyGstDetail(partyId, body)
           : await _partiesService.updatePartyGstDetail(partyId, id, body);
@@ -989,7 +989,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   void _selectBankAccount(PartyBankAccountModel record) {
-    final data = record.data;
+    final data = record.toJson();
     _selectedBankAccount = record;
     _bankAccountHolderController.text = stringValue(
       data,
@@ -1019,9 +1019,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     });
 
     try {
-      final body = PartyBankAccountModel({
-        if (intValue(_selectedBankAccount?.data ?? const {}, 'id') != null)
-          'id': intValue(_selectedBankAccount!.data, 'id'),
+      final body = PartyBankAccountModel.fromJson({
+        if (intValue(_selectedBankAccount?.toJson() ?? const {}, 'id') != null)
+          'id': intValue(_selectedBankAccount!.toJson(), 'id'),
         'account_holder_name': _bankAccountHolderController.text.trim(),
         'bank_name': _bankNameController.text.trim(),
         'branch_name': nullIfEmpty(_bankBranchController.text),
@@ -1034,7 +1034,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         'is_active': _bankActive,
       });
 
-      final id = intValue(_selectedBankAccount?.data ?? const {}, 'id');
+      final id = intValue(_selectedBankAccount?.toJson() ?? const {}, 'id');
       final response = id == null
           ? await _partiesService.createPartyBankAccount(partyId, body)
           : await _partiesService.updatePartyBankAccount(partyId, id, body);
@@ -1072,7 +1072,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   void _selectCreditLimit(PartyCreditLimitModel record) {
-    final data = record.data;
+    final data = record.toJson();
     _selectedCreditLimit = record;
     _creditLimitController.text = stringValue(data, 'credit_limit');
     _creditDaysController.text = stringValue(data, 'credit_days');
@@ -1094,9 +1094,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     });
 
     try {
-      final body = PartyCreditLimitModel({
-        if (intValue(_selectedCreditLimit?.data ?? const {}, 'id') != null)
-          'id': intValue(_selectedCreditLimit!.data, 'id'),
+      final body = PartyCreditLimitModel.fromJson({
+        if (intValue(_selectedCreditLimit?.toJson() ?? const {}, 'id') != null)
+          'id': intValue(_selectedCreditLimit!.toJson(), 'id'),
         'credit_limit': double.tryParse(_creditLimitController.text.trim()),
         'credit_days': int.tryParse(_creditDaysController.text.trim()),
         'effective_from': nullIfEmpty(_creditFromController.text),
@@ -1104,7 +1104,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         'is_active': _creditActive,
       });
 
-      final id = intValue(_selectedCreditLimit?.data ?? const {}, 'id');
+      final id = intValue(_selectedCreditLimit?.toJson() ?? const {}, 'id');
       final response = id == null
           ? await _partiesService.createPartyCreditLimit(partyId, body)
           : await _partiesService.updatePartyCreditLimit(partyId, id, body);
@@ -1143,7 +1143,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   void _selectPaymentTerm(PartyPaymentTermModel record) {
-    final data = record.data;
+    final data = record.toJson();
     _selectedPaymentTerm = record;
     _paymentTermNameController.text = stringValue(data, 'term_name');
     _paymentDaysController.text = stringValue(data, 'days');
@@ -1166,9 +1166,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     });
 
     try {
-      final body = PartyPaymentTermModel({
-        if (intValue(_selectedPaymentTerm?.data ?? const {}, 'id') != null)
-          'id': intValue(_selectedPaymentTerm!.data, 'id'),
+      final body = PartyPaymentTermModel.fromJson({
+        if (intValue(_selectedPaymentTerm?.toJson() ?? const {}, 'id') != null)
+          'id': intValue(_selectedPaymentTerm!.toJson(), 'id'),
         'term_name': _paymentTermNameController.text.trim(),
         'days': int.tryParse(_paymentDaysController.text.trim()),
         'due_basis': _dueBasis,
@@ -1177,7 +1177,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         'is_active': _paymentActive,
       });
 
-      final id = intValue(_selectedPaymentTerm?.data ?? const {}, 'id');
+      final id = intValue(_selectedPaymentTerm?.toJson() ?? const {}, 'id');
       final response = id == null
           ? await _partiesService.createPartyPaymentTerm(partyId, body)
           : await _partiesService.updatePartyPaymentTerm(partyId, id, body);
@@ -1376,8 +1376,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     final partyTypeItems = _partyTypes
         .map(
           (type) => AppDropdownItem<int>(
-            value: intValue(type.data, 'id') ?? 0,
-            label: stringValue(type.data, 'name'),
+            value: intValue(type.toJson(), 'id') ?? 0,
+            label: stringValue(type.toJson(), 'name'),
           ),
         )
         .toList(growable: false);
@@ -1570,13 +1570,13 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       list: _gstDetails,
       selected: _selectedGstDetail,
       itemTitle: (item) => stringValue(
-        item.data,
+        item.toJson(),
         'gstin',
-        stringValue(item.data, 'registration_type', 'GST Detail'),
+        stringValue(item.toJson(), 'registration_type', 'GST Detail'),
       ),
       itemSubtitle: (item) => [
-        stringValue(item.data, 'registration_type'),
-        stringValue(item.data, 'state_name'),
+        stringValue(item.toJson(), 'registration_type'),
+        stringValue(item.toJson(), 'state_name'),
       ].where((value) => value.isNotEmpty).join(' • '),
       onSelect: (item) => _selectGstDetail(item),
       form: Form(key: _gstFormKey, child: _buildGstForm(context)),
@@ -1596,10 +1596,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       list: _bankAccounts,
       selected: _selectedBankAccount,
       itemTitle: (item) =>
-          stringValue(item.data, 'account_holder_name', 'Bank Account'),
+          stringValue(item.toJson(), 'account_holder_name', 'Bank Account'),
       itemSubtitle: (item) => [
-        stringValue(item.data, 'bank_name'),
-        stringValue(item.data, 'account_number'),
+        stringValue(item.toJson(), 'bank_name'),
+        stringValue(item.toJson(), 'account_number'),
       ].where((value) => value.isNotEmpty).join(' • '),
       onSelect: (item) => _selectBankAccount(item),
       form: Form(key: _bankFormKey, child: _buildBankForm(context)),
@@ -1619,11 +1619,11 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       list: _creditLimits,
       selected: _selectedCreditLimit,
       itemTitle: (item) =>
-          stringValue(item.data, 'credit_limit', 'Credit Limit'),
+          stringValue(item.toJson(), 'credit_limit', 'Credit Limit'),
       itemSubtitle: (item) => [
-        stringValue(item.data, 'credit_days'),
-        stringValue(item.data, 'effective_from'),
-        stringValue(item.data, 'effective_to'),
+        stringValue(item.toJson(), 'credit_days'),
+        stringValue(item.toJson(), 'effective_from'),
+        stringValue(item.toJson(), 'effective_to'),
       ].where((value) => value.isNotEmpty).join(' • '),
       onSelect: (item) => _selectCreditLimit(item),
       form: Form(key: _creditFormKey, child: _buildCreditForm(context)),
@@ -1642,10 +1642,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       onNew: _resetPaymentTermForm,
       list: _paymentTerms,
       selected: _selectedPaymentTerm,
-      itemTitle: (item) => stringValue(item.data, 'term_name', 'Payment Term'),
+      itemTitle: (item) => stringValue(item.toJson(), 'term_name', 'Payment Term'),
       itemSubtitle: (item) => [
-        stringValue(item.data, 'due_basis'),
-        stringValue(item.data, 'days'),
+        stringValue(item.toJson(), 'due_basis'),
+        stringValue(item.toJson(), 'days'),
       ].where((value) => value.isNotEmpty).join(' • '),
       onSelect: (item) => _selectPaymentTerm(item),
       form: Form(

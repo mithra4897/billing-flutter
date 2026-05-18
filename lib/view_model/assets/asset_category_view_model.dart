@@ -324,7 +324,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
         flat.addAll(payload);
         final response = await _assets.updateCategory(
           existingId,
-          AssetCategoryModel(flat),
+          AssetCategoryModel.fromJson(flat),
         );
         if (response.success != true || response.data == null) {
           formError = response.message;
@@ -347,7 +347,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
         return true;
       }
       final response = await _assets.createCategory(
-        AssetCategoryModel(payload),
+        AssetCategoryModel.fromJson(payload),
       );
       if (response.success != true || response.data == null) {
         formError = response.message;

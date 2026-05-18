@@ -113,7 +113,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
         _filteredSettings = filterMasterList(settings, _searchController.text, (
           setting,
         ) {
-          final data = setting.data;
+          final data = setting.toJson();
           return [
             stringValue(data, 'setting_name'),
             stringValue(data, 'mail_driver'),
@@ -125,15 +125,15 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
 
       final selected = selectId != null
           ? settings.cast<EmailSettingModel?>().firstWhere(
-              (item) => intValue(item?.data ?? const {}, 'id') == selectId,
+              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
           : (_selectedSetting == null
                 ? (settings.isNotEmpty ? settings.first : null)
                 : settings.cast<EmailSettingModel?>().firstWhere(
                     (item) =>
-                        intValue(item?.data ?? const {}, 'id') ==
-                        intValue(_selectedSetting?.data ?? const {}, 'id'),
+                        intValue(item?.toJson() ?? const {}, 'id') ==
+                        intValue(_selectedSetting?.toJson() ?? const {}, 'id'),
                     orElse: () => settings.isNotEmpty ? settings.first : null,
                   ));
 
@@ -158,7 +158,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
       _filteredSettings = filterMasterList(_settings, _searchController.text, (
         setting,
       ) {
-        final data = setting.data;
+        final data = setting.toJson();
         return [
           stringValue(data, 'setting_name'),
           stringValue(data, 'mail_driver'),
@@ -169,7 +169,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
   }
 
   void _selectSetting(EmailSettingModel setting) {
-    final data = setting.data;
+    final data = setting.toJson();
     _selectedSetting = setting;
     _companyId = intValue(data, 'company_id');
     _settingNameController.text = stringValue(data, 'setting_name');
@@ -219,9 +219,9 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
       _formError = null;
     });
 
-    final body = EmailSettingModel({
-      if (intValue(_selectedSetting?.data ?? const {}, 'id') != null)
-        'id': intValue(_selectedSetting!.data, 'id'),
+    final body = EmailSettingModel.fromJson({
+      if (intValue(_selectedSetting?.toJson() ?? const {}, 'id') != null)
+        'id': intValue(_selectedSetting!.toJson(), 'id'),
       if (_companyId != null) 'company_id': _companyId,
       'setting_name': _settingNameController.text.trim(),
       'mail_driver': _mailDriver,
@@ -239,7 +239,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
     });
 
     try {
-      final id = intValue(_selectedSetting?.data ?? const {}, 'id');
+      final id = intValue(_selectedSetting?.toJson() ?? const {}, 'id');
       final response = id == null
           ? await _communicationService.createEmailSetting(body)
           : await _communicationService.updateEmailSetting(id, body);
@@ -258,7 +258,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(saved.data, 'id'));
+      await _loadPage(selectId: intValue(saved.toJson(), 'id'));
     } catch (error) {
       setState(() {
         _formError = error.toString();
@@ -328,7 +328,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
         selectedItem: _selectedSetting,
         emptyMessage: 'No email settings found.',
         itemBuilder: (setting, selected) {
-          final data = setting.data;
+          final data = setting.toJson();
           return SettingsListTile(
             title: stringValue(data, 'setting_name', 'Email Setting'),
             subtitle: [

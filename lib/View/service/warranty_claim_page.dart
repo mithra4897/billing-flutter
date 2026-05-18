@@ -1,6 +1,5 @@
 import '../../screen.dart';
 
-
 String _claimListTitle(ServiceTicketModel row) {
   final data = row.toJson();
   final no = stringValue(data, 'ticket_no');

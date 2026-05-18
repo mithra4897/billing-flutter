@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import '../../screen.dart';
 
 class SalesDeliveryPage extends StatefulWidget {
@@ -906,10 +904,12 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     };
     try {
       final response = _selectedItem == null
-          ? await _salesService.createDelivery(SalesDeliveryModel(payload))
+          ? await _salesService.createDelivery(
+              SalesDeliveryModel.fromJson(payload),
+            )
           : await _salesService.updateDelivery(
               intValue(_selectedItem!.toJson(), 'id')!,
-              SalesDeliveryModel(payload),
+              SalesDeliveryModel.fromJson(payload),
             );
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -1482,7 +1482,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                     onPressed: () => _docAction(
                       () => _salesService.postDelivery(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        SalesDeliveryModel(const <String, dynamic>{}),
+                        SalesDeliveryModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),
@@ -1493,7 +1493,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                     onPressed: () => _docAction(
                       () => _salesService.cancelDelivery(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        SalesDeliveryModel(const <String, dynamic>{}),
+                        SalesDeliveryModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),

@@ -64,16 +64,18 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
               if (widget.editorOnly || !isDesktop) {
                 _openRoute('/planning/calendars/new');
               }
-              if (!Responsive.isDesktop(context))
+              if (!Responsive.isDesktop(context)) {
                 _workspaceController.openEditor();
+              }
             },
             icon: Icons.add_outlined,
             label: 'New Calendar',
           ),
         ];
         final content = _buildContent();
-        if (widget.embedded)
+        if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
+        }
         return AppStandaloneShell(
           title: 'Planning Calendars',
           scrollController: _pageScrollController,
@@ -85,8 +87,9 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
   }
 
   Widget _buildContent() {
-    if (_viewModel.loading)
+    if (_viewModel.loading) {
       return const AppLoadingView(message: 'Loading calendars...');
+    }
     if (_viewModel.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load calendars',

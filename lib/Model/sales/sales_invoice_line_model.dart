@@ -1,5 +1,3 @@
-import '../../screen.dart';
-
 class SalesInvoiceLineModel {
   const SalesInvoiceLineModel({
     required this.itemId,

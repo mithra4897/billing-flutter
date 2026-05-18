@@ -957,11 +957,11 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     try {
       final response = selected == null
           ? await _inventoryService.createInternalStockReceipt(
-              InternalStockReceiptModel(payload),
+              InternalStockReceiptModel.fromJson(payload),
             )
           : await _inventoryService.updateInternalStockReceipt(
               intValue(selected!.toJson(), 'id')!,
-              InternalStockReceiptModel(payload),
+              InternalStockReceiptModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},
@@ -987,7 +987,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.postInternalStockReceipt(
         id,
-        InternalStockReceiptModel(const <String, dynamic>{}),
+        InternalStockReceiptModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -1006,7 +1006,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.cancelInternalStockReceipt(
         id,
-        InternalStockReceiptModel(const <String, dynamic>{}),
+        InternalStockReceiptModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

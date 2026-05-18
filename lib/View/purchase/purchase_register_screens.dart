@@ -541,7 +541,7 @@ class _PurchaseInvoiceRegisterPageState
                 row.invoiceNo ?? '',
                 row.invoiceStatus ?? '',
                 _nestedName(
-                  row.raw ?? const <String, dynamic>{},
+                  row.toJson(),
                   'supplier_name',
                   'supplier',
                   'party_name',
@@ -589,7 +589,7 @@ class _PurchaseInvoiceRegisterPageState
           label: 'Supplier',
           flex: 3,
           valueBuilder: (row) => _nestedName(
-            row.raw ?? const <String, dynamic>{},
+            row.toJson(),
             'supplier_name',
             'supplier',
             'party_name',

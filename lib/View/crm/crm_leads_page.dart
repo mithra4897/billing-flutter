@@ -698,7 +698,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       _formError = null;
     });
 
-    final payload = CrmLeadModel({
+    final payload = CrmLeadModel.fromJson({
       'company_id': _companyId,
       'lead_name': _leadNameController.text.trim(),
       'company_name': nullIfEmpty(_companyNameController.text),
@@ -774,7 +774,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
       _formError = null;
     });
 
-    final payload = CrmLeadModel({
+    final payload = CrmLeadModel.fromJson({
       'company_id': _companyId,
       'lead_name': _leadNameController.text.trim(),
       'company_name': nullIfEmpty(_companyNameController.text),

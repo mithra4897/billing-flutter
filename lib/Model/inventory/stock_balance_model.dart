@@ -24,7 +24,6 @@ class StockBalanceModel implements JsonModel {
     this.warehouseName,
     this.batchNo,
     this.serialNo,
-    this.raw,
   });
 
   final int? id;
@@ -49,7 +48,6 @@ class StockBalanceModel implements JsonModel {
   final String? warehouseName;
   final String? batchNo;
   final String? serialNo;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => itemName.isNotEmpty ? itemName : itemCode;
@@ -83,12 +81,34 @@ class StockBalanceModel implements JsonModel {
       warehouseName: warehouse['name']?.toString(),
       batchNo: batch['batch_no']?.toString(),
       serialNo: serial['serial_no']?.toString(),
-      raw: json,
     );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(raw ?? const {});
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (companyId != null) 'company_id': companyId,
+    if (branchId != null) 'branch_id': branchId,
+    if (locationId != null) 'location_id': locationId,
+    if (itemId != null) 'item_id': itemId,
+    if (warehouseId != null) 'warehouse_id': warehouseId,
+    if (batchId != null) 'batch_id': batchId,
+    if (serialId != null) 'serial_id': serialId,
+    if (qtyOnHand != null) 'qty_on_hand': qtyOnHand,
+    if (qtyReserved != null) 'qty_reserved': qtyReserved,
+    if (qtyAvailable != null) 'qty_available': qtyAvailable,
+    if (avgCost != null) 'avg_cost': avgCost,
+    if (lastPurchaseRate != null) 'last_purchase_rate': lastPurchaseRate,
+    if (lastSalesRate != null) 'last_sales_rate': lastSalesRate,
+    if (lastMovementAt != null) 'last_movement_at': lastMovementAt,
+    'item_code': itemCode,
+    'item_name': itemName,
+    if (itemType != null) 'item_type': itemType,
+    if (warehouseCode != null) 'warehouse_code': warehouseCode,
+    if (warehouseName != null) 'warehouse_name': warehouseName,
+    if (batchNo != null) 'batch_no': batchNo,
+    if (serialNo != null) 'serial_no': serialNo,
+  };
 
   static Map<String, dynamic> _asMap(dynamic value) {
     if (value is Map<String, dynamic>) {

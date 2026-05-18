@@ -710,11 +710,11 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     try {
       final response = selected == null
           ? await _inventoryService.createInventoryAdjustment(
-              InventoryAdjustmentModel(payload),
+              InventoryAdjustmentModel.fromJson(payload),
             )
           : await _inventoryService.updateInventoryAdjustment(
               intValue(selected!.toJson(), 'id')!,
-              InventoryAdjustmentModel(payload),
+              InventoryAdjustmentModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},
@@ -738,7 +738,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.postInventoryAdjustment(
         id,
-        InventoryAdjustmentModel(const <String, dynamic>{}),
+        InventoryAdjustmentModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -755,7 +755,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.cancelInventoryAdjustment(
         id,
-        InventoryAdjustmentModel(const <String, dynamic>{}),
+        InventoryAdjustmentModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

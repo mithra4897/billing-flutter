@@ -108,9 +108,9 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
           records,
           _searchController.text,
           (record) => [
-            stringValue(record.data, 'module'),
-            stringValue(record.data, 'document_type'),
-            stringValue(record.data, 'remarks'),
+            stringValue(record.toJson(), 'module'),
+            stringValue(record.toJson(), 'document_type'),
+            stringValue(record.toJson(), 'remarks'),
           ],
         );
         _initialLoading = false;
@@ -118,15 +118,15 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
 
       final selected = selectId != null
           ? records.cast<EmailModuleSettingModel?>().firstWhere(
-              (item) => intValue(item?.data ?? const {}, 'id') == selectId,
+              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
           : (_selectedRecord == null
                 ? (records.isNotEmpty ? records.first : null)
                 : records.cast<EmailModuleSettingModel?>().firstWhere(
                     (item) =>
-                        intValue(item?.data ?? const {}, 'id') ==
-                        intValue(_selectedRecord?.data ?? const {}, 'id'),
+                        intValue(item?.toJson() ?? const {}, 'id') ==
+                        intValue(_selectedRecord?.toJson() ?? const {}, 'id'),
                     orElse: () => records.isNotEmpty ? records.first : null,
                   ));
 
@@ -152,16 +152,16 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
         _records,
         _searchController.text,
         (record) => [
-          stringValue(record.data, 'module'),
-          stringValue(record.data, 'document_type'),
-          stringValue(record.data, 'remarks'),
+          stringValue(record.toJson(), 'module'),
+          stringValue(record.toJson(), 'document_type'),
+          stringValue(record.toJson(), 'remarks'),
         ],
       );
     });
   }
 
   void _selectRecord(EmailModuleSettingModel record) {
-    final data = record.data;
+    final data = record.toJson();
     _selectedRecord = record;
     _companyId = intValue(data, 'company_id');
     _moduleController.text = stringValue(data, 'module');
@@ -201,9 +201,9 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
       _formError = null;
     });
 
-    final body = EmailModuleSettingModel({
-      if (intValue(_selectedRecord?.data ?? const {}, 'id') != null)
-        'id': intValue(_selectedRecord!.data, 'id'),
+    final body = EmailModuleSettingModel.fromJson({
+      if (intValue(_selectedRecord?.toJson() ?? const {}, 'id') != null)
+        'id': intValue(_selectedRecord!.toJson(), 'id'),
       if (_companyId != null) 'company_id': _companyId,
       'module': _moduleController.text.trim(),
       'document_type': nullIfEmpty(_documentType),
@@ -214,7 +214,7 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
     });
 
     try {
-      final id = intValue(_selectedRecord?.data ?? const {}, 'id');
+      final id = intValue(_selectedRecord?.toJson() ?? const {}, 'id');
       final response = id == null
           ? await _communicationService.createEmailModuleSetting(body)
           : await _communicationService.updateEmailModuleSetting(id, body);
@@ -233,7 +233,7 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(saved.data, 'id'));
+      await _loadPage(selectId: intValue(saved.toJson(), 'id'));
     } catch (error) {
       setState(() {
         _formError = error.toString();
@@ -303,15 +303,15 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
         selectedItem: _selectedRecord,
         emptyMessage: 'No module settings found.',
         itemBuilder: (record, selected) => SettingsListTile(
-          title: stringValue(record.data, 'module', 'Module'),
-          subtitle: stringValue(record.data, 'document_type', 'All documents'),
+          title: stringValue(record.toJson(), 'module', 'Module'),
+          subtitle: stringValue(record.toJson(), 'document_type', 'All documents'),
           selected: selected,
           onTap: () => _selectRecord(record),
           trailing: SettingsStatusPill(
-            label: boolValue(record.data, 'is_active', fallback: true)
+            label: boolValue(record.toJson(), 'is_active', fallback: true)
                 ? 'Active'
                 : 'Inactive',
-            active: boolValue(record.data, 'is_active', fallback: true),
+            active: boolValue(record.toJson(), 'is_active', fallback: true),
           ),
         ),
       ),

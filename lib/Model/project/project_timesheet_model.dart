@@ -15,7 +15,7 @@ class ProjectTimesheetModel implements JsonModel {
     this.voucherId,
     this.timesheetStatus,
     this.notes,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -31,7 +31,6 @@ class ProjectTimesheetModel implements JsonModel {
   final int? voucherId;
   final String? timesheetStatus;
   final String? notes;
-  final Map<String, dynamic>? raw;
 
   factory ProjectTimesheetModel.fromJson(Map<String, dynamic> json) {
     return ProjectTimesheetModel(
@@ -48,7 +47,6 @@ class ProjectTimesheetModel implements JsonModel {
       voucherId: ModelValue.nullableInt(json['voucher_id']),
       timesheetStatus: json['timesheet_status']?.toString(),
       notes: json['notes']?.toString(),
-      raw: json,
     );
   }
 

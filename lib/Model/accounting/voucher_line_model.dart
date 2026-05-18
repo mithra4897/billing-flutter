@@ -23,7 +23,7 @@ class VoucherLineModel implements JsonModel {
     this.project,
     this.lineNarration,
     this.allocations = const <VoucherAllocationModel>[],
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -47,7 +47,6 @@ class VoucherLineModel implements JsonModel {
   final String? project;
   final String? lineNarration;
   final List<VoucherAllocationModel> allocations;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => accountName ?? accountCode ?? 'Voucher Line';
@@ -78,7 +77,6 @@ class VoucherLineModel implements JsonModel {
       project: json['project']?.toString(),
       lineNarration: json['line_narration']?.toString(),
       allocations: _mapAllocations(json['allocations']),
-      raw: json,
     );
   }
 

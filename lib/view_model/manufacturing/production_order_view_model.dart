@@ -450,10 +450,12 @@ class ProductionOrderViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _service.createProductionOrder(ProductionOrderModel(payload))
+          ? await _service.createProductionOrder(
+              ProductionOrderModel.fromJson(payload),
+            )
           : await _service.updateProductionOrder(
               intValue(selected!.toJson(), 'id')!,
-              ProductionOrderModel(payload),
+              ProductionOrderModel.fromJson(payload),
             );
       actionMessage = response.message;
       await load(
@@ -477,7 +479,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
     try {
       final response = await _service.releaseProductionOrder(
         id,
-        const ProductionOrderModel(<String, dynamic>{}),
+        ProductionOrderModel.fromJson(<String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -493,7 +495,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
     try {
       final response = await _service.closeProductionOrder(
         id,
-        const ProductionOrderModel(<String, dynamic>{}),
+        ProductionOrderModel.fromJson(<String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -509,7 +511,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
     try {
       final response = await _service.cancelProductionOrder(
         id,
-        const ProductionOrderModel(<String, dynamic>{}),
+        ProductionOrderModel.fromJson(<String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

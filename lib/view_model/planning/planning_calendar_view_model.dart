@@ -32,21 +32,22 @@ class PlanningCalendarViewModel extends ChangeNotifier {
   }
 
   void _handleWorkingContextChanged() {
-    final id =
-        intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
     load(selectId: id);
   }
 
   List<PlanningCalendarModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) return true;
-      return [
-        stringValue(data, 'calendar_code'),
-        stringValue(data, 'calendar_name'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) return true;
+          return [
+            stringValue(data, 'calendar_code'),
+            stringValue(data, 'calendar_name'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -64,12 +65,14 @@ class PlanningCalendarViewModel extends ChangeNotifier {
         _service.calendars(filters: const {'per_page': 200}),
         _masterService.companies(filters: const {'per_page': 200}),
       ]);
-      rows = (responses[0] as PaginatedResponse<PlanningCalendarModel>).data ??
+      rows =
+          (responses[0] as PaginatedResponse<PlanningCalendarModel>).data ??
           const <PlanningCalendarModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: companies,
@@ -81,7 +84,9 @@ class PlanningCalendarViewModel extends ChangeNotifier {
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<PlanningCalendarModel?>().firstWhere(
-          (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
           orElse: () => null,
         );
         if (existing != null) {
@@ -125,8 +130,16 @@ class PlanningCalendarViewModel extends ChangeNotifier {
       companyId = intValue(data, 'company_id');
       codeController.text = stringValue(data, 'calendar_code');
       nameController.text = stringValue(data, 'calendar_name');
-      frequencyController.text = stringValue(data, 'planning_frequency', 'weekly');
-      weekStartDayController.text = stringValue(data, 'week_start_day', 'monday');
+      frequencyController.text = stringValue(
+        data,
+        'planning_frequency',
+        'weekly',
+      );
+      weekStartDayController.text = stringValue(
+        data,
+        'week_start_day',
+        'monday',
+      );
       remarksController.text = stringValue(data, 'remarks');
       isActive = boolValue(data, 'is_active', fallback: true);
       isDefault = boolValue(data, 'is_default');
@@ -182,14 +195,19 @@ class PlanningCalendarViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _service.createCalendar(PlanningCalendarModel(payload))
+          ? await _service.createCalendar(
+              PlanningCalendarModel.fromJson(payload),
+            )
           : await _service.updateCalendar(
               intValue(selected!.toJson(), 'id')!,
-              PlanningCalendarModel(payload),
+              PlanningCalendarModel.fromJson(payload),
             );
       actionMessage = response.message;
       await load(
-        selectId: intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id'),
+        selectId: intValue(
+          response.data?.toJson() ?? const <String, dynamic>{},
+          'id',
+        ),
       );
     } catch (e) {
       formError = e.toString();

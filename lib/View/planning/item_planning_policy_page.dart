@@ -86,8 +86,9 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
   }
 
   Widget _buildContent() {
-    if (_viewModel.loading)
+    if (_viewModel.loading) {
       return const AppLoadingView(message: 'Loading item policies...');
+    }
     if (_viewModel.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load item policies',

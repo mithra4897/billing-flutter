@@ -1,14 +1,49 @@
 import '../../screen.dart';
 
 class SalesReceiptAllocationModel implements JsonModel {
-  const SalesReceiptAllocationModel(this.data);
+  const SalesReceiptAllocationModel({
+    this.id,
+    this.salesReceiptId,
+    this.salesInvoiceId,
+    this.allocatedAmount,
+    this.allocationType,
+    this.remarks,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? salesReceiptId;
+  final int? salesInvoiceId;
+  final double? allocatedAmount;
+  final String? allocationType;
+  final String? remarks;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory SalesReceiptAllocationModel.fromJson(Map<String, dynamic> json) {
-    return SalesReceiptAllocationModel(json);
+    return SalesReceiptAllocationModel(
+      id: ModelValue.nullableInt(json['id']),
+      salesReceiptId: ModelValue.nullableInt(json['sales_receipt_id']),
+      salesInvoiceId: ModelValue.nullableInt(json['sales_invoice_id']),
+      allocatedAmount: ModelValue.nullableDouble(json['allocated_amount']),
+      allocationType: json['allocation_type']?.toString(),
+      remarks: json['remarks']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (salesReceiptId != null) 'sales_receipt_id': salesReceiptId,
+    if (salesInvoiceId != null) 'sales_invoice_id': salesInvoiceId,
+    if (allocatedAmount != null) 'allocated_amount': allocatedAmount,
+    if (allocationType != null) 'allocation_type': allocationType,
+    if (remarks != null) 'remarks': remarks,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

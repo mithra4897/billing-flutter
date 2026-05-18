@@ -85,7 +85,7 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
     super.dispose();
   }
 
-  Map<String, dynamic> _json(BudgetModel? m) => m?.data ?? const {};
+  Map<String, dynamic> _json(BudgetModel? m) => m?.toJson() ?? const {};
 
   Future<void> _load({int? selectId}) async {
     setState(() {
@@ -165,7 +165,7 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
 
   List<BudgetModel> _filter(List<BudgetModel> source, String q) {
     return filterMasterList(source, q, (item) {
-      final d = item.data;
+      final d = item.toJson();
       return [
         stringValue(d, 'budget_code'),
         stringValue(d, 'budget_name'),
@@ -184,7 +184,7 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
     try {
       final response = await _accountsService.budget(id);
       final full = response.data ?? item;
-      final d = full.data;
+      final d = full.toJson();
       for (final l in _lines) {
         l.dispose();
       }
@@ -353,7 +353,7 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
     if (id == null) return;
     try {
       final response = await _accountsService.budgetVsActual(id);
-      final data = response.data?.data ?? const <String, dynamic>{};
+      final data = response.data?.toJson() ?? const <String, dynamic>{};
       if (!mounted) return;
       final summary = (data['summary'] as Map?) ?? {};
       final lineList = (data['lines'] as List<dynamic>? ?? const [])
@@ -491,7 +491,7 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
         selectedItem: _selected,
         emptyMessage: 'No budgets.',
         itemBuilder: (item, selected) {
-          final d = item.data;
+          final d = item.toJson();
           return SettingsListTile(
             title: stringValue(d, 'budget_name'),
             subtitle: [

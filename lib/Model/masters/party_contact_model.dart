@@ -11,7 +11,7 @@ class PartyContactModel implements JsonModel {
     this.email,
     this.isPrimary = false,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -23,7 +23,6 @@ class PartyContactModel implements JsonModel {
   final String? email;
   final bool isPrimary;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   factory PartyContactModel.fromJson(Map<String, dynamic> json) {
     return PartyContactModel(
@@ -36,7 +35,6 @@ class PartyContactModel implements JsonModel {
       email: json['email']?.toString(),
       isPrimary: json['is_primary'] == true || json['is_primary'] == 1,
       isActive: json['is_active'] != false && json['is_active'] != 0,
-      raw: json,
     );
   }
 

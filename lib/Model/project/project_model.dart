@@ -26,7 +26,7 @@ class ProjectModel implements JsonModel {
     this.resourceUsages = const [],
     this.vendorWorks = const [],
     this.billings = const [],
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -53,7 +53,6 @@ class ProjectModel implements JsonModel {
   final List<ProjectResourceUsageModel> resourceUsages;
   final List<ProjectVendorWorkModel> vendorWorks;
   final List<ProjectBillingModel> billings;
-  final Map<String, dynamic>? raw;
 
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
     return ProjectModel(
@@ -86,7 +85,6 @@ class ProjectModel implements JsonModel {
       ),
       vendorWorks: _list(json['vendor_works'], ProjectVendorWorkModel.fromJson),
       billings: _list(json['billings'], ProjectBillingModel.fromJson),
-      raw: json,
     );
   }
 

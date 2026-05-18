@@ -1024,7 +1024,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       _formError = null;
     });
 
-    final payload = CrmEnquiryModel({
+    final payload = CrmEnquiryModel.fromJson({
       'company_id': _companyId,
       'enquiry_no': nullIfEmpty(_enquiryNoController.text),
       'enquiry_date': nullIfEmpty(_enquiryDateController.text),
@@ -1097,7 +1097,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     try {
       final response = await _crmService.loseEnquiry(
         id,
-        CrmEnquiryModel(const <String, dynamic>{}),
+        CrmEnquiryModel.fromJson(const <String, dynamic>{}),
       );
       if (!mounted) {
         return;
@@ -1122,7 +1122,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     try {
       final response = await _crmService.winOpportunity(
         id,
-        CrmOpportunityModel(const <String, dynamic>{}),
+        CrmOpportunityModel.fromJson(const <String, dynamic>{}),
       );
       if (!mounted) {
         return;

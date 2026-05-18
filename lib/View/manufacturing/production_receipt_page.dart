@@ -122,8 +122,9 @@ class _ProductionReceiptPageState extends State<ProductionReceiptPage> {
               await _viewModel.select(item);
               if (!mounted) return;
               final id = intValue(data, 'id');
-              if (id != null)
+              if (id != null) {
                 _openRoute('/manufacturing/production-receipts/$id');
+              }
               if (!isDesktop) _workspaceController.openEditor();
             },
           );

@@ -5,13 +5,12 @@ class DepartmentModel implements JsonModel {
     this.id,
     this.departmentName,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
   final String? departmentName;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => departmentName ?? 'New Department';
@@ -21,7 +20,6 @@ class DepartmentModel implements JsonModel {
       id: _nullableInt(json['id']),
       departmentName: json['department_name']?.toString(),
       isActive: _bool(json['is_active'], fallback: true),
-      raw: json,
     );
   }
 

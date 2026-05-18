@@ -7,7 +7,7 @@ class LeaveTypeModel implements JsonModel {
     this.leaveCode,
     this.maxDaysPerYear,
     this.isPaid = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -15,7 +15,6 @@ class LeaveTypeModel implements JsonModel {
   final String? leaveCode;
   final double? maxDaysPerYear;
   final bool isPaid;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => leaveName ?? 'New Leave Type';
@@ -27,7 +26,6 @@ class LeaveTypeModel implements JsonModel {
       leaveCode: json['leave_code']?.toString(),
       maxDaysPerYear: _double(json['max_days_per_year']),
       isPaid: _bool(json['is_paid'], fallback: true),
-      raw: json,
     );
   }
 

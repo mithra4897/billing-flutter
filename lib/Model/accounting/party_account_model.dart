@@ -14,7 +14,7 @@ class PartyAccountModel implements JsonModel {
     this.accountCode,
     this.accountName,
     this.accountType,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -29,7 +29,6 @@ class PartyAccountModel implements JsonModel {
   final String? accountCode;
   final String? accountName;
   final String? accountType;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => accountName ?? accountCode ?? 'New Party Account';
@@ -53,7 +52,6 @@ class PartyAccountModel implements JsonModel {
       accountCode: account['account_code']?.toString(),
       accountName: account['account_name']?.toString(),
       accountType: account['account_type']?.toString(),
-      raw: json,
     );
   }
 

@@ -1148,10 +1148,12 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
 
     try {
       final response = _selectedItem == null
-          ? await _purchaseService.createOrder(PurchaseOrderModel(payload))
+          ? await _purchaseService.createOrder(
+              PurchaseOrderModel.fromJson(payload),
+            )
           : await _purchaseService.updateOrder(
               intValue(_selectedItem!.toJson(), 'id')!,
-              PurchaseOrderModel(payload),
+              PurchaseOrderModel.fromJson(payload),
             );
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -1623,7 +1625,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.postOrder(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseOrderModel(const <String, dynamic>{}),
+                        PurchaseOrderModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),
@@ -1634,7 +1636,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.closeOrder(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseOrderModel(const <String, dynamic>{}),
+                        PurchaseOrderModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),
@@ -1645,7 +1647,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.cancelOrder(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseOrderModel(const <String, dynamic>{}),
+                        PurchaseOrderModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),

@@ -197,7 +197,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
           return;
         }
         await select(
-          MaintenanceRequestModel(<String, dynamic>{'id': selectId}),
+          MaintenanceRequestModel.fromJson(<String, dynamic>{'id': selectId}),
         );
         return;
       }
@@ -468,7 +468,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _maintenance.createRequest(
-          MaintenanceRequestModel(_buildCreatePayload()),
+          MaintenanceRequestModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -481,7 +481,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
         }
         final response = await _maintenance.updateRequest(
           id,
-          MaintenanceRequestModel(_buildUpdatePayload()),
+          MaintenanceRequestModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);
@@ -500,7 +500,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = MaintenanceRequestModel(<String, dynamic>{});
+    final empty = MaintenanceRequestModel.fromJson(<String, dynamic>{});
     try {
       final response = await _maintenance.approveRequest(id, empty);
       actionMessage = response.message;
@@ -516,7 +516,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = MaintenanceRequestModel(<String, dynamic>{});
+    final empty = MaintenanceRequestModel.fromJson(<String, dynamic>{});
     try {
       final response = await _maintenance.cancelRequest(id, empty);
       actionMessage = response.message;

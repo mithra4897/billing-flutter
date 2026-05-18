@@ -220,10 +220,12 @@ class StockBatchViewModel extends ChangeNotifier {
     if (outward > inward) {
       return 'Outward quantity cannot be greater than inward quantity.';
     }
-    if (purchaseRate != null && purchaseRate < 0)
+    if (purchaseRate != null && purchaseRate < 0) {
       return 'Purchase rate cannot be negative.';
-    if (salesRate != null && salesRate < 0)
+    }
+    if (salesRate != null && salesRate < 0) {
       return 'Sales rate cannot be negative.';
+    }
     if (mrp != null && mrp < 0) return 'MRP cannot be negative.';
     if (salesRate != null && mrp != null && salesRate > mrp) {
       return 'Sales rate cannot be greater than MRP.';
@@ -264,10 +266,12 @@ class StockBatchViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createStockBatch(StockBatchModel(payload))
+          ? await _inventoryService.createStockBatch(
+              StockBatchModel.fromJson(payload),
+            )
           : await _inventoryService.updateStockBatch(
               intValue(selected!.toJson(), 'id')!,
-              StockBatchModel(payload),
+              StockBatchModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

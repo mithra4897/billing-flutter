@@ -218,7 +218,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
     createBusy = true;
     notifyListeners();
     try {
-      final body = AssetDepreciationRunModel(<String, dynamic>{
+      final body = AssetDepreciationRunModel.fromJson(<String, dynamic>{
         'company_id': cid,
         'run_date': runDateController.text.trim(),
         'depreciation_from_date': fromDateController.text.trim(),
@@ -273,7 +273,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AssetDepreciationRunModel(<String, dynamic>{});
+    final empty = AssetDepreciationRunModel.fromJson(<String, dynamic>{});
     await _runAction(() => _assets.processDepreciationRun(id, empty));
   }
 
@@ -282,7 +282,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AssetDepreciationRunModel(<String, dynamic>{});
+    final empty = AssetDepreciationRunModel.fromJson(<String, dynamic>{});
     await _runAction(() => _assets.postDepreciationRun(id, empty));
   }
 
@@ -291,7 +291,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AssetDepreciationRunModel(<String, dynamic>{});
+    final empty = AssetDepreciationRunModel.fromJson(<String, dynamic>{});
     await _runAction(() => _assets.cancelDepreciationRun(id, empty));
   }
 

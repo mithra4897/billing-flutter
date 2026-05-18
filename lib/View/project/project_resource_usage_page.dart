@@ -226,28 +226,24 @@ class _ProjectResourceUsageManagementPageState
 
   List<AppDropdownItem<int>> get _assetItems => _assets
       .map(
-        (item) => AppDropdownItem<int>(
-          value: _rawInt(item.data['id']) ?? 0,
-          label: _assetLabel(item),
-        ),
+        (item) =>
+            AppDropdownItem<int>(value: item.id ?? 0, label: _assetLabel(item)),
       )
       .where((item) => item.value != 0)
       .toList(growable: false);
 
   AssetModel? _assetById(int? id) => _assets.cast<AssetModel?>().firstWhere(
-    (item) => _rawInt(item?.data['id']) == id,
+    (item) => item?.id == id,
     orElse: () => null,
   );
 
   String _assetLabel(AssetModel? asset) {
     if (asset == null) return '';
-    final name = asset.data['asset_name']?.toString().trim() ?? '';
-    final code = asset.data['asset_code']?.toString().trim() ?? '';
+    final name = asset.assetName?.trim() ?? '';
+    final code = asset.assetCode?.trim() ?? '';
     if (name.isNotEmpty && code.isNotEmpty) return '$name ($code)';
     return name.isNotEmpty ? name : code;
   }
-
-  int? _rawInt(dynamic value) => int.tryParse(value?.toString() ?? '');
 
   int? _intValue(String text) => int.tryParse(text.trim());
 

@@ -160,6 +160,7 @@ class QcPlanViewModel extends ChangeNotifier {
 
   List<BranchModel> get branchOptions =>
       branchesForCompany(branches, companyId);
+
   List<BusinessLocationModel> get locationOptions =>
       locationsForBranch(locations, branchId);
 
@@ -180,10 +181,8 @@ class QcPlanViewModel extends ChangeNotifier {
         if (companyId == null) {
           return true;
         }
-        final raw = c.raw;
-        final cid = raw != null
-            ? int.tryParse(raw['company_id']?.toString() ?? '')
-            : null;
+        final raw = c.toJson();
+        final cid = int.tryParse(raw['company_id']?.toString() ?? '');
         return cid == null || cid == companyId;
       })
       .toList(growable: false);

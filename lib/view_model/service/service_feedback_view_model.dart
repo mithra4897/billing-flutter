@@ -28,7 +28,8 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
 
   List<ServiceFeedbackModel> rows = const <ServiceFeedbackModel>[];
   List<ServiceTicketModel> ticketOptions = const <ServiceTicketModel>[];
-  List<ServiceWorkOrderModel> workOrderOptions = const <ServiceWorkOrderModel>[];
+  List<ServiceWorkOrderModel> workOrderOptions =
+      const <ServiceWorkOrderModel>[];
 
   ServiceFeedbackModel? selected;
 
@@ -42,17 +43,19 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
 
   List<ServiceFeedbackModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      final data = row.toJson();
-      final tid = intValue(data, 'service_ticket_id');
-      return [
-        tid?.toString() ?? '',
-        stringValue(data, 'customer_feedback'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          final tid = intValue(data, 'service_ticket_id');
+          return [
+            tid?.toString() ?? '',
+            stringValue(data, 'customer_feedback'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   List<ServiceWorkOrderModel> get workOrdersForTicket {
@@ -60,9 +63,11 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
     if (tid == null) {
       return workOrderOptions;
     }
-    return workOrderOptions.where((w) {
-      return intValue(w.toJson(), 'service_ticket_id') == tid;
-    }).toList(growable: false);
+    return workOrderOptions
+        .where((w) {
+          return intValue(w.toJson(), 'service_ticket_id') == tid;
+        })
+        .toList(growable: false);
   }
 
   String ticketLabel(ServiceTicketModel t) {
@@ -105,15 +110,15 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
 
       rows =
           (responses[0] as PaginatedResponse<ServiceFeedbackModel>).data ??
-              const <ServiceFeedbackModel>[];
+          const <ServiceFeedbackModel>[];
 
       ticketOptions =
           (responses[1] as PaginatedResponse<ServiceTicketModel>).data ??
-              const <ServiceTicketModel>[];
+          const <ServiceTicketModel>[];
 
       workOrderOptions =
           (responses[2] as PaginatedResponse<ServiceWorkOrderModel>).data ??
-              const <ServiceWorkOrderModel>[];
+          const <ServiceWorkOrderModel>[];
 
       loading = false;
 
@@ -129,7 +134,9 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(ServiceFeedbackModel(<String, dynamic>{'id': selectId}));
+        await select(
+          ServiceFeedbackModel.fromJson(<String, dynamic>{'id': selectId}),
+        );
         return;
       }
       resetDraft();
@@ -144,13 +151,16 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
   void resetDraft() {
     selected = null;
     formError = null;
-    serviceTicketId =
-        ticketOptions.isNotEmpty ? intValue(ticketOptions.first.toJson(), 'id') : null;
+    serviceTicketId = ticketOptions.isNotEmpty
+        ? intValue(ticketOptions.first.toJson(), 'id')
+        : null;
     serviceWorkOrderId = null;
     resolutionConfirmed = 0;
     revisitRequired = 0;
-    feedbackDateController.text =
-        DateTime.now().toIso8601String().split('T').first;
+    feedbackDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     ratingOverallController.clear();
     ratingTechnicianController.clear();
     ratingResolutionController.clear();
@@ -205,18 +215,14 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
   void _applyDetail(Map<String, dynamic> data) {
     serviceTicketId = intValue(data, 'service_ticket_id');
     serviceWorkOrderId = intValue(data, 'service_work_order_id');
-    feedbackDateController.text =
-        displayDate(nullableStringValue(data, 'feedback_date'));
-    ratingOverallController.text =
-        _numString(data, 'rating_overall');
-    ratingTechnicianController.text =
-        _numString(data, 'rating_technician');
-    ratingResolutionController.text =
-        _numString(data, 'rating_resolution');
-    ratingTimelinessController.text =
-        _numString(data, 'rating_timeliness');
-    customerFeedbackController.text =
-        stringValue(data, 'customer_feedback');
+    feedbackDateController.text = displayDate(
+      nullableStringValue(data, 'feedback_date'),
+    );
+    ratingOverallController.text = _numString(data, 'rating_overall');
+    ratingTechnicianController.text = _numString(data, 'rating_technician');
+    ratingResolutionController.text = _numString(data, 'rating_resolution');
+    ratingTimelinessController.text = _numString(data, 'rating_timeliness');
+    customerFeedbackController.text = stringValue(data, 'customer_feedback');
     resolutionConfirmed =
         int.tryParse(data['resolution_confirmed']?.toString() ?? '') ?? 0;
     resolutionConfirmed = resolutionConfirmed != 0 ? 1 : 0;
@@ -255,8 +261,7 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
       'rating_technician': p(ratingTechnicianController.text),
       'rating_resolution': p(ratingResolutionController.text),
       'rating_timeliness': p(ratingTimelinessController.text),
-      'customer_feedback':
-          nullIfEmpty(customerFeedbackController.text),
+      'customer_feedback': nullIfEmpty(customerFeedbackController.text),
       'resolution_confirmed': resolutionConfirmed,
       'revisit_required': revisitRequired,
     };
@@ -276,7 +281,7 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _service.createFeedback(
-          ServiceFeedbackModel(_buildPayload()),
+          ServiceFeedbackModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -289,7 +294,7 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
         }
         final response = await _service.updateFeedback(
           id,
-          ServiceFeedbackModel(_buildPayload()),
+          ServiceFeedbackModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);

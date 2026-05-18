@@ -13,8 +13,8 @@ class MediaFileModel {
     this.downloadUrl,
     this.publicUrl,
     this.isPublic = false,
-    this.raw,
-  });
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
   final int id;
   final String originalName;
@@ -29,7 +29,6 @@ class MediaFileModel {
   final String? downloadUrl;
   final String? publicUrl;
   final bool isPublic;
-  final Map<String, dynamic>? raw;
 
   factory MediaFileModel.fromJson(Map<String, dynamic> json) {
     return MediaFileModel(
@@ -46,9 +45,24 @@ class MediaFileModel {
       downloadUrl: json['download_url']?.toString(),
       publicUrl: json['public_url']?.toString(),
       isPublic: json['is_public'] == true || json['is_public'] == 1,
-      raw: json,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'original_name': originalName,
+    'stored_name': storedName,
+    'file_path': filePath,
+    if (module != null) 'module': module,
+    if (documentType != null) 'document_type': documentType,
+    if (documentId != null) 'document_id': documentId,
+    if (purpose != null) 'purpose': purpose,
+    if (mimeType != null) 'mime_type': mimeType,
+    if (fileSize != null) 'file_size': fileSize,
+    if (downloadUrl != null) 'download_url': downloadUrl,
+    if (publicUrl != null) 'public_url': publicUrl,
+    'is_public': isPublic,
+  };
 
   static int _parseInt(dynamic value) =>
       int.tryParse(value?.toString() ?? '') ?? 0;

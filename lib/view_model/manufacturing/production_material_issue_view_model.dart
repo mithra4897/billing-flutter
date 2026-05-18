@@ -1079,11 +1079,11 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     try {
       final response = selected == null
           ? await _service.createProductionMaterialIssue(
-              ProductionMaterialIssueModel(payload),
+              ProductionMaterialIssueModel.fromJson(payload),
             )
           : await _service.updateProductionMaterialIssue(
               intValue(selected!.toJson(), 'id')!,
-              ProductionMaterialIssueModel(payload),
+              ProductionMaterialIssueModel.fromJson(payload),
             );
       actionMessage = response.message;
       await load(
@@ -1113,7 +1113,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     try {
       final response = await _service.postProductionMaterialIssue(
         id,
-        const ProductionMaterialIssueModel(<String, dynamic>{}),
+        ProductionMaterialIssueModel.fromJson(<String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -1129,7 +1129,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     try {
       final response = await _service.cancelProductionMaterialIssue(
         id,
-        const ProductionMaterialIssueModel(<String, dynamic>{}),
+        ProductionMaterialIssueModel.fromJson(<String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

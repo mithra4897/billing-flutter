@@ -1,5 +1,3 @@
-import '../../screen.dart';
-
 class EmployeeRelationModel {
   const EmployeeRelationModel({
     this.id,

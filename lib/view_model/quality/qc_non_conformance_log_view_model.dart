@@ -73,18 +73,20 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
 
   List<QcNonConformanceLogModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      if (q.isEmpty) {
-        return true;
-      }
-      return [
-        row.defectName,
-        row.defectCode ?? '',
-        row.severity ?? '',
-        row.closureStatus,
-        row.inspectionNoLabel,
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          if (q.isEmpty) {
+            return true;
+          }
+          return [
+            row.defectName,
+            row.defectCode ?? '',
+            row.severity ?? '',
+            row.closureStatus,
+            row.inspectionNoLabel,
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -149,10 +151,10 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       ]);
       rows =
           (responses[0] as PaginatedResponse<QcNonConformanceLogModel>).data ??
-              const <QcNonConformanceLogModel>[];
+          const <QcNonConformanceLogModel>[];
       inspections =
           (responses[1] as PaginatedResponse<QcInspectionModel>).data ??
-              const <QcInspectionModel>[];
+          const <QcInspectionModel>[];
 
       loading = false;
 
@@ -227,8 +229,9 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       remarksController.text = doc.remarks ?? '';
       await _loadInspectionLines(qcInspectionId, clearSelectedLine: false);
       if (qcInspectionLineId != null) {
-        final exists =
-            inspectionLineOptions.any((o) => o.id == qcInspectionLineId);
+        final exists = inspectionLineOptions.any(
+          (o) => o.id == qcInspectionLineId,
+        );
         if (!exists) {
           qcInspectionLineId = null;
         }
@@ -310,8 +313,10 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
         actionMessage = response.message;
         await load(selectId: response.data?.id);
       } else {
-        final response =
-            await _service.updateQcNonConformanceLog(selected!.id!, doc);
+        final response = await _service.updateQcNonConformanceLog(
+          selected!.id!,
+          doc,
+        );
         actionMessage = response.message;
         await load(selectId: selected!.id);
       }

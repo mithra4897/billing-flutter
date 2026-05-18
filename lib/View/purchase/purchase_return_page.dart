@@ -46,9 +46,6 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
   String _statusFilter = '';
   List<PurchaseReturnModel> _items = const <PurchaseReturnModel>[];
   List<PurchaseReturnModel> _filteredItems = const <PurchaseReturnModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PurchaseInvoiceModel> _invoices = const <PurchaseInvoiceModel>[];
@@ -164,15 +161,6 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
         _items =
             (responses[0] as PaginatedResponse<PurchaseReturnModel>).data ??
             const <PurchaseReturnModel>[];
-        _companies =
-            (responses[1] as PaginatedResponse<CompanyModel>).data ??
-            const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -332,12 +320,6 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
         .toList(growable: false);
   }
 
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
-
   List<PurchaseInvoiceModel> get _invoiceOptions => _invoices
       .where((item) => (_companyId == null || item.companyId == _companyId))
       .toList(growable: false);
@@ -466,10 +448,12 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
     };
     try {
       final response = _selectedItem == null
-          ? await _purchaseService.createReturn(PurchaseReturnModel(payload))
+          ? await _purchaseService.createReturn(
+              PurchaseReturnModel.fromJson(payload),
+            )
           : await _purchaseService.updateReturn(
               intValue(_selectedItem!.toJson(), 'id')!,
-              PurchaseReturnModel(payload),
+              PurchaseReturnModel.fromJson(payload),
             );
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -824,7 +808,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.postReturn(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseReturnModel(const <String, dynamic>{}),
+                        PurchaseReturnModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),
@@ -835,7 +819,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                     onPressed: () => _docAction(
                       () => _purchaseService.cancelReturn(
                         intValue(_selectedItem!.toJson(), 'id')!,
-                        PurchaseReturnModel(const <String, dynamic>{}),
+                        PurchaseReturnModel.fromJson(const <String, dynamic>{}),
                       ),
                     ),
                   ),

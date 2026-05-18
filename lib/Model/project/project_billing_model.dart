@@ -11,7 +11,7 @@ class ProjectBillingModel implements JsonModel {
     this.salesInvoiceId,
     this.billingStatus,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -23,7 +23,6 @@ class ProjectBillingModel implements JsonModel {
   final int? salesInvoiceId;
   final String? billingStatus;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   factory ProjectBillingModel.fromJson(Map<String, dynamic> json) {
     return ProjectBillingModel(
@@ -36,7 +35,6 @@ class ProjectBillingModel implements JsonModel {
       salesInvoiceId: ModelValue.nullableInt(json['sales_invoice_id']),
       billingStatus: json['billing_status']?.toString(),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

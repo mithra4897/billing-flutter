@@ -8,11 +8,13 @@ class StockReservationViewModel extends ChangeNotifier {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController referenceTypeController = TextEditingController();
   final TextEditingController referenceIdController = TextEditingController();
-  final TextEditingController referenceLineIdController = TextEditingController();
+  final TextEditingController referenceLineIdController =
+      TextEditingController();
   final TextEditingController reservedQtyController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
   final TextEditingController releaseQtyController = TextEditingController();
-  final TextEditingController releaseRemarksController = TextEditingController();
+  final TextEditingController releaseRemarksController =
+      TextEditingController();
 
   bool loading = true;
   bool detailLoading = false;
@@ -42,8 +44,7 @@ class StockReservationViewModel extends ChangeNotifier {
   }
 
   void _handleWorkingContextChanged() {
-    final id =
-        intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
+    final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
     load(selectId: id);
   }
 
@@ -58,56 +59,66 @@ class StockReservationViewModel extends ChangeNotifier {
 
   List<StockReservationModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) return true;
-      return [
-        stringValue(data, 'reference_type'),
-        '${intValue(data, 'reference_id') ?? ''}',
-        stringValue(data, 'status'),
-        _itemLabel(data),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) return true;
+          return [
+            stringValue(data, 'reference_type'),
+            '${intValue(data, 'reference_id') ?? ''}',
+            stringValue(data, 'status'),
+            _itemLabel(data),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
-  List<ItemModel> get itemOptions => items.where((x) {
-    if (!x.isActive || x.id == null) return false;
-    if (companyId != null && x.companyId != companyId) return false;
-    return true;
-  }).toList(growable: false);
+  List<ItemModel> get itemOptions => items
+      .where((x) {
+        if (!x.isActive || x.id == null) return false;
+        if (companyId != null && x.companyId != companyId) return false;
+        return true;
+      })
+      .toList(growable: false);
 
-  List<WarehouseModel> get warehouseOptions => warehouses.where((x) {
-    if (!x.isActive || x.id == null) return false;
-    if (companyId != null && x.companyId != companyId) return false;
-    return true;
-  }).toList(growable: false);
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((x) {
+        if (!x.isActive || x.id == null) return false;
+        if (companyId != null && x.companyId != companyId) return false;
+        return true;
+      })
+      .toList(growable: false);
 
-  List<StockBatchModel> get batchOptions => batches.where((x) {
-    final data = x.toJson();
-    if (intValue(data, 'id') == null) return false;
-    if (itemId != null && intValue(data, 'item_id') != itemId) return false;
-    if (warehouseId != null && intValue(data, 'warehouse_id') != warehouseId) {
-      return false;
-    }
-    if (x.balanceQty <= 0) {
-      return false;
-    }
-    return true;
-  }).toList(growable: false);
+  List<StockBatchModel> get batchOptions => batches
+      .where((x) {
+        final data = x.toJson();
+        if (intValue(data, 'id') == null) return false;
+        if (itemId != null && intValue(data, 'item_id') != itemId) return false;
+        if (warehouseId != null &&
+            intValue(data, 'warehouse_id') != warehouseId) {
+          return false;
+        }
+        if ((x.balanceQty ?? 0) <= 0) return false;
+        return true;
+      })
+      .toList(growable: false);
 
-  List<StockSerialModel> get serialOptions => serials.where((x) {
-    final data = x.toJson();
-    if (intValue(data, 'id') == null) return false;
-    if (itemId != null && intValue(data, 'item_id') != itemId) return false;
-    if (warehouseId != null && intValue(data, 'warehouse_id') != warehouseId) {
-      return false;
-    }
-    if (batchId != null) {
-      final serialBatchId = intValue(data, 'batch_id');
-      if (serialBatchId != null && serialBatchId != batchId) return false;
-    }
-    return true;
-  }).toList(growable: false);
+  List<StockSerialModel> get serialOptions => serials
+      .where((x) {
+        final data = x.toJson();
+        if (intValue(data, 'id') == null) return false;
+        if (itemId != null && intValue(data, 'item_id') != itemId) return false;
+        if (warehouseId != null &&
+            intValue(data, 'warehouse_id') != warehouseId) {
+          return false;
+        }
+        if (batchId != null) {
+          final serialBatchId = intValue(data, 'batch_id');
+          if (serialBatchId != null && serialBatchId != batchId) return false;
+        }
+        return true;
+      })
+      .toList(growable: false);
 
   String? consumeActionMessage() {
     final message = actionMessage;
@@ -128,23 +139,29 @@ class StockReservationViewModel extends ChangeNotifier {
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
       ]);
-      rows = (responses[0] as PaginatedResponse<StockReservationModel>).data ??
+      rows =
+          (responses[0] as PaginatedResponse<StockReservationModel>).data ??
           const <StockReservationModel>[];
-      companies = ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-              const <CompanyModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      items = ((responses[2] as PaginatedResponse<ItemModel>).data ??
-              const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      warehouses = ((responses[3] as PaginatedResponse<WarehouseModel>).data ??
-              const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      batches = (responses[4] as PaginatedResponse<StockBatchModel>).data ??
+      companies =
+          ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                  const <CompanyModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      items =
+          ((responses[2] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[3] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      batches =
+          (responses[4] as PaginatedResponse<StockBatchModel>).data ??
           const <StockBatchModel>[];
-      serials = (responses[5] as PaginatedResponse<StockSerialModel>).data ??
+      serials =
+          (responses[5] as PaginatedResponse<StockSerialModel>).data ??
           const <StockSerialModel>[];
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -158,7 +175,9 @@ class StockReservationViewModel extends ChangeNotifier {
 
       if (selectId != null) {
         final existing = rows.cast<StockReservationModel?>().firstWhere(
-          (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
           orElse: () => null,
         );
         if (existing != null) {
@@ -180,7 +199,9 @@ class StockReservationViewModel extends ChangeNotifier {
     formError = null;
     companyId ??= companies.isNotEmpty ? companies.first.id : null;
     itemId = null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     batchId = null;
     serialId = null;
     referenceTypeController.clear();
@@ -229,7 +250,9 @@ class StockReservationViewModel extends ChangeNotifier {
     if (isLocked) return;
     companyId = value;
     itemId = null;
-    warehouseId = warehouseOptions.isNotEmpty ? warehouseOptions.first.id : null;
+    warehouseId = warehouseOptions.isNotEmpty
+        ? warehouseOptions.first.id
+        : null;
     batchId = null;
     serialId = null;
     notifyListeners();
@@ -254,7 +277,9 @@ class StockReservationViewModel extends ChangeNotifier {
   void setBatchId(int? value) {
     if (isLocked) return;
     batchId = value;
-    final serialPresent = serialOptions.any((s) => intValue(s.toJson(), 'id') == serialId);
+    final serialPresent = serialOptions.any(
+      (s) => intValue(s.toJson(), 'id') == serialId,
+    );
     if (!serialPresent) {
       serialId = null;
     }
@@ -321,14 +346,19 @@ class StockReservationViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _service.createStockReservation(StockReservationModel(payload))
+          ? await _service.createStockReservation(
+              StockReservationModel.fromJson(payload),
+            )
           : await _service.updateStockReservation(
               intValue(selected!.toJson(), 'id')!,
-              StockReservationModel(payload),
+              StockReservationModel.fromJson(payload),
             );
       actionMessage = response.message;
       await load(
-        selectId: intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id'),
+        selectId: intValue(
+          response.data?.toJson() ?? const <String, dynamic>{},
+          'id',
+        ),
       );
     } catch (e) {
       formError = e.toString();
@@ -351,7 +381,7 @@ class StockReservationViewModel extends ChangeNotifier {
     try {
       final response = await _service.releaseStockReservation(
         id,
-        StockReservationModel(<String, dynamic>{
+        StockReservationModel.fromJson(<String, dynamic>{
           'released_qty': qty,
           'remarks': nullIfEmpty(releaseRemarksController.text),
         }),

@@ -305,7 +305,7 @@ class _CostCenterDetailDialogState extends State<_CostCenterDetailDialog> {
         ],
       );
     }
-    final raw = _model!.raw ?? _model!.toJson();
+    final raw = _model!.toJson();
     final text = const JsonEncoder.withIndent('  ').convert(raw);
 
     return AlertDialog(
@@ -665,7 +665,7 @@ class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
     }
     final data = _model!.toJson();
     final st = stringValue(data, 'asset_status');
-    final empty = AssetModel(<String, dynamic>{});
+    final empty = AssetModel.fromJson(<String, dynamic>{});
     final canActivate = st != 'disposed';
     final text = const JsonEncoder.withIndent('  ').convert(data);
 
@@ -1174,7 +1174,7 @@ class _AssetCostCenterRegisterPageState
     final q = _searchController.text.trim().toLowerCase();
     return _rows
         .where((CostCenterModel row) {
-          final raw = row.raw ?? row.toJson();
+          final raw = row.toJson();
           if (q.isEmpty) {
             return true;
           }
@@ -1218,12 +1218,12 @@ class _AssetCostCenterRegisterPageState
         PurchaseRegisterColumn<CostCenterModel>(
           label: 'Type',
           valueBuilder: (CostCenterModel row) =>
-              stringValue(row.raw ?? row.toJson(), 'cost_center_type'),
+              stringValue(row.toJson(), 'cost_center_type'),
         ),
         PurchaseRegisterColumn<CostCenterModel>(
           label: 'Parent',
           valueBuilder: (CostCenterModel row) =>
-              _costCenterParentName(row.raw ?? row.toJson()),
+              _costCenterParentName(row.toJson()),
         ),
       ],
       onRowTap: (CostCenterModel row) {

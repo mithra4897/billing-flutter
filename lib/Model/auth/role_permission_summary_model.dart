@@ -4,12 +4,11 @@ class RolePermissionSummaryModel implements JsonModel {
   const RolePermissionSummaryModel({
     this.role,
     this.permissions = const <RolePermissionModel>[],
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final RoleModel? role;
   final List<RolePermissionModel> permissions;
-  final Map<String, dynamic>? raw;
 
   factory RolePermissionSummaryModel.fromJson(Map<String, dynamic> json) {
     return RolePermissionSummaryModel(
@@ -17,7 +16,6 @@ class RolePermissionSummaryModel implements JsonModel {
           ? RoleModel.fromJson(json['role'] as Map<String, dynamic>)
           : null,
       permissions: _permissionList(json['permissions']),
-      raw: json,
     );
   }
 

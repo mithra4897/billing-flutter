@@ -7,15 +7,14 @@ class CostCenterModel implements JsonModel {
     this.costCenterCode,
     this.costCenterName,
     this.isActive = true,
-    this.raw,
-  });
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
   final int? id;
   final int? companyId;
   final String? costCenterCode;
   final String? costCenterName;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => costCenterName ?? costCenterCode ?? 'Cost Center';
@@ -27,14 +26,12 @@ class CostCenterModel implements JsonModel {
       costCenterCode: json['cost_center_code']?.toString(),
       costCenterName: json['cost_center_name']?.toString(),
       isActive: _bool(json['is_active'], fallback: true),
-      raw: json,
     );
   }
 
   @override
   Map<String, dynamic> toJson() {
     return {
-      ...?raw,
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
       if (costCenterCode != null) 'cost_center_code': costCenterCode,

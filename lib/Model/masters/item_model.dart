@@ -53,7 +53,7 @@ class ItemModel implements JsonModel {
     this.isJobworkApplicable = false,
     this.isActive = true,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -107,7 +107,6 @@ class ItemModel implements JsonModel {
   final bool isJobworkApplicable;
   final bool isActive;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => itemName.isNotEmpty ? itemName : itemCode;
@@ -183,7 +182,6 @@ class ItemModel implements JsonModel {
       isJobworkApplicable: _bool(json['is_jobwork_applicable']),
       isActive: _bool(json['is_active'], fallback: true),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

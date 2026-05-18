@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import '../../screen.dart';
 
 class PurchaseInvoicePage extends StatefulWidget {
@@ -307,9 +305,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       _invoiceDateController.text = displayDate(full.invoiceDate);
       _dueDateController.text = displayDate(full.dueDate);
       _supplierReferenceNoController.text =
-          full.raw?['supplier_reference_no']?.toString() ?? '';
+          full.toJson()['supplier_reference_no']?.toString() ?? '';
       _supplierReferenceDateController.text = displayDate(
-        full.raw?['supplier_reference_date']?.toString(),
+        full.toJson()['supplier_reference_date']?.toString(),
       );
       _currencyCodeController.text = full.currencyCode ?? 'INR';
       _exchangeRateController.text = full.exchangeRate?.toString() ?? '1';
@@ -325,9 +323,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               ),
             ]
           : full.lines;
-      _isActive = full.raw?['is_active'] == null
+      _isActive = full.toJson()['is_active'] == null
           ? true
-          : boolValue(full.raw!, 'is_active', fallback: true);
+          : boolValue(full.toJson(), 'is_active', fallback: true);
       _formError = null;
     });
     final enrichReceiptId = full.purchaseReceiptId;
@@ -383,7 +381,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                 [
                   item.invoiceNo ?? '',
                   item.invoiceStatus ?? '',
-                  item.raw?['supplier_name']?.toString() ?? '',
+                  item.toJson()['supplier_name']?.toString() ?? '',
                 ].join(' ').toLowerCase().contains(search);
             return statusOk && searchOk;
           })
@@ -1010,7 +1008,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
             displayDate(item.invoiceDate),
             item.invoiceStatus ?? '',
           ].where((value) => value.isNotEmpty).join(' · '),
-          detail: item.raw?['supplier_name']?.toString() ?? '',
+          detail: item.toJson()['supplier_name']?.toString() ?? '',
           selected: selected,
           onTap: () => _selectDocument(item),
         ),
@@ -1447,7 +1445,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                         .toLowerCase();
                     final balance =
                         double.tryParse(
-                          _selectedItem!.raw?['balance_amount']?.toString() ??
+                          _selectedItem!
+                                  .toJson()['balance_amount']
+                                  ?.toString() ??
                               '',
                         ) ??
                         0;

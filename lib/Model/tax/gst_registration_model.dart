@@ -18,7 +18,7 @@ class GstRegistrationModel implements JsonModel {
     this.isDefault = false,
     this.isActive = true,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -37,7 +37,6 @@ class GstRegistrationModel implements JsonModel {
   final bool isDefault;
   final bool isActive;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   factory GstRegistrationModel.fromJson(Map<String, dynamic> json) {
     return GstRegistrationModel(
@@ -59,7 +58,6 @@ class GstRegistrationModel implements JsonModel {
           ? true
           : ModelValue.boolOf(json['is_active'], fallback: true),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

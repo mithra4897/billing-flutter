@@ -11,7 +11,7 @@ class TaxCodeModel implements JsonModel {
     this.hsnSacCode,
     this.remarks,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -23,7 +23,6 @@ class TaxCodeModel implements JsonModel {
   final String? hsnSacCode;
   final String? remarks;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => taxName ?? taxCode ?? 'New Tax Category';
@@ -39,7 +38,6 @@ class TaxCodeModel implements JsonModel {
       hsnSacCode: json['hsn_sac_code']?.toString(),
       remarks: json['remarks']?.toString(),
       isActive: json['is_active'] != false && json['is_active'] != 0,
-      raw: json,
     );
   }
 

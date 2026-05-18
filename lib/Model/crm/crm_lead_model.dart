@@ -1,20 +1,69 @@
 import '../../screen.dart';
 
 class CrmLeadModel implements JsonModel {
-  const CrmLeadModel(this.data);
+  const CrmLeadModel({
+    this.id,
+    this.companyId,
+    this.leadName,
+    this.companyName,
+    this.mobile,
+    this.email,
+    this.sourceId,
+    this.assignedTo,
+    this.leadStatus,
+    this.remarks,
+    this.createdBy,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? companyId;
+  final String? leadName;
+  final String? companyName;
+  final String? mobile;
+  final String? email;
+  final int? sourceId;
+  final int? assignedTo;
+  final String? leadStatus;
+  final String? remarks;
+  final int? createdBy;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory CrmLeadModel.fromJson(Map<String, dynamic> json) {
-    return CrmLeadModel(json);
+    return CrmLeadModel(
+      id: ModelValue.nullableInt(json['id']),
+      companyId: ModelValue.nullableInt(json['company_id']),
+      leadName: json['lead_name']?.toString(),
+      companyName: json['company_name']?.toString(),
+      mobile: json['mobile']?.toString(),
+      email: json['email']?.toString(),
+      sourceId: ModelValue.nullableInt(json['source_id']),
+      assignedTo: ModelValue.nullableInt(json['assigned_to']),
+      leadStatus: json['lead_status']?.toString(),
+      remarks: json['remarks']?.toString(),
+      createdBy: ModelValue.nullableInt(json['created_by']),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  String toString() {
-    final name = data['lead_name']?.toString().trim() ?? '';
-    return name.isNotEmpty ? name : 'New Lead';
-  }
-
-  @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (companyId != null) 'company_id': companyId,
+    if (leadName != null) 'lead_name': leadName,
+    if (companyName != null) 'company_name': companyName,
+    if (mobile != null) 'mobile': mobile,
+    if (email != null) 'email': email,
+    if (sourceId != null) 'source_id': sourceId,
+    if (assignedTo != null) 'assigned_to': assignedTo,
+    if (leadStatus != null) 'lead_status': leadStatus,
+    if (remarks != null) 'remarks': remarks,
+    if (createdBy != null) 'created_by': createdBy,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

@@ -34,7 +34,9 @@ class AppConfig {
       return '$apiBaseUrl/public/media/file?path=${Uri.encodeComponent(normalized)}';
     }
 
-    final normalizedPath = normalized.startsWith('/') ? normalized : '/$normalized';
+    final normalizedPath = normalized.startsWith('/')
+        ? normalized
+        : '/$normalized';
     return '$baseHost$normalizedPath';
   }
 }

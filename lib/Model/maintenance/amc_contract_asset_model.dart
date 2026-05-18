@@ -1,14 +1,47 @@
 import '../../screen.dart';
 
 class AmcContractAssetModel implements JsonModel {
-  const AmcContractAssetModel(this.data);
+  const AmcContractAssetModel({
+    this.id,
+    this.amcContractId,
+    this.assetId,
+    this.coverageNotes,
+    this.isActive,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? amcContractId;
+  final int? assetId;
+  final String? coverageNotes;
+  final bool? isActive;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory AmcContractAssetModel.fromJson(Map<String, dynamic> json) {
-    return AmcContractAssetModel(json);
+    return AmcContractAssetModel(
+      id: ModelValue.nullableInt(json['id']),
+      amcContractId: ModelValue.nullableInt(json['amc_contract_id']),
+      assetId: ModelValue.nullableInt(json['asset_id']),
+      coverageNotes: json['coverage_notes']?.toString(),
+      isActive: json['is_active'] == null
+          ? null
+          : ModelValue.boolOf(json['is_active']),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (amcContractId != null) 'amc_contract_id': amcContractId,
+    if (assetId != null) 'asset_id': assetId,
+    if (coverageNotes != null) 'coverage_notes': coverageNotes,
+    if (isActive != null) 'is_active': isActive,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

@@ -104,14 +104,16 @@ class ProductionReceiptViewModel extends ChangeNotifier {
 
   List<ProductionReceiptModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
-    return rows.where((row) {
-      final data = row.toJson();
-      if (q.isEmpty) return true;
-      return [
-        stringValue(data, 'receipt_no'),
-        stringValue(data, 'receipt_status'),
-      ].join(' ').toLowerCase().contains(q);
-    }).toList(growable: false);
+    return rows
+        .where((row) {
+          final data = row.toJson();
+          if (q.isEmpty) return true;
+          return [
+            stringValue(data, 'receipt_no'),
+            stringValue(data, 'receipt_status'),
+          ].join(' ').toLowerCase().contains(q);
+        })
+        .toList(growable: false);
   }
 
   String? consumeActionMessage() {
@@ -124,7 +126,8 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     if (!isDraft && selected != null) return;
     productionOrderId = value;
     final order = productionOrders.cast<ProductionOrderModel?>().firstWhere(
-      (row) => intValue(row?.toJson() ?? const <String, dynamic>{}, 'id') == value,
+      (row) =>
+          intValue(row?.toJson() ?? const <String, dynamic>{}, 'id') == value,
       orElse: () => null,
     );
     if (order != null) {
@@ -164,35 +167,44 @@ class ProductionReceiptViewModel extends ChangeNotifier {
         ),
         _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
-      rows = (responses[0] as PaginatedResponse<ProductionReceiptModel>).data ??
+      rows =
+          (responses[0] as PaginatedResponse<ProductionReceiptModel>).data ??
           const <ProductionReceiptModel>[];
-      productionOrders = (responses[1] as PaginatedResponse<ProductionOrderModel>).data ??
+      productionOrders =
+          (responses[1] as PaginatedResponse<ProductionOrderModel>).data ??
           const <ProductionOrderModel>[];
-      documentSeries = ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
-              const <DocumentSeriesModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      items = ((responses[3] as PaginatedResponse<ItemModel>).data ??
-              const <ItemModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uoms = ((responses[4] as PaginatedResponse<UomModel>).data ??
-              const <UomModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      uomConversions = ((responses[5] as PaginatedResponse<UomConversionModel>).data ??
-              const <UomConversionModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
-      warehouses = ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
-              const <WarehouseModel>[])
-          .where((x) => x.isActive)
-          .toList(growable: false);
+      documentSeries =
+          ((responses[2] as PaginatedResponse<DocumentSeriesModel>).data ??
+                  const <DocumentSeriesModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      items =
+          ((responses[3] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uoms =
+          ((responses[4] as PaginatedResponse<UomModel>).data ??
+                  const <UomModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      uomConversions =
+          ((responses[5] as PaginatedResponse<UomConversionModel>).data ??
+                  const <UomConversionModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       loading = false;
 
       if (selectId != null) {
         final existing = rows.cast<ProductionReceiptModel?>().firstWhere(
-          (x) => intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') == selectId,
+          (x) =>
+              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
+              selectId,
           orElse: () => null,
         );
         if (existing != null) {
@@ -216,7 +228,10 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     selected = null;
     formError = null;
     receiptNoController.clear();
-    receiptDateController.text = DateTime.now().toIso8601String().split('T').first;
+    receiptDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     remarksController.clear();
     productionOrderId = null;
     documentSeriesId = documentSeries
@@ -249,8 +264,9 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       productionOrderId = intValue(data, 'production_order_id');
       warehouseId = intValue(data, 'warehouse_id');
       receiptNoController.text = stringValue(data, 'receipt_no');
-      receiptDateController.text =
-          displayDate(nullableStringValue(data, 'receipt_date'));
+      receiptDateController.text = displayDate(
+        nullableStringValue(data, 'receipt_date'),
+      );
       remarksController.text = stringValue(data, 'remarks');
       isActive = boolValue(data, 'is_active', fallback: true);
       for (final line in lines) {
@@ -261,7 +277,9 @@ class ProductionReceiptViewModel extends ChangeNotifier {
           .toList(growable: false);
       lines = rawLines.isEmpty
           ? <ProductionReceiptLineDraft>[ProductionReceiptLineDraft()]
-          : rawLines.map(ProductionReceiptLineDraft.fromJson).toList(growable: true);
+          : rawLines
+                .map(ProductionReceiptLineDraft.fromJson)
+                .toList(growable: true);
     } catch (e) {
       formError = e.toString();
     } finally {
@@ -290,7 +308,9 @@ class ProductionReceiptViewModel extends ChangeNotifier {
   }
 
   void setLineItemId(int index, int? value) {
-    if ((!isDraft && selected != null) || index < 0 || index >= lines.length) return;
+    if ((!isDraft && selected != null) || index < 0 || index >= lines.length) {
+      return;
+    }
     lines[index].itemId = value;
     final item = items.cast<ItemModel?>().firstWhere(
       (entry) => entry?.id == value,
@@ -306,7 +326,9 @@ class ProductionReceiptViewModel extends ChangeNotifier {
   }
 
   void setLineUomId(int index, int? value) {
-    if ((!isDraft && selected != null) || index < 0 || index >= lines.length) return;
+    if ((!isDraft && selected != null) || index < 0 || index >= lines.length) {
+      return;
+    }
     lines[index].uomId = value;
     notifyListeners();
   }
@@ -329,7 +351,9 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     }
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
-      if (line.itemId == null || line.uomId == null || line.warehouseId == null) {
+      if (line.itemId == null ||
+          line.uomId == null ||
+          line.warehouseId == null) {
         return 'Line ${i + 1}: item, UOM and warehouse are required.';
       }
       if ((double.tryParse(line.receiptQtyController.text.trim()) ?? 0) <= 0) {
@@ -366,14 +390,19 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     };
     try {
       final response = selected == null
-          ? await _service.createProductionReceipt(ProductionReceiptModel(payload))
+          ? await _service.createProductionReceipt(
+              ProductionReceiptModel.fromJson(payload),
+            )
           : await _service.updateProductionReceipt(
               intValue(selected!.toJson(), 'id')!,
-              ProductionReceiptModel(payload),
+              ProductionReceiptModel.fromJson(payload),
             );
       actionMessage = response.message;
       await load(
-        selectId: intValue(response.data?.toJson() ?? const <String, dynamic>{}, 'id'),
+        selectId: intValue(
+          response.data?.toJson() ?? const <String, dynamic>{},
+          'id',
+        ),
       );
     } catch (e) {
       formError = e.toString();
@@ -390,7 +419,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     try {
       final response = await _service.postProductionReceipt(
         id,
-        const ProductionReceiptModel(<String, dynamic>{}),
+        ProductionReceiptModel.fromJson(<String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -406,7 +435,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     try {
       final response = await _service.cancelProductionReceipt(
         id,
-        const ProductionReceiptModel(<String, dynamic>{}),
+        ProductionReceiptModel.fromJson(<String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

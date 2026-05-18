@@ -801,11 +801,11 @@ class StockDamageViewModel extends ChangeNotifier {
     try {
       final response = selected == null
           ? await _inventoryService.createStockDamageEntry(
-              StockDamageEntryModel(payload),
+              StockDamageEntryModel.fromJson(payload),
             )
           : await _inventoryService.updateStockDamageEntry(
               intValue(selected!.toJson(), 'id')!,
-              StockDamageEntryModel(payload),
+              StockDamageEntryModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},
@@ -829,7 +829,7 @@ class StockDamageViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.postStockDamageEntry(
         id,
-        StockDamageEntryModel(const <String, dynamic>{}),
+        StockDamageEntryModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);
@@ -846,7 +846,7 @@ class StockDamageViewModel extends ChangeNotifier {
     try {
       final response = await _inventoryService.cancelStockDamageEntry(
         id,
-        StockDamageEntryModel(const <String, dynamic>{}),
+        StockDamageEntryModel.fromJson(const <String, dynamic>{}),
       );
       actionMessage = response.message;
       await load(selectId: id);

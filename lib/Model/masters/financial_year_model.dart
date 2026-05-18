@@ -15,7 +15,7 @@ class FinancialYearModel implements JsonModel {
     this.isActive = true,
     this.remarks,
     this.companyName,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -31,7 +31,6 @@ class FinancialYearModel implements JsonModel {
   final bool isActive;
   final String? remarks;
   final String? companyName;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => fyName?.trim().isNotEmpty == true
@@ -64,7 +63,6 @@ class FinancialYearModel implements JsonModel {
           company['trade_name']?.toString() ??
           company['legal_name']?.toString() ??
           company['code']?.toString(),
-      raw: json,
     );
   }
 

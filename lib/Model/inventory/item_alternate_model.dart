@@ -14,7 +14,7 @@ class ItemAlternateModel implements JsonModel {
     this.alternateItemCode = '',
     this.alternateItemName = '',
     this.alternateItemType,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -29,7 +29,6 @@ class ItemAlternateModel implements JsonModel {
   final String alternateItemCode;
   final String alternateItemName;
   final String? alternateItemType;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() =>
@@ -53,7 +52,6 @@ class ItemAlternateModel implements JsonModel {
       alternateItemCode: alternate['item_code']?.toString() ?? '',
       alternateItemName: alternate['item_name']?.toString() ?? '',
       alternateItemType: alternate['item_type']?.toString(),
-      raw: json,
     );
   }
 

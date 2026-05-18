@@ -30,7 +30,7 @@ class CompanyModel implements JsonModel {
     this.countryCode,
     this.remarks,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -61,7 +61,6 @@ class CompanyModel implements JsonModel {
   final String? countryCode;
   final String? remarks;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => tradeName ?? legalName ?? code ?? 'New Company';
@@ -96,7 +95,6 @@ class CompanyModel implements JsonModel {
       countryCode: json['country_code']?.toString(),
       remarks: json['remarks']?.toString(),
       isActive: json['is_active'] != false && json['is_active'] != 0,
-      raw: json,
     );
   }
 

@@ -13,7 +13,7 @@ class ModuleModel implements JsonModel {
     this.effectiveSortOrder,
     this.isHidden,
     this.isActive,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final String? moduleCode;
@@ -27,7 +27,6 @@ class ModuleModel implements JsonModel {
   final int? effectiveSortOrder;
   final bool? isHidden;
   final bool? isActive;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => moduleName ?? moduleCode ?? 'New Module';
@@ -49,7 +48,6 @@ class ModuleModel implements JsonModel {
       isActive: json['is_active'] == null
           ? null
           : ModelValue.boolOf(json['is_active']),
-      raw: json,
     );
   }
 

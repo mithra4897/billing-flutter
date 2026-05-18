@@ -9,7 +9,7 @@ class PermissionModel implements JsonModel {
     this.description,
     this.isSystemPermission,
     this.isActive,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -19,7 +19,6 @@ class PermissionModel implements JsonModel {
   final String? description;
   final bool? isSystemPermission;
   final bool? isActive;
-  final Map<String, dynamic>? raw;
 
   factory PermissionModel.fromJson(Map<String, dynamic> json) {
     return PermissionModel(
@@ -34,7 +33,6 @@ class PermissionModel implements JsonModel {
       isActive: json['is_active'] == null
           ? null
           : ModelValue.boolOf(json['is_active']),
-      raw: json,
     );
   }
 

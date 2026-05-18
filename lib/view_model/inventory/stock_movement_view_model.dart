@@ -334,8 +334,9 @@ class StockMovementViewModel extends ChangeNotifier {
       if (amount == null) return 'Amount must be a valid number.';
       if (amount < 0) return 'Amount cannot be negative.';
     }
-    if (voucherDateController.text.trim().isEmpty)
+    if (voucherDateController.text.trim().isEmpty) {
       return 'Voucher date is required.';
+    }
     if (isTransferType) {
       if (sourceWarehouseId == null || destinationWarehouseId == null) {
         return 'Source and destination warehouse are required for transfer movement.';
@@ -384,11 +385,11 @@ class StockMovementViewModel extends ChangeNotifier {
     try {
       final response = selected == null
           ? await _inventoryService.createStockMovement(
-              StockMovementModel(payload),
+              StockMovementModel.fromJson(payload),
             )
           : await _inventoryService.updateStockMovement(
               intValue(selected!.toJson(), 'id')!,
-              StockMovementModel(payload),
+              StockMovementModel.fromJson(payload),
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

@@ -182,7 +182,9 @@ class ServiceContractViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(ServiceContractModel(<String, dynamic>{'id': selectId}));
+        await select(
+          ServiceContractModel.fromJson(<String, dynamic>{'id': selectId}),
+        );
         return;
       }
       resetDraft();
@@ -413,7 +415,7 @@ class ServiceContractViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _service.createContract(
-          ServiceContractModel(_buildCreatePayload()),
+          ServiceContractModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -426,7 +428,7 @@ class ServiceContractViewModel extends ChangeNotifier {
         }
         final response = await _service.updateContract(
           id,
-          ServiceContractModel(_buildUpdatePayload()),
+          ServiceContractModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);

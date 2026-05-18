@@ -11,7 +11,6 @@ class EmployeeSalaryStructureModel implements JsonModel {
     this.ctcMonthly,
     this.isActive = true,
     this.components = const <EmployeeSalaryComponentModel>[],
-    this.raw,
   });
 
   final int? id;
@@ -23,7 +22,6 @@ class EmployeeSalaryStructureModel implements JsonModel {
   final double? ctcMonthly;
   final bool isActive;
   final List<EmployeeSalaryComponentModel> components;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => effectiveFrom ?? 'New Salary Structure';
@@ -42,7 +40,6 @@ class EmployeeSalaryStructureModel implements JsonModel {
       ctcMonthly: _double(json['ctc_monthly'] ?? json['ctcMonthly']),
       isActive: _bool(json['is_active'], fallback: true),
       components: components,
-      raw: json,
     );
   }
 
@@ -82,7 +79,6 @@ class EmployeeSalaryStructureModel implements JsonModel {
       ctcMonthly: ctcMonthly ?? this.ctcMonthly,
       isActive: isActive ?? this.isActive,
       components: components ?? this.components,
-      raw: raw,
     );
   }
 

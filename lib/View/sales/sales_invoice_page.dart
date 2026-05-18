@@ -156,8 +156,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         .toList(growable: false);
   }
 
-  Map<String, dynamic> _rowJson(SalesInvoiceModel row) =>
-      row.raw ?? <String, dynamic>{};
+  Map<String, dynamic> _rowJson(SalesInvoiceModel row) => row.toJson();
 
   ItemModel? _itemById(int? itemId) {
     if (itemId == null) {
@@ -2054,7 +2053,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       }
 
       final normalizedTaxType =
-          ((taxCode?.taxType ?? taxCode?.raw?['tax_application'])
+          ((taxCode?.taxType ?? taxCode?.toJson()['tax_application'])
               ?.toString()
               .trim()
               .toLowerCase()) ??
@@ -2082,7 +2081,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
   DocumentPrintDataModel _salesInvoicePrintData() {
     final summary = _invoiceTaxSummary();
-    final selected = _selectedItem?.raw ?? const <String, dynamic>{};
+    final selected = _selectedItem?.toJson() ?? const <String, dynamic>{};
     final company = _companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == _companyId,
       orElse: () => null,

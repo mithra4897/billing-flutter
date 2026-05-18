@@ -8,7 +8,7 @@ class UomModel implements JsonModel {
     this.symbol,
     this.isFractionAllowed = false,
     this.isActive = true,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -17,7 +17,6 @@ class UomModel implements JsonModel {
   final String? symbol;
   final bool isFractionAllowed;
   final bool isActive;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => uomName ?? symbol ?? uomCode ?? 'New UOM';
@@ -32,7 +31,6 @@ class UomModel implements JsonModel {
           json['is_fraction_allowed'] == true ||
           json['is_fraction_allowed'] == 1,
       isActive: json['is_active'] != false && json['is_active'] != 0,
-      raw: json,
     );
   }
 

@@ -148,7 +148,7 @@ class _CrmSourcesPageState extends State<CrmSourcesPage> {
       _formError = null;
     });
 
-    final payload = CrmSourceModel({
+    final payload = CrmSourceModel.fromJson({
       'source_name': _nameController.text.trim(),
       'is_active': _isActive,
     });

@@ -268,10 +268,10 @@ class _ProjectVendorWorkManagementPageState
   List<AppDropdownItem<int>> get _purchaseOrderItems => _purchaseOrders
       .map(
         (item) => AppDropdownItem<int>(
-          value: int.tryParse(item.data['id']?.toString() ?? '') ?? 0,
-          label: item.data['order_no']?.toString().trim().isNotEmpty == true
-              ? item.data['order_no'].toString()
-              : 'Order #${item.data['id']}',
+          value: item.id ?? 0,
+          label: item.orderNo?.trim().isNotEmpty == true
+              ? item.orderNo!
+              : 'Order #${item.id}',
         ),
       )
       .where((item) => item.value != 0)

@@ -112,7 +112,7 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
   }
 
   Map<String, dynamic> _json(PostingRuleModel? m) =>
-      m?.data ?? const <String, dynamic>{};
+      m?.toJson() ?? const <String, dynamic>{};
 
   Future<void> _load({int? selectId}) async {
     setState(() {
@@ -148,7 +148,7 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
         _accounts = accounts.where((a) => a.isActive).toList();
         _initialLoading = false;
         if (_groupId == null && groups.isNotEmpty) {
-          _groupId = intValue(groups.first.data, 'id');
+          _groupId = intValue(groups.first.toJson(), 'id');
         }
       });
 
@@ -181,7 +181,7 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
 
   List<PostingRuleModel> _filter(List<PostingRuleModel> source, String q) {
     return filterMasterList(source, q, (item) {
-      final d = item.data;
+      final d = item.toJson();
       return [
         stringValue(d, 'entry_side'),
         stringValue(d, 'account_source_type'),
@@ -195,7 +195,7 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
   }
 
   void _applySelection(PostingRuleModel item) {
-    final d = item.data;
+    final d = item.toJson();
     _selected = item;
     _groupId = intValue(d, 'posting_rule_group_id');
     _lineNoController.text = stringValue(d, 'line_no', '1');
@@ -221,7 +221,7 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
     _priorityController.text = '1';
     _isActive = true;
     if (_groups.isNotEmpty) {
-      _groupId = intValue(_groups.first.data, 'id');
+      _groupId = intValue(_groups.first.toJson(), 'id');
     }
     _formError = null;
     setState(() {});
@@ -346,7 +346,7 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
         selectedItem: _selected,
         emptyMessage: 'No posting rules.',
         itemBuilder: (item, selected) {
-          final d = item.data;
+          final d = item.toJson();
           return SettingsListTile(
             title:
                 'L${stringValue(d, 'line_no')} · ${stringValue(d, 'entry_side')} · ${stringValue(d, 'amount_source')}',
@@ -372,10 +372,10 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
                   mappedItems: _groups
                       .map(
                         (g) => AppDropdownItem<int>(
-                          value: intValue(g.data, 'id') ?? 0,
-                          label: stringValue(g.data, 'group_name').isEmpty
-                              ? stringValue(g.data, 'group_code')
-                              : stringValue(g.data, 'group_name'),
+                          value: intValue(g.toJson(), 'id') ?? 0,
+                          label: stringValue(g.toJson(), 'group_name').isEmpty
+                              ? stringValue(g.toJson(), 'group_code')
+                              : stringValue(g.toJson(), 'group_name'),
                         ),
                       )
                       .where((e) => e.value != 0)

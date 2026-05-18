@@ -20,7 +20,7 @@ class ProjectTaskModel implements JsonModel {
     this.taskStatus,
     this.isBillable,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -41,7 +41,6 @@ class ProjectTaskModel implements JsonModel {
   final String? taskStatus;
   final bool? isBillable;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   factory ProjectTaskModel.fromJson(Map<String, dynamic> json) {
     return ProjectTaskModel(
@@ -65,7 +64,6 @@ class ProjectTaskModel implements JsonModel {
           ? null
           : ModelValue.boolOf(json['is_billable']),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

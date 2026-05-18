@@ -132,7 +132,9 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(AssetDowntimeLogModel(<String, dynamic>{'id': selectId}));
+        await select(
+          AssetDowntimeLogModel.fromJson(<String, dynamic>{'id': selectId}),
+        );
         return;
       }
       resetDraft();
@@ -261,7 +263,7 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _maintenance.createDowntimeLog(
-          AssetDowntimeLogModel(_buildPayload()),
+          AssetDowntimeLogModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -274,7 +276,7 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
         }
         final response = await _maintenance.updateDowntimeLog(
           id,
-          AssetDowntimeLogModel(_buildPayload()),
+          AssetDowntimeLogModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);

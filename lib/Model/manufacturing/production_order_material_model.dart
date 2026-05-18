@@ -1,14 +1,105 @@
 import '../../screen.dart';
 
 class ProductionOrderMaterialModel implements JsonModel {
-  const ProductionOrderMaterialModel(this.data);
+  const ProductionOrderMaterialModel({
+    this.id,
+    this.productionOrderId,
+    this.bomLineId,
+    this.lineNo,
+    this.itemId,
+    this.uomId,
+    this.lineType,
+    this.plannedQty,
+    this.issuedQty,
+    this.returnedQty,
+    this.consumedQty,
+    this.balanceQty,
+    this.warehouseId,
+    this.issueMethod,
+    this.standardRate,
+    this.standardAmount,
+    this.actualRate,
+    this.actualAmount,
+    this.lineStatus,
+    this.remarks,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? productionOrderId;
+  final int? bomLineId;
+  final int? lineNo;
+  final int? itemId;
+  final int? uomId;
+  final String? lineType;
+  final double? plannedQty;
+  final double? issuedQty;
+  final double? returnedQty;
+  final double? consumedQty;
+  final double? balanceQty;
+  final int? warehouseId;
+  final String? issueMethod;
+  final double? standardRate;
+  final double? standardAmount;
+  final double? actualRate;
+  final double? actualAmount;
+  final String? lineStatus;
+  final String? remarks;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory ProductionOrderMaterialModel.fromJson(Map<String, dynamic> json) {
-    return ProductionOrderMaterialModel(json);
+    return ProductionOrderMaterialModel(
+      id: ModelValue.nullableInt(json['id']),
+      productionOrderId: ModelValue.nullableInt(json['production_order_id']),
+      bomLineId: ModelValue.nullableInt(json['bom_line_id']),
+      lineNo: ModelValue.nullableInt(json['line_no']),
+      itemId: ModelValue.nullableInt(json['item_id']),
+      uomId: ModelValue.nullableInt(json['uom_id']),
+      lineType: json['line_type']?.toString(),
+      plannedQty: ModelValue.nullableDouble(json['planned_qty']),
+      issuedQty: ModelValue.nullableDouble(json['issued_qty']),
+      returnedQty: ModelValue.nullableDouble(json['returned_qty']),
+      consumedQty: ModelValue.nullableDouble(json['consumed_qty']),
+      balanceQty: ModelValue.nullableDouble(json['balance_qty']),
+      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
+      issueMethod: json['issue_method']?.toString(),
+      standardRate: ModelValue.nullableDouble(json['standard_rate']),
+      standardAmount: ModelValue.nullableDouble(json['standard_amount']),
+      actualRate: ModelValue.nullableDouble(json['actual_rate']),
+      actualAmount: ModelValue.nullableDouble(json['actual_amount']),
+      lineStatus: json['line_status']?.toString(),
+      remarks: json['remarks']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (productionOrderId != null) 'production_order_id': productionOrderId,
+    if (bomLineId != null) 'bom_line_id': bomLineId,
+    if (lineNo != null) 'line_no': lineNo,
+    if (itemId != null) 'item_id': itemId,
+    if (uomId != null) 'uom_id': uomId,
+    if (lineType != null) 'line_type': lineType,
+    if (plannedQty != null) 'planned_qty': plannedQty,
+    if (issuedQty != null) 'issued_qty': issuedQty,
+    if (returnedQty != null) 'returned_qty': returnedQty,
+    if (consumedQty != null) 'consumed_qty': consumedQty,
+    if (balanceQty != null) 'balance_qty': balanceQty,
+    if (warehouseId != null) 'warehouse_id': warehouseId,
+    if (issueMethod != null) 'issue_method': issueMethod,
+    if (standardRate != null) 'standard_rate': standardRate,
+    if (standardAmount != null) 'standard_amount': standardAmount,
+    if (actualRate != null) 'actual_rate': actualRate,
+    if (actualAmount != null) 'actual_amount': actualAmount,
+    if (lineStatus != null) 'line_status': lineStatus,
+    if (remarks != null) 'remarks': remarks,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

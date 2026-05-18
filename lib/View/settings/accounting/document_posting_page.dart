@@ -112,7 +112,7 @@ class _DocumentPostingManagementPageState
   }
 
   Map<String, dynamic> _json(DocumentPostingModel? m) =>
-      m?.data ?? const <String, dynamic>{};
+      m?.toJson() ?? const <String, dynamic>{};
 
   Future<void> _load({int? selectId}) async {
     setState(() {
@@ -234,7 +234,7 @@ class _DocumentPostingManagementPageState
     String q,
   ) {
     return filterMasterList(source, q, (item) {
-      final d = item.data;
+      final d = item.toJson();
       return [
         stringValue(d, 'document_module'),
         stringValue(d, 'document_table'),
@@ -254,7 +254,7 @@ class _DocumentPostingManagementPageState
     try {
       final response = await _accountsService.documentPosting(id);
       final full = response.data ?? item;
-      final d = full.data;
+      final d = full.toJson();
       for (final l in _lines) {
         l.dispose();
       }
@@ -490,7 +490,7 @@ class _DocumentPostingManagementPageState
         selectedItem: _selected,
         emptyMessage: 'No document postings.',
         itemBuilder: (item, selected) {
-          final d = item.data;
+          final d = item.toJson();
           return SettingsListTile(
             title:
                 '${stringValue(d, 'document_module')}.${stringValue(d, 'document_table')} #${stringValue(d, 'document_id')}',
@@ -574,10 +574,10 @@ class _DocumentPostingManagementPageState
                     ..._groups
                         .map(
                           (g) => AppDropdownItem<int?>(
-                            value: intValue(g.data, 'id'),
-                            label: stringValue(g.data, 'group_name').isEmpty
-                                ? stringValue(g.data, 'group_code')
-                                : stringValue(g.data, 'group_name'),
+                            value: intValue(g.toJson(), 'id'),
+                            label: stringValue(g.toJson(), 'group_name').isEmpty
+                                ? stringValue(g.toJson(), 'group_code')
+                                : stringValue(g.toJson(), 'group_name'),
                           ),
                         )
                         .where((e) => e.value != null),

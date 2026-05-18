@@ -43,7 +43,6 @@ class EmployeeModel implements JsonModel {
     this.relations = const <EmployeeRelationModel>[],
     this.salaryStructures = const <EmployeeSalaryStructureModel>[],
     this.salaryStructuresCount,
-    this.raw,
   });
 
   final int? id;
@@ -87,7 +86,6 @@ class EmployeeModel implements JsonModel {
   final List<EmployeeRelationModel> relations;
   final List<EmployeeSalaryStructureModel> salaryStructures;
   final int? salaryStructuresCount;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => employeeName ?? employeeCode ?? 'New Employee';
@@ -161,7 +159,6 @@ class EmployeeModel implements JsonModel {
       salaryStructures: structures,
       salaryStructuresCount:
           _nullableInt(json['salary_structures_count']) ?? structures.length,
-      raw: json,
     );
   }
 
@@ -206,16 +203,15 @@ class EmployeeModel implements JsonModel {
       if (companyInsuranceAmount != null)
         'company_insurance_amount': companyInsuranceAmount,
       'cost_center_id': costCenterId,
-      if (addresses.isNotEmpty || raw?.containsKey('addresses') == true)
+      if (addresses.isNotEmpty)
         'addresses': addresses
             .map((item) => item.toJson())
             .toList(growable: false),
-      if (relations.isNotEmpty || raw?.containsKey('relations') == true)
+      if (relations.isNotEmpty)
         'relations': relations
             .map((item) => item.toJson())
             .toList(growable: false),
-      if (salaryStructures.isNotEmpty ||
-          raw?.containsKey('salary_structures') == true)
+      if (salaryStructures.isNotEmpty)
         'salary_structures': salaryStructures
             .map((item) => item.toJson())
             .toList(growable: false),
@@ -302,7 +298,6 @@ class EmployeeModel implements JsonModel {
       relations: relations ?? this.relations,
       salaryStructures: salaryStructures ?? this.salaryStructures,
       salaryStructuresCount: salaryStructures?.length ?? salaryStructuresCount,
-      raw: raw,
     );
   }
 

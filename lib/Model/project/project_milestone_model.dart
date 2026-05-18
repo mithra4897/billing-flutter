@@ -10,7 +10,7 @@ class ProjectMilestoneModel implements JsonModel {
     this.milestoneAmount,
     this.milestoneStatus,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -21,7 +21,6 @@ class ProjectMilestoneModel implements JsonModel {
   final double? milestoneAmount;
   final String? milestoneStatus;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   factory ProjectMilestoneModel.fromJson(Map<String, dynamic> json) {
     return ProjectMilestoneModel(
@@ -33,7 +32,6 @@ class ProjectMilestoneModel implements JsonModel {
       milestoneAmount: ModelValue.nullableDouble(json['milestone_amount']),
       milestoneStatus: json['milestone_status']?.toString(),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

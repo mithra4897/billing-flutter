@@ -9,7 +9,7 @@ class ItemCategoryModel implements JsonModel {
     this.imagePath,
     this.isActive = true,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -19,7 +19,6 @@ class ItemCategoryModel implements JsonModel {
   final String? imagePath;
   final bool isActive;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() =>
@@ -34,7 +33,6 @@ class ItemCategoryModel implements JsonModel {
       imagePath: json['image_path']?.toString(),
       isActive: json['is_active'] != false && json['is_active'] != 0,
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

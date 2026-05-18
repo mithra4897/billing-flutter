@@ -115,7 +115,7 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
     final q = _searchController.text.trim().toLowerCase();
     return _rows
         .where((row) {
-          final raw = row.raw ?? row.toJson();
+          final raw = row.toJson();
           if (q.isEmpty) {
             return true;
           }
@@ -152,7 +152,7 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
   }
 
   String _listSubtitle(CostCenterModel row) {
-    final raw = row.raw ?? row.toJson();
+    final raw = row.toJson();
     return [
       row.costCenterName ?? '',
       stringValue(raw, 'cost_center_type'),
@@ -164,7 +164,7 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
     if (model == null) {
       return;
     }
-    final raw = model.raw ?? model.toJson();
+    final raw = model.toJson();
     _companyId = intValue(raw, 'company_id');
     _parentId = intValue(raw, 'parent_id');
     _codeController.text = stringValue(raw, 'cost_center_code');

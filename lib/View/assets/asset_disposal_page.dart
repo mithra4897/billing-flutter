@@ -400,10 +400,10 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
 
       final existingId = intValue(_detail?.toJson() ?? const {}, 'id');
       final response = existingId == null
-          ? await _assets.createDisposal(AssetDisposalModel(payload))
+          ? await _assets.createDisposal(AssetDisposalModel.fromJson(payload))
           : await _assets.updateDisposal(
               existingId,
-              AssetDisposalModel(payload),
+              AssetDisposalModel.fromJson(payload),
             );
       if (response.success != true || response.data == null) {
         setState(() => _formError = response.message);
@@ -738,7 +738,7 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                               : () => _runAction(
                                   () => _assets.approveDisposal(
                                     intValue(_detail!.toJson(), 'id')!,
-                                    const AssetDisposalModel(
+                                    AssetDisposalModel.fromJson(
                                       <String, dynamic>{},
                                     ),
                                   ),
@@ -755,7 +755,7 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                               : () => _runAction(
                                   () => _assets.postDisposal(
                                     intValue(_detail!.toJson(), 'id')!,
-                                    const AssetDisposalModel(
+                                    AssetDisposalModel.fromJson(
                                       <String, dynamic>{},
                                     ),
                                   ),
@@ -772,7 +772,7 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                               : () => _runAction(
                                   () => _assets.cancelDisposal(
                                     intValue(_detail!.toJson(), 'id')!,
-                                    const AssetDisposalModel(
+                                    AssetDisposalModel.fromJson(
                                       <String, dynamic>{},
                                     ),
                                   ),

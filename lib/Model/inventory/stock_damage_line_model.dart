@@ -1,14 +1,73 @@
 import '../../screen.dart';
 
 class StockDamageLineModel implements JsonModel {
-  const StockDamageLineModel(this.data);
+  const StockDamageLineModel({
+    this.id,
+    this.stockDamageEntryId,
+    this.lineNo,
+    this.itemId,
+    this.uomId,
+    this.batchId,
+    this.serialId,
+    this.damageQty,
+    this.unitCost,
+    this.totalCost,
+    this.reason,
+    this.remarks,
+    this.createdAt,
+    this.updatedAt,
+    Map<String, dynamic>? raw,
+  }) : _raw = raw;
 
-  final Map<String, dynamic> data;
+  final int? id;
+  final int? stockDamageEntryId;
+  final int? lineNo;
+  final int? itemId;
+  final int? uomId;
+  final int? batchId;
+  final int? serialId;
+  final double? damageQty;
+  final double? unitCost;
+  final double? totalCost;
+  final String? reason;
+  final String? remarks;
+  final String? createdAt;
+  final String? updatedAt;
 
   factory StockDamageLineModel.fromJson(Map<String, dynamic> json) {
-    return StockDamageLineModel(json);
+    return StockDamageLineModel(
+      id: ModelValue.nullableInt(json['id']),
+      stockDamageEntryId: ModelValue.nullableInt(json['stock_damage_entry_id']),
+      lineNo: ModelValue.nullableInt(json['line_no']),
+      itemId: ModelValue.nullableInt(json['item_id']),
+      uomId: ModelValue.nullableInt(json['uom_id']),
+      batchId: ModelValue.nullableInt(json['batch_id']),
+      serialId: ModelValue.nullableInt(json['serial_id']),
+      damageQty: ModelValue.nullableDouble(json['damage_qty']),
+      unitCost: ModelValue.nullableDouble(json['unit_cost']),
+      totalCost: ModelValue.nullableDouble(json['total_cost']),
+      reason: json['reason']?.toString(),
+      remarks: json['remarks']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
   }
 
   @override
-  Map<String, dynamic> toJson() => Map<String, dynamic>.from(data);
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (stockDamageEntryId != null) 'stock_damage_entry_id': stockDamageEntryId,
+    if (lineNo != null) 'line_no': lineNo,
+    if (itemId != null) 'item_id': itemId,
+    if (uomId != null) 'uom_id': uomId,
+    if (batchId != null) 'batch_id': batchId,
+    if (serialId != null) 'serial_id': serialId,
+    if (damageQty != null) 'damage_qty': damageQty,
+    if (unitCost != null) 'unit_cost': unitCost,
+    if (totalCost != null) 'total_cost': totalCost,
+    if (reason != null) 'reason': reason,
+    if (remarks != null) 'remarks': remarks,
+    if (createdAt != null) 'created_at': createdAt,
+    if (updatedAt != null) 'updated_at': updatedAt,
+  };
 }

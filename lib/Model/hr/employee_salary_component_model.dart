@@ -10,7 +10,7 @@ class EmployeeSalaryComponentModel implements JsonModel {
     this.calculationBasis,
     this.percentValue,
     this.contributionRole,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -21,7 +21,6 @@ class EmployeeSalaryComponentModel implements JsonModel {
   final String? calculationBasis;
   final double? percentValue;
   final String? contributionRole;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => componentName ?? 'New Salary Component';
@@ -36,7 +35,6 @@ class EmployeeSalaryComponentModel implements JsonModel {
       calculationBasis: json['calculation_basis']?.toString(),
       percentValue: _double(json['percent_value']),
       contributionRole: json['contribution_role']?.toString(),
-      raw: json,
     );
   }
 

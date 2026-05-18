@@ -509,8 +509,8 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
 
       final existingId = intValue(_detail?.toJson() ?? const {}, 'id');
       final response = existingId == null
-          ? await _assets.createAsset(AssetModel(payload))
-          : await _assets.updateAsset(existingId, AssetModel(payload));
+          ? await _assets.createAsset(AssetModel.fromJson(payload))
+          : await _assets.updateAsset(existingId, AssetModel.fromJson(payload));
       if (response.success != true || response.data == null) {
         setState(() => _formError = response.message);
         return;
@@ -945,7 +945,7 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
                               : () => _runAction(
                                   () => _assets.activateAsset(
                                     intValue(_detail!.toJson(), 'id')!,
-                                    const AssetModel(<String, dynamic>{}),
+                                    AssetModel.fromJson(<String, dynamic>{}),
                                   ),
                                   'Asset updated.',
                                 ),

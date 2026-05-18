@@ -39,8 +39,5 @@ Future<ServiceAssignResult> promptServiceAssigneeUserId(
   if (raw.isEmpty) {
     return (submitted: true, assignedToUserId: null);
   }
-  return (
-    submitted: true,
-    assignedToUserId: int.tryParse(raw),
-  );
+  return (submitted: true, assignedToUserId: int.tryParse(raw));
 }

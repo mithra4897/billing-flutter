@@ -624,7 +624,7 @@ class _ExpenseClaimsManagementPageState
     });
 
     try {
-      final model = ExpenseClaimModel(body);
+      final model = ExpenseClaimModel.fromJson(body);
       final response = _isNewClaim || _editingClaimId == null
           ? await _hr.createExpenseClaim(model)
           : await _hr.updateExpenseClaim(_editingClaimId!, model);
@@ -645,7 +645,7 @@ class _ExpenseClaimsManagementPageState
           response.success == true) {
         final applyResponse = await _hr.applyExpenseClaim(
           _editingClaimId!,
-          ExpenseClaimModel(const <String, dynamic>{}),
+          ExpenseClaimModel.fromJson(const <String, dynamic>{}),
         );
         if (!mounted) {
           return;
@@ -1190,7 +1190,7 @@ class _ExpenseClaimsManagementPageState
                     try {
                       final res = await _hr.approveExpenseClaim(
                         id,
-                        ExpenseClaimModel(<String, dynamic>{}),
+                        ExpenseClaimModel.fromJson(<String, dynamic>{}),
                       );
                       if (!mounted) {
                         return;

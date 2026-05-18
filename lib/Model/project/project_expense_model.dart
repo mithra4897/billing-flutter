@@ -14,7 +14,7 @@ class ProjectExpenseModel implements JsonModel {
     this.voucherId,
     this.expenseStatus,
     this.remarks,
-    this.raw,
+    Map<String, dynamic>? raw,
   });
 
   final int? id;
@@ -29,7 +29,6 @@ class ProjectExpenseModel implements JsonModel {
   final int? voucherId;
   final String? expenseStatus;
   final String? remarks;
-  final Map<String, dynamic>? raw;
 
   factory ProjectExpenseModel.fromJson(Map<String, dynamic> json) {
     return ProjectExpenseModel(
@@ -45,7 +44,6 @@ class ProjectExpenseModel implements JsonModel {
       voucherId: ModelValue.nullableInt(json['voucher_id']),
       expenseStatus: json['expense_status']?.toString(),
       remarks: json['remarks']?.toString(),
-      raw: json,
     );
   }
 

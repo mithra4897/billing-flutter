@@ -120,7 +120,9 @@ class MaintenancePlanViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(MaintenancePlanModel(<String, dynamic>{'id': selectId}));
+        await select(
+          MaintenancePlanModel.fromJson(<String, dynamic>{'id': selectId}),
+        );
         return;
       }
       resetDraft();
@@ -241,7 +243,7 @@ class MaintenancePlanViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _service.createPlan(
-          MaintenancePlanModel(_buildPayload()),
+          MaintenancePlanModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -254,7 +256,7 @@ class MaintenancePlanViewModel extends ChangeNotifier {
         }
         final response = await _service.updatePlan(
           id,
-          MaintenancePlanModel(_buildPayload()),
+          MaintenancePlanModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);

@@ -21,7 +21,6 @@ class BankReconciliationModel implements JsonModel {
     this.voucherDate,
     this.voucherAmount,
     this.entryType,
-    this.raw,
   });
 
   final int? id;
@@ -43,7 +42,6 @@ class BankReconciliationModel implements JsonModel {
   final String? voucherDate;
   final double? voucherAmount;
   final String? entryType;
-  final Map<String, dynamic>? raw;
 
   @override
   String toString() => bankReferenceNo ?? voucherNo ?? 'Bank Reconciliation';
@@ -76,7 +74,6 @@ class BankReconciliationModel implements JsonModel {
       voucherDate: voucher['voucher_date']?.toString(),
       voucherAmount: _double(voucherLine['amount']),
       entryType: voucherLine['entry_type']?.toString(),
-      raw: json,
     );
   }
 

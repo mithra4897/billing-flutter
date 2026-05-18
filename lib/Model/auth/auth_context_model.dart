@@ -9,7 +9,6 @@ class AuthContextModel {
     required this.financialYears,
     this.permissionCodes = const [],
     this.menuModules = const [],
-    this.raw,
   });
 
   final List<CompanyModel> companies;
@@ -19,7 +18,6 @@ class AuthContextModel {
   final List<FinancialYearModel> financialYears;
   final List<String> permissionCodes;
   final List<ModuleModel> menuModules;
-  final Map<String, dynamic>? raw;
 
   factory AuthContextModel.fromJson(Map<String, dynamic> json) {
     return AuthContextModel(
@@ -48,21 +46,18 @@ class AuthContextModel {
         json['menu_modules'],
         (item) => ModuleModel.fromJson(item),
       ),
-      raw: json,
     );
   }
 
   Map<String, dynamic> toJson() {
-    if (raw != null) {
-      return raw!;
-    }
-
     return {
-      'companies': const <Map<String, dynamic>>[],
-      'branches': const <Map<String, dynamic>>[],
-      'locations': const <Map<String, dynamic>>[],
-      'warehouses': const <Map<String, dynamic>>[],
-      'financial_years': const <Map<String, dynamic>>[],
+      'companies': companies.map((item) => item.toJson()).toList(growable: false),
+      'branches': branches.map((item) => item.toJson()).toList(growable: false),
+      'locations': locations.map((item) => item.toJson()).toList(growable: false),
+      'warehouses': warehouses.map((item) => item.toJson()).toList(growable: false),
+      'financial_years': financialYears
+          .map((item) => item.toJson())
+          .toList(growable: false),
       'permission_codes': permissionCodes,
       'menu_modules': menuModules
           .map((item) => item.toJson())

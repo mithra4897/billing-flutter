@@ -201,7 +201,9 @@ class AmcContractViewModel extends ChangeNotifier {
           await select(match);
           return;
         }
-        await select(AmcContractModel(<String, dynamic>{'id': selectId}));
+        await select(
+          AmcContractModel.fromJson(<String, dynamic>{'id': selectId}),
+        );
         return;
       }
       resetDraft();
@@ -433,7 +435,7 @@ class AmcContractViewModel extends ChangeNotifier {
     try {
       if (selected == null) {
         final response = await _maintenance.createAmcContract(
-          AmcContractModel(_buildCreatePayload()),
+          AmcContractModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
@@ -446,7 +448,7 @@ class AmcContractViewModel extends ChangeNotifier {
         }
         final response = await _maintenance.updateAmcContract(
           id,
-          AmcContractModel(_buildUpdatePayload()),
+          AmcContractModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
         await load(selectId: id);
@@ -465,7 +467,7 @@ class AmcContractViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AmcContractModel(<String, dynamic>{});
+    final empty = AmcContractModel.fromJson(<String, dynamic>{});
     try {
       final response = await _maintenance.approveAmcContract(id, empty);
       actionMessage = response.message;
@@ -481,7 +483,7 @@ class AmcContractViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AmcContractModel(<String, dynamic>{});
+    final empty = AmcContractModel.fromJson(<String, dynamic>{});
     try {
       final response = await _maintenance.terminateAmcContract(id, empty);
       actionMessage = response.message;
@@ -497,7 +499,7 @@ class AmcContractViewModel extends ChangeNotifier {
     if (id == null) {
       return;
     }
-    final empty = AmcContractModel(<String, dynamic>{});
+    final empty = AmcContractModel.fromJson(<String, dynamic>{});
     try {
       final response = await _maintenance.cancelAmcContract(id, empty);
       actionMessage = response.message;
