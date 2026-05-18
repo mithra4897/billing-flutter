@@ -218,6 +218,7 @@ export 'model/service/service_work_order_model.dart';
 export 'model/service/service_work_order_service_model.dart';
 export 'model/service/service_work_order_spare_model.dart';
 export 'model/project/project_models.dart';
+export 'model/printing/document_print_data_model.dart';
 export 'model/sales/sales_invoice_model.dart';
 export 'model/tax/document_tax_line_model.dart';
 export 'model/tax/gst_registration_model.dart';

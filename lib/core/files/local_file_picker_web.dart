@@ -44,3 +44,21 @@ Future<LocalPickedFile?> pickSingleFile({String accept = '*/*'}) async {
   input.click();
   return completer.future;
 }
+
+Future<bool> saveTextFile({
+  required String suggestedName,
+  required String text,
+  String mimeType = 'application/json',
+}) async {
+  final bytes = Uint8List.fromList(text.codeUnits);
+  final blob = html.Blob(<dynamic>[bytes], mimeType);
+  final url = html.Url.createObjectUrlFromBlob(blob);
+  final anchor = html.AnchorElement(href: url)
+    ..download = suggestedName
+    ..style.display = 'none';
+  html.document.body?.append(anchor);
+  anchor.click();
+  anchor.remove();
+  html.Url.revokeObjectUrl(url);
+  return true;
+}

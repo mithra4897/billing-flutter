@@ -14,3 +14,15 @@ class LocalPickedFile {
 Future<LocalPickedFile?> pickSingleFile({String accept = '*/*'}) {
   return picker.pickSingleFile(accept: accept);
 }
+
+Future<bool> saveTextFile({
+  required String suggestedName,
+  required String text,
+  String mimeType = 'application/json',
+}) {
+  return picker.saveTextFile(
+    suggestedName: suggestedName,
+    text: text,
+    mimeType: mimeType,
+  );
+}

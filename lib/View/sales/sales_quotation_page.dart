@@ -1,6 +1,7 @@
 import '../../model/sales/sales_quotation_model.dart';
 import '../../screen.dart';
 import '../printing/document_print_designer.dart';
+import '../printing/print_template_support.dart';
 import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
@@ -559,7 +560,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     };
   }
 
-  Map<String, dynamic> _quotationPrintData() {
+  DocumentPrintDataModel _quotationPrintData() {
     final summary = _taxSummary();
     final selected = _selectedItem?.toJson() ?? const <String, dynamic>{};
     final company = _companies.cast<CompanyModel?>().firstWhere(
@@ -575,45 +576,67 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             selected['customer'] as Map<String, dynamic>,
           )
         : customer?.toJson() ?? const <String, dynamic>{};
+    final gstBreakupGroups = <String, dynamic>{};
     final lines = _lines
+        .where((line) => line.itemId != null && line.itemId! > 0)
         .map((line) {
           final item = _itemsLookup.cast<ItemModel?>().firstWhere(
             (entry) => entry?.id == line.itemId,
             orElse: () => null,
           );
           final breakdown = _taxBreakdownForLine(line);
-          return <String, dynamic>{
-            'item_name':
+          accumulatePrintTemplateGstBreakup(
+            gstBreakupGroups,
+            taxCode: salesTaxCodeById(_taxCodes, line.taxCodeId),
+            taxPercent: breakdown.taxPercent,
+            taxable: breakdown.taxable,
+            cgst: breakdown.cgst,
+            sgst: breakdown.sgst,
+            igst: breakdown.igst,
+            cess: breakdown.cess,
+          );
+          return DocumentPrintLineModel(
+            itemName:
                 item?.itemName ??
                 item?.itemCode ??
                 line.descriptionController.text.trim(),
-            'description': line.descriptionController.text.trim(),
-            'qty': double.tryParse(line.qtyController.text.trim()) ?? 0,
-            'rate': double.tryParse(line.rateController.text.trim()) ?? 0,
-            'line_total': roundToDouble(breakdown.total, 2),
-          };
+            description: line.descriptionController.text.trim(),
+            qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
+            rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+            taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
+            lineTotal: roundToDouble(breakdown.taxable, 2),
+          );
         })
         .toList(growable: false);
     final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
 
-    return <String, dynamic>{
-      'company_name': companyNameById(_companies, _companyId),
-      'company_logo_url':
-          AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
-      'document_number': nullIfEmpty(_quotationNoController.text) ?? 'Draft',
-      'document_date': _quotationDateController.text.trim(),
-      'reference_number': _customerRefNoController.text.trim(),
-      'party_name': stringValue(customerData, 'party_name').isNotEmpty
+    return DocumentPrintDataModel(
+      companyName: companyNameById(_companies, _companyId),
+      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
+      companyGstin: company?.gstin ?? '',
+      documentNumber: nullIfEmpty(_quotationNoController.text) ?? 'Draft',
+      documentDate: _quotationDateController.text.trim(),
+      referenceNumber: _customerRefNoController.text.trim(),
+      partyName: stringValue(customerData, 'party_name').isNotEmpty
           ? stringValue(customerData, 'party_name')
           : quotationCustomerLabel(selected),
-      'party_address': stringValue(customerData, 'address_line1'),
-      'party_contact': stringValue(customerData, 'mobile_no'),
-      'notes': _notesController.text.trim(),
-      'subtotal': roundToDouble(summary.taxable, 2),
-      'tax_amount': roundToDouble(totalTax, 2),
-      'total_amount': roundToDouble(summary.total, 2),
-      'lines': lines,
-    };
+      partyAddress: stringValue(customerData, 'address_line1'),
+      partyContact: stringValue(customerData, 'mobile_no'),
+      partyGstin: stringValue(customerData, 'gstin'),
+      notes: _notesController.text.trim(),
+      termsConditions: _termsController.text.trim(),
+      subtotal: roundToDouble(summary.taxable, 2),
+      taxAmount: roundToDouble(totalTax, 2),
+      totalAmount: roundToDouble(summary.total, 2),
+      amountInWords: printTemplateAmountInWords(
+        roundToDouble(summary.total, 2),
+        _currencyCodeController.text.trim().isEmpty
+            ? 'INR'
+            : _currencyCodeController.text.trim(),
+      ),
+      lines: lines,
+      gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+    );
   }
 
   Future<void> _openPrintPreview() {

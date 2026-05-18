@@ -4,6 +4,7 @@ import '../../model/sales/sales_delivery_model.dart';
 import '../../model/sales/sales_order_model.dart';
 import '../../screen.dart';
 import '../printing/document_print_designer.dart';
+import '../printing/print_template_support.dart';
 import '../crm/crm_sales_pipeline_bar.dart';
 import '../purchase/purchase_support.dart';
 import 'sales_support.dart';
@@ -63,8 +64,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   List<SalesDeliveryModel> _items = const <SalesDeliveryModel>[];
   List<SalesDeliveryModel> _filteredItems = const <SalesDeliveryModel>[];
   List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<SalesOrderModel> _orders = const <SalesOrderModel>[];
@@ -137,7 +136,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     );
   }
 
-  bool _isSerialManagedItem(int? itemId) => _itemById(itemId)?.hasSerial == true;
+  bool _isSerialManagedItem(int? itemId) =>
+      _itemById(itemId)?.hasSerial == true;
 
   bool _isBatchManagedItem(int? itemId) => _itemById(itemId)?.hasBatch == true;
 
@@ -170,7 +170,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     }
   }
 
-  List<Map<String, dynamic>> _batchOptionsForLine(_SalesDeliveryLineDraft line) {
+  List<Map<String, dynamic>> _batchOptionsForLine(
+    _SalesDeliveryLineDraft line,
+  ) {
     if (!_isBatchManagedItem(line.itemId) ||
         line.itemId == null ||
         line.warehouseId == null) {
@@ -489,12 +491,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         _companies =
             (responses[1] as PaginatedResponse<CompanyModel>).data ??
             const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -708,11 +704,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         .toList(growable: false);
   }
 
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
-
   int? _deliveryDocumentSeriesIdFrom(Map<String, dynamic> data) {
     final sid = intValue(data, 'document_series_id');
     if (sid != 0) {
@@ -774,7 +765,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         : drafts;
   }
 
-  Map<String, dynamic> _salesDeliveryPrintData() {
+  DocumentPrintDataModel _salesDeliveryPrintData() {
     final company = _companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == _companyId,
       orElse: () => null,
@@ -785,6 +776,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     );
     var subtotal = 0.0;
     final lines = _lines
+        .where((line) => line.itemId != null && line.itemId! > 0)
         .map((line) {
           final qty =
               double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
@@ -795,36 +787,39 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             (entry) => entry?.id == line.itemId,
             orElse: () => null,
           );
-          return <String, dynamic>{
-            'item_name':
+          return DocumentPrintLineModel(
+            itemName:
                 item?.itemName ??
                 item?.itemCode ??
                 line.descriptionController.text.trim(),
-            'description': line.descriptionController.text.trim(),
-            'qty': qty,
-            'rate': rate,
-            'line_total': roundToDouble(total, 2),
-          };
+            description: line.descriptionController.text.trim(),
+            qty: qty,
+            rate: rate,
+            lineTotal: roundToDouble(total, 2),
+          );
         })
         .toList(growable: false);
 
-    return <String, dynamic>{
-      'company_name': companyNameById(_companies, _companyId),
-      'company_logo_url':
-          AppConfig.resolvePublicFileUrl(company?.logoPath) ??
-          'assets/sakthicontroller logo.jpg',
-      'document_number': nullIfEmpty(_deliveryNoController.text) ?? 'Draft',
-      'document_date': _deliveryDateController.text.trim(),
-      'reference_number': '',
-      'party_name': customer?.partyName ?? '',
-      'party_address': '',
-      'party_contact': '',
-      'notes': _notesController.text.trim(),
-      'subtotal': roundToDouble(subtotal, 2),
-      'tax_amount': 0,
-      'total_amount': roundToDouble(subtotal, 2),
-      'lines': lines,
-    };
+    return DocumentPrintDataModel(
+      companyName: companyNameById(_companies, _companyId),
+      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
+      companyGstin: company?.gstin ?? '',
+      documentNumber: nullIfEmpty(_deliveryNoController.text) ?? 'Draft',
+      documentDate: _deliveryDateController.text.trim(),
+      referenceNumber: '',
+      partyName: customer?.partyName ?? '',
+      partyAddress: '',
+      partyContact: '',
+      notes: _notesController.text.trim(),
+      subtotal: roundToDouble(subtotal, 2),
+      taxAmount: 0,
+      totalAmount: roundToDouble(subtotal, 2),
+      amountInWords: printTemplateAmountInWords(
+        roundToDouble(subtotal, 2),
+        'INR',
+      ),
+      lines: lines,
+    );
   }
 
   Future<void> _openPrintPreview() {

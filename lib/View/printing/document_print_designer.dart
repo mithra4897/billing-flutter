@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -8,17 +9,16 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../screen.dart';
+import '../../components/printing/document_designer_inspector.dart';
 import '../../model/printing/print_template_model.dart';
 import '../../service/printing/print_template_service.dart';
-
-const String _defaultPrintLogoAsset = 'assets/sakthicontroller logo.jpg';
-const String _legacyPbsLogoAsset = 'assets/pbs_logo.png';
+import 'document_print_designer_support.dart';
 
 Future<void> openDocumentPrintDesigner(
   BuildContext context, {
   required String documentType,
   required String title,
-  required Map<String, dynamic> documentData,
+  required DocumentPrintDataModel documentData,
 }) {
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -42,7 +42,7 @@ class DocumentPrintDesignerPage extends StatefulWidget {
 
   final String documentType;
   final String title;
-  final Map<String, dynamic> documentData;
+  final DocumentPrintDataModel documentData;
 
   @override
   State<DocumentPrintDesignerPage> createState() =>
@@ -55,16 +55,24 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final GlobalKey _previewBoundaryKey = GlobalKey();
   final GlobalKey _pdfPreviewBoundaryKey = GlobalKey();
   final ScrollController _pageScrollController = ScrollController();
+  final ScrollController _toolbarScrollController = ScrollController();
   DocumentPrintTemplate? _template;
   String? _selectedShapeId;
+  Set<String> _selectedShapeIds = <String>{};
   double _canvasZoom = 1.0;
   bool _uploadingImage = false;
+  bool _uploadingBackground = false;
   bool _editMode = false;
   bool _loading = true;
   bool _saving = false;
   bool _printingPdf = false;
   bool _downloadingPdf = false;
+  _DesignerOperation _operation = _DesignerOperation.select;
+  Offset? _drawStart;
+  Offset? _drawCurrent;
   final FocusNode _designerFocusNode = FocusNode();
+
+  Map<String, dynamic> get _documentDataJson => widget.documentData.toJson();
 
   @override
   void initState() {
@@ -75,6 +83,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   @override
   void dispose() {
     _pageScrollController.dispose();
+    _toolbarScrollController.dispose();
     _designerFocusNode.dispose();
     super.dispose();
   }
@@ -87,14 +96,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       }
       if (response.success && response.data != null) {
         setState(() {
-          _template = response.data;
+          _template = _prepareTemplate(response.data!);
           _loading = false;
         });
       } else {
         setState(() {
-          _template = DocumentPrintTemplate.defaults(
-            widget.documentType,
-            title: widget.title,
+          _template = _prepareTemplate(
+            DocumentPrintTemplate.defaults(
+              widget.documentType,
+              title: widget.title,
+            ),
           );
           _loading = false;
         });
@@ -104,13 +115,119 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         return;
       }
       setState(() {
-        _template = DocumentPrintTemplate.defaults(
-          widget.documentType,
-          title: widget.title,
+        _template = _prepareTemplate(
+          DocumentPrintTemplate.defaults(
+            widget.documentType,
+            title: widget.title,
+          ),
         );
         _loading = false;
       });
     }
+  }
+
+  DocumentPrintTemplate _prepareTemplate(DocumentPrintTemplate template) {
+    final normalized = _ensureTermsBlock(
+      template.normalizedFor(widget.documentType),
+    );
+
+    final shapes = normalized.shapes.map((shape) {
+      if (_isGstBreakupTableShape(shape)) {
+        const columns = defaultGstBreakupTableColumns;
+        final tableHeight = measurePrintTableHeight(
+          shape: shape,
+          rows: widget.documentData.gstBreakup,
+          columns: columns,
+        );
+        return shape.copyWith(
+          dataPath: 'gst_breakup',
+          height: tableHeight,
+          columns: columns,
+        );
+      } else if (isPrintLinesTableShape(shape)) {
+        return shape.copyWith(dataPath: 'lines');
+      }
+      return shape;
+    }).toList();
+
+    return normalized.copyWith(shapes: shapes);
+  }
+
+  bool _isGstBreakupTableShape(DocumentPrintShape shape) {
+    return isPrintGstBreakupTableShape(shape);
+  }
+
+  DocumentPrintTemplate _ensureTermsBlock(DocumentPrintTemplate template) {
+    final hasTermsBinding = template.shapes.any(
+      (shape) =>
+          shape.type == 'text' &&
+          shape.text.toLowerCase().contains('{{terms_conditions}}'),
+    );
+    if (hasTermsBinding) {
+      return template;
+    }
+
+    final shapes = [...template.shapes];
+    final notesIndex = shapes.indexWhere((shape) => shape.id == 'notes-text');
+    if (notesIndex >= 0) {
+      final notes = shapes[notesIndex];
+      shapes[notesIndex] = notes.copyWith(height: math.min(notes.height, 34));
+      shapes.add(
+        DocumentPrintShape(
+          id: 'terms-title',
+          type: 'text',
+          x: notes.x,
+          y: notes.y + math.min(notes.height, 34.0) + 6.0,
+          width: 160,
+          height: 16,
+          text: 'Terms & Conditions',
+          fontSize: math.max(9.0, notes.fontSize).toDouble(),
+          bold: true,
+        ),
+      );
+      shapes.add(
+        DocumentPrintShape(
+          id: 'terms-text',
+          type: 'text',
+          x: notes.x,
+          y: notes.y + math.min(notes.height, 34.0) + 24.0,
+          width: notes.width,
+          height: math.max(24.0, notes.height - 24.0).toDouble(),
+          text: '{{terms_conditions}}',
+          fontSize: math.max(8.0, notes.fontSize - 1.0).toDouble(),
+          multiline: true,
+        ),
+      );
+      return template.copyWith(shapes: shapes);
+    }
+
+    shapes.add(
+      const DocumentPrintShape(
+        id: 'terms-title',
+        type: 'text',
+        x: 28,
+        y: 708,
+        width: 160,
+        height: 16,
+        text: 'Terms & Conditions',
+        fontSize: 10,
+        bold: true,
+      ),
+    );
+    shapes.add(
+      const DocumentPrintShape(
+        id: 'terms-text',
+        type: 'text',
+        x: 28,
+        y: 726,
+        width: 300,
+        height: 30,
+        text: '{{terms_conditions}}',
+        fontSize: 9,
+        multiline: true,
+      ),
+    );
+    return template.copyWith(shapes: shapes);
   }
 
   Future<void> _saveTemplate() async {
@@ -120,7 +237,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
     setState(() => _saving = true);
     try {
-      final response = await _service.saveTemplate(widget.documentType, template);
+      final response = await _service.saveTemplate(
+        widget.documentType,
+        template,
+      );
       if (!mounted) {
         return;
       }
@@ -129,17 +249,17 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           const SnackBar(content: Text('Print template saved successfully.')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(response.message)));
       }
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving template: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving template: $e')));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -177,7 +297,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           _editMode = !_editMode;
           if (!_editMode) {
             _selectedShapeId = null;
+            _selectedShapeIds = <String>{};
           }
+          _drawStart = null;
+          _drawCurrent = null;
         }),
         icon: _editMode ? Icons.visibility_outlined : Icons.edit_outlined,
         label: _editMode ? 'Preview Mode' : 'Edit Template',
@@ -191,6 +314,22 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           onPressed: _saving ? null : _saveTemplate,
           icon: Icons.save_outlined,
           label: _saving ? 'Saving...' : 'Save Template',
+        ),
+      );
+      actions.add(
+        AdaptiveShellActionButton(
+          onPressed: _importTemplate,
+          icon: Icons.file_open_outlined,
+          label: 'Import',
+          filled: false,
+        ),
+      );
+      actions.add(
+        AdaptiveShellActionButton(
+          onPressed: _exportTemplate,
+          icon: Icons.download_outlined,
+          label: 'Export Template',
+          filled: false,
         ),
       );
     }
@@ -269,7 +408,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                             children: [
                               Expanded(child: _buildCanvasCard(template)),
                               if (_editMode) ...[
-                                const SizedBox(height: AppUiConstants.spacingLg),
+                                const SizedBox(
+                                  height: AppUiConstants.spacingLg,
+                                ),
                                 SizedBox(
                                   height: 320,
                                   child: _buildInspector(
@@ -305,10 +446,11 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                     key: _pdfPreviewBoundaryKey,
                     child: _DocumentPageSurface(
                       template: template,
-                      documentData: widget.documentData,
+                      documentData: _documentDataJson,
                       scale: 1,
                       editMode: false,
                       selectedShapeId: null,
+                      selectedShapeIds: const <String>{},
                       showDecoration: false,
                       onSelectShape: (_) {},
                       onMoveShape: (shapeId, delta) {},
@@ -325,71 +467,156 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   Widget _buildToolbar() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _toolbarButton(Icons.text_fields, 'Text', () => _addShape('text')),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          _toolbarButton(
-            Icons.crop_square_outlined,
-            'Box',
-            () => _addShape('rectangle'),
-          ),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          _toolbarButton(
-            Icons.show_chart_outlined,
-            'Line',
-            () => _addShape('line'),
-          ),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          _toolbarButton(
-            Icons.table_chart_outlined,
-            'Table',
-            () => _addShape('table'),
-          ),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          _toolbarButton(
-            Icons.image_outlined,
-            'Image',
-            () => _addShape('image'),
-          ),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          _toolbarButton(Icons.qr_code, 'Barcode', () => _addShape('barcode')),
-          const SizedBox(width: AppUiConstants.spacingMd),
-          OutlinedButton.icon(
-            onPressed: _resetTemplate,
-            icon: const Icon(Icons.refresh_outlined),
-            label: const Text('Reset'),
-          ),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          OutlinedButton.icon(
-            onPressed: _canvasZoom <= 0.7
-                ? null
-                : () => setState(
-                    () => _canvasZoom = (_canvasZoom - 0.15).clamp(0.55, 2.5),
-                  ),
-            icon: const Icon(Icons.zoom_out_outlined),
-            label: const Text('Zoom -'),
-          ),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          OutlinedButton(
-            onPressed: () => setState(() => _canvasZoom = 1.0),
-            child: const Text('Fit'),
-          ),
-          const SizedBox(width: AppUiConstants.spacingXs),
-          OutlinedButton.icon(
-            onPressed: _canvasZoom >= 2.5
-                ? null
-                : () => setState(
-                    () => _canvasZoom = (_canvasZoom + 0.15).clamp(0.55, 2.5),
-                  ),
-            icon: const Icon(Icons.zoom_in_outlined),
-            label: const Text('Zoom +'),
-          ),
-        ],
+    return Scrollbar(
+      controller: _toolbarScrollController,
+      thumbVisibility: true,
+      notificationPredicate: (notification) =>
+          notification.metrics.axis == Axis.horizontal,
+      child: SingleChildScrollView(
+        controller: _toolbarScrollController,
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _modeButton(
+              Icons.ads_click_outlined,
+              'Select',
+              _DesignerOperation.select,
+            ),
+            const SizedBox(width: AppUiConstants.spacingMd),
+            _toolbarButton(
+              Icons.text_fields,
+              'Text',
+              () => _insertShapeFromToolbar(_DesignerOperation.drawText),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            _toolbarButton(
+              Icons.crop_square_outlined,
+              'Box',
+              () => _insertShapeFromToolbar(_DesignerOperation.drawRect),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            _toolbarButton(
+              Icons.circle_outlined,
+              'Oval',
+              () => _insertShapeFromToolbar(_DesignerOperation.drawEllipse),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            _toolbarButton(
+              Icons.pentagon_outlined,
+              'Polygon',
+              () => _insertShapeFromToolbar(_DesignerOperation.drawPolygon),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            _toolbarButton(
+              Icons.show_chart_outlined,
+              'Line',
+              () => _insertShapeFromToolbar(_DesignerOperation.drawLine),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            _toolbarButton(
+              Icons.table_chart_outlined,
+              'Table',
+              () => _insertShapeFromToolbar(_DesignerOperation.drawTable),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            _toolbarButton(
+              Icons.image_outlined,
+              'Image',
+              () => _insertShapeFromToolbar(_DesignerOperation.drawImage),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            _toolbarButton(
+              Icons.qr_code,
+              'Barcode',
+              () => _insertShapeFromToolbar(_DesignerOperation.drawBarcode),
+            ),
+            const SizedBox(width: AppUiConstants.spacingMd),
+            OutlinedButton.icon(
+              onPressed: _resetTemplate,
+              icon: const Icon(Icons.refresh_outlined),
+              label: const Text('Reset'),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            OutlinedButton.icon(
+              onPressed: _canvasZoom <= 0.7
+                  ? null
+                  : () => setState(
+                      () => _canvasZoom = (_canvasZoom - 0.15).clamp(0.55, 2.5),
+                    ),
+              icon: const Icon(Icons.zoom_out_outlined),
+              label: const Text('Zoom -'),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            OutlinedButton(
+              onPressed: () => setState(() => _canvasZoom = 1.0),
+              child: const Text('Fit'),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            OutlinedButton.icon(
+              onPressed: _canvasZoom >= 2.5
+                  ? null
+                  : () => setState(
+                      () => _canvasZoom = (_canvasZoom + 0.15).clamp(0.55, 2.5),
+                    ),
+              icon: const Icon(Icons.zoom_in_outlined),
+              label: const Text('Zoom +'),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _modeButton(IconData icon, String label, _DesignerOperation mode) {
+    final selected = _operation == mode;
+    return FilledButton.tonalIcon(
+      onPressed: () => setState(() {
+        _operation = mode;
+        _drawStart = null;
+        _drawCurrent = null;
+      }),
+      icon: Icon(icon),
+      label: Text(label),
+      style: selected
+          ? null
+          : FilledButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+    );
+  }
+
+  void _insertShapeFromToolbar(_DesignerOperation tool) {
+    final template = _template;
+    if (template == null) {
+      return;
+    }
+    final type = tool.shapeType;
+    if (type == null) {
+      return;
+    }
+    final shape = DocumentPrintShape.defaults(type, template.shapes.length);
+    final placed = shape.copyWith(
+      x: math.min(
+        math.max(24.0, (template.pageWidth - shape.width) / 2),
+        math.max(0.0, template.pageWidth - shape.width - 24),
+      ),
+      y: math.min(
+        math.max(24.0, (template.pageHeight - shape.height) / 2),
+        math.max(0.0, template.pageHeight - shape.height - 24),
+      ),
+    );
+    setState(() {
+      _template = template.copyWith(shapes: [...template.shapes, placed]);
+      _selectedShapeId = placed.id;
+      _selectedShapeIds = <String>{placed.id};
+      _operation = _DesignerOperation.select;
+      _drawStart = null;
+      _drawCurrent = null;
+    });
   }
 
   Widget _toolbarButton(IconData icon, String label, VoidCallback onPressed) {
@@ -417,8 +644,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             if (event is! KeyDownEvent) {
               return;
             }
+            final selectedIds = _selectedShapeIds;
             final shapeId = _selectedShapeId;
-            if (shapeId == null) {
+            if (selectedIds.isEmpty || shapeId == null) {
               return;
             }
             final isShift = HardwareKeyboard.instance.isShiftPressed;
@@ -440,18 +668,25 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             key: _previewBoundaryKey,
             child: _DesignerCanvas(
               template: template,
-              documentData: widget.documentData,
+              documentData: _documentDataJson,
               editMode: _editMode,
               selectedShapeId: _selectedShapeId,
+              selectedShapeIds: _selectedShapeIds,
               zoom: _canvasZoom,
               onSelectShape: (shapeId) {
                 if (!_editMode) {
                   return;
                 }
-                setState(() => _selectedShapeId = shapeId);
+                _handleShapeSelection(shapeId);
               },
               onMoveShape: _moveShape,
               onResizeShape: _resizeShape,
+              operation: _operation,
+              draftShape: _activeDraftShape(template),
+              onDrawStart: _handleDrawStart,
+              onDrawUpdate: _handleDrawUpdate,
+              onDrawEnd: () => _handleDrawEnd(template),
+              onDrawTap: (point) => _handleDrawTap(template, point),
             ),
           ),
         ),
@@ -464,25 +699,46 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     required EdgeInsets padding,
   }) {
     final selected = template.shapeById(_selectedShapeId);
+    final multiSelected = _selectedShapeIds.length > 1;
     return Padding(
       padding: padding,
       child: AppSectionCard(
         child: SingleChildScrollView(
-          child: selected == null
-              ? _PageInspector(
+          child: multiSelected
+              ? _MultiSelectionInspector(
+                  count: _selectedShapeIds.length,
+                  onDelete: _deleteSelectedShape,
+                  onBringForward: _bringSelectedForward,
+                  onSendBackward: _sendSelectedBackward,
+                  onBringToFront: _bringSelectedToFront,
+                  onSendToBack: _sendSelectedToBack,
+                  onDuplicate: _duplicateSelectedShapes,
+                )
+              : selected == null
+              ? DocumentDesignerPageInspector(
                   template: template,
                   onChanged: (next) => setState(() => _template = next),
+                  isUploadingBackground: _uploadingBackground,
+                  onUploadBackground: _uploadBackgroundImage,
                 )
-              : _ShapeInspector(
+              : DocumentDesignerShapeInspector(
                   key: ValueKey(selected.id),
                   shape: selected,
-                  bindings: _availableBindings(widget.documentData),
+                  bindings: availablePrintBindings(_documentDataJson),
+                  listBindings: availablePrintListBindings(_documentDataJson),
+                  rowBindings: availablePrintRowKeysForPath(
+                    _documentDataJson,
+                    selected.dataPath,
+                  ),
                   isUploadingImage: _uploadingImage,
                   onChanged: _updateShape,
                   onUploadImage: () => _uploadImageForShape(selected),
                   onDelete: _deleteSelectedShape,
                   onBringForward: _bringSelectedForward,
                   onSendBackward: _sendSelectedBackward,
+                  onBringToFront: _bringSelectedToFront,
+                  onSendToBack: _sendSelectedToBack,
+                  onDuplicate: _duplicateSelectedShapes,
                 ),
         ),
       ),
@@ -491,24 +747,162 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   void _resetTemplate() {
     setState(() {
-      _template = DocumentPrintTemplate.defaults(
-        widget.documentType,
-        title: widget.title,
+      _template = _prepareTemplate(
+        DocumentPrintTemplate.defaults(
+          widget.documentType,
+          title: widget.title,
+        ),
       );
       _selectedShapeId = null;
+      _selectedShapeIds = <String>{};
+      _drawStart = null;
+      _drawCurrent = null;
+      _operation = _DesignerOperation.select;
     });
   }
 
-  void _addShape(String type) {
+  void _handleDrawStart(Offset point) {
+    if (!_operation.isDrawTool) {
+      return;
+    }
+    setState(() {
+      _drawStart = point;
+      _drawCurrent = point;
+    });
+  }
+
+  void _handleDrawUpdate(Offset point) {
+    if (!_operation.isDrawTool || _drawStart == null) {
+      return;
+    }
+    setState(() => _drawCurrent = point);
+  }
+
+  void _handleDrawEnd(DocumentPrintTemplate template) {
+    if (!_operation.isDrawTool) {
+      return;
+    }
+    final draft = _activeDraftShape(template);
+    setState(() {
+      if (draft != null) {
+        _template = template.copyWith(shapes: [...template.shapes, draft]);
+        _selectedShapeId = draft.id;
+        _selectedShapeIds = <String>{draft.id};
+      }
+      _drawStart = null;
+      _drawCurrent = null;
+      _operation = _DesignerOperation.select;
+    });
+  }
+
+  void _handleDrawTap(DocumentPrintTemplate template, Offset point) {
+    if (!_operation.isDrawTool || _drawStart != null) {
+      return;
+    }
+    final type = _operation.shapeType;
+    if (type == null) {
+      return;
+    }
+    final base = DocumentPrintShape.defaults(type, template.shapes.length);
+    final draft = base.copyWith(
+      x: point.dx.clamp(0.0, math.max(0.0, template.pageWidth - base.width)),
+      y: point.dy.clamp(0.0, math.max(0.0, template.pageHeight - base.height)),
+    );
+    setState(() {
+      _template = template.copyWith(shapes: [...template.shapes, draft]);
+      _selectedShapeId = draft.id;
+      _selectedShapeIds = <String>{draft.id};
+      _operation = _DesignerOperation.select;
+      _drawStart = null;
+      _drawCurrent = null;
+    });
+  }
+
+  DocumentPrintShape? _activeDraftShape(DocumentPrintTemplate template) {
+    final start = _drawStart;
+    final current = _drawCurrent;
+    if (start == null || current == null || !_operation.isDrawTool) {
+      return null;
+    }
+    final type = _operation.shapeType;
+    if (type == null) {
+      return null;
+    }
+    final rect = Rect.fromPoints(start, current);
+    final shape = DocumentPrintShape.defaults(type, template.shapes.length);
+    return shape.copyWith(
+      x: rect.left,
+      y: rect.top,
+      width: math.max(type == 'line' ? 8 : 24, rect.width),
+      height: type == 'line' ? rect.height : math.max(16, rect.height),
+    );
+  }
+
+  Future<void> _importTemplate() async {
+    final picked = await pickSingleFile(accept: '.json,application/json');
+    if (picked == null) {
+      return;
+    }
+    try {
+      final decoded = jsonDecode(utf8.decode(picked.bytes));
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Invalid template JSON');
+      }
+      final next = _prepareTemplate(
+        DocumentPrintTemplate.fromJson(decoded).withoutUnsupportedShapes(),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _template = next;
+        _selectedShapeId = null;
+        _selectedShapeIds = <String>{};
+        _operation = _DesignerOperation.select;
+        _drawStart = null;
+        _drawCurrent = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Imported template: ${picked.name}')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Import failed: $error')));
+    }
+  }
+
+  Future<void> _exportTemplate() async {
     final template = _template;
     if (template == null) {
       return;
     }
-    final shape = DocumentPrintShape.defaults(type, template.shapes.length);
-    setState(() {
-      _template = template.copyWith(shapes: [...template.shapes, shape]);
-      _selectedShapeId = shape.id;
-    });
+    final exportable = _prepareTemplate(template).toJson();
+    final text = const JsonEncoder.withIndent('  ').convert(exportable);
+    final safeType = widget.documentType.replaceAll(
+      RegExp(r'[^a-zA-Z0-9_-]'),
+      '_',
+    );
+    final saved = await saveTextFile(
+      suggestedName: '${safeType}_print_template.json',
+      text: text,
+      mimeType: 'application/json',
+    );
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved
+              ? 'Template exported successfully.'
+              : 'Template export cancelled.',
+        ),
+      ),
+    );
   }
 
   void _updateShape(DocumentPrintShape next) {
@@ -520,6 +914,34 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         .map((shape) => shape.id == next.id ? next : shape)
         .toList(growable: false);
     setState(() => _template = template.copyWith(shapes: shapes));
+  }
+
+  void _handleShapeSelection(String? shapeId) {
+    final additive =
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isShiftPressed;
+    setState(() {
+      if (shapeId == null) {
+        _selectedShapeId = null;
+        _selectedShapeIds = <String>{};
+        return;
+      }
+      if (!additive) {
+        _selectedShapeId = shapeId;
+        _selectedShapeIds = <String>{shapeId};
+        return;
+      }
+      final next = <String>{..._selectedShapeIds};
+      if (next.contains(shapeId)) {
+        next.remove(shapeId);
+        _selectedShapeId = next.isEmpty ? null : next.last;
+      } else {
+        next.add(shapeId);
+        _selectedShapeId = shapeId;
+      }
+      _selectedShapeIds = next;
+    });
   }
 
   Future<void> _uploadImageForShape(DocumentPrintShape shape) async {
@@ -553,24 +975,67 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     );
   }
 
+  Future<void> _uploadBackgroundImage() async {
+    final template = _template;
+    if (template == null) {
+      return;
+    }
+    await MediaUploadHelper.uploadImage(
+      context: context,
+      mediaService: _mediaService,
+      module: 'printing',
+      documentType: widget.documentType,
+      purpose: 'print_template_background',
+      folder: 'print-templates',
+      isPublic: true,
+      onLoading: (loading) {
+        if (mounted) {
+          setState(() => _uploadingBackground = loading);
+        }
+      },
+      onSuccess: (filePath) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _template = template.copyWith(backgroundImagePath: filePath);
+        });
+      },
+      onError: (message) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      },
+    );
+  }
+
   void _moveShape(String shapeId, Offset delta) {
     final template = _template;
     if (template == null) {
       return;
     }
-    final shape = template.shapeById(shapeId);
-    if (shape == null) {
-      return;
-    }
-    var nextX = shape.x + delta.dx;
-    var nextY = shape.y + delta.dy;
+    final targetIds = _selectedShapeIds.contains(shapeId)
+        ? _selectedShapeIds
+        : <String>{shapeId};
+    final shapes = template.shapes
+        .map((shape) {
+          if (!targetIds.contains(shape.id)) {
+            return shape;
+          }
+          var nextX = shape.x + delta.dx;
+          var nextY = shape.y + delta.dy;
 
-    if (template.showGrid) {
-      nextX = (nextX / template.gridSize).round() * template.gridSize;
-      nextY = (nextY / template.gridSize).round() * template.gridSize;
-    }
-
-    _updateShape(shape.copyWith(x: math.max(0, nextX), y: math.max(0, nextY)));
+          if (template.showGrid) {
+            nextX = (nextX / template.gridSize).round() * template.gridSize;
+            nextY = (nextY / template.gridSize).round() * template.gridSize;
+          }
+          return shape.copyWith(x: math.max(0, nextX), y: math.max(0, nextY));
+        })
+        .toList(growable: false);
+    setState(() => _template = template.copyWith(shapes: shapes));
   }
 
   void _resizeShape(String shapeId, Offset delta) {
@@ -578,69 +1043,136 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (template == null) {
       return;
     }
-    final shape = template.shapeById(shapeId);
-    if (shape == null) {
-      return;
-    }
-    var nextW = shape.width + delta.dx;
-    var nextH = shape.height + delta.dy;
+    final targetIds = _selectedShapeIds.contains(shapeId)
+        ? _selectedShapeIds
+        : <String>{shapeId};
+    final shapes = template.shapes
+        .map((shape) {
+          if (!targetIds.contains(shape.id)) {
+            return shape;
+          }
+          var nextW = shape.width + delta.dx;
+          var nextH = shape.height + delta.dy;
 
-    if (template.showGrid) {
-      nextW = (nextW / template.gridSize).round() * template.gridSize;
-      nextH = (nextH / template.gridSize).round() * template.gridSize;
-    }
-
-    _updateShape(
-      shape.copyWith(width: math.max(16, nextW), height: math.max(16, nextH)),
-    );
+          if (template.showGrid) {
+            nextW = (nextW / template.gridSize).round() * template.gridSize;
+            nextH = (nextH / template.gridSize).round() * template.gridSize;
+          }
+          return shape.copyWith(
+            width: math.max(16, nextW),
+            height: math.max(16, nextH),
+          );
+        })
+        .toList(growable: false);
+    setState(() => _template = template.copyWith(shapes: shapes));
   }
 
   void _deleteSelectedShape() {
     final template = _template;
-    final selectedShapeId = _selectedShapeId;
-    if (template == null || selectedShapeId == null) {
+    if (template == null || _selectedShapeIds.isEmpty) {
       return;
     }
     setState(() {
       _template = template.copyWith(
         shapes: template.shapes
-            .where((shape) => shape.id != selectedShapeId)
+            .where((shape) => !_selectedShapeIds.contains(shape.id))
             .toList(growable: false),
       );
       _selectedShapeId = null;
+      _selectedShapeIds = <String>{};
     });
   }
 
   void _bringSelectedForward() {
     final template = _template;
-    final selectedShapeId = _selectedShapeId;
-    if (template == null || selectedShapeId == null) {
+    if (template == null || _selectedShapeIds.isEmpty) {
       return;
     }
     final shapes = [...template.shapes];
-    final index = shapes.indexWhere((shape) => shape.id == selectedShapeId);
-    if (index < 0 || index == shapes.length - 1) {
-      return;
+    for (var index = shapes.length - 2; index >= 0; index--) {
+      final current = shapes[index];
+      final next = shapes[index + 1];
+      if (_selectedShapeIds.contains(current.id) &&
+          !_selectedShapeIds.contains(next.id)) {
+        shapes[index] = next;
+        shapes[index + 1] = current;
+      }
     }
-    final shape = shapes.removeAt(index);
-    shapes.insert(index + 1, shape);
     setState(() => _template = template.copyWith(shapes: shapes));
   }
 
   void _sendSelectedBackward() {
     final template = _template;
-    final selectedShapeId = _selectedShapeId;
-    if (template == null || selectedShapeId == null) {
+    if (template == null || _selectedShapeIds.isEmpty) {
       return;
     }
     final shapes = [...template.shapes];
-    final index = shapes.indexWhere((shape) => shape.id == selectedShapeId);
-    if (index <= 0) {
+    for (var index = 1; index < shapes.length; index++) {
+      final current = shapes[index];
+      final previous = shapes[index - 1];
+      if (_selectedShapeIds.contains(current.id) &&
+          !_selectedShapeIds.contains(previous.id)) {
+        shapes[index] = previous;
+        shapes[index - 1] = current;
+      }
+    }
+    setState(() => _template = template.copyWith(shapes: shapes));
+  }
+
+  void _bringSelectedToFront() {
+    final template = _template;
+    if (template == null || _selectedShapeIds.isEmpty) {
       return;
     }
-    final shape = shapes.removeAt(index);
-    shapes.insert(index - 1, shape);
-    setState(() => _template = template.copyWith(shapes: shapes));
+    final unselected = template.shapes
+        .where((shape) => !_selectedShapeIds.contains(shape.id))
+        .toList(growable: false);
+    final selected = template.shapes
+        .where((shape) => _selectedShapeIds.contains(shape.id))
+        .toList(growable: false);
+    setState(() {
+      _template = template.copyWith(shapes: [...unselected, ...selected]);
+    });
+  }
+
+  void _sendSelectedToBack() {
+    final template = _template;
+    if (template == null || _selectedShapeIds.isEmpty) {
+      return;
+    }
+    final selected = template.shapes
+        .where((shape) => _selectedShapeIds.contains(shape.id))
+        .toList(growable: false);
+    final unselected = template.shapes
+        .where((shape) => !_selectedShapeIds.contains(shape.id))
+        .toList(growable: false);
+    setState(() {
+      _template = template.copyWith(shapes: [...selected, ...unselected]);
+    });
+  }
+
+  void _duplicateSelectedShapes() {
+    final template = _template;
+    if (template == null || _selectedShapeIds.isEmpty) {
+      return;
+    }
+    final duplicates = template.shapes
+        .where((shape) => _selectedShapeIds.contains(shape.id))
+        .map(
+          (shape) => shape.copyWith(
+            id: '${shape.id}-${DateTime.now().microsecondsSinceEpoch}-${shape.hashCode}',
+            x: shape.x + 12,
+            y: shape.y + 12,
+          ),
+        )
+        .toList(growable: false);
+    setState(() {
+      _template = template.copyWith(
+        shapes: [...template.shapes, ...duplicates],
+      );
+      _selectedShapeIds = duplicates.map((shape) => shape.id).toSet();
+      _selectedShapeId = duplicates.isEmpty ? null : duplicates.last.id;
+    });
   }
 
   Future<Uint8List?> _capturePreviewPng() async {
@@ -748,58 +1280,113 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 }
 
-class _DesignerCanvas extends StatelessWidget {
+class _DesignerCanvas extends StatefulWidget {
   const _DesignerCanvas({
     required this.template,
     required this.documentData,
     required this.editMode,
     required this.selectedShapeId,
+    required this.selectedShapeIds,
     required this.zoom,
     required this.onSelectShape,
     required this.onMoveShape,
     required this.onResizeShape,
+    required this.operation,
+    required this.draftShape,
+    required this.onDrawStart,
+    required this.onDrawUpdate,
+    required this.onDrawEnd,
+    required this.onDrawTap,
   });
 
   final DocumentPrintTemplate template;
   final Map<String, dynamic> documentData;
   final bool editMode;
   final String? selectedShapeId;
+  final Set<String> selectedShapeIds;
   final double zoom;
   final ValueChanged<String?> onSelectShape;
   final void Function(String shapeId, Offset delta) onMoveShape;
   final void Function(String shapeId, Offset delta) onResizeShape;
+  final _DesignerOperation operation;
+  final DocumentPrintShape? draftShape;
+  final ValueChanged<Offset> onDrawStart;
+  final ValueChanged<Offset> onDrawUpdate;
+  final VoidCallback onDrawEnd;
+  final ValueChanged<Offset> onDrawTap;
+
+  @override
+  State<_DesignerCanvas> createState() => _DesignerCanvasState();
+}
+
+class _DesignerCanvasState extends State<_DesignerCanvas> {
+  late final ScrollController _horizontalController;
+  late final ScrollController _verticalController;
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalController = ScrollController();
+    _verticalController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _horizontalController.dispose();
+    _verticalController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final fitScale = math.min(
-          (constraints.maxWidth - 24) / template.pageWidth,
-          (constraints.maxHeight - 24) / template.pageHeight,
+          (constraints.maxWidth - 24) / widget.template.pageWidth,
+          (constraints.maxHeight - 24) / widget.template.pageHeight,
         );
         final baseScale = math.max(0.45, fitScale);
-        final scale = (baseScale * zoom).clamp(0.45, 2.5);
+        final scale = (baseScale * widget.zoom).clamp(0.45, 2.5);
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: math.max(0, constraints.maxWidth - 24),
-                minHeight: math.max(0, constraints.maxHeight - 24),
-              ),
-              child: Center(
-                child: GestureDetector(
-                  onTap: () => onSelectShape(null),
-                  child: _DocumentPageSurface(
-                    template: template,
-                    documentData: documentData,
-                    scale: scale,
-                    editMode: editMode,
-                    selectedShapeId: selectedShapeId,
-                    onSelectShape: onSelectShape,
-                    onMoveShape: onMoveShape,
-                    onResizeShape: onResizeShape,
+        return Scrollbar(
+          controller: _verticalController,
+          thumbVisibility: true,
+          child: Scrollbar(
+            controller: _horizontalController,
+            thumbVisibility: true,
+            notificationPredicate: (notification) =>
+                notification.metrics.axis == Axis.horizontal,
+            child: SingleChildScrollView(
+              controller: _horizontalController,
+              scrollDirection: Axis.horizontal,
+              child: SingleChildScrollView(
+                controller: _verticalController,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: math.max(0, constraints.maxWidth - 24),
+                    minHeight: math.max(0, constraints.maxHeight - 24),
+                  ),
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () => widget.onSelectShape(null),
+                      child: _DocumentPageSurface(
+                        template: widget.template,
+                        documentData: widget.documentData,
+                        scale: scale,
+                        editMode: widget.editMode,
+                        selectedShapeId: widget.selectedShapeId,
+                        selectedShapeIds: widget.selectedShapeIds,
+                        onSelectShape: widget.onSelectShape,
+                        onMoveShape: widget.onMoveShape,
+                        onResizeShape: widget.onResizeShape,
+                        operation: widget.operation,
+                        draftShape: widget.draftShape,
+                        onDrawStart: widget.onDrawStart,
+                        onDrawUpdate: widget.onDrawUpdate,
+                        onDrawEnd: widget.onDrawEnd,
+                        onDrawTap: widget.onDrawTap,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -818,10 +1405,17 @@ class _DocumentPageSurface extends StatelessWidget {
     required this.scale,
     required this.editMode,
     required this.selectedShapeId,
+    required this.selectedShapeIds,
     required this.onSelectShape,
     required this.onMoveShape,
     required this.onResizeShape,
     this.showDecoration = true,
+    this.operation = _DesignerOperation.select,
+    this.draftShape,
+    this.onDrawStart,
+    this.onDrawUpdate,
+    this.onDrawEnd,
+    this.onDrawTap,
   });
 
   final DocumentPrintTemplate template;
@@ -829,10 +1423,17 @@ class _DocumentPageSurface extends StatelessWidget {
   final double scale;
   final bool editMode;
   final String? selectedShapeId;
+  final Set<String> selectedShapeIds;
   final ValueChanged<String?> onSelectShape;
   final void Function(String shapeId, Offset delta) onMoveShape;
   final void Function(String shapeId, Offset delta) onResizeShape;
   final bool showDecoration;
+  final _DesignerOperation operation;
+  final DocumentPrintShape? draftShape;
+  final ValueChanged<Offset>? onDrawStart;
+  final ValueChanged<Offset>? onDrawUpdate;
+  final VoidCallback? onDrawEnd;
+  final ValueChanged<Offset>? onDrawTap;
 
   @override
   Widget build(BuildContext context) {
@@ -855,59 +1456,108 @@ class _DocumentPageSurface extends StatelessWidget {
               ],
             )
           : const BoxDecoration(color: Colors.white),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: DocumentCanvasPainter(
-                template: template,
-                documentData: documentData,
-                scale: scale,
-                showPageChrome: showDecoration,
-              ),
-            ),
-          ),
-          ...template.shapes.where((shape) => shape.type == 'image').map(
-            (shape) => Positioned(
-              left: shape.x * scale,
-              top: shape.y * scale,
-              width: math.max(24, shape.width * scale),
-              height: math.max(24, shape.height * scale),
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: shape.strokeWidth > 0
-                      ? BoxDecoration(
-                          border: Border.all(
-                            color: Color(shape.strokeColor),
-                            width: shape.strokeWidth * scale,
-                          ),
-                        )
-                      : const BoxDecoration(),
-                  child: _DocumentImageShape(
-                    source: _resolveTemplateText(shape.assetPath, documentData),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onPanStart: operation.isDrawTool
+            ? (details) =>
+                  onDrawStart?.call(_toDocumentOffset(details.localPosition))
+            : null,
+        onPanUpdate: operation.isDrawTool
+            ? (details) =>
+                  onDrawUpdate?.call(_toDocumentOffset(details.localPosition))
+            : null,
+        onPanEnd: operation.isDrawTool ? (_) => onDrawEnd?.call() : null,
+        onTapUp: operation.isDrawTool
+            ? (details) =>
+                  onDrawTap?.call(_toDocumentOffset(details.localPosition))
+            : null,
+        child: Stack(
+          children: [
+            if ((template.backgroundImagePath ?? '').trim().isNotEmpty)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: template.backgroundOpacity.clamp(0.0, 1.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: _DocumentImageShape(
+                        source: resolvePrintTemplateText(
+                          template.backgroundImagePath ?? '',
+                          documentData,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-          if (editMode)
-            ...template.shapes.map((shape) {
-              final isSelected = shape.id == selectedShapeId;
-              return Positioned(
-                left: shape.x * scale,
-                top: shape.y * scale,
-                width: math.max(24, shape.width * scale),
-                height: math.max(24, shape.height * scale),
-                child: _ShapeSelectionOverlay(
-                  selected: isSelected,
-                  onTap: () => onSelectShape(shape.id),
-                  onMove: (delta) => onMoveShape(shape.id, delta),
-                  onResize: (delta) => onResizeShape(shape.id, delta),
+            Positioned.fill(
+              child: CustomPaint(
+                painter: DocumentCanvasPainter(
+                  template: template,
+                  documentData: documentData,
+                  scale: scale,
+                  showPageChrome: showDecoration,
+                  draftShape: draftShape,
                 ),
-              );
-            }),
-        ],
+              ),
+            ),
+            ...template.shapes
+                .where((shape) => shape.type == 'image')
+                .map(
+                  (shape) => Positioned(
+                    left: shape.x * scale,
+                    top: shape.y * scale,
+                    width: math.max(24, shape.width * scale),
+                    height: math.max(24, shape.height * scale),
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: shape.strokeWidth > 0
+                            ? BoxDecoration(
+                                border: Border.all(
+                                  color: Color(shape.strokeColor),
+                                  width: shape.strokeWidth * scale,
+                                ),
+                              )
+                            : const BoxDecoration(),
+                        child: _DocumentImageShape(
+                          source: resolvePrintTemplateText(
+                            shape.assetPath,
+                            documentData,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            if (editMode)
+              ...template.shapes.map((shape) {
+                final isSelected =
+                    selectedShapeIds.contains(shape.id) ||
+                    shape.id == selectedShapeId;
+                return Positioned(
+                  left: shape.x * scale,
+                  top: shape.y * scale,
+                  width: math.max(24, shape.width * scale),
+                  height: math.max(24, shape.height * scale),
+                  child: _ShapeSelectionOverlay(
+                    selected: isSelected,
+                    operation: operation,
+                    onTap: () => onSelectShape(shape.id),
+                    onMove: (delta) => onMoveShape(shape.id, delta),
+                    onResize: (delta) => onResizeShape(shape.id, delta),
+                  ),
+                );
+              }),
+          ],
+        ),
       ),
+    );
+  }
+
+  Offset _toDocumentOffset(Offset point) {
+    return Offset(
+      (point.dx / scale).clamp(0.0, template.pageWidth),
+      (point.dy / scale).clamp(0.0, template.pageHeight),
     );
   }
 }
@@ -915,12 +1565,14 @@ class _DocumentPageSurface extends StatelessWidget {
 class _ShapeSelectionOverlay extends StatelessWidget {
   const _ShapeSelectionOverlay({
     required this.selected,
+    required this.operation,
     required this.onTap,
     required this.onMove,
     required this.onResize,
   });
 
   final bool selected;
+  final _DesignerOperation operation;
   final VoidCallback onTap;
   final ValueChanged<Offset> onMove;
   final ValueChanged<Offset> onResize;
@@ -933,7 +1585,27 @@ class _ShapeSelectionOverlay extends StatelessWidget {
           child: GestureDetector(
             onTap: onTap,
             onPanStart: (_) => onTap(),
-            onPanUpdate: (details) => onMove(details.delta),
+            onPanUpdate: (details) {
+              switch (operation) {
+                case _DesignerOperation.select:
+                case _DesignerOperation.move:
+                  onMove(details.delta);
+                  break;
+                case _DesignerOperation.resize:
+                  onResize(details.delta);
+                  break;
+                case _DesignerOperation.delete:
+                case _DesignerOperation.drawText:
+                case _DesignerOperation.drawRect:
+                case _DesignerOperation.drawEllipse:
+                case _DesignerOperation.drawPolygon:
+                case _DesignerOperation.drawLine:
+                case _DesignerOperation.drawTable:
+                case _DesignerOperation.drawImage:
+                case _DesignerOperation.drawBarcode:
+                  break;
+              }
+            },
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(
@@ -972,6 +1644,131 @@ class _ShapeSelectionOverlay extends StatelessWidget {
   }
 }
 
+class _MultiSelectionInspector extends StatelessWidget {
+  const _MultiSelectionInspector({
+    required this.count,
+    required this.onDelete,
+    required this.onBringForward,
+    required this.onSendBackward,
+    required this.onBringToFront,
+    required this.onSendToBack,
+    required this.onDuplicate,
+  });
+
+  final int count;
+  final VoidCallback onDelete;
+  final VoidCallback onBringForward;
+  final VoidCallback onSendBackward;
+  final VoidCallback onBringToFront;
+  final VoidCallback onSendToBack;
+  final VoidCallback onDuplicate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Multiple Shapes', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        Text(
+          '$count shapes selected',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: [
+            OutlinedButton.icon(
+              onPressed: onSendBackward,
+              icon: const Icon(Icons.arrow_downward_outlined),
+              label: const Text('Send Backward'),
+            ),
+            OutlinedButton.icon(
+              onPressed: onBringForward,
+              icon: const Icon(Icons.arrow_upward_outlined),
+              label: const Text('Bring Forward'),
+            ),
+            OutlinedButton.icon(
+              onPressed: onSendToBack,
+              icon: const Icon(Icons.vertical_align_bottom_outlined),
+              label: const Text('Send To Back'),
+            ),
+            OutlinedButton.icon(
+              onPressed: onBringToFront,
+              icon: const Icon(Icons.vertical_align_top_outlined),
+              label: const Text('Bring To Front'),
+            ),
+            OutlinedButton.icon(
+              onPressed: onDuplicate,
+              icon: const Icon(Icons.copy_outlined),
+              label: const Text('Duplicate'),
+            ),
+            OutlinedButton.icon(
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete'),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        Text(
+          'Move and resize actions apply to the full selection, closer to PBS group editing.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        Text(
+          'Use Cmd, Ctrl, or Shift while clicking shapes to add or remove them from the selection.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
+enum _DesignerOperation {
+  select,
+  move,
+  resize,
+  delete,
+  drawText,
+  drawRect,
+  drawEllipse,
+  drawPolygon,
+  drawLine,
+  drawTable,
+  drawImage,
+  drawBarcode;
+
+  bool get isDrawTool => shapeType != null;
+
+  String? get shapeType {
+    switch (this) {
+      case _DesignerOperation.drawText:
+        return 'text';
+      case _DesignerOperation.drawRect:
+        return 'rectangle';
+      case _DesignerOperation.drawEllipse:
+        return 'ellipse';
+      case _DesignerOperation.drawPolygon:
+        return 'polygon';
+      case _DesignerOperation.drawLine:
+        return 'line';
+      case _DesignerOperation.drawTable:
+        return 'table';
+      case _DesignerOperation.drawImage:
+        return 'image';
+      case _DesignerOperation.drawBarcode:
+        return 'barcode';
+      case _DesignerOperation.select:
+      case _DesignerOperation.move:
+      case _DesignerOperation.resize:
+      case _DesignerOperation.delete:
+        return null;
+    }
+  }
+}
+
 class _DocumentImageShape extends StatelessWidget {
   const _DocumentImageShape({required this.source});
 
@@ -979,7 +1776,7 @@ class _DocumentImageShape extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolved = _resolveImageSource(source);
+    final resolved = resolvePrintImageSource(source);
     if (resolved == null || resolved.trim().isEmpty) {
       return _fallback();
     }
@@ -1019,12 +1816,14 @@ class DocumentCanvasPainter extends CustomPainter {
     required this.documentData,
     required this.scale,
     this.showPageChrome = true,
+    this.draftShape,
   });
 
   final DocumentPrintTemplate template;
   final Map<String, dynamic> documentData;
   final double scale;
   final bool showPageChrome;
+  final DocumentPrintShape? draftShape;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1059,61 +1858,113 @@ class DocumentCanvasPainter extends CustomPainter {
     }
 
     for (final shape in template.shapes) {
-      final rect = Rect.fromLTWH(
-        shape.x * scale,
-        shape.y * scale,
-        shape.width * scale,
-        shape.height * scale,
-      );
-      final rrect = RRect.fromRectAndRadius(
-        rect,
-        Radius.circular(shape.borderRadius * scale),
-      );
-      final stroke = Paint()
-        ..style = PaintingStyle.stroke
-        ..color = Color(shape.strokeColor)
-        ..strokeWidth = math.max(1, shape.strokeWidth * scale);
-      final fill = Paint()
-        ..style = PaintingStyle.fill
-        ..color = Color(shape.fillColor).withValues(alpha: shape.fillAlpha);
+      _paintShape(canvas, shape);
+    }
 
-      switch (shape.type) {
-        case 'rectangle':
-          if (shape.fillAlpha > 0) {
-            canvas.drawRRect(rrect, fill);
-          }
-          canvas.drawRRect(rrect, stroke);
-          break;
-        case 'line':
-          canvas.drawLine(rect.topLeft, rect.bottomRight, stroke);
-          break;
-        case 'table':
-          if (shape.fillAlpha > 0) {
-            canvas.drawRRect(rrect, fill);
-          }
-          _paintTable(canvas, rect, shape);
-          break;
-        case 'image':
-          break;
-        case 'barcode':
-          if (shape.fillAlpha > 0) {
-            canvas.drawRRect(rrect, fill);
-          }
-          _paintBarcode(canvas, rect, shape);
-          break;
-        case 'text':
-        default:
-          if (shape.fillAlpha > 0) {
-            canvas.drawRRect(rrect, fill);
-          }
-          _paintText(canvas, rect, shape);
-          break;
-      }
+    if (draftShape != null) {
+      _paintShape(canvas, draftShape!, draft: true);
     }
   }
 
+  void _paintShape(
+    Canvas canvas,
+    DocumentPrintShape shape, {
+    bool draft = false,
+  }) {
+    final rect = Rect.fromLTWH(
+      shape.x * scale,
+      shape.y * scale,
+      shape.width * scale,
+      shape.height * scale,
+    );
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(shape.borderRadius * scale),
+    );
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = draft
+          ? Color(shape.strokeColor).withValues(alpha: 0.75)
+          : Color(shape.strokeColor)
+      ..strokeWidth = math.max(1, shape.strokeWidth * scale);
+    final fill = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Color(shape.fillColor).withValues(
+        alpha: draft
+            ? math.max(0.08, math.min(0.24, shape.fillAlpha + 0.12))
+            : shape.fillAlpha,
+      );
+
+    switch (shape.type) {
+      case 'rectangle':
+        if (shape.fillAlpha > 0) {
+          canvas.drawRRect(rrect, fill);
+        }
+        canvas.drawRRect(rrect, stroke);
+        break;
+      case 'ellipse':
+        if (shape.fillAlpha > 0) {
+          canvas.drawOval(rect, fill);
+        }
+        canvas.drawOval(rect, stroke);
+        break;
+      case 'polygon':
+        final path = _polygonPath(rect, shape.sides);
+        if (shape.fillAlpha > 0) {
+          canvas.drawPath(path, fill);
+        }
+        canvas.drawPath(path, stroke);
+        break;
+      case 'line':
+        canvas.drawLine(rect.topLeft, rect.bottomRight, stroke);
+        break;
+      case 'table':
+        if (shape.fillAlpha > 0) {
+          canvas.drawRRect(rrect, fill);
+        }
+        _paintTable(canvas, rect, shape);
+        break;
+      case 'image':
+        break;
+      case 'barcode':
+        if (shape.fillAlpha > 0) {
+          canvas.drawRRect(rrect, fill);
+        }
+        _paintBarcode(canvas, rect, shape);
+        break;
+      case 'text':
+      default:
+        if (shape.fillAlpha > 0) {
+          canvas.drawRRect(rrect, fill);
+        }
+        _paintText(canvas, rect, shape);
+        break;
+    }
+  }
+
+  Path _polygonPath(Rect rect, int sides) {
+    final safeSides = sides.clamp(3, 12);
+    final center = rect.center;
+    final radius = math.min(rect.width, rect.height) / 2;
+    final path = Path();
+    for (var index = 0; index < safeSides; index++) {
+      final angle = (-math.pi / 2) + ((math.pi * 2 * index) / safeSides);
+      final point = Offset(
+        center.dx + (radius * math.cos(angle)),
+        center.dy + (radius * math.sin(angle)),
+      );
+      if (index == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+    return path;
+  }
+
   void _paintText(Canvas canvas, Rect rect, DocumentPrintShape shape) {
-    final text = _resolveTemplateText(shape.text, documentData);
+    final text = resolvePrintTemplateText(shape.text, documentData);
     final align = switch (shape.align) {
       'center' => TextAlign.center,
       'right' => TextAlign.right,
@@ -1146,10 +1997,10 @@ class DocumentCanvasPainter extends CustomPainter {
 
   void _paintTable(Canvas canvas, Rect rect, DocumentPrintShape shape) {
     final rows =
-        _resolvePath(documentData, shape.dataPath) as List<dynamic>? ??
+        resolvePrintPath(documentData, shape.dataPath) as List<dynamic>? ??
         const <dynamic>[];
-    final headerHeight = 32 * scale;
-    final minRowHeight = math.max(24.0, shape.rowHeight * scale);
+    final headerHeight = math.max(8.0, shape.titleHeight * scale);
+    final cellGap = math.max(1.0, shape.cellGap * scale);
     final columns = shape.columns.isEmpty
         ? DocumentPrintShape.defaultTableColumns()
         : shape.columns;
@@ -1165,65 +2016,70 @@ class DocumentCanvasPainter extends CustomPainter {
       ..style = PaintingStyle.fill
       ..color = Color(shape.headerColor);
 
-    canvas.drawRect(rect, stroke);
-    canvas.drawRect(
-      Rect.fromLTWH(rect.left, rect.top, rect.width, headerHeight),
-      headerFill,
-    );
+    var currentY = rect.top;
+    if (shape.printHeader) {
+      canvas.drawRect(
+        Rect.fromLTWH(rect.left, rect.top, rect.width, headerHeight),
+        headerFill,
+      );
 
-    var cursorX = rect.left;
-    for (final column in columns) {
-      final columnWidth = rect.width * (column.widthFactor / totalWeight);
-      final headerRect = Rect.fromLTWH(
-        cursorX,
-        rect.top,
-        columnWidth,
-        headerHeight,
-      );
-      _paintTableCell(
-        canvas,
-        headerRect,
-        column.label,
-        TextAlign.left,
-        TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 12 * scale,
-          color: Color(shape.headerTextColor),
-        ),
-        centerVertically: true,
-      );
+      var cursorX = rect.left;
+      for (final column in columns) {
+        final columnWidth = rect.width * (column.widthFactor / totalWeight);
+        final headerRect = Rect.fromLTWH(
+          cursorX,
+          rect.top,
+          columnWidth,
+          headerHeight,
+        );
+        _paintTableCell(
+          canvas,
+          headerRect,
+          column.label,
+          _textAlignForColumn(column.titleAlign),
+          TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 12 * scale,
+            color: Color(shape.headerTextColor),
+          ),
+          centerVertically: true,
+          cellGap: cellGap,
+        );
+        cursorX += columnWidth;
+      }
+
       canvas.drawLine(
-        Offset(cursorX, rect.top),
-        Offset(cursorX, rect.bottom),
+        Offset(rect.left, rect.top + headerHeight),
+        Offset(rect.right, rect.top + headerHeight),
         stroke,
       );
-      cursorX += columnWidth;
+      currentY = rect.top + headerHeight;
     }
 
-    canvas.drawLine(
-      Offset(rect.left, rect.top + headerHeight),
-      Offset(rect.right, rect.top + headerHeight),
-      stroke,
-    );
+    final useFullHeight = isPrintLinesTableShape(shape);
+    final double availableBottomLimit = shape.printTotal && useFullHeight
+        ? rect.bottom - headerHeight
+        : rect.bottom;
 
-    var currentY = rect.top + headerHeight;
     for (var index = 0; index < rows.length; index++) {
       final row = rows[index];
       if (row is! Map<String, dynamic>) {
         continue;
       }
+      final hasVisibleValue = printTableRowHasVisibleValues(row, columns);
+      if (!hasVisibleValue) {
+        continue;
+      }
 
-      final rowHeight = _measureRowHeight(
+      final rowHeight = measurePrintTableRowHeight(
         row,
         columns,
         rect.width,
-        totalWeight,
-        minRowHeight,
-        scale,
-        shape.strokeColor,
+        shape,
+        scale: scale,
       );
 
-      if (currentY + rowHeight > rect.bottom) {
+      if (currentY + rowHeight > availableBottomLimit + 1.0) {
         break;
       }
 
@@ -1234,10 +2090,11 @@ class DocumentCanvasPainter extends CustomPainter {
         _paintTableCell(
           canvas,
           cellRect,
-          _resolveCellValue(row, column.key),
-          column.align == 'right' ? TextAlign.right : TextAlign.left,
+          resolvePrintCellValue(row, column.key),
+          _textAlignForColumn(column.align),
           TextStyle(fontSize: 11 * scale, color: Color(shape.strokeColor)),
           centerVertically: true,
+          cellGap: cellGap,
         );
         x += columnWidth;
       }
@@ -1249,36 +2106,90 @@ class DocumentCanvasPainter extends CustomPainter {
       );
       currentY += rowHeight;
     }
-  }
 
-  double _measureRowHeight(
-    Map<String, dynamic> row,
-    List<DocumentPrintColumn> columns,
-    double totalWidth,
-    double totalWeight,
-    double minHeight,
-    double scale,
-    int strokeColor,
-  ) {
-    double maxHeight = minHeight;
-    for (final column in columns) {
-      final weight = totalWeight > 0 ? column.widthFactor / totalWeight : 0.0;
-      final columnWidth = totalWidth * weight;
-      final text = _resolveCellValue(row, column.key);
-      final painter = TextPainter(
-        text: TextSpan(
-          text: text,
-          style: TextStyle(fontSize: 11 * scale, color: Color(strokeColor)),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout(maxWidth: math.max(0.0, columnWidth - 12));
-      maxHeight = math.max(maxHeight, painter.height + 12);
+    if (shape.printTotal) {
+      final totals = _calculateColumnTotals(rows, columns);
+      if (totals.isNotEmpty) {
+        final totalRowTop = useFullHeight
+            ? rect.bottom - headerHeight
+            : currentY;
+        canvas.drawRect(
+          Rect.fromLTWH(rect.left, totalRowTop, rect.width, headerHeight),
+          headerFill,
+        );
+        var x = rect.left;
+        for (var index = 0; index < columns.length; index++) {
+          final column = columns[index];
+          final columnWidth = rect.width * (column.widthFactor / totalWeight);
+          final cellRect = Rect.fromLTWH(
+            x,
+            totalRowTop,
+            columnWidth,
+            headerHeight,
+          );
+          final value = index == 0
+              ? 'Total'
+              : totals[column.key] == null
+              ? ''
+              : formatPrintAmount(totals[column.key]!);
+          _paintTableCell(
+            canvas,
+            cellRect,
+            value,
+            index == 0 ? TextAlign.left : _textAlignForColumn(column.align),
+            TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 11 * scale,
+              color: Color(shape.headerTextColor),
+            ),
+            centerVertically: true,
+            cellGap: cellGap,
+          );
+          x += columnWidth;
+        }
+        canvas.drawLine(
+          Offset(rect.left, totalRowTop),
+          Offset(rect.right, totalRowTop),
+          stroke,
+        );
+        canvas.drawLine(
+          Offset(rect.left, totalRowTop + headerHeight),
+          Offset(rect.right, totalRowTop + headerHeight),
+          stroke,
+        );
+        currentY = totalRowTop + headerHeight;
+      }
     }
-    return maxHeight;
+
+    final contentBottom = useFullHeight
+        ? rect.bottom
+        : math.max(
+            currentY,
+            shape.printHeader ? rect.top + headerHeight : rect.top,
+          );
+
+    var cursorX = rect.left;
+    for (var i = 0; i < columns.length; i++) {
+      final column = columns[i];
+      final columnWidth = rect.width * (column.widthFactor / totalWeight);
+      if (i > 0) {
+        canvas.drawLine(
+          Offset(cursorX, rect.top),
+          Offset(cursorX, contentBottom),
+          stroke,
+        );
+      }
+      cursorX += columnWidth;
+    }
+
+    canvas.drawRect(
+      Rect.fromLTRB(rect.left, rect.top, rect.right, contentBottom),
+      stroke,
+    );
   }
 
   void _paintBarcode(Canvas canvas, Rect rect, DocumentPrintShape shape) {
-    final value = _resolveTemplateText(shape.text, documentData);
+    final value = resolvePrintTemplateText(shape.text, documentData);
     if (value.trim().isEmpty) {
       return;
     }
@@ -1371,21 +2282,61 @@ class DocumentCanvasPainter extends CustomPainter {
     TextAlign align,
     TextStyle style, {
     bool centerVertically = false,
+    double cellGap = 6,
   }) {
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),
       textAlign: align,
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: math.max(0.0, rect.width - 12));
+    )..layout(maxWidth: math.max(0.0, rect.width - (cellGap * 2)));
     final dx = switch (align) {
-      TextAlign.right => rect.right - painter.width - 6,
+      TextAlign.right => rect.right - painter.width - cellGap,
       TextAlign.center => rect.left + ((rect.width - painter.width) / 2),
-      _ => rect.left + 6,
+      _ => rect.left + cellGap,
     };
     final dy = centerVertically
         ? rect.top + ((rect.height - painter.height) / 2)
-        : rect.top + 6;
+        : rect.top + cellGap;
     painter.paint(canvas, Offset(dx, dy));
+  }
+
+  Map<String, double> _calculateColumnTotals(
+    List<dynamic> rows,
+    List<DocumentPrintColumn> columns,
+  ) {
+    final totals = <String, double>{};
+    final totalColumns = columns.where((column) => column.totalColumn).toList();
+    if (totalColumns.isEmpty) {
+      return totals;
+    }
+    for (final row in rows) {
+      if (row is! Map<String, dynamic>) {
+        continue;
+      }
+      for (final column in totalColumns) {
+        final value = resolvePrintPath(row, column.key);
+        if (value is num) {
+          totals[column.key] = (totals[column.key] ?? 0) + value.toDouble();
+        } else {
+          final parsed = double.tryParse(value?.toString() ?? '');
+          if (parsed != null) {
+            totals[column.key] = (totals[column.key] ?? 0) + parsed;
+          }
+        }
+      }
+    }
+    return totals;
+  }
+
+  TextAlign _textAlignForColumn(String align) {
+    switch (align) {
+      case 'right':
+        return TextAlign.right;
+      case 'center':
+        return TextAlign.center;
+      default:
+        return TextAlign.left;
+    }
   }
 
   void _drawGrid(Canvas canvas, Size size) {
@@ -1403,870 +2354,11 @@ class DocumentCanvasPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant DocumentCanvasPainter oldDelegate) {
+  bool shouldRepaint(DocumentCanvasPainter oldDelegate) {
     return oldDelegate.template != template ||
         oldDelegate.documentData != documentData ||
         oldDelegate.scale != scale ||
-        oldDelegate.showPageChrome != showPageChrome;
+        oldDelegate.showPageChrome != showPageChrome ||
+        oldDelegate.draftShape != draftShape;
   }
-}
-
-class _PageInspector extends StatelessWidget {
-  const _PageInspector({
-    required this.template,
-    required this.onChanged,
-  });
-
-  final DocumentPrintTemplate template;
-  final ValueChanged<DocumentPrintTemplate> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Page', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        AppDropdownField<String>.fromMapped(
-          labelText: 'Paper',
-          initialValue: template.mediaPreset,
-          mappedItems: const [
-            AppDropdownItem(value: 'A4', label: 'A4'),
-            AppDropdownItem(value: 'A5', label: 'A5'),
-            AppDropdownItem(value: 'LETTER', label: 'Letter'),
-            AppDropdownItem(value: 'CUSTOM', label: 'Custom'),
-          ],
-          onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-            onChanged(_applyPagePreset(template, mediaPreset: value));
-          },
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        AppDropdownField<String>.fromMapped(
-          labelText: 'Orientation',
-          initialValue: template.orientation,
-          mappedItems: const [
-            AppDropdownItem(value: 'portrait', label: 'Portrait'),
-            AppDropdownItem(value: 'landscape', label: 'Landscape'),
-          ],
-          onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-            onChanged(_applyPagePreset(template, orientation: value));
-          },
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'Width',
-          value: template.pageWidth,
-          onChanged: (value) => onChanged(
-            template.copyWith(
-              pageWidth: math.max(320, value),
-              mediaPreset: 'CUSTOM',
-            ),
-          ),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'Height',
-          value: template.pageHeight,
-          onChanged: (value) => onChanged(
-            template.copyWith(
-              pageHeight: math.max(400, value),
-              mediaPreset: 'CUSTOM',
-            ),
-          ),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        AppSwitchTile(
-          label: 'Show Grid',
-          value: template.showGrid,
-          onChanged: (value) => onChanged(template.copyWith(showGrid: value)),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'Grid Size',
-          value: template.gridSize,
-          onChanged: (value) => onChanged(
-            template.copyWith(gridSize: value.clamp(4, 64).toDouble()),
-          ),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        const SizedBox(height: AppUiConstants.spacingMd),
-        Text(
-          'Select a shape on the page to edit it.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
-  }
-}
-
-class _ShapeInspector extends StatelessWidget {
-  const _ShapeInspector({
-    super.key,
-    required this.shape,
-    required this.bindings,
-    required this.isUploadingImage,
-    required this.onChanged,
-    required this.onUploadImage,
-    required this.onDelete,
-    required this.onBringForward,
-    required this.onSendBackward,
-  });
-
-  final DocumentPrintShape shape;
-  final List<String> bindings;
-  final bool isUploadingImage;
-  final ValueChanged<DocumentPrintShape> onChanged;
-  final Future<void> Function() onUploadImage;
-  final VoidCallback onDelete;
-  final VoidCallback onBringForward;
-  final VoidCallback onSendBackward;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                shape.typeLabel,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            IconButton(
-              tooltip: 'Send backward',
-              onPressed: onSendBackward,
-              icon: const Icon(Icons.arrow_downward_outlined),
-            ),
-            IconButton(
-              tooltip: 'Bring forward',
-              onPressed: onBringForward,
-              icon: const Icon(Icons.arrow_upward_outlined),
-            ),
-            IconButton(
-              tooltip: 'Delete',
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        Row(
-          children: [
-            Expanded(
-              child: _NumberField(
-                label: 'X',
-                value: shape.x,
-                onChanged: (value) =>
-                    onChanged(shape.copyWith(x: math.max(0, value))),
-              ),
-            ),
-            const SizedBox(width: AppUiConstants.spacingSm),
-            Expanded(
-              child: _NumberField(
-                label: 'Y',
-                value: shape.y,
-                onChanged: (value) =>
-                    onChanged(shape.copyWith(y: math.max(0, value))),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        Row(
-          children: [
-            Expanded(
-              child: _NumberField(
-                label: 'Width',
-                value: shape.width,
-                onChanged: (value) =>
-                    onChanged(shape.copyWith(width: math.max(24, value))),
-              ),
-            ),
-            const SizedBox(width: AppUiConstants.spacingSm),
-            Expanded(
-              child: _NumberField(
-                label: 'Height',
-                value: shape.height,
-                onChanged: (value) =>
-                    onChanged(shape.copyWith(height: math.max(16, value))),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'Stroke Width',
-          value: shape.strokeWidth,
-          onChanged: (value) =>
-              onChanged(shape.copyWith(strokeWidth: math.max(1, value))),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _ColorField(
-          label: switch (shape.type) {
-            'text' => 'Text Color',
-            'rectangle' => 'Border Color',
-            'line' => 'Line Color',
-            'table' => 'Grid Color',
-            'barcode' => 'Barcode Color',
-            _ => 'Stroke Color',
-          },
-          value: shape.strokeColor,
-          onChanged: (value) => onChanged(shape.copyWith(strokeColor: value)),
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _ColorField(
-          label: 'Fill Color',
-          value: shape.fillColor,
-          onChanged: (value) {
-            var next = shape.copyWith(fillColor: value);
-            if (value != 0xFFFFFFFF && shape.fillAlpha == 0) {
-              next = next.copyWith(fillAlpha: 1.0);
-            }
-            onChanged(next);
-          },
-        ),
-        if (shape.type == 'table') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _ColorField(
-            label: 'Header Color',
-            value: shape.headerColor,
-            onChanged: (value) => onChanged(shape.copyWith(headerColor: value)),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _ColorField(
-            label: 'Header Text Color',
-            value: shape.headerTextColor,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(headerTextColor: value)),
-          ),
-        ],
-        const SizedBox(height: AppUiConstants.spacingSm),
-        _NumberField(
-          label: 'Fill Alpha (0-1)',
-          value: shape.fillAlpha,
-          fractionDigits: 2,
-          onChanged: (value) => onChanged(
-            shape.copyWith(fillAlpha: value.clamp(0, 1).toDouble()),
-          ),
-        ),
-        if (shape.type == 'text') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _StringField(
-            label: 'Text',
-            value: shape.text,
-            maxLines: 4,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(text: value, multiline: true)),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _NumberField(
-            label: 'Font Size',
-            value: shape.fontSize,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(fontSize: math.max(8, value))),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          AppDropdownField<String>.fromMapped(
-            labelText: 'Alignment',
-            initialValue: shape.align,
-            mappedItems: const [
-              AppDropdownItem(value: 'left', label: 'Left'),
-              AppDropdownItem(value: 'center', label: 'Center'),
-              AppDropdownItem(value: 'right', label: 'Right'),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                onChanged(shape.copyWith(align: value));
-              }
-            },
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          AppSwitchTile(
-            label: 'Bold',
-            value: shape.bold,
-            onChanged: (value) => onChanged(shape.copyWith(bold: value)),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          AppSwitchTile(
-            label: 'Italic',
-            value: shape.italic,
-            onChanged: (value) => onChanged(shape.copyWith(italic: value)),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          AppSwitchTile(
-            label: 'Underline',
-            value: shape.underline,
-            onChanged: (value) => onChanged(shape.copyWith(underline: value)),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          Text('Bindings', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: AppUiConstants.spacingXs),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: bindings
-                .map(
-                  (binding) => ActionChip(
-                    label: Text('{{$binding}}'),
-                    onPressed: () => onChanged(
-                      shape.copyWith(
-                        text: shape.text.isEmpty
-                            ? '{{$binding}}'
-                            : '${shape.text} {{$binding}}',
-                      ),
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ],
-        if (shape.type == 'rectangle') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _NumberField(
-            label: 'Border Radius',
-            value: shape.borderRadius,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(borderRadius: math.max(0, value))),
-          ),
-        ],
-        if (shape.type == 'table') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _StringField(
-            label: 'Rows Path',
-            value: shape.dataPath,
-            onChanged: (value) => onChanged(shape.copyWith(dataPath: value)),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _NumberField(
-            label: 'Row Height',
-            value: shape.rowHeight,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(rowHeight: math.max(20, value))),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _TableColumnInspector(
-            columns: shape.columns,
-            onChanged: (columns) => onChanged(shape.copyWith(columns: columns)),
-          ),
-        ],
-        if (shape.type == 'image') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _ImageShapeUploadField(
-            value: shape.assetPath,
-            isUploading: isUploadingImage,
-            onChanged: (value) => onChanged(shape.copyWith(assetPath: value)),
-            onUpload: onUploadImage,
-          ),
-        ],
-        if (shape.type == 'barcode') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _StringField(
-            label: 'Barcode Value',
-            value: shape.text,
-            onChanged: (value) => onChanged(shape.copyWith(text: value)),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          AppDropdownField<String>.fromMapped(
-            labelText: 'Barcode Type',
-            initialValue: shape.barcodeType,
-            mappedItems: const [
-              AppDropdownItem(value: 'code128', label: 'CODE128'),
-              AppDropdownItem(value: 'qr', label: 'QR'),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                onChanged(shape.copyWith(barcodeType: value));
-              }
-            },
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          _NumberField(
-            label: 'Font Size',
-            value: shape.fontSize,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(fontSize: math.max(8, value))),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _StringField extends StatefulWidget {
-  const _StringField({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    this.maxLines = 1,
-  });
-
-  final String label;
-  final String value;
-  final ValueChanged<String> onChanged;
-  final int maxLines;
-
-  @override
-  State<_StringField> createState() => _StringFieldState();
-}
-
-class _StringFieldState extends State<_StringField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.value);
-    _controller.addListener(_handleChanged);
-  }
-
-  @override
-  void didUpdateWidget(_StringField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.value != _controller.text) {
-      _controller.text = widget.value;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.removeListener(_handleChanged);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleChanged() {
-    if (_controller.text != widget.value) {
-      widget.onChanged(_controller.text);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppFormTextField(
-      controller: _controller,
-      labelText: widget.label,
-      maxLines: widget.maxLines,
-      onChanged: widget.onChanged,
-    );
-  }
-}
-
-class _NumberField extends StatefulWidget {
-  const _NumberField({
-    super.key,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    this.fractionDigits = 0,
-  });
-
-  final String label;
-  final double value;
-  final ValueChanged<double> onChanged;
-  final int fractionDigits;
-
-  @override
-  State<_NumberField> createState() => _NumberFieldState();
-}
-
-class _NumberFieldState extends State<_NumberField> {
-  late final TextEditingController _controller;
-
-  String _formatValue(double value) {
-    return widget.fractionDigits == 0
-        ? value.toStringAsFixed(0)
-        : value.toStringAsFixed(widget.fractionDigits);
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: _formatValue(widget.value));
-  }
-
-  @override
-  void didUpdateWidget(_NumberField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final text = _formatValue(widget.value);
-    if (text != _controller.text && double.tryParse(_controller.text) != widget.value) {
-      _controller.text = text;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppFormTextField(
-      controller: _controller,
-      labelText: widget.label,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      onChanged: (next) {
-        final parsed = double.tryParse(next.trim());
-        if (parsed != null) {
-          widget.onChanged(parsed);
-        }
-      },
-    );
-  }
-}
-
-class _ColorField extends StatelessWidget {
-  const _ColorField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final int value;
-  final ValueChanged<int> onChanged;
-
-  static const _palette = <String, int>{
-    'Transparent': 0x00000000,
-    'White': 0xFFFFFFFF,
-    'Default Gray': 0xFFF1F5F9,
-    'Slate': 0xFF475569,
-    'Black': 0xFF111827,
-    'Blue': 0xFF2563EB,
-    'Green': 0xFF059669,
-    'Red': 0xFFDC2626,
-    'Amber': 0xFFF59E0B,
-    'Orange': 0xFFEA580C,
-    'Gray': 0xFFD1D5DB,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    // Ensure the current value is visible in the dropdown even if not in palette
-    final current = _palette.values.contains(value)
-        ? value
-        : _palette.values.first;
-    
-    return AppDropdownField<int>.fromMapped(
-      labelText: label,
-      initialValue: current,
-      mappedItems: _palette.entries
-          .map(
-            (entry) =>
-                AppDropdownItem<int>(value: entry.value, label: entry.key),
-          )
-          .toList(growable: false),
-      onChanged: (next) {
-        if (next != null) {
-          onChanged(next);
-        }
-      },
-    );
-  }
-}
-
-
-class _TableColumnInspector extends StatelessWidget {
-  const _TableColumnInspector({required this.columns, required this.onChanged});
-
-  final List<DocumentPrintColumn> columns;
-  final ValueChanged<List<DocumentPrintColumn>> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Columns',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-            IconButton(
-              tooltip: 'Add column',
-              onPressed: () {
-                onChanged([
-                  ...columns,
-                  DocumentPrintColumn(
-                    key: 'new_key',
-                    label: 'New Column',
-                    widthFactor: 1.0,
-                  ),
-                ]);
-              },
-              icon: const Icon(Icons.add_circle_outline),
-              visualDensity: VisualDensity.compact,
-            ),
-          ],
-        ),
-        const SizedBox(height: AppUiConstants.spacingXs),
-        ...columns.asMap().entries.map((entry) {
-          final index = entry.key;
-          final column = entry.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
-            child: AppSectionCard(
-              padding: const EdgeInsets.all(AppUiConstants.spacingSm),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StringField(
-                          key: ValueKey('col-$index-label'),
-                          label: 'Label',
-                          value: column.label,
-                          onChanged: (val) =>
-                              _updateColumn(index, column.copyWith(label: val)),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => _deleteColumn(index),
-                        icon: const Icon(Icons.remove_circle_outline),
-                        color: Theme.of(context).colorScheme.error,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StringField(
-                          key: ValueKey('col-$index-key'),
-                          label: 'Key',
-                          value: column.key,
-                          onChanged: (val) =>
-                              _updateColumn(index, column.copyWith(key: val)),
-                        ),
-                      ),
-                      const SizedBox(width: AppUiConstants.spacingSm),
-                      SizedBox(
-                        width: 80,
-                        child: _NumberField(
-                          key: ValueKey('col-$index-weight'),
-                          label: 'Weight',
-                          value: column.widthFactor,
-                          onChanged: (val) => _updateColumn(
-                            index,
-                            column.copyWith(widthFactor: val),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
-                  AppDropdownField<String>.fromMapped(
-                    labelText: 'Align',
-                    initialValue: column.align,
-                    mappedItems: const [
-                      AppDropdownItem(value: 'left', label: 'Left'),
-                      AppDropdownItem(value: 'center', label: 'Center'),
-                      AppDropdownItem(value: 'right', label: 'Right'),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        _updateColumn(index, column.copyWith(align: val));
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-
-  void _updateColumn(int index, DocumentPrintColumn next) {
-    final list = [...columns];
-    list[index] = next;
-    onChanged(list);
-  }
-
-  void _deleteColumn(int index) {
-    final list = [...columns];
-    list.removeAt(index);
-    onChanged(list);
-  }
-}
-
-class _ImageShapeUploadField extends StatefulWidget {
-  const _ImageShapeUploadField({
-    required this.value,
-    required this.isUploading,
-    required this.onChanged,
-    required this.onUpload,
-  });
-
-  final String value;
-  final bool isUploading;
-  final ValueChanged<String> onChanged;
-  final Future<void> Function() onUpload;
-
-  @override
-  State<_ImageShapeUploadField> createState() => _ImageShapeUploadFieldState();
-}
-
-class _ImageShapeUploadFieldState extends State<_ImageShapeUploadField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.value);
-  }
-
-  @override
-  void didUpdateWidget(covariant _ImageShapeUploadField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value && _controller.text != widget.value) {
-      _controller.text = widget.value;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return UploadPathField(
-      controller: _controller,
-      labelText: 'Image Source',
-      isUploading: widget.isUploading,
-      previewUrl: _resolveImageSource(widget.value),
-      previewIcon: Icons.image_outlined,
-      onUpload: widget.onUpload,
-    );
-  }
-}
-
-DocumentPrintTemplate _applyPagePreset(
-  DocumentPrintTemplate template, {
-  String? mediaPreset,
-  String? orientation,
-}) {
-  final nextPreset = mediaPreset ?? template.mediaPreset;
-  final nextOrientation = orientation ?? template.orientation;
-  if (nextPreset == 'CUSTOM') {
-    return template.copyWith(
-      mediaPreset: nextPreset,
-      orientation: nextOrientation,
-    );
-  }
-  final size = switch (nextPreset) {
-    'A5' => const Size(420, 595),
-    'LETTER' => const Size(612, 792),
-    _ => const Size(595, 842),
-  };
-  final width = nextOrientation == 'landscape' ? size.height : size.width;
-  final height = nextOrientation == 'landscape' ? size.width : size.height;
-  return template.copyWith(
-    mediaPreset: nextPreset,
-    orientation: nextOrientation,
-    pageWidth: width,
-    pageHeight: height,
-  );
-}
-
-Object? _resolvePath(Map<String, dynamic> data, String path) {
-  if (path.trim().isEmpty) {
-    return null;
-  }
-  Object? current = data;
-  for (final segment in path.split('.')) {
-    if (current is Map<String, dynamic>) {
-      current = current[segment];
-    } else {
-      return null;
-    }
-  }
-  return current;
-}
-
-String _resolveTemplateText(String input, Map<String, dynamic> data) {
-  return input.replaceAllMapped(RegExp(r'\{\{([^}]+)\}\}'), (match) {
-    final key = match.group(1)?.trim() ?? '';
-    final value = _resolvePath(data, key);
-    if (value == null) {
-      return '';
-    }
-    if (value is num) {
-      return _formatAmount(value.toDouble());
-    }
-    return value.toString();
-  });
-}
-
-String _resolveCellValue(Map<String, dynamic> row, String key) {
-  final value = _resolvePath(row, key);
-  if (value == null) {
-    return '';
-  }
-  if (value is num) {
-    return _formatAmount(value.toDouble());
-  }
-  return value.toString();
-}
-
-String _formatAmount(double value) {
-  if (value == value.roundToDouble()) {
-    return value.round().toString();
-  }
-  return value.toStringAsFixed(2);
-}
-
-String? _resolveImageSource(String? source) {
-  if (source == null || source.trim().isEmpty) {
-    return null;
-  }
-  source = _normalizeLegacyImageSource(source);
-  if (source.startsWith('assets/')) {
-    return source;
-  }
-  if (source.startsWith('http://') || source.startsWith('https://')) {
-    return source;
-  }
-  return AppConfig.resolvePublicFileUrl(source) ?? source;
-}
-
-String _normalizeLegacyImageSource(String source) {
-  final trimmed = source.trim();
-  if (trimmed == _legacyPbsLogoAsset) {
-    return _defaultPrintLogoAsset;
-  }
-  return trimmed;
-}
-
-List<String> _availableBindings(
-  Map<String, dynamic> data, [
-  String prefix = '',
-]) {
-  final keys = <String>[];
-  data.forEach((key, value) {
-    if (value is Map<String, dynamic>) {
-      keys.addAll(
-        _availableBindings(value, prefix.isEmpty ? key : '$prefix.$key'),
-      );
-    } else if (value is! List) {
-      keys.add(prefix.isEmpty ? key : '$prefix.$key');
-    }
-  });
-  return keys;
 }

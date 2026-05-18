@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../screen.dart';
 import '../printing/document_print_designer.dart';
+import '../printing/print_template_support.dart';
 import 'purchase_support.dart';
 
 class PurchaseInvoicePage extends StatefulWidget {
@@ -66,8 +67,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
   List<PurchaseInvoiceModel> _items = const <PurchaseInvoiceModel>[];
   List<PurchaseInvoiceModel> _filteredItems = const <PurchaseInvoiceModel>[];
   List<CompanyModel> _companies = const <CompanyModel>[];
-  List<BranchModel> _branches = const <BranchModel>[];
-  List<BusinessLocationModel> _locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
   List<PurchaseOrderModel> _orders = const <PurchaseOrderModel>[];
@@ -210,12 +209,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         _companies =
             (responses[1] as PaginatedResponse<CompanyModel>).data ??
             const <CompanyModel>[];
-        _branches =
-            (responses[2] as PaginatedResponse<BranchModel>).data ??
-            const <BranchModel>[];
-        _locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-            const <BusinessLocationModel>[];
         _financialYears =
             (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
@@ -401,7 +394,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     });
   }
 
-  Map<String, dynamic> _purchaseInvoicePrintData() {
+  DocumentPrintDataModel _purchaseInvoicePrintData() {
     final company = _companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == _companyId,
       orElse: () => null,
@@ -412,57 +405,77 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     );
     var subtotal = 0.0;
     var taxAmount = 0.0;
+    final gstBreakupGroups = <String, dynamic>{};
     final lines = _lines
+        .where((line) => line.itemId > 0)
         .map((line) {
           final qty = line.invoicedQty;
           final rate = line.rate;
           final discount = line.discountPercent ?? 0;
-          final taxable = qty * rate * (1 - (discount.clamp(0, 100) / 100));
-          final taxRate =
-              _taxCodes
-                  .cast<TaxCodeModel?>()
-                  .firstWhere(
-                    (item) => item?.id == line.taxCodeId,
-                    orElse: () => null,
-                  )
-                  ?.taxRate ??
-              line.taxPercent ??
-              0;
-          final total = taxable + (taxable * taxRate / 100);
-          subtotal += taxable;
-          taxAmount += total - taxable;
+          final taxCode = purchaseTaxCodeById(_taxCodes, line.taxCodeId);
+          final breakdown = computePurchaseLineTaxBreakdown(
+            qty: qty,
+            rate: rate,
+            discountPercent: discount,
+            taxCode: taxCode,
+            taxPercent: line.taxPercent,
+            taxType: line.taxType,
+          );
+          final taxPercent = (line.taxPercent ?? taxCode?.taxRate ?? 0)
+              .toDouble();
+          subtotal += breakdown.taxable;
+          taxAmount += breakdown.total - breakdown.taxable;
+          accumulatePrintTemplateGstBreakup(
+            gstBreakupGroups,
+            taxCode: taxCode,
+            taxPercent: taxPercent,
+            taxable: breakdown.taxable,
+            cgst: breakdown.cgst,
+            sgst: breakdown.sgst,
+            igst: breakdown.igst,
+          );
           final item = _itemsLookup.cast<ItemModel?>().firstWhere(
             (entry) => entry?.id == line.itemId,
             orElse: () => null,
           );
-          return <String, dynamic>{
-            'item_name':
+          return DocumentPrintLineModel(
+            itemName:
                 item?.itemName ?? item?.itemCode ?? (line.description ?? ''),
-            'description': line.description ?? '',
-            'qty': qty,
-            'rate': rate,
-            'line_total': double.parse(total.toStringAsFixed(2)),
-          };
+            description: line.description ?? '',
+            qty: qty,
+            rate: rate,
+            taxAmount: double.parse(
+              (breakdown.total - breakdown.taxable).toStringAsFixed(2),
+            ),
+            lineTotal: double.parse(breakdown.taxable.toStringAsFixed(2)),
+          );
         })
         .toList(growable: false);
 
-    return <String, dynamic>{
-      'company_name': companyNameById(_companies, _companyId),
-      'company_logo_url':
-          AppConfig.resolvePublicFileUrl(company?.logoPath) ??
-          'assets/sakthicontroller logo.jpg',
-      'document_number': nullIfEmpty(_invoiceNoController.text) ?? 'Draft',
-      'document_date': _invoiceDateController.text.trim(),
-      'reference_number': _supplierReferenceNoController.text.trim(),
-      'party_name': supplier?.partyName ?? '',
-      'party_address': '',
-      'party_contact': '',
-      'notes': _notesController.text.trim(),
-      'subtotal': double.parse(subtotal.toStringAsFixed(2)),
-      'tax_amount': double.parse(taxAmount.toStringAsFixed(2)),
-      'total_amount': double.parse((subtotal + taxAmount).toStringAsFixed(2)),
-      'lines': lines,
-    };
+    return DocumentPrintDataModel(
+      companyName: companyNameById(_companies, _companyId),
+      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
+      companyGstin: company?.gstin ?? '',
+      documentNumber: nullIfEmpty(_invoiceNoController.text) ?? 'Draft',
+      documentDate: _invoiceDateController.text.trim(),
+      referenceNumber: _supplierReferenceNoController.text.trim(),
+      partyName: supplier?.partyName ?? '',
+      partyAddress: '',
+      partyContact: '',
+      notes: _notesController.text.trim(),
+      termsConditions: _termsController.text.trim(),
+      subtotal: double.parse(subtotal.toStringAsFixed(2)),
+      taxAmount: double.parse(taxAmount.toStringAsFixed(2)),
+      totalAmount: double.parse((subtotal + taxAmount).toStringAsFixed(2)),
+      amountInWords: printTemplateAmountInWords(
+        double.parse((subtotal + taxAmount).toStringAsFixed(2)),
+        _currencyCodeController.text.trim().isEmpty
+            ? 'INR'
+            : _currencyCodeController.text.trim(),
+      ),
+      lines: lines,
+      gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+    );
   }
 
   Future<void> _openPrintPreview() {
@@ -824,12 +837,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           : null;
     });
   }
-
-  List<BranchModel> get _branchOptions =>
-      branchesForCompany(_branches, _companyId);
-
-  List<BusinessLocationModel> get _locationOptions =>
-      locationsForBranch(_locations, _branchId);
 
   void _addLine() {
     setState(() {

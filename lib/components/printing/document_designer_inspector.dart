@@ -1,0 +1,1164 @@
+import 'dart:math' as math;
+
+import '../../screen.dart';
+import '../../model/printing/print_template_model.dart';
+import '../../View/printing/document_print_designer_support.dart';
+
+class DocumentDesignerPageInspector extends StatelessWidget {
+  const DocumentDesignerPageInspector({
+    super.key,
+    required this.template,
+    required this.onChanged,
+    required this.isUploadingBackground,
+    required this.onUploadBackground,
+  });
+
+  final DocumentPrintTemplate template;
+  final ValueChanged<DocumentPrintTemplate> onChanged;
+  final bool isUploadingBackground;
+  final Future<void> Function() onUploadBackground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Page', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        Text('Property Grid', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: AppUiConstants.spacingXs),
+        DocumentDesignerPropertyGrid(
+          rows: [
+            DocumentDesignerPropertyGridRow(
+              label: 'Paper',
+              child: _CompactDropdownField<String>(
+                value: template.mediaPreset,
+                items: const [
+                  DropdownMenuItem(value: 'A4', child: Text('A4')),
+                  DropdownMenuItem(value: 'A5', child: Text('A5')),
+                  DropdownMenuItem(value: 'LETTER', child: Text('Letter')),
+                  DropdownMenuItem(value: 'CUSTOM', child: Text('Custom')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    onChanged(
+                      applyPrintPagePreset(template, mediaPreset: value),
+                    );
+                  }
+                },
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Orientation',
+              child: _CompactDropdownField<String>(
+                value: template.orientation,
+                items: const [
+                  DropdownMenuItem(value: 'portrait', child: Text('Portrait')),
+                  DropdownMenuItem(
+                    value: 'landscape',
+                    child: Text('Landscape'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    onChanged(
+                      applyPrintPagePreset(template, orientation: value),
+                    );
+                  }
+                },
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Width',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: template.pageWidth,
+                onChanged: (value) => onChanged(
+                  template.copyWith(
+                    pageWidth: math.max(320, value),
+                    mediaPreset: 'CUSTOM',
+                  ),
+                ),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Height',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: template.pageHeight,
+                onChanged: (value) => onChanged(
+                  template.copyWith(
+                    pageHeight: math.max(400, value),
+                    mediaPreset: 'CUSTOM',
+                  ),
+                ),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Show Grid',
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Switch(
+                  value: template.showGrid,
+                  onChanged: (value) =>
+                      onChanged(template.copyWith(showGrid: value)),
+                ),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Grid Size',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: template.gridSize,
+                onChanged: (value) => onChanged(
+                  template.copyWith(gridSize: value.clamp(4, 64).toDouble()),
+                ),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Watermark',
+              child: DocumentDesignerBackgroundImageField(
+                value: template.backgroundImagePath ?? '',
+                isUploading: isUploadingBackground,
+                onChanged: (value) => onChanged(
+                  template.copyWith(
+                    backgroundImagePath: value.trim().isEmpty ? null : value,
+                  ),
+                ),
+                onUpload: onUploadBackground,
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Watermark Opacity',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: template.backgroundOpacity,
+                fractionDigits: 2,
+                onChanged: (value) => onChanged(
+                  template.copyWith(
+                    backgroundOpacity: value.clamp(0.0, 1.0).toDouble(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        Text(
+          'Select a shape on the page to edit it.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
+class DocumentDesignerShapeInspector extends StatelessWidget {
+  const DocumentDesignerShapeInspector({
+    super.key,
+    required this.shape,
+    required this.bindings,
+    required this.listBindings,
+    required this.rowBindings,
+    required this.isUploadingImage,
+    required this.onChanged,
+    required this.onUploadImage,
+    required this.onDelete,
+    required this.onBringForward,
+    required this.onSendBackward,
+    required this.onBringToFront,
+    required this.onSendToBack,
+    required this.onDuplicate,
+  });
+
+  final DocumentPrintShape shape;
+  final List<String> bindings;
+  final List<String> listBindings;
+  final List<String> rowBindings;
+  final bool isUploadingImage;
+  final ValueChanged<DocumentPrintShape> onChanged;
+  final Future<void> Function() onUploadImage;
+  final VoidCallback onDelete;
+  final VoidCallback onBringForward;
+  final VoidCallback onSendBackward;
+  final VoidCallback onBringToFront;
+  final VoidCallback onSendToBack;
+  final VoidCallback onDuplicate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                shape.typeLabel,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Send backward',
+              onPressed: onSendBackward,
+              icon: const Icon(Icons.arrow_downward_outlined),
+            ),
+            IconButton(
+              tooltip: 'Bring forward',
+              onPressed: onBringForward,
+              icon: const Icon(Icons.arrow_upward_outlined),
+            ),
+            IconButton(
+              tooltip: 'Send to back',
+              onPressed: onSendToBack,
+              icon: const Icon(Icons.vertical_align_bottom_outlined),
+            ),
+            IconButton(
+              tooltip: 'Bring to front',
+              onPressed: onBringToFront,
+              icon: const Icon(Icons.vertical_align_top_outlined),
+            ),
+            IconButton(
+              tooltip: 'Duplicate',
+              onPressed: onDuplicate,
+              icon: const Icon(Icons.copy_outlined),
+            ),
+            IconButton(
+              tooltip: 'Delete',
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        Text('Property Grid', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: AppUiConstants.spacingXs),
+        DocumentDesignerPropertyGrid(
+          rows: [
+            DocumentDesignerPropertyGridRow(
+              label: 'X',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: shape.x,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(x: math.max(0, value))),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Y',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: shape.y,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(y: math.max(0, value))),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Width',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: shape.width,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(width: math.max(24, value))),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Height',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: shape.height,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(height: math.max(16, value))),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Stroke Width',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: shape.strokeWidth,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(strokeWidth: math.max(1, value))),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: switch (shape.type) {
+                'text' => 'Text Color',
+                'rectangle' => 'Border Color',
+                'ellipse' => 'Border Color',
+                'polygon' => 'Border Color',
+                'line' => 'Line Color',
+                'table' => 'Grid Color',
+                'barcode' => 'Barcode Color',
+                _ => 'Stroke Color',
+              },
+              child: DocumentDesignerColorField(
+                label: '',
+                value: shape.strokeColor,
+                onChanged: (value) =>
+                    onChanged(shape.copyWith(strokeColor: value)),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Fill Color',
+              child: DocumentDesignerColorField(
+                label: '',
+                value: shape.fillColor,
+                onChanged: (value) {
+                  var next = shape.copyWith(fillColor: value);
+                  if (value != 0xFFFFFFFF && shape.fillAlpha == 0) {
+                    next = next.copyWith(fillAlpha: 1.0);
+                  }
+                  onChanged(next);
+                },
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
+              label: 'Fill Alpha',
+              child: DocumentDesignerNumberField(
+                label: '',
+                value: shape.fillAlpha,
+                fractionDigits: 2,
+                onChanged: (value) => onChanged(
+                  shape.copyWith(fillAlpha: value.clamp(0, 1).toDouble()),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (shape.type == 'table') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerColorField(
+            label: 'Header Color',
+            value: shape.headerColor,
+            onChanged: (value) => onChanged(shape.copyWith(headerColor: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerColorField(
+            label: 'Header Text Color',
+            value: shape.headerTextColor,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(headerTextColor: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppSwitchTile(
+            label: 'Print Header',
+            value: shape.printHeader,
+            onChanged: (value) => onChanged(shape.copyWith(printHeader: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppSwitchTile(
+            label: 'Print Total Row',
+            value: shape.printTotal,
+            onChanged: (value) => onChanged(shape.copyWith(printTotal: value)),
+          ),
+        ],
+        if (shape.type == 'text') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerStringField(
+            label: 'Text',
+            value: shape.text,
+            maxLines: 4,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(text: value, multiline: true)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerNumberField(
+            label: 'Font Size',
+            value: shape.fontSize,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(fontSize: math.max(1, value))),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _CompactDropdownField<String>(
+            value: shape.align,
+            items: const [
+              DropdownMenuItem(value: 'left', child: Text('Left')),
+              DropdownMenuItem(value: 'center', child: Text('Center')),
+              DropdownMenuItem(value: 'right', child: Text('Right')),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                onChanged(shape.copyWith(align: value));
+              }
+            },
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppSwitchTile(
+            label: 'Bold',
+            value: shape.bold,
+            onChanged: (value) => onChanged(shape.copyWith(bold: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppSwitchTile(
+            label: 'Italic',
+            value: shape.italic,
+            onChanged: (value) => onChanged(shape.copyWith(italic: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          AppSwitchTile(
+            label: 'Underline',
+            value: shape.underline,
+            onChanged: (value) => onChanged(shape.copyWith(underline: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          Text('Bindings', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: bindings
+                .map(
+                  (binding) => ActionChip(
+                    label: Text('{{$binding}}'),
+                    onPressed: () => onChanged(
+                      shape.copyWith(
+                        text: shape.text.isEmpty
+                            ? '{{$binding}}'
+                            : '${shape.text} {{$binding}}',
+                      ),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ],
+        if (shape.type == 'rectangle') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerNumberField(
+            label: 'Border Radius',
+            value: shape.borderRadius,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(borderRadius: math.max(0, value))),
+          ),
+        ],
+        if (shape.type == 'polygon') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerNumberField(
+            label: 'Sides',
+            value: shape.sides.toDouble(),
+            onChanged: (value) =>
+                onChanged(shape.copyWith(sides: value.round().clamp(3, 12))),
+          ),
+        ],
+        if (shape.type == 'table') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerStringField(
+            label: 'Rows Path',
+            value: shape.dataPath,
+            onChanged: (value) => onChanged(shape.copyWith(dataPath: value)),
+          ),
+          if (listBindings.isNotEmpty) ...[
+            const SizedBox(height: AppUiConstants.spacingXs),
+            Text(
+              'Available list paths',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: AppUiConstants.spacingXs),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: listBindings
+                  .map(
+                    (binding) => ActionChip(
+                      label: Text(binding),
+                      onPressed: () =>
+                          onChanged(shape.copyWith(dataPath: binding)),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerNumberField(
+            label: 'Row Height',
+            value: shape.rowHeight,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(rowHeight: math.max(20, value))),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerNumberField(
+            label: 'Title Height',
+            value: shape.titleHeight,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(titleHeight: math.max(20, value))),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerNumberField(
+            label: 'Cell Gap',
+            value: shape.cellGap,
+            onChanged: (value) => onChanged(
+              shape.copyWith(cellGap: value.clamp(1, 24).toDouble()),
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerTableColumnInspector(
+            columns: shape.columns,
+            availableKeys: rowBindings,
+            onChanged: (columns) => onChanged(shape.copyWith(columns: columns)),
+          ),
+        ],
+        if (shape.type == 'image') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerImageShapeUploadField(
+            value: shape.assetPath,
+            isUploading: isUploadingImage,
+            onChanged: (value) => onChanged(shape.copyWith(assetPath: value)),
+            onUpload: onUploadImage,
+          ),
+        ],
+        if (shape.type == 'barcode') ...[
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerStringField(
+            label: 'Barcode Value',
+            value: shape.text,
+            onChanged: (value) => onChanged(shape.copyWith(text: value)),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          _CompactDropdownField<String>(
+            value: shape.barcodeType,
+            items: const [
+              DropdownMenuItem(value: 'code128', child: Text('CODE128')),
+              DropdownMenuItem(value: 'qr', child: Text('QR')),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                onChanged(shape.copyWith(barcodeType: value));
+              }
+            },
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+          DocumentDesignerNumberField(
+            label: 'Font Size',
+            value: shape.fontSize,
+            onChanged: (value) =>
+                onChanged(shape.copyWith(fontSize: math.max(1, value))),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class DocumentDesignerStringField extends StatefulWidget {
+  const DocumentDesignerStringField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.maxLines = 1,
+  });
+
+  final String label;
+  final String value;
+  final ValueChanged<String> onChanged;
+  final int maxLines;
+
+  @override
+  State<DocumentDesignerStringField> createState() =>
+      _DocumentDesignerStringFieldState();
+}
+
+class _DocumentDesignerStringFieldState
+    extends State<DocumentDesignerStringField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _controller.addListener(_handleChanged);
+  }
+
+  @override
+  void didUpdateWidget(DocumentDesignerStringField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _controller.text) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_handleChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleChanged() {
+    if (_controller.text != widget.value) {
+      widget.onChanged(_controller.text);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppFormTextField(
+      labelText: widget.label.isEmpty ? ' ' : widget.label,
+      hintText: widget.label.isEmpty ? null : widget.label,
+      controller: _controller,
+      maxLines: widget.maxLines,
+    );
+  }
+}
+
+class DocumentDesignerPropertyGrid extends StatelessWidget {
+  const DocumentDesignerPropertyGrid({super.key, required this.rows});
+
+  final List<DocumentDesignerPropertyGridRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: rows
+            .asMap()
+            .entries
+            .map((entry) {
+              final index = entry.key;
+              final row = entry.value;
+              return IntrinsicHeight(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: index == 0
+                        ? null
+                        : Border(
+                            top: BorderSide(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                            ),
+                          ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: 130,
+                        padding: const EdgeInsets.all(AppUiConstants.spacingSm),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.35),
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          row.label,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                            AppUiConstants.spacingXs,
+                          ),
+                          child: row.child,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            })
+            .toList(growable: false),
+      ),
+    );
+  }
+}
+
+class DocumentDesignerPropertyGridRow {
+  const DocumentDesignerPropertyGridRow({
+    required this.label,
+    required this.child,
+  });
+
+  final String label;
+  final Widget child;
+}
+
+class DocumentDesignerNumberField extends StatefulWidget {
+  const DocumentDesignerNumberField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.fractionDigits = 0,
+  });
+
+  final String label;
+  final double value;
+  final ValueChanged<double> onChanged;
+  final int fractionDigits;
+
+  @override
+  State<DocumentDesignerNumberField> createState() =>
+      _DocumentDesignerNumberFieldState();
+}
+
+class _DocumentDesignerNumberFieldState
+    extends State<DocumentDesignerNumberField> {
+  late final TextEditingController _controller;
+
+  String _formatValue(double value) {
+    return widget.fractionDigits == 0
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(widget.fractionDigits);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _formatValue(widget.value));
+  }
+
+  @override
+  void didUpdateWidget(DocumentDesignerNumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final text = _formatValue(widget.value);
+    if (text != _controller.text &&
+        double.tryParse(_controller.text) != widget.value) {
+      _controller.text = text;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppFormTextField(
+      labelText: widget.label.isEmpty ? ' ' : widget.label,
+      hintText: widget.label.isEmpty ? null : widget.label,
+      controller: _controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: (next) {
+        final parsed = double.tryParse(next.trim());
+        if (parsed != null) {
+          widget.onChanged(parsed);
+        }
+      },
+    );
+  }
+}
+
+class DocumentDesignerColorField extends StatelessWidget {
+  const DocumentDesignerColorField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  static const palette = <String, int>{
+    'Transparent': 0x00000000,
+    'White': 0xFFFFFFFF,
+    'Default Gray': 0xFFF1F5F9,
+    'Slate': 0xFF475569,
+    'Black': 0xFF111827,
+    'Blue': 0xFF2563EB,
+    'Green': 0xFF059669,
+    'Red': 0xFFDC2626,
+    'Amber': 0xFFF59E0B,
+    'Orange': 0xFFEA580C,
+    'Gray': 0xFFD1D5DB,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final current = palette.values.contains(value)
+        ? value
+        : palette.values.first;
+    return _CompactDropdownField<int>(
+      value: current,
+      items: palette.entries
+          .map(
+            (entry) => DropdownMenuItem<int>(
+              value: entry.value,
+              child: Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Color(entry.value),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.grey.shade400,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(entry.key),
+                ],
+              ),
+            ),
+          )
+          .toList(growable: false),
+      onChanged: (next) {
+        if (next != null) {
+          onChanged(next);
+        }
+      },
+    );
+  }
+}
+
+class DocumentDesignerTableColumnInspector extends StatelessWidget {
+  const DocumentDesignerTableColumnInspector({
+    super.key,
+    required this.columns,
+    required this.availableKeys,
+    required this.onChanged,
+  });
+
+  final List<DocumentPrintColumn> columns;
+  final List<String> availableKeys;
+  final ValueChanged<List<DocumentPrintColumn>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Columns',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Add column',
+              onPressed: () {
+                onChanged([
+                  ...columns,
+                  const DocumentPrintColumn(
+                    key: 'new_key',
+                    label: 'New Column',
+                    widthFactor: 1.0,
+                  ),
+                ]);
+              },
+              icon: const Icon(Icons.add_circle_outline),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingXs),
+        if (availableKeys.isNotEmpty) ...[
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: availableKeys
+                .map(
+                  (key) => ActionChip(
+                    label: Text(key),
+                    onPressed: () {
+                      if (columns.any((column) => column.key == key)) {
+                        return;
+                      }
+                      onChanged([
+                        ...columns,
+                        DocumentPrintColumn(
+                          key: key,
+                          label: printColumnLabelFromKey(key),
+                          widthFactor: 1.0,
+                        ),
+                      ]);
+                    },
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          const SizedBox(height: AppUiConstants.spacingSm),
+        ],
+        ...columns.asMap().entries.map((entry) {
+          final index = entry.key;
+          final column = entry.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+            child: AppSectionCard(
+              padding: const EdgeInsets.all(AppUiConstants.spacingSm),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DocumentDesignerStringField(
+                          key: ValueKey('col-$index-label'),
+                          label: 'Label',
+                          value: column.label,
+                          onChanged: (val) =>
+                              _updateColumn(index, column.copyWith(label: val)),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _deleteColumn(index),
+                        icon: const Icon(Icons.remove_circle_outline),
+                        color: Theme.of(context).colorScheme.error,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DocumentDesignerStringField(
+                          key: ValueKey('col-$index-key'),
+                          label: 'Key',
+                          value: column.key,
+                          onChanged: (val) =>
+                              _updateColumn(index, column.copyWith(key: val)),
+                        ),
+                      ),
+                      const SizedBox(width: AppUiConstants.spacingSm),
+                      SizedBox(
+                        width: 80,
+                        child: DocumentDesignerNumberField(
+                          key: ValueKey('col-$index-weight'),
+                          label: 'Weight',
+                          value: column.widthFactor,
+                          onChanged: (val) => _updateColumn(
+                            index,
+                            column.copyWith(widthFactor: val),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  _CompactDropdownField<String>(
+                    value: column.align,
+                    items: const [
+                      DropdownMenuItem(value: 'left', child: Text('Left')),
+                      DropdownMenuItem(value: 'center', child: Text('Center')),
+                      DropdownMenuItem(value: 'right', child: Text('Right')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        _updateColumn(index, column.copyWith(align: val));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  _CompactDropdownField<String>(
+                    value: column.titleAlign,
+                    items: const [
+                      DropdownMenuItem(value: 'left', child: Text('Left')),
+                      DropdownMenuItem(value: 'center', child: Text('Center')),
+                      DropdownMenuItem(value: 'right', child: Text('Right')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        _updateColumn(index, column.copyWith(titleAlign: val));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  AppSwitchTile(
+                    label: 'Total Column',
+                    value: column.totalColumn,
+                    onChanged: (value) => _updateColumn(
+                      index,
+                      column.copyWith(totalColumn: value),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  void _updateColumn(int index, DocumentPrintColumn next) {
+    final list = [...columns];
+    list[index] = next;
+    onChanged(list);
+  }
+
+  void _deleteColumn(int index) {
+    final list = [...columns];
+    list.removeAt(index);
+    onChanged(list);
+  }
+}
+
+class DocumentDesignerImageShapeUploadField extends StatefulWidget {
+  const DocumentDesignerImageShapeUploadField({
+    super.key,
+    required this.value,
+    required this.isUploading,
+    required this.onChanged,
+    required this.onUpload,
+  });
+
+  final String value;
+  final bool isUploading;
+  final ValueChanged<String> onChanged;
+  final Future<void> Function() onUpload;
+
+  @override
+  State<DocumentDesignerImageShapeUploadField> createState() =>
+      _DocumentDesignerImageShapeUploadFieldState();
+}
+
+class _DocumentDesignerImageShapeUploadFieldState
+    extends State<DocumentDesignerImageShapeUploadField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(
+    covariant DocumentDesignerImageShapeUploadField oldWidget,
+  ) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return UploadPathField(
+      controller: _controller,
+      labelText: 'Image Source',
+      isUploading: widget.isUploading,
+      previewUrl: resolvePrintImageSource(widget.value),
+      previewIcon: Icons.image_outlined,
+      onUpload: widget.onUpload,
+    );
+  }
+}
+
+class DocumentDesignerBackgroundImageField extends StatefulWidget {
+  const DocumentDesignerBackgroundImageField({
+    super.key,
+    required this.value,
+    required this.isUploading,
+    required this.onChanged,
+    required this.onUpload,
+  });
+
+  final String value;
+  final bool isUploading;
+  final ValueChanged<String> onChanged;
+  final Future<void> Function() onUpload;
+
+  @override
+  State<DocumentDesignerBackgroundImageField> createState() =>
+      _DocumentDesignerBackgroundImageFieldState();
+}
+
+class _DocumentDesignerBackgroundImageFieldState
+    extends State<DocumentDesignerBackgroundImageField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(
+    covariant DocumentDesignerBackgroundImageField oldWidget,
+  ) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        UploadPathField(
+          controller: _controller,
+          labelText: 'Background Image',
+          isUploading: widget.isUploading,
+          previewUrl: resolvePrintImageSource(widget.value),
+          previewIcon: Icons.layers_outlined,
+          onUpload: widget.onUpload,
+        ),
+        const SizedBox(height: AppUiConstants.spacingXs),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Wrap(
+            spacing: AppUiConstants.spacingSm,
+            runSpacing: AppUiConstants.spacingSm,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => widget.onChanged(_controller.text),
+                icon: const Icon(Icons.link_outlined),
+                label: const Text('Apply Path'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  _controller.clear();
+                  widget.onChanged('');
+                },
+                icon: const Icon(Icons.clear_outlined),
+                label: const Text('Clear'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactDropdownField<T> extends StatelessWidget {
+  const _CompactDropdownField({
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  final T value;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppDropdownField<T>(
+      labelText: ' ',
+      items: items,
+      initialValue: value,
+      onChanged: onChanged,
+    );
+  }
+}
