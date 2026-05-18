@@ -30,7 +30,6 @@ class CompanyModel implements JsonModel {
     this.countryCode,
     this.remarks,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

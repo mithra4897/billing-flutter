@@ -10,7 +10,6 @@ class ProjectMilestoneModel implements JsonModel {
     this.milestoneAmount,
     this.milestoneStatus,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

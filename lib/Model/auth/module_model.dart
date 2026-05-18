@@ -13,7 +13,6 @@ class ModuleModel implements JsonModel {
     this.effectiveSortOrder,
     this.isHidden,
     this.isActive,
-    Map<String, dynamic>? raw,
   });
 
   final String? moduleCode;

@@ -13,7 +13,6 @@ class UomConversionModel implements JsonModel {
     this.toUomCode = '',
     this.toUomName = '',
     this.toUomSymbol = '',
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

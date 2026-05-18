@@ -4,7 +4,6 @@ class RolePermissionSummaryModel implements JsonModel {
   const RolePermissionSummaryModel({
     this.role,
     this.permissions = const <RolePermissionModel>[],
-    Map<String, dynamic>? raw,
   });
 
   final RoleModel? role;

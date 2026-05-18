@@ -15,7 +15,6 @@ class FinancialYearModel implements JsonModel {
     this.isActive = true,
     this.remarks,
     this.companyName,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

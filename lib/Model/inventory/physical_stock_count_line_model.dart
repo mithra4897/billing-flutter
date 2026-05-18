@@ -22,7 +22,6 @@ class PhysicalStockCountLineModel implements JsonModel {
     this.uomCode,
     this.uomName,
     this.uomSymbol,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

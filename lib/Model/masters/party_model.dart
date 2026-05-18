@@ -19,7 +19,6 @@ class PartyModel implements JsonModel {
     this.isActive = true,
     this.addresses = const [],
     this.contacts = const [],
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

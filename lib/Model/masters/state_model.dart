@@ -9,7 +9,6 @@ class StateModel implements JsonModel {
     this.gstStateCode = '',
     this.isUnionTerritory = false,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

@@ -22,8 +22,7 @@ class MrpRecommendationModel implements JsonModel {
     this.approvedAt,
     this.createdAt,
     this.updatedAt,
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final int? id;
   final int? mrpRunId;

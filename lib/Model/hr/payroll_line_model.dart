@@ -14,8 +14,7 @@ class PayrollLineModel implements JsonModel {
     this.lopDays,
     this.createdAt,
     this.updatedAt,
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final int? id;
   final int? payrollRunId;

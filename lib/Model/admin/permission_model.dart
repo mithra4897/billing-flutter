@@ -9,7 +9,6 @@ class PermissionModel implements JsonModel {
     this.description,
     this.isSystemPermission,
     this.isActive,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

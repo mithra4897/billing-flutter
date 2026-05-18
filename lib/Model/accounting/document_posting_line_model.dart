@@ -13,8 +13,7 @@ class DocumentPostingLineModel implements JsonModel {
     this.sourceRuleId,
     this.createdAt,
     this.updatedAt,
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final int? id;
   final int? documentPostingId;

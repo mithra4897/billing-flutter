@@ -14,8 +14,7 @@ class ProjectDashboardModel implements JsonModel {
     this.taskSummary,
     this.milestoneSummary,
     this.progressPercent,
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final int? projectId;
   final String? projectCode;

@@ -12,7 +12,6 @@ class VoucherTypeModel implements JsonModel {
     this.allowsReferenceAllocation = true,
     this.isSystemType = false,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

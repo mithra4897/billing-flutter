@@ -16,7 +16,6 @@ class LeaveRequestModel implements JsonModel {
     this.employeeName,
     this.leaveTypeName,
     this.approverName,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

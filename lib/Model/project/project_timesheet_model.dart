@@ -15,7 +15,6 @@ class ProjectTimesheetModel implements JsonModel {
     this.voucherId,
     this.timesheetStatus,
     this.notes,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

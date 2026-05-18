@@ -25,7 +25,6 @@ class UserModel implements JsonModel {
     this.roles = const [],
     this.userRoles = const [],
     this.extraPermissions = const [],
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

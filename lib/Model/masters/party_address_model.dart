@@ -16,7 +16,6 @@ class PartyAddressModel implements JsonModel {
     this.countryCode,
     this.isDefault = false,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

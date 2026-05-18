@@ -20,7 +20,6 @@ class ProjectTaskModel implements JsonModel {
     this.taskStatus,
     this.isBillable,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

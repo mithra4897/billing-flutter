@@ -7,7 +7,6 @@ class BrandModel implements JsonModel {
     this.brandName,
     this.isActive = true,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

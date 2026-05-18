@@ -10,7 +10,6 @@ class EmployeeAccountModel implements JsonModel {
     this.isActive = true,
     this.accountCode,
     this.accountName,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

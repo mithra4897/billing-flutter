@@ -14,7 +14,6 @@ class ItemAlternateModel implements JsonModel {
     this.alternateItemCode = '',
     this.alternateItemName = '',
     this.alternateItemType,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

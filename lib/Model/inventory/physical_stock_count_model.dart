@@ -23,7 +23,6 @@ class PhysicalStockCountModel implements JsonModel {
     this.documentSeriesName,
     this.warehouseName,
     this.itemsCount,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

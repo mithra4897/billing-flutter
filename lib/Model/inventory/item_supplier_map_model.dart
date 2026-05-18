@@ -23,7 +23,6 @@ class ItemSupplierMapModel implements JsonModel {
     this.purchaseUomCode = '',
     this.purchaseUomName = '',
     this.purchaseUomSymbol = '',
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

@@ -9,7 +9,6 @@ class ItemCategoryModel implements JsonModel {
     this.imagePath,
     this.isActive = true,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

@@ -8,7 +8,6 @@ class UomModel implements JsonModel {
     this.symbol,
     this.isFractionAllowed = false,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

@@ -316,14 +316,6 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
     });
 
     try {
-      final payload = <String, dynamic>{
-        'company_id': companyId,
-        'cost_center_code': code,
-        'cost_center_name': name,
-        'cost_center_type': nullIfEmpty(_typeController.text.trim()),
-        'is_active': _isActive,
-        if (_parentId != null) 'parent_id': _parentId,
-      };
       final existingId = _detail?.id;
       if (existingId != null) {
         final response = await _assets.updateCostCenter(
@@ -331,10 +323,11 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
           CostCenterModel(
             id: existingId,
             companyId: companyId,
+            parentId: _parentId,
             costCenterCode: code,
             costCenterName: name,
+            costCenterType: nullIfEmpty(_typeController.text.trim()),
             isActive: _isActive,
-            raw: payload,
           ),
         );
         if (response.success != true || response.data == null) {
@@ -356,10 +349,11 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
         final response = await _assets.createCostCenter(
           CostCenterModel(
             companyId: companyId,
+            parentId: _parentId,
             costCenterCode: code,
             costCenterName: name,
+            costCenterType: nullIfEmpty(_typeController.text.trim()),
             isActive: _isActive,
-            raw: payload,
           ),
         );
         if (response.success != true || response.data == null) {

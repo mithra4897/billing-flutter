@@ -21,8 +21,7 @@ class ServiceWorkOrderServiceModel implements JsonModel {
     this.remarks,
     this.createdAt,
     this.updatedAt,
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final int? id;
   final int? serviceWorkOrderId;

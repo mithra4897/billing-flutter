@@ -18,7 +18,6 @@ class GstRegistrationModel implements JsonModel {
     this.isDefault = false,
     this.isActive = true,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

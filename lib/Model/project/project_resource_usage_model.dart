@@ -14,7 +14,6 @@ class ProjectResourceUsageModel implements JsonModel {
     this.totalCost,
     this.voucherId,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

@@ -14,6 +14,8 @@ class PurchaseInvoiceModel {
     this.purchaseReceiptId,
     this.invoiceNo,
     this.dueDate,
+    this.supplierReferenceNo,
+    this.supplierReferenceDate,
     this.billingAddressId,
     this.shippingAddressId,
     this.contactId,
@@ -27,11 +29,12 @@ class PurchaseInvoiceModel {
     this.adjustmentRemarks,
     this.totalAmount,
     this.invoiceStatus,
+    this.balanceAmount,
+    this.isActive = true,
     this.notes,
     this.termsConditions,
     this.lines = const [],
     this.voucher,
-    Map<String, dynamic>? raw,
   });
 
   final int id;
@@ -46,6 +49,8 @@ class PurchaseInvoiceModel {
   final int? purchaseReceiptId;
   final String? invoiceNo;
   final String? dueDate;
+  final String? supplierReferenceNo;
+  final String? supplierReferenceDate;
   final int? billingAddressId;
   final int? shippingAddressId;
   final int? contactId;
@@ -59,6 +64,8 @@ class PurchaseInvoiceModel {
   final String? adjustmentRemarks;
   final double? totalAmount;
   final String? invoiceStatus;
+  final double? balanceAmount;
+  final bool isActive;
   final String? notes;
   final String? termsConditions;
   final List<PurchaseInvoiceLineModel> lines;
@@ -78,6 +85,8 @@ class PurchaseInvoiceModel {
       purchaseReceiptId: _nullableInt(json['purchase_receipt_id']),
       invoiceNo: json['invoice_no']?.toString(),
       dueDate: json['due_date']?.toString(),
+      supplierReferenceNo: json['supplier_reference_no']?.toString(),
+      supplierReferenceDate: json['supplier_reference_date']?.toString(),
       billingAddressId: _nullableInt(json['billing_address_id']),
       shippingAddressId: _nullableInt(json['shipping_address_id']),
       contactId: _nullableInt(json['contact_id']),
@@ -91,6 +100,10 @@ class PurchaseInvoiceModel {
       adjustmentRemarks: json['adjustment_remarks']?.toString(),
       totalAmount: _nullableDouble(json['total_amount']),
       invoiceStatus: json['invoice_status']?.toString(),
+      balanceAmount: _nullableDouble(json['balance_amount']),
+      isActive: json['is_active'] == null
+          ? true
+          : json['is_active'] == true || json['is_active'] == 1,
       notes: json['notes']?.toString(),
       termsConditions: json['terms_conditions']?.toString(),
       lines: _mapLines(json['lines']),
@@ -112,6 +125,10 @@ class PurchaseInvoiceModel {
       if (invoiceNo != null) 'invoice_no': invoiceNo,
       'invoice_date': invoiceDate,
       if (dueDate != null) 'due_date': dueDate,
+      if (supplierReferenceNo != null)
+        'supplier_reference_no': supplierReferenceNo,
+      if (supplierReferenceDate != null)
+        'supplier_reference_date': supplierReferenceDate,
       'supplier_party_id': supplierPartyId,
       if (billingAddressId != null) 'billing_address_id': billingAddressId,
       if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
@@ -125,6 +142,7 @@ class PurchaseInvoiceModel {
       if (adjustmentAccountId != null)
         'adjustment_account_id': adjustmentAccountId,
       if (adjustmentRemarks != null) 'adjustment_remarks': adjustmentRemarks,
+      'is_active': isActive,
       if (notes != null) 'notes': notes,
       if (termsConditions != null) 'terms_conditions': termsConditions,
       'lines': lines.map((line) => line.toJson()).toList(growable: false),
@@ -136,6 +154,7 @@ class PurchaseInvoiceModel {
     ...toCreateJson(),
     if (totalAmount != null) 'total_amount': totalAmount,
     if (invoiceStatus != null) 'invoice_status': invoiceStatus,
+    if (balanceAmount != null) 'balance_amount': balanceAmount,
     if (voucher != null) 'voucher': voucher!.toJson(),
   };
 

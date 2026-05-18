@@ -5,8 +5,7 @@ class BudgetVsActualModel implements JsonModel {
     this.budget,
     this.summary,
     this.lines = const <Map<String, dynamic>>[],
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final Map<String, dynamic>? budget;
   final Map<String, dynamic>? summary;

@@ -23,7 +23,6 @@ class VoucherLineModel implements JsonModel {
     this.project,
     this.lineNarration,
     this.allocations = const <VoucherAllocationModel>[],
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

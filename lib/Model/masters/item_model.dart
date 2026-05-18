@@ -53,7 +53,6 @@ class ItemModel implements JsonModel {
     this.isJobworkApplicable = false,
     this.isActive = true,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

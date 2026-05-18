@@ -7,7 +7,6 @@ class LeaveTypeModel implements JsonModel {
     this.leaveCode,
     this.maxDaysPerYear,
     this.isPaid = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

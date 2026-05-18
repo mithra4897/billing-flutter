@@ -23,7 +23,6 @@ class CashSessionModel implements JsonModel {
     this.userDisplayName,
     this.cashAccountCode,
     this.cashAccountName,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

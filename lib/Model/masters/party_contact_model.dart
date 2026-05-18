@@ -11,7 +11,6 @@ class PartyContactModel implements JsonModel {
     this.email,
     this.isPrimary = false,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

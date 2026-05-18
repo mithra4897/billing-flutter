@@ -35,8 +35,7 @@ class SalesReturnModel implements JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final int? id;
   final int? companyId;

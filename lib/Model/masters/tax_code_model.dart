@@ -11,7 +11,6 @@ class TaxCodeModel implements JsonModel {
     this.hsnSacCode,
     this.remarks,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

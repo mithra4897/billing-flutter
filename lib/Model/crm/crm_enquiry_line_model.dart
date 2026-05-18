@@ -9,8 +9,7 @@ class CrmEnquiryLineModel implements JsonModel {
     this.qty,
     this.createdAt,
     this.updatedAt,
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final int? id;
   final int? enquiryId;

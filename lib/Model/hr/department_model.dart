@@ -5,7 +5,6 @@ class DepartmentModel implements JsonModel {
     this.id,
     this.departmentName,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

@@ -10,7 +10,6 @@ class EmployeeSalaryComponentModel implements JsonModel {
     this.calculationBasis,
     this.percentValue,
     this.contributionRole,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

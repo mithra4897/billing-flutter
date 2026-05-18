@@ -31,7 +31,6 @@ class VoucherModel implements JsonModel {
     this.voucherCategory,
     this.documentSeriesName,
     this.lines = const <VoucherLineModel>[],
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

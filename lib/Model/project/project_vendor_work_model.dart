@@ -13,7 +13,6 @@ class ProjectVendorWorkModel implements JsonModel {
     this.voucherId,
     this.workStatus,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

@@ -11,7 +11,6 @@ class RoleModel implements JsonModel {
     this.permissions = const [],
     this.rolePermissions = const [],
     this.permissionIds = const [],
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

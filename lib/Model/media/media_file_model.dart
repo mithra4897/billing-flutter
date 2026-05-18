@@ -13,8 +13,7 @@ class MediaFileModel {
     this.downloadUrl,
     this.publicUrl,
     this.isPublic = false,
-    Map<String, dynamic>? raw,
-  }) : _raw = raw;
+  });
 
   final int id;
   final String originalName;

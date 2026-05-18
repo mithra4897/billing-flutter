@@ -5,7 +5,6 @@ class DesignationModel implements JsonModel {
     this.id,
     this.designationName,
     this.isActive = true,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

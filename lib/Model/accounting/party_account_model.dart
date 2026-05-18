@@ -14,7 +14,6 @@ class PartyAccountModel implements JsonModel {
     this.accountCode,
     this.accountName,
     this.accountType,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

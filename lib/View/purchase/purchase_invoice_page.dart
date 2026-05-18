@@ -304,10 +304,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       _invoiceNoController.text = full.invoiceNo ?? '';
       _invoiceDateController.text = displayDate(full.invoiceDate);
       _dueDateController.text = displayDate(full.dueDate);
-      _supplierReferenceNoController.text =
-          full.toJson()['supplier_reference_no']?.toString() ?? '';
+      _supplierReferenceNoController.text = full.supplierReferenceNo ?? '';
       _supplierReferenceDateController.text = displayDate(
-        full.toJson()['supplier_reference_date']?.toString(),
+        full.supplierReferenceDate,
       );
       _currencyCodeController.text = full.currencyCode ?? 'INR';
       _exchangeRateController.text = full.exchangeRate?.toString() ?? '1';
@@ -323,9 +322,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               ),
             ]
           : full.lines;
-      _isActive = full.toJson()['is_active'] == null
-          ? true
-          : boolValue(full.toJson(), 'is_active', fallback: true);
+      _isActive = full.isActive;
       _formError = null;
     });
     final enrichReceiptId = full.purchaseReceiptId;
@@ -903,16 +900,12 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       adjustmentAccountId: _adjustmentAccountId,
       notes: nullIfEmpty(_notesController.text),
       termsConditions: nullIfEmpty(_termsController.text),
+      supplierReferenceNo: nullIfEmpty(_supplierReferenceNoController.text),
+      supplierReferenceDate: nullIfEmpty(
+        _supplierReferenceDateController.text,
+      ),
+      isActive: _isActive,
       lines: _lines,
-      raw: <String, dynamic>{
-        'supplier_reference_no': nullIfEmpty(
-          _supplierReferenceNoController.text,
-        ),
-        'supplier_reference_date': nullIfEmpty(
-          _supplierReferenceDateController.text,
-        ),
-        'is_active': _isActive,
-      },
     );
     try {
       final response = _selectedItem == null
@@ -1443,14 +1436,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                   if ((() {
                     final status = (_selectedItem!.invoiceStatus ?? '')
                         .toLowerCase();
-                    final balance =
-                        double.tryParse(
-                          _selectedItem!
-                                  .toJson()['balance_amount']
-                                  ?.toString() ??
-                              '',
-                        ) ??
-                        0;
+                    final balance = _selectedItem!.balanceAmount ?? 0;
                     return status != 'draft' &&
                         status != 'cancelled' &&
                         balance > 0;

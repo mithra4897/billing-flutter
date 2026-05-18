@@ -11,7 +11,6 @@ class ProjectBillingModel implements JsonModel {
     this.salesInvoiceId,
     this.billingStatus,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

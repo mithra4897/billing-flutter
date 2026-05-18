@@ -26,7 +26,6 @@ class ProjectModel implements JsonModel {
     this.resourceUsages = const [],
     this.vendorWorks = const [],
     this.billings = const [],
-    Map<String, dynamic>? raw,
   });
 
   final int? id;

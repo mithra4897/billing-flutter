@@ -14,7 +14,6 @@ class ProjectExpenseModel implements JsonModel {
     this.voucherId,
     this.expenseStatus,
     this.remarks,
-    Map<String, dynamic>? raw,
   });
 
   final int? id;
