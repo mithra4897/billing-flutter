@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class BankReconciliationModel implements JsonModel {
+class BankReconciliationModel extends JsonModel {
   const BankReconciliationModel({
-    this.id,
+    super.id,
     this.accountId,
     this.voucherId,
     this.voucherLineId,
@@ -22,8 +22,6 @@ class BankReconciliationModel implements JsonModel {
     this.voucherAmount,
     this.entryType,
   });
-
-  final int? id;
   final int? accountId;
   final int? voucherId;
   final int? voucherLineId;

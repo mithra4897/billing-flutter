@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PurchaseOrderLineModel implements JsonModel {
+class PurchaseOrderLineModel extends JsonModel {
   const PurchaseOrderLineModel({
-    this.id,
+    super.id,
     this.purchaseOrderId,
     this.purchaseRequisitionLineId,
     this.lineNo,
@@ -31,8 +31,6 @@ class PurchaseOrderLineModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? purchaseOrderId;
   final int? purchaseRequisitionLineId;
   final int? lineNo;
@@ -95,6 +93,9 @@ class PurchaseOrderLineModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Purchase Order Line';
+
 
   @override
   Map<String, dynamic> toJson() => {

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class JobworkChargeLineModel implements JsonModel {
+class JobworkChargeLineModel extends JsonModel {
   const JobworkChargeLineModel({
-    this.id,
+    super.id,
     this.jobworkChargeId,
     this.lineNo = 1,
     this.serviceDescription = '',
@@ -20,8 +20,6 @@ class JobworkChargeLineModel implements JsonModel {
     this.lineTotal = 0,
     this.remarks,
   });
-
-  final int? id;
   final int? jobworkChargeId;
   final int lineNo;
   final String serviceDescription;
@@ -77,6 +75,9 @@ class JobworkChargeLineModel implements JsonModel {
     'line_total': lineTotal,
     'remarks': remarks,
   };
+  @override
+  String toString() => 'Jobwork Charge Line';
+
 
   @override
   Map<String, dynamic> toJson() => toLinePayload();

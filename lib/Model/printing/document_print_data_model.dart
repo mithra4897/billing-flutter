@@ -1,6 +1,6 @@
 import '../../screen.dart';
 
-class DocumentPrintDataModel implements JsonModel {
+class DocumentPrintDataModel extends JsonModel {
   const DocumentPrintDataModel({
     this.companyName = '',
     this.companyLogoUrl = '',
@@ -20,7 +20,7 @@ class DocumentPrintDataModel implements JsonModel {
     this.amountInWords = '',
     this.lines = const <DocumentPrintLineModel>[],
     this.gstBreakup = const <DocumentPrintTaxBreakupRowModel>[],
-  });
+  }) : super(id: null);
 
   final String companyName;
   final String companyLogoUrl;
@@ -108,7 +108,7 @@ class DocumentPrintDataModel implements JsonModel {
   }
 }
 
-class DocumentPrintLineModel implements JsonModel {
+class DocumentPrintLineModel extends JsonModel {
   const DocumentPrintLineModel({
     this.itemName = '',
     this.description = '',
@@ -116,7 +116,7 @@ class DocumentPrintLineModel implements JsonModel {
     this.rate = 0,
     this.taxAmount,
     this.lineTotal = 0,
-  });
+  }) : super(id: null);
 
   final String itemName;
   final String description;
@@ -154,7 +154,7 @@ class DocumentPrintLineModel implements JsonModel {
   }
 }
 
-class DocumentPrintTaxBreakupRowModel implements JsonModel {
+class DocumentPrintTaxBreakupRowModel extends JsonModel {
   const DocumentPrintTaxBreakupRowModel({
     this.taxName = '',
     this.taxPercent = 0,
@@ -164,7 +164,7 @@ class DocumentPrintTaxBreakupRowModel implements JsonModel {
     this.igst = 0,
     this.cess = 0,
     this.totalTax = 0,
-  });
+  }) : super(id: null);
 
   final String taxName;
   final double taxPercent;

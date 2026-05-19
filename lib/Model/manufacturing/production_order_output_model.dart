@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ProductionOrderOutputModel implements JsonModel {
+class ProductionOrderOutputModel extends JsonModel {
   const ProductionOrderOutputModel({
-    this.id,
+    super.id,
     this.productionOrderId,
     this.lineNo,
     this.itemId,
@@ -22,8 +22,6 @@ class ProductionOrderOutputModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? productionOrderId;
   final int? lineNo;
   final int? itemId;
@@ -66,6 +64,9 @@ class ProductionOrderOutputModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Production Order Output';
+
 
   @override
   Map<String, dynamic> toJson() => {

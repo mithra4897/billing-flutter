@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class MrpRecommendationModel implements JsonModel {
+class MrpRecommendationModel extends JsonModel {
   const MrpRecommendationModel({
-    this.id,
+    super.id,
     this.mrpRunId,
     this.mrpNetRequirementId,
     this.recommendationType,
@@ -23,8 +23,6 @@ class MrpRecommendationModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? mrpRunId;
   final int? mrpNetRequirementId;
   final String? recommendationType;
@@ -73,6 +71,9 @@ class MrpRecommendationModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Mrp Recommendation';
+
 
   @override
   Map<String, dynamic> toJson() => {

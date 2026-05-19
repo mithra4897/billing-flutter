@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class CashSessionModel implements JsonModel {
+class CashSessionModel extends JsonModel {
   const CashSessionModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -24,8 +24,6 @@ class CashSessionModel implements JsonModel {
     this.cashAccountCode,
     this.cashAccountName,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;

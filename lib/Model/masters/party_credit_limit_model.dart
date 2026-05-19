@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PartyCreditLimitModel implements JsonModel {
+class PartyCreditLimitModel extends JsonModel {
   const PartyCreditLimitModel({
-    this.id,
+    super.id,
     this.partyId,
     this.creditLimit,
     this.creditDays,
@@ -12,8 +12,6 @@ class PartyCreditLimitModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? partyId;
   final double? creditLimit;
   final int? creditDays;
@@ -38,6 +36,9 @@ class PartyCreditLimitModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Party Credit Limit';
+
 
   @override
   Map<String, dynamic> toJson() => {

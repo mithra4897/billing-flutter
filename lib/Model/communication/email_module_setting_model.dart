@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class EmailModuleSettingModel implements JsonModel {
+class EmailModuleSettingModel extends JsonModel {
   const EmailModuleSettingModel({
-    this.id,
+    super.id,
     this.companyId,
     this.module,
     this.documentType,
@@ -15,8 +15,6 @@ class EmailModuleSettingModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final String? module;
   final String? documentType;
@@ -51,6 +49,9 @@ class EmailModuleSettingModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Email Module Setting';
+
 
   @override
   Map<String, dynamic> toJson() => {

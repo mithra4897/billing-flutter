@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class DocumentSeriesModel implements JsonModel {
+class DocumentSeriesModel extends JsonModel {
   const DocumentSeriesModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -18,8 +18,6 @@ class DocumentSeriesModel implements JsonModel {
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ItemModel implements JsonModel {
+class ItemModel extends JsonModel {
   const ItemModel({
-    this.id,
+    super.id,
     this.companyId,
     this.companyCode,
     this.companyName,
@@ -54,8 +54,6 @@ class ItemModel implements JsonModel {
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final int? companyId;
   final String? companyCode;
   final String? companyName;

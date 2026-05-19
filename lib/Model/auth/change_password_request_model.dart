@@ -1,11 +1,11 @@
 import '../../screen.dart';
 
-class ChangePasswordRequestModel implements JsonModel {
+class ChangePasswordRequestModel extends JsonModel {
   const ChangePasswordRequestModel({
     this.currentPassword,
     this.newPassword,
     this.confirmPassword,
-  });
+  }) : super(id: null);
 
   final String? currentPassword;
   final String? newPassword;
@@ -18,6 +18,9 @@ class ChangePasswordRequestModel implements JsonModel {
       confirmPassword: json['confirm_password']?.toString(),
     );
   }
+  @override
+  String toString() => 'Change Password Request';
+
 
   @override
   Map<String, dynamic> toJson() => {

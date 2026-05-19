@@ -1,12 +1,12 @@
 import '../../screen.dart';
 
-class LoginResponseModel {
+class LoginResponseModel extends JsonModel {
   const LoginResponseModel({
     required this.accessToken,
     required this.tokenType,
     required this.expiresIn,
     this.user,
-  });
+  }) : super(id: null);
 
   final String accessToken;
   final String tokenType;
@@ -23,6 +23,16 @@ class LoginResponseModel {
           : null,
     );
   }
+  @override
+  String toString() => user?.toString() ?? 'Login Response';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'access_token': accessToken,
+    'token_type': tokenType,
+    'expires_in': expiresIn,
+    if (user != null) 'user': user!.toJson(),
+  };
 
   static int _parseInt(dynamic value) {
     if (value is int) {

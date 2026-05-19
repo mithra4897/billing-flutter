@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PayrollRunModel implements JsonModel {
+class PayrollRunModel extends JsonModel {
   const PayrollRunModel({
-    this.id,
+    super.id,
     this.companyId,
     this.payrollMonth,
     this.payrollYear,
@@ -13,8 +13,6 @@ class PayrollRunModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final String? payrollMonth;
   final String? payrollYear;
@@ -39,6 +37,9 @@ class PayrollRunModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Payroll Run';
+
 
   @override
   Map<String, dynamic> toJson() => {

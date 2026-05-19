@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class DocumentTaxLineModel implements JsonModel {
+class DocumentTaxLineModel extends JsonModel {
   const DocumentTaxLineModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -32,8 +32,6 @@ class DocumentTaxLineModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;
@@ -100,6 +98,9 @@ class DocumentTaxLineModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Document Tax Line';
+
 
   @override
   Map<String, dynamic> toJson() => {

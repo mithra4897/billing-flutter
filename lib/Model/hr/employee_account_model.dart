@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class EmployeeAccountModel implements JsonModel {
+class EmployeeAccountModel extends JsonModel {
   const EmployeeAccountModel({
-    this.id,
+    super.id,
     this.employeeId,
     this.accountId,
     this.accountPurpose,
@@ -11,8 +11,6 @@ class EmployeeAccountModel implements JsonModel {
     this.accountCode,
     this.accountName,
   });
-
-  final int? id;
   final int? employeeId;
   final int? accountId;
   final String? accountPurpose;

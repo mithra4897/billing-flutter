@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class AssetTransferModel implements JsonModel {
+class AssetTransferModel extends JsonModel {
   const AssetTransferModel({
-    this.id,
+    super.id,
     this.companyId,
     this.transferNo,
     this.transferDate,
@@ -25,8 +25,6 @@ class AssetTransferModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final String? transferNo;
   final String? transferDate;
@@ -75,6 +73,9 @@ class AssetTransferModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Asset Transfer';
+
 
   @override
   Map<String, dynamic> toJson() => {

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class JobworkDispatchModel implements JsonModel {
+class JobworkDispatchModel extends JsonModel {
   const JobworkDispatchModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -26,8 +26,6 @@ class JobworkDispatchModel implements JsonModel {
     this.rawSupplier,
     this.rawJobworkOrder,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;

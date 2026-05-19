@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PartyGstDetailModel implements JsonModel {
+class PartyGstDetailModel extends JsonModel {
   const PartyGstDetailModel({
-    this.id,
+    super.id,
     this.partyId,
     this.gstin,
     this.registrationType,
@@ -20,8 +20,6 @@ class PartyGstDetailModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? partyId;
   final String? gstin;
   final String? registrationType;
@@ -64,6 +62,9 @@ class PartyGstDetailModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Party Gst Detail';
+
 
   @override
   Map<String, dynamic> toJson() => {

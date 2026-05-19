@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ExpenseClaimLineModel implements JsonModel {
+class ExpenseClaimLineModel extends JsonModel {
   const ExpenseClaimLineModel({
-    this.id,
+    super.id,
     this.expenseClaimId,
     this.lineNo,
     this.expenseDate,
@@ -15,8 +15,6 @@ class ExpenseClaimLineModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? expenseClaimId;
   final int? lineNo;
   final String? expenseDate;
@@ -45,6 +43,9 @@ class ExpenseClaimLineModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Expense Claim Line';
+
 
   @override
   Map<String, dynamic> toJson() => {

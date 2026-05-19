@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class GstRegistrationModel implements JsonModel {
+class GstRegistrationModel extends JsonModel {
   const GstRegistrationModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -19,8 +19,6 @@ class GstRegistrationModel implements JsonModel {
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;

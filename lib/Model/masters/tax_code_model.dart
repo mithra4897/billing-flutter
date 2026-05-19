@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class TaxCodeModel implements JsonModel {
+class TaxCodeModel extends JsonModel {
   const TaxCodeModel({
-    this.id,
+    super.id,
     this.taxCode,
     this.taxName,
     this.taxType,
@@ -12,8 +12,6 @@ class TaxCodeModel implements JsonModel {
     this.remarks,
     this.isActive = true,
   });
-
-  final int? id;
   final String? taxCode;
   final String? taxName;
   final String? taxType;

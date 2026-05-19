@@ -1,9 +1,9 @@
 import '../../screen.dart';
 
 /// Output line on a jobwork order (`jobwork_order_outputs`).
-class JobworkOrderOutputModel implements JsonModel {
+class JobworkOrderOutputModel extends JsonModel {
   const JobworkOrderOutputModel({
-    this.id,
+    super.id,
     this.jobworkOrderId,
     this.lineNo = 1,
     this.itemId,
@@ -17,8 +17,6 @@ class JobworkOrderOutputModel implements JsonModel {
     this.standardAmount = 0,
     this.remarks,
   });
-
-  final int? id;
   final int? jobworkOrderId;
   final int lineNo;
   final int? itemId;
@@ -62,6 +60,9 @@ class JobworkOrderOutputModel implements JsonModel {
     'standard_amount': standardAmount,
     'remarks': remarks,
   };
+  @override
+  String toString() => 'Jobwork Order Output';
+
 
   @override
   Map<String, dynamic> toJson() => toLinePayload();

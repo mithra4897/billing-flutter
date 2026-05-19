@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class VoucherTypeModel implements JsonModel {
+class VoucherTypeModel extends JsonModel {
   const VoucherTypeModel({
-    this.id,
+    super.id,
     this.code,
     this.name,
     this.voucherCategory,
@@ -13,8 +13,6 @@ class VoucherTypeModel implements JsonModel {
     this.isSystemType = false,
     this.isActive = true,
   });
-
-  final int? id;
   final String? code;
   final String? name;
   final String? voucherCategory;

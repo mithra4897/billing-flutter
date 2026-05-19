@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class QcInspectionLineModel implements JsonModel {
+class QcInspectionLineModel extends JsonModel {
   const QcInspectionLineModel({
-    this.id,
+    super.id,
     this.qcInspectionId,
     this.qcPlanLineId,
     this.lineNo,
@@ -20,8 +20,6 @@ class QcInspectionLineModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? qcInspectionId;
   final int? qcPlanLineId;
   final int? lineNo;
@@ -64,6 +62,9 @@ class QcInspectionLineModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Qc Inspection Line';
+
 
   @override
   Map<String, dynamic> toJson() => {

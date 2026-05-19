@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class CostCenterModel implements JsonModel {
+class CostCenterModel extends JsonModel {
   const CostCenterModel({
-    this.id,
+    super.id,
     this.companyId,
     this.parentId,
     this.costCenterCode,
@@ -10,8 +10,6 @@ class CostCenterModel implements JsonModel {
     this.costCenterType,
     this.isActive = true,
   });
-
-  final int? id;
   final int? companyId;
   final int? parentId;
   final String? costCenterCode;

@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import '../../screen.dart';
 
-const String defaultPrintLogoAsset = 'assets/sakthicontroller logo.jpg';
+const String defaultPrintLogoAsset = 'assets/sakthi-logo.jpg';
 const String legacyPbsLogoAsset = 'assets/pbs_logo.png';
 
 DocumentPrintTemplate applyPrintPagePreset(

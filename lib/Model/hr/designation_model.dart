@@ -1,13 +1,11 @@
 import '../../screen.dart';
 
-class DesignationModel implements JsonModel {
+class DesignationModel extends JsonModel {
   const DesignationModel({
-    this.id,
+    super.id,
     this.designationName,
     this.isActive = true,
   });
-
-  final int? id;
   final String? designationName;
   final bool isActive;
 

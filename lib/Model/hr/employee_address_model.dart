@@ -1,6 +1,8 @@
-class EmployeeAddressModel {
+import '../../screen.dart';
+
+class EmployeeAddressModel extends JsonModel {
   const EmployeeAddressModel({
-    this.id,
+    super.id,
     this.employeeId,
     this.addressType,
     this.addressLine1,
@@ -12,8 +14,6 @@ class EmployeeAddressModel {
     this.country,
     this.phoneNumber,
   });
-
-  final int? id;
   final int? employeeId;
   final String? addressType;
   final String? addressLine1;
@@ -40,7 +40,10 @@ class EmployeeAddressModel {
       phoneNumber: json['phone_number']?.toString(),
     );
   }
+  @override
+  String toString() => addressLine1 ?? 'Employee Address';
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,

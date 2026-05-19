@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PostingRuleGroupModel implements JsonModel {
+class PostingRuleGroupModel extends JsonModel {
   const PostingRuleGroupModel({
-    this.id,
+    super.id,
     this.groupCode,
     this.groupName,
     this.documentType,
@@ -14,8 +14,6 @@ class PostingRuleGroupModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final String? groupCode;
   final String? groupName;
   final String? documentType;
@@ -44,6 +42,9 @@ class PostingRuleGroupModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Posting Rule Group';
+
 
   @override
   Map<String, dynamic> toJson() => {

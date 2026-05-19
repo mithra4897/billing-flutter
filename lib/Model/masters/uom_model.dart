@@ -1,16 +1,14 @@
 import '../../screen.dart';
 
-class UomModel implements JsonModel {
+class UomModel extends JsonModel {
   const UomModel({
-    this.id,
+    super.id,
     this.uomCode,
     this.uomName,
     this.symbol,
     this.isFractionAllowed = false,
     this.isActive = true,
   });
-
-  final int? id;
   final String? uomCode;
   final String? uomName;
   final String? symbol;

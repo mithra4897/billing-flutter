@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class DocumentPostingLineModel implements JsonModel {
+class DocumentPostingLineModel extends JsonModel {
   const DocumentPostingLineModel({
-    this.id,
+    super.id,
     this.documentPostingId,
     this.lineNo,
     this.accountId,
@@ -14,8 +14,6 @@ class DocumentPostingLineModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? documentPostingId;
   final int? lineNo;
   final int? accountId;
@@ -42,6 +40,9 @@ class DocumentPostingLineModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Document Posting Line';
+
 
   @override
   Map<String, dynamic> toJson() => {

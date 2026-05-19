@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class CrmEnquiryLineModel implements JsonModel {
+class CrmEnquiryLineModel extends JsonModel {
   const CrmEnquiryLineModel({
-    this.id,
+    super.id,
     this.enquiryId,
     this.itemId,
     this.description,
@@ -10,8 +10,6 @@ class CrmEnquiryLineModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? enquiryId;
   final int? itemId;
   final String? description;
@@ -30,6 +28,9 @@ class CrmEnquiryLineModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Crm Enquiry Line';
+
 
   @override
   Map<String, dynamic> toJson() => {

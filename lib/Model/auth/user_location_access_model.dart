@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class UserLocationAccessModel implements JsonModel {
+class UserLocationAccessModel extends JsonModel {
   const UserLocationAccessModel({
-    this.id,
+    super.id,
     this.userId,
     this.locationId,
     this.isDefault,
@@ -17,8 +17,6 @@ class UserLocationAccessModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? userId;
   final int? locationId;
   final bool? isDefault;
@@ -65,6 +63,9 @@ class UserLocationAccessModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'User Location Access';
+
 
   @override
   Map<String, dynamic> toJson() => {

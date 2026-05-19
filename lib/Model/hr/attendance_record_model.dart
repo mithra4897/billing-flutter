@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class AttendanceRecordModel implements JsonModel {
+class AttendanceRecordModel extends JsonModel {
   const AttendanceRecordModel({
-    this.id,
+    super.id,
     this.employeeId,
     this.attendanceDate,
     this.checkIn,
@@ -11,8 +11,6 @@ class AttendanceRecordModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? employeeId;
   final String? attendanceDate;
   final String? checkIn;
@@ -33,6 +31,9 @@ class AttendanceRecordModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Attendance Record';
+
 
   @override
   Map<String, dynamic> toJson() => {

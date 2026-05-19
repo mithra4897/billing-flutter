@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ItemPriceModel implements JsonModel {
+class ItemPriceModel extends JsonModel {
   const ItemPriceModel({
-    this.id,
+    super.id,
     this.itemId,
     this.priceType,
     this.uomId,
@@ -18,8 +18,6 @@ class ItemPriceModel implements JsonModel {
     this.uomName,
     this.uomSymbol,
   });
-
-  final int? id;
   final int? itemId;
   final String? priceType;
   final int? uomId;

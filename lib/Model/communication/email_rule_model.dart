@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class EmailRuleModel implements JsonModel {
+class EmailRuleModel extends JsonModel {
   const EmailRuleModel({
-    this.id,
+    super.id,
     this.companyId,
     this.ruleCode,
     this.ruleName,
@@ -27,8 +27,6 @@ class EmailRuleModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final String? ruleCode;
   final String? ruleName;
@@ -95,6 +93,9 @@ class EmailRuleModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Email Rule';
+
 
   @override
   Map<String, dynamic> toJson() => {

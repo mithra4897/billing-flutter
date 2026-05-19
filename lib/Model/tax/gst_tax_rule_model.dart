@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class GstTaxRuleModel implements JsonModel {
+class GstTaxRuleModel extends JsonModel {
   const GstTaxRuleModel({
-    this.id,
+    super.id,
     this.ruleCode = '',
     this.ruleName = '',
     this.transactionType = '',
@@ -16,8 +16,6 @@ class GstTaxRuleModel implements JsonModel {
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final String ruleCode;
   final String ruleName;
   final String transactionType;

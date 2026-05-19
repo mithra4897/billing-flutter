@@ -1,9 +1,9 @@
 import '../../screen.dart';
 
-class UserLocationsSyncRequestModel implements JsonModel {
+class UserLocationsSyncRequestModel extends JsonModel {
   const UserLocationsSyncRequestModel({
     this.locations = const <Map<String, dynamic>>[],
-  });
+  }) : super(id: null);
 
   final List<Map<String, dynamic>> locations;
 
@@ -12,6 +12,9 @@ class UserLocationsSyncRequestModel implements JsonModel {
       locations: _mapList(json['locations']),
     );
   }
+  @override
+  String toString() => 'User Locations Sync Request';
+
 
   @override
   Map<String, dynamic> toJson() => {'locations': locations};

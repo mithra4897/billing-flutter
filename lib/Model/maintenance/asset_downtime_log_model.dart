@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class AssetDowntimeLogModel implements JsonModel {
+class AssetDowntimeLogModel extends JsonModel {
   const AssetDowntimeLogModel({
-    this.id,
+    super.id,
     this.assetId,
     this.maintenanceWorkOrderId,
     this.downtimeReason,
@@ -16,8 +16,6 @@ class AssetDowntimeLogModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? assetId;
   final int? maintenanceWorkOrderId;
   final String? downtimeReason;
@@ -52,6 +50,9 @@ class AssetDowntimeLogModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Asset Downtime Log';
+
 
   @override
   Map<String, dynamic> toJson() => {

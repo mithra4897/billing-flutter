@@ -1,6 +1,8 @@
-class AuthUserModel {
+import '../../screen.dart';
+
+class AuthUserModel extends JsonModel {
   const AuthUserModel({
-    required this.id,
+    required super.id,
     required this.username,
     this.displayName,
     this.email,
@@ -9,8 +11,6 @@ class AuthUserModel {
     this.isActive = true,
     this.isSuperAdmin = false,
   });
-
-  final int id;
   final String username;
   final String? displayName;
   final String? email;
@@ -32,7 +32,10 @@ class AuthUserModel {
           json['is_super_admin'] == true || json['is_super_admin'] == 1,
     );
   }
+  @override
+  String toString() => displayName ?? username;
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       'id': id,

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class AccountGroupModel implements JsonModel {
+class AccountGroupModel extends JsonModel {
   const AccountGroupModel({
-    this.id,
+    super.id,
     this.groupCode,
     this.groupName,
     this.parentGroupId,
@@ -15,8 +15,6 @@ class AccountGroupModel implements JsonModel {
     this.parentGroupCode,
     this.parentGroupName,
   });
-
-  final int? id;
   final String? groupCode;
   final String? groupName;
   final int? parentGroupId;

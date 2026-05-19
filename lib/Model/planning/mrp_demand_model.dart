@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class MrpDemandModel implements JsonModel {
+class MrpDemandModel extends JsonModel {
   const MrpDemandModel({
-    this.id,
+    super.id,
     this.mrpRunId,
     this.demandSource,
     this.sourceDocumentType,
@@ -20,8 +20,6 @@ class MrpDemandModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? mrpRunId;
   final String? demandSource;
   final String? sourceDocumentType;
@@ -60,6 +58,9 @@ class MrpDemandModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Mrp Demand';
+
 
   @override
   Map<String, dynamic> toJson() => {

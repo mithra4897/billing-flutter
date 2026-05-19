@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class QcPlanLineModel implements JsonModel {
+class QcPlanLineModel extends JsonModel {
   const QcPlanLineModel({
-    this.id,
+    super.id,
     this.qcPlanId,
     this.lineNo = 1,
     this.checkpointName = '',
@@ -17,8 +17,6 @@ class QcPlanLineModel implements JsonModel {
     this.sequenceNo = 1,
     this.remarks,
   });
-
-  final int? id;
   final int? qcPlanId;
   final int lineNo;
   final String checkpointName;
@@ -70,6 +68,9 @@ class QcPlanLineModel implements JsonModel {
     if (remarks != null && remarks!.trim().isNotEmpty)
       'remarks': remarks!.trim(),
   };
+  @override
+  String toString() => 'Qc Plan Line';
+
 
   @override
   Map<String, dynamic> toJson() => toLinePayload();

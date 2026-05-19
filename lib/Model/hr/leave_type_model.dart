@@ -1,15 +1,13 @@
 import '../../screen.dart';
 
-class LeaveTypeModel implements JsonModel {
+class LeaveTypeModel extends JsonModel {
   const LeaveTypeModel({
-    this.id,
+    super.id,
     this.leaveName,
     this.leaveCode,
     this.maxDaysPerYear,
     this.isPaid = true,
   });
-
-  final int? id;
   final String? leaveName;
   final String? leaveCode;
   final double? maxDaysPerYear;

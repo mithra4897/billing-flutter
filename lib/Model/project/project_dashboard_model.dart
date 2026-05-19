@@ -1,6 +1,6 @@
 import '../../screen.dart';
 
-class ProjectDashboardModel implements JsonModel {
+class ProjectDashboardModel extends JsonModel {
   const ProjectDashboardModel({
     this.projectId,
     this.projectCode,
@@ -14,7 +14,7 @@ class ProjectDashboardModel implements JsonModel {
     this.taskSummary,
     this.milestoneSummary,
     this.progressPercent,
-  });
+  }) : super(id: null);
 
   final int? projectId;
   final String? projectCode;
@@ -45,6 +45,9 @@ class ProjectDashboardModel implements JsonModel {
       progressPercent: ModelValue.nullableDouble(json['progress_percent']),
     );
   }
+  @override
+  String toString() => 'Project Dashboard';
+
 
   @override
   Map<String, dynamic> toJson() => {

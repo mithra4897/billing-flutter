@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ItemAlternateModel implements JsonModel {
+class ItemAlternateModel extends JsonModel {
   const ItemAlternateModel({
-    this.id,
+    super.id,
     this.itemId,
     this.alternateItemId,
     this.priorityOrder,
@@ -15,8 +15,6 @@ class ItemAlternateModel implements JsonModel {
     this.alternateItemName = '',
     this.alternateItemType,
   });
-
-  final int? id;
   final int? itemId;
   final int? alternateItemId;
   final int? priorityOrder;

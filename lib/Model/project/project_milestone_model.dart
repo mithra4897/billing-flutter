@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ProjectMilestoneModel implements JsonModel {
+class ProjectMilestoneModel extends JsonModel {
   const ProjectMilestoneModel({
-    this.id,
+    super.id,
     this.projectId,
     this.milestoneName,
     this.targetDate,
@@ -11,8 +11,6 @@ class ProjectMilestoneModel implements JsonModel {
     this.milestoneStatus,
     this.remarks,
   });
-
-  final int? id;
   final int? projectId;
   final String? milestoneName;
   final String? targetDate;
@@ -33,6 +31,9 @@ class ProjectMilestoneModel implements JsonModel {
       remarks: json['remarks']?.toString(),
     );
   }
+  @override
+  String toString() => 'Project Milestone';
+
 
   @override
   Map<String, dynamic> toJson() => {

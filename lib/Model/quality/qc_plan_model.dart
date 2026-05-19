@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class QcPlanModel implements JsonModel {
+class QcPlanModel extends JsonModel {
   const QcPlanModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -24,8 +24,6 @@ class QcPlanModel implements JsonModel {
     this.rawItem,
     this.rawItemCategory,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class VoucherLineModel implements JsonModel {
+class VoucherLineModel extends JsonModel {
   const VoucherLineModel({
-    this.id,
+    super.id,
     this.lineNo,
     this.accountId,
     this.accountCode,
@@ -24,8 +24,6 @@ class VoucherLineModel implements JsonModel {
     this.lineNarration,
     this.allocations = const <VoucherAllocationModel>[],
   });
-
-  final int? id;
   final int? lineNo;
   final int? accountId;
   final String? accountCode;

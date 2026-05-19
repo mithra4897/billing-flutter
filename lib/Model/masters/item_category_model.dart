@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ItemCategoryModel implements JsonModel {
+class ItemCategoryModel extends JsonModel {
   const ItemCategoryModel({
-    this.id,
+    super.id,
     this.categoryCode = '',
     this.categoryName = '',
     this.parentCategoryId,
@@ -10,8 +10,6 @@ class ItemCategoryModel implements JsonModel {
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final String categoryCode;
   final String categoryName;
   final int? parentCategoryId;

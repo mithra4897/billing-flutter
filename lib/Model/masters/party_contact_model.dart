@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PartyContactModel implements JsonModel {
+class PartyContactModel extends JsonModel {
   const PartyContactModel({
-    this.id,
+    super.id,
     this.partyId,
     this.contactName,
     this.designation,
@@ -12,8 +12,6 @@ class PartyContactModel implements JsonModel {
     this.isPrimary = false,
     this.isActive = true,
   });
-
-  final int? id;
   final int? partyId;
   final String? contactName;
   final String? designation;
@@ -36,6 +34,9 @@ class PartyContactModel implements JsonModel {
       isActive: json['is_active'] != false && json['is_active'] != 0,
     );
   }
+  @override
+  String toString() => 'Party Contact';
+
 
   @override
   Map<String, dynamic> toJson() {

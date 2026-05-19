@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class SalesInvoiceModel {
+class SalesInvoiceModel extends JsonModel {
   const SalesInvoiceModel({
-    required this.id,
+    required super.id,
     required this.companyId,
     required this.branchId,
     required this.locationId,
@@ -36,8 +36,6 @@ class SalesInvoiceModel {
     this.lines = const [],
     this.voucher,
   });
-
-  final int id;
   final int companyId;
   final int branchId;
   final int locationId;
@@ -112,6 +110,8 @@ class SalesInvoiceModel {
           : null,
     );
   }
+  @override
+  String toString() => invoiceNo ?? 'Sales Invoice';
 
   Map<String, dynamic> toCreateJson() {
     return {
@@ -148,7 +148,7 @@ class SalesInvoiceModel {
       'lines': lines.map((line) => line.toJson()).toList(growable: false),
     };
   }
-
+  @override
   Map<String, dynamic> toJson() => {
     if (id != 0) 'id': id,
     ...toCreateJson(),

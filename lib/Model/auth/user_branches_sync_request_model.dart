@@ -1,15 +1,18 @@
 import '../../screen.dart';
 
-class UserBranchesSyncRequestModel implements JsonModel {
+class UserBranchesSyncRequestModel extends JsonModel {
   const UserBranchesSyncRequestModel({
     this.branches = const <Map<String, dynamic>>[],
-  });
+  }) : super(id: null);
 
   final List<Map<String, dynamic>> branches;
 
   factory UserBranchesSyncRequestModel.fromJson(Map<String, dynamic> json) {
     return UserBranchesSyncRequestModel(branches: _mapList(json['branches']));
   }
+  @override
+  String toString() => 'User Branches Sync Request';
+
 
   @override
   Map<String, dynamic> toJson() => {'branches': branches};

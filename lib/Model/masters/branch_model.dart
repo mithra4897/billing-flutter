@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class BranchModel implements JsonModel {
+class BranchModel extends JsonModel {
   const BranchModel({
-    this.id,
+    super.id,
     this.companyId,
     this.code,
     this.name,
@@ -11,8 +11,6 @@ class BranchModel implements JsonModel {
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final int? companyId;
   final String? code;
   final String? name;

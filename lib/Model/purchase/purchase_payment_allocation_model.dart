@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PurchasePaymentAllocationModel implements JsonModel {
+class PurchasePaymentAllocationModel extends JsonModel {
   const PurchasePaymentAllocationModel({
-    this.id,
+    super.id,
     this.purchasePaymentId,
     this.purchaseInvoiceId,
     this.allocatedAmount,
@@ -11,8 +11,6 @@ class PurchasePaymentAllocationModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? purchasePaymentId;
   final int? purchaseInvoiceId;
   final double? allocatedAmount;
@@ -33,6 +31,9 @@ class PurchasePaymentAllocationModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Purchase Payment Allocation';
+
 
   @override
   Map<String, dynamic> toJson() => {

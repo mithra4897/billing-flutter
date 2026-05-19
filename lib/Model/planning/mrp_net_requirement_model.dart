@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class MrpNetRequirementModel implements JsonModel {
+class MrpNetRequirementModel extends JsonModel {
   const MrpNetRequirementModel({
-    this.id,
+    super.id,
     this.mrpRunId,
     this.itemId,
     this.warehouseId,
@@ -23,8 +23,6 @@ class MrpNetRequirementModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? mrpRunId;
   final int? itemId;
   final int? warehouseId;
@@ -73,6 +71,9 @@ class MrpNetRequirementModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Mrp Net Requirement';
+
 
   @override
   Map<String, dynamic> toJson() => {

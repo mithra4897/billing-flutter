@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PhysicalStockCountModel implements JsonModel {
+class PhysicalStockCountModel extends JsonModel {
   const PhysicalStockCountModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -24,8 +24,6 @@ class PhysicalStockCountModel implements JsonModel {
     this.warehouseName,
     this.itemsCount,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;

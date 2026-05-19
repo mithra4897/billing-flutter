@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class VoucherAllocationModel implements JsonModel {
+class VoucherAllocationModel extends JsonModel {
   const VoucherAllocationModel({
-    this.id,
+    super.id,
     this.voucherLineId,
     this.againstVoucherId,
     this.againstVoucherLineId,
@@ -14,8 +14,6 @@ class VoucherAllocationModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? voucherLineId;
   final int? againstVoucherId;
   final int? againstVoucherLineId;
@@ -44,6 +42,9 @@ class VoucherAllocationModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Voucher Allocation';
+
 
   @override
   Map<String, dynamic> toJson() => {

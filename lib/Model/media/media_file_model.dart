@@ -1,6 +1,8 @@
-class MediaFileModel {
+import '../../screen.dart';
+
+class MediaFileModel extends JsonModel {
   const MediaFileModel({
-    required this.id,
+    required super.id,
     required this.originalName,
     required this.storedName,
     required this.filePath,
@@ -14,8 +16,6 @@ class MediaFileModel {
     this.publicUrl,
     this.isPublic = false,
   });
-
-  final int id;
   final String originalName;
   final String storedName;
   final String filePath;
@@ -46,7 +46,10 @@ class MediaFileModel {
       isPublic: json['is_public'] == true || json['is_public'] == 1,
     );
   }
+  @override
+  String toString() => originalName;
 
+  @override
   Map<String, dynamic> toJson() => {
     'id': id,
     'original_name': originalName,

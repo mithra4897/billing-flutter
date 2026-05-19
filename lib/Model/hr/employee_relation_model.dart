@@ -1,14 +1,14 @@
-class EmployeeRelationModel {
+import '../../screen.dart';
+
+class EmployeeRelationModel extends JsonModel {
   const EmployeeRelationModel({
-    this.id,
+    super.id,
     this.employeeId,
     this.relationName,
     this.age,
     this.phoneNumber,
     this.relationship,
   });
-
-  final int? id;
   final int? employeeId;
   final String? relationName;
   final int? age;
@@ -25,7 +25,10 @@ class EmployeeRelationModel {
       relationship: json['relationship']?.toString(),
     );
   }
+  @override
+  String toString() => relationName ?? 'Employee Relation';
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class LoginHistoryModel implements JsonModel {
+class LoginHistoryModel extends JsonModel {
   const LoginHistoryModel({
-    this.id,
+    super.id,
     this.userId,
     this.username,
     this.firstName,
@@ -19,8 +19,6 @@ class LoginHistoryModel implements JsonModel {
     this.status,
     this.remarks,
   });
-
-  final int? id;
   final int? userId;
   final String? username;
   final String? firstName;
@@ -58,6 +56,9 @@ class LoginHistoryModel implements JsonModel {
           json['remarks']?.toString() ?? json['failure_reason']?.toString(),
     );
   }
+  @override
+  String toString() => 'Login History';
+
 
   @override
   Map<String, dynamic> toJson() {

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class UserBranchAccessModel implements JsonModel {
+class UserBranchAccessModel extends JsonModel {
   const UserBranchAccessModel({
-    this.id,
+    super.id,
     this.userId,
     this.branchId,
     this.isDefault,
@@ -12,8 +12,6 @@ class UserBranchAccessModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? userId;
   final int? branchId;
   final bool? isDefault;
@@ -40,6 +38,9 @@ class UserBranchAccessModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'User Branch Access';
+
 
   @override
   Map<String, dynamic> toJson() => {

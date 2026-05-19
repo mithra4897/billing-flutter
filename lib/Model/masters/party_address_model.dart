@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PartyAddressModel implements JsonModel {
+class PartyAddressModel extends JsonModel {
   const PartyAddressModel({
-    this.id,
+    super.id,
     this.partyId,
     this.addressType,
     this.addressLine1,
@@ -17,8 +17,6 @@ class PartyAddressModel implements JsonModel {
     this.isDefault = false,
     this.isActive = true,
   });
-
-  final int? id;
   final int? partyId;
   final String? addressType;
   final String? addressLine1;
@@ -51,6 +49,9 @@ class PartyAddressModel implements JsonModel {
       isActive: json['is_active'] != false && json['is_active'] != 0,
     );
   }
+  @override
+  String toString() => 'Party Address';
+
 
   @override
   Map<String, dynamic> toJson() {

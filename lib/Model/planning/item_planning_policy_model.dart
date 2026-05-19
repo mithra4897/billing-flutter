@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ItemPlanningPolicyModel implements JsonModel {
+class ItemPlanningPolicyModel extends JsonModel {
   const ItemPlanningPolicyModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -32,8 +32,6 @@ class ItemPlanningPolicyModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;
@@ -106,6 +104,9 @@ class ItemPlanningPolicyModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Item Planning Policy';
+
 
   @override
   Map<String, dynamic> toJson() => {

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ItemSupplierMapModel implements JsonModel {
+class ItemSupplierMapModel extends JsonModel {
   const ItemSupplierMapModel({
-    this.id,
+    super.id,
     this.itemId,
     this.supplierId,
     this.purchaseUomId,
@@ -24,8 +24,6 @@ class ItemSupplierMapModel implements JsonModel {
     this.purchaseUomName = '',
     this.purchaseUomSymbol = '',
   });
-
-  final int? id;
   final int? itemId;
   final int? supplierId;
   final int? purchaseUomId;

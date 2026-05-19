@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class StockSerialModel implements JsonModel {
+class StockSerialModel extends JsonModel {
   const StockSerialModel({
-    this.id,
+    super.id,
     this.itemId,
     this.warehouseId,
     this.batchId,
@@ -14,8 +14,6 @@ class StockSerialModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? itemId;
   final int? warehouseId;
   final int? batchId;
@@ -42,6 +40,9 @@ class StockSerialModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Stock Serial';
+
 
   @override
   Map<String, dynamic> toJson() => {

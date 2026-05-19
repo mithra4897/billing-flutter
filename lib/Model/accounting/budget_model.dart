@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class BudgetModel implements JsonModel {
+class BudgetModel extends JsonModel {
   const BudgetModel({
-    this.id,
+    super.id,
     this.companyId,
     this.financialYearId,
     this.budgetCode,
@@ -17,8 +17,6 @@ class BudgetModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final int? financialYearId;
   final String? budgetCode;
@@ -53,6 +51,9 @@ class BudgetModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Budget';
+
 
   @override
   Map<String, dynamic> toJson() => {

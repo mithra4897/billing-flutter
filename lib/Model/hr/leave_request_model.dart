@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class LeaveRequestModel implements JsonModel {
+class LeaveRequestModel extends JsonModel {
   const LeaveRequestModel({
-    this.id,
+    super.id,
     this.employeeId,
     this.leaveTypeId,
     this.fromDate,
@@ -17,8 +17,6 @@ class LeaveRequestModel implements JsonModel {
     this.leaveTypeName,
     this.approverName,
   });
-
-  final int? id;
   final int? employeeId;
   final int? leaveTypeId;
   final String? fromDate;

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class EmployeeSalaryStructureModel implements JsonModel {
+class EmployeeSalaryStructureModel extends JsonModel {
   const EmployeeSalaryStructureModel({
-    this.id,
+    super.id,
     this.employeeId,
     this.effectiveFrom,
     this.basicSalary,
@@ -12,8 +12,6 @@ class EmployeeSalaryStructureModel implements JsonModel {
     this.isActive = true,
     this.components = const <EmployeeSalaryComponentModel>[],
   });
-
-  final int? id;
   final int? employeeId;
   final String? effectiveFrom;
   final double? basicSalary;

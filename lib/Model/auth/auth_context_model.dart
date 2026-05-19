@@ -1,6 +1,6 @@
 import '../../screen.dart';
 
-class AuthContextModel {
+class AuthContextModel extends JsonModel {
   const AuthContextModel({
     required this.companies,
     required this.branches,
@@ -9,7 +9,7 @@ class AuthContextModel {
     required this.financialYears,
     this.permissionCodes = const [],
     this.menuModules = const [],
-  });
+  }) : super(id: null);
 
   final List<CompanyModel> companies;
   final List<BranchModel> branches;
@@ -48,7 +48,10 @@ class AuthContextModel {
       ),
     );
   }
+  @override
+  String toString() => 'Auth Context';
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       'companies': companies.map((item) => item.toJson()).toList(growable: false),

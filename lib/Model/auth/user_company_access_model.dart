@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class UserCompanyAccessModel implements JsonModel {
+class UserCompanyAccessModel extends JsonModel {
   const UserCompanyAccessModel({
-    this.id,
+    super.id,
     this.userId,
     this.companyId,
     this.isDefault,
@@ -12,8 +12,6 @@ class UserCompanyAccessModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? userId;
   final int? companyId;
   final bool? isDefault;
@@ -40,6 +38,9 @@ class UserCompanyAccessModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'User Company Access';
+
 
   @override
   Map<String, dynamic> toJson() => {

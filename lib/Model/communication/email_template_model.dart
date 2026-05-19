@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class EmailTemplateModel implements JsonModel {
+class EmailTemplateModel extends JsonModel {
   const EmailTemplateModel({
-    this.id,
+    super.id,
     this.companyId,
     this.templateCode,
     this.templateName,
@@ -18,8 +18,6 @@ class EmailTemplateModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final String? templateCode;
   final String? templateName;
@@ -58,6 +56,9 @@ class EmailTemplateModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Email Template';
+
 
   @override
   Map<String, dynamic> toJson() => {

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class MaintenancePlanModel implements JsonModel {
+class MaintenancePlanModel extends JsonModel {
   const MaintenancePlanModel({
-    this.id,
+    super.id,
     this.companyId,
     this.planCode,
     this.planName,
@@ -17,8 +17,6 @@ class MaintenancePlanModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final String? planCode;
   final String? planName;
@@ -55,6 +53,9 @@ class MaintenancePlanModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Maintenance Plan';
+
 
   @override
   Map<String, dynamic> toJson() => {

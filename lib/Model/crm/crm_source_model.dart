@@ -1,15 +1,13 @@
 import '../../screen.dart';
 
-class CrmSourceModel implements JsonModel {
+class CrmSourceModel extends JsonModel {
   const CrmSourceModel({
-    this.id,
+    super.id,
     this.sourceName,
     this.isActive,
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final String? sourceName;
   final bool? isActive;
   final String? createdAt;
@@ -26,6 +24,9 @@ class CrmSourceModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Crm Source';
+
 
   @override
   Map<String, dynamic> toJson() => {

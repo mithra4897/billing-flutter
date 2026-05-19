@@ -1,9 +1,9 @@
 import '../../screen.dart';
 
-class UserCompaniesSyncRequestModel implements JsonModel {
+class UserCompaniesSyncRequestModel extends JsonModel {
   const UserCompaniesSyncRequestModel({
     this.companies = const <Map<String, dynamic>>[],
-  });
+  }) : super(id: null);
 
   final List<Map<String, dynamic>> companies;
 
@@ -12,6 +12,9 @@ class UserCompaniesSyncRequestModel implements JsonModel {
       companies: _mapList(json['companies']),
     );
   }
+  @override
+  String toString() => 'User Companies Sync Request';
+
 
   @override
   Map<String, dynamic> toJson() => {'companies': companies};

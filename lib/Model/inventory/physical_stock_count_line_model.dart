@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PhysicalStockCountLineModel implements JsonModel {
+class PhysicalStockCountLineModel extends JsonModel {
   const PhysicalStockCountLineModel({
-    this.id,
+    super.id,
     this.itemId,
     this.uomId,
     this.batchId,
@@ -23,8 +23,6 @@ class PhysicalStockCountLineModel implements JsonModel {
     this.uomName,
     this.uomSymbol,
   });
-
-  final int? id;
   final int? itemId;
   final int? uomId;
   final int? batchId;

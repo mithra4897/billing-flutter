@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class SalesReceiptAllocationModel implements JsonModel {
+class SalesReceiptAllocationModel extends JsonModel {
   const SalesReceiptAllocationModel({
-    this.id,
+    super.id,
     this.salesReceiptId,
     this.salesInvoiceId,
     this.allocatedAmount,
@@ -11,8 +11,6 @@ class SalesReceiptAllocationModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? salesReceiptId;
   final int? salesInvoiceId;
   final double? allocatedAmount;
@@ -33,6 +31,9 @@ class SalesReceiptAllocationModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Sales Receipt Allocation';
+
 
   @override
   Map<String, dynamic> toJson() => {

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ProjectVendorWorkModel implements JsonModel {
+class ProjectVendorWorkModel extends JsonModel {
   const ProjectVendorWorkModel({
-    this.id,
+    super.id,
     this.projectId,
     this.projectTaskId,
     this.vendorPartyId,
@@ -14,8 +14,6 @@ class ProjectVendorWorkModel implements JsonModel {
     this.workStatus,
     this.remarks,
   });
-
-  final int? id;
   final int? projectId;
   final int? projectTaskId;
   final int? vendorPartyId;
@@ -42,6 +40,9 @@ class ProjectVendorWorkModel implements JsonModel {
       remarks: json['remarks']?.toString(),
     );
   }
+  @override
+  String toString() => 'Project Vendor Work';
+
 
   @override
   Map<String, dynamic> toJson() => {

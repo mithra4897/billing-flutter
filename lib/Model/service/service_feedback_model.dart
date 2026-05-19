@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ServiceFeedbackModel implements JsonModel {
+class ServiceFeedbackModel extends JsonModel {
   const ServiceFeedbackModel({
-    this.id,
+    super.id,
     this.serviceTicketId,
     this.serviceWorkOrderId,
     this.feedbackDate,
@@ -17,8 +17,6 @@ class ServiceFeedbackModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? serviceTicketId;
   final int? serviceWorkOrderId;
   final String? feedbackDate;
@@ -55,6 +53,9 @@ class ServiceFeedbackModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Service Feedback';
+
 
   @override
   Map<String, dynamic> toJson() => {

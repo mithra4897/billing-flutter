@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class WarehouseModel implements JsonModel {
+class WarehouseModel extends JsonModel {
   const WarehouseModel({
-    this.id,
+    super.id,
     this.companyId,
     this.code,
     this.name,
@@ -17,8 +17,6 @@ class WarehouseModel implements JsonModel {
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final int? companyId;
   final String? code;
   final String? name;

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class PostingRuleModel implements JsonModel {
+class PostingRuleModel extends JsonModel {
   const PostingRuleModel({
-    this.id,
+    super.id,
     this.postingRuleGroupId,
     this.lineNo,
     this.entrySide,
@@ -17,8 +17,6 @@ class PostingRuleModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? postingRuleGroupId;
   final int? lineNo;
   final String? entrySide;
@@ -53,6 +51,9 @@ class PostingRuleModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Posting Rule';
+
 
   @override
   Map<String, dynamic> toJson() => {

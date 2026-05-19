@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class QcResultActionModel implements JsonModel {
+class QcResultActionModel extends JsonModel {
   const QcResultActionModel({
-    this.id,
+    super.id,
     this.qcInspectionId,
     this.actionType = '',
     this.actionQty = 0,
@@ -16,8 +16,6 @@ class QcResultActionModel implements JsonModel {
     this.createdAt,
     this.rawInspection,
   });
-
-  final int? id;
   final int? qcInspectionId;
   final String actionType;
   final double actionQty;

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class UomConversionModel implements JsonModel {
+class UomConversionModel extends JsonModel {
   const UomConversionModel({
-    this.id,
+    super.id,
     this.fromUomId,
     this.toUomId,
     this.conversionFactor,
@@ -14,8 +14,6 @@ class UomConversionModel implements JsonModel {
     this.toUomName = '',
     this.toUomSymbol = '',
   });
-
-  final int? id;
   final int? fromUomId;
   final int? toUomId;
   final double? conversionFactor;

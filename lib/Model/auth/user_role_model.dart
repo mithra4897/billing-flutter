@@ -1,16 +1,14 @@
 import '../../screen.dart';
 
-class UserRoleModel implements JsonModel {
+class UserRoleModel extends JsonModel {
   const UserRoleModel({
-    this.id,
+    super.id,
     this.userId,
     this.roleId,
     this.isPrimaryRole,
     this.isActive,
     this.role,
   });
-
-  final int? id;
   final int? userId;
   final int? roleId;
   final bool? isPrimaryRole;
@@ -37,6 +35,9 @@ class UserRoleModel implements JsonModel {
           : null,
     );
   }
+  @override
+  String toString() => 'User Role';
+
 
   @override
   Map<String, dynamic> toJson() {

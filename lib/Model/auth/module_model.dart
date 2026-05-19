@@ -1,6 +1,6 @@
 import '../../screen.dart';
 
-class ModuleModel implements JsonModel {
+class ModuleModel extends JsonModel {
   const ModuleModel({
     this.moduleCode,
     this.moduleName,
@@ -13,7 +13,7 @@ class ModuleModel implements JsonModel {
     this.effectiveSortOrder,
     this.isHidden,
     this.isActive,
-  });
+  }) : super(id: null);
 
   final String? moduleCode;
   final String? moduleName;

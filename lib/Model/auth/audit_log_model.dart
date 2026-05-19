@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class AuditLogModel implements JsonModel {
+class AuditLogModel extends JsonModel {
   const AuditLogModel({
-    this.id,
+    super.id,
     this.userId,
     this.module,
     this.tableName,
@@ -15,8 +15,6 @@ class AuditLogModel implements JsonModel {
     this.userAgent,
     this.createdAt,
   });
-
-  final int? id;
   final int? userId;
   final String? module;
   final String? tableName;
@@ -45,6 +43,9 @@ class AuditLogModel implements JsonModel {
       createdAt: json['created_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Audit Log';
+
 
   @override
   Map<String, dynamic> toJson() {

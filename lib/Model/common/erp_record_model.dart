@@ -1,9 +1,7 @@
 import '../../screen.dart';
 
-class ErpRecordModel implements JsonModel {
-  const ErpRecordModel({this.id, this.code, this.name, this.status});
-
-  final int? id;
+class ErpRecordModel extends JsonModel {
+  const ErpRecordModel({super.id, this.code, this.name, this.status});
   final String? code;
   final String? name;
   final String? status;
@@ -30,6 +28,9 @@ class ErpRecordModel implements JsonModel {
           json['work_order_status']?.toString(),
     );
   }
+  @override
+  String toString() => 'Erp Record';
+
 
   @override
   Map<String, dynamic> toJson() => {

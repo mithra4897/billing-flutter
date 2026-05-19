@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class BomModel implements JsonModel {
+class BomModel extends JsonModel {
   const BomModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -30,8 +30,6 @@ class BomModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;
@@ -94,6 +92,9 @@ class BomModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'Bom';
+
 
   @override
   Map<String, dynamic> toJson() => {

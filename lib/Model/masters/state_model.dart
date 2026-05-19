@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class StateModel implements JsonModel {
+class StateModel extends JsonModel {
   const StateModel({
-    this.id,
+    super.id,
     this.countryCode = '',
     this.stateCode = '',
     this.stateName = '',
@@ -10,8 +10,6 @@ class StateModel implements JsonModel {
     this.isUnionTerritory = false,
     this.isActive = true,
   });
-
-  final int? id;
   final String countryCode;
   final String stateCode;
   final String stateName;

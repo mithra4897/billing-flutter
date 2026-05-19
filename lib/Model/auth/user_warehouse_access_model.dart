@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class UserWarehouseAccessModel implements JsonModel {
+class UserWarehouseAccessModel extends JsonModel {
   const UserWarehouseAccessModel({
-    this.id,
+    super.id,
     this.userId,
     this.warehouseId,
     this.isDefault,
@@ -17,8 +17,6 @@ class UserWarehouseAccessModel implements JsonModel {
     this.createdAt,
     this.updatedAt,
   });
-
-  final int? id;
   final int? userId;
   final int? warehouseId;
   final bool? isDefault;
@@ -65,6 +63,9 @@ class UserWarehouseAccessModel implements JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+  @override
+  String toString() => 'User Warehouse Access';
+
 
   @override
   Map<String, dynamic> toJson() => {

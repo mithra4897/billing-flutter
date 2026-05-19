@@ -1,15 +1,13 @@
 import '../../screen.dart';
 
-class BrandModel implements JsonModel {
+class BrandModel extends JsonModel {
   const BrandModel({
-    this.id,
+    super.id,
     this.brandCode,
     this.brandName,
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final String? brandCode;
   final String? brandName;
   final bool isActive;

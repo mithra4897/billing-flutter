@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class FinancialYearModel implements JsonModel {
+class FinancialYearModel extends JsonModel {
   const FinancialYearModel({
-    this.id,
+    super.id,
     this.companyId,
     this.fyCode,
     this.fyName,
@@ -16,8 +16,6 @@ class FinancialYearModel implements JsonModel {
     this.remarks,
     this.companyName,
   });
-
-  final int? id;
   final int? companyId;
   final String? fyCode;
   final String? fyName;

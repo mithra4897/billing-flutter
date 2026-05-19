@@ -1,11 +1,11 @@
 import '../../screen.dart';
 
-class BudgetVsActualModel implements JsonModel {
+class BudgetVsActualModel extends JsonModel {
   const BudgetVsActualModel({
     this.budget,
     this.summary,
     this.lines = const <Map<String, dynamic>>[],
-  });
+  }) : super(id: null);
 
   final Map<String, dynamic>? budget;
   final Map<String, dynamic>? summary;
@@ -18,6 +18,9 @@ class BudgetVsActualModel implements JsonModel {
       lines: _mapList(json['lines']),
     );
   }
+  @override
+  String toString() => 'Budget Vs Actual';
+
 
   @override
   Map<String, dynamic> toJson() => {

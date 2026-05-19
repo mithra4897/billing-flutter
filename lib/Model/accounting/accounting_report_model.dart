@@ -1,7 +1,7 @@
 import '../../screen.dart';
 
-class AccountingReportModel implements JsonModel {
-  const AccountingReportModel(this.data);
+class AccountingReportModel extends JsonModel {
+  const AccountingReportModel(this.data) : super(id: null);
 
   final Map<String, dynamic> data;
 

@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ProjectModel implements JsonModel {
+class ProjectModel extends JsonModel {
   const ProjectModel({
-    this.id,
+    super.id,
     this.companyId,
     this.customerPartyId,
     this.projectCode,
@@ -27,8 +27,6 @@ class ProjectModel implements JsonModel {
     this.vendorWorks = const [],
     this.billings = const [],
   });
-
-  final int? id;
   final int? companyId;
   final int? customerPartyId;
   final String? projectCode;
@@ -86,6 +84,9 @@ class ProjectModel implements JsonModel {
       billings: _list(json['billings'], ProjectBillingModel.fromJson),
     );
   }
+  @override
+  String toString() => 'Project';
+
 
   @override
   Map<String, dynamic> toJson() => {

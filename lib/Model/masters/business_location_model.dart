@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class BusinessLocationModel implements JsonModel {
+class BusinessLocationModel extends JsonModel {
   const BusinessLocationModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.code,
@@ -29,8 +29,6 @@ class BusinessLocationModel implements JsonModel {
     this.isActive = true,
     this.remarks,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final String? code;

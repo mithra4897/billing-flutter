@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class StockBalanceModel implements JsonModel {
+class StockBalanceModel extends JsonModel {
   const StockBalanceModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -25,8 +25,6 @@ class StockBalanceModel implements JsonModel {
     this.batchNo,
     this.serialNo,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;

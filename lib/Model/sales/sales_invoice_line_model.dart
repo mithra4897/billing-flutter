@@ -1,10 +1,12 @@
-class SalesInvoiceLineModel {
+import '../../screen.dart';
+
+class SalesInvoiceLineModel extends JsonModel {
   const SalesInvoiceLineModel({
     required this.itemId,
     required this.uomId,
     required this.invoicedQty,
     required this.rate,
-    this.id,
+    super.id,
     this.warehouseId,
     this.batchId,
     this.description,
@@ -21,8 +23,6 @@ class SalesInvoiceLineModel {
     this.serialId,
     this.serialNo,
   });
-
-  final int? id;
   final int? salesOrderLineId;
   final int? salesDeliveryLineId;
   final int itemId;
@@ -71,7 +71,10 @@ class SalesInvoiceLineModel {
       returnedQty: _nullableDouble(json['returned_qty']),
     );
   }
+  @override
+  String toString() => description ?? 'Sales Invoice Line';
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       if (salesOrderLineId != null) 'sales_order_line_id': salesOrderLineId,

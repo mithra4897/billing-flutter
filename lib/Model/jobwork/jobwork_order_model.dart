@@ -1,9 +1,9 @@
 import '../../screen.dart';
 
 /// Header + lines for `/jobwork/orders` API.
-class JobworkOrderModel implements JsonModel {
+class JobworkOrderModel extends JsonModel {
   const JobworkOrderModel({
-    this.id,
+    super.id,
     this.companyId,
     this.branchId,
     this.locationId,
@@ -29,8 +29,6 @@ class JobworkOrderModel implements JsonModel {
     this.materialsCount,
     this.outputsCount,
   });
-
-  final int? id;
   final int? companyId;
   final int? branchId;
   final int? locationId;

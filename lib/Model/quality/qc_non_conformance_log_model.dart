@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class QcNonConformanceLogModel implements JsonModel {
+class QcNonConformanceLogModel extends JsonModel {
   const QcNonConformanceLogModel({
-    this.id,
+    super.id,
     this.qcInspectionId,
     this.qcInspectionLineId,
     this.defectCode,
@@ -20,8 +20,6 @@ class QcNonConformanceLogModel implements JsonModel {
     this.remarks,
     this.rawInspection,
   });
-
-  final int? id;
   final int? qcInspectionId;
   final int? qcInspectionLineId;
   final String? defectCode;

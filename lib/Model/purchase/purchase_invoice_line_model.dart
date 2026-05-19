@@ -1,10 +1,12 @@
-class PurchaseInvoiceLineModel {
+import '../../screen.dart';
+
+class PurchaseInvoiceLineModel extends JsonModel {
   const PurchaseInvoiceLineModel({
     required this.itemId,
     required this.uomId,
     required this.invoicedQty,
     required this.rate,
-    this.id,
+    super.id,
     this.purchaseOrderLineId,
     this.purchaseReceiptLineId,
     this.warehouseId,
@@ -18,8 +20,6 @@ class PurchaseInvoiceLineModel {
     this.cessAmount,
     this.remarks,
   });
-
-  final int? id;
   final int? purchaseOrderLineId;
   final int? purchaseReceiptLineId;
   final int itemId;
@@ -99,7 +99,10 @@ class PurchaseInvoiceLineModel {
       remarks: remarks ?? this.remarks,
     );
   }
+  @override
+  String toString() => description ?? 'Purchase Invoice Line';
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       if (purchaseOrderLineId != null)

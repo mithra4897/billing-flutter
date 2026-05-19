@@ -1,9 +1,9 @@
 import '../../screen.dart';
 
-class RolePermissionSyncRequestModel implements JsonModel {
+class RolePermissionSyncRequestModel extends JsonModel {
   const RolePermissionSyncRequestModel({
     this.permissions = const <RolePermissionModel>[],
-  });
+  }) : super(id: null);
 
   final List<RolePermissionModel> permissions;
 
@@ -18,6 +18,9 @@ class RolePermissionSyncRequestModel implements JsonModel {
           : const <RolePermissionModel>[],
     );
   }
+  @override
+  String toString() => 'Role Permission Sync Request';
+
 
   @override
   Map<String, dynamic> toJson() {

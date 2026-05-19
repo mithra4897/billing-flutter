@@ -1,13 +1,13 @@
 import '../../screen.dart';
 
-class UserPermissionSummaryModel implements JsonModel {
+class UserPermissionSummaryModel extends JsonModel {
   const UserPermissionSummaryModel({
     this.user,
     this.roles = const [],
     this.rolePermissions = const [],
     this.directPermissions = const [],
     this.effectivePermissions = const [],
-  });
+  }) : super(id: null);
 
   final UserModel? user;
   final List<UserRoleModel> roles;
@@ -26,6 +26,9 @@ class UserPermissionSummaryModel implements JsonModel {
       effectivePermissions: _permissions(json['effective_permissions']),
     );
   }
+  @override
+  String toString() => 'User Permission Summary';
+
 
   @override
   Map<String, dynamic> toJson() {

@@ -1,4 +1,6 @@
-class PublicBrandingModel {
+import '../../screen.dart';
+
+class PublicBrandingModel extends JsonModel {
   const PublicBrandingModel({
     required this.companyName,
     this.legalName,
@@ -6,7 +8,7 @@ class PublicBrandingModel {
     this.logoPath,
     this.letterHeadPath,
     this.currentYear,
-  });
+  }) : super(id: null);
 
   final String companyName;
   final String? legalName;
@@ -25,7 +27,10 @@ class PublicBrandingModel {
       currentYear: int.tryParse(json['current_year']?.toString() ?? ''),
     );
   }
+  @override
+  String toString() => tradeName ?? legalName ?? companyName;
 
+  @override
   Map<String, dynamic> toJson() {
     return {
       'company_name': companyName,
