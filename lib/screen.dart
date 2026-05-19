@@ -106,7 +106,6 @@ export 'model/auth/user_roles_sync_request_model.dart';
 export 'model/auth/user_warehouses_sync_request_model.dart';
 export 'model/common/erp_record_model.dart';
 export 'model/common/json_model.dart';
-export 'model/common/model_value.dart';
 export 'model/communication/email_message_model.dart';
 export 'model/communication/email_module_setting_model.dart';
 export 'model/communication/email_rule_model.dart';

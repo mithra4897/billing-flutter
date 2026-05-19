@@ -53,32 +53,32 @@ class EmailRuleModel extends JsonModel {
 
   factory EmailRuleModel.fromJson(Map<String, dynamic> json) {
     return EmailRuleModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       ruleCode: json['rule_code']?.toString(),
       ruleName: json['rule_name']?.toString(),
       module: json['module']?.toString(),
       documentType: json['document_type']?.toString(),
       eventCode: json['event_code']?.toString(),
-      templateId: ModelValue.nullableInt(json['template_id']),
+      templateId: JsonModel.nullableInt(json['template_id']),
       autoEnabled: json['auto_enabled'] == null
           ? null
-          : ModelValue.boolOf(json['auto_enabled']),
+          : JsonModel.boolOf(json['auto_enabled']),
       manualEnabled: json['manual_enabled'] == null
           ? null
-          : ModelValue.boolOf(json['manual_enabled']),
+          : JsonModel.boolOf(json['manual_enabled']),
       sendToPartyEmail: json['send_to_party_email'] == null
           ? null
-          : ModelValue.boolOf(json['send_to_party_email']),
+          : JsonModel.boolOf(json['send_to_party_email']),
       sendToContactEmail: json['send_to_contact_email'] == null
           ? null
-          : ModelValue.boolOf(json['send_to_contact_email']),
+          : JsonModel.boolOf(json['send_to_contact_email']),
       sendToAssignedUser: json['send_to_assigned_user'] == null
           ? null
-          : ModelValue.boolOf(json['send_to_assigned_user']),
+          : JsonModel.boolOf(json['send_to_assigned_user']),
       sendToOwnerUser: json['send_to_owner_user'] == null
           ? null
-          : ModelValue.boolOf(json['send_to_owner_user']),
+          : JsonModel.boolOf(json['send_to_owner_user']),
       recipientEmails: json['recipient_emails']?.toString(),
       ccEmails: json['cc_emails']?.toString(),
       bccEmails: json['bcc_emails']?.toString(),
@@ -86,9 +86,9 @@ class EmailRuleModel extends JsonModel {
       bodyOverride: json['body_override']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

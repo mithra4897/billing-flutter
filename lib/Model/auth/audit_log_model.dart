@@ -29,11 +29,11 @@ class AuditLogModel extends JsonModel {
 
   factory AuditLogModel.fromJson(Map<String, dynamic> json) {
     return AuditLogModel(
-      id: ModelValue.nullableInt(json['id']),
-      userId: ModelValue.nullableInt(json['user_id']),
+      id: JsonModel.nullableInt(json['id']),
+      userId: JsonModel.nullableInt(json['user_id']),
       module: json['module']?.toString(),
       tableName: json['table_name']?.toString(),
-      recordId: ModelValue.nullableInt(json['record_id']),
+      recordId: JsonModel.nullableInt(json['record_id']),
       action: json['action']?.toString(),
       description: json['description']?.toString(),
       oldValues: _mapOf(json['old_values']),

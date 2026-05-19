@@ -51,12 +51,12 @@ class MrpRunModel extends JsonModel {
 
   factory MrpRunModel.fromJson(Map<String, dynamic> json) {
     return MrpRunModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      branchId: ModelValue.nullableInt(json['branch_id']),
-      locationId: ModelValue.nullableInt(json['location_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      planningCalendarId: ModelValue.nullableInt(json['planning_calendar_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      branchId: JsonModel.nullableInt(json['branch_id']),
+      locationId: JsonModel.nullableInt(json['location_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      planningCalendarId: JsonModel.nullableInt(json['planning_calendar_id']),
       runNo: json['run_no']?.toString(),
       runDate: json['run_date']?.toString(),
       planningStartDate: json['planning_start_date']?.toString(),
@@ -64,17 +64,17 @@ class MrpRunModel extends JsonModel {
       runScope: json['run_scope']?.toString(),
       runMode: json['run_mode']?.toString(),
       runStatus: json['run_status']?.toString(),
-      totalItemsProcessed: ModelValue.nullableInt(
+      totalItemsProcessed: JsonModel.nullableInt(
         json['total_items_processed'],
       ),
-      totalShortageItems: ModelValue.nullableInt(json['total_shortage_items']),
-      totalRecommendations: ModelValue.nullableInt(
+      totalShortageItems: JsonModel.nullableInt(json['total_shortage_items']),
+      totalRecommendations: JsonModel.nullableInt(
         json['total_recommendations'],
       ),
       notes: json['notes']?.toString(),
       errorMessage: json['error_message']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      completedBy: ModelValue.nullableInt(json['completed_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      completedBy: JsonModel.nullableInt(json['completed_by']),
       completedAt: json['completed_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

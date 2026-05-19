@@ -21,11 +21,11 @@ class BudgetLineModel extends JsonModel {
 
   factory BudgetLineModel.fromJson(Map<String, dynamic> json) {
     return BudgetLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      budgetId: ModelValue.nullableInt(json['budget_id']),
-      lineNo: ModelValue.nullableInt(json['line_no']),
-      accountId: ModelValue.nullableInt(json['account_id']),
-      budgetAmount: ModelValue.nullableDouble(json['budget_amount']),
+      id: JsonModel.nullableInt(json['id']),
+      budgetId: JsonModel.nullableInt(json['budget_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
+      accountId: JsonModel.nullableInt(json['account_id']),
+      budgetAmount: JsonModel.nullableDouble(json['budget_amount']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

@@ -43,29 +43,29 @@ class EmailSettingModel extends JsonModel {
 
   factory EmailSettingModel.fromJson(Map<String, dynamic> json) {
     return EmailSettingModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       settingName: json['setting_name']?.toString(),
       mailDriver: json['mail_driver']?.toString(),
       fromName: json['from_name']?.toString(),
       fromEmail: json['from_email']?.toString(),
       replyToEmail: json['reply_to_email']?.toString(),
       smtpHost: json['smtp_host']?.toString(),
-      smtpPort: ModelValue.nullableInt(json['smtp_port']),
+      smtpPort: JsonModel.nullableInt(json['smtp_port']),
       smtpEncryption: json['smtp_encryption']?.toString(),
       smtpUsername: json['smtp_username']?.toString(),
       smtpPassword: json['smtp_password']?.toString(),
       autoEmailEnabled: json['auto_email_enabled'] == null
           ? null
-          : ModelValue.boolOf(json['auto_email_enabled']),
+          : JsonModel.boolOf(json['auto_email_enabled']),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

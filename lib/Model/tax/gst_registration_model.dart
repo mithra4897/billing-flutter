@@ -37,23 +37,23 @@ class GstRegistrationModel extends JsonModel {
 
   factory GstRegistrationModel.fromJson(Map<String, dynamic> json) {
     return GstRegistrationModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      branchId: ModelValue.nullableInt(json['branch_id']),
-      locationId: ModelValue.nullableInt(json['location_id']),
-      registrationName: ModelValue.stringOf(json['registration_name']),
-      gstin: ModelValue.stringOf(json['gstin']),
-      panNo: ModelValue.stringOf(json['pan_no']),
-      stateId: ModelValue.nullableInt(json['state_id']),
-      legalName: ModelValue.stringOf(json['legal_name']),
-      tradeName: ModelValue.stringOf(json['trade_name']),
-      registrationType: ModelValue.stringOf(json['registration_type']),
-      effectiveFrom: ModelValue.stringOf(json['effective_from']),
-      effectiveTo: ModelValue.stringOf(json['effective_to']),
-      isDefault: ModelValue.boolOf(json['is_default']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      branchId: JsonModel.nullableInt(json['branch_id']),
+      locationId: JsonModel.nullableInt(json['location_id']),
+      registrationName: JsonModel.stringOf(json['registration_name']),
+      gstin: JsonModel.stringOf(json['gstin']),
+      panNo: JsonModel.stringOf(json['pan_no']),
+      stateId: JsonModel.nullableInt(json['state_id']),
+      legalName: JsonModel.stringOf(json['legal_name']),
+      tradeName: JsonModel.stringOf(json['trade_name']),
+      registrationType: JsonModel.stringOf(json['registration_type']),
+      effectiveFrom: JsonModel.stringOf(json['effective_from']),
+      effectiveTo: JsonModel.stringOf(json['effective_to']),
+      isDefault: JsonModel.boolOf(json['is_default']),
       isActive: json['is_active'] == null
           ? true
-          : ModelValue.boolOf(json['is_active'], fallback: true),
+          : JsonModel.boolOf(json['is_active'], fallback: true),
       remarks: json['remarks']?.toString(),
     );
   }

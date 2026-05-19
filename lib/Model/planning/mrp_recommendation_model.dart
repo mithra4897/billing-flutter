@@ -45,27 +45,27 @@ class MrpRecommendationModel extends JsonModel {
 
   factory MrpRecommendationModel.fromJson(Map<String, dynamic> json) {
     return MrpRecommendationModel(
-      id: ModelValue.nullableInt(json['id']),
-      mrpRunId: ModelValue.nullableInt(json['mrp_run_id']),
-      mrpNetRequirementId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      mrpRunId: JsonModel.nullableInt(json['mrp_run_id']),
+      mrpNetRequirementId: JsonModel.nullableInt(
         json['mrp_net_requirement_id'],
       ),
       recommendationType: json['recommendation_type']?.toString(),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      recommendedQty: ModelValue.nullableDouble(json['recommended_qty']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      recommendedQty: JsonModel.nullableDouble(json['recommended_qty']),
       recommendedDate: json['recommended_date']?.toString(),
-      priorityLevel: ModelValue.nullableInt(json['priority_level']),
-      supplierPartyId: ModelValue.nullableInt(json['supplier_party_id']),
-      bomId: ModelValue.nullableInt(json['bom_id']),
-      sourceWarehouseId: ModelValue.nullableInt(json['source_warehouse_id']),
+      priorityLevel: JsonModel.nullableInt(json['priority_level']),
+      supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
+      bomId: JsonModel.nullableInt(json['bom_id']),
+      sourceWarehouseId: JsonModel.nullableInt(json['source_warehouse_id']),
       recommendationStatus: json['recommendation_status']?.toString(),
       convertedDocumentType: json['converted_document_type']?.toString(),
-      convertedDocumentId: ModelValue.nullableInt(
+      convertedDocumentId: JsonModel.nullableInt(
         json['converted_document_id'],
       ),
       notes: json['notes']?.toString(),
-      approvedBy: ModelValue.nullableInt(json['approved_by']),
+      approvedBy: JsonModel.nullableInt(json['approved_by']),
       approvedAt: json['approved_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

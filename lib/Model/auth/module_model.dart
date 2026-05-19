@@ -38,15 +38,15 @@ class ModuleModel extends JsonModel {
       routePath: json['route_path']?.toString(),
       iconKey: json['icon_key']?.toString(),
       description: json['description']?.toString(),
-      sortOrder: ModelValue.nullableInt(json['sort_order']),
-      userSortOrder: ModelValue.nullableInt(json['user_sort_order']),
-      effectiveSortOrder: ModelValue.nullableInt(json['effective_sort_order']),
+      sortOrder: JsonModel.nullableInt(json['sort_order']),
+      userSortOrder: JsonModel.nullableInt(json['user_sort_order']),
+      effectiveSortOrder: JsonModel.nullableInt(json['effective_sort_order']),
       isHidden: json['is_hidden'] == null
           ? null
-          : ModelValue.boolOf(json['is_hidden']),
+          : JsonModel.boolOf(json['is_hidden']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
     );
   }
 

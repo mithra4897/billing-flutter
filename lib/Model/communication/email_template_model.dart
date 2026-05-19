@@ -35,8 +35,8 @@ class EmailTemplateModel extends JsonModel {
 
   factory EmailTemplateModel.fromJson(Map<String, dynamic> json) {
     return EmailTemplateModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       templateCode: json['template_code']?.toString(),
       templateName: json['template_name']?.toString(),
       module: json['module']?.toString(),
@@ -46,12 +46,12 @@ class EmailTemplateModel extends JsonModel {
       bodyTemplate: json['body_template']?.toString(),
       isHtml: json['is_html'] == null
           ? null
-          : ModelValue.boolOf(json['is_html']),
+          : JsonModel.boolOf(json['is_html']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

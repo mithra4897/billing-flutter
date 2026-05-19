@@ -31,24 +31,24 @@ class GstTaxRuleModel extends JsonModel {
 
   factory GstTaxRuleModel.fromJson(Map<String, dynamic> json) {
     return GstTaxRuleModel(
-      id: ModelValue.nullableInt(json['id']),
-      ruleCode: ModelValue.stringOf(json['rule_code']),
-      ruleName: ModelValue.stringOf(json['rule_name']),
-      transactionType: ModelValue.stringOf(json['transaction_type']),
-      itemType: ModelValue.stringOf(json['item_type']),
-      taxCodeId: ModelValue.nullableInt(json['tax_code_id']),
-      placeOfSupplyResult: ModelValue.stringOf(json['place_of_supply_result']),
-      taxApplication: ModelValue.stringOf(json['tax_application']),
-      reverseChargeApplicable: ModelValue.boolOf(
+      id: JsonModel.nullableInt(json['id']),
+      ruleCode: JsonModel.stringOf(json['rule_code']),
+      ruleName: JsonModel.stringOf(json['rule_name']),
+      transactionType: JsonModel.stringOf(json['transaction_type']),
+      itemType: JsonModel.stringOf(json['item_type']),
+      taxCodeId: JsonModel.nullableInt(json['tax_code_id']),
+      placeOfSupplyResult: JsonModel.stringOf(json['place_of_supply_result']),
+      taxApplication: JsonModel.stringOf(json['tax_application']),
+      reverseChargeApplicable: JsonModel.boolOf(
         json['reverse_charge_applicable'],
       ),
       inputTaxCreditAllowed: json['input_tax_credit_allowed'] == null
           ? true
-          : ModelValue.boolOf(json['input_tax_credit_allowed'], fallback: true),
-      priorityOrder: ModelValue.nullableInt(json['priority_order']),
+          : JsonModel.boolOf(json['input_tax_credit_allowed'], fallback: true),
+      priorityOrder: JsonModel.nullableInt(json['priority_order']),
       isActive: json['is_active'] == null
           ? true
-          : ModelValue.boolOf(json['is_active'], fallback: true),
+          : JsonModel.boolOf(json['is_active'], fallback: true),
       remarks: json['remarks']?.toString(),
     );
   }

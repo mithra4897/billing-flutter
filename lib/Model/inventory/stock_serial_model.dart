@@ -27,10 +27,10 @@ class StockSerialModel extends JsonModel {
 
   factory StockSerialModel.fromJson(Map<String, dynamic> json) {
     return StockSerialModel(
-      id: ModelValue.nullableInt(json['id']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      batchId: ModelValue.nullableInt(json['batch_id']),
+      id: JsonModel.nullableInt(json['id']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      batchId: JsonModel.nullableInt(json['batch_id']),
       serialNo: json['serial_no']?.toString(),
       status: json['status']?.toString(),
       inwardDate: json['inward_date']?.toString(),

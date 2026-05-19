@@ -280,7 +280,7 @@ class _ProjectVendorWorkManagementPageState
   List<AppDropdownItem<int>> get _purchaseInvoiceItems => _purchaseInvoices
       .map(
         (item) => AppDropdownItem<int>(
-          value: item.id,
+          value: item.id!,
           label: item.invoiceNo?.trim().isNotEmpty == true
               ? item.invoiceNo!
               : 'Invoice #${item.id}',

@@ -23,13 +23,13 @@ class ProjectBillingModel extends JsonModel {
 
   factory ProjectBillingModel.fromJson(Map<String, dynamic> json) {
     return ProjectBillingModel(
-      id: ModelValue.nullableInt(json['id']),
-      projectId: ModelValue.nullableInt(json['project_id']),
-      projectMilestoneId: ModelValue.nullableInt(json['project_milestone_id']),
+      id: JsonModel.nullableInt(json['id']),
+      projectId: JsonModel.nullableInt(json['project_id']),
+      projectMilestoneId: JsonModel.nullableInt(json['project_milestone_id']),
       billingDate: json['billing_date']?.toString(),
       billingBasis: json['billing_basis']?.toString(),
-      billingAmount: ModelValue.nullableDouble(json['billing_amount']),
-      salesInvoiceId: ModelValue.nullableInt(json['sales_invoice_id']),
+      billingAmount: JsonModel.nullableDouble(json['billing_amount']),
+      salesInvoiceId: JsonModel.nullableInt(json['sales_invoice_id']),
       billingStatus: json['billing_status']?.toString(),
       remarks: json['remarks']?.toString(),
     );

@@ -37,8 +37,8 @@ class LoginHistoryModel extends JsonModel {
 
   factory LoginHistoryModel.fromJson(Map<String, dynamic> json) {
     return LoginHistoryModel(
-      id: ModelValue.nullableInt(json['id']),
-      userId: ModelValue.nullableInt(json['user_id']),
+      id: JsonModel.nullableInt(json['id']),
+      userId: JsonModel.nullableInt(json['user_id']),
       username: json['username']?.toString(),
       firstName: json['first_name']?.toString(),
       lastName: json['last_name']?.toString(),

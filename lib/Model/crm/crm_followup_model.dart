@@ -23,12 +23,12 @@ class CrmFollowupModel extends JsonModel {
 
   factory CrmFollowupModel.fromJson(Map<String, dynamic> json) {
     return CrmFollowupModel(
-      id: ModelValue.nullableInt(json['id']),
-      enquiryId: ModelValue.nullableInt(json['enquiry_id']),
+      id: JsonModel.nullableInt(json['id']),
+      enquiryId: JsonModel.nullableInt(json['enquiry_id']),
       followupDate: json['followup_date']?.toString(),
       notes: json['notes']?.toString(),
       nextFollowup: json['next_followup']?.toString(),
-      assignedTo: ModelValue.nullableInt(json['assigned_to']),
+      assignedTo: JsonModel.nullableInt(json['assigned_to']),
       status: json['status']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

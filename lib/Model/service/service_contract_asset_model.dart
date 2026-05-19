@@ -33,11 +33,11 @@ class ServiceContractAssetModel extends JsonModel {
 
   factory ServiceContractAssetModel.fromJson(Map<String, dynamic> json) {
     return ServiceContractAssetModel(
-      id: ModelValue.nullableInt(json['id']),
-      serviceContractId: ModelValue.nullableInt(json['service_contract_id']),
-      assetId: ModelValue.nullableInt(json['asset_id']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      serialId: ModelValue.nullableInt(json['serial_id']),
+      id: JsonModel.nullableInt(json['id']),
+      serviceContractId: JsonModel.nullableInt(json['service_contract_id']),
+      assetId: JsonModel.nullableInt(json['asset_id']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      serialId: JsonModel.nullableInt(json['serial_id']),
       serialNo: json['serial_no']?.toString(),
       installationDate: json['installation_date']?.toString(),
       warrantyStartDate: json['warranty_start_date']?.toString(),
@@ -45,7 +45,7 @@ class ServiceContractAssetModel extends JsonModel {
       customerSiteAddress: json['customer_site_address']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

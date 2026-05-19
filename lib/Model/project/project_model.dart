@@ -53,9 +53,9 @@ class ProjectModel extends JsonModel {
 
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
     return ProjectModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      customerPartyId: ModelValue.nullableInt(json['customer_party_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
       projectCode: json['project_code']?.toString(),
       projectName: json['project_name']?.toString(),
       projectType: json['project_type']?.toString(),
@@ -64,14 +64,14 @@ class ProjectModel extends JsonModel {
       expectedEndDate: json['expected_end_date']?.toString(),
       actualStartDate: json['actual_start_date']?.toString(),
       actualEndDate: json['actual_end_date']?.toString(),
-      budgetAmount: ModelValue.nullableDouble(json['budget_amount']),
-      percentCompletion: ModelValue.nullableDouble(json['percent_completion']),
+      budgetAmount: JsonModel.nullableDouble(json['budget_amount']),
+      percentCompletion: JsonModel.nullableDouble(json['percent_completion']),
       imagePath: json['image_path']?.toString(),
       projectStatus: json['project_status']?.toString(),
       notes: json['notes']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       tasks: _list(json['tasks'], ProjectTaskModel.fromJson),
       milestones: _list(json['milestones'], ProjectMilestoneModel.fromJson),
       timesheets: _list(json['timesheets'], ProjectTimesheetModel.fromJson),

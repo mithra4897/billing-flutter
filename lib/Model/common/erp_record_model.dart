@@ -7,7 +7,7 @@ class ErpRecordModel extends JsonModel {
   final String? status;
   factory ErpRecordModel.fromJson(Map<String, dynamic> json) {
     return ErpRecordModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       code:
           json['code']?.toString() ??
           json['item_code']?.toString() ??

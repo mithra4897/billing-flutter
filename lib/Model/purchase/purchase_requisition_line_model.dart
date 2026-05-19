@@ -37,20 +37,20 @@ class PurchaseRequisitionLineModel extends JsonModel {
 
   factory PurchaseRequisitionLineModel.fromJson(Map<String, dynamic> json) {
     return PurchaseRequisitionLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      purchaseRequisitionId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      purchaseRequisitionId: JsonModel.nullableInt(
         json['purchase_requisition_id'],
       ),
-      lineNo: ModelValue.nullableInt(json['line_no']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      uomId: ModelValue.nullableInt(json['uom_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      uomId: JsonModel.nullableInt(json['uom_id']),
       description: json['description']?.toString(),
-      requestedQty: ModelValue.nullableDouble(json['requested_qty']),
-      orderedQty: ModelValue.nullableDouble(json['ordered_qty']),
-      pendingQty: ModelValue.nullableDouble(json['pending_qty']),
-      estimatedRate: ModelValue.nullableDouble(json['estimated_rate']),
-      estimatedAmount: ModelValue.nullableDouble(json['estimated_amount']),
+      requestedQty: JsonModel.nullableDouble(json['requested_qty']),
+      orderedQty: JsonModel.nullableDouble(json['ordered_qty']),
+      pendingQty: JsonModel.nullableDouble(json['pending_qty']),
+      estimatedRate: JsonModel.nullableDouble(json['estimated_rate']),
+      estimatedAmount: JsonModel.nullableDouble(json['estimated_amount']),
       lineStatus: json['line_status']?.toString(),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),

@@ -33,9 +33,9 @@ class ServiceFeedbackModel extends JsonModel {
 
   factory ServiceFeedbackModel.fromJson(Map<String, dynamic> json) {
     return ServiceFeedbackModel(
-      id: ModelValue.nullableInt(json['id']),
-      serviceTicketId: ModelValue.nullableInt(json['service_ticket_id']),
-      serviceWorkOrderId: ModelValue.nullableInt(json['service_work_order_id']),
+      id: JsonModel.nullableInt(json['id']),
+      serviceTicketId: JsonModel.nullableInt(json['service_ticket_id']),
+      serviceWorkOrderId: JsonModel.nullableInt(json['service_work_order_id']),
       feedbackDate: json['feedback_date']?.toString(),
       ratingOverall: json['rating_overall']?.toString(),
       ratingTechnician: json['rating_technician']?.toString(),
@@ -44,11 +44,11 @@ class ServiceFeedbackModel extends JsonModel {
       customerFeedback: json['customer_feedback']?.toString(),
       resolutionConfirmed: json['resolution_confirmed'] == null
           ? null
-          : ModelValue.boolOf(json['resolution_confirmed']),
+          : JsonModel.boolOf(json['resolution_confirmed']),
       revisitRequired: json['revisit_required'] == null
           ? null
-          : ModelValue.boolOf(json['revisit_required']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
+          : JsonModel.boolOf(json['revisit_required']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

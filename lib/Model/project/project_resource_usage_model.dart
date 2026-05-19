@@ -29,17 +29,17 @@ class ProjectResourceUsageModel extends JsonModel {
 
   factory ProjectResourceUsageModel.fromJson(Map<String, dynamic> json) {
     return ProjectResourceUsageModel(
-      id: ModelValue.nullableInt(json['id']),
-      projectId: ModelValue.nullableInt(json['project_id']),
-      projectTaskId: ModelValue.nullableInt(json['project_task_id']),
-      assetId: ModelValue.nullableInt(json['asset_id']),
+      id: JsonModel.nullableInt(json['id']),
+      projectId: JsonModel.nullableInt(json['project_id']),
+      projectTaskId: JsonModel.nullableInt(json['project_task_id']),
+      assetId: JsonModel.nullableInt(json['asset_id']),
       resourceName: json['resource_name']?.toString(),
       usageDate: json['usage_date']?.toString(),
-      usageHours: ModelValue.nullableDouble(json['usage_hours']),
-      usageQty: ModelValue.nullableDouble(json['usage_qty']),
-      unitCost: ModelValue.nullableDouble(json['unit_cost']),
-      totalCost: ModelValue.nullableDouble(json['total_cost']),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
+      usageHours: JsonModel.nullableDouble(json['usage_hours']),
+      usageQty: JsonModel.nullableDouble(json['usage_qty']),
+      unitCost: JsonModel.nullableDouble(json['unit_cost']),
+      totalCost: JsonModel.nullableDouble(json['total_cost']),
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
       remarks: json['remarks']?.toString(),
     );
   }

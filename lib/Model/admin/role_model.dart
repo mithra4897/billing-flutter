@@ -23,16 +23,16 @@ class RoleModel extends JsonModel {
 
   factory RoleModel.fromJson(Map<String, dynamic> json) {
     return RoleModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       code: json['code']?.toString(),
       name: json['name']?.toString(),
       description: json['description']?.toString(),
       isSystemRole: json['is_system_role'] == null
           ? null
-          : ModelValue.boolOf(json['is_system_role']),
+          : JsonModel.boolOf(json['is_system_role']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       permissions: _permissionList(json['permissions']),
       rolePermissions: _rolePermissionList(json['role_permissions']),
       permissionIds: _permissionIdList(json['permission_ids']),
@@ -71,7 +71,7 @@ class RoleModel extends JsonModel {
       return const <int>[];
     }
 
-    return value.map(ModelValue.intOf).toList(growable: false);
+    return value.map(JsonModel.intOf).toList(growable: false);
   }
 
   static List<RolePermissionModel> _rolePermissionList(dynamic value) {

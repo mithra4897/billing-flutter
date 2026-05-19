@@ -821,7 +821,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                           options: _invoiceOptions
                               .map(
                                 (item) => AppSearchPickerOption<int>(
-                                  value: item.id,
+                                  value: item.id!,
                                   label: item.invoiceNo ?? 'Invoice',
                                   subtitle: quotationCustomerLabel(
                                     item.toJson(),

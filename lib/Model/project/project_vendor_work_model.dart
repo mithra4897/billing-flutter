@@ -27,15 +27,15 @@ class ProjectVendorWorkModel extends JsonModel {
 
   factory ProjectVendorWorkModel.fromJson(Map<String, dynamic> json) {
     return ProjectVendorWorkModel(
-      id: ModelValue.nullableInt(json['id']),
-      projectId: ModelValue.nullableInt(json['project_id']),
-      projectTaskId: ModelValue.nullableInt(json['project_task_id']),
-      vendorPartyId: ModelValue.nullableInt(json['vendor_party_id']),
-      purchaseOrderId: ModelValue.nullableInt(json['purchase_order_id']),
-      purchaseInvoiceId: ModelValue.nullableInt(json['purchase_invoice_id']),
+      id: JsonModel.nullableInt(json['id']),
+      projectId: JsonModel.nullableInt(json['project_id']),
+      projectTaskId: JsonModel.nullableInt(json['project_task_id']),
+      vendorPartyId: JsonModel.nullableInt(json['vendor_party_id']),
+      purchaseOrderId: JsonModel.nullableInt(json['purchase_order_id']),
+      purchaseInvoiceId: JsonModel.nullableInt(json['purchase_invoice_id']),
       workDescription: json['work_description']?.toString(),
-      amount: ModelValue.nullableDouble(json['amount']),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
+      amount: JsonModel.nullableDouble(json['amount']),
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
       workStatus: json['work_status']?.toString(),
       remarks: json['remarks']?.toString(),
     );

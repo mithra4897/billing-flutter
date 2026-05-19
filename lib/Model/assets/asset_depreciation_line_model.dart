@@ -35,23 +35,23 @@ class AssetDepreciationLineModel extends JsonModel {
 
   factory AssetDepreciationLineModel.fromJson(Map<String, dynamic> json) {
     return AssetDepreciationLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      assetDepreciationRunId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      assetDepreciationRunId: JsonModel.nullableInt(
         json['asset_depreciation_run_id'],
       ),
-      assetBookId: ModelValue.nullableInt(json['asset_book_id']),
-      assetId: ModelValue.nullableInt(json['asset_id']),
+      assetBookId: JsonModel.nullableInt(json['asset_book_id']),
+      assetId: JsonModel.nullableInt(json['asset_id']),
       depreciationFromDate: json['depreciation_from_date']?.toString(),
       depreciationToDate: json['depreciation_to_date']?.toString(),
-      openingBookValue: ModelValue.nullableDouble(json['opening_book_value']),
-      depreciationAmount: ModelValue.nullableDouble(
+      openingBookValue: JsonModel.nullableDouble(json['opening_book_value']),
+      depreciationAmount: JsonModel.nullableDouble(
         json['depreciation_amount'],
       ),
-      closingBookValue: ModelValue.nullableDouble(json['closing_book_value']),
-      accumulatedDepreciationBefore: ModelValue.nullableDouble(
+      closingBookValue: JsonModel.nullableDouble(json['closing_book_value']),
+      accumulatedDepreciationBefore: JsonModel.nullableDouble(
         json['accumulated_depreciation_before'],
       ),
-      accumulatedDepreciationAfter: ModelValue.nullableDouble(
+      accumulatedDepreciationAfter: JsonModel.nullableDouble(
         json['accumulated_depreciation_after'],
       ),
       lineStatus: json['line_status']?.toString(),

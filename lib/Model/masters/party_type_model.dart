@@ -19,15 +19,15 @@ class PartyTypeModel extends JsonModel {
 
   factory PartyTypeModel.fromJson(Map<String, dynamic> json) {
     return PartyTypeModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       code: json['code']?.toString(),
       name: json['name']?.toString(),
       isSystem: json['is_system'] == null
           ? null
-          : ModelValue.boolOf(json['is_system']),
+          : JsonModel.boolOf(json['is_system']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

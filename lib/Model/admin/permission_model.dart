@@ -19,17 +19,17 @@ class PermissionModel extends JsonModel {
 
   factory PermissionModel.fromJson(Map<String, dynamic> json) {
     return PermissionModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       module: json['module']?.toString(),
       code: json['code']?.toString(),
       name: json['name']?.toString(),
       description: json['description']?.toString(),
       isSystemPermission: json['is_system_permission'] == null
           ? null
-          : ModelValue.boolOf(json['is_system_permission']),
+          : JsonModel.boolOf(json['is_system_permission']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
     );
   }
   @override

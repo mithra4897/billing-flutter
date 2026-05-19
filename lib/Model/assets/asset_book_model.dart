@@ -39,27 +39,27 @@ class AssetBookModel extends JsonModel {
 
   factory AssetBookModel.fromJson(Map<String, dynamic> json) {
     return AssetBookModel(
-      id: ModelValue.nullableInt(json['id']),
-      assetId: ModelValue.nullableInt(json['asset_id']),
+      id: JsonModel.nullableInt(json['id']),
+      assetId: JsonModel.nullableInt(json['asset_id']),
       bookType: json['book_type']?.toString(),
       depreciationMethod: json['depreciation_method']?.toString(),
       usefulLifeMonths: json['useful_life_months']?.toString(),
-      depreciationRate: ModelValue.nullableDouble(json['depreciation_rate']),
-      capitalizationValue: ModelValue.nullableDouble(
+      depreciationRate: JsonModel.nullableDouble(json['depreciation_rate']),
+      capitalizationValue: JsonModel.nullableDouble(
         json['capitalization_value'],
       ),
-      salvageValue: ModelValue.nullableDouble(json['salvage_value']),
-      depreciableValue: ModelValue.nullableDouble(json['depreciable_value']),
-      accumulatedDepreciation: ModelValue.nullableDouble(
+      salvageValue: JsonModel.nullableDouble(json['salvage_value']),
+      depreciableValue: JsonModel.nullableDouble(json['depreciable_value']),
+      accumulatedDepreciation: JsonModel.nullableDouble(
         json['accumulated_depreciation'],
       ),
-      netBookValue: ModelValue.nullableDouble(json['net_book_value']),
+      netBookValue: JsonModel.nullableDouble(json['net_book_value']),
       depreciationStartDate: json['depreciation_start_date']?.toString(),
       depreciationEndDate: json['depreciation_end_date']?.toString(),
       lastDepreciationDate: json['last_depreciation_date']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

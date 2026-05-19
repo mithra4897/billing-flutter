@@ -19,11 +19,11 @@ class CrmOpportunityProductModel extends JsonModel {
 
   factory CrmOpportunityProductModel.fromJson(Map<String, dynamic> json) {
     return CrmOpportunityProductModel(
-      id: ModelValue.nullableInt(json['id']),
-      opportunityId: ModelValue.nullableInt(json['opportunity_id']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      qty: ModelValue.nullableDouble(json['qty']),
-      estimatedPrice: ModelValue.nullableDouble(json['estimated_price']),
+      id: JsonModel.nullableInt(json['id']),
+      opportunityId: JsonModel.nullableInt(json['opportunity_id']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      qty: JsonModel.nullableDouble(json['qty']),
+      estimatedPrice: JsonModel.nullableDouble(json['estimated_price']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

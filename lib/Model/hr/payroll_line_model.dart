@@ -29,16 +29,16 @@ class PayrollLineModel extends JsonModel {
 
   factory PayrollLineModel.fromJson(Map<String, dynamic> json) {
     return PayrollLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      payrollRunId: ModelValue.nullableInt(json['payroll_run_id']),
-      employeeId: ModelValue.nullableInt(json['employee_id']),
-      grossSalary: ModelValue.nullableDouble(json['gross_salary']),
-      totalDeductions: ModelValue.nullableDouble(json['total_deductions']),
-      netSalary: ModelValue.nullableDouble(json['net_salary']),
-      workingDays: ModelValue.nullableInt(json['working_days']),
-      presentDays: ModelValue.nullableInt(json['present_days']),
-      leaveDays: ModelValue.nullableInt(json['leave_days']),
-      lopDays: ModelValue.nullableDouble(json['lop_days']),
+      id: JsonModel.nullableInt(json['id']),
+      payrollRunId: JsonModel.nullableInt(json['payroll_run_id']),
+      employeeId: JsonModel.nullableInt(json['employee_id']),
+      grossSalary: JsonModel.nullableDouble(json['gross_salary']),
+      totalDeductions: JsonModel.nullableDouble(json['total_deductions']),
+      netSalary: JsonModel.nullableDouble(json['net_salary']),
+      workingDays: JsonModel.nullableInt(json['working_days']),
+      presentDays: JsonModel.nullableInt(json['present_days']),
+      leaveDays: JsonModel.nullableInt(json['leave_days']),
+      lopDays: JsonModel.nullableDouble(json['lop_days']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

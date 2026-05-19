@@ -23,17 +23,17 @@ class UserBranchAccessModel extends JsonModel {
 
   factory UserBranchAccessModel.fromJson(Map<String, dynamic> json) {
     return UserBranchAccessModel(
-      id: ModelValue.nullableInt(json['id']),
-      userId: ModelValue.nullableInt(json['user_id']),
-      branchId: ModelValue.nullableInt(json['branch_id']),
+      id: JsonModel.nullableInt(json['id']),
+      userId: JsonModel.nullableInt(json['user_id']),
+      branchId: JsonModel.nullableInt(json['branch_id']),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

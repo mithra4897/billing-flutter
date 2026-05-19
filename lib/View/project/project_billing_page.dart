@@ -493,7 +493,7 @@ class _ProjectBillingManagementPageState
                     options: _salesInvoices
                         .map(
                           (invoice) => AppSearchPickerOption<int>(
-                            value: invoice.id,
+                            value: invoice.id!,
                             label:
                                 _salesInvoiceLabel(invoice.id) ??
                                 'Invoice #${invoice.id}',

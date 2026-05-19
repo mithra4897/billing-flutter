@@ -41,24 +41,24 @@ class ExpenseClaimModel extends JsonModel {
 
   factory ExpenseClaimModel.fromJson(Map<String, dynamic> json) {
     return ExpenseClaimModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      employeeId: ModelValue.nullableInt(json['employee_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      employeeId: JsonModel.nullableInt(json['employee_id']),
       claimNo: json['claim_no']?.toString(),
       claimDate: json['claim_date']?.toString(),
-      totalAmount: ModelValue.nullableDouble(json['total_amount']),
+      totalAmount: JsonModel.nullableDouble(json['total_amount']),
       claimStatus: json['claim_status']?.toString(),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
-      reimbursementVoucherId: ModelValue.nullableInt(
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
+      reimbursementVoucherId: JsonModel.nullableInt(
         json['reimbursement_voucher_id'],
       ),
       notes: json['notes']?.toString(),
-      approvedBy: ModelValue.nullableInt(json['approved_by']),
+      approvedBy: JsonModel.nullableInt(json['approved_by']),
       approvedAt: json['approved_at']?.toString(),
-      reimbursedBy: ModelValue.nullableInt(json['reimbursed_by']),
+      reimbursedBy: JsonModel.nullableInt(json['reimbursed_by']),
       reimbursedAt: json['reimbursed_at']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

@@ -45,25 +45,25 @@ class MrpNetRequirementModel extends JsonModel {
 
   factory MrpNetRequirementModel.fromJson(Map<String, dynamic> json) {
     return MrpNetRequirementModel(
-      id: ModelValue.nullableInt(json['id']),
-      mrpRunId: ModelValue.nullableInt(json['mrp_run_id']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      grossDemandQty: ModelValue.nullableDouble(json['gross_demand_qty']),
-      availableSupplyQty: ModelValue.nullableDouble(
+      id: JsonModel.nullableInt(json['id']),
+      mrpRunId: JsonModel.nullableInt(json['mrp_run_id']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      grossDemandQty: JsonModel.nullableDouble(json['gross_demand_qty']),
+      availableSupplyQty: JsonModel.nullableDouble(
         json['available_supply_qty'],
       ),
-      safetyStockQty: ModelValue.nullableDouble(json['safety_stock_qty']),
-      netRequiredQty: ModelValue.nullableDouble(json['net_required_qty']),
-      shortageQty: ModelValue.nullableDouble(json['shortage_qty']),
-      excessQty: ModelValue.nullableDouble(json['excess_qty']),
+      safetyStockQty: JsonModel.nullableDouble(json['safety_stock_qty']),
+      netRequiredQty: JsonModel.nullableDouble(json['net_required_qty']),
+      shortageQty: JsonModel.nullableDouble(json['shortage_qty']),
+      excessQty: JsonModel.nullableDouble(json['excess_qty']),
       reorderTriggered: json['reorder_triggered'] == null
           ? null
-          : ModelValue.boolOf(json['reorder_triggered']),
+          : JsonModel.boolOf(json['reorder_triggered']),
       recommendedAction: json['recommended_action']?.toString(),
-      recommendedQty: ModelValue.nullableDouble(json['recommended_qty']),
+      recommendedQty: JsonModel.nullableDouble(json['recommended_qty']),
       recommendedDate: json['recommended_date']?.toString(),
-      leadTimeDays: ModelValue.nullableInt(json['lead_time_days']),
+      leadTimeDays: JsonModel.nullableInt(json['lead_time_days']),
       planningMethod: json['planning_method']?.toString(),
       procurementType: json['procurement_type']?.toString(),
       remarks: json['remarks']?.toString(),

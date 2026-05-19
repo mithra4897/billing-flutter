@@ -33,8 +33,8 @@ class PartyBankAccountModel extends JsonModel {
 
   factory PartyBankAccountModel.fromJson(Map<String, dynamic> json) {
     return PartyBankAccountModel(
-      id: ModelValue.nullableInt(json['id']),
-      partyId: ModelValue.nullableInt(json['party_id']),
+      id: JsonModel.nullableInt(json['id']),
+      partyId: JsonModel.nullableInt(json['party_id']),
       accountHolderName: json['account_holder_name']?.toString(),
       bankName: json['bank_name']?.toString(),
       branchName: json['branch_name']?.toString(),
@@ -42,13 +42,13 @@ class PartyBankAccountModel extends JsonModel {
       ifscCode: json['ifsc_code']?.toString(),
       swiftCode: json['swift_code']?.toString(),
       iban: json['iban']?.toString(),
-      upiId: ModelValue.nullableInt(json['upi_id']),
+      upiId: JsonModel.nullableInt(json['upi_id']),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

@@ -41,24 +41,24 @@ class ProductionReceiptLineModel extends JsonModel {
 
   factory ProductionReceiptLineModel.fromJson(Map<String, dynamic> json) {
     return ProductionReceiptLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      productionReceiptId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      productionReceiptId: JsonModel.nullableInt(
         json['production_receipt_id'],
       ),
-      productionOrderOutputId: ModelValue.nullableInt(
+      productionOrderOutputId: JsonModel.nullableInt(
         json['production_order_output_id'],
       ),
-      lineNo: ModelValue.nullableInt(json['line_no']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      uomId: ModelValue.nullableInt(json['uom_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      batchId: ModelValue.nullableInt(json['batch_id']),
-      serialId: ModelValue.nullableInt(json['serial_id']),
-      receiptQty: ModelValue.nullableDouble(json['receipt_qty']),
-      acceptedQty: ModelValue.nullableDouble(json['accepted_qty']),
-      rejectedQty: ModelValue.nullableDouble(json['rejected_qty']),
-      unitCost: ModelValue.nullableDouble(json['unit_cost']),
-      totalCost: ModelValue.nullableDouble(json['total_cost']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      uomId: JsonModel.nullableInt(json['uom_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      batchId: JsonModel.nullableInt(json['batch_id']),
+      serialId: JsonModel.nullableInt(json['serial_id']),
+      receiptQty: JsonModel.nullableDouble(json['receipt_qty']),
+      acceptedQty: JsonModel.nullableDouble(json['accepted_qty']),
+      rejectedQty: JsonModel.nullableDouble(json['rejected_qty']),
+      unitCost: JsonModel.nullableDouble(json['unit_cost']),
+      totalCost: JsonModel.nullableDouble(json['total_cost']),
       outputType: json['output_type']?.toString(),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),

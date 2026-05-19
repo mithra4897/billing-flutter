@@ -25,14 +25,14 @@ class ServiceTicketActivityModel extends JsonModel {
 
   factory ServiceTicketActivityModel.fromJson(Map<String, dynamic> json) {
     return ServiceTicketActivityModel(
-      id: ModelValue.nullableInt(json['id']),
-      serviceTicketId: ModelValue.nullableInt(json['service_ticket_id']),
+      id: JsonModel.nullableInt(json['id']),
+      serviceTicketId: JsonModel.nullableInt(json['service_ticket_id']),
       activityType: json['activity_type']?.toString(),
       activityDatetime: json['activity_datetime']?.toString(),
       activityNotes: json['activity_notes']?.toString(),
       nextFollowupDatetime: json['next_followup_datetime']?.toString(),
       visibility: json['visibility']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

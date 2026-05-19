@@ -53,51 +53,51 @@ class AssetCategoryModel extends JsonModel {
 
   factory AssetCategoryModel.fromJson(Map<String, dynamic> json) {
     return AssetCategoryModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       categoryCode: json['category_code']?.toString(),
       categoryName: json['category_name']?.toString(),
-      parentCategoryId: ModelValue.nullableInt(json['parent_category_id']),
+      parentCategoryId: JsonModel.nullableInt(json['parent_category_id']),
       assetType: json['asset_type']?.toString(),
-      capitalizationThreshold: ModelValue.nullableDouble(
+      capitalizationThreshold: JsonModel.nullableDouble(
         json['capitalization_threshold'],
       ),
-      defaultAssetAccountId: ModelValue.nullableInt(
+      defaultAssetAccountId: JsonModel.nullableInt(
         json['default_asset_account_id'],
       ),
-      defaultAccumDepreciationAccountId: ModelValue.nullableInt(
+      defaultAccumDepreciationAccountId: JsonModel.nullableInt(
         json['default_accum_depreciation_account_id'],
       ),
-      defaultDepreciationExpenseAccountId: ModelValue.nullableInt(
+      defaultDepreciationExpenseAccountId: JsonModel.nullableInt(
         json['default_depreciation_expense_account_id'],
       ),
-      defaultDisposalGainAccountId: ModelValue.nullableInt(
+      defaultDisposalGainAccountId: JsonModel.nullableInt(
         json['default_disposal_gain_account_id'],
       ),
-      defaultDisposalLossAccountId: ModelValue.nullableInt(
+      defaultDisposalLossAccountId: JsonModel.nullableInt(
         json['default_disposal_loss_account_id'],
       ),
       defaultDepreciationMethod: json['default_depreciation_method']
           ?.toString(),
       defaultUsefulLifeMonths: json['default_useful_life_months']?.toString(),
-      defaultSalvageValue: ModelValue.nullableDouble(
+      defaultSalvageValue: JsonModel.nullableDouble(
         json['default_salvage_value'],
       ),
       isTagRequired: json['is_tag_required'] == null
           ? null
-          : ModelValue.boolOf(json['is_tag_required']),
+          : JsonModel.boolOf(json['is_tag_required']),
       isSerialRequired: json['is_serial_required'] == null
           ? null
-          : ModelValue.boolOf(json['is_serial_required']),
+          : JsonModel.boolOf(json['is_serial_required']),
       isDepreciable: json['is_depreciable'] == null
           ? null
-          : ModelValue.boolOf(json['is_depreciable']),
+          : JsonModel.boolOf(json['is_depreciable']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       remarks: json['remarks']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

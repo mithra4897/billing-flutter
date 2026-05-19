@@ -39,27 +39,27 @@ class ProductionOrderOperationModel extends JsonModel {
 
   factory ProductionOrderOperationModel.fromJson(Map<String, dynamic> json) {
     return ProductionOrderOperationModel(
-      id: ModelValue.nullableInt(json['id']),
-      productionOrderId: ModelValue.nullableInt(json['production_order_id']),
-      bomOperationId: ModelValue.nullableInt(json['bom_operation_id']),
+      id: JsonModel.nullableInt(json['id']),
+      productionOrderId: JsonModel.nullableInt(json['production_order_id']),
+      bomOperationId: JsonModel.nullableInt(json['bom_operation_id']),
       operationNo: json['operation_no']?.toString(),
       operationName: json['operation_name']?.toString(),
       workCenter: json['work_center']?.toString(),
-      plannedSetupTimeMinutes: ModelValue.nullableDouble(
+      plannedSetupTimeMinutes: JsonModel.nullableDouble(
         json['planned_setup_time_minutes'],
       ),
-      plannedRunTimeMinutes: ModelValue.nullableDouble(
+      plannedRunTimeMinutes: JsonModel.nullableDouble(
         json['planned_run_time_minutes'],
       ),
-      actualSetupTimeMinutes: ModelValue.nullableDouble(
+      actualSetupTimeMinutes: JsonModel.nullableDouble(
         json['actual_setup_time_minutes'],
       ),
-      actualRunTimeMinutes: ModelValue.nullableDouble(
+      actualRunTimeMinutes: JsonModel.nullableDouble(
         json['actual_run_time_minutes'],
       ),
-      laborCost: ModelValue.nullableDouble(json['labor_cost']),
-      machineCost: ModelValue.nullableDouble(json['machine_cost']),
-      overheadCost: ModelValue.nullableDouble(json['overhead_cost']),
+      laborCost: JsonModel.nullableDouble(json['labor_cost']),
+      machineCost: JsonModel.nullableDouble(json['machine_cost']),
+      overheadCost: JsonModel.nullableDouble(json['overhead_cost']),
       operationStatus: json['operation_status']?.toString(),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),

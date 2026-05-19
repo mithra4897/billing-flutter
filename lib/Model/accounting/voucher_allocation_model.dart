@@ -27,15 +27,15 @@ class VoucherAllocationModel extends JsonModel {
 
   factory VoucherAllocationModel.fromJson(Map<String, dynamic> json) {
     return VoucherAllocationModel(
-      id: ModelValue.nullableInt(json['id']),
-      voucherLineId: ModelValue.nullableInt(json['voucher_line_id']),
-      againstVoucherId: ModelValue.nullableInt(json['against_voucher_id']),
-      againstVoucherLineId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      voucherLineId: JsonModel.nullableInt(json['voucher_line_id']),
+      againstVoucherId: JsonModel.nullableInt(json['against_voucher_id']),
+      againstVoucherLineId: JsonModel.nullableInt(
         json['against_voucher_line_id'],
       ),
       referenceNo: json['reference_no']?.toString(),
       referenceDate: json['reference_date']?.toString(),
-      allocationAmount: ModelValue.nullableDouble(json['allocation_amount']),
+      allocationAmount: JsonModel.nullableDouble(json['allocation_amount']),
       allocationType: json['allocation_type']?.toString(),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),

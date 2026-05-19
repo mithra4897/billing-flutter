@@ -15,11 +15,11 @@ class CrmSourceModel extends JsonModel {
 
   factory CrmSourceModel.fromJson(Map<String, dynamic> json) {
     return CrmSourceModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       sourceName: json['source_name']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

@@ -51,8 +51,8 @@ class UserModel extends JsonModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: ModelValue.nullableInt(json['id']),
-      employeeId: ModelValue.nullableInt(json['employee_id']),
+      id: JsonModel.nullableInt(json['id']),
+      employeeId: JsonModel.nullableInt(json['employee_id']),
       employeeCode: json['employee_code']?.toString(),
       employeeName: (json['employee'] is Map<String, dynamic>)
           ? (json['employee']['employee_name']?.toString())
@@ -68,13 +68,13 @@ class UserModel extends JsonModel {
       profilePhotoPath: json['profile_photo_path']?.toString(),
       isSuperAdmin: json['is_super_admin'] == null
           ? null
-          : ModelValue.boolOf(json['is_super_admin']),
+          : JsonModel.boolOf(json['is_super_admin']),
       isSystemUser: json['is_system_user'] == null
           ? null
-          : ModelValue.boolOf(json['is_system_user']),
+          : JsonModel.boolOf(json['is_system_user']),
       mustChangePassword: json['must_change_password'] == null
           ? null
-          : ModelValue.boolOf(json['must_change_password']),
+          : JsonModel.boolOf(json['must_change_password']),
       status: json['status']?.toString(),
       remarks: json['remarks']?.toString(),
       roleIds: _roleIds(json['role_ids']),
@@ -144,7 +144,7 @@ class UserModel extends JsonModel {
       return const <int>[];
     }
 
-    return value.map(ModelValue.intOf).toList(growable: false);
+    return value.map(JsonModel.intOf).toList(growable: false);
   }
 
   static List<UserRoleModel> _userRoles(dynamic value) {

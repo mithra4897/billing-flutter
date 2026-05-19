@@ -21,8 +21,8 @@ class AttendanceRecordModel extends JsonModel {
 
   factory AttendanceRecordModel.fromJson(Map<String, dynamic> json) {
     return AttendanceRecordModel(
-      id: ModelValue.nullableInt(json['id']),
-      employeeId: ModelValue.nullableInt(json['employee_id']),
+      id: JsonModel.nullableInt(json['id']),
+      employeeId: JsonModel.nullableInt(json['employee_id']),
       attendanceDate: json['attendance_date']?.toString(),
       checkIn: json['check_in']?.toString(),
       checkOut: json['check_out']?.toString(),

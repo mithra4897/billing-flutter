@@ -31,18 +31,18 @@ class InternalStockReceiptLineModel extends JsonModel {
 
   factory InternalStockReceiptLineModel.fromJson(Map<String, dynamic> json) {
     return InternalStockReceiptLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      stockReceiptInternalId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      stockReceiptInternalId: JsonModel.nullableInt(
         json['stock_receipt_internal_id'],
       ),
-      lineNo: ModelValue.nullableInt(json['line_no']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      uomId: ModelValue.nullableInt(json['uom_id']),
-      batchId: ModelValue.nullableInt(json['batch_id']),
-      serialId: ModelValue.nullableInt(json['serial_id']),
-      receiptQty: ModelValue.nullableDouble(json['receipt_qty']),
-      unitCost: ModelValue.nullableDouble(json['unit_cost']),
-      totalCost: ModelValue.nullableDouble(json['total_cost']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      uomId: JsonModel.nullableInt(json['uom_id']),
+      batchId: JsonModel.nullableInt(json['batch_id']),
+      serialId: JsonModel.nullableInt(json['serial_id']),
+      receiptQty: JsonModel.nullableDouble(json['receipt_qty']),
+      unitCost: JsonModel.nullableDouble(json['unit_cost']),
+      totalCost: JsonModel.nullableDouble(json['total_cost']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

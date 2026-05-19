@@ -41,24 +41,24 @@ class StockReservationModel extends JsonModel {
 
   factory StockReservationModel.fromJson(Map<String, dynamic> json) {
     return StockReservationModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      batchId: ModelValue.nullableInt(json['batch_id']),
-      serialId: ModelValue.nullableInt(json['serial_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      batchId: JsonModel.nullableInt(json['batch_id']),
+      serialId: JsonModel.nullableInt(json['serial_id']),
       referenceType: json['reference_type']?.toString(),
-      referenceId: ModelValue.nullableInt(json['reference_id']),
-      referenceLineId: ModelValue.nullableInt(json['reference_line_id']),
-      reservedQty: ModelValue.nullableDouble(json['reserved_qty']),
-      releasedQty: ModelValue.nullableDouble(json['released_qty']),
-      balanceReservedQty: ModelValue.nullableDouble(
+      referenceId: JsonModel.nullableInt(json['reference_id']),
+      referenceLineId: JsonModel.nullableInt(json['reference_line_id']),
+      reservedQty: JsonModel.nullableDouble(json['reserved_qty']),
+      releasedQty: JsonModel.nullableDouble(json['released_qty']),
+      balanceReservedQty: JsonModel.nullableDouble(
         json['balance_reserved_qty'],
       ),
       status: json['status']?.toString(),
       remarks: json['remarks']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

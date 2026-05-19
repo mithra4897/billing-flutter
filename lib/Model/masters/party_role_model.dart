@@ -17,12 +17,12 @@ class PartyRoleModel extends JsonModel {
 
   factory PartyRoleModel.fromJson(Map<String, dynamic> json) {
     return PartyRoleModel(
-      id: ModelValue.nullableInt(json['id']),
-      partyId: ModelValue.nullableInt(json['party_id']),
-      partyTypeId: ModelValue.nullableInt(json['party_type_id']),
+      id: JsonModel.nullableInt(json['id']),
+      partyId: JsonModel.nullableInt(json['party_id']),
+      partyTypeId: JsonModel.nullableInt(json['party_type_id']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

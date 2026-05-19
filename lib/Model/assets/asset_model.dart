@@ -91,11 +91,11 @@ class AssetModel extends JsonModel {
 
   factory AssetModel.fromJson(Map<String, dynamic> json) {
     return AssetModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      branchId: ModelValue.nullableInt(json['branch_id']),
-      locationId: ModelValue.nullableInt(json['location_id']),
-      assetCategoryId: ModelValue.nullableInt(json['asset_category_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      branchId: JsonModel.nullableInt(json['branch_id']),
+      locationId: JsonModel.nullableInt(json['location_id']),
+      assetCategoryId: JsonModel.nullableInt(json['asset_category_id']),
       assetCode: json['asset_code']?.toString(),
       assetName: json['asset_name']?.toString(),
       assetTagNo: json['asset_tag_no']?.toString(),
@@ -105,45 +105,45 @@ class AssetModel extends JsonModel {
       purchaseDate: json['purchase_date']?.toString(),
       capitalizationDate: json['capitalization_date']?.toString(),
       putToUseDate: json['put_to_use_date']?.toString(),
-      purchaseInvoiceId: ModelValue.nullableInt(json['purchase_invoice_id']),
-      purchaseInvoiceLineId: ModelValue.nullableInt(
+      purchaseInvoiceId: JsonModel.nullableInt(json['purchase_invoice_id']),
+      purchaseInvoiceLineId: JsonModel.nullableInt(
         json['purchase_invoice_line_id'],
       ),
-      supplierPartyId: ModelValue.nullableInt(json['supplier_party_id']),
-      assetAccountId: ModelValue.nullableInt(json['asset_account_id']),
-      accumDepreciationAccountId: ModelValue.nullableInt(
+      supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
+      assetAccountId: JsonModel.nullableInt(json['asset_account_id']),
+      accumDepreciationAccountId: JsonModel.nullableInt(
         json['accum_depreciation_account_id'],
       ),
-      depreciationExpenseAccountId: ModelValue.nullableInt(
+      depreciationExpenseAccountId: JsonModel.nullableInt(
         json['depreciation_expense_account_id'],
       ),
-      costCenterId: ModelValue.nullableInt(json['cost_center_id']),
+      costCenterId: JsonModel.nullableInt(json['cost_center_id']),
       departmentName: json['department_name']?.toString(),
       employeeName: json['employee_name']?.toString(),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      acquisitionCost: ModelValue.nullableDouble(json['acquisition_cost']),
-      additionalCost: ModelValue.nullableDouble(json['additional_cost']),
-      capitalizationValue: ModelValue.nullableDouble(
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      acquisitionCost: JsonModel.nullableDouble(json['acquisition_cost']),
+      additionalCost: JsonModel.nullableDouble(json['additional_cost']),
+      capitalizationValue: JsonModel.nullableDouble(
         json['capitalization_value'],
       ),
-      salvageValue: ModelValue.nullableDouble(json['salvage_value']),
+      salvageValue: JsonModel.nullableDouble(json['salvage_value']),
       assetStatus: json['asset_status']?.toString(),
       conditionStatus: json['condition_status']?.toString(),
       warrantyStartDate: json['warranty_start_date']?.toString(),
       warrantyEndDate: json['warranty_end_date']?.toString(),
       notes: json['notes']?.toString(),
-      activatedBy: ModelValue.nullableInt(json['activated_by']),
+      activatedBy: JsonModel.nullableInt(json['activated_by']),
       activatedAt: json['activated_at']?.toString(),
-      disposedBy: ModelValue.nullableInt(json['disposed_by']),
+      disposedBy: JsonModel.nullableInt(json['disposed_by']),
       disposedAt: json['disposed_at']?.toString(),
       isDepreciable: json['is_depreciable'] == null
           ? null
-          : ModelValue.boolOf(json['is_depreciable']),
+          : JsonModel.boolOf(json['is_depreciable']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

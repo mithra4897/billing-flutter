@@ -21,12 +21,12 @@ class ProjectMilestoneModel extends JsonModel {
 
   factory ProjectMilestoneModel.fromJson(Map<String, dynamic> json) {
     return ProjectMilestoneModel(
-      id: ModelValue.nullableInt(json['id']),
-      projectId: ModelValue.nullableInt(json['project_id']),
+      id: JsonModel.nullableInt(json['id']),
+      projectId: JsonModel.nullableInt(json['project_id']),
       milestoneName: json['milestone_name']?.toString(),
       targetDate: json['target_date']?.toString(),
       completionDate: json['completion_date']?.toString(),
-      milestoneAmount: ModelValue.nullableDouble(json['milestone_amount']),
+      milestoneAmount: JsonModel.nullableDouble(json['milestone_amount']),
       milestoneStatus: json['milestone_status']?.toString(),
       remarks: json['remarks']?.toString(),
     );

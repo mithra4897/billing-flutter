@@ -21,10 +21,10 @@ class SalesReceiptAllocationModel extends JsonModel {
 
   factory SalesReceiptAllocationModel.fromJson(Map<String, dynamic> json) {
     return SalesReceiptAllocationModel(
-      id: ModelValue.nullableInt(json['id']),
-      salesReceiptId: ModelValue.nullableInt(json['sales_receipt_id']),
-      salesInvoiceId: ModelValue.nullableInt(json['sales_invoice_id']),
-      allocatedAmount: ModelValue.nullableDouble(json['allocated_amount']),
+      id: JsonModel.nullableInt(json['id']),
+      salesReceiptId: JsonModel.nullableInt(json['sales_receipt_id']),
+      salesInvoiceId: JsonModel.nullableInt(json['sales_invoice_id']),
+      allocatedAmount: JsonModel.nullableDouble(json['allocated_amount']),
       allocationType: json['allocation_type']?.toString(),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),

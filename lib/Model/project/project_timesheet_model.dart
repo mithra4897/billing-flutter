@@ -31,17 +31,17 @@ class ProjectTimesheetModel extends JsonModel {
 
   factory ProjectTimesheetModel.fromJson(Map<String, dynamic> json) {
     return ProjectTimesheetModel(
-      id: ModelValue.nullableInt(json['id']),
-      projectId: ModelValue.nullableInt(json['project_id']),
-      projectTaskId: ModelValue.nullableInt(json['project_task_id']),
-      employeeId: ModelValue.nullableInt(json['employee_id']),
+      id: JsonModel.nullableInt(json['id']),
+      projectId: JsonModel.nullableInt(json['project_id']),
+      projectTaskId: JsonModel.nullableInt(json['project_task_id']),
+      employeeId: JsonModel.nullableInt(json['employee_id']),
       workDate: json['work_date']?.toString(),
-      hoursWorked: ModelValue.nullableDouble(json['hours_worked']),
-      hourlyCost: ModelValue.nullableDouble(json['hourly_cost']),
-      billableRate: ModelValue.nullableDouble(json['billable_rate']),
-      costAmount: ModelValue.nullableDouble(json['cost_amount']),
-      billableAmount: ModelValue.nullableDouble(json['billable_amount']),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
+      hoursWorked: JsonModel.nullableDouble(json['hours_worked']),
+      hourlyCost: JsonModel.nullableDouble(json['hourly_cost']),
+      billableRate: JsonModel.nullableDouble(json['billable_rate']),
+      costAmount: JsonModel.nullableDouble(json['cost_amount']),
+      billableAmount: JsonModel.nullableDouble(json['billable_amount']),
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
       timesheetStatus: json['timesheet_status']?.toString(),
       notes: json['notes']?.toString(),
     );

@@ -33,9 +33,9 @@ class BudgetModel extends JsonModel {
 
   factory BudgetModel.fromJson(Map<String, dynamic> json) {
     return BudgetModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      financialYearId: ModelValue.nullableInt(json['financial_year_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      financialYearId: JsonModel.nullableInt(json['financial_year_id']),
       budgetCode: json['budget_code']?.toString(),
       budgetName: json['budget_name']?.toString(),
       dateFrom: json['date_from']?.toString(),
@@ -44,9 +44,9 @@ class BudgetModel extends JsonModel {
       notes: json['notes']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

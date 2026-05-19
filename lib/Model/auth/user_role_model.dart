@@ -17,19 +17,19 @@ class UserRoleModel extends JsonModel {
 
   factory UserRoleModel.fromJson(Map<String, dynamic> json) {
     return UserRoleModel(
-      id: ModelValue.nullableInt(json['id']),
-      userId: ModelValue.nullableInt(json['user_id']),
+      id: JsonModel.nullableInt(json['id']),
+      userId: JsonModel.nullableInt(json['user_id']),
       roleId:
-          ModelValue.nullableInt(json['role_id']) ??
-          ModelValue.nullableInt(
+          JsonModel.nullableInt(json['role_id']) ??
+          JsonModel.nullableInt(
             (json['role'] as Map<String, dynamic>?)?['id'],
           ),
       isPrimaryRole: json['is_primary_role'] == null
           ? null
-          : ModelValue.boolOf(json['is_primary_role']),
+          : JsonModel.boolOf(json['is_primary_role']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       role: json['role'] is Map<String, dynamic>
           ? RoleModel.fromJson(json['role'] as Map<String, dynamic>)
           : null,

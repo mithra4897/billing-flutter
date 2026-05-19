@@ -43,26 +43,26 @@ class ServiceWorkOrderServiceModel extends JsonModel {
 
   factory ServiceWorkOrderServiceModel.fromJson(Map<String, dynamic> json) {
     return ServiceWorkOrderServiceModel(
-      id: ModelValue.nullableInt(json['id']),
-      serviceWorkOrderId: ModelValue.nullableInt(json['service_work_order_id']),
-      lineNo: ModelValue.nullableInt(json['line_no']),
+      id: JsonModel.nullableInt(json['id']),
+      serviceWorkOrderId: JsonModel.nullableInt(json['service_work_order_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
       serviceDescription: json['service_description']?.toString(),
       chargeType: json['charge_type']?.toString(),
-      vendorPartyId: ModelValue.nullableInt(json['vendor_party_id']),
-      purchaseInvoiceId: ModelValue.nullableInt(json['purchase_invoice_id']),
-      qty: ModelValue.nullableDouble(json['qty']),
-      rate: ModelValue.nullableDouble(json['rate']),
-      amount: ModelValue.nullableDouble(json['amount']),
+      vendorPartyId: JsonModel.nullableInt(json['vendor_party_id']),
+      purchaseInvoiceId: JsonModel.nullableInt(json['purchase_invoice_id']),
+      qty: JsonModel.nullableDouble(json['qty']),
+      rate: JsonModel.nullableDouble(json['rate']),
+      amount: JsonModel.nullableDouble(json['amount']),
       warrantyCovered: json['warranty_covered'] == null
           ? null
-          : ModelValue.boolOf(json['warranty_covered']),
+          : JsonModel.boolOf(json['warranty_covered']),
       chargeableToCustomer: json['chargeable_to_customer'] == null
           ? null
-          : ModelValue.boolOf(json['chargeable_to_customer']),
-      taxCodeId: ModelValue.nullableInt(json['tax_code_id']),
-      taxPercent: ModelValue.nullableDouble(json['tax_percent']),
-      taxAmount: ModelValue.nullableDouble(json['tax_amount']),
-      lineTotal: ModelValue.nullableDouble(json['line_total']),
+          : JsonModel.boolOf(json['chargeable_to_customer']),
+      taxCodeId: JsonModel.nullableInt(json['tax_code_id']),
+      taxPercent: JsonModel.nullableDouble(json['tax_percent']),
+      taxAmount: JsonModel.nullableDouble(json['tax_amount']),
+      lineTotal: JsonModel.nullableDouble(json['line_total']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

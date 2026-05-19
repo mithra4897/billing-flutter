@@ -33,8 +33,8 @@ class MaintenancePlanModel extends JsonModel {
 
   factory MaintenancePlanModel.fromJson(Map<String, dynamic> json) {
     return MaintenancePlanModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       planCode: json['plan_code']?.toString(),
       planName: json['plan_name']?.toString(),
       maintenanceType: json['maintenance_type']?.toString(),
@@ -43,12 +43,12 @@ class MaintenancePlanModel extends JsonModel {
       checklistNotes: json['checklist_notes']?.toString(),
       isAutoGenerateRequest: json['is_auto_generate_request'] == null
           ? null
-          : ModelValue.boolOf(json['is_auto_generate_request']),
+          : JsonModel.boolOf(json['is_auto_generate_request']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

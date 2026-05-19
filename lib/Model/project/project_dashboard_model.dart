@@ -31,18 +31,18 @@ class ProjectDashboardModel extends JsonModel {
 
   factory ProjectDashboardModel.fromJson(Map<String, dynamic> json) {
     return ProjectDashboardModel(
-      projectId: ModelValue.nullableInt(json['project_id']),
+      projectId: JsonModel.nullableInt(json['project_id']),
       projectCode: json['project_code']?.toString(),
       projectName: json['project_name']?.toString(),
-      budgetAmount: ModelValue.nullableDouble(json['budget_amount']),
-      actualCost: ModelValue.nullableDouble(json['actual_cost']),
-      budgetVariance: ModelValue.nullableDouble(json['budget_variance']),
-      billedAmount: ModelValue.nullableDouble(json['billed_amount']),
-      profitability: ModelValue.nullableDouble(json['profitability']),
+      budgetAmount: JsonModel.nullableDouble(json['budget_amount']),
+      actualCost: JsonModel.nullableDouble(json['actual_cost']),
+      budgetVariance: JsonModel.nullableDouble(json['budget_variance']),
+      billedAmount: JsonModel.nullableDouble(json['billed_amount']),
+      profitability: JsonModel.nullableDouble(json['profitability']),
       costBreakup: _map(json['cost_breakup']),
       taskSummary: _map(json['task_summary']),
       milestoneSummary: _map(json['milestone_summary']),
-      progressPercent: ModelValue.nullableDouble(json['progress_percent']),
+      progressPercent: JsonModel.nullableDouble(json['progress_percent']),
     );
   }
   @override

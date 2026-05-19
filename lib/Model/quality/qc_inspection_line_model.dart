@@ -39,24 +39,24 @@ class QcInspectionLineModel extends JsonModel {
 
   factory QcInspectionLineModel.fromJson(Map<String, dynamic> json) {
     return QcInspectionLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      qcInspectionId: ModelValue.nullableInt(json['qc_inspection_id']),
-      qcPlanLineId: ModelValue.nullableInt(json['qc_plan_line_id']),
-      lineNo: ModelValue.nullableInt(json['line_no']),
+      id: JsonModel.nullableInt(json['id']),
+      qcInspectionId: JsonModel.nullableInt(json['qc_inspection_id']),
+      qcPlanLineId: JsonModel.nullableInt(json['qc_plan_line_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
       checkpointName: json['checkpoint_name']?.toString(),
       checkpointType: json['checkpoint_type']?.toString(),
       expectedValue: json['expected_value']?.toString(),
       actualValue: json['actual_value']?.toString(),
-      measuredValue: ModelValue.nullableDouble(json['measured_value']),
-      toleranceMin: ModelValue.nullableDouble(json['tolerance_min']),
-      toleranceMax: ModelValue.nullableDouble(json['tolerance_max']),
+      measuredValue: JsonModel.nullableDouble(json['measured_value']),
+      toleranceMin: JsonModel.nullableDouble(json['tolerance_min']),
+      toleranceMax: JsonModel.nullableDouble(json['tolerance_max']),
       resultStatus: json['result_status']?.toString(),
       isCritical: json['is_critical'] == null
           ? null
-          : ModelValue.boolOf(json['is_critical']),
+          : JsonModel.boolOf(json['is_critical']),
       isMandatory: json['is_mandatory'] == null
           ? null
-          : ModelValue.boolOf(json['is_mandatory']),
+          : JsonModel.boolOf(json['is_mandatory']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

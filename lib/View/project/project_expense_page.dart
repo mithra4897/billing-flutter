@@ -459,7 +459,7 @@ class _ProjectExpenseManagementPageState
                   options: _purchaseInvoices
                       .map(
                         (item) => AppSearchPickerOption<int>(
-                          value: item.id,
+                          value: item.id!,
                           label: item.invoiceNo?.trim().isNotEmpty == true
                               ? item.invoiceNo!
                               : 'Invoice #${item.id}',

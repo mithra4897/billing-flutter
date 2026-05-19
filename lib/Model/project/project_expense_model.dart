@@ -29,16 +29,16 @@ class ProjectExpenseModel extends JsonModel {
 
   factory ProjectExpenseModel.fromJson(Map<String, dynamic> json) {
     return ProjectExpenseModel(
-      id: ModelValue.nullableInt(json['id']),
-      projectId: ModelValue.nullableInt(json['project_id']),
-      projectTaskId: ModelValue.nullableInt(json['project_task_id']),
+      id: JsonModel.nullableInt(json['id']),
+      projectId: JsonModel.nullableInt(json['project_id']),
+      projectTaskId: JsonModel.nullableInt(json['project_task_id']),
       expenseDate: json['expense_date']?.toString(),
       expenseCategory: json['expense_category']?.toString(),
       description: json['description']?.toString(),
-      supplierPartyId: ModelValue.nullableInt(json['supplier_party_id']),
-      purchaseInvoiceId: ModelValue.nullableInt(json['purchase_invoice_id']),
-      amount: ModelValue.nullableDouble(json['amount']),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
+      supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
+      purchaseInvoiceId: JsonModel.nullableInt(json['purchase_invoice_id']),
+      amount: JsonModel.nullableDouble(json['amount']),
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
       expenseStatus: json['expense_status']?.toString(),
       remarks: json['remarks']?.toString(),
     );

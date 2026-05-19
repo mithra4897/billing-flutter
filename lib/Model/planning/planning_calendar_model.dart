@@ -31,21 +31,21 @@ class PlanningCalendarModel extends JsonModel {
 
   factory PlanningCalendarModel.fromJson(Map<String, dynamic> json) {
     return PlanningCalendarModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       calendarCode: json['calendar_code']?.toString(),
       calendarName: json['calendar_name']?.toString(),
       planningFrequency: json['planning_frequency']?.toString(),
       weekStartDay: json['week_start_day']?.toString(),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       remarks: json['remarks']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

@@ -23,13 +23,13 @@ class CrmLeadActivityModel extends JsonModel {
 
   factory CrmLeadActivityModel.fromJson(Map<String, dynamic> json) {
     return CrmLeadActivityModel(
-      id: ModelValue.nullableInt(json['id']),
-      leadId: ModelValue.nullableInt(json['lead_id']),
+      id: JsonModel.nullableInt(json['id']),
+      leadId: JsonModel.nullableInt(json['lead_id']),
       activityType: json['activity_type']?.toString(),
       activityDatetime: json['activity_datetime']?.toString(),
       notes: json['notes']?.toString(),
       nextFollowup: json['next_followup']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

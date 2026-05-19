@@ -19,13 +19,13 @@ class AmcContractAssetModel extends JsonModel {
 
   factory AmcContractAssetModel.fromJson(Map<String, dynamic> json) {
     return AmcContractAssetModel(
-      id: ModelValue.nullableInt(json['id']),
-      amcContractId: ModelValue.nullableInt(json['amc_contract_id']),
-      assetId: ModelValue.nullableInt(json['asset_id']),
+      id: JsonModel.nullableInt(json['id']),
+      amcContractId: JsonModel.nullableInt(json['amc_contract_id']),
+      assetId: JsonModel.nullableInt(json['asset_id']),
       coverageNotes: json['coverage_notes']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

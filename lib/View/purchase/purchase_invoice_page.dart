@@ -288,7 +288,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
   }
 
   Future<void> _selectDocument(PurchaseInvoiceModel item) async {
-    final response = await _purchaseService.invoice(item.id);
+    final response = await _purchaseService.invoice(item.id!);
     final full = response.data ?? item;
     setState(() {
       _selectedItem = full;
@@ -910,7 +910,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     try {
       final response = _selectedItem == null
           ? await _purchaseService.createInvoice(invoice)
-          : await _purchaseService.updateInvoice(_selectedItem!.id, invoice);
+          : await _purchaseService.updateInvoice(_selectedItem!.id!, invoice);
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -1461,7 +1461,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                     label: 'Post',
                     filled: false,
                     onPressed: () => _docAction(
-                      () => _purchaseService.postInvoice(_selectedItem!.id),
+                      () => _purchaseService.postInvoice(_selectedItem!.id!),
                     ),
                   ),
                   AppActionButton(
@@ -1469,7 +1469,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                     label: 'Cancel',
                     filled: false,
                     onPressed: () => _docAction(
-                      () => _purchaseService.cancelInvoice(_selectedItem!.id),
+                      () => _purchaseService.cancelInvoice(_selectedItem!.id!),
                     ),
                   ),
                 ],

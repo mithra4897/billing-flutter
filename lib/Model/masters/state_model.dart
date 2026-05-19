@@ -19,15 +19,15 @@ class StateModel extends JsonModel {
 
   factory StateModel.fromJson(Map<String, dynamic> json) {
     return StateModel(
-      id: ModelValue.nullableInt(json['id']),
-      countryCode: ModelValue.stringOf(json['country_code']),
-      stateCode: ModelValue.stringOf(json['state_code']),
-      stateName: ModelValue.stringOf(json['state_name']),
-      gstStateCode: ModelValue.stringOf(json['gst_state_code']),
-      isUnionTerritory: ModelValue.boolOf(json['is_union_territory']),
+      id: JsonModel.nullableInt(json['id']),
+      countryCode: JsonModel.stringOf(json['country_code']),
+      stateCode: JsonModel.stringOf(json['state_code']),
+      stateName: JsonModel.stringOf(json['state_name']),
+      gstStateCode: JsonModel.stringOf(json['gst_state_code']),
+      isUnionTerritory: JsonModel.boolOf(json['is_union_territory']),
       isActive: json['is_active'] == null
           ? true
-          : ModelValue.boolOf(json['is_active'], fallback: true),
+          : JsonModel.boolOf(json['is_active'], fallback: true),
     );
   }
 

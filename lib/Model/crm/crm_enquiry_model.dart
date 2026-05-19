@@ -39,19 +39,19 @@ class CrmEnquiryModel extends JsonModel {
 
   factory CrmEnquiryModel.fromJson(Map<String, dynamic> json) {
     return CrmEnquiryModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       enquiryNo: json['enquiry_no']?.toString(),
       enquiryDate: json['enquiry_date']?.toString(),
-      leadId: ModelValue.nullableInt(json['lead_id']),
-      customerPartyId: ModelValue.nullableInt(json['customer_party_id']),
-      stageId: ModelValue.nullableInt(json['stage_id']),
-      assignedTo: ModelValue.nullableInt(json['assigned_to']),
+      leadId: JsonModel.nullableInt(json['lead_id']),
+      customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
+      stageId: JsonModel.nullableInt(json['stage_id']),
+      assignedTo: JsonModel.nullableInt(json['assigned_to']),
       enquiryStatus: json['enquiry_status']?.toString(),
       remarks: json['remarks']?.toString(),
       opportunityName: json['opportunity_name']?.toString(),
-      expectedValue: ModelValue.nullableDouble(json['expected_value']),
-      probabilityPercent: ModelValue.nullableDouble(
+      expectedValue: JsonModel.nullableDouble(json['expected_value']),
+      probabilityPercent: JsonModel.nullableDouble(
         json['probability_percent'],
       ),
       expectedCloseDate: json['expected_close_date']?.toString(),

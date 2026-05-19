@@ -49,14 +49,14 @@ class EmailMessageModel extends JsonModel {
 
   factory EmailMessageModel.fromJson(Map<String, dynamic> json) {
     return EmailMessageModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      emailSettingId: ModelValue.nullableInt(json['email_setting_id']),
-      emailTemplateId: ModelValue.nullableInt(json['email_template_id']),
-      emailRuleId: ModelValue.nullableInt(json['email_rule_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      emailSettingId: JsonModel.nullableInt(json['email_setting_id']),
+      emailTemplateId: JsonModel.nullableInt(json['email_template_id']),
+      emailRuleId: JsonModel.nullableInt(json['email_rule_id']),
       module: json['module']?.toString(),
       documentType: json['document_type']?.toString(),
-      documentId: ModelValue.nullableInt(json['document_id']),
+      documentId: JsonModel.nullableInt(json['document_id']),
       eventCode: json['event_code']?.toString(),
       triggerMode: json['trigger_mode']?.toString(),
       recipientTo: json['recipient_to']?.toString(),
@@ -66,11 +66,11 @@ class EmailMessageModel extends JsonModel {
       body: json['body']?.toString(),
       isHtml: json['is_html'] == null
           ? null
-          : ModelValue.boolOf(json['is_html']),
+          : JsonModel.boolOf(json['is_html']),
       status: json['status']?.toString(),
       errorMessage: json['error_message']?.toString(),
       sentAt: json['sent_at']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

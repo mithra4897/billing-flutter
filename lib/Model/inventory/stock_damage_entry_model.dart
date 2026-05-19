@@ -45,26 +45,26 @@ class StockDamageEntryModel extends JsonModel {
 
   factory StockDamageEntryModel.fromJson(Map<String, dynamic> json) {
     return StockDamageEntryModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      branchId: ModelValue.nullableInt(json['branch_id']),
-      locationId: ModelValue.nullableInt(json['location_id']),
-      financialYearId: ModelValue.nullableInt(json['financial_year_id']),
-      documentSeriesId: ModelValue.nullableInt(json['document_series_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      branchId: JsonModel.nullableInt(json['branch_id']),
+      locationId: JsonModel.nullableInt(json['location_id']),
+      financialYearId: JsonModel.nullableInt(json['financial_year_id']),
+      documentSeriesId: JsonModel.nullableInt(json['document_series_id']),
       damageNo: json['damage_no']?.toString(),
       damageDate: json['damage_date']?.toString(),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
       damageType: json['damage_type']?.toString(),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
       damageStatus: json['damage_status']?.toString(),
       remarks: json['remarks']?.toString(),
-      postedBy: ModelValue.nullableInt(json['posted_by']),
+      postedBy: JsonModel.nullableInt(json['posted_by']),
       postedAt: json['posted_at']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

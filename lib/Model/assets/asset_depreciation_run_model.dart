@@ -41,23 +41,23 @@ class AssetDepreciationRunModel extends JsonModel {
 
   factory AssetDepreciationRunModel.fromJson(Map<String, dynamic> json) {
     return AssetDepreciationRunModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       runNo: json['run_no']?.toString(),
       runDate: json['run_date']?.toString(),
       depreciationFromDate: json['depreciation_from_date']?.toString(),
       depreciationToDate: json['depreciation_to_date']?.toString(),
       bookType: json['book_type']?.toString(),
       runStatus: json['run_status']?.toString(),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
       totalAssetsProcessed: json['total_assets_processed']?.toString(),
-      totalDepreciationAmount: ModelValue.nullableDouble(
+      totalDepreciationAmount: JsonModel.nullableDouble(
         json['total_depreciation_amount'],
       ),
       notes: json['notes']?.toString(),
       errorMessage: json['error_message']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      postedBy: ModelValue.nullableInt(json['posted_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      postedBy: JsonModel.nullableInt(json['posted_by']),
       postedAt: json['posted_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

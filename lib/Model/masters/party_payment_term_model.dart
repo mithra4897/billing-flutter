@@ -25,18 +25,18 @@ class PartyPaymentTermModel extends JsonModel {
 
   factory PartyPaymentTermModel.fromJson(Map<String, dynamic> json) {
     return PartyPaymentTermModel(
-      id: ModelValue.nullableInt(json['id']),
-      partyId: ModelValue.nullableInt(json['party_id']),
+      id: JsonModel.nullableInt(json['id']),
+      partyId: JsonModel.nullableInt(json['party_id']),
       termName: json['term_name']?.toString(),
-      days: ModelValue.nullableInt(json['days']),
+      days: JsonModel.nullableInt(json['days']),
       dueBasis: json['due_basis']?.toString(),
       remarks: json['remarks']?.toString(),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

@@ -33,32 +33,32 @@ class UserWarehouseAccessModel extends JsonModel {
 
   factory UserWarehouseAccessModel.fromJson(Map<String, dynamic> json) {
     return UserWarehouseAccessModel(
-      id: ModelValue.nullableInt(json['id']),
-      userId: ModelValue.nullableInt(json['user_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
+      id: JsonModel.nullableInt(json['id']),
+      userId: JsonModel.nullableInt(json['user_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       canViewStock: json['can_view_stock'] == null
           ? null
-          : ModelValue.boolOf(json['can_view_stock']),
+          : JsonModel.boolOf(json['can_view_stock']),
       canStockIn: json['can_stock_in'] == null
           ? null
-          : ModelValue.boolOf(json['can_stock_in']),
+          : JsonModel.boolOf(json['can_stock_in']),
       canStockOut: json['can_stock_out'] == null
           ? null
-          : ModelValue.boolOf(json['can_stock_out']),
+          : JsonModel.boolOf(json['can_stock_out']),
       canTransfer: json['can_transfer'] == null
           ? null
-          : ModelValue.boolOf(json['can_transfer']),
+          : JsonModel.boolOf(json['can_transfer']),
       canAdjust: json['can_adjust'] == null
           ? null
-          : ModelValue.boolOf(json['can_adjust']),
+          : JsonModel.boolOf(json['can_adjust']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

@@ -29,22 +29,22 @@ class EmailModuleSettingModel extends JsonModel {
 
   factory EmailModuleSettingModel.fromJson(Map<String, dynamic> json) {
     return EmailModuleSettingModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       module: json['module']?.toString(),
       documentType: json['document_type']?.toString(),
       autoEmailEnabled: json['auto_email_enabled'] == null
           ? null
-          : ModelValue.boolOf(json['auto_email_enabled']),
+          : JsonModel.boolOf(json['auto_email_enabled']),
       manualEmailEnabled: json['manual_email_enabled'] == null
           ? null
-          : ModelValue.boolOf(json['manual_email_enabled']),
+          : JsonModel.boolOf(json['manual_email_enabled']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       remarks: json['remarks']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

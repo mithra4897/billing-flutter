@@ -27,15 +27,15 @@ class DocumentPostingLineModel extends JsonModel {
 
   factory DocumentPostingLineModel.fromJson(Map<String, dynamic> json) {
     return DocumentPostingLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      documentPostingId: ModelValue.nullableInt(json['document_posting_id']),
-      lineNo: ModelValue.nullableInt(json['line_no']),
-      accountId: ModelValue.nullableInt(json['account_id']),
+      id: JsonModel.nullableInt(json['id']),
+      documentPostingId: JsonModel.nullableInt(json['document_posting_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
+      accountId: JsonModel.nullableInt(json['account_id']),
       entrySide: json['entry_side']?.toString(),
-      amount: ModelValue.nullableDouble(json['amount']),
+      amount: JsonModel.nullableDouble(json['amount']),
       narration: json['narration']?.toString(),
       sourceAmountField: json['source_amount_field']?.toString(),
-      sourceRuleId: ModelValue.nullableInt(json['source_rule_id']),
+      sourceRuleId: JsonModel.nullableInt(json['source_rule_id']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

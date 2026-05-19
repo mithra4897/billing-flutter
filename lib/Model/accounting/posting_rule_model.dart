@@ -33,20 +33,20 @@ class PostingRuleModel extends JsonModel {
 
   factory PostingRuleModel.fromJson(Map<String, dynamic> json) {
     return PostingRuleModel(
-      id: ModelValue.nullableInt(json['id']),
-      postingRuleGroupId: ModelValue.nullableInt(json['posting_rule_group_id']),
-      lineNo: ModelValue.nullableInt(json['line_no']),
+      id: JsonModel.nullableInt(json['id']),
+      postingRuleGroupId: JsonModel.nullableInt(json['posting_rule_group_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
       entrySide: json['entry_side']?.toString(),
       accountSourceType: json['account_source_type']?.toString(),
-      fixedAccountId: ModelValue.nullableInt(json['fixed_account_id']),
+      fixedAccountId: JsonModel.nullableInt(json['fixed_account_id']),
       amountSource: json['amount_source']?.toString(),
       narrationTemplate: json['narration_template']?.toString(),
-      priorityOrder: ModelValue.nullableInt(json['priority_order']),
+      priorityOrder: JsonModel.nullableInt(json['priority_order']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

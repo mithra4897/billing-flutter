@@ -19,10 +19,10 @@ class PayslipModel extends JsonModel {
 
   factory PayslipModel.fromJson(Map<String, dynamic> json) {
     return PayslipModel(
-      id: ModelValue.nullableInt(json['id']),
-      payrollLineId: ModelValue.nullableInt(json['payroll_line_id']),
+      id: JsonModel.nullableInt(json['id']),
+      payrollLineId: JsonModel.nullableInt(json['payroll_line_id']),
       payslipDate: json['payslip_date']?.toString(),
-      generatedBy: ModelValue.nullableInt(json['generated_by']),
+      generatedBy: JsonModel.nullableInt(json['generated_by']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

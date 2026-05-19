@@ -63,43 +63,43 @@ class ItemPlanningPolicyModel extends JsonModel {
 
   factory ItemPlanningPolicyModel.fromJson(Map<String, dynamic> json) {
     return ItemPlanningPolicyModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
-      branchId: ModelValue.nullableInt(json['branch_id']),
-      locationId: ModelValue.nullableInt(json['location_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      itemId: ModelValue.nullableInt(json['item_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
+      branchId: JsonModel.nullableInt(json['branch_id']),
+      locationId: JsonModel.nullableInt(json['location_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      itemId: JsonModel.nullableInt(json['item_id']),
       planningMethod: json['planning_method']?.toString(),
       procurementType: json['procurement_type']?.toString(),
-      leadTimeDays: ModelValue.nullableInt(json['lead_time_days']),
-      safetyStockQty: ModelValue.nullableDouble(json['safety_stock_qty']),
-      reorderLevelQty: ModelValue.nullableDouble(json['reorder_level_qty']),
-      reorderQty: ModelValue.nullableDouble(json['reorder_qty']),
-      minStockQty: ModelValue.nullableDouble(json['min_stock_qty']),
-      maxStockQty: ModelValue.nullableDouble(json['max_stock_qty']),
-      minimumOrderQty: ModelValue.nullableDouble(json['minimum_order_qty']),
-      maxOrderQty: ModelValue.nullableDouble(json['max_order_qty']),
-      orderMultipleQty: ModelValue.nullableDouble(json['order_multiple_qty']),
-      preferredSupplierPartyId: ModelValue.nullableInt(
+      leadTimeDays: JsonModel.nullableInt(json['lead_time_days']),
+      safetyStockQty: JsonModel.nullableDouble(json['safety_stock_qty']),
+      reorderLevelQty: JsonModel.nullableDouble(json['reorder_level_qty']),
+      reorderQty: JsonModel.nullableDouble(json['reorder_qty']),
+      minStockQty: JsonModel.nullableDouble(json['min_stock_qty']),
+      maxStockQty: JsonModel.nullableDouble(json['max_stock_qty']),
+      minimumOrderQty: JsonModel.nullableDouble(json['minimum_order_qty']),
+      maxOrderQty: JsonModel.nullableDouble(json['max_order_qty']),
+      orderMultipleQty: JsonModel.nullableDouble(json['order_multiple_qty']),
+      preferredSupplierPartyId: JsonModel.nullableInt(
         json['preferred_supplier_party_id'],
       ),
-      preferredBomId: ModelValue.nullableInt(json['preferred_bom_id']),
-      preferredWarehouseId: ModelValue.nullableInt(
+      preferredBomId: JsonModel.nullableInt(json['preferred_bom_id']),
+      preferredWarehouseId: JsonModel.nullableInt(
         json['preferred_warehouse_id'],
       ),
-      planningFenceDays: ModelValue.nullableInt(json['planning_fence_days']),
+      planningFenceDays: JsonModel.nullableInt(json['planning_fence_days']),
       isMrpEnabled: json['is_mrp_enabled'] == null
           ? null
-          : ModelValue.boolOf(json['is_mrp_enabled']),
+          : JsonModel.boolOf(json['is_mrp_enabled']),
       isReorderEnabled: json['is_reorder_enabled'] == null
           ? null
-          : ModelValue.boolOf(json['is_reorder_enabled']),
+          : JsonModel.boolOf(json['is_reorder_enabled']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       remarks: json['remarks']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

@@ -31,21 +31,21 @@ class AssetDowntimeLogModel extends JsonModel {
 
   factory AssetDowntimeLogModel.fromJson(Map<String, dynamic> json) {
     return AssetDowntimeLogModel(
-      id: ModelValue.nullableInt(json['id']),
-      assetId: ModelValue.nullableInt(json['asset_id']),
-      maintenanceWorkOrderId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      assetId: JsonModel.nullableInt(json['asset_id']),
+      maintenanceWorkOrderId: JsonModel.nullableInt(
         json['maintenance_work_order_id'],
       ),
       downtimeReason: json['downtime_reason']?.toString(),
       downtimeStart: json['downtime_start']?.toString(),
       downtimeEnd: json['downtime_end']?.toString(),
-      downtimeMinutes: ModelValue.nullableDouble(json['downtime_minutes']),
+      downtimeMinutes: JsonModel.nullableDouble(json['downtime_minutes']),
       productionImpactNotes: json['production_impact_notes']?.toString(),
       isPlanned: json['is_planned'] == null
           ? null
-          : ModelValue.boolOf(json['is_planned']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_planned']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

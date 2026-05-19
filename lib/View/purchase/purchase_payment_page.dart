@@ -875,7 +875,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                           options: _invoiceOptions
                               .map(
                                 (item) => AppSearchPickerOption<int>(
-                                  value: item.id,
+                                  value: item.id!,
                                   label: item.invoiceNo ?? 'Invoice',
                                   subtitle: _nestedInvoiceSubtitle(item),
                                 ),

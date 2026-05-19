@@ -27,7 +27,7 @@ class PostingRuleGroupModel extends JsonModel {
 
   factory PostingRuleGroupModel.fromJson(Map<String, dynamic> json) {
     return PostingRuleGroupModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       groupCode: json['group_code']?.toString(),
       groupName: json['group_name']?.toString(),
       documentType: json['document_type']?.toString(),
@@ -35,9 +35,9 @@ class PostingRuleGroupModel extends JsonModel {
       description: json['description']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

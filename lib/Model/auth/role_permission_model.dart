@@ -46,48 +46,48 @@ class RolePermissionModel extends JsonModel {
         : null;
 
     return RolePermissionModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       permissionId:
-          ModelValue.nullableInt(json['permission_id']) ??
-          ModelValue.nullableInt(json['id']),
+          JsonModel.nullableInt(json['permission_id']) ??
+          JsonModel.nullableInt(json['id']),
       module: json['module']?.toString() ?? permission?.module,
       code: json['code']?.toString() ?? permission?.code,
       name: json['name']?.toString() ?? permission?.name,
       description: json['description']?.toString() ?? permission?.description,
       isSystemPermission: json['is_system_permission'] == null
           ? null
-          : ModelValue.boolOf(json['is_system_permission']),
+          : JsonModel.boolOf(json['is_system_permission']),
       permissionIsActive: json['permission_is_active'] == null
           ? (json['is_active'] == null
                 ? null
-                : ModelValue.boolOf(json['is_active']))
-          : ModelValue.boolOf(json['permission_is_active']),
+                : JsonModel.boolOf(json['is_active']))
+          : JsonModel.boolOf(json['permission_is_active']),
       rolePermissionIsActive: json['role_permission_is_active'] == null
           ? (json['is_active'] == null
                 ? null
-                : ModelValue.boolOf(json['is_active']))
-          : ModelValue.boolOf(json['role_permission_is_active']),
+                : JsonModel.boolOf(json['is_active']))
+          : JsonModel.boolOf(json['role_permission_is_active']),
       allowView: json['allow_view'] == null
           ? null
-          : ModelValue.boolOf(json['allow_view']),
+          : JsonModel.boolOf(json['allow_view']),
       allowCreate: json['allow_create'] == null
           ? null
-          : ModelValue.boolOf(json['allow_create']),
+          : JsonModel.boolOf(json['allow_create']),
       allowUpdate: json['allow_update'] == null
           ? null
-          : ModelValue.boolOf(json['allow_update']),
+          : JsonModel.boolOf(json['allow_update']),
       allowDelete: json['allow_delete'] == null
           ? null
-          : ModelValue.boolOf(json['allow_delete']),
+          : JsonModel.boolOf(json['allow_delete']),
       allowApprove: json['allow_approve'] == null
           ? null
-          : ModelValue.boolOf(json['allow_approve']),
+          : JsonModel.boolOf(json['allow_approve']),
       allowPrint: json['allow_print'] == null
           ? null
-          : ModelValue.boolOf(json['allow_print']),
+          : JsonModel.boolOf(json['allow_print']),
       allowExport: json['allow_export'] == null
           ? null
-          : ModelValue.boolOf(json['allow_export']),
+          : JsonModel.boolOf(json['allow_export']),
       permission: permission,
     );
   }

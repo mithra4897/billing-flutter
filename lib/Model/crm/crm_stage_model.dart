@@ -23,19 +23,19 @@ class CrmStageModel extends JsonModel {
 
   factory CrmStageModel.fromJson(Map<String, dynamic> json) {
     return CrmStageModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       stageName: json['stage_name']?.toString(),
       stageType: json['stage_type']?.toString(),
-      sequenceNo: ModelValue.nullableInt(json['sequence_no']),
-      probabilityPercent: ModelValue.nullableDouble(
+      sequenceNo: JsonModel.nullableInt(json['sequence_no']),
+      probabilityPercent: JsonModel.nullableDouble(
         json['probability_percent'],
       ),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

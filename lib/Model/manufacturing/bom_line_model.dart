@@ -39,24 +39,24 @@ class BomLineModel extends JsonModel {
 
   factory BomLineModel.fromJson(Map<String, dynamic> json) {
     return BomLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      bomId: ModelValue.nullableInt(json['bom_id']),
-      lineNo: ModelValue.nullableInt(json['line_no']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      uomId: ModelValue.nullableInt(json['uom_id']),
+      id: JsonModel.nullableInt(json['id']),
+      bomId: JsonModel.nullableInt(json['bom_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      uomId: JsonModel.nullableInt(json['uom_id']),
       lineType: json['line_type']?.toString(),
-      requiredQty: ModelValue.nullableDouble(json['required_qty']),
-      wastagePercent: ModelValue.nullableDouble(json['wastage_percent']),
-      netRequiredQty: ModelValue.nullableDouble(json['net_required_qty']),
+      requiredQty: JsonModel.nullableDouble(json['required_qty']),
+      wastagePercent: JsonModel.nullableDouble(json['wastage_percent']),
+      netRequiredQty: JsonModel.nullableDouble(json['net_required_qty']),
       issueStage: json['issue_stage']?.toString(),
       isBackflush: json['is_backflush'] == null
           ? null
-          : ModelValue.boolOf(json['is_backflush']),
+          : JsonModel.boolOf(json['is_backflush']),
       isOptional: json['is_optional'] == null
           ? null
-          : ModelValue.boolOf(json['is_optional']),
-      standardRate: ModelValue.nullableDouble(json['standard_rate']),
-      standardAmount: ModelValue.nullableDouble(json['standard_amount']),
+          : JsonModel.boolOf(json['is_optional']),
+      standardRate: JsonModel.nullableDouble(json['standard_rate']),
+      standardAmount: JsonModel.nullableDouble(json['standard_amount']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

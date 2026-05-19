@@ -41,25 +41,25 @@ class ProjectTaskModel extends JsonModel {
 
   factory ProjectTaskModel.fromJson(Map<String, dynamic> json) {
     return ProjectTaskModel(
-      id: ModelValue.nullableInt(json['id']),
-      projectId: ModelValue.nullableInt(json['project_id']),
+      id: JsonModel.nullableInt(json['id']),
+      projectId: JsonModel.nullableInt(json['project_id']),
       taskCode: json['task_code']?.toString(),
       taskName: json['task_name']?.toString(),
       description: json['description']?.toString(),
-      assignedEmployeeId: ModelValue.nullableInt(json['assigned_employee_id']),
+      assignedEmployeeId: JsonModel.nullableInt(json['assigned_employee_id']),
       plannedStartDate: json['planned_start_date']?.toString(),
       plannedEndDate: json['planned_end_date']?.toString(),
       actualStartDate: json['actual_start_date']?.toString(),
       actualEndDate: json['actual_end_date']?.toString(),
-      estimatedHours: ModelValue.nullableDouble(json['estimated_hours']),
-      actualHours: ModelValue.nullableDouble(json['actual_hours']),
-      estimatedCost: ModelValue.nullableDouble(json['estimated_cost']),
-      actualCost: ModelValue.nullableDouble(json['actual_cost']),
-      progressPercent: ModelValue.nullableDouble(json['progress_percent']),
+      estimatedHours: JsonModel.nullableDouble(json['estimated_hours']),
+      actualHours: JsonModel.nullableDouble(json['actual_hours']),
+      estimatedCost: JsonModel.nullableDouble(json['estimated_cost']),
+      actualCost: JsonModel.nullableDouble(json['actual_cost']),
+      progressPercent: JsonModel.nullableDouble(json['progress_percent']),
       taskStatus: json['task_status']?.toString(),
       isBillable: json['is_billable'] == null
           ? null
-          : ModelValue.boolOf(json['is_billable']),
+          : JsonModel.boolOf(json['is_billable']),
       remarks: json['remarks']?.toString(),
     );
   }

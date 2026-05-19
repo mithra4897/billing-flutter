@@ -629,7 +629,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                   mappedItems: _invoiceOptions
                       .map(
                         (item) => AppDropdownItem(
-                          value: item.id,
+                          value: item.id!,
                           label: item.invoiceNo ?? 'Invoice',
                         ),
                       )

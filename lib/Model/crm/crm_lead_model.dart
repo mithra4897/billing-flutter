@@ -32,17 +32,17 @@ class CrmLeadModel extends JsonModel {
 
   factory CrmLeadModel.fromJson(Map<String, dynamic> json) {
     return CrmLeadModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       leadName: json['lead_name']?.toString(),
       companyName: json['company_name']?.toString(),
       mobile: json['mobile']?.toString(),
       email: json['email']?.toString(),
-      sourceId: ModelValue.nullableInt(json['source_id']),
-      assignedTo: ModelValue.nullableInt(json['assigned_to']),
+      sourceId: JsonModel.nullableInt(json['source_id']),
+      assignedTo: JsonModel.nullableInt(json['assigned_to']),
       leadStatus: json['lead_status']?.toString(),
       remarks: json['remarks']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

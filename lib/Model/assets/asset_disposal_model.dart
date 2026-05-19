@@ -45,26 +45,26 @@ class AssetDisposalModel extends JsonModel {
 
   factory AssetDisposalModel.fromJson(Map<String, dynamic> json) {
     return AssetDisposalModel(
-      id: ModelValue.nullableInt(json['id']),
-      assetId: ModelValue.nullableInt(json['asset_id']),
+      id: JsonModel.nullableInt(json['id']),
+      assetId: JsonModel.nullableInt(json['asset_id']),
       disposalNo: json['disposal_no']?.toString(),
       disposalDate: json['disposal_date']?.toString(),
       disposalType: json['disposal_type']?.toString(),
-      salePartyId: ModelValue.nullableInt(json['sale_party_id']),
-      salesInvoiceId: ModelValue.nullableInt(json['sales_invoice_id']),
-      disposalValue: ModelValue.nullableDouble(json['disposal_value']),
-      disposalExpense: ModelValue.nullableDouble(json['disposal_expense']),
-      bookValueAtDisposal: ModelValue.nullableDouble(
+      salePartyId: JsonModel.nullableInt(json['sale_party_id']),
+      salesInvoiceId: JsonModel.nullableInt(json['sales_invoice_id']),
+      disposalValue: JsonModel.nullableDouble(json['disposal_value']),
+      disposalExpense: JsonModel.nullableDouble(json['disposal_expense']),
+      bookValueAtDisposal: JsonModel.nullableDouble(
         json['book_value_at_disposal'],
       ),
-      gainOrLossAmount: ModelValue.nullableDouble(json['gain_or_loss_amount']),
+      gainOrLossAmount: JsonModel.nullableDouble(json['gain_or_loss_amount']),
       disposalStatus: json['disposal_status']?.toString(),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
       remarks: json['remarks']?.toString(),
-      approvedBy: ModelValue.nullableInt(json['approved_by']),
+      approvedBy: JsonModel.nullableInt(json['approved_by']),
       approvedAt: json['approved_at']?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

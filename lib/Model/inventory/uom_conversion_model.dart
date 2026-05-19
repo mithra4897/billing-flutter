@@ -30,19 +30,19 @@ class UomConversionModel extends JsonModel {
     final toUom = json['to_uom'] as Map<String, dynamic>?;
 
     return UomConversionModel(
-      id: ModelValue.nullableInt(json['id']),
-      fromUomId: ModelValue.nullableInt(json['from_uom_id']),
-      toUomId: ModelValue.nullableInt(json['to_uom_id']),
-      conversionFactor: ModelValue.nullableDouble(json['conversion_factor']),
+      id: JsonModel.nullableInt(json['id']),
+      fromUomId: JsonModel.nullableInt(json['from_uom_id']),
+      toUomId: JsonModel.nullableInt(json['to_uom_id']),
+      conversionFactor: JsonModel.nullableDouble(json['conversion_factor']),
       isActive: json['is_active'] == null
           ? true
-          : ModelValue.boolOf(json['is_active'], fallback: true),
-      fromUomCode: ModelValue.stringOf(fromUom?['uom_code']),
-      fromUomName: ModelValue.stringOf(fromUom?['uom_name']),
-      fromUomSymbol: ModelValue.stringOf(fromUom?['symbol']),
-      toUomCode: ModelValue.stringOf(toUom?['uom_code']),
-      toUomName: ModelValue.stringOf(toUom?['uom_name']),
-      toUomSymbol: ModelValue.stringOf(toUom?['symbol']),
+          : JsonModel.boolOf(json['is_active'], fallback: true),
+      fromUomCode: JsonModel.stringOf(fromUom?['uom_code']),
+      fromUomName: JsonModel.stringOf(fromUom?['uom_name']),
+      fromUomSymbol: JsonModel.stringOf(fromUom?['symbol']),
+      toUomCode: JsonModel.stringOf(toUom?['uom_code']),
+      toUomName: JsonModel.stringOf(toUom?['uom_name']),
+      toUomSymbol: JsonModel.stringOf(toUom?['symbol']),
     );
   }
 

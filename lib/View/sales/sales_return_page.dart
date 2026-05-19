@@ -734,7 +734,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                   options: _invoiceOptions
                       .map(
                         (item) => AppSearchPickerOption<int>(
-                          value: item.id,
+                          value: item.id!,
                           label: item.invoiceNo ?? 'Invoice',
                           subtitle: [
                             displayDate(

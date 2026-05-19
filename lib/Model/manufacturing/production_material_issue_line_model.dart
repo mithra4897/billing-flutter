@@ -35,22 +35,22 @@ class ProductionMaterialIssueLineModel extends JsonModel {
 
   factory ProductionMaterialIssueLineModel.fromJson(Map<String, dynamic> json) {
     return ProductionMaterialIssueLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      productionMaterialIssueId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      productionMaterialIssueId: JsonModel.nullableInt(
         json['production_material_issue_id'],
       ),
-      productionOrderMaterialId: ModelValue.nullableInt(
+      productionOrderMaterialId: JsonModel.nullableInt(
         json['production_order_material_id'],
       ),
-      lineNo: ModelValue.nullableInt(json['line_no']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      uomId: ModelValue.nullableInt(json['uom_id']),
-      warehouseId: ModelValue.nullableInt(json['warehouse_id']),
-      batchId: ModelValue.nullableInt(json['batch_id']),
-      serialId: ModelValue.nullableInt(json['serial_id']),
-      issueQty: ModelValue.nullableDouble(json['issue_qty']),
-      unitCost: ModelValue.nullableDouble(json['unit_cost']),
-      totalCost: ModelValue.nullableDouble(json['total_cost']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      uomId: JsonModel.nullableInt(json['uom_id']),
+      warehouseId: JsonModel.nullableInt(json['warehouse_id']),
+      batchId: JsonModel.nullableInt(json['batch_id']),
+      serialId: JsonModel.nullableInt(json['serial_id']),
+      issueQty: JsonModel.nullableDouble(json['issue_qty']),
+      unitCost: JsonModel.nullableDouble(json['unit_cost']),
+      totalCost: JsonModel.nullableDouble(json['total_cost']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

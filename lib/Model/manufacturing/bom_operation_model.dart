@@ -31,16 +31,16 @@ class BomOperationModel extends JsonModel {
 
   factory BomOperationModel.fromJson(Map<String, dynamic> json) {
     return BomOperationModel(
-      id: ModelValue.nullableInt(json['id']),
-      bomId: ModelValue.nullableInt(json['bom_id']),
+      id: JsonModel.nullableInt(json['id']),
+      bomId: JsonModel.nullableInt(json['bom_id']),
       operationNo: json['operation_no']?.toString(),
       operationName: json['operation_name']?.toString(),
       workCenter: json['work_center']?.toString(),
-      setupTimeMinutes: ModelValue.nullableDouble(json['setup_time_minutes']),
-      runTimeMinutes: ModelValue.nullableDouble(json['run_time_minutes']),
-      laborCost: ModelValue.nullableDouble(json['labor_cost']),
-      machineCost: ModelValue.nullableDouble(json['machine_cost']),
-      overheadCost: ModelValue.nullableDouble(json['overhead_cost']),
+      setupTimeMinutes: JsonModel.nullableDouble(json['setup_time_minutes']),
+      runTimeMinutes: JsonModel.nullableDouble(json['run_time_minutes']),
+      laborCost: JsonModel.nullableDouble(json['labor_cost']),
+      machineCost: JsonModel.nullableDouble(json['machine_cost']),
+      overheadCost: JsonModel.nullableDouble(json['overhead_cost']),
       notes: json['notes']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

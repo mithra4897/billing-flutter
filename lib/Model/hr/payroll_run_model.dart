@@ -25,14 +25,14 @@ class PayrollRunModel extends JsonModel {
 
   factory PayrollRunModel.fromJson(Map<String, dynamic> json) {
     return PayrollRunModel(
-      id: ModelValue.nullableInt(json['id']),
-      companyId: ModelValue.nullableInt(json['company_id']),
+      id: JsonModel.nullableInt(json['id']),
+      companyId: JsonModel.nullableInt(json['company_id']),
       payrollMonth: json['payroll_month']?.toString(),
       payrollYear: json['payroll_year']?.toString(),
       runDate: json['run_date']?.toString(),
       status: json['status']?.toString(),
-      voucherId: ModelValue.nullableInt(json['voucher_id']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
+      voucherId: JsonModel.nullableInt(json['voucher_id']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

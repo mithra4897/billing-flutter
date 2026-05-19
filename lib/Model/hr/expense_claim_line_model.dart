@@ -29,15 +29,15 @@ class ExpenseClaimLineModel extends JsonModel {
 
   factory ExpenseClaimLineModel.fromJson(Map<String, dynamic> json) {
     return ExpenseClaimLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      expenseClaimId: ModelValue.nullableInt(json['expense_claim_id']),
-      lineNo: ModelValue.nullableInt(json['line_no']),
+      id: JsonModel.nullableInt(json['id']),
+      expenseClaimId: JsonModel.nullableInt(json['expense_claim_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
       expenseDate: json['expense_date']?.toString(),
       expenseCategory: json['expense_category']?.toString(),
       description: json['description']?.toString(),
-      amount: ModelValue.nullableDouble(json['amount']),
-      projectId: ModelValue.nullableInt(json['project_id']),
-      projectTaskId: ModelValue.nullableInt(json['project_task_id']),
+      amount: JsonModel.nullableDouble(json['amount']),
+      projectId: JsonModel.nullableInt(json['project_id']),
+      projectTaskId: JsonModel.nullableInt(json['project_task_id']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

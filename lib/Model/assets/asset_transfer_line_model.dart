@@ -35,14 +35,14 @@ class AssetTransferLineModel extends JsonModel {
 
   factory AssetTransferLineModel.fromJson(Map<String, dynamic> json) {
     return AssetTransferLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      assetTransferId: ModelValue.nullableInt(json['asset_transfer_id']),
-      lineNo: ModelValue.nullableInt(json['line_no']),
-      assetId: ModelValue.nullableInt(json['asset_id']),
-      fromBranchId: ModelValue.nullableInt(json['from_branch_id']),
-      toBranchId: ModelValue.nullableInt(json['to_branch_id']),
-      fromLocationId: ModelValue.nullableInt(json['from_location_id']),
-      toLocationId: ModelValue.nullableInt(json['to_location_id']),
+      id: JsonModel.nullableInt(json['id']),
+      assetTransferId: JsonModel.nullableInt(json['asset_transfer_id']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
+      assetId: JsonModel.nullableInt(json['asset_id']),
+      fromBranchId: JsonModel.nullableInt(json['from_branch_id']),
+      toBranchId: JsonModel.nullableInt(json['to_branch_id']),
+      fromLocationId: JsonModel.nullableInt(json['from_location_id']),
+      toLocationId: JsonModel.nullableInt(json['to_location_id']),
       fromDepartmentName: json['from_department_name']?.toString(),
       toDepartmentName: json['to_department_name']?.toString(),
       fromEmployeeName: json['from_employee_name']?.toString(),

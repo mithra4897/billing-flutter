@@ -33,32 +33,32 @@ class UserLocationAccessModel extends JsonModel {
 
   factory UserLocationAccessModel.fromJson(Map<String, dynamic> json) {
     return UserLocationAccessModel(
-      id: ModelValue.nullableInt(json['id']),
-      userId: ModelValue.nullableInt(json['user_id']),
-      locationId: ModelValue.nullableInt(json['location_id']),
+      id: JsonModel.nullableInt(json['id']),
+      userId: JsonModel.nullableInt(json['user_id']),
+      locationId: JsonModel.nullableInt(json['location_id']),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       canBill: json['can_bill'] == null
           ? null
-          : ModelValue.boolOf(json['can_bill']),
+          : JsonModel.boolOf(json['can_bill']),
       canPurchase: json['can_purchase'] == null
           ? null
-          : ModelValue.boolOf(json['can_purchase']),
+          : JsonModel.boolOf(json['can_purchase']),
       canStockEntry: json['can_stock_entry'] == null
           ? null
-          : ModelValue.boolOf(json['can_stock_entry']),
+          : JsonModel.boolOf(json['can_stock_entry']),
       canAccountsEntry: json['can_accounts_entry'] == null
           ? null
-          : ModelValue.boolOf(json['can_accounts_entry']),
+          : JsonModel.boolOf(json['can_accounts_entry']),
       canHrEntry: json['can_hr_entry'] == null
           ? null
-          : ModelValue.boolOf(json['can_hr_entry']),
+          : JsonModel.boolOf(json['can_hr_entry']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
-      createdBy: ModelValue.nullableInt(json['created_by']),
-      updatedBy: ModelValue.nullableInt(json['updated_by']),
+          : JsonModel.boolOf(json['is_active']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
+      updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

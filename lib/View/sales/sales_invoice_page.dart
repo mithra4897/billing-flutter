@@ -1880,7 +1880,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     if (id == 0) {
       return;
     }
-    final response = await _salesService.invoice(id);
+    final response = await _salesService.invoice(id!);
     final full = response.data ?? item;
     final lines = _buildInvoiceDraftsFromLines(full.lines);
     for (final old in _lines) {
@@ -2353,7 +2353,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     try {
       final response = _selectedItem == null
           ? await _salesService.createInvoice(invoice)
-          : await _salesService.updateInvoice(_selectedItem!.id, invoice);
+          : await _salesService.updateInvoice(_selectedItem!.id!, invoice);
       if (!mounted) {
         return;
       }
@@ -3287,7 +3287,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       label: 'Post',
                       filled: false,
                       onPressed: () => _docAction(
-                        () => _salesService.postInvoice(_selectedItem!.id),
+                        () => _salesService.postInvoice(_selectedItem!.id!),
                       ),
                     ),
                     AppActionButton(
@@ -3301,7 +3301,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       label: 'Cancel invoice',
                       filled: false,
                       onPressed: () => _docAction(
-                        () => _salesService.cancelInvoice(_selectedItem!.id),
+                        () => _salesService.cancelInvoice(_selectedItem!.id!),
                       ),
                     ),
                   ],

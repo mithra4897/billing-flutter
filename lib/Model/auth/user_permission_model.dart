@@ -37,10 +37,10 @@ class UserPermissionModel extends JsonModel {
 
   factory UserPermissionModel.fromJson(Map<String, dynamic> json) {
     return UserPermissionModel(
-      id: ModelValue.nullableInt(json['id']),
+      id: JsonModel.nullableInt(json['id']),
       permissionId:
-          ModelValue.nullableInt(json['permission_id']) ??
-          ModelValue.nullableInt(json['id']),
+          JsonModel.nullableInt(json['permission_id']) ??
+          JsonModel.nullableInt(json['id']),
       module: json['module']?.toString(),
       code: json['code']?.toString(),
       name: json['name']?.toString(),
@@ -48,28 +48,28 @@ class UserPermissionModel extends JsonModel {
       source: json['source']?.toString(),
       allowView: json['allow_view'] == null
           ? null
-          : ModelValue.boolOf(json['allow_view']),
+          : JsonModel.boolOf(json['allow_view']),
       allowCreate: json['allow_create'] == null
           ? null
-          : ModelValue.boolOf(json['allow_create']),
+          : JsonModel.boolOf(json['allow_create']),
       allowUpdate: json['allow_update'] == null
           ? null
-          : ModelValue.boolOf(json['allow_update']),
+          : JsonModel.boolOf(json['allow_update']),
       allowDelete: json['allow_delete'] == null
           ? null
-          : ModelValue.boolOf(json['allow_delete']),
+          : JsonModel.boolOf(json['allow_delete']),
       allowApprove: json['allow_approve'] == null
           ? null
-          : ModelValue.boolOf(json['allow_approve']),
+          : JsonModel.boolOf(json['allow_approve']),
       allowPrint: json['allow_print'] == null
           ? null
-          : ModelValue.boolOf(json['allow_print']),
+          : JsonModel.boolOf(json['allow_print']),
       allowExport: json['allow_export'] == null
           ? null
-          : ModelValue.boolOf(json['allow_export']),
+          : JsonModel.boolOf(json['allow_export']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       permission: json['permission'] is Map<String, dynamic>
           ? PermissionModel.fromJson(json['permission'] as Map<String, dynamic>)
           : null,

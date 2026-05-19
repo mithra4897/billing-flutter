@@ -37,21 +37,21 @@ class MaintenanceWorkOrderServiceModel extends JsonModel {
 
   factory MaintenanceWorkOrderServiceModel.fromJson(Map<String, dynamic> json) {
     return MaintenanceWorkOrderServiceModel(
-      id: ModelValue.nullableInt(json['id']),
-      maintenanceWorkOrderId: ModelValue.nullableInt(
+      id: JsonModel.nullableInt(json['id']),
+      maintenanceWorkOrderId: JsonModel.nullableInt(
         json['maintenance_work_order_id'],
       ),
-      lineNo: ModelValue.nullableInt(json['line_no']),
+      lineNo: JsonModel.nullableInt(json['line_no']),
       serviceDescription: json['service_description']?.toString(),
-      vendorPartyId: ModelValue.nullableInt(json['vendor_party_id']),
-      purchaseInvoiceId: ModelValue.nullableInt(json['purchase_invoice_id']),
-      qty: ModelValue.nullableDouble(json['qty']),
-      rate: ModelValue.nullableDouble(json['rate']),
-      amount: ModelValue.nullableDouble(json['amount']),
-      taxCodeId: ModelValue.nullableInt(json['tax_code_id']),
-      taxPercent: ModelValue.nullableDouble(json['tax_percent']),
-      taxAmount: ModelValue.nullableDouble(json['tax_amount']),
-      lineTotal: ModelValue.nullableDouble(json['line_total']),
+      vendorPartyId: JsonModel.nullableInt(json['vendor_party_id']),
+      purchaseInvoiceId: JsonModel.nullableInt(json['purchase_invoice_id']),
+      qty: JsonModel.nullableDouble(json['qty']),
+      rate: JsonModel.nullableDouble(json['rate']),
+      amount: JsonModel.nullableDouble(json['amount']),
+      taxCodeId: JsonModel.nullableInt(json['tax_code_id']),
+      taxPercent: JsonModel.nullableDouble(json['tax_percent']),
+      taxAmount: JsonModel.nullableDouble(json['tax_amount']),
+      lineTotal: JsonModel.nullableDouble(json['line_total']),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),

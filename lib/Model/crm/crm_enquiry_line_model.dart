@@ -19,11 +19,11 @@ class CrmEnquiryLineModel extends JsonModel {
 
   factory CrmEnquiryLineModel.fromJson(Map<String, dynamic> json) {
     return CrmEnquiryLineModel(
-      id: ModelValue.nullableInt(json['id']),
-      enquiryId: ModelValue.nullableInt(json['enquiry_id']),
-      itemId: ModelValue.nullableInt(json['item_id']),
+      id: JsonModel.nullableInt(json['id']),
+      enquiryId: JsonModel.nullableInt(json['enquiry_id']),
+      itemId: JsonModel.nullableInt(json['item_id']),
       description: json['description']?.toString(),
-      qty: ModelValue.nullableDouble(json['qty']),
+      qty: JsonModel.nullableDouble(json['qty']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

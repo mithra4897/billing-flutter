@@ -33,19 +33,19 @@ class ServiceVisitLogModel extends JsonModel {
 
   factory ServiceVisitLogModel.fromJson(Map<String, dynamic> json) {
     return ServiceVisitLogModel(
-      id: ModelValue.nullableInt(json['id']),
-      serviceWorkOrderId: ModelValue.nullableInt(json['service_work_order_id']),
+      id: JsonModel.nullableInt(json['id']),
+      serviceWorkOrderId: JsonModel.nullableInt(json['service_work_order_id']),
       visitDate: json['visit_date']?.toString(),
       visitType: json['visit_type']?.toString(),
       checkInDatetime: json['check_in_datetime']?.toString(),
       checkOutDatetime: json['check_out_datetime']?.toString(),
-      travelDistanceKm: ModelValue.nullableDouble(json['travel_distance_km']),
-      travelExpense: ModelValue.nullableDouble(json['travel_expense']),
+      travelDistanceKm: JsonModel.nullableDouble(json['travel_distance_km']),
+      travelExpense: JsonModel.nullableDouble(json['travel_expense']),
       visitNotes: json['visit_notes']?.toString(),
       customerSignatureName: json['customer_signature_name']?.toString(),
       customerConfirmationStatus: json['customer_confirmation_status']
           ?.toString(),
-      createdBy: ModelValue.nullableInt(json['created_by']),
+      createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

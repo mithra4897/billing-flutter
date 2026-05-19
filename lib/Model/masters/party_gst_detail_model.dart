@@ -39,8 +39,8 @@ class PartyGstDetailModel extends JsonModel {
 
   factory PartyGstDetailModel.fromJson(Map<String, dynamic> json) {
     return PartyGstDetailModel(
-      id: ModelValue.nullableInt(json['id']),
-      partyId: ModelValue.nullableInt(json['party_id']),
+      id: JsonModel.nullableInt(json['id']),
+      partyId: JsonModel.nullableInt(json['party_id']),
       gstin: json['gstin']?.toString(),
       registrationType: json['registration_type']?.toString(),
       legalName: json['legal_name']?.toString(),
@@ -54,10 +54,10 @@ class PartyGstDetailModel extends JsonModel {
       postalCode: json['postal_code']?.toString(),
       isDefault: json['is_default'] == null
           ? null
-          : ModelValue.boolOf(json['is_default']),
+          : JsonModel.boolOf(json['is_default']),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );

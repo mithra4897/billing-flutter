@@ -21,10 +21,10 @@ class PurchasePaymentAllocationModel extends JsonModel {
 
   factory PurchasePaymentAllocationModel.fromJson(Map<String, dynamic> json) {
     return PurchasePaymentAllocationModel(
-      id: ModelValue.nullableInt(json['id']),
-      purchasePaymentId: ModelValue.nullableInt(json['purchase_payment_id']),
-      purchaseInvoiceId: ModelValue.nullableInt(json['purchase_invoice_id']),
-      allocatedAmount: ModelValue.nullableDouble(json['allocated_amount']),
+      id: JsonModel.nullableInt(json['id']),
+      purchasePaymentId: JsonModel.nullableInt(json['purchase_payment_id']),
+      purchaseInvoiceId: JsonModel.nullableInt(json['purchase_invoice_id']),
+      allocatedAmount: JsonModel.nullableDouble(json['allocated_amount']),
       allocationType: json['allocation_type']?.toString(),
       remarks: json['remarks']?.toString(),
       createdAt: json['created_at']?.toString(),

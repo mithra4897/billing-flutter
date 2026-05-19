@@ -51,29 +51,29 @@ class ItemSupplierMapModel extends JsonModel {
     final purchaseUom = json['purchase_uom'] as Map<String, dynamic>?;
 
     return ItemSupplierMapModel(
-      id: ModelValue.nullableInt(json['id']),
-      itemId: ModelValue.nullableInt(json['item_id']),
-      supplierId: ModelValue.nullableInt(json['supplier_party_id']),
-      purchaseUomId: ModelValue.nullableInt(json['purchase_uom_id']),
+      id: JsonModel.nullableInt(json['id']),
+      itemId: JsonModel.nullableInt(json['item_id']),
+      supplierId: JsonModel.nullableInt(json['supplier_party_id']),
+      purchaseUomId: JsonModel.nullableInt(json['purchase_uom_id']),
       supplierItemCode: json['supplier_item_code']?.toString(),
       supplierItemName: json['supplier_item_name']?.toString(),
-      supplierRate: ModelValue.nullableDouble(json['supplier_rate']),
-      leadTimeDays: ModelValue.nullableInt(json['lead_time_days']),
-      minOrderQty: ModelValue.nullableDouble(json['minimum_order_qty']),
-      isPrimarySupplier: ModelValue.boolOf(json['is_primary_supplier']),
+      supplierRate: JsonModel.nullableDouble(json['supplier_rate']),
+      leadTimeDays: JsonModel.nullableInt(json['lead_time_days']),
+      minOrderQty: JsonModel.nullableDouble(json['minimum_order_qty']),
+      isPrimarySupplier: JsonModel.boolOf(json['is_primary_supplier']),
       isActive: json['is_active'] == null
           ? true
-          : ModelValue.boolOf(json['is_active'], fallback: true),
+          : JsonModel.boolOf(json['is_active'], fallback: true),
       remarks: json['remarks']?.toString(),
-      itemCode: ModelValue.stringOf(item?['item_code']),
-      itemName: ModelValue.stringOf(item?['item_name']),
-      itemType: ModelValue.stringOf(item?['item_type']),
-      supplierCode: ModelValue.stringOf(supplier?['party_code']),
-      supplierName: ModelValue.stringOf(supplier?['party_name']),
-      supplierType: ModelValue.stringOf(supplier?['party_type_id']),
-      purchaseUomCode: ModelValue.stringOf(purchaseUom?['uom_code']),
-      purchaseUomName: ModelValue.stringOf(purchaseUom?['uom_name']),
-      purchaseUomSymbol: ModelValue.stringOf(purchaseUom?['symbol']),
+      itemCode: JsonModel.stringOf(item?['item_code']),
+      itemName: JsonModel.stringOf(item?['item_name']),
+      itemType: JsonModel.stringOf(item?['item_type']),
+      supplierCode: JsonModel.stringOf(supplier?['party_code']),
+      supplierName: JsonModel.stringOf(supplier?['party_name']),
+      supplierType: JsonModel.stringOf(supplier?['party_type_id']),
+      purchaseUomCode: JsonModel.stringOf(purchaseUom?['uom_code']),
+      purchaseUomName: JsonModel.stringOf(purchaseUom?['uom_name']),
+      purchaseUomSymbol: JsonModel.stringOf(purchaseUom?['symbol']),
     );
   }
 

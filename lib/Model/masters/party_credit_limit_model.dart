@@ -23,15 +23,15 @@ class PartyCreditLimitModel extends JsonModel {
 
   factory PartyCreditLimitModel.fromJson(Map<String, dynamic> json) {
     return PartyCreditLimitModel(
-      id: ModelValue.nullableInt(json['id']),
-      partyId: ModelValue.nullableInt(json['party_id']),
-      creditLimit: ModelValue.nullableDouble(json['credit_limit']),
-      creditDays: ModelValue.nullableInt(json['credit_days']),
+      id: JsonModel.nullableInt(json['id']),
+      partyId: JsonModel.nullableInt(json['party_id']),
+      creditLimit: JsonModel.nullableDouble(json['credit_limit']),
+      creditDays: JsonModel.nullableInt(json['credit_days']),
       effectiveFrom: json['effective_from']?.toString(),
       effectiveTo: json['effective_to']?.toString(),
       isActive: json['is_active'] == null
           ? null
-          : ModelValue.boolOf(json['is_active']),
+          : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
