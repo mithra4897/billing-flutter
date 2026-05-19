@@ -12,26 +12,26 @@ Map<String, dynamic>? _jsonMap(dynamic value) {
 
 String _entityName(Map<String, dynamic>? m) {
   if (m == null) {
-    return '—';
+    return '-';
   }
   final name = stringValue(m, 'name');
   if (name.isNotEmpty) {
     return name;
   }
   final code = stringValue(m, 'code');
-  return code.isNotEmpty ? code : '—';
+  return code.isNotEmpty ? code : '-';
 }
 
 String _personName(Map<String, dynamic>? m) {
   if (m == null) {
-    return '—';
+    return '-';
   }
   final d = stringValue(m, 'display_name');
   if (d.isNotEmpty) {
     return d;
   }
   final u = stringValue(m, 'username');
-  return u.isNotEmpty ? u : '—';
+  return u.isNotEmpty ? u : '-';
 }
 
 class AssetTransferPage extends StatefulWidget {
@@ -514,8 +514,8 @@ class _TransferLineCard extends StatelessWidget {
     final assetLabel = [
       if (code.isNotEmpty) code,
       if (name.isNotEmpty) name,
-    ].join(' — ');
-    final lineNo = intValue(line, 'line_no')?.toString() ?? '—';
+    ].join(' - ');
+    final lineNo = intValue(line, 'line_no')?.toString() ?? '-';
     return Padding(
       padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
       child: DecoratedBox(
@@ -534,37 +534,37 @@ class _TransferLineCard extends StatelessWidget {
               ),
               AppFormTextField(
                 labelText: 'Asset',
-                initialValue: assetLabel.isNotEmpty ? assetLabel : '—',
+                initialValue: assetLabel.isNotEmpty ? assetLabel : '-',
                 readOnly: true,
               ),
               AppFormTextField(
                 labelText: 'Asset status',
                 initialValue: asset != null
                     ? stringValue(asset, 'asset_status')
-                    : '—',
+                    : '-',
                 readOnly: true,
               ),
               AppFormTextField(
                 labelText: 'From branch id',
                 initialValue:
-                    intValue(line, 'from_branch_id')?.toString() ?? '—',
+                    intValue(line, 'from_branch_id')?.toString() ?? '-',
                 readOnly: true,
               ),
               AppFormTextField(
                 labelText: 'To branch id',
-                initialValue: intValue(line, 'to_branch_id')?.toString() ?? '—',
+                initialValue: intValue(line, 'to_branch_id')?.toString() ?? '-',
                 readOnly: true,
               ),
               AppFormTextField(
                 labelText: 'From location id',
                 initialValue:
-                    intValue(line, 'from_location_id')?.toString() ?? '—',
+                    intValue(line, 'from_location_id')?.toString() ?? '-',
                 readOnly: true,
               ),
               AppFormTextField(
                 labelText: 'To location id',
                 initialValue:
-                    intValue(line, 'to_location_id')?.toString() ?? '—',
+                    intValue(line, 'to_location_id')?.toString() ?? '-',
                 readOnly: true,
               ),
               AppFormTextField(

@@ -18,7 +18,7 @@ String _categoryLabel(Map<String, dynamic> data) {
   final code = stringValue(c, 'category_code');
   final name = stringValue(c, 'category_name');
   if (code.isNotEmpty && name.isNotEmpty) {
-    return '$code — $name';
+    return '$code - $name';
   }
   return code.isNotEmpty ? code : name;
 }
@@ -51,7 +51,7 @@ String _assetFromDisposal(Map<String, dynamic> data) {
   final code = stringValue(a, 'asset_code');
   final name = stringValue(a, 'asset_name');
   if (code.isNotEmpty && name.isNotEmpty) {
-    return '$code — $name';
+    return '$code - $name';
   }
   return code.isNotEmpty ? code : name;
 }
@@ -450,7 +450,7 @@ class _AssetBooksDialogState extends State<_AssetBooksDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Books — asset #${widget.assetId}'),
+      title: Text('Books - asset #${widget.assetId}'),
       content: SizedBox(
         width: 480,
         height: 360,
@@ -1368,7 +1368,7 @@ class _FixedAssetRegisterPageState extends State<FixedAssetRegisterPage> {
         PurchaseRegisterColumn<AssetModel>(
           label: 'Books',
           valueBuilder: (AssetModel row) =>
-              intValue(row.toJson(), 'books_count')?.toString() ?? '—',
+              intValue(row.toJson(), 'books_count')?.toString() ?? '-',
         ),
       ],
       onRowTap: (AssetModel row) {
@@ -1516,7 +1516,7 @@ class _AssetDepreciationRunRegisterPageState
         PurchaseRegisterColumn<AssetDepreciationRunModel>(
           label: 'Lines',
           valueBuilder: (AssetDepreciationRunModel row) =>
-              intValue(row.toJson(), 'lines_count')?.toString() ?? '—',
+              intValue(row.toJson(), 'lines_count')?.toString() ?? '-',
         ),
       ],
       onRowTap: (AssetDepreciationRunModel row) {

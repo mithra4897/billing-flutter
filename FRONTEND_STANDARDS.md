@@ -44,11 +44,11 @@ Use it before building or changing any frontend module. It is written to be shar
 
 If table, API, and frontend disagree, the database and real API contract win. Do not invent new field names in Flutter.
 
-## Sensitive forms — audit trail UI (thumb rule)
+## Sensitive forms - audit trail UI (thumb rule)
 
 Screens that edit **sensitive** data (financial vouchers and documents, inventory that affects valuation, payroll, grants/revokes access, etc.) should eventually offer a way to see **server-side audit history** for the **open record only** (when `id != null`), backed by `audit_logs` / entity trail APIs.
 
-- Keep the control **low profile**: prefer a small, muted text action (e.g. “Activity log”) at the end of the form—not a large or floating button that competes with primary actions.
+- Keep the control **low profile**: prefer a small, muted text action (e.g. “Activity log”) at the end of the form-not a large or floating button that competes with primary actions.
 - When you **update or add** another sensitive form, add the same pairing: backend audit writes + this style of discreet viewer unless the product owner explicitly defers it.
 
 ## Source Of Truth Order
@@ -177,7 +177,7 @@ Do not hand-build repeated title strings unless the screen truly needs custom wo
 - Do **not** attach one shared `GlobalKey<FormState>` to the `Form` you pass as `SettingsWorkspace.editor`.
 - On non-desktop, that editor can appear on a **pushed route**; on desktop it is **inline**. After a **resize** across the breakpoint (or during transitions), the same editor subtree can exist **twice** in the tree, which triggers **“Multiple widgets used the same GlobalKey”** if both `Form`s share one key.
 - **Preferred pattern:** wrap the editor body in a `Builder`, use a plain `Form` (no key), and validate with `Form.of(formContext).validate()` from save handlers (pass the builder’s `context`, e.g. `onPressed: () => _save(formContext)`).
-- For **expandable** lists that embed the same form template in multiple tiles, the same rule applies: avoid one static `GlobalKey` for every tile—use `Form.of` from a `Builder` scoped to each expanded panel, or an equivalent pattern so only one keyed ancestor applies per mounted subtree.
+- For **expandable** lists that embed the same form template in multiple tiles, the same rule applies: avoid one static `GlobalKey` for every tile-use `Form.of` from a `Builder` scoped to each expanded panel, or an equivalent pattern so only one keyed ancestor applies per mounted subtree.
 
 ## Shell Rule
 

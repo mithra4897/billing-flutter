@@ -379,7 +379,7 @@ class _JobworkDispatchEditor extends StatelessWidget {
               ...List<Widget>.generate(vm.lineDrafts.length, (index) {
                 final line = vm.lineDrafts[index];
                 final matItems = <AppDropdownItem<int?>>[
-                  const AppDropdownItem<int?>(value: null, label: '—'),
+                  const AppDropdownItem<int?>(value: null, label: '-'),
                   ...vm.orderMaterialOptions
                       .where((m) => m.id != null)
                       .map(

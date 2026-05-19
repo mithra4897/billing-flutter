@@ -16,7 +16,7 @@ String _workOrderNoLabel(MaintenanceWorkOrderModel row) {
     return no;
   }
   final id = intValue(data, 'id');
-  return id != null ? 'WO #$id' : '—';
+  return id != null ? 'WO #$id' : '-';
 }
 
 String _workOrderAssetLabel(MaintenanceWorkOrderModel row) {
@@ -26,11 +26,11 @@ String _workOrderAssetLabel(MaintenanceWorkOrderModel row) {
     final code = stringValue(nested, 'asset_code');
     final name = stringValue(nested, 'asset_name');
     if (code.isNotEmpty && name.isNotEmpty) {
-      return '$code — $name';
+      return '$code - $name';
     }
     return code.isNotEmpty ? code : name;
   }
-  return '—';
+  return '-';
 }
 
 class _MaintFilters extends StatelessWidget {

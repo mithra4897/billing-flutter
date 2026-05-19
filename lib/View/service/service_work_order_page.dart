@@ -300,7 +300,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Document series',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.woSeriesOptions
                           .where((s) => s.id != null)
                           .map(
@@ -344,7 +344,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Branch (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.branchOptions
                           .where((b) => b.id != null)
                           .map(
@@ -364,7 +364,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Location (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.locationOptions
                           .where((l) => l.id != null)
                           .map(
@@ -384,7 +384,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Financial year (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.financialYearOptions
                           .where((f) => f.id != null)
                           .map(

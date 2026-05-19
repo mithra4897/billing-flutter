@@ -407,7 +407,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   ///
   /// When [reloadDetail] is true (desktop inline editor), loads full employee + tabs via
   /// [_selectEmployee]. When false (e.g. before closing the mobile fullscreen editor),
-  /// only updates the list and [selectedEmployee] from list row — avoids heavy async work
+  /// only updates the list and [selectedEmployee] from list row - avoids heavy async work
   /// on top of [Navigator] while the pushed route is still visible (which caused freezes).
   Future<void> _reloadEmployeeListAndSelect(
     int employeeId, {
@@ -1983,7 +1983,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               AppFormTextField(
                 controller: _bankAccountNoController,
                 labelText: 'Bank account no. (payout / salary)',
-                hintText: 'Employee bank a/c for transfers — not a GL ledger',
+                hintText: 'Employee bank a/c for transfers - not a GL ledger',
                 validator: Validators.optionalMaxLength(100, 'Bank Account No'),
               ),
               AppFormTextField(

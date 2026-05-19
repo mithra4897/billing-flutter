@@ -115,7 +115,7 @@ class _StockReservationPageState extends State<StockReservationPage> {
           final data = item.toJson();
           return SettingsListTile(
             title:
-                '${stringValue(data, 'reference_type')} #${intValue(data, 'reference_id') ?? '—'}',
+                '${stringValue(data, 'reference_type')} #${intValue(data, 'reference_id') ?? '-'}',
             subtitle: [
               stringValue(data, 'status'),
               stringValue(data, 'reserved_qty'),

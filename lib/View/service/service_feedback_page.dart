@@ -219,7 +219,7 @@ class _ServiceFeedbackEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Work order (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.workOrdersForTicket
                           .where((w) => intValue(w.toJson(), 'id') != null)
                           .map(

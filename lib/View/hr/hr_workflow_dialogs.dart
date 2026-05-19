@@ -1194,7 +1194,7 @@ Future<void> openExpenseClaimReimburseDialog(
                               value: a.id!,
                               label:
                                   '${a.accountName ?? a.accountCode ?? '#${a.id}'} '
-                                  '(${a.accountType ?? '—'})',
+                                  '(${a.accountType ?? '-'})',
                             ),
                           )
                           .toList(),
@@ -1305,7 +1305,7 @@ Future<void> showExpenseClaimDetailDialog(
                   child: Text(
                     'Approve (hr.approve) posts a Journal: expense OTHEXP001 vs '
                     'employee reimbursement payable. Reject (hr.approve) or '
-                    'Cancel draft (hr.update) — no GL. After approval, Reimburse '
+                    'Cancel draft (hr.update) - no GL. After approval, Reimburse '
                     '(hr.update) pays bank/cash via a Payment voucher.',
                     style: Theme.of(ctx).textTheme.bodySmall,
                   ),

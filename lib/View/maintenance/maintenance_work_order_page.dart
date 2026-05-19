@@ -282,7 +282,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                     AppDropdownField<int?>.fromMapped(
                       labelText: 'Document series (for auto no.)',
                       mappedItems: [
-                        const AppDropdownItem<int?>(value: null, label: '—'),
+                        const AppDropdownItem<int?>(value: null, label: '-'),
                         ...vm.seriesOptions
                             .where((s) => s.id != null)
                             .map(
@@ -337,7 +337,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Financial year',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.financialYearOptions
                           .where((fy) => fy.id != null)
                           .map(
@@ -357,7 +357,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Maintenance request',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.maintenanceRequests
                           .where((r) => intValue(r.toJson(), 'id') != null)
                           .map(
@@ -377,7 +377,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Maintenance plan',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.maintenancePlans
                           .where((p) => intValue(p.toJson(), 'id') != null)
                           .map((p) {
@@ -387,7 +387,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                             final label = [
                               code,
                               name,
-                            ].where((x) => x.trim().isNotEmpty).join(' — ');
+                            ].where((x) => x.trim().isNotEmpty).join(' - ');
                             return AppDropdownItem<int?>(
                               value: intValue(d, 'id'),
                               label: label.isNotEmpty
@@ -406,7 +406,7 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Vendor',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.vendorOptions
                           .where((p) => p.id != null)
                           .map(

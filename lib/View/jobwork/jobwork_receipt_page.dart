@@ -403,7 +403,7 @@ class _JobworkReceiptEditor extends StatelessWidget {
               ...List<Widget>.generate(vm.lineDrafts.length, (index) {
                 final line = vm.lineDrafts[index];
                 final outItems = <AppDropdownItem<int?>>[
-                  const AppDropdownItem<int?>(value: null, label: '—'),
+                  const AppDropdownItem<int?>(value: null, label: '-'),
                   ...vm.orderOutputOptions
                       .where((o) => o.id != null)
                       .map(

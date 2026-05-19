@@ -266,7 +266,7 @@ class _ServiceContractEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Document series (for auto number)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.seriesOptions
                           .where((s) => s.id != null)
                           .map(

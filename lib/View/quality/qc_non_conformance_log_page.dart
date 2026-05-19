@@ -223,7 +223,7 @@ class _QcNonConformanceEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Inspection line (optional)',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.inspectionLineOptions.map(
                         (o) =>
                             AppDropdownItem<int?>(value: o.id, label: o.label),

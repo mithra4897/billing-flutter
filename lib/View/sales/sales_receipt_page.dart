@@ -13,7 +13,7 @@ class SalesReceiptPage extends StatefulWidget {
   final bool editorOnly;
   final int? initialId;
 
-  /// From `/sales/receipts/new?invoice_id=…` — prefills customer, amount, allocation.
+  /// From `/sales/receipts/new?invoice_id=…` - prefills customer, amount, allocation.
   final int? initialSalesInvoiceId;
 
   @override

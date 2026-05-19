@@ -469,7 +469,7 @@ class _ExpenseClaimsManagementPageState
   }
 
   /// Refetch list rows only (same filters as [_loadPage]), without employees fetch
-  /// or swapping the editor for a loading placeholder — keeps [Form] mounted on web.
+  /// or swapping the editor for a loading placeholder - keeps [Form] mounted on web.
   Future<void> _syncExpenseClaimsListFromServer({int? selectClaimId}) async {
     if (_companyId == null) {
       return;

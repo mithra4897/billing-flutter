@@ -318,7 +318,7 @@ class _QcInspectionEditor extends StatelessWidget {
                   ),
                   AppDropdownField<int>.fromMapped(
                     labelText:
-                        'QC plan (optional — scope “all”; else add lines via API)',
+                        'QC plan (optional - scope “all”; else add lines via API)',
                     mappedItems: vm.qcPlanOptions
                         .where((x) => x.id != null)
                         .map(

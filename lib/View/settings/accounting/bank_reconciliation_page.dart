@@ -401,7 +401,7 @@ class _BankReconciliationManagementPageState
                   const SizedBox(height: AppUiConstants.spacingSm),
                   Text(
                     'Bounced/cancelled here only updates this reconciliation row. '
-                    'It does not reverse GL vouchers or change sales/purchase payment status—post dishonour/reversal entries and update source documents separately.',
+                    'It does not reverse GL vouchers or change sales/purchase payment status-post dishonour/reversal entries and update source documents separately.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.tertiary,
                     ),

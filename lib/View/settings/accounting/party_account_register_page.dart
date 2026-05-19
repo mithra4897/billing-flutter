@@ -750,18 +750,18 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                                   final partyLabel =
                                       row.partyName?.isNotEmpty == true
                                       ? row.partyName!
-                                      : (row.partyCode ?? '—');
+                                      : (row.partyCode ?? '-');
                                   final accountLabel =
                                       row.accountName?.isNotEmpty == true
                                       ? row.accountName!
-                                      : (row.accountCode ?? '—');
+                                      : (row.accountCode ?? '-');
                                   final selected = _editing?.id == row.id;
                                   return DataRow(
                                     selected: selected,
                                     cells: [
                                       DataCell(Text(partyLabel)),
                                       DataCell(Text(accountLabel)),
-                                      DataCell(Text(row.accountPurpose ?? '—')),
+                                      DataCell(Text(row.accountPurpose ?? '-')),
                                       DataCell(
                                         Text(row.isDefault ? 'Yes' : 'No'),
                                       ),

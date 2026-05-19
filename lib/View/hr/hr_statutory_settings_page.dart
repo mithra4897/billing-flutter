@@ -1,9 +1,9 @@
 import '../../screen.dart';
 
-/// State/UT names for PT — slabs should match that jurisdiction's official schedule.
+/// State/UT names for PT - slabs should match that jurisdiction's official schedule.
 const List<AppDropdownItem<String>> _kProfessionalTaxStateItems =
     <AppDropdownItem<String>>[
-      AppDropdownItem(value: '', label: '— Select state / UT —'),
+      AppDropdownItem(value: '', label: '- Select state / UT -'),
       AppDropdownItem(value: 'Andhra Pradesh', label: 'Andhra Pradesh'),
       AppDropdownItem(value: 'Arunachal Pradesh', label: 'Arunachal Pradesh'),
       AppDropdownItem(value: 'Assam', label: 'Assam'),
@@ -505,7 +505,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                     'Configure PF, ESI, and professional tax per company. '
                     'Payroll uses the active profile for the salary month. '
                     'PT slabs must use fixed monthly amounts from the selected state/UT schedule (not %). '
-                    'Gross for PT is the employee monthly gross on the active salary structure—confirm with '
+                    'Gross for PT is the employee monthly gross on the active salary structure-confirm with '
                     'your consultant that this matches how that state defines taxable salary. '
                     'Use Employees → salary structures for CTC and %-based components.',
                     style: Theme.of(context).textTheme.bodySmall,
@@ -519,7 +519,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                       mappedItems: <AppDropdownItem<int?>>[
                         const AppDropdownItem<int?>(
                           value: null,
-                          label: '— New profile —',
+                          label: '- New profile -',
                         ),
                         ..._profiles.map(
                           (ErpRecordModel p) => AppDropdownItem<int?>(
@@ -589,7 +589,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                           ),
                         ),
                         AppDropdownField<String>.fromMapped(
-                          labelText: 'Professional tax — state / UT',
+                          labelText: 'Professional tax - state / UT',
                           mappedItems: _ptStateItemsForDropdown(),
                           initialValue: _professionalTaxStateCode.isEmpty
                               ? ''
@@ -711,7 +711,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                           children: [
                             Expanded(
                               child: Text(
-                                'Professional tax — gross slabs (state schedule)',
+                                'Professional tax - gross slabs (state schedule)',
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ),

@@ -169,7 +169,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       final code = stringValue(nested, 'asset_code');
       final name = stringValue(nested, 'asset_name');
       if (code.isNotEmpty && name.isNotEmpty) {
-        return '$code — $name';
+        return '$code - $name';
       }
       return code.isNotEmpty ? code : name;
     }
@@ -783,7 +783,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     final code = stringValue(d, 'asset_code');
     final name = stringValue(d, 'asset_name');
     if (code.isNotEmpty && name.isNotEmpty) {
-      return '$code — $name';
+      return '$code - $name';
     }
     return code.isNotEmpty ? code : name;
   }

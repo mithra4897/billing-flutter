@@ -1375,7 +1375,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                     AppFormTextField(
                       controller: _enquiryNoController,
                       labelText: 'Opportunity No',
-                      hintText: 'Leave blank — we assign a number for you',
+                      hintText: 'Leave blank - we assign a number for you',
                     ),
                     AppDateSelectorField(
                       controller: _enquiryDateController,

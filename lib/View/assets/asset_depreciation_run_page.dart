@@ -12,14 +12,14 @@ Map<String, dynamic>? _jsonMap(dynamic value) {
 
 String _personName(Map<String, dynamic>? m) {
   if (m == null) {
-    return '—';
+    return '-';
   }
   final d = stringValue(m, 'display_name');
   if (d.isNotEmpty) {
     return d;
   }
   final u = stringValue(m, 'username');
-  return u.isNotEmpty ? u : '—';
+  return u.isNotEmpty ? u : '-';
 }
 
 class AssetDepreciationRunPage extends StatefulWidget {
@@ -387,7 +387,7 @@ class _AssetDepreciationRunEditor extends StatelessWidget {
                             data,
                             'total_assets_processed',
                           )?.toString() ??
-                          '—',
+                          '-',
                       readOnly: true,
                     ),
                     AppFormTextField(
@@ -495,7 +495,7 @@ class _DepreciationLineCard extends StatelessWidget {
     final assetLabel = [
       if (code.isNotEmpty) code,
       if (name.isNotEmpty) name,
-    ].join(' — ');
+    ].join(' - ');
     return Padding(
       padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
       child: DecoratedBox(
@@ -509,7 +509,7 @@ class _DepreciationLineCard extends StatelessWidget {
             children: [
               AppFormTextField(
                 labelText: 'Asset',
-                initialValue: assetLabel.isNotEmpty ? assetLabel : '—',
+                initialValue: assetLabel.isNotEmpty ? assetLabel : '-',
                 readOnly: true,
               ),
               AppFormTextField(

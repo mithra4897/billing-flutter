@@ -119,7 +119,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
   String _voucherMode = 'payment';
   bool _isActive = true;
 
-  /// Hides reference, parties, cost dimensions, approvals — keeps ERP-grade doubles.
+  /// Hides reference, parties, cost dimensions, approvals - keeps ERP-grade doubles.
   bool _simpleEntryMode = true;
   Set<String> _permissionCodes = {};
   bool _isSuperAdmin = false;
@@ -580,7 +580,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
         .toList(growable: false);
   }
 
-  /// Misc receipt: credit side — prefer indirect income per chart of accounts.
+  /// Misc receipt: credit side - prefer indirect income per chart of accounts.
   List<AccountModel> get _indirectIncomeLedgerOptions {
     final scoped = _manualAccounts
         .where(
@@ -1131,7 +1131,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                       horizontal: AppUiConstants.spacingMd,
                     ),
                     child: Text(
-                      'Activity — ${_selectedVoucher?.voucherNo ?? '$id'}',
+                      'Activity - ${_selectedVoucher?.voucherNo ?? '$id'}',
                       style: Theme.of(sheetCtx).textTheme.titleMedium,
                     ),
                   ),
@@ -1281,7 +1281,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             AppSwitchTile(
               label: 'Simple entry (recommended)',
               subtitle:
-                  'Fewer fields — use full options for references, parties, approvals.',
+                  'Fewer fields - use full options for references, parties, approvals.',
               value: _simpleEntryMode,
               onChanged: (value) => setState(() => _simpleEntryMode = value),
             ),
@@ -1627,7 +1627,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             subtitle: Text(
-              'Amount: ${m['allocation_amount'] ?? ''} · Against voucher #${m['against_voucher_id'] ?? '—'}',
+              'Amount: ${m['allocation_amount'] ?? ''} · Against voucher #${m['against_voucher_id'] ?? '-'}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -1668,7 +1668,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
               ? 'Record spend: expense ledger is debited, cash or bank is credited.'
               : _voucherMode == 'receipt'
               ? 'Miscellaneous receipt: bank/cash is debited, indirect income is credited (customer receipts stay in Sales).'
-              : 'Transfer only between cash and bank ledgers — same amount on both sides.',
+              : 'Transfer only between cash and bank ledgers - same amount on both sides.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         if (_voucherMode == 'payment' && _expenseLedgerOptions.isEmpty) ...[
@@ -1685,7 +1685,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
             _indirectIncomeLedgerOptions.isEmpty) ...[
           const SizedBox(height: AppUiConstants.spacingXs),
           Text(
-            'No “indirect income” group found — showing all income ledgers. Tag account groups as indirect income for a tighter list.',
+            'No “indirect income” group found - showing all income ledgers. Tag account groups as indirect income for a tighter list.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.tertiary,
             ),

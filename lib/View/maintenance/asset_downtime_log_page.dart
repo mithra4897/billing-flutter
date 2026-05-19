@@ -222,7 +222,7 @@ class _DowntimeLogEditor extends StatelessWidget {
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Maintenance work order',
                     mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '—'),
+                      const AppDropdownItem<int?>(value: null, label: '-'),
                       ...vm.workOrders
                           .where((w) => intValue(w.toJson(), 'id') != null)
                           .map(
