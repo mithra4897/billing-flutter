@@ -40,7 +40,6 @@ class CrmLeadActivityModel extends JsonModel {
   String toString() => JsonModel.combineValues([
     activityType,
     notes,
-    activityDatetime,
   ], defaultValue: 'CRM Lead Activity');
 
   @override

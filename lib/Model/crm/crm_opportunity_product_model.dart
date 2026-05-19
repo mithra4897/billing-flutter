@@ -29,7 +29,7 @@ class CrmOpportunityProductModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Crm Opportunity Product';
+  String toString() => 'CRM Opportunity Product';
 
 
   @override

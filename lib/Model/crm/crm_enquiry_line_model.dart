@@ -10,6 +10,7 @@ class CrmEnquiryLineModel extends JsonModel {
     this.createdAt,
     this.updatedAt,
   });
+
   final int? enquiryId;
   final int? itemId;
   final String? description;
@@ -28,9 +29,9 @@ class CrmEnquiryLineModel extends JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
-  @override
-  String toString() => 'Crm Enquiry Line';
 
+  @override
+  String toString() => 'CRM Enquiry Line';
 
   @override
   Map<String, dynamic> toJson() => {

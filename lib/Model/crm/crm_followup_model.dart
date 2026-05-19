@@ -12,6 +12,7 @@ class CrmFollowupModel extends JsonModel {
     this.createdAt,
     this.updatedAt,
   });
+
   final int? enquiryId;
   final String? followupDate;
   final String? notes;
@@ -34,11 +35,10 @@ class CrmFollowupModel extends JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
-  @override
-  String toString() => JsonModel.combineValues([
-    followupDate,
-  ], defaultValue: 'CRM Followup');
 
+  @override
+  String toString() =>
+      JsonModel.combineValues([notes], defaultValue: 'CRM Followup');
 
   @override
   Map<String, dynamic> toJson() => {

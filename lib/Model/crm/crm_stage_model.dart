@@ -12,6 +12,7 @@ class CrmStageModel extends JsonModel {
     this.createdAt,
     this.updatedAt,
   });
+
   final String? stageName;
   final String? stageType;
   final int? sequenceNo;
@@ -27,9 +28,7 @@ class CrmStageModel extends JsonModel {
       stageName: json['stage_name']?.toString(),
       stageType: json['stage_type']?.toString(),
       sequenceNo: JsonModel.nullableInt(json['sequence_no']),
-      probabilityPercent: JsonModel.nullableDouble(
-        json['probability_percent'],
-      ),
+      probabilityPercent: JsonModel.nullableDouble(json['probability_percent']),
       isDefault: json['is_default'] == null
           ? null
           : JsonModel.boolOf(json['is_default']),
@@ -40,13 +39,12 @@ class CrmStageModel extends JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
+
   @override
   String toString() => JsonModel.combineValues([
     stageName,
-    sequenceNo,
     stageType,
   ], defaultValue: 'CRM Stage');
-
 
   @override
   Map<String, dynamic> toJson() => {

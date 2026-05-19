@@ -20,6 +20,7 @@ class CrmOpportunityModel extends JsonModel {
     this.createdAt,
     this.updatedAt,
   });
+
   final int? companyId;
   final String? enquiryNo;
   final String? enquiryDate;
@@ -51,22 +52,18 @@ class CrmOpportunityModel extends JsonModel {
       remarks: json['remarks']?.toString(),
       opportunityName: json['opportunity_name']?.toString(),
       expectedValue: JsonModel.nullableDouble(json['expected_value']),
-      probabilityPercent: JsonModel.nullableDouble(
-        json['probability_percent'],
-      ),
+      probabilityPercent: JsonModel.nullableDouble(json['probability_percent']),
       expectedCloseDate: json['expected_close_date']?.toString(),
       status: json['status']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
   }
+
   @override
   String toString() => JsonModel.combineValues([
-    enquiryNo,
     opportunityName,
-    enquiryDate,
   ], defaultValue: 'CRM Opportunity');
-
 
   @override
   Map<String, dynamic> toJson() => {
