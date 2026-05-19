@@ -48,7 +48,7 @@ const List<AppDropdownItem<String>> kQcInspectionSourceTypeItems =
 
 String? _scopeForSourceType(String type) => _sourceTypeToInspectionScope[type];
 
-class QcInspectionViewModel extends ChangeNotifier {
+class QcInspectionViewModel extends GetxController {
   QcInspectionViewModel() {
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
@@ -218,7 +218,7 @@ class QcInspectionViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _masterService.companies(filters: const {'per_page': 200}),
@@ -296,11 +296,11 @@ class QcInspectionViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -347,7 +347,7 @@ class QcInspectionViewModel extends ChangeNotifier {
     remarksController.clear();
     lotNoController.clear();
     isActive = true;
-    notifyListeners();
+    update();
   }
 
   Future<void> _loadDetail(int id) async {
@@ -355,14 +355,14 @@ class QcInspectionViewModel extends ChangeNotifier {
     _detail = null;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.qcInspection(id);
       final doc = response.data;
       if (doc == null) {
         formError = response.message;
         detailLoading = false;
-        notifyListeners();
+        update();
         return;
       }
       _detail = doc.toJson();
@@ -406,7 +406,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -423,7 +423,7 @@ class QcInspectionViewModel extends ChangeNotifier {
     documentSeriesId = qcSeriesOptions.isNotEmpty
         ? qcSeriesOptions.first.id
         : null;
-    notifyListeners();
+    update();
   }
 
   void setBranchId(int? value) {
@@ -432,7 +432,7 @@ class QcInspectionViewModel extends ChangeNotifier {
     }
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void setLocationId(int? value) {
@@ -440,7 +440,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    notifyListeners();
+    update();
   }
 
   void setFinancialYearId(int? value) {
@@ -448,7 +448,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       return;
     }
     financialYearId = value;
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? value) {
@@ -456,7 +456,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void setInspectionScope(String value) {
@@ -474,7 +474,7 @@ class QcInspectionViewModel extends ChangeNotifier {
     if (match != null) {
       sourceDocumentType = match;
     }
-    notifyListeners();
+    update();
   }
 
   void setSourceDocumentType(String value) {
@@ -486,7 +486,7 @@ class QcInspectionViewModel extends ChangeNotifier {
     if (scope != null) {
       inspectionScope = scope;
     }
-    notifyListeners();
+    update();
   }
 
   void setItemId(int? value) {
@@ -504,7 +504,7 @@ class QcInspectionViewModel extends ChangeNotifier {
     if (item != null) {
       uomId = item.baseUomId ?? item.purchaseUomId ?? uomId;
     }
-    notifyListeners();
+    update();
   }
 
   void setUomId(int? value) {
@@ -512,7 +512,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       return;
     }
     uomId = value;
-    notifyListeners();
+    update();
   }
 
   void setQcPlanId(int? value) {
@@ -520,7 +520,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       return;
     }
     qcPlanId = value;
-    notifyListeners();
+    update();
   }
 
   void setWarehouseId(int? value) {
@@ -528,7 +528,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       return;
     }
     warehouseId = value;
-    notifyListeners();
+    update();
   }
 
   void setIsActive(bool value) {
@@ -536,7 +536,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       return;
     }
     isActive = value;
-    notifyListeners();
+    update();
   }
 
   List<Map<String, dynamic>> _fallbackLines() => <Map<String, dynamic>>[
@@ -627,13 +627,13 @@ class QcInspectionViewModel extends ChangeNotifier {
     final err = _validateForSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selectedId == null) {
         final body = QcInspectionModel.fromJson(_buildPayload(forCreate: true));
@@ -644,7 +644,7 @@ class QcInspectionViewModel extends ChangeNotifier {
           if (newId != null) {
             await _loadDetail(newId);
             saving = false;
-            notifyListeners();
+            update();
             return;
           }
         }
@@ -659,10 +659,10 @@ class QcInspectionViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -677,7 +677,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       await _loadDetail(id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -692,7 +692,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       await _loadDetail(id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -707,7 +707,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       await _loadDetail(id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -722,7 +722,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       await _loadDetail(id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -737,7 +737,7 @@ class QcInspectionViewModel extends ChangeNotifier {
       await _loadDetail(id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -754,12 +754,12 @@ class QcInspectionViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     inspectionDateController.dispose();
     sourceDocumentIdController.dispose();
@@ -772,6 +772,6 @@ class QcInspectionViewModel extends ChangeNotifier {
     reworkQtyController.dispose();
     remarksController.dispose();
     lotNoController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

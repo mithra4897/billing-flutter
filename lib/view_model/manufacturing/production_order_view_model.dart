@@ -1,6 +1,6 @@
 import '../../../screen.dart';
 
-class ProductionOrderViewModel extends ChangeNotifier {
+class ProductionOrderViewModel extends GetxController {
   final ManufacturingService _service = ManufacturingService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -49,7 +49,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
   }
 
   ProductionOrderViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -128,7 +128,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.productionOrders(
@@ -224,11 +224,11 @@ class ProductionOrderViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -264,7 +264,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
     plannedQtyController.text = '1';
     notesController.clear();
     isActive = true;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(ProductionOrderModel row) async {
@@ -273,7 +273,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.productionOrder(id);
       final data = (response.data ?? row).toJson();
@@ -297,7 +297,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -316,14 +316,14 @@ class ProductionOrderViewModel extends ChangeNotifier {
     warehouseId = warehouseOptions.isNotEmpty
         ? warehouseOptions.first.id
         : null;
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
     if (isLocked) return;
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
@@ -332,14 +332,14 @@ class ProductionOrderViewModel extends ChangeNotifier {
     warehouseId = warehouseOptions.isNotEmpty
         ? warehouseOptions.first.id
         : null;
-    notifyListeners();
+    update();
   }
 
   void onFinancialYearChanged(int? value) {
     if (isLocked) return;
     financialYearId = value;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onBomChanged(int? value) {
@@ -353,7 +353,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
       outputItemId = intValue(bom.toJson(), 'output_item_id');
       outputUomId = intValue(bom.toJson(), 'output_uom_id');
     }
-    notifyListeners();
+    update();
   }
 
   void setOutputItemId(int? value) {
@@ -369,19 +369,19 @@ class ProductionOrderViewModel extends ChangeNotifier {
       uomConversions,
       current: outputUomId,
     );
-    notifyListeners();
+    update();
   }
 
   void setOutputUomId(int? value) {
     if (isLocked) return;
     outputUomId = value;
-    notifyListeners();
+    update();
   }
 
   void setWarehouseId(int? value) {
     if (isLocked) return;
     warehouseId = value;
-    notifyListeners();
+    update();
   }
 
   List<UomModel> uomOptionsForOutputItem() {
@@ -425,13 +425,13 @@ class ProductionOrderViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'branch_id': branchId,
@@ -466,10 +466,10 @@ class ProductionOrderViewModel extends ChangeNotifier {
       );
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -485,7 +485,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -501,7 +501,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -517,7 +517,7 @@ class ProductionOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -530,19 +530,19 @@ class ProductionOrderViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
-    searchController.removeListener(notifyListeners);
+    searchController.removeListener(update);
     searchController.dispose();
     productionNoController.dispose();
     productionDateController.dispose();
     plannedQtyController.dispose();
     notesController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

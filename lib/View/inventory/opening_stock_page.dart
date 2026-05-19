@@ -26,21 +26,28 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final OpeningStockViewModel _viewModel;
   bool _showDraftTile = false;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = OpeningStockViewModel(
-      initialItemId: widget.fixedItemId ?? widget.initialItemId,
-      filterItemId: widget.fixedItemId,
-    )..load(selectId: widget.initialId);
+    _controllerTag = '${OpeningStockViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      OpeningStockViewModel(
+        initialItemId: widget.fixedItemId ?? widget.initialItemId,
+        filterItemId: widget.fixedItemId,
+      )..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<OpeningStockViewModel>(tag: _controllerTag)) {
+      Get.delete<OpeningStockViewModel>(tag: _controllerTag);
+    }
     _workspaceController.dispose();
     _pageScrollController.dispose();
     super.dispose();
@@ -48,9 +55,9 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<OpeningStockViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final content = _buildContent(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

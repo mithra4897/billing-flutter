@@ -23,19 +23,29 @@ class _ProductionMaterialIssuePageState
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   final ManufacturingService _service = ManufacturingService();
+  late final String _controllerTag;
   late final ProductionMaterialIssueViewModel _viewModel;
   bool _auditLogLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = ProductionMaterialIssueViewModel()
-      ..load(selectId: widget.initialId, includeList: !widget.editorOnly);
+    _controllerTag =
+        '${ProductionMaterialIssueViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      ProductionMaterialIssueViewModel()
+        ..load(selectId: widget.initialId, includeList: !widget.editorOnly),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<ProductionMaterialIssueViewModel>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<ProductionMaterialIssueViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -183,9 +193,9 @@ class _ProductionMaterialIssuePageState
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<ProductionMaterialIssueViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {

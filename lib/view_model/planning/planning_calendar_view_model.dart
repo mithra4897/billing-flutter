@@ -1,6 +1,6 @@
 import '../../../screen.dart';
 
-class PlanningCalendarViewModel extends ChangeNotifier {
+class PlanningCalendarViewModel extends GetxController {
   final PlanningService _service = PlanningService();
   final MasterService _masterService = MasterService();
 
@@ -27,7 +27,7 @@ class PlanningCalendarViewModel extends ChangeNotifier {
   bool isDefault = false;
 
   PlanningCalendarViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -59,7 +59,7 @@ class PlanningCalendarViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.calendars(filters: const {'per_page': 200}),
@@ -95,11 +95,11 @@ class PlanningCalendarViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -114,7 +114,7 @@ class PlanningCalendarViewModel extends ChangeNotifier {
     remarksController.clear();
     isActive = true;
     isDefault = false;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(PlanningCalendarModel row) async {
@@ -123,7 +123,7 @@ class PlanningCalendarViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.calendar(id);
       final data = (response.data ?? row).toJson();
@@ -147,23 +147,23 @@ class PlanningCalendarViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
   void onCompanyChanged(int? value) {
     companyId = value;
-    notifyListeners();
+    update();
   }
 
   void setIsDefault(bool value) {
     isDefault = value;
-    notifyListeners();
+    update();
   }
 
   void setIsActive(bool value) {
     isActive = value;
-    notifyListeners();
+    update();
   }
 
   String? _validate() {
@@ -177,12 +177,12 @@ class PlanningCalendarViewModel extends ChangeNotifier {
     final err = _validate();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'calendar_code': codeController.text.trim(),
@@ -211,10 +211,10 @@ class PlanningCalendarViewModel extends ChangeNotifier {
       );
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -227,12 +227,12 @@ class PlanningCalendarViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     codeController.dispose();
@@ -240,6 +240,6 @@ class PlanningCalendarViewModel extends ChangeNotifier {
     frequencyController.dispose();
     weekStartDayController.dispose();
     remarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

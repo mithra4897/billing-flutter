@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class WarrantyClaimViewModel extends ChangeNotifier {
+class WarrantyClaimViewModel extends GetxController {
   WarrantyClaimViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final ServiceModuleService _service = ServiceModuleService();
@@ -144,7 +144,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -219,11 +219,11 @@ class WarrantyClaimViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -254,7 +254,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
     itemIdController.clear();
     serialIdController.clear();
     contractAssetIdController.clear();
-    notifyListeners();
+    update();
   }
 
   void setCompanyId(int? value) {
@@ -270,7 +270,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
             : null;
       }
     }
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? value) {
@@ -278,7 +278,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void setCustomerPartyId(int? value) {
@@ -286,7 +286,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       return;
     }
     customerPartyId = value;
-    notifyListeners();
+    update();
   }
 
   void setBranchId(int? value) {
@@ -294,7 +294,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       return;
     }
     branchId = value;
-    notifyListeners();
+    update();
   }
 
   void setLocationId(int? value) {
@@ -302,7 +302,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    notifyListeners();
+    update();
   }
 
   void setFinancialYearId(int? value) {
@@ -310,7 +310,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       return;
     }
     financialYearId = value;
-    notifyListeners();
+    update();
   }
 
   List<BranchModel> get branchOptions {
@@ -364,7 +364,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.warrantyClaim(id);
       final doc = response.data ?? row;
@@ -374,7 +374,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -486,13 +486,13 @@ class WarrantyClaimViewModel extends ChangeNotifier {
     final err = _validateSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _service.createWarrantyClaim(
@@ -504,7 +504,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing claim id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _service.updateWarrantyClaim(
@@ -516,10 +516,10 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -537,7 +537,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -552,7 +552,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -567,7 +567,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -582,7 +582,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -597,7 +597,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -607,7 +607,7 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       return;
     }
     actionBusy = true;
-    notifyListeners();
+    update();
     try {
       final response = await _service.createWorkOrderFromWarrantyClaim(id);
       if (response.success) {
@@ -620,15 +620,15 @@ class WarrantyClaimViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       actionBusy = false;
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     ticketNoController.dispose();
     ticketDateController.dispose();
@@ -642,6 +642,6 @@ class WarrantyClaimViewModel extends ChangeNotifier {
     itemIdController.dispose();
     serialIdController.dispose();
     contractAssetIdController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

@@ -22,18 +22,25 @@ class _StockIssuePageState extends State<StockIssuePage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final StockIssueViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = StockIssueViewModel(initialItemId: widget.initialItemId)
-      ..load(selectId: widget.initialId);
+    _controllerTag = '${StockIssueViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      StockIssueViewModel(initialItemId: widget.initialItemId)
+        ..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<StockIssueViewModel>(tag: _controllerTag)) {
+      Get.delete<StockIssueViewModel>(tag: _controllerTag);
+    }
     _workspaceController.dispose();
     _pageScrollController.dispose();
     super.dispose();
@@ -41,9 +48,9 @@ class _StockIssuePageState extends State<StockIssuePage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<StockIssueViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final content = _buildContent(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

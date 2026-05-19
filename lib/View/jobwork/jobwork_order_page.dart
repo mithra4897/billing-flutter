@@ -60,17 +60,24 @@ class _JobworkOrderPageState extends State<JobworkOrderPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final JobworkOrderViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = JobworkOrderViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${JobworkOrderViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      JobworkOrderViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<JobworkOrderViewModel>(tag: _controllerTag)) {
+      Get.delete<JobworkOrderViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -95,9 +102,9 @@ class _JobworkOrderPageState extends State<JobworkOrderPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<JobworkOrderViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {

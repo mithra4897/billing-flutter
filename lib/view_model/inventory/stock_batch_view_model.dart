@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class StockBatchViewModel extends ChangeNotifier {
+class StockBatchViewModel extends GetxController {
   StockBatchViewModel({this.initialItemId}) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final int? initialItemId;
@@ -77,7 +77,7 @@ class StockBatchViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockBatches(
@@ -115,11 +115,11 @@ class StockBatchViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -146,7 +146,7 @@ class StockBatchViewModel extends ChangeNotifier {
         ? warehouseOptions.first.id
         : null;
     isActive = true;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(StockBatchModel row) async {
@@ -155,7 +155,7 @@ class StockBatchViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _inventoryService.stockBatch(id);
       final data = (response.data ?? row).toJson();
@@ -178,11 +178,11 @@ class StockBatchViewModel extends ChangeNotifier {
       remarksController.text = stringValue(data, 'remarks');
       isActive = boolValue(data, 'is_active');
       detailLoading = false;
-      notifyListeners();
+      update();
     } catch (e) {
       detailLoading = false;
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -193,12 +193,12 @@ class StockBatchViewModel extends ChangeNotifier {
           ? warehouseOptions.first.id
           : null;
     }
-    notifyListeners();
+    update();
   }
 
   void onWarehouseChanged(int? value) {
     warehouseId = value;
-    notifyListeners();
+    update();
   }
 
   String? _validate() {
@@ -237,12 +237,12 @@ class StockBatchViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'item_id': itemId,
       'warehouse_id': warehouseId,
@@ -280,10 +280,10 @@ class StockBatchViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -295,12 +295,12 @@ class StockBatchViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     batchNoController.dispose();
     mfgDateController.dispose();
@@ -312,6 +312,6 @@ class StockBatchViewModel extends ChangeNotifier {
     salesRateController.dispose();
     mrpController.dispose();
     remarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

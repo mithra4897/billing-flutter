@@ -2,9 +2,9 @@ import '../../../screen.dart';
 
 enum MrpReadonlyModule { demand, supply, netRequirement }
 
-class MrpReadonlyViewModel extends ChangeNotifier {
+class MrpReadonlyViewModel extends GetxController {
   MrpReadonlyViewModel(this.module) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final MrpReadonlyModule module;
@@ -32,7 +32,7 @@ class MrpReadonlyViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final companyId = await SessionStorage.getCurrentCompanyId();
       if (companyId == null) {
@@ -40,7 +40,7 @@ class MrpReadonlyViewModel extends ChangeNotifier {
         selected = null;
         loading = false;
         pageError = 'Select a company in the header to load MRP records.';
-        notifyListeners();
+        update();
         return;
       }
       final filters = <String, dynamic>{'per_page': 100};
@@ -76,11 +76,11 @@ class MrpReadonlyViewModel extends ChangeNotifier {
         }
       }
       selected = null;
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -89,7 +89,7 @@ class MrpReadonlyViewModel extends ChangeNotifier {
     if (id == null) return;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       switch (module) {
         case MrpReadonlyModule.demand:
@@ -106,13 +106,13 @@ class MrpReadonlyViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

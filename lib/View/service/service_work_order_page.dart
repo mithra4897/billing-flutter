@@ -37,17 +37,24 @@ class _ServiceWorkOrderPageState extends State<ServiceWorkOrderPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final ServiceWorkOrderViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = ServiceWorkOrderViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${ServiceWorkOrderViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      ServiceWorkOrderViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<ServiceWorkOrderViewModel>(tag: _controllerTag)) {
+      Get.delete<ServiceWorkOrderViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -72,9 +79,9 @@ class _ServiceWorkOrderPageState extends State<ServiceWorkOrderPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<ServiceWorkOrderViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

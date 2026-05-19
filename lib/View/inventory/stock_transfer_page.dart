@@ -22,18 +22,25 @@ class _StockTransferPageState extends State<StockTransferPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final StockTransferViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = StockTransferViewModel(initialItemId: widget.initialItemId)
-      ..load(selectId: widget.initialId);
+    _controllerTag = '${StockTransferViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      StockTransferViewModel(initialItemId: widget.initialItemId)
+        ..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<StockTransferViewModel>(tag: _controllerTag)) {
+      Get.delete<StockTransferViewModel>(tag: _controllerTag);
+    }
     _workspaceController.dispose();
     _pageScrollController.dispose();
     super.dispose();
@@ -41,9 +48,9 @@ class _StockTransferPageState extends State<StockTransferPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<StockTransferViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final content = _buildContent(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class AmcContractViewModel extends ChangeNotifier {
+class AmcContractViewModel extends GetxController {
   AmcContractViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final MaintenanceService _maintenance = MaintenanceService();
@@ -147,7 +147,7 @@ class AmcContractViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -207,11 +207,11 @@ class AmcContractViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -240,7 +240,7 @@ class AmcContractViewModel extends ChangeNotifier {
     contractValueController.text = '0';
     taxAmountController.text = '0';
     remarksController.clear();
-    notifyListeners();
+    update();
   }
 
   void setCompanyId(int? value) {
@@ -256,7 +256,7 @@ class AmcContractViewModel extends ChangeNotifier {
             : null;
       }
     }
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? value) {
@@ -264,7 +264,7 @@ class AmcContractViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void setVendorPartyId(int? value) {
@@ -272,7 +272,7 @@ class AmcContractViewModel extends ChangeNotifier {
       return;
     }
     vendorPartyId = value;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(AmcContractModel row) async {
@@ -283,7 +283,7 @@ class AmcContractViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _maintenance.amcContract(id);
       final doc = response.data ?? row;
@@ -293,7 +293,7 @@ class AmcContractViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -425,13 +425,13 @@ class AmcContractViewModel extends ChangeNotifier {
     final err = _validateForSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _maintenance.createAmcContract(
@@ -443,7 +443,7 @@ class AmcContractViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing contract id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _maintenance.updateAmcContract(
@@ -455,10 +455,10 @@ class AmcContractViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -474,7 +474,7 @@ class AmcContractViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -490,7 +490,7 @@ class AmcContractViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -506,7 +506,7 @@ class AmcContractViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -521,12 +521,12 @@ class AmcContractViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     contractNoController.dispose();
     contractDateController.dispose();
@@ -540,6 +540,6 @@ class AmcContractViewModel extends ChangeNotifier {
     contractValueController.dispose();
     taxAmountController.dispose();
     remarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

@@ -10,9 +10,9 @@ const List<AppDropdownItem<String>> stockSerialStatusItems =
       AppDropdownItem<String>(value: 'blocked', label: 'Blocked'),
     ];
 
-class StockSerialViewModel extends ChangeNotifier {
+class StockSerialViewModel extends GetxController {
   StockSerialViewModel({this.initialItemId}) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final int? initialItemId;
@@ -101,7 +101,7 @@ class StockSerialViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockSerials(
@@ -143,11 +143,11 @@ class StockSerialViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -167,7 +167,7 @@ class StockSerialViewModel extends ChangeNotifier {
     batchId = null;
     status = 'available';
     isActive = true;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(StockSerialModel row) async {
@@ -176,7 +176,7 @@ class StockSerialViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _inventoryService.stockSerial(id);
       final data = (response.data ?? row).toJson();
@@ -197,11 +197,11 @@ class StockSerialViewModel extends ChangeNotifier {
       remarksController.text = stringValue(data, 'remarks');
       isActive = boolValue(data, 'is_active');
       detailLoading = false;
-      notifyListeners();
+      update();
     } catch (e) {
       detailLoading = false;
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -214,13 +214,13 @@ class StockSerialViewModel extends ChangeNotifier {
           : null;
     }
     batchId = null;
-    notifyListeners();
+    update();
   }
 
   void onWarehouseChanged(int? value) {
     warehouseId = value;
     batchId = null;
-    notifyListeners();
+    update();
   }
 
   void onBatchChanged(int? value) {
@@ -248,7 +248,7 @@ class StockSerialViewModel extends ChangeNotifier {
         salesRateController.text = salesRate;
       }
     }
-    notifyListeners();
+    update();
     _hydrateBatchFromBackend(value);
   }
 
@@ -257,7 +257,7 @@ class StockSerialViewModel extends ChangeNotifier {
       return;
     }
     batchLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _inventoryService.stockBatch(id);
       final batch = response.data;
@@ -282,13 +282,13 @@ class StockSerialViewModel extends ChangeNotifier {
       if (batchId == id) {
         batchLoading = false;
       }
-      notifyListeners();
+      update();
     }
   }
 
   void onStatusChanged(String? value) {
     status = value ?? 'available';
-    notifyListeners();
+    update();
   }
 
   String? _validate() {
@@ -325,12 +325,12 @@ class StockSerialViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'item_id': itemId,
       'warehouse_id': warehouseId,
@@ -364,10 +364,10 @@ class StockSerialViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -379,12 +379,12 @@ class StockSerialViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     serialNoController.dispose();
     inwardDateController.dispose();
@@ -392,6 +392,6 @@ class StockSerialViewModel extends ChangeNotifier {
     purchaseRateController.dispose();
     salesRateController.dispose();
     remarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

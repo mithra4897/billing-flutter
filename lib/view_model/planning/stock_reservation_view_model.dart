@@ -1,6 +1,6 @@
 import '../../../screen.dart';
 
-class StockReservationViewModel extends ChangeNotifier {
+class StockReservationViewModel extends GetxController {
   final PlanningService _service = PlanningService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -39,7 +39,7 @@ class StockReservationViewModel extends ChangeNotifier {
   String status = 'active';
 
   StockReservationViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -129,7 +129,7 @@ class StockReservationViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.stockReservations(filters: const {'per_page': 200}),
@@ -186,11 +186,11 @@ class StockReservationViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -212,7 +212,7 @@ class StockReservationViewModel extends ChangeNotifier {
     releaseQtyController.clear();
     releaseRemarksController.clear();
     status = 'active';
-    notifyListeners();
+    update();
   }
 
   Future<void> select(StockReservationModel row) async {
@@ -221,7 +221,7 @@ class StockReservationViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.stockReservation(id);
       final data = (response.data ?? row).toJson();
@@ -242,7 +242,7 @@ class StockReservationViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -255,7 +255,7 @@ class StockReservationViewModel extends ChangeNotifier {
         : null;
     batchId = null;
     serialId = null;
-    notifyListeners();
+    update();
   }
 
   void setItemId(int? value) {
@@ -263,7 +263,7 @@ class StockReservationViewModel extends ChangeNotifier {
     itemId = value;
     batchId = null;
     serialId = null;
-    notifyListeners();
+    update();
   }
 
   void setWarehouseId(int? value) {
@@ -271,7 +271,7 @@ class StockReservationViewModel extends ChangeNotifier {
     warehouseId = value;
     batchId = null;
     serialId = null;
-    notifyListeners();
+    update();
   }
 
   void setBatchId(int? value) {
@@ -283,13 +283,13 @@ class StockReservationViewModel extends ChangeNotifier {
     if (!serialPresent) {
       serialId = null;
     }
-    notifyListeners();
+    update();
   }
 
   void setSerialId(int? value) {
     if (isLocked) return;
     serialId = value;
-    notifyListeners();
+    update();
   }
 
   String _itemLabel(Map<String, dynamic> data) {
@@ -322,13 +322,13 @@ class StockReservationViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'item_id': itemId,
@@ -362,10 +362,10 @@ class StockReservationViewModel extends ChangeNotifier {
       );
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -375,7 +375,7 @@ class StockReservationViewModel extends ChangeNotifier {
     final qty = double.tryParse(releaseQtyController.text.trim()) ?? 0;
     if (qty <= 0) {
       formError = 'Released quantity must be greater than zero.';
-      notifyListeners();
+      update();
       return;
     }
     try {
@@ -390,7 +390,7 @@ class StockReservationViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -403,12 +403,12 @@ class StockReservationViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     referenceTypeController.dispose();
@@ -418,6 +418,6 @@ class StockReservationViewModel extends ChangeNotifier {
     remarksController.dispose();
     releaseQtyController.dispose();
     releaseRemarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

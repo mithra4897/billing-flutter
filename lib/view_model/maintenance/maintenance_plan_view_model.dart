@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class MaintenancePlanViewModel extends ChangeNotifier {
+class MaintenancePlanViewModel extends GetxController {
   MaintenancePlanViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final MaintenanceService _service = MaintenanceService();
@@ -81,7 +81,7 @@ class MaintenancePlanViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -126,11 +126,11 @@ class MaintenancePlanViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -147,22 +147,22 @@ class MaintenancePlanViewModel extends ChangeNotifier {
     checklistNotesController.clear();
     isAutoGenerateRequest = false;
     isActive = true;
-    notifyListeners();
+    update();
   }
 
   void setCompanyId(int? value) {
     companyId = value;
-    notifyListeners();
+    update();
   }
 
   void setIsAutoGenerateRequest(bool value) {
     isAutoGenerateRequest = value;
-    notifyListeners();
+    update();
   }
 
   void setIsActive(bool value) {
     isActive = value;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(MaintenancePlanModel row) async {
@@ -173,7 +173,7 @@ class MaintenancePlanViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.plan(id);
       final doc = response.data ?? row;
@@ -183,7 +183,7 @@ class MaintenancePlanViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -233,13 +233,13 @@ class MaintenancePlanViewModel extends ChangeNotifier {
     final err = _validateSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _service.createPlan(
@@ -251,7 +251,7 @@ class MaintenancePlanViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing plan id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _service.updatePlan(
@@ -263,10 +263,10 @@ class MaintenancePlanViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -281,12 +281,12 @@ class MaintenancePlanViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     planCodeController.dispose();
     planNameController.dispose();
@@ -294,6 +294,6 @@ class MaintenancePlanViewModel extends ChangeNotifier {
     scheduleBasisController.dispose();
     frequencyValueController.dispose();
     checklistNotesController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

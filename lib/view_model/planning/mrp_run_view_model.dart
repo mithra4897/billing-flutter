@@ -1,6 +1,6 @@
 import '../../../screen.dart';
 
-class MrpRunViewModel extends ChangeNotifier {
+class MrpRunViewModel extends GetxController {
   final PlanningService _service = PlanningService();
   final MasterService _masterService = MasterService();
 
@@ -24,7 +24,7 @@ class MrpRunViewModel extends ChangeNotifier {
   int? companyId;
 
   MrpRunViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -57,7 +57,7 @@ class MrpRunViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.mrpRuns(filters: const {'per_page': 200}),
@@ -93,11 +93,11 @@ class MrpRunViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -111,7 +111,7 @@ class MrpRunViewModel extends ChangeNotifier {
     startDateController.text = today;
     endDateController.text = today;
     notesController.clear();
-    notifyListeners();
+    update();
   }
 
   Future<void> select(MrpRunModel row) async {
@@ -120,7 +120,7 @@ class MrpRunViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.mrpRun(id);
       final data = (response.data ?? row).toJson();
@@ -136,13 +136,13 @@ class MrpRunViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
   void onCompanyChanged(int? value) {
     companyId = value;
-    notifyListeners();
+    update();
   }
 
   String get status => stringValue(
@@ -167,12 +167,12 @@ class MrpRunViewModel extends ChangeNotifier {
     final err = _validate();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'run_no': nullIfEmpty(runNoController.text),
@@ -197,10 +197,10 @@ class MrpRunViewModel extends ChangeNotifier {
       );
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -216,7 +216,7 @@ class MrpRunViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -232,7 +232,7 @@ class MrpRunViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -245,12 +245,12 @@ class MrpRunViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     runNoController.dispose();
@@ -258,6 +258,6 @@ class MrpRunViewModel extends ChangeNotifier {
     startDateController.dispose();
     endDateController.dispose();
     notesController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

@@ -138,9 +138,9 @@ class JobworkOutputDraft {
   }
 }
 
-class JobworkOrderViewModel extends ChangeNotifier {
+class JobworkOrderViewModel extends GetxController {
   JobworkOrderViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -303,7 +303,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.orders(
@@ -404,11 +404,11 @@ class JobworkOrderViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -453,7 +453,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     isActive = true;
     materialDrafts = <JobworkMaterialDraft>[JobworkMaterialDraft()];
     outputDrafts = <JobworkOutputDraft>[JobworkOutputDraft()];
-    notifyListeners();
+    update();
   }
 
   Future<void> select(JobworkOrderModel row) async {
@@ -464,7 +464,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.order(id);
       final doc = response.data;
@@ -507,7 +507,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -525,7 +525,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     receiptWarehouseId = warehouseOptions.isNotEmpty
         ? warehouseOptions.first.id
         : null;
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
@@ -540,7 +540,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     receiptWarehouseId = warehouseOptions.isNotEmpty
         ? warehouseOptions.first.id
         : null;
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
@@ -554,7 +554,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     receiptWarehouseId = warehouseOptions.isNotEmpty
         ? warehouseOptions.first.id
         : null;
-    notifyListeners();
+    update();
   }
 
   void setFinancialYearId(int? value) {
@@ -563,7 +563,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     }
     financialYearId = value;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void setSupplierPartyId(int? value) {
@@ -571,7 +571,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     supplierPartyId = value;
-    notifyListeners();
+    update();
   }
 
   void setProcessType(String value) {
@@ -579,7 +579,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     processType = value;
-    notifyListeners();
+    update();
   }
 
   void setSourceType(String value) {
@@ -587,7 +587,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     sourceType = value;
-    notifyListeners();
+    update();
   }
 
   void setIssueWarehouseId(int? value) {
@@ -595,7 +595,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     issueWarehouseId = value;
-    notifyListeners();
+    update();
   }
 
   void setReceiptWarehouseId(int? value) {
@@ -603,7 +603,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     receiptWarehouseId = value;
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? value) {
@@ -611,7 +611,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {
@@ -628,7 +628,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     }
     materialDrafts = List<JobworkMaterialDraft>.from(materialDrafts)
       ..add(JobworkMaterialDraft());
-    notifyListeners();
+    update();
   }
 
   void removeMaterialLine(int index) {
@@ -639,7 +639,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     copy[index].dispose();
     copy.removeAt(index);
     materialDrafts = copy;
-    notifyListeners();
+    update();
   }
 
   void setMaterialItemId(int index, int? value) {
@@ -658,7 +658,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       uomConversions,
       current: line.uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void setMaterialUomId(int index, int? value) {
@@ -666,7 +666,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     materialDrafts[index].uomId = value;
-    notifyListeners();
+    update();
   }
 
   void setMaterialLineType(int index, String value) {
@@ -674,7 +674,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     materialDrafts[index].lineType = value;
-    notifyListeners();
+    update();
   }
 
   void addOutputLine() {
@@ -683,7 +683,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     }
     outputDrafts = List<JobworkOutputDraft>.from(outputDrafts)
       ..add(JobworkOutputDraft());
-    notifyListeners();
+    update();
   }
 
   void removeOutputLine(int index) {
@@ -694,7 +694,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
     copy[index].dispose();
     copy.removeAt(index);
     outputDrafts = copy;
-    notifyListeners();
+    update();
   }
 
   void setOutputItemId(int index, int? value) {
@@ -713,7 +713,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       uomConversions,
       current: line.uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void setOutputUomId(int index, int? value) {
@@ -721,7 +721,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     outputDrafts[index].uomId = value;
-    notifyListeners();
+    update();
   }
 
   void setOutputType(int index, String value) {
@@ -729,7 +729,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       return;
     }
     outputDrafts[index].outputType = value;
-    notifyListeners();
+    update();
   }
 
   String? _validateForSave() {
@@ -839,13 +839,13 @@ class JobworkOrderViewModel extends ChangeNotifier {
     final validationError = _validateForSave();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final doc = _buildFullDocument();
@@ -867,10 +867,10 @@ class JobworkOrderViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -885,7 +885,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -900,7 +900,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -915,7 +915,7 @@ class JobworkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -930,12 +930,12 @@ class JobworkOrderViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     jobworkNoController.dispose();
@@ -946,6 +946,6 @@ class JobworkOrderViewModel extends ChangeNotifier {
     sourceDocumentTypeController.dispose();
     sourceDocumentIdController.dispose();
     _disposeLineDrafts();
-    super.dispose();
+    super.onClose();
   }
 }

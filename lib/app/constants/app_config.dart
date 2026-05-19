@@ -15,6 +15,7 @@ class AppConfig {
       return configuredUrl;
     }
 
+    // return 'http://localhost:8000';
     return 'https://bill.sakthicontroller.com/api/public';
   }
 

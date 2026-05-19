@@ -20,17 +20,24 @@ class _ProductionReceiptPageState extends State<ProductionReceiptPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final ProductionReceiptViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = ProductionReceiptViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${ProductionReceiptViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      ProductionReceiptViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<ProductionReceiptViewModel>(tag: _controllerTag)) {
+      Get.delete<ProductionReceiptViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -53,9 +60,9 @@ class _ProductionReceiptPageState extends State<ProductionReceiptPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<ProductionReceiptViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {

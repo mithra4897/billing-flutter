@@ -29,17 +29,24 @@ class _QcResultActionPageState extends State<QcResultActionPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final QcResultActionViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = QcResultActionViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${QcResultActionViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      QcResultActionViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<QcResultActionViewModel>(tag: _controllerTag)) {
+      Get.delete<QcResultActionViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -55,9 +62,9 @@ class _QcResultActionPageState extends State<QcResultActionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<QcResultActionViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

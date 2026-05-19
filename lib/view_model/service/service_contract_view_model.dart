@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ServiceContractViewModel extends ChangeNotifier {
+class ServiceContractViewModel extends GetxController {
   ServiceContractViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final ServiceModuleService _service = ServiceModuleService();
@@ -132,7 +132,7 @@ class ServiceContractViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -188,11 +188,11 @@ class ServiceContractViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -219,7 +219,7 @@ class ServiceContractViewModel extends ChangeNotifier {
     taxAmountController.text = '0';
     salesInvoiceIdController.clear();
     notesController.clear();
-    notifyListeners();
+    update();
   }
 
   void setCompanyId(int? value) {
@@ -235,7 +235,7 @@ class ServiceContractViewModel extends ChangeNotifier {
             : null;
       }
     }
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? value) {
@@ -243,7 +243,7 @@ class ServiceContractViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void setCustomerPartyId(int? value) {
@@ -251,7 +251,7 @@ class ServiceContractViewModel extends ChangeNotifier {
       return;
     }
     customerPartyId = value;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(ServiceContractModel row) async {
@@ -262,7 +262,7 @@ class ServiceContractViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.contract(id);
       final doc = response.data ?? row;
@@ -272,7 +272,7 @@ class ServiceContractViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -405,13 +405,13 @@ class ServiceContractViewModel extends ChangeNotifier {
     final err = _validateForSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _service.createContract(
@@ -423,7 +423,7 @@ class ServiceContractViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing contract id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _service.updateContract(
@@ -435,10 +435,10 @@ class ServiceContractViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -453,7 +453,7 @@ class ServiceContractViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -468,7 +468,7 @@ class ServiceContractViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -483,7 +483,7 @@ class ServiceContractViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -498,12 +498,12 @@ class ServiceContractViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     contractNoController.dispose();
     contractDateController.dispose();
@@ -518,6 +518,6 @@ class ServiceContractViewModel extends ChangeNotifier {
     taxAmountController.dispose();
     salesInvoiceIdController.dispose();
     notesController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

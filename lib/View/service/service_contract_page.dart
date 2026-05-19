@@ -30,17 +30,24 @@ class _ServiceContractPageState extends State<ServiceContractPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final ServiceContractViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = ServiceContractViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${ServiceContractViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      ServiceContractViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<ServiceContractViewModel>(tag: _controllerTag)) {
+      Get.delete<ServiceContractViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -65,9 +72,9 @@ class _ServiceContractPageState extends State<ServiceContractPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<ServiceContractViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

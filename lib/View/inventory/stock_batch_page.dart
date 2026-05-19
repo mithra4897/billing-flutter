@@ -22,18 +22,25 @@ class _StockBatchPageState extends State<StockBatchPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final StockBatchViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = StockBatchViewModel(initialItemId: widget.initialItemId)
-      ..load(selectId: widget.initialId);
+    _controllerTag = '${StockBatchViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      StockBatchViewModel(initialItemId: widget.initialItemId)
+        ..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<StockBatchViewModel>(tag: _controllerTag)) {
+      Get.delete<StockBatchViewModel>(tag: _controllerTag);
+    }
     _workspaceController.dispose();
     _pageScrollController.dispose();
     super.dispose();
@@ -41,9 +48,9 @@ class _StockBatchPageState extends State<StockBatchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<StockBatchViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final content = _buildContent(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

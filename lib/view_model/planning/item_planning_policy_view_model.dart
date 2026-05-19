@@ -1,6 +1,6 @@
 import '../../../screen.dart';
 
-class ItemPlanningPolicyViewModel extends ChangeNotifier {
+class ItemPlanningPolicyViewModel extends GetxController {
   final PlanningService _service = PlanningService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -34,7 +34,7 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
   bool isReorderEnabled = true;
 
   ItemPlanningPolicyViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -79,7 +79,7 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.itemPolicies(filters: const {'per_page': 200}),
@@ -121,11 +121,11 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -142,7 +142,7 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
     isActive = true;
     isMrpEnabled = true;
     isReorderEnabled = true;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(ItemPlanningPolicyModel row) async {
@@ -151,7 +151,7 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.itemPolicy(id);
       final data = (response.data ?? row).toJson();
@@ -177,7 +177,7 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -186,27 +186,27 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
     if (!itemOptions.any((x) => x.id == itemId)) {
       itemId = null;
     }
-    notifyListeners();
+    update();
   }
 
   void setItemId(int? value) {
     itemId = value;
-    notifyListeners();
+    update();
   }
 
   void setIsMrpEnabled(bool value) {
     isMrpEnabled = value;
-    notifyListeners();
+    update();
   }
 
   void setIsReorderEnabled(bool value) {
     isReorderEnabled = value;
-    notifyListeners();
+    update();
   }
 
   void setIsActive(bool value) {
     isActive = value;
-    notifyListeners();
+    update();
   }
 
   String? _validate() {
@@ -219,12 +219,12 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
     final err = _validate();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'item_id': itemId,
@@ -257,10 +257,10 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
       );
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -273,12 +273,12 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     planningMethodController.dispose();
@@ -286,6 +286,6 @@ class ItemPlanningPolicyViewModel extends ChangeNotifier {
     reorderLevelQtyController.dispose();
     reorderQtyController.dispose();
     remarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

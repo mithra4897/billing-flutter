@@ -58,7 +58,7 @@ class ProductionReceiptLineDraft {
   }
 }
 
-class ProductionReceiptViewModel extends ChangeNotifier {
+class ProductionReceiptViewModel extends GetxController {
   final ManufacturingService _service = ManufacturingService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -95,7 +95,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
   List<ProductionReceiptLineDraft> lines = <ProductionReceiptLineDraft>[];
 
   ProductionReceiptViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   bool get isDraft =>
@@ -138,7 +138,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       financialYearId = intValue(data, 'financial_year_id');
       warehouseId = intValue(data, 'warehouse_id') ?? warehouseId;
     }
-    notifyListeners();
+    update();
   }
 
   void setLineWarehouseId(int index, int? value) {
@@ -146,13 +146,13 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       return;
     }
     lines[index].warehouseId = value;
-    notifyListeners();
+    update();
   }
 
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.productionReceipts(
@@ -213,11 +213,11 @@ class ProductionReceiptViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -244,7 +244,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     warehouseId = warehouses.isNotEmpty ? warehouses.first.id : null;
     isActive = true;
     lines = <ProductionReceiptLineDraft>[ProductionReceiptLineDraft()];
-    notifyListeners();
+    update();
   }
 
   Future<void> select(ProductionReceiptModel row) async {
@@ -252,7 +252,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     if (id == null) return;
     selected = row;
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _service.productionReceipt(id);
       final data = (response.data ?? row).toJson();
@@ -284,7 +284,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -292,7 +292,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     if (!isDraft && selected != null) return;
     lines = List<ProductionReceiptLineDraft>.from(lines)
       ..add(ProductionReceiptLineDraft(warehouseId: warehouseId));
-    notifyListeners();
+    update();
   }
 
   void removeLine(int index) {
@@ -304,7 +304,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     lines = next.isEmpty
         ? <ProductionReceiptLineDraft>[ProductionReceiptLineDraft()]
         : next;
-    notifyListeners();
+    update();
   }
 
   void setLineItemId(int index, int? value) {
@@ -322,7 +322,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       uomConversions,
       current: lines[index].uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void setLineUomId(int index, int? value) {
@@ -330,7 +330,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       return;
     }
     lines[index].uomId = value;
-    notifyListeners();
+    update();
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {
@@ -367,13 +367,13 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'branch_id': branchId,
@@ -406,10 +406,10 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       );
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -425,7 +425,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -441,7 +441,7 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -454,12 +454,12 @@ class ProductionReceiptViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     receiptNoController.dispose();
     receiptDateController.dispose();
@@ -467,6 +467,6 @@ class ProductionReceiptViewModel extends ChangeNotifier {
     for (final line in lines) {
       line.dispose();
     }
-    super.dispose();
+    super.onClose();
   }
 }

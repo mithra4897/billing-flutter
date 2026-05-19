@@ -20,17 +20,24 @@ class _AssetCategoryPageState extends State<AssetCategoryPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final AssetCategoryViewModel _vm;
 
   @override
   void initState() {
     super.initState();
-    _vm = AssetCategoryViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${AssetCategoryViewModel}_${identityHashCode(this)}';
+    _vm = Get.put(
+      AssetCategoryViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _vm.dispose();
+    if (Get.isRegistered<AssetCategoryViewModel>(tag: _controllerTag)) {
+      Get.delete<AssetCategoryViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -46,9 +53,9 @@ class _AssetCategoryPageState extends State<AssetCategoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _vm,
-      builder: (context, _) {
+    return GetBuilder<AssetCategoryViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {

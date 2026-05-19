@@ -20,17 +20,24 @@ class _BomPageState extends State<BomPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final BomViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = BomViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${BomViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      BomViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<BomViewModel>(tag: _controllerTag)) {
+      Get.delete<BomViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -55,9 +62,9 @@ class _BomPageState extends State<BomPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<BomViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {

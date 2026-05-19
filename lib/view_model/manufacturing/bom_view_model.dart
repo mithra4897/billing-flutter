@@ -102,7 +102,7 @@ class BomOperationDraft {
   }
 }
 
-class BomViewModel extends ChangeNotifier {
+class BomViewModel extends GetxController {
   BomViewModel() {
     searchController.addListener(_notifySafely);
     bomCodeController.addListener(_handleBomCodeChanged);
@@ -207,7 +207,7 @@ class BomViewModel extends ChangeNotifier {
     if (_isDisposed) {
       return;
     }
-    notifyListeners();
+    update();
   }
 
   void _handleBomCodeChanged() {
@@ -687,7 +687,7 @@ class BomViewModel extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     _isDisposed = true;
     searchController.removeListener(_notifySafely);
@@ -709,6 +709,6 @@ class BomViewModel extends ChangeNotifier {
     for (final op in operations) {
       op.dispose();
     }
-    super.dispose();
+    super.onClose();
   }
 }

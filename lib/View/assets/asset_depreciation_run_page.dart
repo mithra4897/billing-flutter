@@ -43,17 +43,25 @@ class _AssetDepreciationRunPageState extends State<AssetDepreciationRunPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final AssetDepreciationRunViewModel _vm;
 
   @override
   void initState() {
     super.initState();
-    _vm = AssetDepreciationRunViewModel()..load(selectId: widget.initialId);
+    _controllerTag =
+        '${AssetDepreciationRunViewModel}_${identityHashCode(this)}';
+    _vm = Get.put(
+      AssetDepreciationRunViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _vm.dispose();
+    if (Get.isRegistered<AssetDepreciationRunViewModel>(tag: _controllerTag)) {
+      Get.delete<AssetDepreciationRunViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -78,9 +86,9 @@ class _AssetDepreciationRunPageState extends State<AssetDepreciationRunPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _vm,
-      builder: (context, _) {
+    return GetBuilder<AssetDepreciationRunViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {

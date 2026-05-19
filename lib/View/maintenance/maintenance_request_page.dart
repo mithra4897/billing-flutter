@@ -20,18 +20,24 @@ class _MaintenanceRequestPageState extends State<MaintenanceRequestPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final MaintenanceRequestViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = MaintenanceRequestViewModel()
-      ..load(selectId: widget.initialId);
+    _controllerTag = '${MaintenanceRequestViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      MaintenanceRequestViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<MaintenanceRequestViewModel>(tag: _controllerTag)) {
+      Get.delete<MaintenanceRequestViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -84,9 +90,9 @@ class _MaintenanceRequestPageState extends State<MaintenanceRequestPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<MaintenanceRequestViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

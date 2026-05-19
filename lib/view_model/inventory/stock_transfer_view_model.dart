@@ -49,9 +49,9 @@ class StockTransferLineDraft {
   }
 }
 
-class StockTransferViewModel extends ChangeNotifier {
+class StockTransferViewModel extends GetxController {
   StockTransferViewModel({this.initialItemId}) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -204,7 +204,7 @@ class StockTransferViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockTransfers(
@@ -305,11 +305,11 @@ class StockTransferViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -343,7 +343,7 @@ class StockTransferViewModel extends ChangeNotifier {
       uomConversions,
       current: lines.first.uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void _ensureContextSelection() {
@@ -373,7 +373,7 @@ class StockTransferViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _inventoryService.stockTransfer(id);
       final data = (response.data ?? row).toJson();
@@ -415,11 +415,11 @@ class StockTransferViewModel extends ChangeNotifier {
                 )
                 .toList(growable: true);
       detailLoading = false;
-      notifyListeners();
+      update();
     } catch (e) {
       detailLoading = false;
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -430,7 +430,7 @@ class StockTransferViewModel extends ChangeNotifier {
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _assignDefaultWarehouses();
     _clearLineTracking();
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
@@ -439,7 +439,7 @@ class StockTransferViewModel extends ChangeNotifier {
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _assignDefaultWarehouses();
     _clearLineTracking();
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
@@ -447,18 +447,18 @@ class StockTransferViewModel extends ChangeNotifier {
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _assignDefaultWarehouses();
     _clearLineTracking();
-    notifyListeners();
+    update();
   }
 
   void onFinancialYearChanged(int? value) {
     financialYearId = value;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onSeriesChanged(int? value) {
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void onFromWarehouseChanged(int? value) {
@@ -467,7 +467,7 @@ class StockTransferViewModel extends ChangeNotifier {
       toWarehouseId = _firstWarehouseIdOtherThan(fromWarehouseId);
     }
     _clearLineFromTracking();
-    notifyListeners();
+    update();
   }
 
   void onToWarehouseChanged(int? value) {
@@ -476,7 +476,7 @@ class StockTransferViewModel extends ChangeNotifier {
       fromWarehouseId = _firstWarehouseIdOtherThan(toWarehouseId);
     }
     _clearLineToTracking();
-    notifyListeners();
+    update();
   }
 
   void _clearLineFromTracking() {
@@ -501,7 +501,7 @@ class StockTransferViewModel extends ChangeNotifier {
   void addLine() {
     lines = List<StockTransferLineDraft>.from(lines)
       ..add(StockTransferLineDraft());
-    notifyListeners();
+    update();
   }
 
   void removeLine(int index) {
@@ -513,7 +513,7 @@ class StockTransferViewModel extends ChangeNotifier {
     lines = next.isEmpty
         ? <StockTransferLineDraft>[StockTransferLineDraft()]
         : next;
-    notifyListeners();
+    update();
   }
 
   void onLineItemChanged(int index, int? value) {
@@ -535,34 +535,34 @@ class StockTransferViewModel extends ChangeNotifier {
       uomConversions,
       current: lines[index].uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void onLineUomChanged(int index, int? value) {
     lines[index].uomId = value;
-    notifyListeners();
+    update();
   }
 
   void onLineFromBatchChanged(int index, int? value) {
     lines[index].fromBatchId = value;
     _reconcileLineFromSerial(lines[index]);
-    notifyListeners();
+    update();
   }
 
   void onLineFromSerialChanged(int index, int? value) {
     lines[index].fromSerialId = value;
-    notifyListeners();
+    update();
   }
 
   void onLineToBatchChanged(int index, int? value) {
     lines[index].toBatchId = value;
     _reconcileLineToSerial(lines[index]);
-    notifyListeners();
+    update();
   }
 
   void onLineToSerialChanged(int index, int? value) {
     lines[index].toSerialId = value;
-    notifyListeners();
+    update();
   }
 
   void _reconcileLineFromSerial(StockTransferLineDraft line) {
@@ -802,13 +802,13 @@ class StockTransferViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'branch_id': branchId,
@@ -840,10 +840,10 @@ class StockTransferViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -862,7 +862,7 @@ class StockTransferViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
@@ -881,7 +881,7 @@ class StockTransferViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
@@ -897,12 +897,12 @@ class StockTransferViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     transferNoController.dispose();
@@ -911,6 +911,6 @@ class StockTransferViewModel extends ChangeNotifier {
     for (final line in lines) {
       line.dispose();
     }
-    super.dispose();
+    super.onClose();
   }
 }

@@ -1,6 +1,6 @@
 import '../../../screen.dart';
 
-class MrpRecommendationViewModel extends ChangeNotifier {
+class MrpRecommendationViewModel extends GetxController {
   final PlanningService _service = PlanningService();
   final TextEditingController searchController = TextEditingController();
 
@@ -14,7 +14,7 @@ class MrpRecommendationViewModel extends ChangeNotifier {
   MrpRecommendationModel? selected;
 
   MrpRecommendationViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   List<MrpRecommendationModel> get filteredRows {
@@ -41,7 +41,7 @@ class MrpRecommendationViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final companyId = await SessionStorage.getCurrentCompanyId();
       if (companyId == null) {
@@ -50,7 +50,7 @@ class MrpRecommendationViewModel extends ChangeNotifier {
         loading = false;
         pageError =
             'Select a company in the header to load MRP recommendations.';
-        notifyListeners();
+        update();
         return;
       }
       rows =
@@ -75,11 +75,11 @@ class MrpRecommendationViewModel extends ChangeNotifier {
         }
       }
       selected = null;
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -88,14 +88,14 @@ class MrpRecommendationViewModel extends ChangeNotifier {
     if (id == null) return;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       selected = (await _service.mrpRecommendation(id)).data ?? row;
     } catch (e) {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -144,23 +144,23 @@ class MrpRecommendationViewModel extends ChangeNotifier {
     if (id == null) return;
     saving = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await fn(id);
       actionMessage = response.message;
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

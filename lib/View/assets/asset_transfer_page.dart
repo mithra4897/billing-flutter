@@ -54,17 +54,24 @@ class _AssetTransferPageState extends State<AssetTransferPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final AssetTransferViewModel _vm;
 
   @override
   void initState() {
     super.initState();
-    _vm = AssetTransferViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${AssetTransferViewModel}_${identityHashCode(this)}';
+    _vm = Get.put(
+      AssetTransferViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _vm.dispose();
+    if (Get.isRegistered<AssetTransferViewModel>(tag: _controllerTag)) {
+      Get.delete<AssetTransferViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -89,9 +96,9 @@ class _AssetTransferPageState extends State<AssetTransferPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _vm,
-      builder: (context, _) {
+    return GetBuilder<AssetTransferViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: () {

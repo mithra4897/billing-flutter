@@ -17,9 +17,9 @@ const List<AppDropdownItem<String>> kQcResultActionTypeItems =
       AppDropdownItem(value: 'manual_override', label: 'Manual override'),
     ];
 
-class QcResultActionViewModel extends ChangeNotifier {
+class QcResultActionViewModel extends GetxController {
   QcResultActionViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final QualityService _service = QualityService();
@@ -98,7 +98,7 @@ class QcResultActionViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.qcResultActions(
@@ -135,11 +135,11 @@ class QcResultActionViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -155,7 +155,7 @@ class QcResultActionViewModel extends ChangeNotifier {
     remarksController.clear();
     referenceDocTypeController.clear();
     referenceDocIdController.clear();
-    notifyListeners();
+    update();
   }
 
   Future<void> select(QcResultActionModel row) async {
@@ -166,7 +166,7 @@ class QcResultActionViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.qcResultAction(id);
       final doc = response.data ?? row;
@@ -185,7 +185,7 @@ class QcResultActionViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -194,7 +194,7 @@ class QcResultActionViewModel extends ChangeNotifier {
       return;
     }
     qcInspectionId = value;
-    notifyListeners();
+    update();
   }
 
   void setActionType(String value) {
@@ -202,7 +202,7 @@ class QcResultActionViewModel extends ChangeNotifier {
       return;
     }
     actionType = value;
-    notifyListeners();
+    update();
   }
 
   void setTargetWarehouseId(int? value) {
@@ -210,7 +210,7 @@ class QcResultActionViewModel extends ChangeNotifier {
       return;
     }
     targetWarehouseId = value;
-    notifyListeners();
+    update();
   }
 
   List<WarehouseModel> warehouseOptionsForInspection(int? inspectionId) {
@@ -261,13 +261,13 @@ class QcResultActionViewModel extends ChangeNotifier {
     final err = _validate();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       final doc = _buildDocument();
       if (selected == null) {
@@ -284,10 +284,10 @@ class QcResultActionViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -302,7 +302,7 @@ class QcResultActionViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -317,7 +317,7 @@ class QcResultActionViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -332,17 +332,17 @@ class QcResultActionViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     actionQtyController.dispose();
     remarksController.dispose();
     referenceDocTypeController.dispose();
     referenceDocIdController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

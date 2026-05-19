@@ -64,7 +64,7 @@ class ProductionMaterialIssueLineDraft {
   }
 }
 
-class ProductionMaterialIssueViewModel extends ChangeNotifier {
+class ProductionMaterialIssueViewModel extends GetxController {
   final ManufacturingService _service = ManufacturingService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -120,7 +120,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     if (_isDisposed) {
       return;
     }
-    notifyListeners();
+    update();
   }
 
   bool get isDraft =>
@@ -1153,7 +1153,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
+  void onClose() {
     _isDisposed = true;
     searchController.removeListener(_onSearchChanged);
     searchController.dispose();
@@ -1163,7 +1163,7 @@ class ProductionMaterialIssueViewModel extends ChangeNotifier {
     for (final line in lines) {
       line.dispose();
     }
-    super.dispose();
+    super.onClose();
   }
 }
 

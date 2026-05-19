@@ -15,9 +15,9 @@ class QcNcLineOption {
       'Line $lineNo · ${checkpointName.isNotEmpty ? checkpointName : 'Checkpoint'}';
 }
 
-class QcNonConformanceLogViewModel extends ChangeNotifier {
+class QcNonConformanceLogViewModel extends GetxController {
   QcNonConformanceLogViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final QualityService _service = QualityService();
@@ -104,7 +104,7 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       qcInspectionLineId = null;
     }
     if (inspectionId == null) {
-      notifyListeners();
+      update();
       return;
     }
     try {
@@ -135,13 +135,13 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
     } catch (_) {
       inspectionLineOptions = const <QcNcLineOption>[];
     }
-    notifyListeners();
+    update();
   }
 
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.qcNonConformanceLogs(
@@ -172,11 +172,11 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
         }
       }
       await resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -209,7 +209,7 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.qcNonConformanceLog(id);
       final doc = response.data ?? row;
@@ -240,7 +240,7 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -258,7 +258,7 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       return;
     }
     qcInspectionLineId = value;
-    notifyListeners();
+    update();
   }
 
   String? _validate() {
@@ -299,13 +299,13 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
     final err = _validate();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       final doc = _buildDocument();
       if (selected == null) {
@@ -322,10 +322,10 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -340,7 +340,7 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -355,7 +355,7 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -370,12 +370,12 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     defectCodeController.dispose();
     defectNameController.dispose();
@@ -387,6 +387,6 @@ class QcNonConformanceLogViewModel extends ChangeNotifier {
     assignedToController.dispose();
     dueDateController.dispose();
     remarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

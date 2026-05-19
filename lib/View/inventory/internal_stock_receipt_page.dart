@@ -23,19 +23,26 @@ class _InternalStockReceiptPageState extends State<InternalStockReceiptPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final InternalStockReceiptViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = InternalStockReceiptViewModel(
-      initialItemId: widget.initialItemId,
-    )..load(selectId: widget.initialId);
+    _controllerTag =
+        '${InternalStockReceiptViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      InternalStockReceiptViewModel(initialItemId: widget.initialItemId)
+        ..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<InternalStockReceiptViewModel>(tag: _controllerTag)) {
+      Get.delete<InternalStockReceiptViewModel>(tag: _controllerTag);
+    }
     _workspaceController.dispose();
     _pageScrollController.dispose();
     super.dispose();
@@ -43,9 +50,9 @@ class _InternalStockReceiptPageState extends State<InternalStockReceiptPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<InternalStockReceiptViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final content = _buildContent(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

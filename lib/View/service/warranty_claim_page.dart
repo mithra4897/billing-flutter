@@ -30,17 +30,24 @@ class _WarrantyClaimPageState extends State<WarrantyClaimPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final WarrantyClaimViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = WarrantyClaimViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${WarrantyClaimViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      WarrantyClaimViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<WarrantyClaimViewModel>(tag: _controllerTag)) {
+      Get.delete<WarrantyClaimViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -101,9 +108,9 @@ class _WarrantyClaimPageState extends State<WarrantyClaimPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<WarrantyClaimViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

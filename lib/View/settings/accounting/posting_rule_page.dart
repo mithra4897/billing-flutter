@@ -1,3 +1,4 @@
+import '../../../controller/settings/accounting/posting_rule_management_controller.dart';
 import '../../../screen.dart';
 
 class PostingRuleManagementPage extends StatefulWidget {
@@ -61,332 +62,122 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
         AppDropdownItem(value: 'cogs_value', label: 'COGS value'),
       ];
 
-  final AccountsService _accountsService = AccountsService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _lineNoController = TextEditingController(
-    text: '1',
-  );
-  final TextEditingController _narrationTemplateController =
-      TextEditingController();
-  final TextEditingController _priorityController = TextEditingController(
-    text: '1',
-  );
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  List<PostingRuleGroupModel> _groups = const <PostingRuleGroupModel>[];
-  List<PostingRuleModel> _rows = const <PostingRuleModel>[];
-  List<PostingRuleModel> _filtered = const <PostingRuleModel>[];
-  PostingRuleModel? _selected;
-  List<AccountModel> _accounts = const <AccountModel>[];
-
-  int? _groupId;
-  String _entrySide = 'debit';
-  String _accountSourceType = 'fixed_account';
-  int? _fixedAccountId;
-  String _amountSource = 'total_amount';
-  bool _isActive = true;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
-    _load();
+    _controllerTag =
+        '${PostingRuleManagementController}_${identityHashCode(this)}';
+    Get.put(PostingRuleManagementController(), tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
-    _lineNoController.dispose();
-    _narrationTemplateController.dispose();
-    _priorityController.dispose();
+    if (Get.isRegistered<PostingRuleManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<PostingRuleManagementController>(tag: _controllerTag);
+    }
     super.dispose();
-  }
-
-  Map<String, dynamic> _json(PostingRuleModel? m) =>
-      m?.toJson() ?? const <String, dynamic>{};
-
-  Future<void> _load({int? selectId}) async {
-    setState(() {
-      _initialLoading = _rows.isEmpty && _groups.isEmpty;
-      _pageError = null;
-    });
-    try {
-      final results = await Future.wait<dynamic>([
-        _accountsService.postingRuleGroupsAll(
-          filters: const {'sort_by': 'group_name', 'per_page': 500},
-        ),
-        _accountsService.postingRules(
-          filters: const {'per_page': 500, 'sort_by': 'line_no'},
-        ),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
-        ),
-      ]);
-      final groups =
-          (results[0] as ApiResponse<List<PostingRuleGroupModel>>).data ??
-          const <PostingRuleGroupModel>[];
-      final rules =
-          (results[1] as PaginatedResponse<PostingRuleModel>).data ??
-          const <PostingRuleModel>[];
-      final accounts =
-          (results[2] as ApiResponse<List<AccountModel>>).data ??
-          const <AccountModel>[];
-      if (!mounted) return;
-      setState(() {
-        _groups = groups;
-        _rows = rules;
-        _filtered = _filter(rules, _searchController.text);
-        _accounts = accounts.where((a) => a.isActive).toList();
-        _initialLoading = false;
-        if (_groupId == null && groups.isNotEmpty) {
-          _groupId = intValue(groups.first.toJson(), 'id');
-        }
-      });
-
-      final selected = selectId != null
-          ? rules.cast<PostingRuleModel?>().firstWhere(
-              (e) => intValue(_json(e), 'id') == selectId,
-              orElse: () => null,
-            )
-          : (_selected == null
-                ? (rules.isNotEmpty ? rules.first : null)
-                : rules.cast<PostingRuleModel?>().firstWhere(
-                    (e) =>
-                        intValue(_json(e), 'id') ==
-                        intValue(_json(_selected), 'id'),
-                    orElse: () => rules.isNotEmpty ? rules.first : null,
-                  ));
-      if (selected != null) {
-        _applySelection(selected);
-      } else {
-        _resetForm();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _pageError = e.toString();
-        _initialLoading = false;
-      });
-    }
-  }
-
-  List<PostingRuleModel> _filter(List<PostingRuleModel> source, String q) {
-    return filterMasterList(source, q, (item) {
-      final d = item.toJson();
-      return [
-        stringValue(d, 'entry_side'),
-        stringValue(d, 'account_source_type'),
-        stringValue(d, 'amount_source'),
-      ];
-    });
-  }
-
-  void _applySearch() {
-    setState(() => _filtered = _filter(_rows, _searchController.text));
-  }
-
-  void _applySelection(PostingRuleModel item) {
-    final d = item.toJson();
-    _selected = item;
-    _groupId = intValue(d, 'posting_rule_group_id');
-    _lineNoController.text = stringValue(d, 'line_no', '1');
-    _entrySide = stringValue(d, 'entry_side', 'debit');
-    _accountSourceType = stringValue(d, 'account_source_type', 'fixed_account');
-    _fixedAccountId = intValue(d, 'fixed_account_id');
-    _amountSource = stringValue(d, 'amount_source', 'total_amount');
-    _narrationTemplateController.text = stringValue(d, 'narration_template');
-    _priorityController.text = stringValue(d, 'priority_order', '1');
-    _isActive = boolValue(d, 'is_active', fallback: true);
-    _formError = null;
-    setState(() {});
-  }
-
-  void _resetForm() {
-    _selected = null;
-    _lineNoController.text = '1';
-    _entrySide = 'debit';
-    _accountSourceType = 'fixed_account';
-    _fixedAccountId = null;
-    _amountSource = 'total_amount';
-    _narrationTemplateController.clear();
-    _priorityController.text = '1';
-    _isActive = true;
-    if (_groups.isNotEmpty) {
-      _groupId = intValue(_groups.first.toJson(), 'id');
-    }
-    _formError = null;
-    setState(() {});
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_groupId == null) {
-      setState(() => _formError = 'Select a posting rule group.');
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-    final lineNo = int.tryParse(_lineNoController.text.trim()) ?? 1;
-    final priority = int.tryParse(_priorityController.text.trim()) ?? 1;
-    final body = PostingRuleModel.fromJson(<String, dynamic>{
-      'posting_rule_group_id': _groupId,
-      'line_no': lineNo,
-      'entry_side': _entrySide,
-      'account_source_type': _accountSourceType,
-      'fixed_account_id': _accountSourceType == 'fixed_account'
-          ? _fixedAccountId
-          : null,
-      'amount_source': _amountSource,
-      'narration_template': nullIfEmpty(_narrationTemplateController.text),
-      'priority_order': priority,
-      'is_active': _isActive,
-    });
-    try {
-      final ApiResponse<PostingRuleModel> response;
-      final sid = intValue(_json(_selected), 'id');
-      if (sid == null) {
-        response = await _accountsService.createPostingRule(body);
-      } else {
-        response = await _accountsService.updatePostingRule(sid, body);
-      }
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _load(selectId: intValue(_json(response.data), 'id') ?? sid);
-    } catch (e) {
-      if (mounted) setState(() => _formError = e.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _delete() async {
-    final id = intValue(_json(_selected), 'id');
-    if (id == null) return;
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-    try {
-      final response = await _accountsService.deletePostingRule(id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _load();
-    } catch (e) {
-      if (mounted) setState(() => _formError = e.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  void _startNew() {
-    _resetForm();
-    if (!Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent();
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _startNew,
-        icon: Icons.rule_folder_outlined,
-        label: 'New Rule',
-      ),
-    ];
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
-    return AppStandaloneShell(
-      title: 'Posting Rules',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+    return GetBuilder<PostingRuleManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = _buildContent(controller);
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () =>
+                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+            icon: Icons.rule_folder_outlined,
+            label: 'New Rule',
+          ),
+        ];
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
+        return AppStandaloneShell(
+          title: 'Posting Rules',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
-    if (_initialLoading) {
+  Widget _buildContent(PostingRuleManagementController controller) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading posting rules...');
     }
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load',
-        message: _pageError!,
-        onRetry: _load,
+        message: controller.pageError!,
+        onRetry: controller.load,
       );
     }
+
+    // Migrated page/form state now lives in PostingRuleManagementController.
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Posting Rules',
-      editorTitle: intValue(_json(_selected), 'id') == null
+      editorTitle: intValue(controller.json(controller.selected), 'id') == null
           ? null
-          : 'Line ${_lineNoController.text}',
-      scrollController: _pageScrollController,
+          : 'Line ${controller.lineNoController.text}',
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<PostingRuleModel>(
-        searchController: _searchController,
+        searchController: controller.searchController,
         searchHint: 'Search rules',
-        items: _filtered,
-        selectedItem: _selected,
+        items: controller.filtered,
+        selectedItem: controller.selected,
         emptyMessage: 'No posting rules.',
         itemBuilder: (item, selected) {
-          final d = item.toJson();
+          final data = item.toJson();
           return SettingsListTile(
             title:
-                'L${stringValue(d, 'line_no')} · ${stringValue(d, 'entry_side')} · ${stringValue(d, 'amount_source')}',
-            subtitle: stringValue(d, 'account_source_type'),
+                'L${stringValue(data, 'line_no')} · ${stringValue(data, 'entry_side')} · ${stringValue(data, 'amount_source')}',
+            subtitle: stringValue(data, 'account_source_type'),
             selected: selected,
-            onTap: () => _applySelection(item),
+            onTap: () => controller.applySelection(item),
           );
         },
       ),
       editor: Form(
-        key: _formKey,
+        key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
+            if (controller.formError != null) ...[
+              AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
             SettingsFormWrap(
               children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Rule group',
-                  mappedItems: _groups
+                  mappedItems: controller.groups
                       .map(
-                        (g) => AppDropdownItem<int>(
-                          value: intValue(g.toJson(), 'id') ?? 0,
-                          label: stringValue(g.toJson(), 'group_name').isEmpty
-                              ? stringValue(g.toJson(), 'group_code')
-                              : stringValue(g.toJson(), 'group_name'),
+                        (group) => AppDropdownItem<int>(
+                          value: intValue(group.toJson(), 'id') ?? 0,
+                          label:
+                              stringValue(group.toJson(), 'group_name').isEmpty
+                              ? stringValue(group.toJson(), 'group_code')
+                              : stringValue(group.toJson(), 'group_name'),
                         ),
                       )
-                      .where((e) => e.value != 0)
+                      .where((item) => item.value != 0)
                       .toList(growable: false),
-                  initialValue: _groupId,
-                  onChanged: (v) => setState(() => _groupId = v),
+                  initialValue: controller.groupId,
+                  onChanged: controller.setGroupId,
                   validator: Validators.requiredSelection('Rule group'),
                 ),
                 AppFormTextField(
                   labelText: 'Line no.',
-                  controller: _lineNoController,
+                  controller: controller.lineNoController,
                   keyboardType: TextInputType.number,
                   validator: Validators.compose([
                     Validators.required('Line no.'),
@@ -395,58 +186,56 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Entry side',
                   mappedItems: _entrySideItems,
-                  initialValue: _entrySide,
-                  onChanged: (v) => setState(() => _entrySide = v ?? 'debit'),
+                  initialValue: controller.entrySide,
+                  onChanged: controller.setEntrySide,
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Account source',
                   mappedItems: _accountSourceItems,
-                  initialValue: _accountSourceType,
-                  onChanged: (v) =>
-                      setState(() => _accountSourceType = v ?? 'fixed_account'),
+                  initialValue: controller.accountSourceType,
+                  onChanged: controller.setAccountSourceType,
                 ),
-                if (_accountSourceType == 'fixed_account')
+                if (controller.accountSourceType == 'fixed_account')
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Fixed ledger',
-                    mappedItems: _accounts
-                        .where((a) => a.id != null)
+                    mappedItems: controller.accounts
+                        .where((account) => account.id != null)
                         .map(
-                          (a) => AppDropdownItem<int>(
-                            value: a.id!,
-                            label: a.toString(),
+                          (account) => AppDropdownItem<int>(
+                            value: account.id!,
+                            label: account.toString(),
                           ),
                         )
                         .toList(growable: false),
-                    initialValue: _fixedAccountId,
-                    onChanged: (v) => setState(() => _fixedAccountId = v),
-                    validator: _accountSourceType == 'fixed_account'
+                    initialValue: controller.fixedAccountId,
+                    onChanged: controller.setFixedAccountId,
+                    validator: controller.accountSourceType == 'fixed_account'
                         ? Validators.requiredSelection('Fixed ledger')
                         : null,
                   ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Amount source',
                   mappedItems: _amountSourceItems,
-                  initialValue: _amountSource,
-                  onChanged: (v) =>
-                      setState(() => _amountSource = v ?? 'total_amount'),
+                  initialValue: controller.amountSource,
+                  onChanged: controller.setAmountSource,
                 ),
                 AppFormTextField(
                   labelText: 'Narration template',
-                  controller: _narrationTemplateController,
+                  controller: controller.narrationTemplateController,
                   maxLines: 2,
                   validator: Validators.optionalMaxLength(500, 'Narration'),
                 ),
                 AppFormTextField(
                   labelText: 'Priority',
-                  controller: _priorityController,
+                  controller: controller.priorityController,
                   keyboardType: TextInputType.number,
                 ),
                 SizedBox(
                   width: AppUiConstants.switchFieldWidth,
                   child: AppSwitchTile(
                     label: 'Active',
-                    value: _isActive,
-                    onChanged: (v) => setState(() => _isActive = v),
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
                   ),
                 ),
               ],
@@ -458,17 +247,20 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
               children: [
                 AppActionButton(
                   icon: Icons.save_outlined,
-                  label: intValue(_json(_selected), 'id') == null
+                  label:
+                      intValue(controller.json(controller.selected), 'id') ==
+                          null
                       ? 'Save'
                       : 'Update',
-                  onPressed: _save,
-                  busy: _saving,
+                  onPressed: controller.save,
+                  busy: controller.saving,
                 ),
-                if (intValue(_json(_selected), 'id') != null)
+                if (intValue(controller.json(controller.selected), 'id') !=
+                    null)
                   AppActionButton(
                     icon: Icons.delete_outline,
                     label: 'Delete',
-                    onPressed: _saving ? null : _delete,
+                    onPressed: controller.saving ? null : controller.delete,
                     filled: false,
                   ),
               ],

@@ -30,17 +30,24 @@ class _ServiceTicketPageState extends State<ServiceTicketPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final ServiceTicketViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = ServiceTicketViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${ServiceTicketViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      ServiceTicketViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<ServiceTicketViewModel>(tag: _controllerTag)) {
+      Get.delete<ServiceTicketViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -74,9 +81,9 @@ class _ServiceTicketPageState extends State<ServiceTicketPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<ServiceTicketViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

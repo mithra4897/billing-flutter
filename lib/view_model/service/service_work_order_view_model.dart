@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ServiceWorkOrderViewModel extends ChangeNotifier {
+class ServiceWorkOrderViewModel extends GetxController {
   ServiceWorkOrderViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final ServiceModuleService _service = ServiceModuleService();
@@ -161,7 +161,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -246,11 +246,11 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -282,7 +282,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
     customerSiteAddressController.clear();
     technicianUserIdController.clear();
     _syncCustomerFromTicket();
-    notifyListeners();
+    update();
   }
 
   void _syncCustomerFromTicket() {
@@ -305,7 +305,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
     }
     serviceTicketId = value;
     if (value == null) {
-      notifyListeners();
+      update();
       return;
     }
     _service
@@ -324,10 +324,10 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
               'issue_description',
             );
           }
-          notifyListeners();
+          update();
         })
         .catchError((_) {
-          notifyListeners();
+          update();
         });
   }
 
@@ -344,7 +344,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
             : null;
       }
     }
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? value) {
@@ -352,7 +352,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void setCustomerPartyId(int? value) {
@@ -360,7 +360,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     customerPartyId = value;
-    notifyListeners();
+    update();
   }
 
   void setBranchId(int? value) {
@@ -368,7 +368,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     branchId = value;
-    notifyListeners();
+    update();
   }
 
   void setLocationId(int? value) {
@@ -376,7 +376,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    notifyListeners();
+    update();
   }
 
   void setFinancialYearId(int? value) {
@@ -384,7 +384,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     financialYearId = value;
-    notifyListeners();
+    update();
   }
 
   void setExecutionMode(String value) {
@@ -392,7 +392,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     executionMode = value;
-    notifyListeners();
+    update();
   }
 
   List<BranchModel> get branchOptions {
@@ -446,7 +446,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.workOrder(id);
       final doc = response.data ?? row;
@@ -456,7 +456,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -559,13 +559,13 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
     final err = _validateSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _service.createWorkOrder(
@@ -577,7 +577,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing work order id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _service.updateWorkOrder(
@@ -589,10 +589,10 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -607,7 +607,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -622,7 +622,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -637,7 +637,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -652,7 +652,7 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -667,12 +667,12 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     workOrderNoController.dispose();
     workOrderDateController.dispose();
@@ -682,6 +682,6 @@ class ServiceWorkOrderViewModel extends ChangeNotifier {
     actionTakenController.dispose();
     customerSiteAddressController.dispose();
     technicianUserIdController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

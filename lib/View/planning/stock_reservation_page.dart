@@ -20,17 +20,24 @@ class _StockReservationPageState extends State<StockReservationPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final StockReservationViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = StockReservationViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${StockReservationViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      StockReservationViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<StockReservationViewModel>(tag: _controllerTag)) {
+      Get.delete<StockReservationViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -53,9 +60,9 @@ class _StockReservationPageState extends State<StockReservationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<StockReservationViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

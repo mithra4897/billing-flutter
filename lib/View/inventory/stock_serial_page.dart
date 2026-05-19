@@ -22,18 +22,25 @@ class _StockSerialPageState extends State<StockSerialPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final StockSerialViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = StockSerialViewModel(initialItemId: widget.initialItemId)
-      ..load(selectId: widget.initialId);
+    _controllerTag = '${StockSerialViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      StockSerialViewModel(initialItemId: widget.initialItemId)
+        ..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<StockSerialViewModel>(tag: _controllerTag)) {
+      Get.delete<StockSerialViewModel>(tag: _controllerTag);
+    }
     _workspaceController.dispose();
     _pageScrollController.dispose();
     super.dispose();
@@ -41,9 +48,9 @@ class _StockSerialPageState extends State<StockSerialPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<StockSerialViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final content = _buildContent(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

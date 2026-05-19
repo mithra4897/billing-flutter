@@ -85,9 +85,9 @@ class QcPlanLineDraft {
   }
 }
 
-class QcPlanViewModel extends ChangeNotifier {
+class QcPlanViewModel extends GetxController {
   QcPlanViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -222,7 +222,7 @@ class QcPlanViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.qcPlans(filters: const {'per_page': 200}),
@@ -285,11 +285,11 @@ class QcPlanViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -324,7 +324,7 @@ class QcPlanViewModel extends ChangeNotifier {
     isDefault = false;
     isActive = true;
     lineDrafts = <QcPlanLineDraft>[QcPlanLineDraft()];
-    notifyListeners();
+    update();
   }
 
   Future<void> select(QcPlanModel row) async {
@@ -335,7 +335,7 @@ class QcPlanViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.qcPlan(id);
       final doc = response.data ?? row;
@@ -365,7 +365,7 @@ class QcPlanViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -378,7 +378,7 @@ class QcPlanViewModel extends ChangeNotifier {
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     itemId = null;
     itemCategoryId = null;
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
@@ -387,7 +387,7 @@ class QcPlanViewModel extends ChangeNotifier {
     }
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
@@ -395,7 +395,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    notifyListeners();
+    update();
   }
 
   void setItemId(int? value) {
@@ -403,7 +403,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     itemId = value;
-    notifyListeners();
+    update();
   }
 
   void setItemCategoryId(int? value) {
@@ -411,7 +411,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     itemCategoryId = value;
-    notifyListeners();
+    update();
   }
 
   void setQcScope(String value) {
@@ -419,7 +419,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     qcScope = value;
-    notifyListeners();
+    update();
   }
 
   void setAcceptanceBasis(String value) {
@@ -427,7 +427,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     acceptanceBasis = value;
-    notifyListeners();
+    update();
   }
 
   void setIsDefault(bool value) {
@@ -435,7 +435,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     isDefault = value;
-    notifyListeners();
+    update();
   }
 
   void setIsActive(bool value) {
@@ -443,7 +443,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     isActive = value;
-    notifyListeners();
+    update();
   }
 
   void setCheckpointType(int index, String value) {
@@ -451,7 +451,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     lineDrafts[index].checkpointType = value;
-    notifyListeners();
+    update();
   }
 
   void setLineCritical(int index, bool value) {
@@ -459,7 +459,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     lineDrafts[index].isCritical = value;
-    notifyListeners();
+    update();
   }
 
   void setLineMandatory(int index, bool value) {
@@ -467,7 +467,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     lineDrafts[index].isMandatory = value;
-    notifyListeners();
+    update();
   }
 
   void addLine() {
@@ -475,7 +475,7 @@ class QcPlanViewModel extends ChangeNotifier {
       return;
     }
     lineDrafts = List<QcPlanLineDraft>.from(lineDrafts)..add(QcPlanLineDraft());
-    notifyListeners();
+    update();
   }
 
   void removeLine(int index) {
@@ -486,7 +486,7 @@ class QcPlanViewModel extends ChangeNotifier {
     copy[index].dispose();
     copy.removeAt(index);
     lineDrafts = copy;
-    notifyListeners();
+    update();
   }
 
   String? _validate() {
@@ -552,13 +552,13 @@ class QcPlanViewModel extends ChangeNotifier {
     final err = _validate();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       final doc = _buildDocument();
       if (selected == null) {
@@ -572,10 +572,10 @@ class QcPlanViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -590,7 +590,7 @@ class QcPlanViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -605,7 +605,7 @@ class QcPlanViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -620,7 +620,7 @@ class QcPlanViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -635,12 +635,12 @@ class QcPlanViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     planCodeController.dispose();
@@ -651,6 +651,6 @@ class QcPlanViewModel extends ChangeNotifier {
     notesController.dispose();
     samplingMethodController.dispose();
     _disposeLines();
-    super.dispose();
+    super.onClose();
   }
 }

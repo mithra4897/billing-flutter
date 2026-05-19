@@ -20,17 +20,24 @@ class _QcInspectionPageState extends State<QcInspectionPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final QcInspectionViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = QcInspectionViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${QcInspectionViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      QcInspectionViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<QcInspectionViewModel>(tag: _controllerTag)) {
+      Get.delete<QcInspectionViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -54,9 +61,9 @@ class _QcInspectionPageState extends State<QcInspectionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<QcInspectionViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final content = _buildContent(context);
         if (widget.embedded) {
           return ShellPageActions(actions: const <Widget>[], child: content);

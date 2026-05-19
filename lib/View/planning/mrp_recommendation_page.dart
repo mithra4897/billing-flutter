@@ -20,17 +20,24 @@ class _MrpRecommendationPageState extends State<MrpRecommendationPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final MrpRecommendationViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = MrpRecommendationViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${MrpRecommendationViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      MrpRecommendationViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<MrpRecommendationViewModel>(tag: _controllerTag)) {
+      Get.delete<MrpRecommendationViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -53,9 +60,9 @@ class _MrpRecommendationPageState extends State<MrpRecommendationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<MrpRecommendationViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final content = _buildContent();
         if (widget.embedded) return content;
         return AppStandaloneShell(

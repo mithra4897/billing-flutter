@@ -60,7 +60,7 @@ class OpeningStockLineDraft {
   }
 }
 
-class OpeningStockViewModel extends ChangeNotifier {
+class OpeningStockViewModel extends GetxController {
   OpeningStockViewModel({this.initialItemId, this.filterItemId}) {
     searchController.addListener(_notifyListenersSafely);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
@@ -87,7 +87,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     if (_isDisposed) {
       return;
     }
-    notifyListeners();
+    update();
   }
 
   bool loading = true;
@@ -446,7 +446,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     documentSeriesId = _defaultDocumentSeriesId();
     _resetLineWarehouses();
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
@@ -454,25 +454,25 @@ class OpeningStockViewModel extends ChangeNotifier {
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     documentSeriesId = _defaultDocumentSeriesId();
     _resetLineWarehouses();
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
     locationId = value;
     documentSeriesId = _defaultDocumentSeriesId();
     _resetLineWarehouses();
-    notifyListeners();
+    update();
   }
 
   void onFinancialYearChanged(int? value) {
     financialYearId = value;
     documentSeriesId = _defaultDocumentSeriesId();
-    notifyListeners();
+    update();
   }
 
   void onSeriesChanged(int? value) {
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void _resetLineWarehouses() {
@@ -514,7 +514,7 @@ class OpeningStockViewModel extends ChangeNotifier {
               : null,
         ),
       );
-    notifyListeners();
+    update();
   }
 
   void removeLine(int index) {
@@ -526,7 +526,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     lines = next.isEmpty
         ? <OpeningStockLineDraft>[OpeningStockLineDraft()]
         : next;
-    notifyListeners();
+    update();
   }
 
   void onLineItemChanged(int index, int? value) {
@@ -549,7 +549,7 @@ class OpeningStockViewModel extends ChangeNotifier {
       uomConversions,
       current: lines[index].uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void onLineWarehouseChanged(int index, int? value) {
@@ -557,12 +557,12 @@ class OpeningStockViewModel extends ChangeNotifier {
     lines[index].batchId = null;
     lines[index].batchNoController.clear();
     _reconcileLineSerialSelection(lines[index]);
-    notifyListeners();
+    update();
   }
 
   void onLineUomChanged(int index, int? value) {
     lines[index].uomId = value;
-    notifyListeners();
+    update();
   }
 
   void onLineBatchChanged(int index, int? value) {
@@ -585,7 +585,7 @@ class OpeningStockViewModel extends ChangeNotifier {
       );
     }
     _reconcileLineSerialSelection(lines[index]);
-    notifyListeners();
+    update();
   }
 
   ErpLinkFieldOption<int>? selectedBatchOption(OpeningStockLineDraft line) {
@@ -702,7 +702,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     if (normalized.isEmpty) {
       lines[index].batchId = null;
       _reconcileLineSerialSelection(lines[index]);
-      notifyListeners();
+      update();
       return;
     }
 
@@ -724,13 +724,13 @@ class OpeningStockViewModel extends ChangeNotifier {
       'id',
     );
     _reconcileLineSerialSelection(lines[index]);
-    notifyListeners();
+    update();
   }
 
   void onLineSerialChanged(int index, int? value) {
     lines[index].serialId = value;
     lines[index].serialIds = value == null ? <int>[] : <int>[value];
-    notifyListeners();
+    update();
   }
 
   void _reconcileLineSerialSelection(OpeningStockLineDraft line) {
@@ -815,7 +815,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     if (isSerialManagedItem(line.itemId)) {
       line.qtyController.text = normalizedValues.length.toString();
     }
-    notifyListeners();
+    update();
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {
@@ -1314,7 +1314,7 @@ class OpeningStockViewModel extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
+  void onClose() {
     _disposed = true;
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
@@ -1324,7 +1324,7 @@ class OpeningStockViewModel extends ChangeNotifier {
     for (final line in lines) {
       line.dispose();
     }
-    super.dispose();
+    super.onClose();
   }
 }
 

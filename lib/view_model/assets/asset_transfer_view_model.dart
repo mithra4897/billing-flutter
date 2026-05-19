@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class AssetTransferViewModel extends ChangeNotifier {
+class AssetTransferViewModel extends GetxController {
   AssetTransferViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final AssetsService _assets = AssetsService();
@@ -85,7 +85,7 @@ class AssetTransferViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       final filters = <String, dynamic>{'per_page': 200};
@@ -112,17 +112,17 @@ class AssetTransferViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
   Future<void> _loadDetailById(int id) async {
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.transfer(id);
       if (response.success == true && response.data != null) {
@@ -135,14 +135,14 @@ class AssetTransferViewModel extends ChangeNotifier {
       actionMessage = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
   void resetDraft() {
     selected = null;
     detail = null;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(AssetTransferModel row) async {
@@ -152,7 +152,7 @@ class AssetTransferViewModel extends ChangeNotifier {
     }
     selected = row;
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.transfer(id);
       if (response.success == true && response.data != null) {
@@ -164,7 +164,7 @@ class AssetTransferViewModel extends ChangeNotifier {
       actionMessage = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -174,7 +174,7 @@ class AssetTransferViewModel extends ChangeNotifier {
       return;
     }
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.transfer(id);
       if (response.success == true && response.data != null) {
@@ -186,7 +186,7 @@ class AssetTransferViewModel extends ChangeNotifier {
       actionMessage = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -223,7 +223,7 @@ class AssetTransferViewModel extends ChangeNotifier {
       return false;
     }
     actionBusy = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.deleteTransfer(id);
       if (response.success != true) {
@@ -236,7 +236,7 @@ class AssetTransferViewModel extends ChangeNotifier {
       return false;
     } finally {
       actionBusy = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -244,7 +244,7 @@ class AssetTransferViewModel extends ChangeNotifier {
     Future<ApiResponse<AssetTransferModel>> Function() fn,
   ) async {
     actionBusy = true;
-    notifyListeners();
+    update();
     try {
       final response = await fn();
       if (response.success != true) {
@@ -257,13 +257,13 @@ class AssetTransferViewModel extends ChangeNotifier {
       actionMessage = e.toString();
     } finally {
       actionBusy = false;
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

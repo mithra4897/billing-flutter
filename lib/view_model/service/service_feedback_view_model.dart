@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ServiceFeedbackViewModel extends ChangeNotifier {
+class ServiceFeedbackViewModel extends GetxController {
   ServiceFeedbackViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final ServiceModuleService _service = ServiceModuleService();
@@ -93,7 +93,7 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
 
@@ -140,11 +140,11 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -166,28 +166,28 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
     ratingResolutionController.clear();
     ratingTimelinessController.clear();
     customerFeedbackController.clear();
-    notifyListeners();
+    update();
   }
 
   void setServiceTicketId(int? value) {
     serviceTicketId = value;
     serviceWorkOrderId = null;
-    notifyListeners();
+    update();
   }
 
   void setServiceWorkOrderId(int? value) {
     serviceWorkOrderId = value;
-    notifyListeners();
+    update();
   }
 
   void setResolutionConfirmed(int value) {
     resolutionConfirmed = value;
-    notifyListeners();
+    update();
   }
 
   void setRevisitRequired(int value) {
     revisitRequired = value;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(ServiceFeedbackModel row) async {
@@ -198,7 +198,7 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.feedback(id);
       final doc = response.data ?? row;
@@ -208,7 +208,7 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -271,13 +271,13 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
     final err = _validateSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _service.createFeedback(
@@ -289,7 +289,7 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing feedback id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _service.updateFeedback(
@@ -301,10 +301,10 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -319,12 +319,12 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     feedbackDateController.dispose();
     ratingOverallController.dispose();
@@ -332,6 +332,6 @@ class ServiceFeedbackViewModel extends ChangeNotifier {
     ratingResolutionController.dispose();
     ratingTimelinessController.dispose();
     customerFeedbackController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

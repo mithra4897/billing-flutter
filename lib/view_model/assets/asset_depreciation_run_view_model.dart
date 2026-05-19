@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class AssetDepreciationRunViewModel extends ChangeNotifier {
+class AssetDepreciationRunViewModel extends GetxController {
   AssetDepreciationRunViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final AssetsService _assets = AssetsService();
@@ -112,7 +112,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       sessionCompanyId = info.companyId;
@@ -141,17 +141,17 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
   Future<void> _loadDetailById(int id) async {
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.depreciationRun(id);
       if (response.success == true && response.data != null) {
@@ -164,7 +164,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       actionMessage = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -176,7 +176,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
     fromDateController.text = _isoDate(DateTime(now.year, now.month, 1));
     toDateController.text = _isoDate(DateTime(now.year, now.month + 1, 0));
     bookType = 'financial';
-    notifyListeners();
+    update();
   }
 
   Future<void> select(AssetDepreciationRunModel row) async {
@@ -186,7 +186,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
     }
     selected = row;
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.depreciationRun(id);
       if (response.success == true && response.data != null) {
@@ -198,7 +198,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       actionMessage = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -206,17 +206,17 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
     final cid = sessionCompanyId;
     if (cid == null) {
       actionMessage = 'Select a company in the header before creating.';
-      notifyListeners();
+      update();
       return null;
     }
     if (documentSeriesId == null) {
       actionMessage =
           'Configure an active ASSET_DEPRECIATION_RUN document series.';
-      notifyListeners();
+      update();
       return null;
     }
     createBusy = true;
-    notifyListeners();
+    update();
     try {
       final body = AssetDepreciationRunModel.fromJson(<String, dynamic>{
         'company_id': cid,
@@ -242,7 +242,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       return null;
     } finally {
       createBusy = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -252,7 +252,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       return;
     }
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.depreciationRun(id);
       if (response.success == true && response.data != null) {
@@ -264,7 +264,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       actionMessage = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -301,7 +301,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       return false;
     }
     actionBusy = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.deleteDepreciationRun(id);
       if (response.success != true) {
@@ -314,7 +314,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       return false;
     } finally {
       actionBusy = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -322,7 +322,7 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
     Future<ApiResponse<AssetDepreciationRunModel>> Function() fn,
   ) async {
     actionBusy = true;
-    notifyListeners();
+    update();
     try {
       final response = await fn();
       if (response.success != true) {
@@ -335,26 +335,26 @@ class AssetDepreciationRunViewModel extends ChangeNotifier {
       actionMessage = e.toString();
     } finally {
       actionBusy = false;
-      notifyListeners();
+      update();
     }
   }
 
   void setBookType(String v) {
     bookType = v;
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? v) {
     documentSeriesId = v;
-    notifyListeners();
+    update();
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     runDateController.dispose();
     fromDateController.dispose();
     toDateController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class MaintenanceWorkOrderViewModel extends ChangeNotifier {
+class MaintenanceWorkOrderViewModel extends GetxController {
   MaintenanceWorkOrderViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final MaintenanceService _maintenance = MaintenanceService();
@@ -205,7 +205,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -283,11 +283,11 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -297,7 +297,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       assets = const <AssetModel>[];
       maintenancePlans = const <MaintenancePlanModel>[];
       maintenanceRequests = const <MaintenanceRequestModel>[];
-      notifyListeners();
+      update();
       return;
     }
     try {
@@ -332,7 +332,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       maintenancePlans = const <MaintenancePlanModel>[];
       maintenanceRequests = const <MaintenanceRequestModel>[];
     }
-    notifyListeners();
+    update();
   }
 
   void resetDraft() {
@@ -368,7 +368,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     laborCostController.text = '0';
     otherCostController.text = '0';
     remarksController.clear();
-    notifyListeners();
+    update();
     Future<void>(() async {
       await refreshCompanyScoped();
     });
@@ -394,7 +394,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     maintenanceRequestId = null;
     maintenancePlanId = null;
     _revalidateSeries();
-    notifyListeners();
+    update();
     Future<void>(() async {
       await refreshCompanyScoped();
     });
@@ -405,7 +405,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void setAssetId(int? value) {
@@ -413,7 +413,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     assetId = value;
-    notifyListeners();
+    update();
   }
 
   void setBranchId(int? value) {
@@ -422,7 +422,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     }
     branchId = value;
     locationId = null;
-    notifyListeners();
+    update();
   }
 
   void setLocationId(int? value) {
@@ -430,7 +430,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    notifyListeners();
+    update();
   }
 
   void setFinancialYearId(int? value) {
@@ -438,7 +438,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     financialYearId = value;
-    notifyListeners();
+    update();
   }
 
   void setMaintenanceRequestId(int? value) {
@@ -446,7 +446,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     maintenanceRequestId = value;
-    notifyListeners();
+    update();
   }
 
   void setMaintenancePlanId(int? value) {
@@ -454,7 +454,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     maintenancePlanId = value;
-    notifyListeners();
+    update();
   }
 
   void setVendorPartyId(int? value) {
@@ -462,7 +462,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       return;
     }
     vendorPartyId = value;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(MaintenanceWorkOrderModel row) async {
@@ -473,7 +473,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _maintenance.workOrder(id);
       final doc = response.data ?? row;
@@ -484,7 +484,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -648,13 +648,13 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     final err = _validateForSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _maintenance.createWorkOrder(
@@ -666,7 +666,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing work order id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _maintenance.updateWorkOrder(
@@ -678,10 +678,10 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -699,7 +699,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -714,7 +714,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -729,7 +729,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -744,7 +744,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -759,7 +759,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -774,7 +774,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -789,7 +789,7 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     workOrderNoController.dispose();
     workOrderDateController.dispose();
@@ -808,6 +808,6 @@ class MaintenanceWorkOrderViewModel extends ChangeNotifier {
     laborCostController.dispose();
     otherCostController.dispose();
     remarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

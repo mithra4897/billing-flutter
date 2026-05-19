@@ -1,8 +1,8 @@
 import '../../screen.dart';
 
-class ServiceTicketViewModel extends ChangeNotifier {
+class ServiceTicketViewModel extends GetxController {
   ServiceTicketViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final ServiceModuleService _service = ServiceModuleService();
@@ -141,7 +141,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -221,11 +221,11 @@ class ServiceTicketViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -255,7 +255,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
     contactEmailController.clear();
     itemIdController.clear();
     serialIdController.clear();
-    notifyListeners();
+    update();
   }
 
   void setCompanyId(int? value) {
@@ -271,7 +271,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
             : null;
       }
     }
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? value) {
@@ -279,7 +279,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void setCustomerPartyId(int? value) {
@@ -287,7 +287,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       return;
     }
     customerPartyId = value;
-    notifyListeners();
+    update();
   }
 
   void setBranchId(int? value) {
@@ -295,7 +295,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       return;
     }
     branchId = value;
-    notifyListeners();
+    update();
   }
 
   void setLocationId(int? value) {
@@ -303,7 +303,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    notifyListeners();
+    update();
   }
 
   void setFinancialYearId(int? value) {
@@ -311,7 +311,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       return;
     }
     financialYearId = value;
-    notifyListeners();
+    update();
   }
 
   List<BranchModel> get branchOptions {
@@ -365,7 +365,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.ticket(id);
       final doc = response.data ?? row;
@@ -375,7 +375,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -481,13 +481,13 @@ class ServiceTicketViewModel extends ChangeNotifier {
     final err = _validateSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _service.createTicket(
@@ -499,7 +499,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing ticket id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _service.updateTicket(
@@ -511,10 +511,10 @@ class ServiceTicketViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -532,7 +532,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -547,7 +547,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -562,7 +562,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -577,7 +577,7 @@ class ServiceTicketViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -592,12 +592,12 @@ class ServiceTicketViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     ticketNoController.dispose();
     ticketDateController.dispose();
@@ -610,6 +610,6 @@ class ServiceTicketViewModel extends ChangeNotifier {
     contactEmailController.dispose();
     itemIdController.dispose();
     serialIdController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

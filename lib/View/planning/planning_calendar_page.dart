@@ -20,17 +20,24 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final PlanningCalendarViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = PlanningCalendarViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${PlanningCalendarViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      PlanningCalendarViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<PlanningCalendarViewModel>(tag: _controllerTag)) {
+      Get.delete<PlanningCalendarViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -53,9 +60,9 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<PlanningCalendarViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final isDesktop = Responsive.isDesktop(context);
         final actions = <Widget>[
           AdaptiveShellActionButton(

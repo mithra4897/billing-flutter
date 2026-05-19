@@ -71,9 +71,9 @@ class JobworkChargeLineDraft {
   }
 }
 
-class JobworkChargeViewModel extends ChangeNotifier {
+class JobworkChargeViewModel extends GetxController {
   JobworkChargeViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -204,7 +204,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _service.charges(
@@ -289,18 +289,18 @@ class JobworkChargeViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
   Future<void> _loadOrderDetail(int? orderId) async {
     selectedOrderDetail = null;
     if (orderId == null) {
-      notifyListeners();
+      update();
       return;
     }
     try {
@@ -313,7 +313,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     } catch (_) {
       selectedOrderDetail = null;
     }
-    notifyListeners();
+    update();
   }
 
   void resetDraft() {
@@ -347,7 +347,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     remarksController.clear();
     isActive = true;
     lineDrafts = <JobworkChargeLineDraft>[JobworkChargeLineDraft()];
-    notifyListeners();
+    update();
   }
 
   Future<void> select(JobworkChargeModel row) async {
@@ -358,7 +358,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _service.charge(id);
       final doc = response.data ?? row;
@@ -386,7 +386,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -398,7 +398,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
@@ -407,7 +407,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     }
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
@@ -415,7 +415,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    notifyListeners();
+    update();
   }
 
   void setFinancialYearId(int? value) {
@@ -424,7 +424,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     }
     financialYearId = value;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   Future<void> setJobworkOrderId(int? value) async {
@@ -433,7 +433,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     }
     jobworkOrderId = value;
     await _loadOrderDetail(value);
-    notifyListeners();
+    update();
   }
 
   void setSupplierPartyId(int? value) {
@@ -441,7 +441,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
       return;
     }
     supplierPartyId = value;
-    notifyListeners();
+    update();
   }
 
   void setDocumentSeriesId(int? value) {
@@ -449,7 +449,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void addLine() {
@@ -458,7 +458,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     }
     lineDrafts = List<JobworkChargeLineDraft>.from(lineDrafts)
       ..add(JobworkChargeLineDraft());
-    notifyListeners();
+    update();
   }
 
   void removeLine(int index) {
@@ -469,7 +469,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
     copy[index].dispose();
     copy.removeAt(index);
     lineDrafts = copy;
-    notifyListeners();
+    update();
   }
 
   void setLineItemId(int index, int? value) {
@@ -477,7 +477,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
       return;
     }
     lineDrafts[index].itemId = value;
-    notifyListeners();
+    update();
   }
 
   String? _validate() {
@@ -534,13 +534,13 @@ class JobworkChargeViewModel extends ChangeNotifier {
     final err = _validate();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       final doc = _buildDocument();
       if (selected == null) {
@@ -554,10 +554,10 @@ class JobworkChargeViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -572,7 +572,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -587,7 +587,7 @@ class JobworkChargeViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -602,12 +602,12 @@ class JobworkChargeViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     chargeNoController.dispose();
@@ -615,6 +615,6 @@ class JobworkChargeViewModel extends ChangeNotifier {
     purchaseInvoiceIdController.dispose();
     remarksController.dispose();
     _disposeLines();
-    super.dispose();
+    super.onClose();
   }
 }

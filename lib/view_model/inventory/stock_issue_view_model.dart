@@ -58,9 +58,9 @@ class StockIssueLineDraft {
   }
 }
 
-class StockIssueViewModel extends ChangeNotifier {
+class StockIssueViewModel extends GetxController {
   StockIssueViewModel({this.initialItemId}) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -211,7 +211,7 @@ class StockIssueViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockIssues(
@@ -320,11 +320,11 @@ class StockIssueViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -361,7 +361,7 @@ class StockIssueViewModel extends ChangeNotifier {
       uomConversions,
       current: lines.first.uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void _ensureContextSelection() {
@@ -391,7 +391,7 @@ class StockIssueViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _inventoryService.stockIssue(id);
       final data = (response.data ?? row).toJson();
@@ -423,11 +423,11 @@ class StockIssueViewModel extends ChangeNotifier {
           ? <StockIssueLineDraft>[StockIssueLineDraft()]
           : _buildLineDrafts(apiLines);
       detailLoading = false;
-      notifyListeners();
+      update();
     } catch (e) {
       detailLoading = false;
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -440,7 +440,7 @@ class StockIssueViewModel extends ChangeNotifier {
         ? warehouseOptions.first.id
         : null;
     _clearLineBatchAndSerial();
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
@@ -451,7 +451,7 @@ class StockIssueViewModel extends ChangeNotifier {
         : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _clearLineBatchAndSerial();
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
@@ -461,34 +461,34 @@ class StockIssueViewModel extends ChangeNotifier {
         : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _clearLineBatchAndSerial();
-    notifyListeners();
+    update();
   }
 
   void onFinancialYearChanged(int? value) {
     financialYearId = value;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onSeriesChanged(int? value) {
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void onWarehouseChanged(int? value) {
     warehouseId = value;
     _clearLineBatchAndSerial();
-    notifyListeners();
+    update();
   }
 
   void onIssuePurposeChanged(String? value) {
     issuePurpose = value ?? 'department_use';
-    notifyListeners();
+    update();
   }
 
   void onDepartmentChanged(String? value) {
     departmentNameController.text = value ?? '';
-    notifyListeners();
+    update();
   }
 
   void _clearLineBatchAndSerial() {
@@ -500,7 +500,7 @@ class StockIssueViewModel extends ChangeNotifier {
 
   void addLine() {
     lines = List<StockIssueLineDraft>.from(lines)..add(StockIssueLineDraft());
-    notifyListeners();
+    update();
   }
 
   void removeLine(int index) {
@@ -510,7 +510,7 @@ class StockIssueViewModel extends ChangeNotifier {
     final next = List<StockIssueLineDraft>.from(lines);
     next.removeAt(index).dispose();
     lines = next.isEmpty ? <StockIssueLineDraft>[StockIssueLineDraft()] : next;
-    notifyListeners();
+    update();
   }
 
   void onLineItemChanged(int index, int? value) {
@@ -531,24 +531,24 @@ class StockIssueViewModel extends ChangeNotifier {
       uomConversions,
       current: lines[index].uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void onLineUomChanged(int index, int? value) {
     lines[index].uomId = value;
-    notifyListeners();
+    update();
   }
 
   void onLineBatchChanged(int index, int? value) {
     lines[index].batchId = value;
     _reconcileLineSerialSelection(lines[index]);
-    notifyListeners();
+    update();
   }
 
   void onLineSerialChanged(int index, int? value) {
     lines[index].serialId = value;
     lines[index].serialIds = value == null ? <int>[] : <int>[value];
-    notifyListeners();
+    update();
   }
 
   void setLineSerialIds(int index, List<int> values) {
@@ -561,7 +561,7 @@ class StockIssueViewModel extends ChangeNotifier {
     if (itemHasSerial(lines[index].itemId)) {
       lines[index].qtyController.text = normalized.length.toString();
     }
-    notifyListeners();
+    update();
   }
 
   void _reconcileLineSerialSelection(StockIssueLineDraft line) {
@@ -811,13 +811,13 @@ class StockIssueViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'branch_id': branchId,
@@ -851,10 +851,10 @@ class StockIssueViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -873,7 +873,7 @@ class StockIssueViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
@@ -892,7 +892,7 @@ class StockIssueViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
@@ -908,12 +908,12 @@ class StockIssueViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     issueNoController.dispose();
@@ -924,7 +924,7 @@ class StockIssueViewModel extends ChangeNotifier {
     for (final line in lines) {
       line.dispose();
     }
-    super.dispose();
+    super.onClose();
   }
 }
 

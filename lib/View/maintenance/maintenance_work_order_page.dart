@@ -21,18 +21,25 @@ class _MaintenanceWorkOrderPageState extends State<MaintenanceWorkOrderPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final MaintenanceWorkOrderViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = MaintenanceWorkOrderViewModel()
-      ..load(selectId: widget.initialId);
+    _controllerTag =
+        '${MaintenanceWorkOrderViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      MaintenanceWorkOrderViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<MaintenanceWorkOrderViewModel>(tag: _controllerTag)) {
+      Get.delete<MaintenanceWorkOrderViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -83,9 +90,9 @@ class _MaintenanceWorkOrderPageState extends State<MaintenanceWorkOrderPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<MaintenanceWorkOrderViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

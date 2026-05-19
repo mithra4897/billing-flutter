@@ -94,9 +94,9 @@ class InventoryAdjustmentLineDraft {
   }
 }
 
-class InventoryAdjustmentViewModel extends ChangeNotifier {
+class InventoryAdjustmentViewModel extends GetxController {
   InventoryAdjustmentViewModel({this.initialItemId}) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -227,7 +227,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.inventoryAdjustments(
@@ -328,11 +328,11 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -373,7 +373,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
       uomConversions,
       current: lines.first.uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void _ensureContextSelection() {
@@ -400,7 +400,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     if (id == null) return;
     selected = row;
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _inventoryService.inventoryAdjustment(id);
       final data = (response.data ?? row).toJson();
@@ -446,11 +446,11 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
                 )
                 .toList(growable: true);
       detailLoading = false;
-      notifyListeners();
+      update();
     } catch (e) {
       detailLoading = false;
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -459,41 +459,41 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     branchId = branchOptions.isNotEmpty ? branchOptions.first.id : null;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
     locationId = value;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onFinancialYearChanged(int? value) {
     financialYearId = value;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onSeriesChanged(int? value) {
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void onAdjustmentTypeChanged(String? value) {
     adjustmentType = value ?? 'mixed';
-    notifyListeners();
+    update();
   }
 
   void onReasonCodeChanged(String? value) {
     reasonCode = value ?? 'manual_correction';
-    notifyListeners();
+    update();
   }
 
   void addLine() {
@@ -505,7 +505,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
               : null,
         ),
       );
-    notifyListeners();
+    update();
   }
 
   void removeLine(int index) {
@@ -515,7 +515,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     lines = next.isEmpty
         ? <InventoryAdjustmentLineDraft>[InventoryAdjustmentLineDraft()]
         : next;
-    notifyListeners();
+    update();
   }
 
   void onLineItemChanged(int i, int? value) {
@@ -535,30 +535,30 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
       uomConversions,
       current: lines[i].uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void onLineWarehouseChanged(int i, int? value) {
     lines[i].warehouseId = value;
     lines[i].batchId = null;
     _reconcileLineSerialSelection(lines[i]);
-    notifyListeners();
+    update();
   }
 
   void onLineUomChanged(int i, int? value) {
     lines[i].uomId = value;
-    notifyListeners();
+    update();
   }
 
   void onLineBatchChanged(int i, int? value) {
     lines[i].batchId = value;
     _reconcileLineSerialSelection(lines[i]);
-    notifyListeners();
+    update();
   }
 
   void onLineSerialChanged(int i, int? value) {
     lines[i].serialId = value;
-    notifyListeners();
+    update();
   }
 
   void _reconcileLineSerialSelection(InventoryAdjustmentLineDraft line) {
@@ -575,7 +575,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
 
   void onLineDirectionChanged(int i, String? value) {
     lines[i].adjustmentDirection = value;
-    notifyListeners();
+    update();
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {
@@ -687,13 +687,13 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     final error = _validate();
     if (error != null) {
       formError = error;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'branch_id': branchId,
@@ -725,10 +725,10 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -745,7 +745,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
@@ -762,7 +762,7 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
@@ -776,12 +776,12 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     adjustmentNoController.dispose();
@@ -790,6 +790,6 @@ class InventoryAdjustmentViewModel extends ChangeNotifier {
     for (final line in lines) {
       line.dispose();
     }
-    super.dispose();
+    super.onClose();
   }
 }

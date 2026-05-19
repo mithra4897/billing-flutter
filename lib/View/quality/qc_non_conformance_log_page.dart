@@ -30,18 +30,25 @@ class _QcNonConformanceLogPageState extends State<QcNonConformanceLogPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final QcNonConformanceLogViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = QcNonConformanceLogViewModel()
-      ..load(selectId: widget.initialId);
+    _controllerTag =
+        '${QcNonConformanceLogViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      QcNonConformanceLogViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<QcNonConformanceLogViewModel>(tag: _controllerTag)) {
+      Get.delete<QcNonConformanceLogViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -57,9 +64,9 @@ class _QcNonConformanceLogPageState extends State<QcNonConformanceLogPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<QcNonConformanceLogViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

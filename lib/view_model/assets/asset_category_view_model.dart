@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class AssetCategoryViewModel extends ChangeNotifier {
+class AssetCategoryViewModel extends GetxController {
   AssetCategoryViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final AssetsService _assets = AssetsService();
@@ -162,7 +162,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
     if (companyId == null && companies.isNotEmpty) {
       companyId = companies.first.id;
     }
-    notifyListeners();
+    update();
   }
 
   Map<String, dynamic> _buildPayload() {
@@ -201,7 +201,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       sessionCompanyId = info.companyId;
@@ -234,17 +234,17 @@ class AssetCategoryViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
   Future<void> _loadDetailByIdOnly(int id) async {
     detailLoading = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.category(id);
       if (response.success == true && response.data != null) {
@@ -258,7 +258,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -280,7 +280,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.category(id);
       if (response.success == true && response.data != null) {
@@ -293,7 +293,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -301,20 +301,20 @@ class AssetCategoryViewModel extends ChangeNotifier {
     final cid = companyId;
     if (cid == null) {
       formError = 'Company is required.';
-      notifyListeners();
+      update();
       return false;
     }
     final code = categoryCodeController.text.trim();
     final name = categoryNameController.text.trim();
     if (code.isEmpty || name.isEmpty) {
       formError = 'Category code and name are required.';
-      notifyListeners();
+      update();
       return false;
     }
 
     saving = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final payload = _buildPayload();
       final existingId = intValue(detail?.toJson() ?? {}, 'id');
@@ -373,7 +373,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
       return false;
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -383,7 +383,7 @@ class AssetCategoryViewModel extends ChangeNotifier {
       return false;
     }
     saving = true;
-    notifyListeners();
+    update();
     try {
       final response = await _assets.deleteCategory(id);
       if (response.success != true) {
@@ -396,42 +396,42 @@ class AssetCategoryViewModel extends ChangeNotifier {
       return false;
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
   void setCompanyId(int? v) {
     companyId = v;
-    notifyListeners();
+    update();
   }
 
   void setParentCategoryId(int? v) {
     parentCategoryId = v;
-    notifyListeners();
+    update();
   }
 
   void setIsActive(bool v) {
     isActive = v;
-    notifyListeners();
+    update();
   }
 
   void setIsDepreciable(bool v) {
     isDepreciable = v;
-    notifyListeners();
+    update();
   }
 
   void setIsTagRequired(bool v) {
     isTagRequired = v;
-    notifyListeners();
+    update();
   }
 
   void setIsSerialRequired(bool v) {
     isSerialRequired = v;
-    notifyListeners();
+    update();
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     categoryCodeController.dispose();
     categoryNameController.dispose();
@@ -441,6 +441,6 @@ class AssetCategoryViewModel extends ChangeNotifier {
     defaultUsefulLifeMonthsController.dispose();
     defaultSalvageValueController.dispose();
     capitalizationThresholdController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

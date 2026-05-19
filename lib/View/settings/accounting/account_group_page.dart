@@ -1,3 +1,4 @@
+import '../../../controller/settings/accounting/account_group_management_controller.dart';
 import '../../../screen.dart';
 
 class AccountGroupManagementPage extends StatefulWidget {
@@ -45,266 +46,79 @@ class _AccountGroupManagementPageState
         AppDropdownItem(value: 'other', label: 'Other'),
       ];
 
-  final AccountsService _accountsService = AccountsService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _groupCodeController = TextEditingController();
-  final TextEditingController _groupNameController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  List<AccountGroupModel> _groups = const <AccountGroupModel>[];
-  List<AccountGroupModel> _filteredGroups = const <AccountGroupModel>[];
-  AccountGroupModel? _selectedGroup;
-  int? _parentGroupId;
-  String _groupNature = 'asset';
-  String _groupCategory = 'other';
-  bool _affectsProfitLoss = true;
-  bool _isActive = true;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
-    _loadGroups();
+    _controllerTag =
+        '${AccountGroupManagementController}_${identityHashCode(this)}';
+    Get.put(AccountGroupManagementController(), tag: _controllerTag);
   }
 
   @override
   void dispose() {
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
-    _groupCodeController.dispose();
-    _groupNameController.dispose();
-    _remarksController.dispose();
+    if (Get.isRegistered<AccountGroupManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.delete<AccountGroupManagementController>(tag: _controllerTag);
+    }
     super.dispose();
-  }
-
-  Future<void> _loadGroups({int? selectId}) async {
-    setState(() {
-      _initialLoading = _groups.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final response = await _accountsService.accountGroups(
-        filters: const {'per_page': 300, 'sort_by': 'group_name'},
-      );
-      final items = response.data ?? const <AccountGroupModel>[];
-      if (!mounted) return;
-
-      setState(() {
-        _groups = items;
-        _filteredGroups = _filterGroups(items, _searchController.text);
-        _initialLoading = false;
-      });
-
-      final selected = selectId != null
-          ? items.cast<AccountGroupModel?>().firstWhere(
-              (item) => item?.id == selectId,
-              orElse: () => null,
-            )
-          : (_selectedGroup == null
-                ? (items.isNotEmpty ? items.first : null)
-                : items.cast<AccountGroupModel?>().firstWhere(
-                    (item) => item?.id == _selectedGroup?.id,
-                    orElse: () => items.isNotEmpty ? items.first : null,
-                  ));
-
-      if (selected != null) {
-        _selectGroup(selected);
-      } else {
-        _resetForm();
-      }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  List<AccountGroupModel> _filterGroups(
-    List<AccountGroupModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [
-        item.groupCode ?? '',
-        item.groupName ?? '',
-        item.groupNature ?? '',
-        item.groupCategory ?? '',
-      ];
-    });
-  }
-
-  void _applySearch() {
-    setState(() {
-      _filteredGroups = _filterGroups(_groups, _searchController.text);
-    });
-  }
-
-  List<AccountGroupModel> get _parentOptions {
-    final selectedId = _selectedGroup?.id;
-    return _groups
-        .where((item) => item.id != null && item.id != selectedId)
-        .toList(growable: false);
-  }
-
-  void _selectGroup(AccountGroupModel item) {
-    _selectedGroup = item;
-    _groupCodeController.text = item.groupCode ?? '';
-    _groupNameController.text = item.groupName ?? '';
-    _parentGroupId = item.parentGroupId;
-    _groupNature = item.groupNature ?? 'asset';
-    _groupCategory = item.groupCategory ?? 'other';
-    _affectsProfitLoss = item.affectsProfitLoss;
-    _isActive = item.isActive;
-    _remarksController.text = item.remarks ?? '';
-    _formError = null;
-    setState(() {});
-  }
-
-  void _resetForm() {
-    _selectedGroup = null;
-    _groupCodeController.clear();
-    _groupNameController.clear();
-    _parentGroupId = null;
-    _groupNature = 'asset';
-    _groupCategory = 'other';
-    _affectsProfitLoss = true;
-    _isActive = true;
-    _remarksController.clear();
-    _formError = null;
-    setState(() {});
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    final model = AccountGroupModel(
-      id: _selectedGroup?.id,
-      groupCode: _groupCodeController.text.trim(),
-      groupName: _groupNameController.text.trim(),
-      parentGroupId: _parentGroupId,
-      groupNature: _groupNature,
-      groupCategory: _groupCategory,
-      affectsProfitLoss: _affectsProfitLoss,
-      isSystemGroup: _selectedGroup?.isSystemGroup ?? false,
-      isActive: _isActive,
-      remarks: nullIfEmpty(_remarksController.text),
-    );
-
-    try {
-      final response = _selectedGroup == null
-          ? await _accountsService.createAccountGroup(model)
-          : await _accountsService.updateAccountGroup(
-              _selectedGroup!.id!,
-              model,
-            );
-      final saved = response.data;
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadGroups(selectId: saved?.id);
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _formError = error.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _delete() async {
-    final id = _selectedGroup?.id;
-    if (id == null) return;
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    try {
-      final response = await _accountsService.deleteAccountGroup(id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadGroups();
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _formError = error.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  void _startNew() {
-    _resetForm();
-    if (!Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent();
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _startNew,
-        icon: Icons.account_tree_outlined,
-        label: 'New Group',
-      ),
-    ];
+    return GetBuilder<AccountGroupManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = _buildContent(controller);
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () =>
+                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+            icon: Icons.account_tree_outlined,
+            label: 'New Group',
+          ),
+        ];
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
 
-    return AppStandaloneShell(
-      title: 'Account Groups',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+        return AppStandaloneShell(
+          title: 'Account Groups',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
-    if (_initialLoading) {
+  Widget _buildContent(AccountGroupManagementController controller) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading account groups...');
     }
 
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load account groups',
-        message: _pageError!,
-        onRetry: _loadGroups,
+        message: controller.pageError!,
+        onRetry: controller.loadGroups,
       );
     }
 
+    // Migrated page/form state now lives in AccountGroupManagementController.
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Account Groups',
-      editorTitle: _selectedGroup?.toString(),
-      scrollController: _pageScrollController,
+      editorTitle: controller.selectedGroup?.toString(),
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<AccountGroupModel>(
-        searchController: _searchController,
+        searchController: controller.searchController,
         searchHint: 'Search account groups',
-        items: _filteredGroups,
-        selectedItem: _selectedGroup,
+        items: controller.filteredGroups,
+        selectedItem: controller.selectedGroup,
         emptyMessage: 'No account groups found.',
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.groupName ?? '',
@@ -314,23 +128,23 @@ class _AccountGroupManagementPageState
             if ((item.groupCategory ?? '').isNotEmpty) item.groupCategory!,
           ].join(' · '),
           selected: selected,
-          onTap: () => _selectGroup(item),
+          onTap: () => controller.selectGroup(item),
         ),
       ),
       editor: Form(
-        key: _formKey,
+        key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
+            if (controller.formError != null) ...[
+              AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
             SettingsFormWrap(
               children: [
                 AppFormTextField(
                   labelText: 'Group Code',
-                  controller: _groupCodeController,
+                  controller: controller.groupCodeController,
                   validator: Validators.compose([
                     Validators.required('Group Code'),
                     Validators.optionalMaxLength(50, 'Group Code'),
@@ -338,7 +152,7 @@ class _AccountGroupManagementPageState
                 ),
                 AppFormTextField(
                   labelText: 'Group Name',
-                  controller: _groupNameController,
+                  controller: controller.groupNameController,
                   validator: Validators.compose([
                     Validators.required('Group Name'),
                     Validators.optionalMaxLength(150, 'Group Name'),
@@ -346,7 +160,7 @@ class _AccountGroupManagementPageState
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Parent Group',
-                  mappedItems: _parentOptions
+                  mappedItems: controller.parentOptions
                       .where((item) => item.id != null)
                       .map(
                         (item) => AppDropdownItem<int>(
@@ -355,27 +169,25 @@ class _AccountGroupManagementPageState
                         ),
                       )
                       .toList(growable: false),
-                  initialValue: _parentGroupId,
-                  onChanged: (value) => setState(() => _parentGroupId = value),
+                  initialValue: controller.parentGroupId,
+                  onChanged: controller.setParentGroupId,
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Group Nature',
                   mappedItems: _natureItems,
-                  initialValue: _groupNature,
-                  onChanged: (value) =>
-                      setState(() => _groupNature = value ?? 'asset'),
+                  initialValue: controller.groupNature,
+                  onChanged: controller.setGroupNature,
                   validator: Validators.requiredSelection('Group Nature'),
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Group Category',
                   mappedItems: _categoryItems,
-                  initialValue: _groupCategory,
-                  onChanged: (value) =>
-                      setState(() => _groupCategory = value ?? 'other'),
+                  initialValue: controller.groupCategory,
+                  onChanged: controller.setGroupCategory,
                 ),
                 AppFormTextField(
                   labelText: 'Remarks',
-                  controller: _remarksController,
+                  controller: controller.remarksController,
                   maxLines: 3,
                 ),
               ],
@@ -389,17 +201,16 @@ class _AccountGroupManagementPageState
                   width: AppUiConstants.switchFieldWidth,
                   child: AppSwitchTile(
                     label: 'Affects P&L',
-                    value: _affectsProfitLoss,
-                    onChanged: (value) =>
-                        setState(() => _affectsProfitLoss = value),
+                    value: controller.affectsProfitLoss,
+                    onChanged: controller.setAffectsProfitLoss,
                   ),
                 ),
                 SizedBox(
                   width: AppUiConstants.switchFieldWidth,
                   child: AppSwitchTile(
                     label: 'Active',
-                    value: _isActive,
-                    onChanged: (value) => setState(() => _isActive = value),
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
                   ),
                 ),
               ],
@@ -411,15 +222,17 @@ class _AccountGroupManagementPageState
               children: [
                 AppActionButton(
                   icon: Icons.save_outlined,
-                  label: _selectedGroup == null ? 'Save Group' : 'Update Group',
-                  onPressed: _save,
-                  busy: _saving,
+                  label: controller.selectedGroup == null
+                      ? 'Save Group'
+                      : 'Update Group',
+                  onPressed: controller.save,
+                  busy: controller.saving,
                 ),
-                if (_selectedGroup?.id != null)
+                if (controller.selectedGroup?.id != null)
                   AppActionButton(
                     icon: Icons.delete_outline,
                     label: 'Delete',
-                    onPressed: _saving ? null : _delete,
+                    onPressed: controller.saving ? null : controller.delete,
                     filled: false,
                   ),
               ],

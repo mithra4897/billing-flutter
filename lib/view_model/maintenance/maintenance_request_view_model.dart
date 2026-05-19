@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class MaintenanceRequestViewModel extends ChangeNotifier {
+class MaintenanceRequestViewModel extends GetxController {
   MaintenanceRequestViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final MaintenanceService _maintenance = MaintenanceService();
@@ -140,7 +140,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -202,11 +202,11 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -215,7 +215,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     if (cid == null) {
       assets = const <AssetModel>[];
       maintenancePlans = const <MaintenancePlanModel>[];
-      notifyListeners();
+      update();
       return;
     }
     try {
@@ -241,7 +241,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       assets = const <AssetModel>[];
       maintenancePlans = const <MaintenancePlanModel>[];
     }
-    notifyListeners();
+    update();
   }
 
   void resetDraft() {
@@ -266,7 +266,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     remarksController.clear();
     targetCompletionController.clear();
     requestedByController.clear();
-    notifyListeners();
+    update();
     Future<void>(() async {
       await refreshCompanyScoped();
     });
@@ -291,7 +291,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     locationId = null;
     maintenancePlanId = null;
     _revalidateSeries();
-    notifyListeners();
+    update();
     Future<void>(() async {
       await refreshCompanyScoped();
     });
@@ -302,7 +302,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       return;
     }
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void setAssetId(int? value) {
@@ -310,7 +310,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       return;
     }
     assetId = value;
-    notifyListeners();
+    update();
   }
 
   void setBranchId(int? value) {
@@ -319,7 +319,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     }
     branchId = value;
     locationId = null;
-    notifyListeners();
+    update();
   }
 
   void setLocationId(int? value) {
@@ -327,7 +327,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       return;
     }
     locationId = value;
-    notifyListeners();
+    update();
   }
 
   void setMaintenancePlanId(int? value) {
@@ -335,7 +335,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       return;
     }
     maintenancePlanId = value;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(MaintenanceRequestModel row) async {
@@ -346,7 +346,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _maintenance.request(id);
       final doc = response.data ?? row;
@@ -357,7 +357,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -458,13 +458,13 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     final err = _validateForSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _maintenance.createRequest(
@@ -476,7 +476,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing request id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _maintenance.updateRequest(
@@ -488,10 +488,10 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -507,7 +507,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -523,7 +523,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -538,7 +538,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -553,7 +553,7 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     requestNoController.dispose();
     requestDateController.dispose();
@@ -564,6 +564,6 @@ class MaintenanceRequestViewModel extends ChangeNotifier {
     remarksController.dispose();
     targetCompletionController.dispose();
     requestedByController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

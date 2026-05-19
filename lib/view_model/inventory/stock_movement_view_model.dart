@@ -27,9 +27,9 @@ const List<AppDropdownItem<String>> stockEffectItems =
       AppDropdownItem<String>(value: 'none', label: 'None'),
     ];
 
-class StockMovementViewModel extends ChangeNotifier {
+class StockMovementViewModel extends GetxController {
   StockMovementViewModel({this.initialItemId}) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final int? initialItemId;
@@ -105,7 +105,7 @@ class StockMovementViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.stockMovements(
@@ -153,11 +153,11 @@ class StockMovementViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -185,7 +185,7 @@ class StockMovementViewModel extends ChangeNotifier {
     rateController.clear();
     amountController.clear();
     remarksController.clear();
-    notifyListeners();
+    update();
   }
 
   Future<void> select(StockMovementModel row) async {
@@ -194,7 +194,7 @@ class StockMovementViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _inventoryService.stockMovement(id);
       final data = (response.data ?? row).toJson();
@@ -219,11 +219,11 @@ class StockMovementViewModel extends ChangeNotifier {
       amountController.text = stringValue(data, 'amount');
       remarksController.text = stringValue(data, 'remarks');
       detailLoading = false;
-      notifyListeners();
+      update();
     } catch (e) {
       detailLoading = false;
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -237,32 +237,32 @@ class StockMovementViewModel extends ChangeNotifier {
     serialId = null;
     sourceWarehouseId = null;
     destinationWarehouseId = null;
-    notifyListeners();
+    update();
   }
 
   void onItemChanged(int? value) {
     itemId = value;
     batchId = null;
     serialId = null;
-    notifyListeners();
+    update();
   }
 
   void onWarehouseChanged(int? value) {
     warehouseId = value;
     batchId = null;
     serialId = null;
-    notifyListeners();
+    update();
   }
 
   void onBatchChanged(int? value) {
     batchId = value;
     serialId = null;
-    notifyListeners();
+    update();
   }
 
   void onSerialChanged(int? value) {
     serialId = value;
-    notifyListeners();
+    update();
   }
 
   void onMovementTypeChanged(String? value) {
@@ -271,22 +271,22 @@ class StockMovementViewModel extends ChangeNotifier {
       sourceWarehouseId = null;
       destinationWarehouseId = null;
     }
-    notifyListeners();
+    update();
   }
 
   void onStockEffectChanged(String? value) {
     stockEffect = value ?? 'in';
-    notifyListeners();
+    update();
   }
 
   void onSourceWarehouseChanged(int? value) {
     sourceWarehouseId = value;
-    notifyListeners();
+    update();
   }
 
   void onDestinationWarehouseChanged(int? value) {
     destinationWarehouseId = value;
-    notifyListeners();
+    update();
   }
 
   List<Map<String, dynamic>> batchOptions() {
@@ -355,12 +355,12 @@ class StockMovementViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'item_id': itemId,
@@ -398,10 +398,10 @@ class StockMovementViewModel extends ChangeNotifier {
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -413,12 +413,12 @@ class StockMovementViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     referenceTypeController.dispose();
     referenceIdController.dispose();
@@ -428,6 +428,6 @@ class StockMovementViewModel extends ChangeNotifier {
     rateController.dispose();
     amountController.dispose();
     remarksController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

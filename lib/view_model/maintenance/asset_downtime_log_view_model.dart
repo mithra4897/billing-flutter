@@ -1,8 +1,8 @@
 import '../../../screen.dart';
 
-class AssetDowntimeLogViewModel extends ChangeNotifier {
+class AssetDowntimeLogViewModel extends GetxController {
   AssetDowntimeLogViewModel() {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
   }
 
   final MaintenanceService _maintenance = MaintenanceService();
@@ -87,7 +87,7 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       _sessionCompanyId = info.companyId;
@@ -138,11 +138,11 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
         return;
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -156,22 +156,22 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
     downtimeEndController.clear();
     productionImpactController.clear();
     isPlanned = false;
-    notifyListeners();
+    update();
   }
 
   void setAssetId(int? value) {
     assetId = value;
-    notifyListeners();
+    update();
   }
 
   void setMaintenanceWorkOrderId(int? value) {
     maintenanceWorkOrderId = value;
-    notifyListeners();
+    update();
   }
 
   void setIsPlanned(bool value) {
     isPlanned = value;
-    notifyListeners();
+    update();
   }
 
   Future<void> select(AssetDowntimeLogModel row) async {
@@ -182,7 +182,7 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _maintenance.downtimeLog(id);
       final doc = response.data ?? row;
@@ -192,7 +192,7 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
       formError = e.toString();
     } finally {
       detailLoading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -253,13 +253,13 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
     final err = _validateForSave();
     if (err != null) {
       formError = err;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     try {
       if (selected == null) {
         final response = await _maintenance.createDowntimeLog(
@@ -271,7 +271,7 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
         final id = selectedId;
         if (id == null) {
           formError = 'Missing downtime log id.';
-          notifyListeners();
+          update();
           return;
         }
         final response = await _maintenance.updateDowntimeLog(
@@ -283,10 +283,10 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
       }
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -301,7 +301,7 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
       await load();
     } catch (e) {
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -326,12 +326,12 @@ class AssetDowntimeLogViewModel extends ChangeNotifier {
   }
 
   @override
-  void dispose() {
+  void onClose() {
     searchController.dispose();
     downtimeReasonController.dispose();
     downtimeStartController.dispose();
     downtimeEndController.dispose();
     productionImpactController.dispose();
-    super.dispose();
+    super.onClose();
   }
 }

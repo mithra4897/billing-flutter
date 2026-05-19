@@ -20,17 +20,24 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
   final ScrollController _pageScrollController = ScrollController();
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
+  late final String _controllerTag;
   late final ProductionOrderViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = ProductionOrderViewModel()..load(selectId: widget.initialId);
+    _controllerTag = '${ProductionOrderViewModel}_${identityHashCode(this)}';
+    _viewModel = Get.put(
+      ProductionOrderViewModel()..load(selectId: widget.initialId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void dispose() {
-    _viewModel.dispose();
+    if (Get.isRegistered<ProductionOrderViewModel>(tag: _controllerTag)) {
+      Get.delete<ProductionOrderViewModel>(tag: _controllerTag);
+    }
     _pageScrollController.dispose();
     _workspaceController.dispose();
     super.dispose();
@@ -44,9 +51,9 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _viewModel,
-      builder: (context, _) {
+    return GetBuilder<ProductionOrderViewModel>(
+      tag: _controllerTag,
+      builder: (_) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
             onPressed: _viewModel.loading

@@ -72,9 +72,9 @@ class InternalStockReceiptLineDraft {
   }
 }
 
-class InternalStockReceiptViewModel extends ChangeNotifier {
+class InternalStockReceiptViewModel extends GetxController {
   InternalStockReceiptViewModel({this.initialItemId}) {
-    searchController.addListener(notifyListeners);
+    searchController.addListener(update);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
@@ -221,7 +221,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
-    notifyListeners();
+    update();
     try {
       final responses = await Future.wait<dynamic>([
         _inventoryService.internalStockReceipts(
@@ -322,11 +322,11 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
         }
       }
       resetDraft();
-      notifyListeners();
+      update();
     } catch (e) {
       pageError = e.toString();
       loading = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -364,7 +364,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       uomConversions,
       current: lines.first.uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void _ensureContextSelection() {
@@ -394,7 +394,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     selected = row;
     detailLoading = true;
     formError = null;
-    notifyListeners();
+    update();
     try {
       final response = await _inventoryService.internalStockReceipt(id);
       final data = (response.data ?? row).toJson();
@@ -427,11 +427,11 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
           ? <InternalStockReceiptLineDraft>[InternalStockReceiptLineDraft()]
           : _buildLineDrafts(apiLines);
       detailLoading = false;
-      notifyListeners();
+      update();
     } catch (e) {
       detailLoading = false;
       formError = e.toString();
-      notifyListeners();
+      update();
     }
   }
 
@@ -444,7 +444,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
         ? warehouseOptions.first.id
         : null;
     _clearLineBatchAndSerial();
-    notifyListeners();
+    update();
   }
 
   void onBranchChanged(int? value) {
@@ -455,7 +455,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
         : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _clearLineBatchAndSerial();
-    notifyListeners();
+    update();
   }
 
   void onLocationChanged(int? value) {
@@ -465,29 +465,29 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
         : null;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     _clearLineBatchAndSerial();
-    notifyListeners();
+    update();
   }
 
   void onFinancialYearChanged(int? value) {
     financialYearId = value;
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
-    notifyListeners();
+    update();
   }
 
   void onSeriesChanged(int? value) {
     documentSeriesId = value;
-    notifyListeners();
+    update();
   }
 
   void onWarehouseChanged(int? value) {
     warehouseId = value;
     _clearLineBatchAndSerial();
-    notifyListeners();
+    update();
   }
 
   void onReceiptSourceChanged(String? value) {
     receiptSource = value ?? 'department_return';
-    notifyListeners();
+    update();
   }
 
   void _clearLineBatchAndSerial() {
@@ -502,7 +502,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
   void addLine() {
     lines = List<InternalStockReceiptLineDraft>.from(lines)
       ..add(InternalStockReceiptLineDraft());
-    notifyListeners();
+    update();
   }
 
   void removeLine(int index) {
@@ -514,7 +514,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     lines = next.isEmpty
         ? <InternalStockReceiptLineDraft>[InternalStockReceiptLineDraft()]
         : next;
-    notifyListeners();
+    update();
   }
 
   void onLineItemChanged(int index, int? value) {
@@ -537,12 +537,12 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       uomConversions,
       current: lines[index].uomId,
     );
-    notifyListeners();
+    update();
   }
 
   void onLineUomChanged(int index, int? value) {
     lines[index].uomId = value;
-    notifyListeners();
+    update();
   }
 
   void onLineBatchChanged(int index, int? value) {
@@ -563,7 +563,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       );
     }
     _reconcileLineSerialSelection(lines[index]);
-    notifyListeners();
+    update();
   }
 
   void onLineBatchInputChanged(int index, String value) {
@@ -574,7 +574,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     if (normalized.isEmpty) {
       lines[index].batchId = null;
       _reconcileLineSerialSelection(lines[index]);
-      notifyListeners();
+      update();
       return;
     }
 
@@ -594,13 +594,13 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
       'id',
     );
     _reconcileLineSerialSelection(lines[index]);
-    notifyListeners();
+    update();
   }
 
   void onLineSerialChanged(int index, int? value) {
     lines[index].serialId = value;
     lines[index].serialIds = value == null ? <int>[] : <int>[value];
-    notifyListeners();
+    update();
   }
 
   void setLineSerialIds(int index, List<int> values) {
@@ -627,7 +627,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     if (itemHasSerial(lines[index].itemId)) {
       lines[index].qtyController.text = normalized.length.toString();
     }
-    notifyListeners();
+    update();
   }
 
   void setLineSerialNumbers(int index, List<String> values) {
@@ -659,7 +659,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     if (itemHasSerial(lines[index].itemId)) {
       lines[index].qtyController.text = normalized.length.toString();
     }
-    notifyListeners();
+    update();
   }
 
   void _reconcileLineSerialSelection(InternalStockReceiptLineDraft line) {
@@ -933,13 +933,13 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     final validationError = _validate();
     if (validationError != null) {
       formError = validationError;
-      notifyListeners();
+      update();
       return;
     }
     saving = true;
     formError = null;
     actionMessage = null;
-    notifyListeners();
+    update();
     final payload = <String, dynamic>{
       'company_id': companyId,
       'branch_id': branchId,
@@ -972,10 +972,10 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     } finally {
       saving = false;
-      notifyListeners();
+      update();
     }
   }
 
@@ -994,7 +994,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
@@ -1013,7 +1013,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
@@ -1029,12 +1029,12 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
-      notifyListeners();
+      update();
     }
   }
 
   @override
-  void dispose() {
+  void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     receiptNoController.dispose();
@@ -1044,7 +1044,7 @@ class InternalStockReceiptViewModel extends ChangeNotifier {
     for (final line in lines) {
       line.dispose();
     }
-    super.dispose();
+    super.onClose();
   }
 }
 
