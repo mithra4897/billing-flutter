@@ -82,7 +82,11 @@ class ServiceContractModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Service Contract';
+  String toString() => JsonModel.combineValues([
+    contractNo,
+    contractDate,
+    contractStartDate,
+  ], defaultValue: 'Service Contract');
 
 
   @override

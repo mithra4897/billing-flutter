@@ -73,7 +73,11 @@ class ProductionMaterialIssueModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Production Material Issue';
+  String toString() => JsonModel.combineValues([
+    issueNo,
+    issueDate,
+    issueStatus,
+  ], defaultValue: 'Production Material Issue');
 
 
   @override

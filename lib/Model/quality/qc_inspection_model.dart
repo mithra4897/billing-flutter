@@ -121,7 +121,11 @@ class QcInspectionModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Qc Inspection';
+  String toString() => JsonModel.combineValues([
+    inspectionNo,
+    lotNo,
+    inspectionDate,
+  ], defaultValue: 'QC Inspection');
 
 
   @override

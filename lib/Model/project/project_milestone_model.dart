@@ -32,7 +32,11 @@ class ProjectMilestoneModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project Milestone';
+  String toString() => JsonModel.combineValues([
+    milestoneName,
+    targetDate,
+    completionDate,
+  ], defaultValue: 'Project Milestone');
 
 
   @override

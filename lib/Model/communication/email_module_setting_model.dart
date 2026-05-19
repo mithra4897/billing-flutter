@@ -50,7 +50,9 @@ class EmailModuleSettingModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Email Module Setting';
+  String toString() => JsonModel.combineValues([
+    documentType,
+  ], defaultValue: 'Email Module Setting');
 
 
   @override

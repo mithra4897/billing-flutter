@@ -41,7 +41,11 @@ class ProjectVendorWorkModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project Vendor Work';
+  String toString() => JsonModel.combineValues([
+    workDescription,
+    workStatus,
+    amount,
+  ], defaultValue: 'Project Vendor Work');
 
 
   @override

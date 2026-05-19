@@ -93,7 +93,11 @@ class BomModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Bom';
+  String toString() => JsonModel.combineValues([
+    effectiveFrom,
+    bomName,
+    bomCode,
+  ], defaultValue: 'BOM');
 
 
   @override

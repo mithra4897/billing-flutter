@@ -61,7 +61,10 @@ class JobworkOrderOutputModel extends JsonModel {
     'remarks': remarks,
   };
   @override
-  String toString() => 'Jobwork Order Output';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    outputType,
+  ], defaultValue: 'Jobwork Order Output');
 
 
   @override

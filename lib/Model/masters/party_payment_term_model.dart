@@ -42,7 +42,9 @@ class PartyPaymentTermModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Party Payment Term';
+  String toString() => JsonModel.combineValues([
+    termName,
+  ], defaultValue: 'Party Payment Term');
 
 
   @override

@@ -44,7 +44,9 @@ class AuditLogModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Audit Log';
+  String toString() => JsonModel.combineValues([
+    tableName,
+  ], defaultValue: 'Audit Log');
 
 
   @override

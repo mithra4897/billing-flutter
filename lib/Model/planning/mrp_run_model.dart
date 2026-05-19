@@ -81,7 +81,11 @@ class MrpRunModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Mrp Run';
+  String toString() => JsonModel.combineValues([
+    runNo,
+    runDate,
+    planningStartDate,
+  ], defaultValue: 'MRP Run');
 
 
   @override

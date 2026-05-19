@@ -32,7 +32,9 @@ class PurchasePaymentAllocationModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Payment Allocation';
+  String toString() => JsonModel.combineValues([
+    allocationType,
+  ], defaultValue: 'Purchase Payment Allocation');
 
 
   @override

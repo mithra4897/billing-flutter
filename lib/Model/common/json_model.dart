@@ -8,12 +8,27 @@ abstract class JsonModel {
   @override
   String toString();
 
+  static String combineValues(
+    List<dynamic> values, {
+    String separator = ' - ',
+    String defaultValue = '',
+  }) {
+    final filtered = values
+        .where((v) => v != null && v.toString().trim().isNotEmpty)
+        .map((v) => v.toString())
+        .toList();
+
+    if (filtered.isEmpty) {
+      return defaultValue;
+    }
+
+    return filtered.join(separator);
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is JsonModel &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
+      other is JsonModel && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => Object.hash(runtimeType, id);

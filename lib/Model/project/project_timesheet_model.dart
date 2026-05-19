@@ -47,7 +47,12 @@ class ProjectTimesheetModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project Timesheet';
+  String toString() => JsonModel.combineValues([
+    notes,
+    workDate,
+    hoursWorked,
+    timesheetStatus,
+  ], defaultValue: 'Project Timesheet');
 
 
   @override

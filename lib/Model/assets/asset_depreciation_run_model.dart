@@ -64,7 +64,11 @@ class AssetDepreciationRunModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Asset Depreciation Run';
+  String toString() => JsonModel.combineValues([
+    runNo,
+    runDate,
+    depreciationFromDate,
+  ], defaultValue: 'Asset Depreciation Run');
 
 
   @override

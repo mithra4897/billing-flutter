@@ -73,7 +73,10 @@ class JobworkReceiptLineModel extends JsonModel {
     'remarks': remarks,
   };
   @override
-  String toString() => 'Jobwork Receipt Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    outputType,
+  ], defaultValue: 'Jobwork Receipt Line');
 
 
   @override

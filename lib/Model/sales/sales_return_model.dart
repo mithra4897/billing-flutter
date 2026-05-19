@@ -111,7 +111,11 @@ class SalesReturnModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Sales Return';
+  String toString() => JsonModel.combineValues([
+    returnNo,
+    returnDate,
+    returnStatus,
+  ], defaultValue: 'Sales Return');
 
 
   @override

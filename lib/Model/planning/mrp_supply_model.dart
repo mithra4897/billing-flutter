@@ -53,7 +53,10 @@ class MrpSupplyModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Mrp Supply';
+  String toString() => JsonModel.combineValues([
+    availableDate,
+    sourceDocumentType,
+  ], defaultValue: 'MRP Supply');
 
 
   @override

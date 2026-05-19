@@ -32,7 +32,9 @@ class AttendanceRecordModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Attendance Record';
+  String toString() => JsonModel.combineValues([
+    attendanceDate,
+  ], defaultValue: 'Attendance Record');
 
 
   @override

@@ -63,7 +63,10 @@ class BomLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Bom Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    lineType,
+  ], defaultValue: 'BOM Line');
 
 
   @override

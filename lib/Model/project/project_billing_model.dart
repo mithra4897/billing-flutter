@@ -35,7 +35,12 @@ class ProjectBillingModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project Billing';
+  String toString() => JsonModel.combineValues([
+    billingBasis,
+    billingDate,
+    billingAmount,
+    billingStatus,
+  ], defaultValue: 'Project Billing');
 
 
   @override

@@ -57,7 +57,11 @@ class LoginHistoryModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Login History';
+  String toString() => JsonModel.combineValues([
+    displayName,
+    firstName,
+    lastName,
+  ], defaultValue: 'Login History');
 
 
   @override

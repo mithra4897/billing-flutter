@@ -53,7 +53,11 @@ class AssetTransferLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Asset Transfer Line';
+  String toString() => JsonModel.combineValues([
+    fromDepartmentName,
+    toDepartmentName,
+    fromEmployeeName,
+  ], defaultValue: 'Asset Transfer Line');
 
 
   @override

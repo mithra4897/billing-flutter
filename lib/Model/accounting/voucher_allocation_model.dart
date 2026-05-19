@@ -43,7 +43,11 @@ class VoucherAllocationModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Voucher Allocation';
+  String toString() => JsonModel.combineValues([
+    referenceNo,
+    referenceDate,
+    allocationType,
+  ], defaultValue: 'Voucher Allocation');
 
 
   @override

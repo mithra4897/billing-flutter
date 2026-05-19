@@ -149,7 +149,11 @@ class AssetModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Asset';
+  String toString() => JsonModel.combineValues([
+    employeeName,
+    departmentName,
+    assetName,
+  ], defaultValue: 'Asset');
 
 
   @override

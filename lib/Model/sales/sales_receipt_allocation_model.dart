@@ -32,7 +32,9 @@ class SalesReceiptAllocationModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Sales Receipt Allocation';
+  String toString() => JsonModel.combineValues([
+    allocationType,
+  ], defaultValue: 'Sales Receipt Allocation');
 
 
   @override

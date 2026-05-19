@@ -67,7 +67,10 @@ class MaintenanceWorkOrderSpareModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Maintenance Work Order Spare';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    issueDocumentType,
+  ], defaultValue: 'Maintenance Work Order Spare');
 
 
   @override

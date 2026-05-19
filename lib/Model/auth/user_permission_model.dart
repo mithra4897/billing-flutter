@@ -114,7 +114,10 @@ class UserPermissionModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'User Permission';
+  String toString() => JsonModel.combineValues([
+    name,
+    code,
+  ], defaultValue: 'User Permission');
 
 
   @override

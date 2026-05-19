@@ -29,7 +29,10 @@ class ErpRecordModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Erp Record';
+  String toString() => JsonModel.combineValues([
+    name,
+    code,
+  ], defaultValue: 'ERP Record');
 
 
   @override

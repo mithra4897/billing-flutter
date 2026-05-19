@@ -124,7 +124,11 @@ class SalesQuotationModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Sales Quotation';
+  String toString() => JsonModel.combineValues([
+    quotationNo,
+    quotationDate,
+    currencyCode,
+  ], defaultValue: 'Sales Quotation');
 
 
   @override

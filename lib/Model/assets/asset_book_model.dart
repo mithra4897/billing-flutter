@@ -65,7 +65,11 @@ class AssetBookModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Asset Book';
+  String toString() => JsonModel.combineValues([
+    depreciationStartDate,
+    depreciationEndDate,
+    lastDepreciationDate,
+  ], defaultValue: 'Asset Book');
 
 
   @override

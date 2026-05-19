@@ -64,7 +64,11 @@ class OpeningStockModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Opening Stock';
+  String toString() => JsonModel.combineValues([
+    openingNo,
+    openingDate,
+    openingStatus,
+  ], defaultValue: 'Opening Stock');
 
 
   @override

@@ -38,7 +38,9 @@ class PayrollRunModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Payroll Run';
+  String toString() => JsonModel.combineValues([
+    runDate,
+  ], defaultValue: 'Payroll Run');
 
 
   @override

@@ -35,7 +35,11 @@ class PartyContactModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Party Contact';
+  String toString() => JsonModel.combineValues([
+    contactName,
+    email,
+    mobile,
+  ], defaultValue: 'Party Contact');
 
 
   @override

@@ -66,7 +66,10 @@ class JobworkOrderMaterialModel extends JsonModel {
     'remarks': remarks,
   };
   @override
-  String toString() => 'Jobwork Order Material';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    lineType,
+  ], defaultValue: 'Jobwork Order Material');
 
 
   @override

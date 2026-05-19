@@ -43,7 +43,11 @@ class PostingRuleGroupModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Posting Rule Group';
+  String toString() => JsonModel.combineValues([
+    groupName,
+    groupCode,
+    documentType,
+  ], defaultValue: 'Posting Rule Group');
 
 
   @override

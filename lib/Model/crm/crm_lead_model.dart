@@ -49,7 +49,11 @@ class CrmLeadModel extends JsonModel {
   }
 
   @override
-  String toString() => 'Crm Lead';
+  String toString() => JsonModel.combineValues([
+    leadName,
+    companyName,
+    mobile,
+  ], defaultValue: 'CRM Lead');
 
   @override
   Map<String, dynamic> toJson() => {

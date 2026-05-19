@@ -50,7 +50,12 @@ class PartyAddressModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Party Address';
+  String toString() => JsonModel.combineValues([
+    addressType,
+    addressLine1,
+    city,
+    postalCode,
+  ], defaultValue: 'Party Address');
 
 
   @override

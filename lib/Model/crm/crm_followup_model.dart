@@ -35,7 +35,9 @@ class CrmFollowupModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Crm Followup';
+  String toString() => JsonModel.combineValues([
+    followupDate,
+  ], defaultValue: 'CRM Followup');
 
 
   @override

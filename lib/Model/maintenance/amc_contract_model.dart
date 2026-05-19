@@ -79,7 +79,11 @@ class AmcContractModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Amc Contract';
+  String toString() => JsonModel.combineValues([
+    contractNo,
+    contractDate,
+    contractStartDate,
+  ], defaultValue: 'AMC Contract');
 
 
   @override

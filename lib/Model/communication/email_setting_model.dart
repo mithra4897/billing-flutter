@@ -71,7 +71,10 @@ class EmailSettingModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Email Setting';
+  String toString() => JsonModel.combineValues([
+    settingName,
+    fromName,
+  ], defaultValue: 'Email Setting');
 
 
   @override

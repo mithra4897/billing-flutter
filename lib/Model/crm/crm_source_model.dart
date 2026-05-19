@@ -25,7 +25,9 @@ class CrmSourceModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Crm Source';
+  String toString() => JsonModel.combineValues([
+    sourceName,
+  ], defaultValue: 'CRM Source');
 
 
   @override

@@ -84,7 +84,11 @@ class UserModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'User';
+  String toString() => JsonModel.combineValues([
+    displayName,
+    employeeName,
+    email,
+  ], defaultValue: 'User');
 
 
   @override

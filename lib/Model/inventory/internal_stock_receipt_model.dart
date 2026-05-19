@@ -73,7 +73,11 @@ class InternalStockReceiptModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Internal Stock Receipt';
+  String toString() => JsonModel.combineValues([
+    receiptNo,
+    receiptDate,
+    receiptStatus,
+  ], defaultValue: 'Internal Stock Receipt');
 
 
   @override

@@ -61,7 +61,11 @@ class CrmOpportunityModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Crm Opportunity';
+  String toString() => JsonModel.combineValues([
+    enquiryNo,
+    opportunityName,
+    enquiryDate,
+  ], defaultValue: 'CRM Opportunity');
 
 
   @override

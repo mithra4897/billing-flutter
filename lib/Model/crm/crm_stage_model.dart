@@ -41,7 +41,11 @@ class CrmStageModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Crm Stage';
+  String toString() => JsonModel.combineValues([
+    stageName,
+    sequenceNo,
+    stageType,
+  ], defaultValue: 'CRM Stage');
 
 
   @override

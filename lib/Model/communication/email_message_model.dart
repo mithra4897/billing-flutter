@@ -76,7 +76,10 @@ class EmailMessageModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Email Message';
+  String toString() => JsonModel.combineValues([
+    eventCode,
+    documentType,
+  ], defaultValue: 'Email Message');
 
 
   @override

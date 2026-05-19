@@ -74,7 +74,11 @@ class ProductionOrderMaterialModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Production Order Material';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    lineStatus,
+    lineType,
+  ], defaultValue: 'Production Order Material');
 
 
   @override

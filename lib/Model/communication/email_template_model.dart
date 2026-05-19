@@ -57,7 +57,11 @@ class EmailTemplateModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Email Template';
+  String toString() => JsonModel.combineValues([
+    templateName,
+    templateCode,
+    eventCode,
+  ], defaultValue: 'Email Template');
 
 
   @override

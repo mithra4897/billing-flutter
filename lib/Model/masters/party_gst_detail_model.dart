@@ -63,7 +63,12 @@ class PartyGstDetailModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Party Gst Detail';
+  String toString() => JsonModel.combineValues([
+    gstin,
+    tradeName,
+    legalName,
+    stateName,
+  ], defaultValue: 'Party Gst Detail');
 
 
   @override

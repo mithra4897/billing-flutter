@@ -63,7 +63,11 @@ class QcInspectionLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Qc Inspection Line';
+  String toString() => JsonModel.combineValues([
+    checkpointName,
+    lineNo,
+    resultStatus,
+  ], defaultValue: 'QC Inspection Line');
 
 
   @override

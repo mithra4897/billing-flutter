@@ -94,7 +94,10 @@ class SalesOrderLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Sales Order Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    lineStatus,
+  ], defaultValue: 'Sales Order Line');
 
 
   @override

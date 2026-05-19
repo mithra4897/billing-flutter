@@ -73,7 +73,11 @@ class PurchaseRequisitionModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Requisition';
+  String toString() => JsonModel.combineValues([
+    requisitionNo,
+    requisitionDate,
+    requiredDate,
+  ], defaultValue: 'Purchase Requisition');
 
 
   @override

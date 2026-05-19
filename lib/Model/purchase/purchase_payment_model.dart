@@ -85,7 +85,11 @@ class PurchasePaymentModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Payment';
+  String toString() => JsonModel.combineValues([
+    paymentNo,
+    referenceNo,
+    paymentDate,
+  ], defaultValue: 'Purchase Payment');
 
 
   @override

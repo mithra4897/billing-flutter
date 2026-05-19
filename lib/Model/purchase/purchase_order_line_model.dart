@@ -94,7 +94,10 @@ class PurchaseOrderLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Order Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    lineStatus,
+  ], defaultValue: 'Purchase Order Line');
 
 
   @override

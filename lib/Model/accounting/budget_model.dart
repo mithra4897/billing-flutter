@@ -52,7 +52,11 @@ class BudgetModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Budget';
+  String toString() => JsonModel.combineValues([
+    budgetName,
+    budgetCode,
+    budgetStatus,
+  ], defaultValue: 'Budget');
 
 
   @override

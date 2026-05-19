@@ -94,7 +94,11 @@ class EmailRuleModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Email Rule';
+  String toString() => JsonModel.combineValues([
+    ruleName,
+    ruleCode,
+    eventCode,
+  ], defaultValue: 'Email Rule');
 
 
   @override

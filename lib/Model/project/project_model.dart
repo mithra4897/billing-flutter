@@ -85,7 +85,11 @@ class ProjectModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project';
+  String toString() => JsonModel.combineValues([
+    projectName,
+    projectCode,
+    expectedStartDate,
+  ], defaultValue: 'Project');
 
 
   @override

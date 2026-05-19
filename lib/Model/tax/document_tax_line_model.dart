@@ -99,7 +99,11 @@ class DocumentTaxLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Document Tax Line';
+  String toString() => JsonModel.combineValues([
+    documentNo,
+    documentDate,
+    hsnSacCode,
+  ], defaultValue: 'Document Tax Line');
 
 
   @override

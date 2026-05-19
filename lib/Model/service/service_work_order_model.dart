@@ -136,7 +136,11 @@ class ServiceWorkOrderModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Service Work Order';
+  String toString() => JsonModel.combineValues([
+    workOrderNo,
+    serialNo,
+    workOrderDate,
+  ], defaultValue: 'Service Work Order');
 
 
   @override

@@ -69,7 +69,11 @@ class QcPlanLineModel extends JsonModel {
       'remarks': remarks!.trim(),
   };
   @override
-  String toString() => 'Qc Plan Line';
+  String toString() => JsonModel.combineValues([
+    checkpointName,
+    lineNo,
+    sequenceNo,
+  ], defaultValue: 'QC Plan Line');
 
 
   @override

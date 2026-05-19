@@ -72,7 +72,10 @@ class MrpNetRequirementModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Mrp Net Requirement';
+  String toString() => JsonModel.combineValues([
+    recommendedDate,
+    procurementType,
+  ], defaultValue: 'MRP Net Requirement');
 
 
   @override

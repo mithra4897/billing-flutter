@@ -124,7 +124,11 @@ class SalesOrderModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Sales Order';
+  String toString() => JsonModel.combineValues([
+    orderNo,
+    orderDate,
+    currencyCode,
+  ], defaultValue: 'Sales Order');
 
 
   @override

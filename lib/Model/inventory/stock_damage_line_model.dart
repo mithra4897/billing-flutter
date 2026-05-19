@@ -50,7 +50,9 @@ class StockDamageLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Damage Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+  ], defaultValue: 'Stock Damage Line');
 
 
   @override

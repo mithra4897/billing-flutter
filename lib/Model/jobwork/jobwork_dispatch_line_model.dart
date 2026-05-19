@@ -61,7 +61,9 @@ class JobworkDispatchLineModel extends JsonModel {
     'remarks': remarks,
   };
   @override
-  String toString() => 'Jobwork Dispatch Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+  ], defaultValue: 'Jobwork Dispatch Line');
 
 
   @override

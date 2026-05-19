@@ -12,6 +12,7 @@ class CrmLeadActivityModel extends JsonModel {
     this.createdAt,
     this.updatedAt,
   });
+
   final int? leadId;
   final String? activityType;
   final String? activityDatetime;
@@ -34,9 +35,13 @@ class CrmLeadActivityModel extends JsonModel {
       updatedAt: json['updated_at']?.toString(),
     );
   }
-  @override
-  String toString() => 'Crm Lead Activity';
 
+  @override
+  String toString() => JsonModel.combineValues([
+    activityType,
+    notes,
+    activityDatetime,
+  ], defaultValue: 'CRM Lead Activity');
 
   @override
   Map<String, dynamic> toJson() => {

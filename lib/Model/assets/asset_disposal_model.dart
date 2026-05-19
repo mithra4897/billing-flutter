@@ -70,7 +70,11 @@ class AssetDisposalModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Asset Disposal';
+  String toString() => JsonModel.combineValues([
+    disposalNo,
+    disposalDate,
+    disposalStatus,
+  ], defaultValue: 'Asset Disposal');
 
 
   @override

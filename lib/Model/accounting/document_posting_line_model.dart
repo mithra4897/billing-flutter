@@ -41,7 +41,9 @@ class DocumentPostingLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Document Posting Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+  ], defaultValue: 'Document Posting Line');
 
 
   @override

@@ -33,7 +33,10 @@ class PermissionModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Permission';
+  String toString() => JsonModel.combineValues([
+    name,
+    code,
+  ], defaultValue: 'Permission');
 
 
   @override

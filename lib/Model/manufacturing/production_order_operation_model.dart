@@ -67,7 +67,11 @@ class ProductionOrderOperationModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Production Order Operation';
+  String toString() => JsonModel.combineValues([
+    operationName,
+    operationNo,
+    operationStatus,
+  ], defaultValue: 'Production Order Operation');
 
 
   @override

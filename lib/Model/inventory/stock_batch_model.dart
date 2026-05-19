@@ -73,7 +73,11 @@ class StockBatchModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Batch';
+  String toString() => JsonModel.combineValues([
+    batchNo,
+    mfgDate,
+    manufactureDate,
+  ], defaultValue: 'Stock Batch');
 
 
   @override

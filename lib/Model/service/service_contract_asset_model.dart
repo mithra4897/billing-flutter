@@ -52,7 +52,11 @@ class ServiceContractAssetModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Service Contract Asset';
+  String toString() => JsonModel.combineValues([
+    serialNo,
+    installationDate,
+    warrantyStartDate,
+  ], defaultValue: 'Service Contract Asset');
 
 
   @override

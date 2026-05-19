@@ -44,7 +44,10 @@ class ProjectResourceUsageModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project Resource Usage';
+  String toString() => JsonModel.combineValues([
+    resourceName,
+    usageDate,
+  ], defaultValue: 'Project Resource Usage');
 
 
   @override

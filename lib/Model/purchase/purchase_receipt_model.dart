@@ -97,7 +97,11 @@ class PurchaseReceiptModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Receipt';
+  String toString() => JsonModel.combineValues([
+    receiptNo,
+    vehicleNo,
+    receiptDate,
+  ], defaultValue: 'Purchase Receipt');
 
 
   @override

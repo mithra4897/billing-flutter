@@ -103,7 +103,11 @@ class AssetCategoryModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Asset Category';
+  String toString() => JsonModel.combineValues([
+    categoryName,
+    categoryCode,
+    assetType,
+  ], defaultValue: 'Asset Category');
 
 
   @override

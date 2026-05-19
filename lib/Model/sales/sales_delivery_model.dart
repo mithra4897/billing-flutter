@@ -91,7 +91,11 @@ class SalesDeliveryModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Sales Delivery';
+  String toString() => JsonModel.combineValues([
+    deliveryNo,
+    vehicleNo,
+    deliveryDate,
+  ], defaultValue: 'Sales Delivery');
 
 
   @override

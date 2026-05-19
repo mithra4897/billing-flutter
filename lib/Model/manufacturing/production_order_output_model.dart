@@ -65,7 +65,11 @@ class ProductionOrderOutputModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Production Order Output';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    lineStatus,
+    outputType,
+  ], defaultValue: 'Production Order Output');
 
 
   @override

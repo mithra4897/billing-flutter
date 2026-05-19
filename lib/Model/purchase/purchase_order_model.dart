@@ -123,7 +123,11 @@ class PurchaseOrderModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Order';
+  String toString() => JsonModel.combineValues([
+    orderNo,
+    orderDate,
+    currencyCode,
+  ], defaultValue: 'Purchase Order');
 
 
   @override

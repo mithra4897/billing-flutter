@@ -105,7 +105,9 @@ class ItemPlanningPolicyModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Item Planning Policy';
+  String toString() => JsonModel.combineValues([
+    procurementType,
+  ], defaultValue: 'Item Planning Policy');
 
 
   @override

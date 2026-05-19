@@ -72,7 +72,11 @@ class MrpRecommendationModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Mrp Recommendation';
+  String toString() => JsonModel.combineValues([
+    recommendedDate,
+    recommendationStatus,
+    recommendationType,
+  ], defaultValue: 'MRP Recommendation');
 
 
   @override

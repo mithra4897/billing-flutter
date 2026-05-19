@@ -53,7 +53,9 @@ class StockTransferItemModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Transfer Item';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+  ], defaultValue: 'Stock Transfer Item');
 
 
   @override

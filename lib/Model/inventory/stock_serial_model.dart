@@ -41,7 +41,11 @@ class StockSerialModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Serial';
+  String toString() => JsonModel.combineValues([
+    serialNo,
+    inwardDate,
+    outwardDate,
+  ], defaultValue: 'Stock Serial');
 
 
   @override

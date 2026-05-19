@@ -121,7 +121,12 @@ class ServiceTicketModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Service Ticket';
+  String toString() => JsonModel.combineValues([
+    ticketNo,
+    issueTitle,
+    contactPersonName,
+    serialNo,
+  ], defaultValue: 'Service Ticket');
 
 
   @override

@@ -74,7 +74,11 @@ class MaintenanceRequestModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Maintenance Request';
+  String toString() => JsonModel.combineValues([
+    requestNo,
+    requestDate,
+    issueTitle,
+  ], defaultValue: 'Maintenance Request');
 
 
   @override

@@ -55,7 +55,10 @@ class MaintenancePlanAssetModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Maintenance Plan Asset';
+  String toString() => JsonModel.combineValues([
+    lastServiceDate,
+    nextServiceDueDate,
+  ], defaultValue: 'Maintenance Plan Asset');
 
 
   @override

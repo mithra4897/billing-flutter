@@ -57,7 +57,9 @@ class ProductionMaterialIssueLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Production Material Issue Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+  ], defaultValue: 'Production Material Issue Line');
 
 
   @override

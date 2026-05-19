@@ -64,7 +64,11 @@ class ProjectTaskModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project Task';
+  String toString() => JsonModel.combineValues([
+    taskName,
+    taskCode,
+    plannedStartDate,
+  ], defaultValue: 'Project Task');
 
 
   @override

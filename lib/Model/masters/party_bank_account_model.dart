@@ -54,7 +54,11 @@ class PartyBankAccountModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Party Bank Account';
+  String toString() => JsonModel.combineValues([
+    accountHolderName,
+    bankName,
+    branchName,
+  ], defaultValue: 'Party Bank Account');
 
 
   @override

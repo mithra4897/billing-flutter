@@ -77,7 +77,9 @@ class SalesQuotationLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Sales Quotation Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+  ], defaultValue: 'Sales Quotation Line');
 
 
   @override

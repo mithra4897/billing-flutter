@@ -70,7 +70,11 @@ class StockDamageEntryModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Damage Entry';
+  String toString() => JsonModel.combineValues([
+    damageNo,
+    damageDate,
+    damageStatus,
+  ], defaultValue: 'Stock Damage Entry');
 
 
   @override

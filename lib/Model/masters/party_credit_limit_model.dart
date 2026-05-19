@@ -37,7 +37,12 @@ class PartyCreditLimitModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Party Credit Limit';
+  String toString() => JsonModel.combineValues([
+    creditLimit,
+    creditDays,
+    effectiveFrom,
+    effectiveTo,
+  ], defaultValue: 'Party Credit Limit');
 
 
   @override

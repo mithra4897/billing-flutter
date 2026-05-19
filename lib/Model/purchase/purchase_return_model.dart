@@ -100,7 +100,11 @@ class PurchaseReturnModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Return';
+  String toString() => JsonModel.combineValues([
+    returnNo,
+    returnDate,
+    returnStatus,
+  ], defaultValue: 'Purchase Return');
 
 
   @override

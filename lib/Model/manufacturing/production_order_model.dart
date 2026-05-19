@@ -112,7 +112,11 @@ class ProductionOrderModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Production Order';
+  String toString() => JsonModel.combineValues([
+    productionNo,
+    productionDate,
+    plannedStartDate,
+  ], defaultValue: 'Production Order');
 
 
   @override

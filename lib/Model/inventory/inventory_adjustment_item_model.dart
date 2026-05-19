@@ -59,7 +59,9 @@ class InventoryAdjustmentItemModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Inventory Adjustment Item';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+  ], defaultValue: 'Inventory Adjustment Item');
 
 
   @override

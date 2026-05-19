@@ -51,7 +51,11 @@ class ServiceVisitLogModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Service Visit Log';
+  String toString() => JsonModel.combineValues([
+    visitType,
+    visitDate,
+    customerSignatureName,
+  ], defaultValue: 'Service Visit Log');
 
 
   @override

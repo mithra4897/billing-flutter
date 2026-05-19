@@ -39,7 +39,10 @@ class RoleModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Role';
+  String toString() => JsonModel.combineValues([
+    name,
+    code,
+  ], defaultValue: 'Role');
 
 
   @override

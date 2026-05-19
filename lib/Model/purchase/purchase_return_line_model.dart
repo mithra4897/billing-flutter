@@ -88,7 +88,9 @@ class PurchaseReturnLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Return Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+  ], defaultValue: 'Purchase Return Line');
 
 
   @override

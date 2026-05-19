@@ -69,7 +69,11 @@ class ServiceWorkOrderServiceModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Service Work Order Service';
+  String toString() => JsonModel.combineValues([
+    serviceDescription,
+    lineNo,
+    chargeType,
+  ], defaultValue: 'Service Work Order Service');
 
 
   @override

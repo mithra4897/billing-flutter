@@ -44,7 +44,10 @@ class ExpenseClaimLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Expense Claim Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    expenseDate,
+  ], defaultValue: 'Expense Claim Line');
 
 
   @override

@@ -52,7 +52,10 @@ class PostingRuleModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Posting Rule';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    accountSourceType,
+  ], defaultValue: 'Posting Rule');
 
 
   @override

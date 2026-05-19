@@ -29,7 +29,9 @@ class PayslipModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Payslip';
+  String toString() => JsonModel.combineValues([
+    payslipDate,
+  ], defaultValue: 'Payslip');
 
 
   @override

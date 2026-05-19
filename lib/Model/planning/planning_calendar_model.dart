@@ -51,7 +51,10 @@ class PlanningCalendarModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Planning Calendar';
+  String toString() => JsonModel.combineValues([
+    calendarName,
+    calendarCode,
+  ], defaultValue: 'Planning Calendar');
 
 
   @override

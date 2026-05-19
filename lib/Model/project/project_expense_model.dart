@@ -44,7 +44,12 @@ class ProjectExpenseModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project Expense';
+  String toString() => JsonModel.combineValues([
+    expenseCategory,
+    description,
+    expenseDate,
+    amount,
+  ], defaultValue: 'Project Expense');
 
 
   @override

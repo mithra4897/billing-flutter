@@ -33,7 +33,10 @@ class PartyTypeModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Party Type';
+  String toString() => JsonModel.combineValues([
+    name,
+    code,
+  ], defaultValue: 'Party Type');
 
 
   @override

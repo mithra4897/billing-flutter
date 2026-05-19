@@ -71,7 +71,11 @@ class DocumentPostingModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Document Posting';
+  String toString() => JsonModel.combineValues([
+    documentNo,
+    documentDate,
+    postingStatus,
+  ], defaultValue: 'Document Posting');
 
 
   @override

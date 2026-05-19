@@ -38,7 +38,11 @@ class ServiceTicketActivityModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Service Ticket Activity';
+  String toString() => JsonModel.combineValues([
+    activityType,
+    activityNotes,
+    activityDatetime,
+  ], defaultValue: 'Service Ticket Activity');
 
 
   @override

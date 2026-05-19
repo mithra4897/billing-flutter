@@ -117,7 +117,11 @@ class StockMovementModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Movement';
+  String toString() => JsonModel.combineValues([
+    referenceNo,
+    movementDate,
+    movementType,
+  ], defaultValue: 'Stock Movement');
 
 
   @override

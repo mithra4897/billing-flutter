@@ -46,7 +46,10 @@ class ProjectDashboardModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Project Dashboard';
+  String toString() => JsonModel.combineValues([
+    projectName,
+    projectCode,
+  ], defaultValue: 'Project Dashboard');
 
 
   @override

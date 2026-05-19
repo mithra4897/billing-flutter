@@ -54,7 +54,11 @@ class ServiceFeedbackModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Service Feedback';
+  String toString() => JsonModel.combineValues([
+    customerFeedback,
+    ratingOverall,
+    feedbackDate,
+  ], defaultValue: 'Service Feedback');
 
 
   @override

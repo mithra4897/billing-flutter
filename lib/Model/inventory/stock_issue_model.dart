@@ -76,7 +76,11 @@ class StockIssueModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Issue';
+  String toString() => JsonModel.combineValues([
+    departmentName,
+    issueNo,
+    issueDate,
+  ], defaultValue: 'Stock Issue');
 
 
   @override

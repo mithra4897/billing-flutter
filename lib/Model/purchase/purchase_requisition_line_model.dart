@@ -58,7 +58,10 @@ class PurchaseRequisitionLineModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Purchase Requisition Line';
+  String toString() => JsonModel.combineValues([
+    lineNo,
+    lineStatus,
+  ], defaultValue: 'Purchase Requisition Line');
 
 
   @override

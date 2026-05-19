@@ -76,7 +76,11 @@ class StockTransferModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Transfer';
+  String toString() => JsonModel.combineValues([
+    transferNo,
+    transferDate,
+    transferStatus,
+  ], defaultValue: 'Stock Transfer');
 
 
   @override

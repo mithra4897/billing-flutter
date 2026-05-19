@@ -64,7 +64,9 @@ class StockReservationModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Stock Reservation';
+  String toString() => JsonModel.combineValues([
+    referenceType,
+  ], defaultValue: 'Stock Reservation');
 
 
   @override

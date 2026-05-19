@@ -54,7 +54,11 @@ class MaintenancePlanModel extends JsonModel {
     );
   }
   @override
-  String toString() => 'Maintenance Plan';
+  String toString() => JsonModel.combineValues([
+    planName,
+    planCode,
+    maintenanceType,
+  ], defaultValue: 'Maintenance Plan');
 
 
   @override
