@@ -18,7 +18,7 @@ Status legend:
 | Assets | `lib/View/assets/asset_cost_center_page.dart` | page | `done` | Migrated to `AssetCostCenterManagementController` |
 | Assets | `lib/View/assets/asset_disposal_page.dart` | page | `done` | Migrated to `AssetDisposalManagementController` |
 | Assets | `lib/View/assets/fixed_asset_page.dart` | page | `done` | Migrated to `FixedAssetManagementController` |
-| Auth | `lib/View/auth/login_page.dart` | page | `pending` |  |
+| Auth | `lib/View/auth/login_page.dart` | page | `done` | Migrated to `LoginManagementController` |
 | Core | `lib/View/core/app_bootstrap_page.dart` | page | `done` | Migrated to `AppBootstrapController` |
 | Core | `lib/View/core/app_shell_page.dart` | page | `pending` |  |
 | Dashboard | `lib/View/dashboard/crm_dashboard_page.dart` | page | `done` | Already stateless wrapper over shared ERP dashboard loader |
