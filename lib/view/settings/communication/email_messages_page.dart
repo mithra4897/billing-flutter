@@ -1,3 +1,4 @@
+import '../../../controller/settings/communication/email_messages_management_controller.dart';
 import '../../../screen.dart';
 
 class EmailMessagesPage extends StatefulWidget {
@@ -8,8 +9,6 @@ class EmailMessagesPage extends StatefulWidget {
   });
 
   final bool embedded;
-
-  /// When true (e.g. `/communication/send-email`), opens the send dialog once after the first successful load.
   final bool openSendComposerOnInit;
 
   @override
@@ -17,153 +16,24 @@ class EmailMessagesPage extends StatefulWidget {
 }
 
 class _EmailMessagesPageState extends State<EmailMessagesPage> {
-  final CommunicationService _communicationService = CommunicationService();
-  final MasterService _masterService = MasterService();
-  final ScrollController _pageScrollController = ScrollController();
-  final TextEditingController _searchController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _sending = false;
-  String? _pageError;
-  int? _contextCompanyId;
-  List<AppDropdownItem<String>> _documentTypeItems = const [
-    AppDropdownItem(value: '', label: 'All'),
-  ];
-  List<EmailMessageModel> _messages = const <EmailMessageModel>[];
-  List<EmailMessageModel> _filteredMessages = const <EmailMessageModel>[];
-  EmailMessageModel? _selectedMessage;
-
-  String _errorMessage(Object error) {
-    if (error is ApiException) {
-      return error.displayMessage;
-    }
-    if (error is ApiResponse) {
-      return error.message;
-    }
-    return error.toString();
-  }
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
-    _loadPage();
-  }
-
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadPage({int? selectId}) async {
-    setState(() {
-      _initialLoading = _messages.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-      );
-      final documentSeriesResponse = await _masterService.documentSeries(
-        filters: const {'per_page': 500},
-      );
-      final messagesResponse = await _communicationService.emailMessages(
-        filters: const {'per_page': 100},
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      final companies = companiesResponse.data ?? const <CompanyModel>[];
-      final documentTypes =
-          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
-              .map((item) => (item.documentType ?? '').trim())
-              .where((item) => item.isNotEmpty)
-              .toSet()
-              .toList()
-            ..sort();
-      final messages = messagesResponse.data ?? const <EmailMessageModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies: activeCompanies,
-            branches: const <BranchModel>[],
-            locations: const <BusinessLocationModel>[],
-            financialYears: const <FinancialYearModel>[],
-          );
-
-      setState(() {
-        _contextCompanyId = contextSelection.companyId;
-        _documentTypeItems = [
-          const AppDropdownItem(value: '', label: 'All'),
-          ...documentTypes.map(
-            (item) => AppDropdownItem(value: item, label: item),
-          ),
-        ];
-        _messages = messages;
-        _filteredMessages = _filterMessages(messages, _searchController.text);
-        _initialLoading = false;
-      });
-
-      final selected = selectId != null
-          ? messages.cast<EmailMessageModel?>().firstWhere(
-              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
-              orElse: () => null,
-            )
-          : (_selectedMessage == null
-                ? (messages.isNotEmpty ? messages.first : null)
-                : messages.cast<EmailMessageModel?>().firstWhere(
-                    (item) =>
-                        intValue(item?.toJson() ?? const {}, 'id') ==
-                        intValue(_selectedMessage?.toJson() ?? const {}, 'id'),
-                    orElse: () => messages.isNotEmpty ? messages.first : null,
-                  ));
-
-      setState(() {
-        _selectedMessage = selected;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = _errorMessage(error);
-      });
-    }
+    _controllerTag = persistentControllerTag(
+      'EmailMessagesManagementController',
+    );
+    Get.put(EmailMessagesManagementController(), tag: _controllerTag);
   }
 
   String get _pageTitle =>
       widget.openSendComposerOnInit ? 'Send Email' : 'Email Messages';
 
-  void _applySearch() {
-    setState(() {
-      _filteredMessages = _filterMessages(_messages, _searchController.text);
-    });
-  }
-
-  List<EmailMessageModel> _filterMessages(
-    List<EmailMessageModel> items,
-    String query,
-  ) {
-    return filterMasterList(items, query, (message) {
-      final data = message.toJson();
-      return [
-        stringValue(data, 'subject'),
-        stringValue(data, 'status'),
-        stringValue(data, 'module'),
-        stringValue(data, 'to_emails'),
-      ];
-    });
-  }
-
-  Future<void> _openSendDialog() async {
+  Future<void> _openSendDialog(
+    BuildContext pageContext,
+    EmailMessagesManagementController controller,
+  ) async {
     final moduleController = TextEditingController();
     final documentTypeController = TextEditingController();
     final documentIdController = TextEditingController();
@@ -176,7 +46,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
     final isHtmlNotifier = ValueNotifier<bool>(true);
     final formKey = GlobalKey<FormState>();
 
-    final dialogContext = appNavigatorKey.currentContext ?? context;
+    final dialogContext = appNavigatorKey.currentContext ?? pageContext;
 
     final result = await showDialog<bool>(
       context: dialogContext,
@@ -200,7 +70,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
                         ),
                         AppDropdownField<String>.fromMapped(
                           labelText: 'Document Type',
-                          mappedItems: _documentTypeItems,
+                          mappedItems: controller.documentTypeItems,
                           initialValue: '',
                           onChanged: (value) =>
                               documentTypeController.text = value ?? '',
@@ -267,54 +137,20 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
                   return;
                 }
 
-                final scaffoldMessenger = ScaffoldMessenger.of(this.context);
                 Navigator.of(context).pop(true);
-                setState(() {
-                  _sending = true;
-                });
-
-                try {
-                  final response = await _communicationService.sendEmail(
-                    EmailMessageModel.fromJson({
-                      if (_contextCompanyId != null)
-                        'company_id': _contextCompanyId,
-                      'module': moduleController.text.trim(),
-                      'document_type': nullIfEmpty(documentTypeController.text),
-                      'document_id': int.tryParse(
-                        documentIdController.text.trim(),
-                      ),
-                      'event_code': nullIfEmpty(eventCodeController.text),
-                      'to': toController.text.trim(),
-                      'cc': nullIfEmpty(ccController.text),
-                      'bcc': nullIfEmpty(bccController.text),
-                      'subject': subjectController.text.trim(),
-                      'body': bodyController.text.trim(),
-                      'is_html': isHtmlNotifier.value,
-                    }),
-                  );
-                  if (!mounted) {
-                    return;
-                  }
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text(response.message)),
-                  );
-                  await _loadPage(
-                    selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-                  );
-                } catch (error) {
-                  if (!mounted) {
-                    return;
-                  }
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text(_errorMessage(error))),
-                  );
-                } finally {
-                  if (mounted) {
-                    setState(() {
-                      _sending = false;
-                    });
-                  }
-                }
+                await controller.sendEmail(
+                  context: pageContext,
+                  module: moduleController.text,
+                  documentType: documentTypeController.text,
+                  documentId: documentIdController.text,
+                  eventCode: eventCodeController.text,
+                  to: toController.text,
+                  cc: ccController.text,
+                  bcc: bccController.text,
+                  subject: subjectController.text,
+                  body: bodyController.text,
+                  isHtml: isHtmlNotifier.value,
+                );
               },
               icon: const Icon(Icons.send_outlined),
               label: const Text('Send Email'),
@@ -342,37 +178,58 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent(context);
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _sending ? null : _openSendDialog,
-        icon: Icons.send_outlined,
-        label: 'Send Email',
-      ),
-    ];
+    return GetBuilder<EmailMessagesManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        if (widget.openSendComposerOnInit &&
+            !controller.initialLoading &&
+            !controller.composerLaunched) {
+          controller.markComposerLaunched();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _openSendDialog(context, controller);
+            }
+          });
+        }
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
+        final content = _buildContent(context, controller);
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: controller.sending
+                ? null
+                : () => _openSendDialog(context, controller),
+            icon: Icons.send_outlined,
+            label: 'Send Email',
+          ),
+        ];
 
-    return AppStandaloneShell(
-      title: _pageTitle,
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
+
+        return AppStandaloneShell(
+          title: _pageTitle,
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    if (_initialLoading) {
+  Widget _buildContent(
+    BuildContext context,
+    EmailMessagesManagementController controller,
+  ) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading email messages...');
     }
 
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load email messages',
-        message: _pageError!,
-        onRetry: _loadPage,
+        message: controller.pageError!,
+        onRetry: controller.loadPage,
       );
     }
 
@@ -389,27 +246,30 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
             AppActionButton(
-              onPressed: _sending ? null : _openSendDialog,
+              onPressed: controller.sending
+                  ? null
+                  : () => _openSendDialog(context, controller),
               icon: Icons.send_outlined,
               label: 'Open Composer',
-              busy: _sending,
+              busy: controller.sending,
             ),
           ],
         ),
       );
     }
 
-    final selectedData = _selectedMessage?.toJson() ?? const <String, dynamic>{};
+    final selectedData =
+        controller.selectedMessage?.toJson() ?? const <String, dynamic>{};
 
     return SettingsWorkspace(
       title: _pageTitle,
-      editorTitle: _selectedMessage?.toString(),
-      scrollController: _pageScrollController,
+      editorTitle: controller.selectedMessage?.toString(),
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<EmailMessageModel>(
-        searchController: _searchController,
+        searchController: controller.searchController,
         searchHint: 'Search email messages',
-        items: _filteredMessages,
-        selectedItem: _selectedMessage,
+        items: controller.filteredMessages,
+        selectedItem: controller.selectedMessage,
         emptyMessage: 'No email messages found.',
         itemBuilder: (message, selected) {
           final data = message.toJson();
@@ -421,11 +281,11 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
               stringValue(data, 'created_at'),
             ].where((value) => value.isNotEmpty).join(' • '),
             selected: selected,
-            onTap: () => setState(() => _selectedMessage = message),
+            onTap: () => controller.selectMessage(message),
           );
         },
       ),
-      editor: _selectedMessage == null
+      editor: controller.selectedMessage == null
           ? const SettingsEmptyState(
               icon: Icons.mark_email_read_outlined,
               title: 'No email selected',

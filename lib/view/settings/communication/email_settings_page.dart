@@ -1,3 +1,4 @@
+import '../../../controller/settings/communication/email_settings_management_controller.dart';
 import '../../../screen.dart';
 
 class EmailSettingsPage extends StatefulWidget {
@@ -10,322 +11,70 @@ class EmailSettingsPage extends StatefulWidget {
 }
 
 class _EmailSettingsPageState extends State<EmailSettingsPage> {
-  static const List<AppDropdownItem<String>> _driverItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'disabled', label: 'Disabled'),
-        AppDropdownItem(value: 'log', label: 'Log'),
-        AppDropdownItem(value: 'mail', label: 'Mail / SMTP'),
-      ];
-
-  static const List<AppDropdownItem<String>> _encryptionItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'none', label: 'None'),
-        AppDropdownItem(value: 'tls', label: 'TLS'),
-        AppDropdownItem(value: 'ssl', label: 'SSL'),
-      ];
-
-  final CommunicationService _communicationService = CommunicationService();
-  final MasterService _masterService = MasterService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _settingNameController = TextEditingController();
-  final TextEditingController _fromNameController = TextEditingController();
-  final TextEditingController _fromEmailController = TextEditingController();
-  final TextEditingController _replyToEmailController = TextEditingController();
-  final TextEditingController _smtpHostController = TextEditingController();
-  final TextEditingController _smtpPortController = TextEditingController();
-  final TextEditingController _smtpUsernameController = TextEditingController();
-  final TextEditingController _smtpPasswordController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  List<EmailSettingModel> _settings = const <EmailSettingModel>[];
-  List<EmailSettingModel> _filteredSettings = const <EmailSettingModel>[];
-  EmailSettingModel? _selectedSetting;
-  int? _contextCompanyId;
-  int? _companyId;
-  String _mailDriver = 'disabled';
-  String _smtpEncryption = 'none';
-  bool _autoEmailEnabled = true;
-  bool _isDefault = false;
-  bool _isActive = true;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
-    _loadPage();
-  }
-
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
-    _settingNameController.dispose();
-    _fromNameController.dispose();
-    _fromEmailController.dispose();
-    _replyToEmailController.dispose();
-    _smtpHostController.dispose();
-    _smtpPortController.dispose();
-    _smtpUsernameController.dispose();
-    _smtpPasswordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadPage({int? selectId}) async {
-    setState(() {
-      _initialLoading = _settings.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-      );
-      final settingsResponse = await _communicationService.emailSettings();
-
-      if (!mounted) {
-        return;
-      }
-
-      final companies = companiesResponse.data ?? const <CompanyModel>[];
-      final settings = settingsResponse.data ?? const <EmailSettingModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies: activeCompanies,
-            branches: const <BranchModel>[],
-            locations: const <BusinessLocationModel>[],
-            financialYears: const <FinancialYearModel>[],
-          );
-
-      setState(() {
-        _contextCompanyId = contextSelection.companyId;
-        _settings = settings;
-        _filteredSettings = filterMasterList(settings, _searchController.text, (
-          setting,
-        ) {
-          final data = setting.toJson();
-          return [
-            stringValue(data, 'setting_name'),
-            stringValue(data, 'mail_driver'),
-            stringValue(data, 'from_email'),
-          ];
-        });
-        _initialLoading = false;
-      });
-
-      final selected = selectId != null
-          ? settings.cast<EmailSettingModel?>().firstWhere(
-              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
-              orElse: () => null,
-            )
-          : (_selectedSetting == null
-                ? (settings.isNotEmpty ? settings.first : null)
-                : settings.cast<EmailSettingModel?>().firstWhere(
-                    (item) =>
-                        intValue(item?.toJson() ?? const {}, 'id') ==
-                        intValue(_selectedSetting?.toJson() ?? const {}, 'id'),
-                    orElse: () => settings.isNotEmpty ? settings.first : null,
-                  ));
-
-      if (selected != null) {
-        _selectSetting(selected);
-      } else {
-        _resetForm();
-      }
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  void _applySearch() {
-    setState(() {
-      _filteredSettings = filterMasterList(_settings, _searchController.text, (
-        setting,
-      ) {
-        final data = setting.toJson();
-        return [
-          stringValue(data, 'setting_name'),
-          stringValue(data, 'mail_driver'),
-          stringValue(data, 'from_email'),
-        ];
-      });
-    });
-  }
-
-  void _selectSetting(EmailSettingModel setting) {
-    final data = setting.toJson();
-    _selectedSetting = setting;
-    _companyId = intValue(data, 'company_id');
-    _settingNameController.text = stringValue(data, 'setting_name');
-    _fromNameController.text = stringValue(data, 'from_name');
-    _fromEmailController.text = stringValue(data, 'from_email');
-    _replyToEmailController.text = stringValue(data, 'reply_to_email');
-    _smtpHostController.text = stringValue(data, 'smtp_host');
-    _smtpPortController.text = stringValue(data, 'smtp_port');
-    _smtpUsernameController.text = stringValue(data, 'smtp_username');
-    _smtpPasswordController.text = stringValue(data, 'smtp_password');
-    _mailDriver = stringValue(data, 'mail_driver', 'disabled');
-    _smtpEncryption = stringValue(data, 'smtp_encryption', 'none');
-    _autoEmailEnabled = boolValue(data, 'auto_email_enabled', fallback: true);
-    _isDefault = boolValue(data, 'is_default');
-    _isActive = boolValue(data, 'is_active', fallback: true);
-    _formError = null;
-    setState(() {});
-  }
-
-  void _resetForm() {
-    _selectedSetting = null;
-    _companyId = _contextCompanyId;
-    _settingNameController.clear();
-    _fromNameController.clear();
-    _fromEmailController.clear();
-    _replyToEmailController.clear();
-    _smtpHostController.clear();
-    _smtpPortController.clear();
-    _smtpUsernameController.clear();
-    _smtpPasswordController.clear();
-    _mailDriver = 'disabled';
-    _smtpEncryption = 'none';
-    _autoEmailEnabled = true;
-    _isDefault = false;
-    _isActive = true;
-    _formError = null;
-    setState(() {});
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    final body = EmailSettingModel.fromJson({
-      if (intValue(_selectedSetting?.toJson() ?? const {}, 'id') != null)
-        'id': intValue(_selectedSetting!.toJson(), 'id'),
-      if (_companyId != null) 'company_id': _companyId,
-      'setting_name': _settingNameController.text.trim(),
-      'mail_driver': _mailDriver,
-      'from_name': _fromNameController.text.trim(),
-      'from_email': _fromEmailController.text.trim(),
-      'reply_to_email': nullIfEmpty(_replyToEmailController.text),
-      'smtp_host': nullIfEmpty(_smtpHostController.text),
-      'smtp_port': int.tryParse(_smtpPortController.text.trim()),
-      'smtp_encryption': _smtpEncryption,
-      'smtp_username': nullIfEmpty(_smtpUsernameController.text),
-      'smtp_password': nullIfEmpty(_smtpPasswordController.text),
-      'auto_email_enabled': _autoEmailEnabled,
-      'is_default': _isDefault,
-      'is_active': _isActive,
-    });
-
-    try {
-      final id = intValue(_selectedSetting?.toJson() ?? const {}, 'id');
-      final response = id == null
-          ? await _communicationService.createEmailSetting(body)
-          : await _communicationService.updateEmailSetting(id, body);
-
-      final saved = response.data;
-      if (!mounted) {
-        return;
-      }
-      if (saved == null) {
-        setState(() {
-          _formError = response.message;
-        });
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(saved.toJson(), 'id'));
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  void _startNewEmailSetting() {
-    _resetForm();
-
-    if (!Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
+    _controllerTag = persistentControllerTag(
+      'EmailSettingsManagementController',
+    );
+    Get.put(EmailSettingsManagementController(), tag: _controllerTag);
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent(context);
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _startNewEmailSetting,
-        icon: Icons.add_outlined,
-        label: 'New Email Setting',
-      ),
-    ];
+    return GetBuilder<EmailSettingsManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = _buildContent(controller);
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => controller.startNewEmailSetting(
+              isDesktop: Responsive.isDesktop(context),
+            ),
+            icon: Icons.add_outlined,
+            label: 'New Email Setting',
+          ),
+        ];
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
 
-    return AppStandaloneShell(
-      title: 'Email Settings',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+        return AppStandaloneShell(
+          title: 'Email Settings',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    if (_initialLoading) {
+  Widget _buildContent(EmailSettingsManagementController controller) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading email settings...');
     }
 
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load email settings',
-        message: _pageError!,
-        onRetry: _loadPage,
+        message: controller.pageError!,
+        onRetry: controller.loadPage,
       );
     }
 
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Email Settings',
-      editorTitle: _selectedSetting?.toString(),
-      scrollController: _pageScrollController,
+      editorTitle: controller.selectedSetting?.toString(),
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<EmailSettingModel>(
-        searchController: _searchController,
+        searchController: controller.searchController,
         searchHint: 'Search email settings',
-        items: _filteredSettings,
-        selectedItem: _selectedSetting,
+        items: controller.filteredSettings,
+        selectedItem: controller.selectedSetting,
         emptyMessage: 'No email settings found.',
         itemBuilder: (setting, selected) {
           final data = setting.toJson();
@@ -336,7 +85,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
               stringValue(data, 'from_email'),
             ].where((value) => value.isNotEmpty).join(' • '),
             selected: selected,
-            onTap: () => _selectSetting(setting),
+            onTap: () => controller.selectSetting(setting),
             trailing: SettingsStatusPill(
               label: boolValue(data, 'is_active', fallback: true)
                   ? 'Active'
@@ -347,65 +96,64 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
         },
       ),
       editor: Form(
-        key: _formKey,
+        key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
+            if (controller.formError != null) ...[
+              AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: 16),
             ],
             SettingsFormWrap(
               children: [
                 AppFormTextField(
                   labelText: 'Setting Name',
-                  controller: _settingNameController,
+                  controller: controller.settingNameController,
                   validator: Validators.required('Setting name'),
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Mail Driver',
-                  mappedItems: _driverItems,
-                  initialValue: _mailDriver,
-                  onChanged: (value) =>
-                      setState(() => _mailDriver = value ?? 'disabled'),
+                  mappedItems: EmailSettingsManagementController.driverItems,
+                  initialValue: controller.mailDriver,
+                  onChanged: controller.setMailDriver,
                 ),
                 AppFormTextField(
                   labelText: 'From Name',
-                  controller: _fromNameController,
+                  controller: controller.fromNameController,
                   validator: Validators.required('From name'),
                 ),
                 AppFormTextField(
                   labelText: 'From Email',
-                  controller: _fromEmailController,
+                  controller: controller.fromEmailController,
                   validator: Validators.required('From email'),
                 ),
                 AppFormTextField(
                   labelText: 'Reply-To Email',
-                  controller: _replyToEmailController,
+                  controller: controller.replyToEmailController,
                 ),
                 AppFormTextField(
                   labelText: 'SMTP Host',
-                  controller: _smtpHostController,
+                  controller: controller.smtpHostController,
                 ),
                 AppFormTextField(
                   labelText: 'SMTP Port',
-                  controller: _smtpPortController,
+                  controller: controller.smtpPortController,
                   keyboardType: TextInputType.number,
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Encryption',
-                  mappedItems: _encryptionItems,
-                  initialValue: _smtpEncryption,
-                  onChanged: (value) =>
-                      setState(() => _smtpEncryption = value ?? 'none'),
+                  mappedItems:
+                      EmailSettingsManagementController.encryptionItems,
+                  initialValue: controller.smtpEncryption,
+                  onChanged: controller.setSmtpEncryption,
                 ),
                 AppFormTextField(
                   labelText: 'SMTP Username',
-                  controller: _smtpUsernameController,
+                  controller: controller.smtpUsernameController,
                 ),
                 AppFormTextField(
                   labelText: 'SMTP Password',
-                  controller: _smtpPasswordController,
+                  controller: controller.smtpPasswordController,
                   obscureText: true,
                 ),
               ],
@@ -418,23 +166,22 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
                 SizedBox(
                   child: AppSwitchTile(
                     label: 'Auto Email Enabled',
-                    value: _autoEmailEnabled,
-                    onChanged: (value) =>
-                        setState(() => _autoEmailEnabled = value),
+                    value: controller.autoEmailEnabled,
+                    onChanged: controller.setAutoEmailEnabled,
                   ),
                 ),
                 SizedBox(
                   child: AppSwitchTile(
                     label: 'Default Setting',
-                    value: _isDefault,
-                    onChanged: (value) => setState(() => _isDefault = value),
+                    value: controller.isDefault,
+                    onChanged: controller.setIsDefault,
                   ),
                 ),
                 SizedBox(
                   child: AppSwitchTile(
                     label: 'Active',
-                    value: _isActive,
-                    onChanged: (value) => setState(() => _isActive = value),
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
                   ),
                 ),
               ],
@@ -446,11 +193,11 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
               children: [
                 AppActionButton(
                   icon: Icons.save_outlined,
-                  label: _selectedSetting == null
+                  label: controller.selectedSetting == null
                       ? 'Save Email Setting'
                       : 'Update Email Setting',
-                  onPressed: _save,
-                  busy: _saving,
+                  onPressed: controller.save,
+                  busy: controller.saving,
                 ),
               ],
             ),
