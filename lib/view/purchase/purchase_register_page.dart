@@ -119,51 +119,57 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppSectionCard(child: widget.filters),
+          SizedBox(
+            width: double.infinity,
+            child: AppSectionCard(child: widget.filters),
+          ),
           const SizedBox(height: AppUiConstants.spacingLg),
-          AppSectionCard(
-            child: widget.rows.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppUiConstants.spacingXl,
+          SizedBox(
+            width: double.infinity,
+            child: AppSectionCard(
+              child: widget.rows.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppUiConstants.spacingXl,
+                      ),
+                      child: Text(widget.emptyMessage),
+                    )
+                  : Column(
+                      children: [
+                        _RegisterHeader<T>(columns: widget.columns),
+                        const Divider(height: 1),
+                        SizedBox(
+                          height: PurchaseRegisterPage.listViewportHeight,
+                          child: ListView.builder(
+                            primary: false,
+                            itemCount: visibleRows.length,
+                            itemBuilder: (context, index) {
+                              final row = visibleRows[index];
+                              return _RegisterRow<T>(
+                                row: row,
+                                columns: widget.columns,
+                                onTap: () => widget.onRowTap(row),
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppUiConstants.spacingSm,
+                            0,
+                            AppUiConstants.spacingSm,
+                            AppUiConstants.spacingSm,
+                          ),
+                          child: LocalPageNavigation(
+                            totalItems: widget.rows.length,
+                            currentPage: _currentPage,
+                            onPageChanged: (page) =>
+                                setState(() => _currentPage = page),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Text(widget.emptyMessage),
-                  )
-                : Column(
-                    children: [
-                      _RegisterHeader<T>(columns: widget.columns),
-                      const Divider(height: 1),
-                      SizedBox(
-                        height: PurchaseRegisterPage.listViewportHeight,
-                        child: ListView.builder(
-                          primary: false,
-                          itemCount: visibleRows.length,
-                          itemBuilder: (context, index) {
-                            final row = visibleRows[index];
-                            return _RegisterRow<T>(
-                              row: row,
-                              columns: widget.columns,
-                              onTap: () => widget.onRowTap(row),
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppUiConstants.spacingSm,
-                          0,
-                          AppUiConstants.spacingSm,
-                          AppUiConstants.spacingSm,
-                        ),
-                        child: LocalPageNavigation(
-                          totalItems: widget.rows.length,
-                          currentPage: _currentPage,
-                          onPageChanged: (page) =>
-                              setState(() => _currentPage = page),
-                        ),
-                      ),
-                    ],
-                  ),
+            ),
           ),
         ],
       ),

@@ -44,7 +44,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         initialSelectId: widget.initialSelectId,
       ),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
@@ -73,12 +73,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             filled: false,
           ),
           AdaptiveShellActionButton(
-            onPressed: () {
-              controller.resetForm();
-              if (!Responsive.isDesktop(context)) {
-                controller.workspaceController.openEditor();
-              }
-            },
+            onPressed: () =>
+                _openCrmShellRoute(context, '/crm/opportunities/new'),
             icon: Icons.add_outlined,
             label: 'New Opportunity',
           ),
@@ -109,7 +105,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
       context: context,
       barrierDismissible: true,
       builder: (dialogContext) {
-        final appTheme = Theme.of(dialogContext).extension<AppThemeExtension>()!;
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
         return Dialog(
           insetPadding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
@@ -156,7 +154,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Customer',
-                          initialValue: controller.filterCustomerPartyId ??
+                          initialValue:
+                              controller.filterCustomerPartyId ??
                               CrmEnquiriesController.allFilterIntValue,
                           mappedItems: <AppDropdownItem<int>>[
                             const AppDropdownItem<int>(
@@ -178,7 +177,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Stage',
-                          initialValue: controller.filterStageId ??
+                          initialValue:
+                              controller.filterStageId ??
                               CrmEnquiriesController.allFilterIntValue,
                           mappedItems: <AppDropdownItem<int>>[
                             const AppDropdownItem<int>(
@@ -203,7 +203,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Assigned To',
-                          initialValue: controller.filterAssignedTo ??
+                          initialValue:
+                              controller.filterAssignedTo ??
                               CrmEnquiriesController.allFilterIntValue,
                           mappedItems: <AppDropdownItem<int>>[
                             const AppDropdownItem<int>(
@@ -226,11 +227,13 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       _filterBox(
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
-                          initialValue: controller.filterEnquiryStatus ??
+                          initialValue:
+                              controller.filterEnquiryStatus ??
                               CrmEnquiriesController.allFilterStringValue,
                           mappedItems: <AppDropdownItem<String>>[
                             const AppDropdownItem<String>(
-                              value: CrmEnquiriesController.allFilterStringValue,
+                              value:
+                                  CrmEnquiriesController.allFilterStringValue,
                               label: 'All',
                             ),
                             ...CrmEnquiriesController.filterStatusItems,
@@ -299,7 +302,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     final selected = await showAppDatePickerDialog(
       context: context,
       title: 'Select Opportunity Date',
-      initialDate: tryParseCalendarDate(controller.enquiryDateController.text) ?? now,
+      initialDate:
+          tryParseCalendarDate(controller.enquiryDateController.text) ?? now,
       firstDate: DateTime(now.year - 5, 1, 1),
       lastDate: DateTime(now.year + 5, 12, 31),
     );
@@ -357,11 +361,11 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   ) {
     final leadName = query.trim();
     final route = Uri(
-      path: '/crm/leads',
+      path: '/crm/leads/new',
       queryParameters: <String, String>{
-        'new': '1',
         if (leadName.isNotEmpty) 'lead_name': leadName,
-        if (controller.companyId != null) 'company_id': controller.companyId.toString(),
+        if (controller.companyId != null)
+          'company_id': controller.companyId.toString(),
       },
     ).toString();
     _openCrmShellRoute(context, route);
@@ -414,6 +418,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             emptyMessage: 'No CRM opportunities found.',
             itemBuilder: (item, selected) {
               final data = item.toJson();
+              final id = intValue(data, 'id');
               return SettingsListTile(
                 title: item.toString(),
                 subtitle: [
@@ -425,7 +430,12 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   ),
                 ].where((value) => value.isNotEmpty).join(' • '),
                 selected: selected,
-                onTap: () => controller.selectItem(item),
+                onTap: () {
+                  if (id == null) {
+                    return;
+                  }
+                  _openCrmShellRoute(context, '/crm/opportunities/$id');
+                },
                 detail: stringValue(data, 'remarks'),
                 trailing: SettingsStatusPill(
                   label: controller.lifecycleStatusLabel(
@@ -435,9 +445,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   ),
                   active:
                       (stringValue(data, 'status') == 'won'
-                                  ? 'won'
-                                  : stringValue(data, 'enquiry_status', 'open')) !=
-                          'lost',
+                          ? 'won'
+                          : stringValue(data, 'enquiry_status', 'open')) !=
+                      'lost',
                 ),
               );
             },
@@ -496,7 +506,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         'Stage: ${controller.filterStageId == null ? 'All' : controller.stages.cast<CrmStageModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterStageId, orElse: () => null)?.toString() ?? controller.filterStageId}',
       if (controller.filterAssignedTo != null || controller.filtersApplied)
         'Assigned: ${controller.filterAssignedTo == null ? 'All' : controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.username ?? controller.filterAssignedTo}',
-      if ((controller.filterEnquiryStatus ?? '').isNotEmpty || controller.filtersApplied)
+      if ((controller.filterEnquiryStatus ?? '').isNotEmpty ||
+          controller.filtersApplied)
         'Status: ${(controller.filterEnquiryStatus ?? CrmEnquiriesController.allFilterStringValue) == CrmEnquiriesController.allFilterStringValue ? 'All' : controller.filterEnquiryStatus}',
       if (controller.filterDateFromController.text.trim().isNotEmpty)
         'From: ${controller.filterDateFromController.text.trim()}',
@@ -528,7 +539,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     );
   }
 
-  Widget _filterBox({required Widget child}) => SizedBox(width: 240, child: child);
+  Widget _filterBox({required Widget child}) =>
+      SizedBox(width: 240, child: child);
 
   Widget _buildPrimaryTab(
     BuildContext context,
@@ -726,10 +738,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           children: [
             Text(
               'Requested Items',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             AppActionButton(
@@ -762,7 +773,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 highlighted: expanded,
                 leadingIcon: Icons.inventory_2_outlined,
                 trailing: IconButton(
-                  onPressed: isLocked ? null : () => controller.removeLine(index),
+                  onPressed: isLocked
+                      ? null
+                      : () => controller.removeLine(index),
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -803,8 +816,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                       AppFormTextField(
                         controller: line.qtyController,
                         labelText: 'Quantity',
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                       ),
                     ],
                   ),
@@ -839,10 +853,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           children: [
             Text(
               'Followups',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             AppActionButton(
@@ -878,8 +891,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                 highlighted: expanded,
                 leadingIcon: Icons.alarm_outlined,
                 trailing: IconButton(
-                  onPressed:
-                      isLocked ? null : () => controller.removeFollowup(index),
+                  onPressed: isLocked
+                      ? null
+                      : () => controller.removeFollowup(index),
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -894,11 +908,8 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         controller: followup.followupDateController,
                         labelText: 'Followup Date',
                         hintText: 'YYYY-MM-DD HH:MM:SS',
-                        onTap: () => _pickFollowupDate(
-                          context,
-                          controller,
-                          followup,
-                        ),
+                        onTap: () =>
+                            _pickFollowupDate(context, controller, followup),
                       ),
                       AppDateTimeSelectorField(
                         controller: followup.nextFollowupController,

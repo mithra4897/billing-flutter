@@ -21,11 +21,13 @@ class CrmLeadsController extends GetxController {
 
   CrmLeadsController({
     required this.startInNewMode,
+    required this.initialSelectId,
     required this.initialLeadName,
     required this.initialCompanyId,
   });
 
   final bool startInNewMode;
+  final int? initialSelectId;
   final String? initialLeadName;
   final int? initialCompanyId;
 
@@ -75,7 +77,7 @@ class CrmLeadsController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(applySearch);
-    loadPage();
+    loadPage(selectId: initialSelectId);
   }
 
   @override
@@ -161,17 +163,22 @@ class CrmLeadsController extends GetxController {
             financialYears: const <FinancialYearModel>[],
           );
 
-      items = (responses[0] as PaginatedResponse<CrmLeadModel>).data ??
+      items =
+          (responses[0] as PaginatedResponse<CrmLeadModel>).data ??
           const <CrmLeadModel>[];
       companies = nextCompanies.where((item) => item.isActive).toList();
-      sources = ((responses[2] as PaginatedResponse<CrmSourceModel>).data ??
-              const <CrmSourceModel>[])
-          .where((item) => boolValue(item.toJson(), 'is_active', fallback: true))
-          .toList();
-      users = ((responses[3] as PaginatedResponse<UserModel>).data ??
-              const <UserModel>[])
-          .where((item) => (item.status ?? 'active') == 'active')
-          .toList();
+      sources =
+          ((responses[2] as PaginatedResponse<CrmSourceModel>).data ??
+                  const <CrmSourceModel>[])
+              .where(
+                (item) => boolValue(item.toJson(), 'is_active', fallback: true),
+              )
+              .toList();
+      users =
+          ((responses[3] as PaginatedResponse<UserModel>).data ??
+                  const <UserModel>[])
+              .where((item) => (item.status ?? 'active') == 'active')
+              .toList();
       contextCompanyId = contextSelection.companyId;
       initialLoading = false;
       applySearch(notify: false);
@@ -227,50 +234,55 @@ class CrmLeadsController extends GetxController {
   }
 
   void applySearch({bool notify = true}) {
-    filteredItems = filterMasterList(items, searchController.text, (item) {
-          final data = item.toJson();
-          return [
-            stringValue(data, 'lead_name'),
-            stringValue(data, 'company_name'),
-            stringValue(data, 'mobile'),
-            stringValue(data, 'email'),
-            leadStatusLabel(stringValue(data, 'lead_status')),
-          ];
-        })
-        .where((item) {
-          final data = item.toJson();
-          final completed = isCompletedLead(item);
-          final rowStatus = stringValue(data, 'lead_status', 'new');
-          final requestedStatus =
-              (filtersApplied ? (filterLeadStatus ?? allFilterStringValue) : (filterLeadStatus ?? ''))
-                  .trim();
-          final showAllStatuses =
-              filtersApplied && requestedStatus == allFilterStringValue;
-          if (completed && !showAllStatuses && requestedStatus != rowStatus) {
-            return false;
-          }
-          if (filterCompanyId != null &&
-              intValue(data, 'company_id') != filterCompanyId) {
-            return false;
-          }
-          if (filterSourceId != null &&
-              filterSourceId != allFilterIntValue &&
-              intValue(data, 'source_id') != filterSourceId) {
-            return false;
-          }
-          if (filterAssignedTo != null &&
-              filterAssignedTo != allFilterIntValue &&
-              intValue(data, 'assigned_to') != filterAssignedTo) {
-            return false;
-          }
-          if ((filterLeadStatus ?? '').isNotEmpty &&
-              filterLeadStatus != allFilterStringValue &&
-              rowStatus != filterLeadStatus) {
-            return false;
-          }
-          return true;
-        })
-        .toList(growable: false);
+    filteredItems =
+        filterMasterList(items, searchController.text, (item) {
+              final data = item.toJson();
+              return [
+                stringValue(data, 'lead_name'),
+                stringValue(data, 'company_name'),
+                stringValue(data, 'mobile'),
+                stringValue(data, 'email'),
+                leadStatusLabel(stringValue(data, 'lead_status')),
+              ];
+            })
+            .where((item) {
+              final data = item.toJson();
+              final completed = isCompletedLead(item);
+              final rowStatus = stringValue(data, 'lead_status', 'new');
+              final requestedStatus =
+                  (filtersApplied
+                          ? (filterLeadStatus ?? allFilterStringValue)
+                          : (filterLeadStatus ?? ''))
+                      .trim();
+              final showAllStatuses =
+                  filtersApplied && requestedStatus == allFilterStringValue;
+              if (completed &&
+                  !showAllStatuses &&
+                  requestedStatus != rowStatus) {
+                return false;
+              }
+              if (filterCompanyId != null &&
+                  intValue(data, 'company_id') != filterCompanyId) {
+                return false;
+              }
+              if (filterSourceId != null &&
+                  filterSourceId != allFilterIntValue &&
+                  intValue(data, 'source_id') != filterSourceId) {
+                return false;
+              }
+              if (filterAssignedTo != null &&
+                  filterAssignedTo != allFilterIntValue &&
+                  intValue(data, 'assigned_to') != filterAssignedTo) {
+                return false;
+              }
+              if ((filterLeadStatus ?? '').isNotEmpty &&
+                  filterLeadStatus != allFilterStringValue &&
+                  rowStatus != filterLeadStatus) {
+                return false;
+              }
+              return true;
+            })
+            .toList(growable: false);
     if (notify) {
       update();
     }
@@ -397,8 +409,9 @@ class CrmLeadsController extends GetxController {
       'assigned_to': assignedTo,
       'lead_status': effectiveLeadStatus(),
       'remarks': nullIfEmpty(remarksController.text),
-      'activities':
-          activities.map((item) => item.toJson()).toList(growable: false),
+      'activities': activities
+          .map((item) => item.toJson())
+          .toList(growable: false),
     });
 
     try {
@@ -456,8 +469,9 @@ class CrmLeadsController extends GetxController {
       'assigned_to': assignedTo,
       'lead_status': 'lost',
       'remarks': nullIfEmpty(remarksController.text),
-      'activities':
-          activities.map((item) => item.toJson()).toList(growable: false),
+      'activities': activities
+          .map((item) => item.toJson())
+          .toList(growable: false),
     });
 
     try {

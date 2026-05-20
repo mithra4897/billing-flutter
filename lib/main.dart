@@ -10,6 +10,29 @@ import 'view/auth/login_page.dart';
 import 'view/core/app_bootstrap_page.dart';
 import 'view/core/app_shell_page.dart';
 
+String _normalizeShellEditorPath(String path) {
+  final segments = path
+      .split('/')
+      .where((segment) => segment.isNotEmpty)
+      .toList(growable: false);
+  if (segments.isEmpty) {
+    return path;
+  }
+
+  if (segments.length == 2 &&
+      segments.first == 'parties' &&
+      (segments[1] == 'new' || int.tryParse(segments[1]) != null)) {
+    return '/parties';
+  }
+
+  if (segments.length == 3 &&
+      (segments[2] == 'new' || int.tryParse(segments[2]) != null)) {
+    return '/${segments[0]}/${segments[1]}';
+  }
+
+  return path;
+}
+
 void main() {
   if (kIsWeb) {
     usePathUrlStrategy();
@@ -63,6 +86,7 @@ class BillingApp extends StatelessWidget {
                   LoginPage(redirectTo: uri.queryParameters['redirect']),
             );
           default:
+            final normalizedPath = _normalizeShellEditorPath(uri.path);
             final matchedRoute =
                 uri.path == '/dashboard' ||
                 uri.path == '/crm/dashboard' ||
@@ -70,6 +94,7 @@ class BillingApp extends StatelessWidget {
                 uri.path.startsWith('/sales/') ||
                 uri.path.startsWith('/inventory/') ||
                 AppNavigation.findByPath(uri.path) != null ||
+                AppNavigation.findByPath(normalizedPath) != null ||
                 const <String>{
                   '/communication/send-email',
                   '/parties/addresses',

@@ -1,7 +1,9 @@
 import '../../screen.dart';
 
 class AppBootstrapPage extends StatefulWidget {
-  const AppBootstrapPage({super.key});
+  const AppBootstrapPage({super.key, this.redirectTo = '/dashboard'});
+
+  final String redirectTo;
 
   @override
   State<AppBootstrapPage> createState() => _AppBootstrapPageState();
@@ -29,18 +31,14 @@ class _AppBootstrapPageState extends State<AppBootstrapPage> {
 
     try {
       await _brandingService.fetchBranding();
-      await AppSessionService.instance.bootstrap();
+      final restoredSession = await AppSessionService.instance.bootstrap();
 
       if (!mounted) {
         return;
       }
 
-      final shouldAutoLogin = await SessionStorage.shouldAutoLogin();
-      if (!mounted) {
-        return;
-      }
-      if (!shouldAutoLogin) {
-        Navigator.of(context).pushReplacementNamed('/login');
+      if (!restoredSession) {
+        Navigator.of(context).pushReplacementNamed(_loginRoute());
         return;
       }
 
@@ -57,7 +55,7 @@ class _AppBootstrapPageState extends State<AppBootstrapPage> {
           if (!mounted) {
             return;
           }
-          Navigator.of(context).pushReplacementNamed('/dashboard');
+          Navigator.of(context).pushReplacementNamed(widget.redirectTo);
           return;
         }
       } on ApiException catch (error) {
@@ -74,12 +72,19 @@ class _AppBootstrapPageState extends State<AppBootstrapPage> {
         return;
       }
 
-      Navigator.of(context).pushReplacementNamed('/login');
+      Navigator.of(context).pushReplacementNamed(_loginRoute());
     } on ApiException catch (error) {
       _showError(error.message);
     } catch (_) {
       _showError('Unable to start the application right now.');
     }
+  }
+
+  String _loginRoute() {
+    return Uri(
+      path: '/login',
+      queryParameters: <String, String>{'redirect': widget.redirectTo},
+    ).toString();
   }
 
   void _showError(String message) {

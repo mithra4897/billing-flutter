@@ -6,12 +6,14 @@ class PartyManagementPage extends StatefulWidget {
     this.embedded = false,
     this.initialTabIndex = 0,
     this.startInNewMode = false,
+    this.initialPartyId,
     this.initialPartyName,
   });
 
   final bool embedded;
   final int initialTabIndex;
   final bool startInNewMode;
+  final int? initialPartyId;
   final String? initialPartyName;
 
   @override
@@ -222,7 +224,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _partyCodeController.addListener(_handlePartyCodeChanged);
     _searchController.addListener(_applySearch);
     _loadPartyAccountsAccess();
-    _loadPage();
+    _loadPage(selectId: widget.initialPartyId);
   }
 
   @override
@@ -1642,7 +1644,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       onNew: _resetPaymentTermForm,
       list: _paymentTerms,
       selected: _selectedPaymentTerm,
-      itemTitle: (item) => stringValue(item.toJson(), 'term_name', 'Payment Term'),
+      itemTitle: (item) =>
+          stringValue(item.toJson(), 'term_name', 'Payment Term'),
       itemSubtitle: (item) => [
         stringValue(item.toJson(), 'due_basis'),
         stringValue(item.toJson(), 'days'),

@@ -64,6 +64,28 @@ class SessionStorage {
     return preferences.getBool(rememberMeKey) ?? false;
   }
 
+  static Future<bool> hasActiveSession() async {
+    final token = await getAuthToken();
+    if (token == null || token.isEmpty) {
+      return false;
+    }
+
+    final expiresAt = await getExpiresAt();
+    if (expiresAt == null) {
+      return false;
+    }
+
+    return expiresAt.isAfter(DateTime.now());
+  }
+
+  static Future<bool> hasRestorableSession() async {
+    if (!await shouldAutoLogin()) {
+      return false;
+    }
+
+    return hasActiveSession();
+  }
+
   static Future<Map<String, dynamic>?> getCurrentUser() async {
     final preferences = await SharedPreferences.getInstance();
     final raw = preferences.getString(currentUserKey);

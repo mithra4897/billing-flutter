@@ -226,7 +226,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
                 statusColor: crmPriorityColor(item.priority),
                 route: item.enquiryId == null
                     ? '/crm/opportunities'
-                    : '/crm/opportunities?select_id=${item.enquiryId}',
+                    : '/crm/opportunities/${item.enquiryId}',
               ),
             )
             .toList(growable: false),

@@ -125,7 +125,10 @@ class CrmSalesPipelineBar extends StatelessWidget {
         _PipelineChip(
           label: _docLabel('Lead', lead, 'lead_name'),
           subtitle: stringValue(lead, 'lead_status'),
-          onTap: () => openModuleShellRoute(context, '/crm/leads'),
+          onTap: () => openModuleShellRoute(
+            context,
+            '/crm/leads/${intValue(lead, 'id')}',
+          ),
         ),
       if (showEnquiryChip)
         _PipelineChip(
@@ -133,7 +136,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
           subtitle: _crmStatusLabel(stringValue(enquiry, 'enquiry_status')),
           onTap: () => openModuleShellRoute(
             context,
-            '/crm/opportunities?select_id=${intValue(enquiry, 'id')}',
+            '/crm/opportunities/${intValue(enquiry, 'id')}',
           ),
         ),
       if (showOpportunityChip)
@@ -142,7 +145,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
           subtitle: _crmStatusLabel(stringValue(opportunity, 'status')),
           onTap: () => openModuleShellRoute(
             context,
-            '/crm/opportunities?select_id=${intValue(opportunity, 'id')}',
+            '/crm/opportunities/${intValue(opportunity, 'id')}',
           ),
         ),
       for (final q in quotations)

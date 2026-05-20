@@ -19,6 +19,7 @@ class _AppShellPageState extends State<AppShellPage> {
     companyName: 'Billing ERP',
   );
   AuthContextModel? _authContext;
+  bool _isCheckingSession = true;
   late String _currentPath;
   late Map<String, String> _currentQueryParameters;
   late final ShellPageActionsController _shellPageActionsController;
@@ -32,7 +33,7 @@ class _AppShellPageState extends State<AppShellPage> {
     _shellPageActionsController = ShellPageActionsController();
     AppSessionService.accessVersion.addListener(_handleAccessVersionChanged);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
-    _loadShellContext();
+    _bootstrapShell();
   }
 
   @override
@@ -78,6 +79,43 @@ class _AppShellPageState extends State<AppShellPage> {
     );
   }
 
+  Future<void> _bootstrapShell() async {
+    final hasSession = await AppSessionService.instance.bootstrap();
+    if (!mounted) {
+      return;
+    }
+
+    if (!hasSession) {
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(_loginRoute(), (_) => false);
+      return;
+    }
+
+    await _loadShellContext();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isCheckingSession = false;
+    });
+  }
+
+  String _loginRoute() {
+    final redirectTo = Uri(
+      path: _currentPath,
+      queryParameters: _currentQueryParameters.isEmpty
+          ? null
+          : _currentQueryParameters,
+    ).toString();
+
+    return Uri(
+      path: '/login',
+      queryParameters: <String, String>{'redirect': redirectTo},
+    ).toString();
+  }
+
   void _handleAccessVersionChanged() {
     _loadShellContext();
   }
@@ -102,7 +140,8 @@ class _AppShellPageState extends State<AppShellPage> {
       return;
     }
 
-    final routeItem = AppNavigation.findByPath(_currentPath);
+    final normalizedPath = _normalizeEditorRoutePath(_currentPath);
+    final routeItem = AppNavigation.findByPath(normalizedPath);
     if (routeItem == null) {
       return;
     }
@@ -113,7 +152,7 @@ class _AppShellPageState extends State<AppShellPage> {
       orderedModules: orderedModules,
     );
 
-    final isVisible = _containsPath(visibleMenu, _currentPath);
+    final isVisible = _containsPath(visibleMenu, normalizedPath);
     if (isVisible || !mounted) {
       return;
     }
@@ -148,6 +187,12 @@ class _AppShellPageState extends State<AppShellPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingSession) {
+      return const Scaffold(
+        body: AppLoadingView(message: 'Restoring your session...'),
+      );
+    }
+
     return AdaptiveShell(
       title: _titleForPath(_currentPath, _authContext),
       branding: _branding,
@@ -173,29 +218,7 @@ class _AppShellPageState extends State<AppShellPage> {
   }
 
   String _buildCurrentRoute() {
-    // Normalize "list + editor" routes so the drawer can highlight the parent module.
-    // Example: `/inventory/opening-stock/new` => `/inventory/opening-stock`
-    //          `/inventory/opening-stock/123` => `/inventory/opening-stock`
-    var normalizedPath = _currentPath;
-    final segments = _currentPath
-        .split('/')
-        .where((segment) => segment.isNotEmpty)
-        .toList(growable: false);
-    if (segments.length == 3 &&
-        (segments.first == 'inventory' ||
-            segments.first == 'purchase' ||
-            segments.first == 'sales' ||
-            segments.first == 'manufacturing' ||
-            segments.first == 'jobwork' ||
-            segments.first == 'quality' ||
-            segments.first == 'service' ||
-            segments.first == 'maintenance' ||
-            segments.first == 'assets')) {
-      final recordSegment = segments[2];
-      if (recordSegment == 'new' || int.tryParse(recordSegment) != null) {
-        normalizedPath = '/${segments[0]}/${segments[1]}';
-      }
-    }
+    final normalizedPath = _normalizeEditorRoutePath(_currentPath);
 
     final uri = Uri(
       path: normalizedPath,
@@ -207,9 +230,13 @@ class _AppShellPageState extends State<AppShellPage> {
   }
 
   Widget _buildContent() {
-    final routeKey = ValueKey<String>(
-      '${_buildCurrentRoute()}::$_contextVersion',
-    );
+    final routeIdentity = Uri(
+      path: _currentPath,
+      queryParameters: _currentQueryParameters.isEmpty
+          ? null
+          : _currentQueryParameters,
+    ).toString();
+    final routeKey = ValueKey<String>('$routeIdentity::$_contextVersion');
     final salesRoute = _buildSalesContent(routeKey);
     if (salesRoute != null) {
       return salesRoute;
@@ -249,6 +276,14 @@ class _AppShellPageState extends State<AppShellPage> {
     final planningRoute = _buildPlanningContent(routeKey);
     if (planningRoute != null) {
       return planningRoute;
+    }
+    final crmRoute = _buildCrmContent(routeKey);
+    if (crmRoute != null) {
+      return crmRoute;
+    }
+    final genericManagementRoute = _buildGenericManagementContent(routeKey);
+    if (genericManagementRoute != null) {
+      return genericManagementRoute;
     }
 
     switch (_currentPath) {
@@ -467,15 +502,7 @@ class _AppShellPageState extends State<AppShellPage> {
           openSendComposerOnInit: true,
         );
       case '/crm/leads':
-        return CrmLeadsPage(
-          key: routeKey,
-          embedded: true,
-          startInNewMode: true,
-          initialLeadName: _currentQueryParameters['lead_name'],
-          initialCompanyId: int.tryParse(
-            _currentQueryParameters['company_id'] ?? '',
-          ),
-        );
+        return CrmLeadRegisterPage(key: routeKey, embedded: true);
       case '/crm/enquiries':
         return CrmEnquiriesPage(
           key: routeKey,
@@ -489,7 +516,7 @@ class _AppShellPageState extends State<AppShellPage> {
         return CrmEnquiriesPage(
           key: routeKey,
           embedded: true,
-          startInNewMode: _currentQueryParameters['select_id'] == null,
+          startInNewMode: false,
           initialSelectId: int.tryParse(
             _currentQueryParameters['select_id'] ?? '',
           ),
@@ -498,13 +525,13 @@ class _AppShellPageState extends State<AppShellPage> {
         return CrmSourcesPage(
           key: routeKey,
           embedded: true,
-          startInNewMode: true,
+          startInNewMode: false,
         );
       case '/crm/stages':
         return CrmStagesPage(
           key: routeKey,
           embedded: true,
-          startInNewMode: true,
+          startInNewMode: false,
         );
       case '/parties':
         return PartyManagementPage(
@@ -1381,8 +1408,133 @@ class _AppShellPageState extends State<AppShellPage> {
     return null;
   }
 
+  Widget? _buildCrmContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.length != 3 || segments.first != 'crm') {
+      return null;
+    }
+
+    final module = segments[1];
+    final recordSegment = segments[2];
+    final isNew = recordSegment == 'new';
+    final id = int.tryParse(recordSegment);
+    if (!isNew && id == null) {
+      return null;
+    }
+
+    switch (module) {
+      case 'leads':
+        return CrmLeadsPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          startInNewMode: isNew,
+          initialSelectId: id,
+          initialLeadName: _currentQueryParameters['lead_name'],
+          initialCompanyId: int.tryParse(
+            _currentQueryParameters['company_id'] ?? '',
+          ),
+        );
+      case 'enquiries':
+      case 'opportunities':
+        return CrmEnquiriesPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          startInNewMode: isNew,
+          initialSelectId: id,
+        );
+    }
+
+    return null;
+  }
+
+  Widget? _buildGenericManagementContent(ValueKey<String> routeKey) {
+    final segments = _currentPath
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+
+    if (segments.length == 2 && segments.first == 'parties') {
+      final isNew = segments[1] == 'new';
+      final id = int.tryParse(segments[1]);
+      if (!isNew && id == null) {
+        return null;
+      }
+      return PartyManagementPage(
+        key: routeKey,
+        embedded: true,
+        startInNewMode: isNew,
+        initialPartyId: id,
+        initialPartyName: _currentQueryParameters['party_name'],
+      );
+    }
+
+    if (segments.length != 3) {
+      return null;
+    }
+
+    final recordSegment = segments[2];
+    final id = int.tryParse(recordSegment);
+    if (recordSegment == 'new' || id == null) {
+      return null;
+    }
+
+    switch ('${segments[0]}/${segments[1]}') {
+      case 'settings/users':
+        return UserManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialUserId: id,
+        );
+      case 'settings/roles':
+        return RoleManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialRoleId: id,
+        );
+      case 'hr/employees':
+        return EmployeeManagementPage(
+          key: routeKey,
+          embedded: true,
+          initialEmployeeId: id,
+        );
+    }
+
+    return null;
+  }
+
+  String _normalizeEditorRoutePath(String path) {
+    final segments = path
+        .split('/')
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    if (segments.isEmpty) {
+      return path;
+    }
+
+    if (segments.length == 2 &&
+        segments.first == 'parties' &&
+        (segments[1] == 'new' || int.tryParse(segments[1]) != null)) {
+      return '/parties';
+    }
+
+    if (segments.length == 3 &&
+        (segments[2] == 'new' || int.tryParse(segments[2]) != null)) {
+      return '/${segments[0]}/${segments[1]}';
+    }
+
+    return path;
+  }
+
   String _titleForPath(String path, AuthContextModel? authContext) {
-    final navigationTitle = AppNavigation.findByPath(path)?.title.trim();
+    final normalizedPath = _normalizeEditorRoutePath(path);
+    final navigationTitle = AppNavigation.findByPath(
+      normalizedPath,
+    )?.title.trim();
     if ((navigationTitle ?? '').isNotEmpty) {
       return navigationTitle!;
     }
@@ -1390,13 +1542,20 @@ class _AppShellPageState extends State<AppShellPage> {
     for (final module in authContext?.menuModules ?? const []) {
       final routePath = module.routePath?.trim();
       final moduleName = module.moduleName?.trim();
-      if (routePath == path && (moduleName ?? '').isNotEmpty) {
+      if (routePath == normalizedPath && (moduleName ?? '').isNotEmpty) {
         return moduleName!;
       }
     }
 
     if (path.startsWith('/parties/')) {
       return 'Parties';
+    }
+    if (path.startsWith('/crm/leads/')) {
+      return 'CRM Lead';
+    }
+    if (path.startsWith('/crm/opportunities/') ||
+        path.startsWith('/crm/enquiries/')) {
+      return 'CRM Opportunity';
     }
     if (path.startsWith('/purchase/requisitions/')) {
       return 'Purchase Requisition';

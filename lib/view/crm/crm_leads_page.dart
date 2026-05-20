@@ -10,12 +10,204 @@ void _openCrmShellRoute(BuildContext context, String route) {
   Navigator.of(context).pushNamed(route);
 }
 
+class CrmLeadRegisterPage extends StatefulWidget {
+  const CrmLeadRegisterPage({super.key, this.embedded = false});
+
+  final bool embedded;
+
+  @override
+  State<CrmLeadRegisterPage> createState() => _CrmLeadRegisterPageState();
+}
+
+class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
+  static const List<AppDropdownItem<String>> _statusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All'),
+        AppDropdownItem(value: 'new', label: 'New'),
+        AppDropdownItem(value: 'in_progress', label: 'In Progress'),
+        AppDropdownItem(value: 'converted', label: 'Converted'),
+        AppDropdownItem(value: 'lost', label: 'Lost'),
+      ];
+
+  final CrmService _service = CrmService();
+  final TextEditingController _searchController = TextEditingController();
+  bool _loading = true;
+  String? _error;
+  String _status = '';
+  List<CrmLeadModel> _rows = const <CrmLeadModel>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() => setState(() {}));
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final response = await _service.leads(
+        filters: const {'per_page': 200, 'sort_by': 'lead_name'},
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _rows = response.data ?? const <CrmLeadModel>[];
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  List<CrmLeadModel> get _filtered {
+    final query = _searchController.text.trim().toLowerCase();
+    return _rows
+        .where((row) {
+          final data = row.toJson();
+          final statusOk =
+              _status.isEmpty || stringValue(data, 'lead_status') == _status;
+          final searchOk =
+              query.isEmpty ||
+              [
+                stringValue(data, 'lead_name'),
+                stringValue(data, 'company_name'),
+                stringValue(data, 'mobile'),
+                stringValue(data, 'email'),
+                stringValue(data, 'lead_status'),
+              ].join(' ').toLowerCase().contains(query);
+          return statusOk && searchOk;
+        })
+        .toList(growable: false);
+  }
+
+  String _statusLabel(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'in_progress':
+        return 'In Progress';
+      case 'converted':
+        return 'Converted';
+      case 'lost':
+        return 'Lost';
+      case 'new':
+      default:
+        return 'New';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PurchaseRegisterPage<CrmLeadModel>(
+      title: 'CRM Leads',
+      embedded: widget.embedded,
+      loading: _loading,
+      errorMessage: _error,
+      onRetry: _load,
+      emptyMessage: 'No CRM leads yet. Create a new lead to get started.',
+      actions: [
+        AdaptiveShellActionButton(
+          onPressed: () => _openCrmShellRoute(context, '/crm/leads/new'),
+          icon: Icons.add_outlined,
+          label: 'New lead',
+        ),
+      ],
+      filters: _CrmLeadRegisterFilters(
+        searchController: _searchController,
+        status: _status,
+        statusItems: _statusItems,
+        onStatusChanged: (value) => setState(() => _status = value ?? ''),
+      ),
+      rows: _filtered,
+      columns: [
+        PurchaseRegisterColumn<CrmLeadModel>(
+          label: 'Lead',
+          flex: 3,
+          valueBuilder: (row) => stringValue(row.toJson(), 'lead_name'),
+        ),
+        PurchaseRegisterColumn<CrmLeadModel>(
+          label: 'Company',
+          flex: 3,
+          valueBuilder: (row) => stringValue(row.toJson(), 'company_name'),
+        ),
+        PurchaseRegisterColumn<CrmLeadModel>(
+          label: 'Mobile',
+          valueBuilder: (row) => stringValue(row.toJson(), 'mobile'),
+        ),
+        PurchaseRegisterColumn<CrmLeadModel>(
+          label: 'Email',
+          flex: 3,
+          valueBuilder: (row) => stringValue(row.toJson(), 'email'),
+        ),
+        PurchaseRegisterColumn<CrmLeadModel>(
+          label: 'Status',
+          valueBuilder: (row) =>
+              _statusLabel(stringValue(row.toJson(), 'lead_status')),
+        ),
+      ],
+      onRowTap: (row) => _openCrmShellRoute(
+        context,
+        '/crm/leads/${intValue(row.toJson(), 'id')}',
+      ),
+    );
+  }
+}
+
+class _CrmLeadRegisterFilters extends StatelessWidget {
+  const _CrmLeadRegisterFilters({
+    required this.searchController,
+    required this.status,
+    required this.statusItems,
+    required this.onStatusChanged,
+  });
+
+  final TextEditingController searchController;
+  final String status;
+  final List<AppDropdownItem<String>> statusItems;
+  final ValueChanged<String?> onStatusChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingsFormWrap(
+      children: [
+        AppFormTextField(
+          labelText: 'Search',
+          controller: searchController,
+          hintText: 'Search lead, company, mobile, or email',
+        ),
+        AppDropdownField<String>.fromMapped(
+          labelText: 'Status',
+          mappedItems: statusItems,
+          initialValue: status,
+          onChanged: onStatusChanged,
+        ),
+      ],
+    );
+  }
+}
+
 class CrmLeadsPage extends StatefulWidget {
   const CrmLeadsPage({
     super.key,
     this.embedded = false,
     this.editorOnly = false,
     this.startInNewMode = false,
+    this.initialSelectId,
     this.initialLeadName,
     this.initialCompanyId,
   });
@@ -23,6 +215,7 @@ class CrmLeadsPage extends StatefulWidget {
   final bool embedded;
   final bool editorOnly;
   final bool startInNewMode;
+  final int? initialSelectId;
   final String? initialLeadName;
   final int? initialCompanyId;
 
@@ -43,11 +236,12 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     _controller = Get.put(
       CrmLeadsController(
         startInNewMode: widget.startInNewMode,
+        initialSelectId: widget.initialSelectId,
         initialLeadName: widget.initialLeadName,
         initialCompanyId: widget.initialCompanyId,
       ),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
@@ -76,12 +270,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             filled: false,
           ),
           AdaptiveShellActionButton(
-            onPressed: () {
-              controller.resetForm();
-              if (!Responsive.isDesktop(context)) {
-                controller.workspaceController.openEditor();
-              }
-            },
+            onPressed: () => _openCrmShellRoute(context, '/crm/leads/new'),
             icon: Icons.add_outlined,
             label: 'New Lead',
           ),
@@ -163,7 +352,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Source',
-                          initialValue: controller.filterSourceId ??
+                          initialValue:
+                              controller.filterSourceId ??
                               CrmLeadsController.allFilterIntValue,
                           mappedItems: <AppDropdownItem<int>>[
                             const AppDropdownItem<int>(
@@ -188,7 +378,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       _filterBox(
                         child: AppDropdownField<int>.fromMapped(
                           labelText: 'Assigned To',
-                          initialValue: controller.filterAssignedTo ??
+                          initialValue:
+                              controller.filterAssignedTo ??
                               CrmLeadsController.allFilterIntValue,
                           mappedItems: <AppDropdownItem<int>>[
                             const AppDropdownItem<int>(
@@ -211,7 +402,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       _filterBox(
                         child: AppDropdownField<String>.fromMapped(
                           labelText: 'Status',
-                          initialValue: controller.filterLeadStatus ??
+                          initialValue:
+                              controller.filterLeadStatus ??
                               CrmLeadsController.allFilterStringValue,
                           mappedItems: <AppDropdownItem<String>>[
                             const AppDropdownItem<String>(
@@ -302,6 +494,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             emptyMessage: 'No CRM leads found.',
             itemBuilder: (item, selected) {
               final data = item.toJson();
+              final id = intValue(data, 'id');
               return SettingsListTile(
                 title: item.toString(),
                 subtitle: [
@@ -312,7 +505,12 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                   ),
                 ].where((value) => value.trim().isNotEmpty).join(' • '),
                 selected: selected,
-                onTap: () => controller.selectItem(item),
+                onTap: () {
+                  if (id == null) {
+                    return;
+                  }
+                  _openCrmShellRoute(context, '/crm/leads/$id');
+                },
                 trailing: SettingsStatusPill(
                   label: controller.leadStatusLabel(
                     stringValue(data, 'lead_status', 'new'),
@@ -331,7 +529,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             controller: _tabController,
             onTap: controller.setActiveTabIndex,
             isScrollable: true,
-            tabs: const [Tab(text: 'Primary'), Tab(text: 'Activities')],
+            tabs: const [
+              Tab(text: 'Primary'),
+              Tab(text: 'Activities'),
+            ],
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
           IndexedStack(
@@ -395,12 +596,10 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     );
   }
 
-  Widget _filterBox({required Widget child}) => SizedBox(width: 240, child: child);
+  Widget _filterBox({required Widget child}) =>
+      SizedBox(width: 240, child: child);
 
-  Widget _buildPrimaryTab(
-    BuildContext context,
-    CrmLeadsController controller,
-  ) {
+  Widget _buildPrimaryTab(BuildContext context, CrmLeadsController controller) {
     return Form(
       child: Builder(
         builder: (formContext) {
@@ -411,9 +610,15 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 AppErrorStateView.inline(message: controller.formError!),
                 const SizedBox(height: AppUiConstants.spacingSm),
               ],
-              if (intValue(controller.selectedItem?.toJson() ?? const {}, 'id') !=
+              if (intValue(
+                    controller.selectedItem?.toJson() ?? const {},
+                    'id',
+                  ) !=
                   null)
-                CrmSalesPipelineBar(data: controller.salesChain, hideLeadChip: true),
+                CrmSalesPipelineBar(
+                  data: controller.salesChain,
+                  hideLeadChip: true,
+                ),
               if (controller.isSelectedLeadReadOnly) ...[
                 Text(
                   controller.effectiveLeadStatus() == 'converted'
@@ -456,7 +661,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                     AppDropdownField<int>.fromMapped(
                       labelText: 'Source',
                       mappedItems: controller.sources
-                          .where((item) => intValue(item.toJson(), 'id') != null)
+                          .where(
+                            (item) => intValue(item.toJson(), 'id') != null,
+                          )
                           .map(
                             (item) => AppDropdownItem(
                               value: intValue(item.toJson(), 'id')!,
@@ -520,12 +727,13 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       icon: Icons.forward_outlined,
                       label: 'Create Opportunity',
                       onPressed: () async {
-                        final existing = controller.opportunityIdFromSalesChain() ??
+                        final existing =
+                            controller.opportunityIdFromSalesChain() ??
                             controller.enquiryIdFromSalesChain();
                         if (existing != null) {
                           _openCrmShellRoute(
                             context,
-                            '/crm/opportunities?select_id=$existing',
+                            '/crm/opportunities/$existing',
                           );
                           return;
                         }
@@ -535,7 +743,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                         if (created != null && context.mounted) {
                           _openCrmShellRoute(
                             context,
-                            '/crm/opportunities?select_id=$created',
+                            '/crm/opportunities/$created',
                           );
                         }
                       },
@@ -557,7 +765,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       label: 'Open Opportunity',
                       onPressed: () => _openCrmShellRoute(
                         context,
-                        '/crm/opportunities?select_id=${controller.opportunityIdFromSalesChain() ?? controller.enquiryIdFromSalesChain()}',
+                        '/crm/opportunities/${controller.opportunityIdFromSalesChain() ?? controller.enquiryIdFromSalesChain()}',
                       ),
                     ),
                   if (controller.selectedItem != null)
@@ -587,10 +795,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
           children: [
             Text(
               'Activities',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
             AppActionButton(
@@ -608,7 +815,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
           const SettingsEmptyState(
             icon: Icons.event_note_outlined,
             title: 'No Activities',
-            message: 'Add calls, emails, meetings, notes, and follow-up entries.',
+            message:
+                'Add calls, emails, meetings, notes, and follow-up entries.',
             minHeight: 180,
           )
         else
@@ -684,7 +892,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             children: [
               AppActionButton(
                 icon: Icons.save_outlined,
-                label: controller.selectedItem == null ? 'Save Lead' : 'Update Lead',
+                label: controller.selectedItem == null
+                    ? 'Save Lead'
+                    : 'Update Lead',
                 onPressed: controller.save,
                 busy: controller.saving,
               ),

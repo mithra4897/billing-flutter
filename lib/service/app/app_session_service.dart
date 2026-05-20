@@ -24,13 +24,14 @@ class AppSessionService {
     await _scheduleRefresh();
   }
 
-  Future<void> bootstrap() async {
-    if (!await SessionStorage.shouldAutoLogin()) {
+  Future<bool> bootstrap() async {
+    if (!await SessionStorage.hasRestorableSession()) {
       await clearSession();
-      return;
+      return false;
     }
 
     await _scheduleRefresh();
+    return true;
   }
 
   Future<void> clearSession() async {
