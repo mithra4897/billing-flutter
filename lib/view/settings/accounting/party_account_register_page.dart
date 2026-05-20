@@ -1,3 +1,4 @@
+import '../../../controller/settings/accounting/party_account_register_controller.dart';
 import '../../../screen.dart';
 
 class PartyAccountRegisterPage extends StatefulWidget {
@@ -16,378 +17,52 @@ class PartyAccountRegisterPage extends StatefulWidget {
 }
 
 class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
-  static const List<AppDropdownItem<String>> _accountPurposeItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'primary', label: 'Primary'),
-        AppDropdownItem(value: 'receivable', label: 'Receivable'),
-        AppDropdownItem(value: 'payable', label: 'Payable'),
-        AppDropdownItem(value: 'advance', label: 'Advance'),
-        AppDropdownItem(value: 'salary', label: 'Salary'),
-        AppDropdownItem(value: 'commission', label: 'Commission'),
-        AppDropdownItem(value: 'other', label: 'Other'),
-      ];
-  static const List<AppDropdownItem<String?>> _accountPurposeFilterItems =
-      <AppDropdownItem<String?>>[
-        AppDropdownItem<String?>(value: null, label: 'All purposes'),
-        AppDropdownItem<String?>(value: 'primary', label: 'Primary'),
-        AppDropdownItem<String?>(value: 'receivable', label: 'Receivable'),
-        AppDropdownItem<String?>(value: 'payable', label: 'Payable'),
-        AppDropdownItem<String?>(value: 'advance', label: 'Advance'),
-        AppDropdownItem<String?>(value: 'salary', label: 'Salary'),
-        AppDropdownItem<String?>(value: 'commission', label: 'Commission'),
-        AppDropdownItem<String?>(value: 'other', label: 'Other'),
-      ];
-  static const List<AppDropdownItem<bool?>> _activeFilterItems =
-      <AppDropdownItem<bool?>>[
-        AppDropdownItem<bool?>(value: null, label: 'All statuses'),
-        AppDropdownItem<bool?>(value: true, label: 'Active'),
-        AppDropdownItem<bool?>(value: false, label: 'Inactive'),
-      ];
-
-  final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
-  final ScrollController _pageScrollController = ScrollController();
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  bool _initialLoading = true;
-  bool _loading = false;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  List<PartyAccountModel> _rows = const <PartyAccountModel>[];
-  PaginationMeta? _meta;
-  int _page = 1;
-  int _perPage = 20;
-
-  List<PartyModel> _parties = const <PartyModel>[];
-  List<AccountModel> _accounts = const <AccountModel>[];
-  int? _companyId;
-  String? _filterPurpose;
-  bool? _filterActive;
-
-  PartyAccountModel? _editing;
-  int? _formPartyId;
-  int? _formAccountId;
-  String _formPurpose = 'primary';
-  bool _formDefault = true;
-  bool _formActive = true;
-
-  bool _canCreate = false;
-  bool _canUpdate = false;
-  bool _canDelete = false;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _formPartyId = widget.initialPartyId;
-    _bootstrap();
+    _controllerTag = persistentControllerTag('PartyAccountRegisterController');
+    Get.put(
+      PartyAccountRegisterController(initialPartyId: widget.initialPartyId),
+      tag: _controllerTag,
+    );
   }
 
   @override
   void didUpdateWidget(covariant PartyAccountRegisterPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialPartyId != widget.initialPartyId) {
-      _formPartyId = widget.initialPartyId;
-      setState(() {});
+      Get.find<PartyAccountRegisterController>(
+        tag: _controllerTag,
+      ).syncInitialPartyId(widget.initialPartyId);
     }
   }
 
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _searchController.dispose();
-    _remarksController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadPermissions() async {
-    final codes = await SessionStorage.getPermissionCodes();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _canCreate = codes.contains('accounts.create');
-      _canUpdate = codes.contains('accounts.update');
-      _canDelete = codes.contains('accounts.delete');
-    });
-  }
-
-  Future<void> _bootstrap() async {
-    setState(() {
-      _initialLoading = true;
-      _pageError = null;
-    });
-    await _loadPermissions();
-    try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 200, 'sort_by': 'legal_name'},
-      );
-      final partiesResponse = await _partiesService.parties(
-        filters: const {'per_page': 500, 'sort_by': 'party_name'},
-      );
-      final companies = (companiesResponse.data ?? const <CompanyModel>[])
-          .where((CompanyModel c) => c.isActive)
-          .toList(growable: false);
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies: companies,
-            branches: const <BranchModel>[],
-            locations: const <BusinessLocationModel>[],
-            financialYears: const <FinancialYearModel>[],
-          );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyId = contextSelection.companyId;
-        _parties =
-            partiesResponse.data
-                ?.where((PartyModel p) => p.isActive)
-                .toList(growable: false) ??
-            const <PartyModel>[];
-        _initialLoading = false;
-      });
-      await _loadAccountsForCompany();
-      await _fetch(resetPage: true);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  Future<void> _loadAccountsForCompany() async {
-    final companyId = _companyId;
-    if (companyId == null) {
-      if (mounted) {
-        setState(() => _accounts = const <AccountModel>[]);
-      }
-      return;
-    }
-    try {
-      final response = await _accountsService.accountsAll(
-        filters: <String, dynamic>{
-          'company_id': companyId,
-          'is_active': 1,
-          'sort_by': 'account_name',
-        },
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _accounts = (response.data ?? const <AccountModel>[])
-            .where((AccountModel a) => a.id != null && a.isActive)
-            .toList(growable: false);
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _accounts = const <AccountModel>[]);
-    }
-  }
-
-  Future<void> _fetch({bool resetPage = false}) async {
-    if (resetPage) {
-      _page = 1;
-    }
-    setState(() {
-      _loading = true;
-      _pageError = null;
-    });
-    try {
-      final filters = <String, dynamic>{
-        'page': _page,
-        'per_page': _perPage,
-        'sort_by': 'id',
-        'sort_order': 'desc',
-      };
-      if (_companyId != null) {
-        filters['company_id'] = _companyId;
-      }
-      if ((_filterPurpose ?? '').isNotEmpty) {
-        filters['account_purpose'] = _filterPurpose;
-      }
-      if (_filterActive != null) {
-        filters['is_active'] = _filterActive! ? 1 : 0;
-      }
-      final q = _searchController.text.trim();
-      if (q.isNotEmpty) {
-        filters['search'] = q;
-      }
-      final response = await _accountsService.partyAccountsRegister(
-        filters: filters,
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <PartyAccountModel>[];
-        _meta = response.meta;
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  void _newMapping() {
-    setState(() {
-      _editing = null;
-      _formError = null;
-      _formPartyId = widget.initialPartyId ?? _formPartyId;
-      _formAccountId = null;
-      _formPurpose = 'primary';
-      _formDefault = true;
-      _formActive = true;
-      _remarksController.clear();
-    });
-  }
-
-  void _editRow(PartyAccountModel row) {
-    setState(() {
-      _editing = row;
-      _formError = null;
-      _formPartyId = row.partyId;
-      _formAccountId = row.accountId;
-      _formPurpose = row.accountPurpose ?? 'primary';
-      _formDefault = row.isDefault;
-      _formActive = row.isActive;
-      _remarksController.text = row.remarks ?? '';
-    });
-  }
-
-  Future<void> _save() async {
-    if (!_canCreate && _editing == null) {
-      return;
-    }
-    if (!_canUpdate && _editing != null) {
-      return;
-    }
-    if (_companyId == null) {
-      setState(() => _formError = 'Select a company before saving.');
-      return;
-    }
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    final partyId = _formPartyId;
-    if (partyId == null) {
-      setState(() => _formError = 'Party is required.');
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    try {
-      final model = PartyAccountModel(
-        id: _editing?.id,
-        partyId: partyId,
-        accountId: _formAccountId,
-        accountPurpose: _formPurpose,
-        isDefault: _formDefault,
-        isActive: _formActive,
-        remarks: nullIfEmpty(_remarksController.text),
-      );
-
-      final ApiResponse<PartyAccountModel> response = _editing == null
-          ? await _accountsService.createPartyAccount(model)
-          : await _accountsService.updatePartyAccount(_editing!.id!, model);
-
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _fetch(resetPage: true);
-      _newMapping();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _formError = error.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final id = _editing?.id;
-    if (id == null || !_canDelete) {
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-    try {
-      final response = await _accountsService.deletePartyAccount(id);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _fetch(resetPage: true);
-      _newMapping();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _formError = error.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
-  }
-
-  PaginationMeta get _effectiveMeta =>
-      _meta ??
-      PaginationMeta(
-        currentPage: _page,
-        lastPage: 1,
-        perPage: _perPage,
-        total: _rows.length,
-      );
-
-  List<Widget> _buildShellActions() {
+  List<Widget> _buildShellActions(PartyAccountRegisterController controller) {
     return [
       AdaptiveShellActionButton(
-        onPressed: _loading ? null : _openFilterPanel,
+        onPressed: controller.loading
+            ? null
+            : () => _openFilterPanel(controller),
         icon: Icons.filter_alt_outlined,
         label: 'Filter',
         filled: false,
       ),
       AdaptiveShellActionButton(
-        onPressed: _saving ? null : _newMapping,
+        onPressed: controller.saving
+            ? null
+            : () => controller.startNewMapping(
+                preferredPartyId: widget.initialPartyId,
+              ),
         icon: Icons.add_outlined,
         label: 'New mapping',
         filled: false,
       ),
       AdaptiveShellActionButton(
-        onPressed: _loading ? null : () => _fetch(resetPage: true),
+        onPressed: controller.loading
+            ? null
+            : () => controller.fetch(resetPage: true),
         icon: Icons.refresh_outlined,
         label: 'Refresh',
         filled: false,
@@ -395,21 +70,9 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final content = _buildContent(context);
-    if (widget.embedded) {
-      return ShellPageActions(actions: _buildShellActions(), child: content);
-    }
-    return AppStandaloneShell(
-      title: 'Party account register',
-      scrollController: _pageScrollController,
-      actions: _buildShellActions(),
-      child: content,
-    );
-  }
-
-  Future<void> _openFilterPanel() async {
+  Future<void> _openFilterPanel(
+    PartyAccountRegisterController controller,
+  ) async {
     final screenWidth = MediaQuery.of(context).size.width;
     final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
     final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
@@ -440,7 +103,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                 MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
               ),
               child: StatefulBuilder(
-                builder: (context, setDialogState) {
+                builder: (filterContext, setDialogState) {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,7 +135,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                         children: [
                           _filterBox(
                             child: AppFormTextField(
-                              controller: _searchController,
+                              controller: controller.searchController,
                               labelText: 'Search',
                               hintText: 'Party or account',
                             ),
@@ -480,19 +143,23 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                           _filterBox(
                             child: AppDropdownField<String?>.fromMapped(
                               labelText: 'Purpose',
-                              mappedItems: _accountPurposeFilterItems,
-                              initialValue: _filterPurpose,
-                              onChanged: (value) =>
-                                  setDialogState(() => _filterPurpose = value),
+                              mappedItems: PartyAccountRegisterController
+                                  .accountPurposeFilterItems,
+                              initialValue: controller.filterPurpose,
+                              onChanged: (value) => setDialogState(
+                                () => controller.setFilterPurpose(value),
+                              ),
                             ),
                           ),
                           _filterBox(
                             child: AppDropdownField<bool?>.fromMapped(
                               labelText: 'Active',
-                              mappedItems: _activeFilterItems,
-                              initialValue: _filterActive,
-                              onChanged: (value) =>
-                                  setDialogState(() => _filterActive = value),
+                              mappedItems: PartyAccountRegisterController
+                                  .activeFilterItems,
+                              initialValue: controller.filterActive,
+                              onChanged: (value) => setDialogState(
+                                () => controller.setFilterActive(value),
+                              ),
                             ),
                           ),
                         ],
@@ -510,11 +177,7 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                           ),
                           OutlinedButton.icon(
                             onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _filterPurpose = null;
-                                _filterActive = null;
-                              });
+                              controller.clearFilters();
                               Navigator.of(dialogContext).pop(true);
                             },
                             icon: const Icon(Icons.clear),
@@ -533,59 +196,81 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
     );
 
     if (applied == true) {
-      await _loadAccountsForCompany();
-      await _fetch(resetPage: true);
+      await controller.loadAccountsForCompany();
+      await controller.fetch(resetPage: true);
     }
   }
 
-  Widget _buildContent(BuildContext context) {
-    if (_initialLoading) {
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<PartyAccountRegisterController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = _buildContent(context, controller);
+        if (widget.embedded) {
+          return ShellPageActions(
+            actions: _buildShellActions(controller),
+            child: content,
+          );
+        }
+        return AppStandaloneShell(
+          title: 'Party account register',
+          scrollController: controller.pageScrollController,
+          actions: _buildShellActions(controller),
+          child: content,
+        );
+      },
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    PartyAccountRegisterController controller,
+  ) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading party accounts...');
     }
-    if (_pageError != null && _rows.isEmpty) {
+    if (controller.pageError != null && controller.rows.isEmpty) {
       return AppErrorStateView(
         title: 'Unable to load party accounts',
-        message: _pageError!,
-        onRetry: _bootstrap,
+        message: controller.pageError!,
+        onRetry: controller.bootstrap,
       );
     }
 
-    final partyItems = _parties
-        .where((PartyModel p) => p.id != null)
+    final partyItems = controller.parties
+        .where((item) => item.id != null)
         .map(
-          (PartyModel p) => AppDropdownItem<int>(
-            value: p.id!,
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
             label: [
-              p.displayName ?? p.partyName ?? '',
-              if ((p.partyCode ?? '').isNotEmpty) p.partyCode!,
-            ].where((String s) => s.isNotEmpty).join(' · '),
+              item.displayName ?? item.partyName ?? '',
+              if ((item.partyCode ?? '').isNotEmpty) item.partyCode!,
+            ].where((value) => value.isNotEmpty).join(' · '),
           ),
         )
         .toList(growable: false);
 
-    final accountItems = _accounts
+    final accountItems = controller.accounts
         .map(
-          (AccountModel item) => AppDropdownItem<int>(
+          (item) => AppDropdownItem<int>(
             value: item.id!,
             label: [
               item.accountName ?? '',
               if ((item.accountCode ?? '').isNotEmpty) item.accountCode!,
-            ].where((String s) => s.isNotEmpty).join(' · '),
+            ].where((value) => value.isNotEmpty).join(' · '),
           ),
         )
         .toList(growable: false);
 
-    final canEdit =
-        (_editing == null && _canCreate) || (_editing != null && _canUpdate);
-
     return SingleChildScrollView(
-      controller: _pageScrollController,
+      controller: controller.pageScrollController,
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_pageError != null) ...[
-            AppErrorStateView.inline(message: _pageError!),
+          if (controller.pageError != null) ...[
+            AppErrorStateView.inline(message: controller.pageError!),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
           AppSectionCard(
@@ -593,29 +278,28 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _editing == null ? 'New mapping' : 'Edit mapping',
+                  controller.editing == null ? 'New mapping' : 'Edit mapping',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppUiConstants.spacingSm),
                 Text(
-                  'Choose a company in filters so the correct ledgers appear. '
-                  'Mappings are saved against the selected party and account.',
+                  'Choose a company in filters so the correct ledgers appear. Mappings are saved against the selected party and account.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                if (_formError != null) ...[
+                if (controller.formError != null) ...[
                   const SizedBox(height: AppUiConstants.spacingMd),
-                  AppErrorStateView.inline(message: _formError!),
+                  AppErrorStateView.inline(message: controller.formError!),
                 ],
                 const SizedBox(height: AppUiConstants.spacingMd),
-                if (_companyId == null)
+                if (controller.companyId == null)
                   const Text(
                     'Select a company to enable account selection and saving.',
                   )
-                else if (!canEdit)
+                else if (!controller.canEdit)
                   const Text('You do not have permission to change mappings.')
                 else
                   Form(
-                    key: _formKey,
+                    key: controller.formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -624,35 +308,32 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                             AppDropdownField<int>.fromMapped(
                               labelText: 'Party',
                               mappedItems: partyItems,
-                              initialValue: _formPartyId,
-                              onChanged: (value) =>
-                                  setState(() => _formPartyId = value),
+                              initialValue: controller.formPartyId,
+                              onChanged: controller.setFormPartyId,
                               validator: Validators.requiredSelection('Party'),
                             ),
                             AppDropdownField<int>.fromMapped(
                               labelText: 'Account',
                               mappedItems: accountItems,
-                              initialValue: _formAccountId,
-                              onChanged: (value) =>
-                                  setState(() => _formAccountId = value),
+                              initialValue: controller.formAccountId,
+                              onChanged: controller.setFormAccountId,
                               validator: Validators.requiredSelection(
                                 'Account',
                               ),
                             ),
                             AppDropdownField<String>.fromMapped(
                               labelText: 'Purpose',
-                              mappedItems: _accountPurposeItems,
-                              initialValue: _formPurpose,
-                              onChanged: (value) => setState(
-                                () => _formPurpose = value ?? 'primary',
-                              ),
+                              mappedItems: PartyAccountRegisterController
+                                  .accountPurposeItems,
+                              initialValue: controller.formPurpose,
+                              onChanged: controller.setFormPurpose,
                               validator: Validators.requiredSelection(
                                 'Purpose',
                               ),
                             ),
                             AppFormTextField(
                               labelText: 'Remarks',
-                              controller: _remarksController,
+                              controller: controller.remarksController,
                               maxLines: 3,
                               validator: Validators.optionalMaxLength(
                                 1000,
@@ -668,31 +349,37 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                           children: [
                             AppSwitchTile(
                               label: 'Default for purpose',
-                              value: _formDefault,
-                              onChanged: (bool value) =>
-                                  setState(() => _formDefault = value),
+                              value: controller.formDefault,
+                              onChanged: controller.setFormDefault,
                             ),
                             AppSwitchTile(
                               label: 'Active',
-                              value: _formActive,
-                              onChanged: (bool value) =>
-                                  setState(() => _formActive = value),
+                              value: controller.formActive,
+                              onChanged: controller.setFormActive,
                             ),
                           ],
                         ),
                         const SizedBox(height: AppUiConstants.spacingLg),
                         Row(
                           children: [
-                            if (_editing?.id != null && _canDelete)
+                            if (controller.editing?.id != null &&
+                                controller.canDelete)
                               TextButton(
-                                onPressed: _saving ? null : _delete,
+                                onPressed: controller.saving
+                                    ? null
+                                    : controller.deleteMapping,
                                 child: const Text('Delete'),
                               ),
                             const Spacer(),
                             FilledButton.icon(
-                              onPressed: (_saving || !canEdit) ? null : _save,
+                              onPressed:
+                                  (controller.saving || !controller.canEdit)
+                                  ? null
+                                  : controller.saveMapping,
                               icon: const Icon(Icons.save_outlined),
-                              label: Text(_saving ? 'Saving…' : 'Save'),
+                              label: Text(
+                                controller.saving ? 'Saving…' : 'Save',
+                              ),
                             ),
                           ],
                         ),
@@ -704,21 +391,15 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
           ReportPaginationBar(
-            meta: _effectiveMeta,
-            onPerPageChanged: (int value) {
-              setState(() => _perPage = value);
-              _fetch(resetPage: true);
-            },
-            onPageChanged: (int value) {
-              setState(() => _page = value);
-              _fetch();
-            },
+            meta: controller.effectiveMeta,
+            onPerPageChanged: controller.setPerPage,
+            onPageChanged: controller.setPage,
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
           AppSectionCard(
-            child: _loading && _rows.isEmpty
+            child: controller.loading && controller.rows.isEmpty
                 ? const AppLoadingView(message: 'Loading...')
-                : _rows.isEmpty
+                : controller.rows.isEmpty
                 ? const SettingsEmptyState(
                     icon: Icons.link_outlined,
                     title: 'No mappings',
@@ -745,8 +426,8 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                               DataColumn(label: Text('Active')),
                               DataColumn(label: Text('')),
                             ],
-                            rows: _rows
-                                .map((PartyAccountModel row) {
+                            rows: controller.rows
+                                .map((row) {
                                   final partyLabel =
                                       row.partyName?.isNotEmpty == true
                                       ? row.partyName!
@@ -755,7 +436,8 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                                       row.accountName?.isNotEmpty == true
                                       ? row.accountName!
                                       : (row.accountCode ?? '-');
-                                  final selected = _editing?.id == row.id;
+                                  final selected =
+                                      controller.editing?.id == row.id;
                                   return DataRow(
                                     selected: selected,
                                     cells: [
@@ -772,7 +454,8 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                                         IconButton(
                                           tooltip: 'Edit',
                                           icon: const Icon(Icons.edit_outlined),
-                                          onPressed: () => _editRow(row),
+                                          onPressed: () =>
+                                              controller.editRow(row),
                                         ),
                                       ),
                                     ],

@@ -53,12 +53,12 @@ Status legend:
 | Sales | `lib/View/sales/sales_quotation_page.dart` | page | `pending` |  |
 | Sales | `lib/View/sales/sales_receipt_page.dart` | page | `pending` |  |
 | Sales | `lib/View/sales/sales_return_page.dart` | page | `pending` |  |
-| Settings Accounting | `lib/View/settings/accounting/budget_page.dart` | page | `pending` |  |
-| Settings Accounting | `lib/View/settings/accounting/cash_session_page.dart` | page | `pending` |  |
-| Settings Accounting | `lib/View/settings/accounting/document_posting_page.dart` | page | `pending` |  |
-| Settings Accounting | `lib/View/settings/accounting/financial_reports_page.dart` | page | `pending` |  |
-| Settings Accounting | `lib/View/settings/accounting/party_account_register_page.dart` | page | `pending` |  |
-| Settings Accounting | `lib/View/settings/accounting/voucher_page.dart` | page | `pending` |  |
+| Settings Accounting | `lib/View/settings/accounting/budget_page.dart` | page | `done` | Migrated to `BudgetManagementController` |
+| Settings Accounting | `lib/View/settings/accounting/cash_session_page.dart` | page | `done` | Migrated to `CashSessionManagementController` |
+| Settings Accounting | `lib/View/settings/accounting/document_posting_page.dart` | page | `done` | Migrated to `DocumentPostingManagementController` |
+| Settings Accounting | `lib/View/settings/accounting/financial_reports_page.dart` | page | `done` | Migrated to `FinancialReportsController` |
+| Settings Accounting | `lib/View/settings/accounting/party_account_register_page.dart` | page | `done` | Migrated to `PartyAccountRegisterController` |
+| Settings Accounting | `lib/View/settings/accounting/voucher_page.dart` | page | `done` | Migrated to `VoucherManagementController` |
 | Settings Communication | `lib/View/settings/communication/email_messages_page.dart` | page | `done` | Migrated to `EmailMessagesManagementController` |
 | Settings Communication | `lib/View/settings/communication/email_module_settings_page.dart` | page | `done` | Migrated to `EmailModuleSettingsManagementController` |
 | Settings Communication | `lib/View/settings/communication/email_rules_page.dart` | page | `done` | Migrated to `EmailRulesManagementController` |

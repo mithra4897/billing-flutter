@@ -1,26 +1,5 @@
+import '../../../controller/settings/accounting/document_posting_management_controller.dart';
 import '../../../screen.dart';
-
-class _DocumentPostingLineDraft {
-  _DocumentPostingLineDraft({
-    this.lineNo,
-    this.accountId,
-    this.entrySide = 'debit',
-    String? amount,
-    String? narration,
-  }) : amountController = TextEditingController(text: amount ?? ''),
-       narrationController = TextEditingController(text: narration ?? '');
-
-  int? lineNo;
-  int? accountId;
-  String entrySide;
-  final TextEditingController amountController;
-  final TextEditingController narrationController;
-
-  void dispose() {
-    amountController.dispose();
-    narrationController.dispose();
-  }
-}
 
 class DocumentPostingManagementPage extends StatefulWidget {
   const DocumentPostingManagementPage({super.key, this.embedded = false});
@@ -34,482 +13,103 @@ class DocumentPostingManagementPage extends StatefulWidget {
 
 class _DocumentPostingManagementPageState
     extends State<DocumentPostingManagementPage> {
-  static const List<AppDropdownItem<String>> _statusItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'pending', label: 'Pending'),
-        AppDropdownItem(value: 'posted', label: 'Posted'),
-        AppDropdownItem(value: 'reversed', label: 'Reversed'),
-        AppDropdownItem(value: 'failed', label: 'Failed'),
-        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-      ];
-
-  static const List<AppDropdownItem<String>> _entryItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'debit', label: 'Debit'),
-        AppDropdownItem(value: 'credit', label: 'Credit'),
-      ];
-
-  final AccountsService _accountsService = AccountsService();
-  final MasterService _masterService = MasterService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _moduleController = TextEditingController();
-  final TextEditingController _tableController = TextEditingController();
-  final TextEditingController _documentIdController = TextEditingController();
-  final TextEditingController _documentNoController = TextEditingController();
-  final TextEditingController _documentDateController = TextEditingController();
-  final TextEditingController _voucherIdController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  List<DocumentPostingModel> _rows = const <DocumentPostingModel>[];
-  List<DocumentPostingModel> _filtered = const <DocumentPostingModel>[];
-  DocumentPostingModel? _selected;
-
-  List<FinancialYearModel> _years = const <FinancialYearModel>[];
-  List<PostingRuleGroupModel> _groups = const <PostingRuleGroupModel>[];
-  List<AccountModel> _accounts = const <AccountModel>[];
-
-  int? _companyId;
-  int? _branchId;
-  int? _locationId;
-  int? _financialYearId;
-  int? _postingRuleGroupId;
-  String _postingStatus = 'pending';
-  List<_DocumentPostingLineDraft> _lines = <_DocumentPostingLineDraft>[
-    _DocumentPostingLineDraft(),
-  ];
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
-    _moduleController.dispose();
-    _tableController.dispose();
-    _documentIdController.dispose();
-    _documentNoController.dispose();
-    _documentDateController.dispose();
-    _voucherIdController.dispose();
-    _remarksController.dispose();
-    for (final l in _lines) {
-      l.dispose();
-    }
-    super.dispose();
-  }
-
-  Map<String, dynamic> _json(DocumentPostingModel? m) =>
-      m?.toJson() ?? const <String, dynamic>{};
-
-  Future<void> _load({int? selectId}) async {
-    setState(() {
-      _initialLoading = _rows.isEmpty;
-      _pageError = null;
-    });
-    try {
-      final results = await Future.wait<dynamic>([
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 500, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 500, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _accountsService.postingRuleGroupsAll(
-          filters: const {'sort_by': 'group_name', 'per_page': 200},
-        ),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
-        ),
-      ]);
-
-      final companies =
-          (results[0] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (results[1] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final locations =
-          (results[2] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      final years =
-          (results[3] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      final groups =
-          (results[4] as ApiResponse<List<PostingRuleGroupModel>>).data ??
-          const <PostingRuleGroupModel>[];
-      final accounts =
-          (results[5] as ApiResponse<List<AccountModel>>).data ??
-          const <AccountModel>[];
-
-      final activeCompanies = companies
-          .where((c) => c.isActive)
-          .toList(growable: false);
-      final activeBranches = branches
-          .where((b) => b.isActive)
-          .toList(growable: false);
-      final activeLocations = locations
-          .where((l) => l.isActive)
-          .toList(growable: false);
-      final activeYears = years
-          .where((y) => y.isActive)
-          .toList(growable: false);
-
-      final ctx = await WorkingContextService.instance.resolveSelection(
-        companies: activeCompanies,
-        branches: activeBranches,
-        locations: activeLocations,
-        financialYears: activeYears,
-      );
-
-      final postings = await _accountsService.documentPostings(
-        filters: <String, dynamic>{
-          'per_page': 200,
-          'sort_by': 'document_date',
-          if (ctx.companyId != null) 'company_id': ctx.companyId,
-        },
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _years = activeYears;
-        _companyId ??= ctx.companyId;
-        _branchId ??= ctx.branchId;
-        _locationId ??= ctx.locationId;
-        _financialYearId ??= ctx.financialYearId;
-        _groups = groups;
-        _accounts = accounts.where((a) => a.isActive).toList();
-        _rows = postings.data ?? const <DocumentPostingModel>[];
-        _filtered = _filter(_rows, _searchController.text);
-        _initialLoading = false;
-      });
-
-      final selected = selectId != null
-          ? _rows.cast<DocumentPostingModel?>().firstWhere(
-              (e) => intValue(_json(e), 'id') == selectId,
-              orElse: () => null,
-            )
-          : (_selected == null
-                ? (_rows.isNotEmpty ? _rows.first : null)
-                : _rows.cast<DocumentPostingModel?>().firstWhere(
-                    (e) =>
-                        intValue(_json(e), 'id') ==
-                        intValue(_json(_selected), 'id'),
-                    orElse: () => _rows.isNotEmpty ? _rows.first : null,
-                  ));
-      if (selected != null) {
-        await _applySelection(selected);
-      } else {
-        _resetForm();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _pageError = e.toString();
-        _initialLoading = false;
-      });
-    }
-  }
-
-  List<DocumentPostingModel> _filter(
-    List<DocumentPostingModel> source,
-    String q,
-  ) {
-    return filterMasterList(source, q, (item) {
-      final d = item.toJson();
-      return [
-        stringValue(d, 'document_module'),
-        stringValue(d, 'document_table'),
-        stringValue(d, 'document_no'),
-        stringValue(d, 'posting_status'),
-      ];
-    });
-  }
-
-  void _applySearch() {
-    setState(() => _filtered = _filter(_rows, _searchController.text));
-  }
-
-  Future<void> _applySelection(DocumentPostingModel item) async {
-    final id = intValue(_json(item), 'id');
-    if (id == null) return;
-    try {
-      final response = await _accountsService.documentPosting(id);
-      final full = response.data ?? item;
-      final d = full.toJson();
-      for (final l in _lines) {
-        l.dispose();
-      }
-      final rawLines = (d['lines'] as List<dynamic>? ?? const <dynamic>[])
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList(growable: false);
-      _selected = full;
-      _companyId = intValue(d, 'company_id');
-      _branchId = intValue(d, 'branch_id');
-      _locationId = intValue(d, 'location_id');
-      _financialYearId = intValue(d, 'financial_year_id');
-      _moduleController.text = stringValue(d, 'document_module');
-      _tableController.text = stringValue(d, 'document_table');
-      _documentIdController.text = stringValue(d, 'document_id');
-      _documentNoController.text = stringValue(d, 'document_no');
-      _documentDateController.text = (d['document_date'] ?? '')
-          .toString()
-          .split('T')
-          .first
-          .split(' ')
-          .first;
-      _postingRuleGroupId = intValue(d, 'posting_rule_group_id');
-      _voucherIdController.text = stringValue(d, 'voucher_id');
-      _postingStatus = stringValue(d, 'posting_status', 'pending');
-      _remarksController.text = stringValue(d, 'remarks');
-      _lines = rawLines.isEmpty
-          ? <_DocumentPostingLineDraft>[_DocumentPostingLineDraft()]
-          : rawLines
-                .map(
-                  (m) => _DocumentPostingLineDraft(
-                    lineNo: intValue(m, 'line_no'),
-                    accountId: intValue(m, 'account_id'),
-                    entrySide: stringValue(m, 'entry_side', 'debit'),
-                    amount: stringValue(m, 'amount'),
-                    narration: stringValue(m, 'narration'),
-                  ),
-                )
-                .toList(growable: true);
-      _formError = null;
-      if (mounted) setState(() {});
-    } catch (e) {
-      if (mounted) setState(() => _formError = e.toString());
-    }
-  }
-
-  void _resetForm() {
-    for (final l in _lines) {
-      l.dispose();
-    }
-    _selected = null;
-    _moduleController.clear();
-    _tableController.clear();
-    _documentIdController.clear();
-    _documentNoController.clear();
-    _documentDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
-    _postingRuleGroupId = null;
-    _voucherIdController.clear();
-    _postingStatus = 'pending';
-    _remarksController.clear();
-    _lines = <_DocumentPostingLineDraft>[_DocumentPostingLineDraft()];
-    _formError = null;
-    setState(() {});
-  }
-
-  void _addLine() {
-    setState(() {
-      _lines = List<_DocumentPostingLineDraft>.from(_lines)
-        ..add(_DocumentPostingLineDraft());
-    });
-  }
-
-  void _removeLine(int i) {
-    setState(() {
-      _lines[i].dispose();
-      _lines = List<_DocumentPostingLineDraft>.from(_lines)..removeAt(i);
-      if (_lines.isEmpty) {
-        _lines.add(_DocumentPostingLineDraft());
-      }
-    });
-  }
-
-  Map<String, dynamic> _payload() {
-    final lines = <Map<String, dynamic>>[];
-    var idx = 1;
-    for (final l in _lines) {
-      final amt = double.tryParse(l.amountController.text.trim()) ?? 0;
-      if (l.accountId == null || amt <= 0) continue;
-      lines.add(<String, dynamic>{
-        'line_no': l.lineNo ?? idx,
-        'account_id': l.accountId,
-        'entry_side': l.entrySide,
-        'amount': amt,
-        'narration': nullIfEmpty(l.narrationController.text),
-      });
-      idx++;
-    }
-    final voucherRaw = _voucherIdController.text.trim();
-    final voucherId = int.tryParse(voucherRaw);
-    return <String, dynamic>{
-      'company_id': _companyId,
-      'branch_id': _branchId,
-      'location_id': _locationId,
-      'financial_year_id': _financialYearId,
-      'document_module': _moduleController.text.trim(),
-      'document_table': _tableController.text.trim(),
-      'document_id': int.tryParse(_documentIdController.text.trim()) ?? 0,
-      'document_no': nullIfEmpty(_documentNoController.text),
-      'document_date': _documentDateController.text.trim(),
-      'posting_rule_group_id': _postingRuleGroupId,
-      if (voucherRaw.isNotEmpty && voucherId != null) 'voucher_id': voucherId,
-      'posting_status': _postingStatus,
-      'remarks': nullIfEmpty(_remarksController.text),
-      'lines': lines,
-    };
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_companyId == null ||
-        _branchId == null ||
-        _locationId == null ||
-        _financialYearId == null) {
-      setState(
-        () => _formError = 'Company, branch, location and year required.',
-      );
-      return;
-    }
-    final docId = int.tryParse(_documentIdController.text.trim());
-    if (docId == null || docId < 1) {
-      setState(() => _formError = 'Document ID must be a positive integer.');
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-    final body = DocumentPostingModel.fromJson(_payload());
-    try {
-      final ApiResponse<DocumentPostingModel> response;
-      final sid = intValue(_json(_selected), 'id');
-      if (sid == null) {
-        response = await _accountsService.createDocumentPosting(body);
-      } else {
-        response = await _accountsService.updateDocumentPosting(sid, body);
-      }
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _load(selectId: intValue(_json(response.data), 'id') ?? sid);
-    } catch (e) {
-      if (mounted) setState(() => _formError = e.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _delete() async {
-    final id = intValue(_json(_selected), 'id');
-    if (id == null) return;
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-    try {
-      final response = await _accountsService.deleteDocumentPosting(id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _load();
-    } catch (e) {
-      if (mounted) setState(() => _formError = e.toString());
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  void _startNew() {
-    _resetForm();
-    if (!Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
+    _controllerTag = persistentControllerTag(
+      'DocumentPostingManagementController',
+    );
+    Get.put(DocumentPostingManagementController(), tag: _controllerTag);
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent();
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _startNew,
-        icon: Icons.post_add_outlined,
-        label: 'New Posting',
-      ),
-    ];
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
-    return AppStandaloneShell(
-      title: 'Document Postings',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+    return GetBuilder<DocumentPostingManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = _buildContent(context, controller);
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => controller.startNewPosting(
+              isDesktop: Responsive.isDesktop(context),
+            ),
+            icon: Icons.post_add_outlined,
+            label: 'New Posting',
+          ),
+        ];
+
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
+
+        return AppStandaloneShell(
+          title: 'Document Postings',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
-    if (_initialLoading) {
+  Widget _buildContent(
+    BuildContext context,
+    DocumentPostingManagementController controller,
+  ) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading document postings...');
     }
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load',
-        message: _pageError!,
-        onRetry: _load,
+        message: controller.pageError!,
+        onRetry: controller.loadPage,
       );
     }
+
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Document Postings',
-      editorTitle: stringValue(_json(_selected), 'document_no').isEmpty
+      editorTitle:
+          stringValue(
+            controller.json(controller.selectedPosting),
+            'document_no',
+          ).isEmpty
           ? null
-          : stringValue(_json(_selected), 'document_no'),
-      scrollController: _pageScrollController,
+          : stringValue(
+              controller.json(controller.selectedPosting),
+              'document_no',
+            ),
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<DocumentPostingModel>(
-        searchController: _searchController,
+        searchController: controller.searchController,
         searchHint: 'Search postings',
-        items: _filtered,
-        selectedItem: _selected,
+        items: controller.filteredRows,
+        selectedItem: controller.selectedPosting,
         emptyMessage: 'No document postings.',
         itemBuilder: (item, selected) {
-          final d = item.toJson();
+          final data = item.toJson();
           return SettingsListTile(
             title:
-                '${stringValue(d, 'document_module')}.${stringValue(d, 'document_table')} #${stringValue(d, 'document_id')}',
+                '${stringValue(data, 'document_module')}.${stringValue(data, 'document_table')} #${stringValue(data, 'document_id')}',
             subtitle: [
-              stringValue(d, 'document_no'),
-              stringValue(d, 'posting_status'),
+              stringValue(data, 'document_no'),
+              stringValue(data, 'posting_status'),
             ].join(' · '),
             selected: selected,
-            onTap: () => _applySelection(item),
+            onTap: () => controller.selectPosting(item),
           );
         },
       ),
       editor: Form(
-        key: _formKey,
+        key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
+            if (controller.formError != null) ...[
+              AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
             Text(
@@ -523,22 +123,22 @@ class _DocumentPostingManagementPageState
               children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial year',
-                  mappedItems: _years
-                      .where((y) => y.id != null)
+                  mappedItems: controller.years
+                      .where((item) => item.id != null)
                       .map(
-                        (y) => AppDropdownItem<int>(
-                          value: y.id!,
-                          label: y.toString(),
+                        (item) => AppDropdownItem<int>(
+                          value: item.id!,
+                          label: item.toString(),
                         ),
                       )
                       .toList(growable: false),
-                  initialValue: _financialYearId,
-                  onChanged: (v) => setState(() => _financialYearId = v),
+                  initialValue: controller.financialYearId,
+                  onChanged: controller.setFinancialYearId,
                   validator: Validators.requiredSelection('Financial year'),
                 ),
                 AppFormTextField(
                   labelText: 'Document module',
-                  controller: _moduleController,
+                  controller: controller.moduleController,
                   validator: Validators.compose([
                     Validators.required('Module'),
                     Validators.optionalMaxLength(50, 'Module'),
@@ -546,7 +146,7 @@ class _DocumentPostingManagementPageState
                 ),
                 AppFormTextField(
                   labelText: 'Document table',
-                  controller: _tableController,
+                  controller: controller.tableController,
                   validator: Validators.compose([
                     Validators.required('Table'),
                     Validators.optionalMaxLength(100, 'Table'),
@@ -554,52 +154,52 @@ class _DocumentPostingManagementPageState
                 ),
                 AppFormTextField(
                   labelText: 'Document ID',
-                  controller: _documentIdController,
+                  controller: controller.documentIdController,
                   keyboardType: TextInputType.number,
                   validator: Validators.required('Document ID'),
                 ),
                 AppFormTextField(
                   labelText: 'Document no. (optional)',
-                  controller: _documentNoController,
+                  controller: controller.documentNoController,
                 ),
                 AppFormTextField(
                   labelText: 'Document date',
-                  controller: _documentDateController,
+                  controller: controller.documentDateController,
                   validator: Validators.optionalDate('Document date'),
                 ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Posting rule group (optional)',
                   mappedItems: <AppDropdownItem<int?>>[
                     const AppDropdownItem<int?>(value: null, label: 'None'),
-                    ..._groups
+                    ...controller.groups
                         .map(
-                          (g) => AppDropdownItem<int?>(
-                            value: intValue(g.toJson(), 'id'),
-                            label: stringValue(g.toJson(), 'group_name').isEmpty
-                                ? stringValue(g.toJson(), 'group_code')
-                                : stringValue(g.toJson(), 'group_name'),
+                          (item) => AppDropdownItem<int?>(
+                            value: intValue(item.toJson(), 'id'),
+                            label:
+                                stringValue(item.toJson(), 'group_name').isEmpty
+                                ? stringValue(item.toJson(), 'group_code')
+                                : stringValue(item.toJson(), 'group_name'),
                           ),
                         )
-                        .where((e) => e.value != null),
+                        .where((item) => item.value != null),
                   ],
-                  initialValue: _postingRuleGroupId,
-                  onChanged: (v) => setState(() => _postingRuleGroupId = v),
+                  initialValue: controller.postingRuleGroupId,
+                  onChanged: controller.setPostingRuleGroupId,
                 ),
                 AppFormTextField(
                   labelText: 'Voucher ID (optional)',
-                  controller: _voucherIdController,
+                  controller: controller.voucherIdController,
                   keyboardType: TextInputType.number,
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Posting status',
-                  mappedItems: _statusItems,
-                  initialValue: _postingStatus,
-                  onChanged: (v) =>
-                      setState(() => _postingStatus = v ?? 'pending'),
+                  mappedItems: DocumentPostingManagementController.statusItems,
+                  initialValue: controller.postingStatus,
+                  onChanged: controller.setPostingStatus,
                 ),
                 AppFormTextField(
                   labelText: 'Remarks',
-                  controller: _remarksController,
+                  controller: controller.remarksController,
                   maxLines: 2,
                 ),
               ],
@@ -617,14 +217,14 @@ class _DocumentPostingManagementPageState
                 AppActionButton(
                   icon: Icons.add_outlined,
                   label: 'Add line',
-                  onPressed: _addLine,
+                  onPressed: controller.addLine,
                   filled: false,
                 ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(_lines.length, (index) {
-              final line = _lines[index];
+            ...List<Widget>.generate(controller.lines.length, (index) {
+              final line = controller.lines[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: AppSectionCard(
@@ -635,33 +235,35 @@ class _DocumentPostingManagementPageState
                           Text('Line ${index + 1}'),
                           const Spacer(),
                           IconButton(
-                            onPressed: _lines.length == 1
+                            onPressed: controller.lines.length == 1
                                 ? null
-                                : () => _removeLine(index),
+                                : () => controller.removeLine(index),
                             icon: const Icon(Icons.delete_outline),
                           ),
                         ],
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Account',
-                        mappedItems: _accounts
-                            .where((a) => a.id != null)
+                        mappedItems: controller.accounts
+                            .where((item) => item.id != null)
                             .map(
-                              (a) => AppDropdownItem<int>(
-                                value: a.id!,
-                                label: a.toString(),
+                              (item) => AppDropdownItem<int>(
+                                value: item.id!,
+                                label: item.toString(),
                               ),
                             )
                             .toList(growable: false),
                         initialValue: line.accountId,
-                        onChanged: (v) => setState(() => line.accountId = v),
+                        onChanged: (value) =>
+                            controller.setLineAccountId(index, value),
                       ),
                       AppDropdownField<String>.fromMapped(
                         labelText: 'Side',
-                        mappedItems: _entryItems,
+                        mappedItems:
+                            DocumentPostingManagementController.entryItems,
                         initialValue: line.entrySide,
-                        onChanged: (v) =>
-                            setState(() => line.entrySide = v ?? 'debit'),
+                        onChanged: (value) =>
+                            controller.setLineEntrySide(index, value),
                       ),
                       AppFormTextField(
                         labelText: 'Amount',
@@ -686,17 +288,28 @@ class _DocumentPostingManagementPageState
               children: [
                 AppActionButton(
                   icon: Icons.save_outlined,
-                  label: intValue(_json(_selected), 'id') == null
+                  label:
+                      intValue(
+                            controller.json(controller.selectedPosting),
+                            'id',
+                          ) ==
+                          null
                       ? 'Save'
                       : 'Update',
-                  onPressed: _save,
-                  busy: _saving,
+                  onPressed: controller.savePosting,
+                  busy: controller.saving,
                 ),
-                if (intValue(_json(_selected), 'id') != null)
+                if (intValue(
+                      controller.json(controller.selectedPosting),
+                      'id',
+                    ) !=
+                    null)
                   AppActionButton(
                     icon: Icons.delete_outline,
                     label: 'Delete',
-                    onPressed: _saving ? null : _delete,
+                    onPressed: controller.saving
+                        ? null
+                        : controller.deletePosting,
                     filled: false,
                   ),
               ],
