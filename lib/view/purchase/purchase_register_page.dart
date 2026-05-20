@@ -50,26 +50,42 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
 
 class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
   late final String _controllerTag;
+  late final PurchaseRegisterPageController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('PurchaseRegisterPageController');
-    Get.put(PurchaseRegisterPageController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag(
+      'PurchaseRegisterPageController',
+      scope: <String, Object?>{
+        'widget': widget.runtimeType,
+        'key': widget.key,
+        'state': identityHashCode(this),
+      },
+    );
+    _controller = Get.put(
+      PurchaseRegisterPageController(),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<PurchaseRegisterPageController>(tag: _controllerTag)) {
+      Get.delete<PurchaseRegisterPageController>(tag: _controllerTag);
+    }
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant PurchaseRegisterPage<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final controller = Get.find<PurchaseRegisterPageController>(
-      tag: _controllerTag,
-    );
     if (!identical(oldWidget.rows, widget.rows)) {
-      controller.resetPage();
+      _controller.resetPage();
     }
 
     final totalPages = _totalPages(widget.rows.length);
-    controller.clampToTotalPages(totalPages);
+    _controller.clampToTotalPages(totalPages);
   }
 
   int _totalPages(int itemCount) {
@@ -80,14 +96,11 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
   }
 
   List<T> _pagedRows() {
-    final controller = Get.find<PurchaseRegisterPageController>(
-      tag: _controllerTag,
-    );
     if (widget.rows.isEmpty) {
       return <T>[];
     }
 
-    final start = (controller.currentPage - 1) * kLocalListPageSize;
+    final start = (_controller.currentPage - 1) * kLocalListPageSize;
     if (start >= widget.rows.length) {
       return <T>[];
     }

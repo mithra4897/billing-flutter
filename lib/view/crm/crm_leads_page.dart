@@ -26,8 +26,26 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('CrmLeadRegisterController');
-    Get.put(CrmLeadRegisterController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag(
+      'CrmLeadRegisterController',
+      scope: <String, Object?>{
+        'widget': widget.runtimeType,
+        'key': widget.key,
+        'state': identityHashCode(this),
+      },
+    );
+    Get.put(
+      CrmLeadRegisterController(instanceTag: _controllerTag),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<CrmLeadRegisterController>(tag: _controllerTag)) {
+      Get.delete<CrmLeadRegisterController>(tag: _controllerTag);
+    }
+    super.dispose();
   }
 
   @override
@@ -174,12 +192,42 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         _controller.setActiveTabIndex(_tabController.index);
       }
     });
+    _syncRouteState();
+  }
+
+  @override
+  void didUpdateWidget(covariant CrmLeadsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialSelectId != widget.initialSelectId ||
+        oldWidget.startInNewMode != widget.startInNewMode ||
+        oldWidget.initialLeadName != widget.initialLeadName ||
+        oldWidget.initialCompanyId != widget.initialCompanyId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _syncRouteState();
+      });
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _syncRouteState() {
+    if (widget.startInNewMode) {
+      _controller.resetForm(notify: false);
+      _controller.applyInitialLeadDraft();
+      return;
+    }
+    if (widget.initialSelectId != null) {
+      _controller.loadPage(selectId: widget.initialSelectId);
+      return;
+    }
+    _controller.loadPage();
   }
 
   @override
@@ -546,8 +594,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 ),
               if (controller.isSelectedLeadReadOnly) ...[
                 Text(
-                  controller.effectiveLeadStatus() == 'converted'
-                      ? 'This lead is converted. Details are read-only. Open the linked opportunity to continue the sales process.'
+                  controller.effectiveLeadStatus() == 'own'
+                      ? 'This lead already has an opportunity. Details are read-only. Open the linked opportunity to continue the sales process.'
                       : 'This lead is lost. Details are read-only.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -693,12 +741,18 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                         '/crm/opportunities/${controller.opportunityIdFromSalesChain() ?? controller.enquiryIdFromSalesChain()}',
                       ),
                     ),
-                  if (controller.selectedItem != null)
+                  if (controller.canDeleteSelectedLead)
                     AppActionButton(
                       icon: Icons.delete_outline,
                       label: 'Delete',
                       filled: false,
-                      onPressed: controller.delete,
+                      onPressed: () async {
+                        final deleted = await controller.delete();
+                        if (!deleted || !context.mounted) {
+                          return;
+                        }
+                        _openCrmShellRoute(context, '/crm/leads');
+                      },
                     ),
                 ],
               ),

@@ -183,6 +183,15 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
         return;
       }
 
+      // Let the placeholder-only frame finish before the route mounts the
+      // editor, which avoids temporary duplicate GlobalKey ownership during
+      // responsive transitions.
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) {
+        _editorRouteOpen = false;
+        return;
+      }
+
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (context) => _SettingsEditorRoutePage(
@@ -193,6 +202,13 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       );
 
       if (mounted) {
+        // Wait until the route has fully torn down before remounting the
+        // inline editor, so keyed form subtrees cannot overlap for a frame.
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted) {
+          _editorRouteOpen = false;
+          return;
+        }
         setState(() {
           _editorRouteOpen = false;
         });

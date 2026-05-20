@@ -70,18 +70,18 @@ class _AppShellPageState extends State<AppShellPage> {
           );
         }
 
-        return AdaptiveShell(
-          title: _titleForPath(_currentPath, _authContext),
-          branding: _branding,
-          currentPath: _buildCurrentRoute(),
-          actionsListenable: _shellPageActionsController,
-          onNavigate: _handleNavigate,
-          child: Align(
-            alignment: AlignmentGeometry.topCenter,
-            child: ShellPageActionsScope(
-              controller: _shellPageActionsController,
-              child: ShellRouteScope(
-                onNavigate: _handleNavigate,
+        return ShellPageActionsScope(
+          controller: _shellPageActionsController,
+          child: ShellRouteScope(
+            onNavigate: _handleNavigate,
+            child: AdaptiveShell(
+              title: _titleForPath(_currentPath, _authContext),
+              branding: _branding,
+              currentPath: _buildCurrentRoute(),
+              actionsListenable: _shellPageActionsController,
+              onNavigate: _handleNavigate,
+              child: Align(
+                alignment: AlignmentGeometry.topCenter,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 140),
                   switchInCurve: Curves.easeOut,
@@ -392,14 +392,9 @@ class _AppShellPageState extends State<AppShellPage> {
           ),
         );
       case '/crm/opportunities':
-        return CrmEnquiriesPage(
-          key: routeKey,
-          embedded: true,
-          startInNewMode: false,
-          initialSelectId: int.tryParse(
-            _currentQueryParameters['select_id'] ?? '',
-          ),
-        );
+        return CrmOpportunityRegisterPage(key: routeKey, embedded: true);
+      case '/crm/follow-ups':
+        return CrmFollowupsPage(key: routeKey, embedded: true);
       case '/crm/sources':
         return CrmSourcesPage(
           key: routeKey,
@@ -1318,8 +1313,15 @@ class _AppShellPageState extends State<AppShellPage> {
           ),
         );
       case 'enquiries':
-      case 'opportunities':
         return CrmEnquiriesPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          startInNewMode: isNew,
+          initialSelectId: id,
+        );
+      case 'opportunities':
+        return CrmOpportunitiesPage(
           key: routeKey,
           embedded: true,
           editorOnly: true,

@@ -36,6 +36,15 @@ class _RoleManagementPageState extends State<RoleManagementPage>
         _controller.setActiveTabIndex(_tabController.index);
       }
     });
+    _syncRouteState();
+  }
+
+  @override
+  void didUpdateWidget(covariant RoleManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialRoleId != widget.initialRoleId) {
+      _syncRouteState();
+    }
   }
 
   @override
@@ -220,6 +229,12 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       }
       _tabController.animateTo(clampedIndex);
     });
+  }
+
+  void _syncRouteState() {
+    if (widget.initialRoleId != null) {
+      _controller.loadRole(widget.initialRoleId!, resetTab: true);
+    }
   }
 
   Widget _buildProfileTab(

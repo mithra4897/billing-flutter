@@ -540,6 +540,13 @@ class AppNavigation {
           path: '/crm/opportunities',
           requiredPermissions: ['crm.view'],
         ),
+        AppNavigationItem(
+          key: 'crm-followups',
+          title: 'Follow ups',
+          icon: Icons.alarm_outlined,
+          path: '/crm/follow-ups',
+          requiredPermissions: ['crm.view'],
+        ),
       ],
     ),
     const AppNavigationItem(

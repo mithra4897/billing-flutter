@@ -1,14 +1,16 @@
 import '../../screen.dart';
 
 class CrmLeadRegisterController extends GetxController {
-  CrmLeadRegisterController();
+  CrmLeadRegisterController({required this.instanceTag});
+  static final Set<String> _activeTags = <String>{};
+  final String instanceTag;
 
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
-        AppDropdownItem(value: 'new', label: 'New'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
         AppDropdownItem(value: 'in_progress', label: 'In Progress'),
-        AppDropdownItem(value: 'converted', label: 'Converted'),
+        AppDropdownItem(value: 'own', label: 'Own'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
 
@@ -23,12 +25,14 @@ class CrmLeadRegisterController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _activeTags.add(instanceTag);
     searchController.addListener(_notifySearch);
     load();
   }
 
   @override
   void onClose() {
+    _activeTags.remove(instanceTag);
     searchController
       ..removeListener(_notifySearch)
       ..dispose();
@@ -82,15 +86,28 @@ class CrmLeadRegisterController extends GetxController {
 
   String statusLabel(String value) {
     switch (value.trim().toLowerCase()) {
+      case 'draft':
+      case 'new':
+        return 'Draft';
       case 'in_progress':
         return 'In Progress';
+      case 'own':
       case 'converted':
-        return 'Converted';
+        return 'Own';
       case 'lost':
         return 'Lost';
-      case 'new':
       default:
-        return 'New';
+        return 'Draft';
+    }
+  }
+
+  static Future<void> refreshIfRegistered() async {
+    for (final tag in _activeTags.toList(growable: false)) {
+      if (!Get.isRegistered<CrmLeadRegisterController>(tag: tag)) {
+        _activeTags.remove(tag);
+        continue;
+      }
+      await Get.find<CrmLeadRegisterController>(tag: tag).load();
     }
   }
 }

@@ -135,6 +135,29 @@ class CrmService extends ErpModuleService {
         fromJson: CrmFollowupModel.fromJson,
       );
 
+  Future<ApiResponse<Map<String, dynamic>>> opportunityFollowupsBoard() =>
+      object<Map<String, dynamic>>(
+        ApiEndpoints.crmOpportunityFollowups,
+        fromJson: (json) => json,
+      );
+
+  Future<ApiResponse<Map<String, dynamic>>> createOpportunityFollowup(
+    int opportunityId,
+    Map<String, dynamic> body,
+  ) => client.post<Map<String, dynamic>>(
+    '${ApiEndpoints.crmOpportunities}/$opportunityId/followups',
+    body: body,
+    fromData: (dynamic json) {
+      if (json is Map<String, dynamic>) {
+        return json;
+      }
+      if (json is Map) {
+        return Map<String, dynamic>.from(json);
+      }
+      return <String, dynamic>{};
+    },
+  );
+
   Future<ApiResponse<CrmEnquiryModel>> createEnquiry(CrmEnquiryModel body) =>
       createModel<CrmEnquiryModel>(
         ApiEndpoints.crmOpportunities,
@@ -195,7 +218,7 @@ class CrmService extends ErpModuleService {
       );
 
   Future<ApiResponse<CrmOpportunityModel>> createOpportunity(
-    CrmOpportunityModel body,
+    dynamic body,
   ) => createModel<CrmOpportunityModel>(
     ApiEndpoints.crmOpportunities,
     body,
@@ -204,7 +227,7 @@ class CrmService extends ErpModuleService {
 
   Future<ApiResponse<CrmOpportunityModel>> updateOpportunity(
     int id,
-    CrmOpportunityModel body,
+    dynamic body,
   ) => updateModel<CrmOpportunityModel>(
     '${ApiEndpoints.crmOpportunities}/$id',
     body,

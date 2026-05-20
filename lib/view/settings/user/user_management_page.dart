@@ -36,6 +36,15 @@ class _UserManagementPageState extends State<UserManagementPage>
         _controller.setActiveTabIndex(_tabController.index);
       }
     });
+    _syncRouteState();
+  }
+
+  @override
+  void didUpdateWidget(covariant UserManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialUserId != widget.initialUserId) {
+      _syncRouteState();
+    }
   }
 
   @override
@@ -260,6 +269,12 @@ class _UserManagementPageState extends State<UserManagementPage>
       }
       _tabController.animateTo(clampedIndex);
     });
+  }
+
+  void _syncRouteState() {
+    if (widget.initialUserId != null) {
+      _controller.loadUser(widget.initialUserId!);
+    }
   }
 
   Widget _buildProfileTab(

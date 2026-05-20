@@ -37,14 +37,20 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('CrmEnquiriesController');
+    _controllerTag = persistentControllerTag(
+      'CrmEnquiriesController',
+      scope: <String, Object?>{
+        'widget': widget.runtimeType,
+        'key': widget.key,
+        'state': identityHashCode(this),
+      },
+    );
     _controller = Get.put(
       CrmEnquiriesController(
         startInNewMode: widget.startInNewMode,
         initialSelectId: widget.initialSelectId,
       ),
       tag: _controllerTag,
-      permanent: true,
     );
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
@@ -55,9 +61,36 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   }
 
   @override
+  void didUpdateWidget(covariant CrmEnquiriesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialSelectId != widget.initialSelectId ||
+        oldWidget.startInNewMode != widget.startInNewMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _syncRouteState();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
+    if (Get.isRegistered<CrmEnquiriesController>(tag: _controllerTag)) {
+      Get.delete<CrmEnquiriesController>(tag: _controllerTag);
+    }
     super.dispose();
+  }
+
+  void _syncRouteState() {
+    if (widget.startInNewMode) {
+      _controller.resetForm();
+      return;
+    }
+    if (widget.initialSelectId != null) {
+      _controller.loadPage(selectId: widget.initialSelectId);
+    }
   }
 
   @override

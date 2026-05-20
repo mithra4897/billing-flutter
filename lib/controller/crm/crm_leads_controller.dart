@@ -1,13 +1,14 @@
 import '../../screen.dart';
+import 'crm_lead_register_controller.dart';
 
 class CrmLeadsController extends GetxController {
   static const int allFilterIntValue = 0;
   static const String allFilterStringValue = '__all__';
   static const List<AppDropdownItem<String>> leadFilterStatuses =
       <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'new', label: 'New'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
         AppDropdownItem(value: 'in_progress', label: 'In Progress'),
-        AppDropdownItem(value: 'converted', label: 'Converted'),
+        AppDropdownItem(value: 'own', label: 'Own'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
   static const List<AppDropdownItem<String>> activityTypes =
@@ -73,6 +74,16 @@ class CrmLeadsController extends GetxController {
   bool get isSelectedLeadReadOnly =>
       selectedItem != null && isLockedLeadStatus(leadStatus);
 
+  bool get canDeleteSelectedLead {
+    if (selectedItem == null) {
+      return false;
+    }
+
+    return const {'draft', 'new', 'in_progress'}.contains(
+      effectiveLeadStatus(),
+    );
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -98,34 +109,40 @@ class CrmLeadsController extends GetxController {
 
   static bool isCompletedLead(CrmLeadModel item) {
     final status = stringValue(item.toJson(), 'lead_status');
-    return status == 'converted' || status == 'lost';
+    return status == 'own' || status == 'converted' || status == 'lost';
   }
 
   static bool isLockedLeadStatus(String status) =>
-      status == 'converted' || status == 'lost';
+      status == 'own' || status == 'converted' || status == 'lost';
 
   String effectiveLeadStatus() {
     final status = leadStatus.trim().toLowerCase();
-    if (status == 'converted' || status == 'lost') {
-      return status;
+    if (status == 'own' || status == 'converted') {
+      return 'own';
+    }
+    if (status == 'lost') {
+      return 'lost';
     }
     if (activities.isNotEmpty) {
       return 'in_progress';
     }
-    return 'new';
+    return 'draft';
   }
 
   String leadStatusLabel([String? status]) {
     switch ((status ?? effectiveLeadStatus()).trim().toLowerCase()) {
+      case 'draft':
+      case 'new':
+        return 'Draft';
       case 'in_progress':
         return 'In Progress';
+      case 'own':
       case 'converted':
-        return 'Converted';
+        return 'Own';
       case 'lost':
         return 'Lost';
-      case 'new':
       default:
-        return 'New';
+        return 'Draft';
     }
   }
 
@@ -308,6 +325,9 @@ class CrmLeadsController extends GetxController {
     sourceId = intValue(data, 'source_id');
     assignedTo = intValue(data, 'assigned_to');
     leadStatus = stringValue(data, 'lead_status', 'new');
+    if (leadStatus == 'new') {
+      leadStatus = 'draft';
+    }
     leadNameController.text = stringValue(data, 'lead_name');
     companyNameController.text = stringValue(data, 'company_name');
     mobileController.text = stringValue(data, 'mobile');
@@ -354,6 +374,7 @@ class CrmLeadsController extends GetxController {
     sourceId = null;
     assignedTo = null;
     leadStatus = 'new';
+    leadStatus = 'draft';
     leadNameController.clear();
     companyNameController.clear();
     mobileController.clear();
@@ -427,6 +448,7 @@ class CrmLeadsController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      await CrmLeadRegisterController.refreshIfRegistered();
     } catch (error) {
       formError = error.toString();
       update();
@@ -436,18 +458,21 @@ class CrmLeadsController extends GetxController {
     }
   }
 
-  Future<void> delete() async {
+  Future<bool> delete() async {
     final id = intValue(selectedItem?.toJson() ?? const {}, 'id');
-    if (id == null) return;
+    if (id == null) return false;
     try {
       final response = await _crmService.deleteLead(id);
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      await loadPage();
+      await CrmLeadRegisterController.refreshIfRegistered();
+      resetForm();
+      return true;
     } catch (error) {
       formError = error.toString();
       update();
+      return false;
     }
   }
 
@@ -480,6 +505,7 @@ class CrmLeadsController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadPage(selectId: id);
+      await CrmLeadRegisterController.refreshIfRegistered();
     } catch (error) {
       formError = error.toString();
       update();
@@ -505,6 +531,7 @@ class CrmLeadsController extends GetxController {
       }
       final enquiryId = enquiryMap != null ? intValue(enquiryMap, 'id') : null;
       await loadPage(selectId: id);
+      await CrmLeadRegisterController.refreshIfRegistered();
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
