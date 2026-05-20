@@ -1,3 +1,4 @@
+import '../../../controller/settings/communication/email_module_settings_management_controller.dart';
 import '../../../screen.dart';
 
 class EmailModuleSettingsPage extends StatefulWidget {
@@ -11,302 +12,80 @@ class EmailModuleSettingsPage extends StatefulWidget {
 }
 
 class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
-  final CommunicationService _communicationService = CommunicationService();
-  final MasterService _masterService = MasterService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _moduleController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  List<AppDropdownItem<String>> _documentTypeItems = const [
-    AppDropdownItem(value: '', label: 'All'),
-  ];
-  List<EmailModuleSettingModel> _records = const <EmailModuleSettingModel>[];
-  List<EmailModuleSettingModel> _filteredRecords =
-      const <EmailModuleSettingModel>[];
-  EmailModuleSettingModel? _selectedRecord;
-  int? _contextCompanyId;
-  int? _companyId;
-  String _documentType = '';
-  bool _autoEmailEnabled = true;
-  bool _manualEmailEnabled = true;
-  bool _isActive = true;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
-    _loadPage();
-  }
-
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
-    _moduleController.dispose();
-    _remarksController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadPage({int? selectId}) async {
-    setState(() {
-      _initialLoading = _records.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final companiesResponse = await _masterService.companies(
-        filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-      );
-      final documentSeriesResponse = await _masterService.documentSeries(
-        filters: const {'per_page': 500},
-      );
-      final recordsResponse = await _communicationService.emailModuleSettings();
-
-      if (!mounted) {
-        return;
-      }
-
-      final companies = companiesResponse.data ?? const <CompanyModel>[];
-      final documentTypes =
-          (documentSeriesResponse.data ?? const <DocumentSeriesModel>[])
-              .map((item) => (item.documentType ?? '').trim())
-              .where((item) => item.isNotEmpty)
-              .toSet()
-              .toList()
-            ..sort();
-      final records = recordsResponse.data ?? const <EmailModuleSettingModel>[];
-      final activeCompanies = companies
-          .where((item) => item.isActive)
-          .toList(growable: false);
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies: activeCompanies,
-            branches: const <BranchModel>[],
-            locations: const <BusinessLocationModel>[],
-            financialYears: const <FinancialYearModel>[],
-          );
-
-      setState(() {
-        _contextCompanyId = contextSelection.companyId;
-        _documentTypeItems = [
-          const AppDropdownItem(value: '', label: 'All'),
-          ...documentTypes.map(
-            (item) => AppDropdownItem(value: item, label: item),
-          ),
-        ];
-        _records = records;
-        _filteredRecords = filterMasterList(
-          records,
-          _searchController.text,
-          (record) => [
-            stringValue(record.toJson(), 'module'),
-            stringValue(record.toJson(), 'document_type'),
-            stringValue(record.toJson(), 'remarks'),
-          ],
-        );
-        _initialLoading = false;
-      });
-
-      final selected = selectId != null
-          ? records.cast<EmailModuleSettingModel?>().firstWhere(
-              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
-              orElse: () => null,
-            )
-          : (_selectedRecord == null
-                ? (records.isNotEmpty ? records.first : null)
-                : records.cast<EmailModuleSettingModel?>().firstWhere(
-                    (item) =>
-                        intValue(item?.toJson() ?? const {}, 'id') ==
-                        intValue(_selectedRecord?.toJson() ?? const {}, 'id'),
-                    orElse: () => records.isNotEmpty ? records.first : null,
-                  ));
-
-      if (selected != null) {
-        _selectRecord(selected);
-      } else {
-        _resetForm();
-      }
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  void _applySearch() {
-    setState(() {
-      _filteredRecords = filterMasterList(
-        _records,
-        _searchController.text,
-        (record) => [
-          stringValue(record.toJson(), 'module'),
-          stringValue(record.toJson(), 'document_type'),
-          stringValue(record.toJson(), 'remarks'),
-        ],
-      );
-    });
-  }
-
-  void _selectRecord(EmailModuleSettingModel record) {
-    final data = record.toJson();
-    _selectedRecord = record;
-    _companyId = intValue(data, 'company_id');
-    _moduleController.text = stringValue(data, 'module');
-    _documentType = stringValue(data, 'document_type');
-    _remarksController.text = stringValue(data, 'remarks');
-    _autoEmailEnabled = boolValue(data, 'auto_email_enabled', fallback: true);
-    _manualEmailEnabled = boolValue(
-      data,
-      'manual_email_enabled',
-      fallback: true,
+    _controllerTag = persistentControllerTag(
+      'EmailModuleSettingsManagementController',
     );
-    _isActive = boolValue(data, 'is_active', fallback: true);
-    _formError = null;
-    setState(() {});
-  }
-
-  void _resetForm() {
-    _selectedRecord = null;
-    _companyId = _contextCompanyId;
-    _moduleController.clear();
-    _documentType = '';
-    _remarksController.clear();
-    _autoEmailEnabled = true;
-    _manualEmailEnabled = true;
-    _isActive = true;
-    _formError = null;
-    setState(() {});
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    final body = EmailModuleSettingModel.fromJson({
-      if (intValue(_selectedRecord?.toJson() ?? const {}, 'id') != null)
-        'id': intValue(_selectedRecord!.toJson(), 'id'),
-      if (_companyId != null) 'company_id': _companyId,
-      'module': _moduleController.text.trim(),
-      'document_type': nullIfEmpty(_documentType),
-      'auto_email_enabled': _autoEmailEnabled,
-      'manual_email_enabled': _manualEmailEnabled,
-      'is_active': _isActive,
-      'remarks': nullIfEmpty(_remarksController.text),
-    });
-
-    try {
-      final id = intValue(_selectedRecord?.toJson() ?? const {}, 'id');
-      final response = id == null
-          ? await _communicationService.createEmailModuleSetting(body)
-          : await _communicationService.updateEmailModuleSetting(id, body);
-
-      final saved = response.data;
-      if (!mounted) {
-        return;
-      }
-      if (saved == null) {
-        setState(() {
-          _formError = response.message;
-        });
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: intValue(saved.toJson(), 'id'));
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  void _startNewModuleSetting() {
-    _resetForm();
-
-    if (!Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
+    Get.put(EmailModuleSettingsManagementController(), tag: _controllerTag);
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent(context);
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _startNewModuleSetting,
-        icon: Icons.add_outlined,
-        label: 'New Module Setting',
-      ),
-    ];
+    return GetBuilder<EmailModuleSettingsManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = _buildContent(controller);
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => controller.startNewModuleSetting(
+              isDesktop: Responsive.isDesktop(context),
+            ),
+            icon: Icons.add_outlined,
+            label: 'New Module Setting',
+          ),
+        ];
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
 
-    return AppStandaloneShell(
-      title: 'Module Settings',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+        return AppStandaloneShell(
+          title: 'Module Settings',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    if (_initialLoading) {
+  Widget _buildContent(EmailModuleSettingsManagementController controller) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading email module settings...');
     }
 
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load module settings',
-        message: _pageError!,
-        onRetry: _loadPage,
+        message: controller.pageError!,
+        onRetry: controller.loadPage,
       );
     }
 
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Module Settings',
-      editorTitle: _selectedRecord?.toString(),
-      scrollController: _pageScrollController,
+      editorTitle: controller.selectedRecord?.toString(),
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<EmailModuleSettingModel>(
-        searchController: _searchController,
+        searchController: controller.searchController,
         searchHint: 'Search module settings',
-        items: _filteredRecords,
-        selectedItem: _selectedRecord,
+        items: controller.filteredRecords,
+        selectedItem: controller.selectedRecord,
         emptyMessage: 'No module settings found.',
         itemBuilder: (record, selected) => SettingsListTile(
           title: stringValue(record.toJson(), 'module', 'Module'),
-          subtitle: stringValue(record.toJson(), 'document_type', 'All documents'),
+          subtitle: stringValue(
+            record.toJson(),
+            'document_type',
+            'All documents',
+          ),
           selected: selected,
-          onTap: () => _selectRecord(record),
+          onTap: () => controller.selectRecord(record),
           trailing: SettingsStatusPill(
             label: boolValue(record.toJson(), 'is_active', fallback: true)
                 ? 'Active'
@@ -316,31 +95,30 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
         ),
       ),
       editor: Form(
-        key: _formKey,
+        key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
+            if (controller.formError != null) ...[
+              AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: 16),
             ],
             SettingsFormWrap(
               children: [
                 AppFormTextField(
                   labelText: 'Module',
-                  controller: _moduleController,
+                  controller: controller.moduleController,
                   validator: Validators.required('Module'),
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Document Type',
-                  mappedItems: _documentTypeItems,
-                  initialValue: _documentType,
-                  onChanged: (value) =>
-                      setState(() => _documentType = value ?? ''),
+                  mappedItems: controller.documentTypeItems,
+                  initialValue: controller.documentType,
+                  onChanged: controller.setDocumentType,
                 ),
                 AppFormTextField(
                   labelText: 'Remarks',
-                  controller: _remarksController,
+                  controller: controller.remarksController,
                   maxLines: 3,
                 ),
               ],
@@ -353,24 +131,22 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
                 SizedBox(
                   child: AppSwitchTile(
                     label: 'Auto Email Enabled',
-                    value: _autoEmailEnabled,
-                    onChanged: (value) =>
-                        setState(() => _autoEmailEnabled = value),
+                    value: controller.autoEmailEnabled,
+                    onChanged: controller.setAutoEmailEnabled,
                   ),
                 ),
                 SizedBox(
                   child: AppSwitchTile(
                     label: 'Manual Email Enabled',
-                    value: _manualEmailEnabled,
-                    onChanged: (value) =>
-                        setState(() => _manualEmailEnabled = value),
+                    value: controller.manualEmailEnabled,
+                    onChanged: controller.setManualEmailEnabled,
                   ),
                 ),
                 SizedBox(
                   child: AppSwitchTile(
                     label: 'Active',
-                    value: _isActive,
-                    onChanged: (value) => setState(() => _isActive = value),
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
                   ),
                 ),
               ],
@@ -378,11 +154,11 @@ class _EmailModuleSettingsPageState extends State<EmailModuleSettingsPage> {
             const SizedBox(height: 20),
             AppActionButton(
               icon: Icons.save_outlined,
-              label: _selectedRecord == null
+              label: controller.selectedRecord == null
                   ? 'Save Module Setting'
                   : 'Update Module Setting',
-              onPressed: _save,
-              busy: _saving,
+              onPressed: controller.save,
+              busy: controller.saving,
             ),
           ],
         ),

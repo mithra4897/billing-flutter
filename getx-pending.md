@@ -60,7 +60,7 @@ Status legend:
 | Settings Accounting | `lib/View/settings/accounting/party_account_register_page.dart` | page | `pending` |  |
 | Settings Accounting | `lib/View/settings/accounting/voucher_page.dart` | page | `pending` |  |
 | Settings Communication | `lib/View/settings/communication/email_messages_page.dart` | page | `pending` |  |
-| Settings Communication | `lib/View/settings/communication/email_module_settings_page.dart` | page | `pending` |  |
+| Settings Communication | `lib/View/settings/communication/email_module_settings_page.dart` | page | `done` | Migrated to `EmailModuleSettingsManagementController` |
 | Settings Communication | `lib/View/settings/communication/email_rules_page.dart` | page | `pending` |  |
 | Settings Communication | `lib/View/settings/communication/email_settings_page.dart` | page | `pending` |  |
 | Settings Communication | `lib/View/settings/communication/email_templates_page.dart` | page | `pending` |  |
@@ -74,9 +74,9 @@ Status legend:
 | Settings Master | `lib/View/settings/master/warehouse_page.dart` | page | `pending` |  |
 | Settings Tax | `lib/View/settings/tax/document_tax_lines_register_page.dart` | page | `pending` |  |
 | Settings Tax | `lib/View/settings/tax/gst_registration_page.dart` | page | `pending` |  |
-| Settings User | `lib/View/settings/user/login_history_page.dart` | page | `pending` |  |
-| Settings User | `lib/View/settings/user/module_preferences_page.dart` | page | `pending` |  |
-| Settings User | `lib/View/settings/user/profile_page.dart` | page | `pending` |  |
+| Settings User | `lib/View/settings/user/login_history_page.dart` | page | `done` | Migrated to `LoginHistoryManagementController` |
+| Settings User | `lib/View/settings/user/module_preferences_page.dart` | page | `done` | Migrated to `ModulePreferencesManagementController` |
+| Settings User | `lib/View/settings/user/profile_page.dart` | page | `done` | Migrated to `ProfileManagementController` |
 
 ## Pending Widgets And Support Files
 
