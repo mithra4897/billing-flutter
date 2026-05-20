@@ -1,3 +1,4 @@
+import '../../controller/dashboard/erp_module_dashboard_controller.dart';
 import '../../screen.dart';
 
 class ErpModuleDashboardPage extends StatefulWidget {
@@ -20,56 +21,43 @@ class ErpModuleDashboardPage extends StatefulWidget {
 }
 
 class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
-  late Future<ErpDashboardSnapshot> _snapshotFuture;
-  ErpDashboardSnapshot? _snapshotCache;
-  bool _isTrendReloading = false;
-  ErpDashboardTrendFilter _trendFilter = const ErpDashboardTrendFilter(
-    preset: ErpDashboardTrendPreset.monthly,
-  );
+  late final String _controllerTag;
+  late final ErpModuleDashboardController _controller;
 
   @override
   void initState() {
     super.initState();
-    _snapshotFuture = _loadSnapshot(cacheResult: true);
+    _controllerTag = persistentControllerTag(
+      'ErpModuleDashboardController-${widget.moduleKey}',
+    );
+    _controller = Get.put(
+      ErpModuleDashboardController(
+        moduleKey: widget.moduleKey,
+        loader: widget.loader,
+        shellTitle: widget.shellTitle,
+      ),
+      tag: _controllerTag,
+      permanent: true,
+    );
   }
 
   @override
   void didUpdateWidget(covariant ErpModuleDashboardPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.moduleKey != widget.moduleKey ||
-        oldWidget.loader != widget.loader) {
-      _snapshotCache = null;
-      _isTrendReloading = false;
-      _snapshotFuture = _loadSnapshot(cacheResult: true);
-    }
-  }
-
-  Future<ErpDashboardSnapshot> _loadSnapshot({bool cacheResult = false}) async {
-    final snapshot =
-        await (widget.loader?.call(_trendFilter) ??
-            loadErpDashboardSnapshot(
-              widget.moduleKey,
-              trendFilter: _trendFilter,
-            ));
-    if (cacheResult) {
-      _snapshotCache = snapshot;
-    }
-    return snapshot;
-  }
-
-  void _reload() {
-    setState(() {
-      _snapshotFuture = _loadSnapshot(cacheResult: true);
-    });
+    _controller.updateConfig(
+      nextModuleKey: widget.moduleKey,
+      nextLoader: widget.loader,
+      nextShellTitle: widget.shellTitle,
+    );
   }
 
   Future<void> _pickCustomRange() async {
     final now = DateTime.now();
-    final initialRange = _trendFilter.customRange == null
+    final initialRange = _controller.trendFilter.customRange == null
         ? DateTimeRange(start: DateTime(now.year, now.month - 1, 1), end: now)
         : DateTimeRange(
-            start: _trendFilter.customRange!.start,
-            end: _trendFilter.customRange!.end,
+            start: _controller.trendFilter.customRange!.start,
+            end: _controller.trendFilter.customRange!.end,
           );
     final selected = await showDialog<DateTimeRange>(
       context: context,
@@ -84,41 +72,8 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
       return;
     }
 
-    setState(() {
-      _trendFilter = ErpDashboardTrendFilter(
-        preset: ErpDashboardTrendPreset.custom,
-        customRange: ErpDashboardGraphRange(
-          start: selected.start,
-          end: selected.end,
-        ),
-      );
-    });
-    await _refreshTrendSnapshot();
-  }
-
-  Future<void> _refreshTrendSnapshot() async {
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _isTrendReloading = true;
-    });
-
-    final future = _loadSnapshot(cacheResult: true);
-    setState(() {
-      _snapshotFuture = future;
-    });
-
-    try {
-      await future;
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isTrendReloading = false;
-        });
-      }
-    }
+    _controller.setCustomRange(selected);
+    await _controller.refreshTrendSnapshot();
   }
 
   Future<void> _handleTrendControlChanged(
@@ -126,26 +81,11 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
   ) async {
     switch (value) {
       case ErpDashboardTrendControlValue.monthly:
-        setState(() {
-          _trendFilter = const ErpDashboardTrendFilter(
-            preset: ErpDashboardTrendPreset.monthly,
-          );
-        });
-        await _refreshTrendSnapshot();
+        await _controller.handleTrendControlChanged(value);
       case ErpDashboardTrendControlValue.weekly:
-        setState(() {
-          _trendFilter = const ErpDashboardTrendFilter(
-            preset: ErpDashboardTrendPreset.weekly,
-          );
-        });
-        await _refreshTrendSnapshot();
+        await _controller.handleTrendControlChanged(value);
       case ErpDashboardTrendControlValue.yearly:
-        setState(() {
-          _trendFilter = const ErpDashboardTrendFilter(
-            preset: ErpDashboardTrendPreset.yearly,
-          );
-        });
-        await _refreshTrendSnapshot();
+        await _controller.handleTrendControlChanged(value);
       case ErpDashboardTrendControlValue.custom:
         await _pickCustomRange();
     }
@@ -153,55 +93,63 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final content = FutureBuilder<ErpDashboardSnapshot>(
-      future: _snapshotFuture,
-      builder: (context, snapshot) {
-        final data = snapshot.data ?? _snapshotCache;
-        final body = switch (snapshot.connectionState) {
-          ConnectionState.waiting ||
-          ConnectionState.active when data == null => AppLoadingView(
-            message: 'Loading ${widget.shellTitle ?? "module"} dashboard...',
-          ),
-          _ when snapshot.hasError => AppErrorStateView(
-            title: 'Unable to load dashboard',
-            message: snapshot.error.toString(),
-            onRetry: _reload,
-          ),
-          _ => SingleChildScrollView(
-            padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-            child: ErpModuleDashboard(
-              snapshot:
-                  data ??
-                  ErpDashboardSnapshot(
-                    title: widget.shellTitle ?? 'Module Dashboard',
-                    subtitle: 'No dashboard data available.',
+    return GetBuilder<ErpModuleDashboardController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = FutureBuilder<ErpDashboardSnapshot>(
+          future: controller.snapshotFuture,
+          builder: (context, snapshot) {
+            final data = snapshot.data ?? controller.snapshotCache;
+            final body = switch (snapshot.connectionState) {
+              ConnectionState.waiting ||
+              ConnectionState.active when data == null => AppLoadingView(
+                message:
+                    'Loading ${widget.shellTitle ?? "module"} dashboard...',
+              ),
+              _ when snapshot.hasError => AppErrorStateView(
+                title: 'Unable to load dashboard',
+                message: snapshot.error.toString(),
+                onRetry: controller.reload,
+              ),
+              _ => SingleChildScrollView(
+                padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                child: ErpModuleDashboard(
+                  snapshot:
+                      data ??
+                      ErpDashboardSnapshot(
+                        title: widget.shellTitle ?? 'Module Dashboard',
+                        subtitle: 'No dashboard data available.',
+                      ),
+                  showTrendControls: data?.trend != null,
+                  trendControlValue: _mapTrendControlValue(
+                    controller.trendFilter.preset,
                   ),
-              showTrendControls: data?.trend != null,
-              trendControlValue: _mapTrendControlValue(_trendFilter.preset),
-              onTrendControlChanged: _handleTrendControlChanged,
-              trendLoading: _isTrendReloading,
-            ),
-          ),
-        };
+                  onTrendControlChanged: _handleTrendControlChanged,
+                  trendLoading: controller.isTrendReloading,
+                ),
+              ),
+            };
 
-        return body;
-      },
-    );
+            return body;
+          },
+        );
 
-    if (widget.embedded) {
-      return content;
-    }
+        if (widget.embedded) {
+          return content;
+        }
 
-    return FutureBuilder<PublicBrandingModel?>(
-      future: SessionStorage.getBranding(),
-      builder: (context, snapshot) {
-        final branding =
-            snapshot.data ??
-            const PublicBrandingModel(companyName: 'Billing ERP');
-        return AdaptiveShell(
-          title: widget.shellTitle ?? 'Dashboard',
-          branding: branding,
-          child: content,
+        return FutureBuilder<PublicBrandingModel?>(
+          future: SessionStorage.getBranding(),
+          builder: (context, snapshot) {
+            final branding =
+                snapshot.data ??
+                const PublicBrandingModel(companyName: 'Billing ERP');
+            return AdaptiveShell(
+              title: widget.shellTitle ?? 'Dashboard',
+              branding: branding,
+              child: content,
+            );
+          },
         );
       },
     );

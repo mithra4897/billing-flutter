@@ -22,7 +22,7 @@ Status legend:
 | Core | `lib/View/core/app_bootstrap_page.dart` | page | `done` | Migrated to `AppBootstrapController` |
 | Core | `lib/View/core/app_shell_page.dart` | page | `done` | Migrated to `AppShellController` |
 | Dashboard | `lib/View/dashboard/crm_dashboard_page.dart` | page | `done` | Already stateless wrapper over shared ERP dashboard loader |
-| Dashboard | `lib/View/dashboard/erp_module_dashboard_page.dart` | page | `pending` |  |
+| Dashboard | `lib/View/dashboard/erp_module_dashboard_page.dart` | page | `done` | Migrated to `ErpModuleDashboardController` |
 | HR | `lib/View/hr/employee_page.dart` | page | `pending` | Remaining `AnimatedBuilder` hotspot |
 | HR | `lib/View/hr/expense_claims_page.dart` | page | `pending` |  |
 | HR | `lib/View/hr/hr_statutory_settings_page.dart` | page | `pending` |  |
