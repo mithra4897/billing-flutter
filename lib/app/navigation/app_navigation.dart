@@ -58,12 +58,6 @@ class AppNavigation {
       icon: Icons.settings_outlined,
       children: [
         AppNavigationItem(
-          key: 'settings-my-profile',
-          title: 'My Profile',
-          icon: Icons.manage_accounts_outlined,
-          path: '/settings/profile',
-        ),
-        AppNavigationItem(
           key: 'settings-communication',
           title: 'Communication',
           icon: Icons.mail_outline,

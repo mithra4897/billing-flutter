@@ -251,12 +251,12 @@ Completed:
 
 Main files:
 
-- [crm_leads_page.dart](/lib/View/crm/crm_leads_page.dart)
-- [crm_enquiries_page.dart](/lib/View/crm/crm_enquiries_page.dart)
-- [crm_opportunities_page.dart](/lib/View/crm/crm_opportunities_page.dart)
-- [crm_sources_page.dart](/lib/View/crm/crm_sources_page.dart)
-- [crm_stages_page.dart](/lib/View/crm/crm_stages_page.dart)
-- [crm_service.dart](/lib/Service/crm/crm_service.dart)
+- [crm_leads_page.dart](/lib/view/crm/crm_leads_page.dart)
+- [crm_enquiries_page.dart](/lib/view/crm/crm_enquiries_page.dart)
+- [crm_opportunities_page.dart](/lib/view/crm/crm_opportunities_page.dart)
+- [crm_sources_page.dart](/lib/view/crm/crm_sources_page.dart)
+- [crm_stages_page.dart](/lib/view/crm/crm_stages_page.dart)
+- [crm_service.dart](/lib/service/crm/crm_service.dart)
 
 How CRM was done:
 
