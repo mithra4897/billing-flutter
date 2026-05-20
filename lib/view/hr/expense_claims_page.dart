@@ -1,3 +1,4 @@
+import '../../controller/hr/expense_claims_management_controller.dart';
 import '../../screen.dart';
 
 void _expenseClaimsNeedCompanySnack(BuildContext context) {
@@ -8,180 +9,6 @@ void _expenseClaimsNeedCompanySnack(BuildContext context) {
       ),
     ),
   );
-}
-
-Map<String, dynamic>? _asJsonMap(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return value;
-  }
-  if (value is Map) {
-    return Map<String, dynamic>.from(value);
-  }
-  return null;
-}
-
-String _nestedEmployeeName(Map<String, dynamic> data) {
-  final emp = _asJsonMap(data['employee']);
-  if (emp == null) {
-    return '';
-  }
-  return stringValue(emp, 'employee_name');
-}
-
-String _paymentSubtitle(Map<String, dynamic> d) {
-  final st = _claimStatusCode(d['claim_status']);
-  final rid = intValue(d, 'reimbursement_voucher_id');
-  if (st == 'approved' && rid == null) {
-    return 'Unpaid · ${stringValue(d, 'total_amount')}';
-  }
-  if (st == 'reimbursed') {
-    return 'Paid · ${stringValue(d, 'total_amount')}';
-  }
-  return '${_claimStatusLabel(d['claim_status'])} · ${stringValue(d, 'total_amount')}';
-}
-
-String _claimStatusCode(dynamic status) {
-  final value = status?.toString().trim().toLowerCase() ?? '';
-  if (value == '0' || value == 'draft') {
-    return 'draft';
-  }
-  if (value == '1' || value == 'applied' || value == 'submitted') {
-    return 'applied';
-  }
-  if (value == 'approved') {
-    return 'approved';
-  }
-  if (value == 'reimbursed') {
-    return 'reimbursed';
-  }
-  if (value == 'rejected') {
-    return 'rejected';
-  }
-  if (value == 'cancelled') {
-    return 'cancelled';
-  }
-  return value;
-}
-
-String _claimStatusLabel(dynamic status) {
-  switch (_claimStatusCode(status)) {
-    case 'draft':
-      return 'Draft';
-    case 'applied':
-      return 'Applied';
-    case 'approved':
-      return 'Approved';
-    case 'reimbursed':
-      return 'Reimbursed';
-    case 'rejected':
-      return 'Rejected';
-    case 'cancelled':
-      return 'Cancelled';
-    default:
-      return (status?.toString().trim().isNotEmpty ?? false)
-          ? status.toString()
-          : '-';
-  }
-}
-
-bool _isHrApprovalQueueRow(Map<String, dynamic> data) {
-  final status = _claimStatusCode(data['claim_status']);
-  final reimbursementVoucherId = intValue(data, 'reimbursement_voucher_id');
-  if (status == 'applied') {
-    return true;
-  }
-  if (status == 'rejected') {
-    return true;
-  }
-  if (status == 'approved' && reimbursementVoucherId == null) {
-    return true;
-  }
-  if (status == 'reimbursed') {
-    return true;
-  }
-  return false;
-}
-
-class _ExpenseLineEditors {
-  _ExpenseLineEditors({
-    required this.expenseDate,
-    required this.category,
-    required this.description,
-    required this.amount,
-    required this.remarks,
-    this.projectId,
-    this.projectTaskId,
-  });
-
-  final TextEditingController expenseDate;
-  final TextEditingController category;
-  final TextEditingController description;
-  final TextEditingController amount;
-  final TextEditingController remarks;
-  final int? projectId;
-  final int? projectTaskId;
-
-  void dispose() {
-    expenseDate.dispose();
-    category.dispose();
-    description.dispose();
-    amount.dispose();
-    remarks.dispose();
-  }
-}
-
-Map<String, dynamic>? _lineMap(dynamic item) {
-  if (item is Map<String, dynamic>) {
-    return item;
-  }
-  if (item is Map) {
-    return Map<String, dynamic>.from(item);
-  }
-  return null;
-}
-
-List<_ExpenseLineEditors> _editorsFromClaimJson(Map<String, dynamic> data) {
-  final linesRaw = data['lines'];
-  final editors = <_ExpenseLineEditors>[];
-  if (linesRaw is List) {
-    for (final item in linesRaw) {
-      final m = _lineMap(item);
-      if (m == null) {
-        continue;
-      }
-      editors.add(
-        _ExpenseLineEditors(
-          expenseDate: TextEditingController(
-            text: displayDate(nullableStringValue(m, 'expense_date')),
-          ),
-          category: TextEditingController(
-            text: stringValue(m, 'expense_category'),
-          ),
-          description: TextEditingController(
-            text: stringValue(m, 'description'),
-          ),
-          amount: TextEditingController(text: stringValue(m, 'amount')),
-          remarks: TextEditingController(text: stringValue(m, 'remarks')),
-          projectId: intValue(m, 'project_id'),
-          projectTaskId: intValue(m, 'project_task_id'),
-        ),
-      );
-    }
-  }
-  if (editors.isEmpty) {
-    editors.add(
-      _ExpenseLineEditors(
-        expenseDate: TextEditingController(
-          text: displayDate(DateTime.now().toIso8601String()),
-        ),
-        category: TextEditingController(),
-        description: TextEditingController(),
-        amount: TextEditingController(),
-        remarks: TextEditingController(),
-      ),
-    );
-  }
-  return editors;
 }
 
 class ExpenseClaimsManagementPage extends StatefulWidget {
@@ -196,574 +23,45 @@ class ExpenseClaimsManagementPage extends StatefulWidget {
 
 class _ExpenseClaimsManagementPageState
     extends State<ExpenseClaimsManagementPage> {
-  final HrService _hr = HrService();
-  final AccountsService _accounts = AccountsService();
-  final ScrollController _scrollController = ScrollController();
-  final GlobalKey<FormState> _expenseClaimFormKey = GlobalKey<FormState>();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _claimNoCtrl = TextEditingController();
-  final TextEditingController _claimDateCtrl = TextEditingController();
-  final TextEditingController _notesCtrl = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _editorLoading = false;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  String? _companyBanner;
-  int? _companyId;
-  List<ExpenseClaimModel> _rows = const <ExpenseClaimModel>[];
-  ExpenseClaimModel? _selectedListRow;
-  Map<String, dynamic>? _editorSnapshot;
-  int? _editingClaimId;
-  bool _isNewClaim = false;
-  int _formGeneration = 0;
-
-  int? _linkedEmployeeId;
-  bool _canViewAllClaims = false;
-
-  List<EmployeeModel> _employees = const <EmployeeModel>[];
-  int? _employeeId;
-
-  int? _filterEmployeeId;
-  String? _filterPaymentStatus;
-  String? _filterClaimStatus;
-
-  List<_ExpenseLineEditors> _lineEditors = <_ExpenseLineEditors>[];
-
-  static const List<AppDropdownItem<String?>> _paymentFilterItems =
-      <AppDropdownItem<String?>>[
-        AppDropdownItem<String?>(value: null, label: 'All payments'),
-        AppDropdownItem<String?>(value: 'unpaid', label: 'Unpaid'),
-        AppDropdownItem<String?>(value: 'paid', label: 'Paid'),
-      ];
-
-  static const List<AppDropdownItem<String?>> _statusFilterItems =
-      <AppDropdownItem<String?>>[
-        AppDropdownItem<String?>(value: null, label: 'All statuses'),
-        AppDropdownItem<String?>(value: '0', label: 'Draft'),
-        AppDropdownItem<String?>(value: '1', label: 'Applied'),
-        AppDropdownItem<String?>(value: 'approved', label: 'Approved'),
-        AppDropdownItem<String?>(value: 'reimbursed', label: 'Reimbursed'),
-        AppDropdownItem<String?>(value: 'rejected', label: 'Rejected'),
-        AppDropdownItem<String?>(value: 'cancelled', label: 'Cancelled'),
-      ];
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    WorkingContextService.version.addListener(_onWorkingContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _loadPage();
+    _controllerTag = persistentControllerTag(
+      'ExpenseClaimsManagementController',
+    );
+    Get.put(
+      ExpenseClaimsManagementController(),
+      tag: _controllerTag,
+      permanent: true,
+    );
   }
 
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onWorkingContextChanged);
-    _scrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
-    _claimNoCtrl.dispose();
-    _claimDateCtrl.dispose();
-    _notesCtrl.dispose();
-    _disposeLineEditors();
-    super.dispose();
-  }
-
-  void _onWorkingContextChanged() {
-    _loadPage();
-  }
-
-  void _disposeLineEditors() {
-    for (final e in _lineEditors) {
-      e.dispose();
-    }
-    _lineEditors = <_ExpenseLineEditors>[];
-  }
-
-  List<ExpenseClaimModel> get _filteredRows {
-    final q = _searchController.text.trim().toLowerCase();
-    final visibleRows = _canViewAllClaims
-        ? _rows
-              .where((ExpenseClaimModel row) {
-                return _isHrApprovalQueueRow(row.toJson());
-              })
-              .toList(growable: false)
-        : _rows;
-    if (q.isEmpty) {
-      return visibleRows;
-    }
-    return visibleRows
-        .where((ExpenseClaimModel row) {
-          final data = row.toJson();
-          return [
-            stringValue(data, 'claim_no'),
-            stringValue(data, 'claim_date'),
-            stringValue(data, 'claim_status'),
-            stringValue(data, 'total_amount'),
-            _nestedEmployeeName(data),
-            _paymentSubtitle(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  List<EmployeeModel> get _employeesForEditor {
-    if (_companyId == null) {
-      return const <EmployeeModel>[];
-    }
-    final base = _employees
-        .where((e) => e.companyId == _companyId && e.id != null)
-        .toList(growable: false);
-    if (_isNewClaim && _linkedEmployeeId != null) {
-      return base
-          .where((e) => e.id == _linkedEmployeeId)
-          .toList(growable: false);
-    }
-    if (_linkedEmployeeId == null && !_canViewAllClaims) {
-      return base;
-    }
-    return base;
-  }
-
-  bool get _employeeFieldReadOnly => true;
-
-  bool get _isSelfServiceUser => !_canViewAllClaims;
-
-  Future<void> _loadPage({int? selectClaimId}) async {
-    setState(() {
-      _initialLoading = _rows.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final info = await hrSessionCompanyInfo();
-      final cid = info.companyId;
-      if (cid == null) {
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _companyBanner = info.banner;
-          _companyId = null;
-          _rows = const <ExpenseClaimModel>[];
-          _initialLoading = false;
-          _pageError = 'Select a session company to load expense claims.';
-        });
-        _resetEditorToEmpty();
-        return;
-      }
-
-      final ctxRes = await _hr.expenseClaimsLinkedEmployee(companyId: cid);
-      final ctx = ctxRes.data ?? const <String, dynamic>{};
-      final viewAll =
-          ctx['can_view_all_claims'] == true ||
-          ctx['can_view_all_claims'] == 1 ||
-          ctx['can_view_all_hr_records'] == true ||
-          ctx['can_view_all_hr_records'] == 1;
-      final linked = intValue(ctx, 'employee_id');
-
-      final empResp = await _hr.employees(
-        filters: <String, dynamic>{
-          'per_page': 500,
-          'sort_by': 'employee_name',
-          'company_id': cid,
-        },
-      );
-      _employees = empResp.data ?? const <EmployeeModel>[];
-
-      final filters = <String, dynamic>{'company_id': cid, 'per_page': 200};
-      if (viewAll && _filterEmployeeId != null) {
-        filters['employee_id'] = _filterEmployeeId;
-      }
-      if (_filterPaymentStatus != null && _filterPaymentStatus!.isNotEmpty) {
-        filters['payment_status'] = _filterPaymentStatus;
-      }
-      if (_filterClaimStatus != null && _filterClaimStatus!.isNotEmpty) {
-        filters['claim_status'] = _filterClaimStatus;
-      }
-
-      final listRes = await _hr.expenseClaims(filters: filters);
-      if (!mounted) {
-        return;
-      }
-
-      final rows = listRes.data ?? const <ExpenseClaimModel>[];
-
-      setState(() {
-        _companyBanner = info.banner;
-        _companyId = cid;
-        _linkedEmployeeId = linked;
-        _canViewAllClaims = viewAll;
-        _rows = rows;
-        _initialLoading = false;
-      });
-
-      final pickId =
-          selectClaimId ??
-          (_selectedListRow != null
-              ? intValue(_selectedListRow!.toJson(), 'id')
-              : null);
-
-      if (pickId != null &&
-          rows.any((r) => intValue(r.toJson(), 'id') == pickId)) {
-        await _hydrateEditorFromClaimId(pickId);
-      } else if (rows.isNotEmpty) {
-        final firstId = intValue(rows.first.toJson(), 'id');
-        if (firstId != null) {
-          await _hydrateEditorFromClaimId(firstId);
-        }
-      } else {
-        _resetEditorToEmpty();
-      }
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _pageError = e.toString();
-        _initialLoading = false;
-      });
-    }
-  }
-
-  void _resetEditorToEmpty() {
-    _disposeLineEditors();
-    _claimNoCtrl.clear();
-    _claimDateCtrl.text = displayDate(DateTime.now().toIso8601String());
-    _notesCtrl.clear();
-    _employeeId = _linkedEmployeeId;
-    _editingClaimId = null;
-    _isNewClaim = false;
-    _selectedListRow = null;
-    _editorSnapshot = null;
-    _formError = null;
-    _lineEditors = _editorsFromClaimJson(<String, dynamic>{});
-    _formGeneration++;
-    setState(() {});
-  }
-
-  void _startNewClaim() {
-    if (_companyId == null) {
-      return;
-    }
-    _disposeLineEditors();
-    _claimNoCtrl.clear();
-    _claimDateCtrl.text = displayDate(DateTime.now().toIso8601String());
-    _notesCtrl.clear();
-    _employeeId = _linkedEmployeeId;
-    _editingClaimId = null;
-    _isNewClaim = true;
-    _selectedListRow = null;
-    _editorSnapshot = null;
-    _formError = null;
-    _editorLoading = false;
-    _lineEditors = _editorsFromClaimJson(<String, dynamic>{});
-    _formGeneration++;
-    setState(() {});
-    if (!Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
-  }
-
-  /// Refetch list rows only (same filters as [_loadPage]), without employees fetch
-  /// or swapping the editor for a loading placeholder - keeps [Form] mounted on web.
-  Future<void> _syncExpenseClaimsListFromServer({int? selectClaimId}) async {
-    if (_companyId == null) {
-      return;
-    }
-    final filters = <String, dynamic>{
-      'company_id': _companyId,
-      'per_page': 200,
-    };
-    if (_canViewAllClaims && _filterEmployeeId != null) {
-      filters['employee_id'] = _filterEmployeeId;
-    }
-    if (_filterPaymentStatus != null && _filterPaymentStatus!.isNotEmpty) {
-      filters['payment_status'] = _filterPaymentStatus;
-    }
-    if (_filterClaimStatus != null && _filterClaimStatus!.isNotEmpty) {
-      filters['claim_status'] = _filterClaimStatus;
-    }
-    final listRes = await _hr.expenseClaims(filters: filters);
-    if (!mounted) {
-      return;
-    }
-    final rows = listRes.data ?? const <ExpenseClaimModel>[];
-    final int? pickId = selectClaimId ?? _editingClaimId;
-    ExpenseClaimModel? match;
-    if (pickId != null) {
-      for (final ExpenseClaimModel r in rows) {
-        if (intValue(r.toJson(), 'id') == pickId) {
-          match = r;
-          break;
-        }
-      }
-    }
-    setState(() {
-      _rows = rows;
-      if (match != null) {
-        _selectedListRow = match;
-      }
-    });
-  }
-
-  Future<void> _reloadEditorAndListAfterMutation({required int claimId}) async {
-    await _hydrateEditorFromClaimId(claimId, showLoading: false);
-    if (!mounted || _formError != null) {
-      return;
-    }
-    await _syncExpenseClaimsListFromServer(selectClaimId: claimId);
-  }
-
-  Future<void> _hydrateEditorFromClaimId(
-    int id, {
-    bool showLoading = true,
-  }) async {
-    if (_companyId == null) {
-      return;
-    }
-    if (showLoading) {
-      setState(() {
-        _editorLoading = true;
-        _formError = null;
-        _isNewClaim = false;
-        _editingClaimId = id;
-      });
-    } else {
-      _formError = null;
-      _isNewClaim = false;
-      _editingClaimId = id;
-    }
-
-    final res = await _hr.expenseClaim(id);
-    if (!mounted) {
-      return;
-    }
-
-    if (res.success != true || res.data == null) {
-      setState(() {
-        if (showLoading) {
-          _editorLoading = false;
-        }
-        _formError = res.message;
-      });
-      return;
-    }
-
-    final d = res.data!.toJson();
-    _disposeLineEditors();
-    _claimNoCtrl.text = stringValue(d, 'claim_no');
-    _claimDateCtrl.text = displayDate(nullableStringValue(d, 'claim_date'));
-    _notesCtrl.text = stringValue(d, 'notes');
-    _employeeId = intValue(d, 'employee_id');
-    _lineEditors = _editorsFromClaimJson(d);
-    _editorSnapshot = Map<String, dynamic>.from(d);
-    ExpenseClaimModel? listMatch;
-    for (final r in _rows) {
-      if (intValue(r.toJson(), 'id') == id) {
-        listMatch = r;
-        break;
-      }
-    }
-    _selectedListRow = listMatch;
-    _formGeneration++;
-
-    setState(() {
-      if (showLoading) {
-        _editorLoading = false;
-      }
-    });
-  }
-
-  Future<void> _submitClaim({required bool applyNow}) async {
-    if (_companyId == null) {
-      return;
-    }
-    final FormState? form = _expenseClaimFormKey.currentState;
-    if (form == null || !form.validate()) {
-      return;
-    }
-
-    final lines = <Map<String, dynamic>>[];
-    for (final line in _lineEditors) {
-      final row = <String, dynamic>{
-        'expense_date': line.expenseDate.text.trim(),
-        'expense_category': line.category.text.trim(),
-        'description': line.description.text.trim(),
-        'amount': double.parse(line.amount.text.trim()),
-        if (line.remarks.text.trim().isNotEmpty)
-          'remarks': line.remarks.text.trim(),
-        if (line.projectId != null) 'project_id': line.projectId,
-        if (line.projectTaskId != null) 'project_task_id': line.projectTaskId,
-      };
-      lines.add(row);
-    }
-
-    final body = <String, dynamic>{
-      'company_id': _companyId,
-      'employee_id': _employeeId,
-      'claim_date': _claimDateCtrl.text.trim(),
-      'claim_status': applyNow ? 1 : 0,
-      'lines': lines,
-    };
-    final cn = _claimNoCtrl.text.trim();
-    if (cn.isNotEmpty) {
-      body['claim_no'] = cn;
-    }
-    final nt = _notesCtrl.text.trim();
-    if (nt.isNotEmpty) {
-      body['notes'] = nt;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    try {
-      final model = ExpenseClaimModel.fromJson(body);
-      final response = _isNewClaim || _editingClaimId == null
-          ? await _hr.createExpenseClaim(model)
-          : await _hr.updateExpenseClaim(_editingClaimId!, model);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _formError = response.message;
-          _saving = false;
-        });
-        return;
-      }
-      final newId = intValue(response.data!.toJson(), 'id');
-      if (applyNow &&
-          !_isNewClaim &&
-          _editingClaimId != null &&
-          response.success == true) {
-        final applyResponse = await _hr.applyExpenseClaim(
-          _editingClaimId!,
-          ExpenseClaimModel.fromJson(const <String, dynamic>{}),
-        );
-        if (!mounted) {
-          return;
-        }
-        if (applyResponse.success != true || applyResponse.data == null) {
-          setState(() {
-            _formError = applyResponse.message;
-            _saving = false;
-          });
-          return;
-        }
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            applyNow ? 'Expense claim applied successfully.' : response.message,
-          ),
-        ),
-      );
-      setState(() => _saving = false);
-      await _loadPage(selectClaimId: newId);
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _formError = e.toString();
-        _saving = false;
-      });
-    }
-  }
-
-  String? _editorStatus() {
-    if (_isNewClaim) {
-      return null;
-    }
-    if (_editorSnapshot != null) {
-      return _claimStatusCode(_editorSnapshot!['claim_status']);
-    }
-    final row = _selectedListRow?.toJson();
-    if (row == null) {
-      return null;
-    }
-    return _claimStatusCode(row['claim_status']);
-  }
-
-  bool get _editorEditable {
-    final st = _editorStatus();
-    return _isSelfServiceUser && (st == null || st == 'draft');
-  }
-
-  String _expenseSelectedEmployeeLabel() {
-    if (_filterEmployeeId == null) {
-      return '';
-    }
-    for (final EmployeeModel e in _employees) {
-      if (e.id == _filterEmployeeId) {
-        return e.toString();
-      }
-    }
-    return 'Employee #$_filterEmployeeId';
-  }
-
-  String _editorEmployeeLabel() {
-    if (_employeeId == null) {
-      return '';
-    }
-    for (final EmployeeModel e in _employeesForEditor) {
-      if (e.id == _employeeId) {
-        return e.toString();
-      }
-    }
-    return 'Employee #$_employeeId';
-  }
-
-  List<String> _expenseAppliedFilterChips() {
-    return <String>[
-      if (_companyBanner != null) 'Company: $_companyBanner',
-      if (_searchController.text.trim().isNotEmpty)
-        'Search: ${_searchController.text.trim()}',
-      if (_canViewAllClaims && _filterEmployeeId != null)
-        'Employee: ${_expenseSelectedEmployeeLabel()}',
-      if ((_filterPaymentStatus ?? '').isNotEmpty)
-        'Payment: ${hrDropdownLabel(_paymentFilterItems, _filterPaymentStatus)}',
-      if ((_filterClaimStatus ?? '').isNotEmpty)
-        'Status: ${hrDropdownLabel(_statusFilterItems, _filterClaimStatus)}',
-    ];
-  }
-
-  void _clearExpenseFilters() {
-    setState(() {
-      _searchController.clear();
-      _filterEmployeeId = null;
-      _filterPaymentStatus = null;
-      _filterClaimStatus = null;
-    });
-  }
+  ExpenseClaimsManagementController get _controller =>
+      Get.find<ExpenseClaimsManagementController>(tag: _controllerTag);
 
   Future<void> _openExpenseFilterPanel() async {
+    final controller = _controller;
     final applied = await showHrListFilterDialog(
       context: context,
       title: 'Filter Expense Claims',
-      header: _companyBanner == null
+      header: controller.companyBanner == null
           ? null
           : Text(
-              'Session company: $_companyBanner. Change via the header '
+              'Session company: ${controller.companyBanner}. Change via the header '
               'session button.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
       filterFields: [
         hrListFilterBox(
           child: AppFormTextField(
-            controller: _searchController,
+            controller: controller.searchController,
             labelText: 'Search',
             hintText: 'Search claims…',
           ),
         ),
-        if (_canViewAllClaims)
+        if (controller.canViewAllClaims)
           hrListFilterBox(
             child: AppDropdownField<int?>.fromMapped(
               labelText: 'Employee filter',
@@ -772,118 +70,268 @@ class _ExpenseClaimsManagementPageState
                   value: null,
                   label: 'All employees',
                 ),
-                ..._employees
-                    .where((e) => e.companyId == _companyId && e.id != null)
+                ...controller.employees
+                    .where(
+                      (employee) =>
+                          employee.companyId == controller.companyId &&
+                          employee.id != null,
+                    )
                     .map(
-                      (e) => AppDropdownItem<int?>(
-                        value: e.id,
-                        label: e.toString(),
+                      (employee) => AppDropdownItem<int?>(
+                        value: employee.id,
+                        label: employee.toString(),
                       ),
                     ),
               ],
-              initialValue: _filterEmployeeId,
-              onChanged: (int? v) => setState(() => _filterEmployeeId = v),
+              initialValue: controller.filterEmployeeId,
+              onChanged: controller.setFilterEmployeeId,
             ),
           ),
         hrListFilterBox(
           child: AppDropdownField<String?>.fromMapped(
             labelText: 'Payment',
-            mappedItems: _paymentFilterItems,
-            initialValue: _filterPaymentStatus,
-            onChanged: (String? v) => setState(() => _filterPaymentStatus = v),
+            mappedItems: ExpenseClaimsManagementController.paymentFilterItems,
+            initialValue: controller.filterPaymentStatus,
+            onChanged: controller.setFilterPaymentStatus,
           ),
         ),
         hrListFilterBox(
           child: AppDropdownField<String?>.fromMapped(
             labelText: 'Status',
-            mappedItems: _statusFilterItems,
-            initialValue: _filterClaimStatus,
-            onChanged: (String? v) => setState(() => _filterClaimStatus = v),
+            mappedItems: ExpenseClaimsManagementController.statusFilterItems,
+            initialValue: controller.filterClaimStatus,
+            onChanged: controller.setFilterClaimStatus,
           ),
         ),
       ],
-      onClear: _clearExpenseFilters,
+      onClear: controller.clearExpenseFilters,
     );
     if (applied == true && mounted) {
-      await _loadPage();
+      await controller.loadPage();
     }
+  }
+
+  Future<void> _submitClaim({
+    required ExpenseClaimsManagementController controller,
+    required bool applyNow,
+  }) async {
+    final message = await controller.submitClaim(applyNow: applyNow);
+    if (!mounted || message == null) {
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _approveClaim(
+    ExpenseClaimsManagementController controller,
+  ) async {
+    final claimId = controller.editingClaimId;
+    if (claimId == null) {
+      return;
+    }
+    try {
+      final response = await controller.hrService.approveExpenseClaim(
+        claimId,
+        ExpenseClaimModel.fromJson(<String, dynamic>{}),
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(response.message)));
+      if (response.success == true) {
+        await controller.reloadEditorAndListAfterMutation(claimId: claimId);
+      } else {
+        controller.formError = response.message;
+        controller.update();
+      }
+    } on ApiException catch (errorValue) {
+      if (!mounted) {
+        return;
+      }
+      controller.formError = errorValue.message;
+      controller.update();
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(errorValue.displayMessage)));
+    }
+  }
+
+  Future<void> _openRejectDialog(
+    ExpenseClaimsManagementController controller,
+  ) async {
+    final claimId = controller.editingClaimId;
+    if (claimId == null) {
+      return;
+    }
+    await openExpenseClaimRejectDialog(
+      context,
+      hr: controller.hrService,
+      claimId: claimId,
+      onChanged: () =>
+          controller.reloadEditorAndListAfterMutation(claimId: claimId),
+    );
+  }
+
+  Future<void> _openCancelDraftDialog(
+    ExpenseClaimsManagementController controller,
+  ) async {
+    final claimId = controller.editingClaimId;
+    if (claimId == null) {
+      return;
+    }
+    await openExpenseClaimCancelDialog(
+      context,
+      hr: controller.hrService,
+      claimId: claimId,
+      onChanged: controller.loadPage,
+    );
+  }
+
+  Future<void> _deleteClaim(
+    ExpenseClaimsManagementController controller,
+    String? status,
+  ) async {
+    final claimId = controller.editingClaimId;
+    if (claimId == null) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete claim'),
+        content: Text(
+          status == 'applied'
+              ? 'Delete this applied expense claim?'
+              : 'Delete this draft expense claim?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Back'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    final response = await controller.hrService.deleteExpenseClaim(claimId);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(response.message)));
+    if (response.success == true) {
+      await controller.loadPage();
+    }
+  }
+
+  Future<void> _openReimburseDialog(
+    ExpenseClaimsManagementController controller,
+  ) async {
+    final claimId = controller.editingClaimId;
+    final companyId = controller.companyId;
+    if (claimId == null || companyId == null) {
+      return;
+    }
+    await openExpenseClaimReimburseDialog(
+      context,
+      hr: controller.hrService,
+      accountsService: controller.accountsService,
+      companyId: companyId,
+      claimId: claimId,
+      onChanged: () =>
+          controller.reloadEditorAndListAfterMutation(claimId: claimId),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        icon: Icons.filter_alt_outlined,
-        label: 'Filter',
-        filled: false,
-        onPressed: _openExpenseFilterPanel,
-      ),
-      if (_isSelfServiceUser)
-        AdaptiveShellActionButton(
-          icon: Icons.add_outlined,
-          label: 'New claim',
-          onPressed: () async {
-            final cid = await hrResolveCompanyId(context);
-            if (!context.mounted) {
-              return;
-            }
-            if (cid == null) {
-              _expenseClaimsNeedCompanySnack(context);
-              return;
-            }
-            _startNewClaim();
-          },
-        ),
-    ];
+    return GetBuilder<ExpenseClaimsManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+            onPressed: _openExpenseFilterPanel,
+          ),
+          if (controller.isSelfServiceUser)
+            AdaptiveShellActionButton(
+              icon: Icons.add_outlined,
+              label: 'New claim',
+              onPressed: () async {
+                final companyId = await hrResolveCompanyId(context);
+                if (!context.mounted) {
+                  return;
+                }
+                if (companyId == null) {
+                  _expenseClaimsNeedCompanySnack(context);
+                  return;
+                }
+                controller.startNewClaim(
+                  isDesktop: Responsive.isDesktop(context),
+                );
+              },
+            ),
+        ];
 
-    final content = _buildContent();
+        final content = _buildContent(controller);
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
-
-    return AppStandaloneShell(
-      title: 'Expense claims',
-      scrollController: _scrollController,
-      actions: actions,
-      child: content,
+        return AppStandaloneShell(
+          title: 'Expense claims',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
-    if (_initialLoading) {
+  Widget _buildContent(ExpenseClaimsManagementController controller) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading expense claims…');
     }
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load expense claims',
-        message: _pageError!,
-        onRetry: _loadPage,
+        message: controller.pageError!,
+        onRetry: controller.loadPage,
       );
     }
 
-    final editorTitle = _isNewClaim
-        ? 'New expense claim'
-        : (_editingClaimId != null
-              ? 'Claim #$_editingClaimId'
-              : 'Expense claim');
-
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Expense claims',
-      editorTitle: editorTitle,
-      scrollController: _scrollController,
+      editorTitle: controller.editorTitle,
+      scrollController: controller.pageScrollController,
       list: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          hrListAppliedFiltersCard(context, _expenseAppliedFilterChips()),
+          hrListAppliedFiltersCard(
+            context,
+            controller.expenseAppliedFilterChips(),
+          ),
           const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<ExpenseClaimModel>(
-            searchController: _searchController,
+            searchController: controller.searchController,
             searchHint: 'Search claims…',
             showSearchBar: false,
-            items: _filteredRows,
-            selectedItem: _selectedListRow,
+            items: controller.filteredRows,
+            selectedItem: controller.selectedListRow,
             emptyMessage: 'No expense claims match the filters.',
             itemBuilder: (ExpenseClaimModel item, bool selected) {
               final data = item.toJson();
@@ -893,77 +341,67 @@ class _ExpenseClaimsManagementPageState
                     : stringValue(data, 'claim_no'),
                 subtitle: <String>[
                   displayDate(nullableStringValue(data, 'claim_date')),
-                  _nestedEmployeeName(data),
-                  _paymentSubtitle(data),
-                ].where((String s) => s.isNotEmpty).join(' · '),
+                  nestedExpenseEmployeeName(data),
+                  expensePaymentSubtitle(data),
+                ].where((value) => value.isNotEmpty).join(' · '),
                 selected: selected,
-                onTap: () async {
-                  final id = intValue(data, 'id');
-                  if (id == null) {
-                    return;
-                  }
-                  setState(() {
-                    _selectedListRow = item;
-                    _isNewClaim = false;
-                  });
-                  await _hydrateEditorFromClaimId(id);
-                },
+                onTap: () => controller.selectClaim(item),
               );
             },
           ),
         ],
       ),
-      editor: _editorLoading
+      editor: controller.editorLoading
           ? const AppLoadingView(message: 'Loading claim…')
-          : _buildEditor(),
+          : _buildEditor(controller),
     );
   }
 
-  Widget _buildEditor() {
-    if (_companyId == null) {
+  Widget _buildEditor(ExpenseClaimsManagementController controller) {
+    if (controller.companyId == null) {
       return const Text('Select a company to edit expense claims.');
     }
 
-    final status = _editorStatus();
-    final reimbursementVoucherId = _editorSnapshot != null
-        ? intValue(_editorSnapshot!, 'reimbursement_voucher_id')
-        : (_selectedListRow == null
+    final status = controller.editorStatus();
+    final reimbursementVoucherId = controller.editorSnapshot != null
+        ? intValue(controller.editorSnapshot!, 'reimbursement_voucher_id')
+        : (controller.selectedListRow == null
               ? null
               : intValue(
-                  _selectedListRow!.toJson(),
+                  controller.selectedListRow!.toJson(),
                   'reimbursement_voucher_id',
                 ));
     final showReimburse =
-        _canViewAllClaims &&
+        controller.canViewAllClaims &&
         status == 'approved' &&
         reimbursementVoucherId == null;
     final isDraft = status == null || status == 'draft';
     final isApplied = status == 'applied';
-    final showSaveDraft = _isSelfServiceUser && _editorEditable && isDraft;
-    final showApply = _isSelfServiceUser && _editorEditable && isDraft;
+    final showSaveDraft =
+        controller.isSelfServiceUser && controller.editorEditable && isDraft;
+    final showApply =
+        controller.isSelfServiceUser && controller.editorEditable && isDraft;
     final showCancelDraft =
-        _isSelfServiceUser &&
-        !_isNewClaim &&
-        _editingClaimId != null &&
+        controller.isSelfServiceUser &&
+        !controller.isNewClaim &&
+        controller.editingClaimId != null &&
         status == 'draft';
     final showDelete =
-        _canViewAllClaims &&
-        !_isNewClaim &&
-        _editingClaimId != null &&
+        controller.canViewAllClaims &&
+        !controller.isNewClaim &&
+        controller.editingClaimId != null &&
         (status == 'draft' || status == 'applied');
 
-    // Workflow actions stay outside [Form] so approve/reimburse never interact with
-    // form validation scope; avoids unmount/remount jank when syncing after approve.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Form(
-          key: _expenseClaimFormKey,
+          key: controller.expenseClaimFormKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
+              if (controller.formError != null) ...[
+                AppErrorStateView.inline(message: controller.formError!),
                 const SizedBox(height: AppUiConstants.spacingSm),
               ],
               if (status != null && status.isNotEmpty)
@@ -972,7 +410,7 @@ class _ExpenseClaimsManagementPageState
                     bottom: AppUiConstants.spacingSm,
                   ),
                   child: Text(
-                    'Status: ${_claimStatusLabel(status)}'
+                    'Status: ${expenseClaimStatusLabel(status)}'
                     '${status == 'approved' && reimbursementVoucherId == null ? ' (unpaid)' : ''}'
                     '${status == 'reimbursed' ? ' (paid)' : ''}',
                     style: Theme.of(context).textTheme.titleSmall,
@@ -980,12 +418,12 @@ class _ExpenseClaimsManagementPageState
                 ),
               SettingsFormWrap(
                 children: [
-                  if (_employeeFieldReadOnly)
+                  if (controller.employeeFieldReadOnly)
                     AppFormTextField(
                       key: ValueKey<String>(
-                        'emp-readonly-$_formGeneration-${_employeeId ?? 0}',
+                        'emp-readonly-${controller.formGeneration}-${controller.employeeId ?? 0}',
                       ),
-                      initialValue: _editorEmployeeLabel(),
+                      initialValue: controller.editorEmployeeLabel(),
                       labelText: 'Employee',
                       readOnly: true,
                       validator: Validators.required('Employee'),
@@ -993,32 +431,32 @@ class _ExpenseClaimsManagementPageState
                   else
                     AppDropdownField<int>.fromMapped(
                       key: ValueKey<String>(
-                        'emp-$_formGeneration-${_employeeId ?? 0}',
+                        'emp-${controller.formGeneration}-${controller.employeeId ?? 0}',
                       ),
                       labelText: 'Employee',
-                      mappedItems: _employeesForEditor
+                      mappedItems: controller.employeesForEditor
                           .map(
-                            (e) => AppDropdownItem<int>(
-                              value: e.id!,
-                              label: e.toString(),
+                            (employee) => AppDropdownItem<int>(
+                              value: employee.id!,
+                              label: employee.toString(),
                             ),
                           )
                           .toList(),
-                      initialValue: _employeeId,
-                      onChanged: _editorEditable
-                          ? (v) => setState(() => _employeeId = v)
+                      initialValue: controller.employeeId,
+                      onChanged: controller.editorEditable
+                          ? controller.setEmployeeId
                           : (_) {},
                       validator: Validators.requiredSelection('Employee'),
                     ),
                   AppFormTextField(
-                    controller: _claimNoCtrl,
+                    controller: controller.claimNoController,
                     labelText: 'Claim no. (optional)',
-                    readOnly: !_editorEditable,
+                    readOnly: !controller.editorEditable,
                   ),
                   AppFormTextField(
-                    controller: _claimDateCtrl,
+                    controller: controller.claimDateController,
                     labelText: 'Claim date',
-                    readOnly: !_editorEditable,
+                    readOnly: !controller.editorEditable,
                     keyboardType: TextInputType.datetime,
                     inputFormatters: const [DateInputFormatter()],
                     validator: Validators.compose([
@@ -1027,9 +465,9 @@ class _ExpenseClaimsManagementPageState
                     ]),
                   ),
                   AppFormTextField(
-                    controller: _notesCtrl,
+                    controller: controller.notesController,
                     labelText: 'Notes (optional)',
-                    readOnly: !_editorEditable,
+                    readOnly: !controller.editorEditable,
                     maxLines: 2,
                   ),
                 ],
@@ -1038,31 +476,15 @@ class _ExpenseClaimsManagementPageState
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  onPressed: _editorEditable
-                      ? () {
-                          setState(() {
-                            _lineEditors.add(
-                              _ExpenseLineEditors(
-                                expenseDate: TextEditingController(
-                                  text: displayDate(
-                                    DateTime.now().toIso8601String(),
-                                  ),
-                                ),
-                                category: TextEditingController(),
-                                description: TextEditingController(),
-                                amount: TextEditingController(),
-                                remarks: TextEditingController(),
-                              ),
-                            );
-                          });
-                        }
+                  onPressed: controller.editorEditable
+                      ? controller.addLine
                       : null,
                   icon: const Icon(Icons.add),
                   label: const Text('Add line'),
                 ),
               ),
-              ...List<Widget>.generate(_lineEditors.length, (int i) {
-                final line = _lineEditors[i];
+              ...List<Widget>.generate(controller.lineEditors.length, (index) {
+                final line = controller.lineEditors[index];
                 return Padding(
                   padding: const EdgeInsets.only(
                     bottom: AppUiConstants.spacingSm,
@@ -1074,19 +496,15 @@ class _ExpenseClaimsManagementPageState
                         Row(
                           children: [
                             Text(
-                              'Line ${i + 1}',
+                              'Line ${index + 1}',
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
                             const Spacer(),
-                            if (_editorEditable && _lineEditors.length > 1)
+                            if (controller.editorEditable &&
+                                controller.lineEditors.length > 1)
                               IconButton(
                                 tooltip: 'Remove line',
-                                onPressed: () {
-                                  setState(() {
-                                    _lineEditors[i].dispose();
-                                    _lineEditors.removeAt(i);
-                                  });
-                                },
+                                onPressed: () => controller.removeLineAt(index),
                                 icon: const Icon(Icons.delete_outline),
                               ),
                           ],
@@ -1094,7 +512,7 @@ class _ExpenseClaimsManagementPageState
                         AppFormTextField(
                           controller: line.expenseDate,
                           labelText: 'Expense date',
-                          readOnly: !_editorEditable,
+                          readOnly: !controller.editorEditable,
                           keyboardType: TextInputType.datetime,
                           inputFormatters: const [DateInputFormatter()],
                           validator: Validators.compose([
@@ -1105,31 +523,31 @@ class _ExpenseClaimsManagementPageState
                         AppFormTextField(
                           controller: line.category,
                           labelText: 'Category',
-                          readOnly: !_editorEditable,
+                          readOnly: !controller.editorEditable,
                           validator: Validators.required('Category'),
                         ),
                         AppFormTextField(
                           controller: line.description,
                           labelText: 'Description',
-                          readOnly: !_editorEditable,
+                          readOnly: !controller.editorEditable,
                           validator: Validators.required('Description'),
                         ),
                         AppFormTextField(
                           controller: line.amount,
                           labelText: 'Amount',
-                          readOnly: !_editorEditable,
+                          readOnly: !controller.editorEditable,
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
                           validator: Validators.compose([
                             Validators.required('Amount'),
-                            (String? v) {
-                              final t = v?.trim() ?? '';
-                              final d = double.tryParse(t);
-                              if (d == null) {
+                            (String? value) {
+                              final text = value?.trim() ?? '';
+                              final amount = double.tryParse(text);
+                              if (amount == null) {
                                 return 'Amount must be a valid number';
                               }
-                              if (d <= 0) {
+                              if (amount <= 0) {
                                 return 'Amount must be greater than zero';
                               }
                               return null;
@@ -1139,7 +557,7 @@ class _ExpenseClaimsManagementPageState
                         AppFormTextField(
                           controller: line.remarks,
                           labelText: 'Remarks (optional)',
-                          readOnly: !_editorEditable,
+                          readOnly: !controller.editorEditable,
                         ),
                       ],
                     ),
@@ -1152,12 +570,10 @@ class _ExpenseClaimsManagementPageState
         ),
         if (showSaveDraft) ...[
           FilledButton(
-            onPressed: _saving
+            onPressed: controller.saving
                 ? null
-                : () {
-                    _submitClaim(applyNow: false);
-                  },
-            child: _saving
+                : () => _submitClaim(controller: controller, applyNow: false),
+            child: controller.saving
                 ? const SizedBox(
                     width: 22,
                     height: 22,
@@ -1169,142 +585,49 @@ class _ExpenseClaimsManagementPageState
         ],
         if (showApply) ...[
           FilledButton.tonal(
-            onPressed: _saving
+            onPressed: controller.saving
                 ? null
-                : () {
-                    _submitClaim(applyNow: true);
-                  },
+                : () => _submitClaim(controller: controller, applyNow: true),
             child: const Text('Apply'),
           ),
           const SizedBox(height: AppUiConstants.spacingSm),
         ],
-        if (!_isNewClaim && _editingClaimId != null) ...[
+        if (!controller.isNewClaim && controller.editingClaimId != null)
           Wrap(
             spacing: AppUiConstants.spacingSm,
             runSpacing: AppUiConstants.spacingSm,
             children: [
-              if (_canViewAllClaims && isApplied) ...[
+              if (controller.canViewAllClaims && isApplied) ...[
                 FilledButton.tonal(
-                  onPressed: () async {
-                    final int id = _editingClaimId!;
-                    try {
-                      final res = await _hr.approveExpenseClaim(
-                        id,
-                        ExpenseClaimModel.fromJson(<String, dynamic>{}),
-                      );
-                      if (!mounted) {
-                        return;
-                      }
-                      ScaffoldMessenger.maybeOf(
-                        context,
-                      )?.showSnackBar(SnackBar(content: Text(res.message)));
-                      if (res.success == true) {
-                        await _reloadEditorAndListAfterMutation(claimId: id);
-                      } else {
-                        setState(() => _formError = res.message);
-                      }
-                    } on ApiException catch (e) {
-                      if (!mounted) {
-                        return;
-                      }
-                      setState(() => _formError = e.message);
-                      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                        SnackBar(content: Text(e.displayMessage)),
-                      );
-                    }
-                  },
+                  onPressed: () => _approveClaim(controller),
                   child: const Text('Approve'),
                 ),
                 FilledButton.tonal(
-                  onPressed: () async {
-                    final int id = _editingClaimId!;
-                    await openExpenseClaimRejectDialog(
-                      context,
-                      hr: _hr,
-                      claimId: id,
-                      onChanged: () =>
-                          _reloadEditorAndListAfterMutation(claimId: id),
-                    );
-                  },
+                  onPressed: () => _openRejectDialog(controller),
                   child: const Text('Reject'),
                 ),
               ],
-              if (showCancelDraft) ...[
+              if (showCancelDraft)
                 FilledButton.tonal(
-                  onPressed: () async {
-                    await openExpenseClaimCancelDialog(
-                      context,
-                      hr: _hr,
-                      claimId: _editingClaimId!,
-                      onChanged: () => _loadPage(),
-                    );
-                  },
+                  onPressed: () => _openCancelDraftDialog(controller),
                   child: const Text('Cancel draft'),
                 ),
-              ],
               if (showDelete)
                 FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.error,
                     foregroundColor: Theme.of(context).colorScheme.onError,
                   ),
-                  onPressed: () async {
-                    final ok = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Delete claim'),
-                        content: Text(
-                          status == 'applied'
-                              ? 'Delete this applied expense claim?'
-                              : 'Delete this draft expense claim?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Back'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (ok != true || !mounted) {
-                      return;
-                    }
-                    final del = await _hr.deleteExpenseClaim(_editingClaimId!);
-                    if (!mounted) {
-                      return;
-                    }
-                    ScaffoldMessenger.maybeOf(
-                      context,
-                    )?.showSnackBar(SnackBar(content: Text(del.message)));
-                    if (del.success == true) {
-                      await _loadPage();
-                    }
-                  },
+                  onPressed: () => _deleteClaim(controller, status),
                   child: const Text('Delete'),
                 ),
               if (showReimburse)
                 FilledButton(
-                  onPressed: () async {
-                    final int id = _editingClaimId!;
-                    await openExpenseClaimReimburseDialog(
-                      context,
-                      hr: _hr,
-                      accountsService: _accounts,
-                      companyId: _companyId!,
-                      claimId: id,
-                      onChanged: () =>
-                          _reloadEditorAndListAfterMutation(claimId: id),
-                    );
-                  },
+                  onPressed: () => _openReimburseDialog(controller),
                   child: const Text('Reimburse'),
                 ),
             ],
           ),
-        ],
       ],
     );
   }

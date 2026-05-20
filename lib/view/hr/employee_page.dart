@@ -1,3 +1,4 @@
+import '../../controller/hr/employee_management_controller.dart';
 import '../../screen.dart';
 
 class EmployeeManagementPage extends StatefulWidget {
@@ -50,143 +51,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         AppDropdownItem(value: 'deduction', label: 'Deduction'),
       ];
 
-  final HrService _hrService = HrService();
-  final AuthService _authService = AuthService();
-  final MasterService _masterService = MasterService();
-  final AssetsService _assetsService = AssetsService();
-  final MediaService _mediaService = MediaService();
-  final ScrollController _pageScrollController = ScrollController();
-  final GlobalKey<FormState> _primaryEmployeeFormKey = GlobalKey<FormState>();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _employeeCodeController = TextEditingController();
-  final TextEditingController _employeeNameController = TextEditingController();
-  final TextEditingController _mobileController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _joiningDateController = TextEditingController();
-  final TextEditingController _relievingDateController =
-      TextEditingController();
-  final TextEditingController _bankAccountNoController =
-      TextEditingController();
-  final TextEditingController _ifscCodeController = TextEditingController();
-  final TextEditingController _profilePhotoController = TextEditingController();
-  final TextEditingController _esiNoController = TextEditingController();
-  final TextEditingController _pfUanNoController = TextEditingController();
-  final TextEditingController _pfAccountNoController = TextEditingController();
-  final TextEditingController _passportNoController = TextEditingController();
-  final TextEditingController _passportIssueDateController =
-      TextEditingController();
-  final TextEditingController _passportExpiryDateController =
-      TextEditingController();
-  final TextEditingController _passportPlaceOfIssueController =
-      TextEditingController();
-  final TextEditingController _personalInsuranceProviderController =
-      TextEditingController();
-  final TextEditingController _personalInsurancePolicyNoController =
-      TextEditingController();
-  final TextEditingController _personalInsuranceAmountController =
-      TextEditingController();
-  final TextEditingController _companyInsuranceProviderController =
-      TextEditingController();
-  final TextEditingController _companyInsurancePolicyNoController =
-      TextEditingController();
-  final TextEditingController _companyInsuranceAmountController =
-      TextEditingController();
-
-  final TextEditingController _addressLine1Controller = TextEditingController();
-  final TextEditingController _addressLine2Controller = TextEditingController();
-  final TextEditingController _addressLandmarkController =
-      TextEditingController();
-  final TextEditingController _addressCityController = TextEditingController();
-  final TextEditingController _addressStateController = TextEditingController();
-  final TextEditingController _addressPostalCodeController =
-      TextEditingController();
-  final TextEditingController _addressCountryController =
-      TextEditingController();
-  final TextEditingController _addressPhoneController = TextEditingController();
-
-  final TextEditingController _relationNameController = TextEditingController();
-  final TextEditingController _relationAgeController = TextEditingController();
-  final TextEditingController _relationPhoneController =
-      TextEditingController();
-  final TextEditingController _relationRelationshipController =
-      TextEditingController();
-
-  final TextEditingController _structureEffectiveFromController =
-      TextEditingController();
-  final TextEditingController _structureBasicSalaryController =
-      TextEditingController();
-  final TextEditingController _structureGrossSalaryController =
-      TextEditingController();
-  final TextEditingController _structureNetSalaryController =
-      TextEditingController();
-  final TextEditingController _structureCtcMonthlyController =
-      TextEditingController();
-
-  final TextEditingController _componentNameController =
-      TextEditingController();
-  final TextEditingController _componentAmountController =
-      TextEditingController();
-  final TextEditingController _componentPercentController =
-      TextEditingController();
-
   late final TabController _tabController;
+  late final String _controllerTag;
 
-  /// Rebuilds only the active tab body (not the whole [TabBar]). On web/desktop the
-  /// editor is inline; a full [IndexedStack] was rebuilding all seven heavy tabs on every
-  /// [_selectEmployee] / save and freezing the UI. The pushed route (narrow) also uses
-  /// this for a smaller subtree when the notifier bumps.
-  final ValueNotifier<int> _employeeEditorRouteRevision = ValueNotifier<int>(0);
   bool _employeeEditorRouteBumpScheduled = false;
-  bool _employeeCodeManuallyEdited = false;
-  bool _suppressEmployeeCodeListener = false;
-  bool _initialLoading = true;
-  bool _saving = false;
-  bool _uploadingPhoto = false;
-  bool _showDraftStructureTile = false;
-  bool _showDraftComponentTile = false;
-  bool _showDraftAddressTile = false;
-  bool _showDraftRelationTile = false;
-  String? _pageError;
-  String? _formError;
-  String? _statutoryFormError;
-  String? _structureFormError;
-  String? _componentFormError;
-  String? _addressFormError;
-  String? _relationFormError;
-  List<EmployeeModel> _employees = const <EmployeeModel>[];
-  List<EmployeeModel> _filteredEmployees = const <EmployeeModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<DepartmentModel> _departments = const <DepartmentModel>[];
-  List<DesignationModel> _designations = const <DesignationModel>[];
-  List<CostCenterModel> _costCenters = const <CostCenterModel>[];
-  List<ExpenseClaimModel> _employeeExpenseClaims = const <ExpenseClaimModel>[];
-  String? _employeeClaimsLoadError;
-  List<_EmployeeAddressDraft> _addresses = <_EmployeeAddressDraft>[];
-  List<_EmployeeRelationDraft> _relations = <_EmployeeRelationDraft>[];
-  List<_EmployeeSalaryStructureDraft> _salaryStructures =
-      <_EmployeeSalaryStructureDraft>[];
-  EmployeeModel? _selectedEmployee;
-  int? _contextCompanyId;
-  int? _companyId;
-  int? _departmentId;
-  int? _designationId;
-  int? _costCenterId;
-  String _employmentType = 'permanent';
-  String _status = 'active';
-  String _salaryMode = 'monthly';
-  int _draftKeySeed = -1;
-  String _addressType = 'present';
-  int? _selectedAddressKey;
-  int? _selectedRelationKey;
-  int? _selectedStructureKey;
-  bool _structureIsActive = true;
-  int? _selectedComponentParentKey;
-  int? _selectedComponentKey;
-  String _componentType = 'earning';
-  String _componentCalculationBasis = 'fixed';
-  String _componentContributionRole = 'employee';
 
   static const List<AppDropdownItem<String>> _componentCalculationItems =
       <AppDropdownItem<String>>[
@@ -202,15 +70,270 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         AppDropdownItem(value: 'employer', label: 'Employer (CTC cost)'),
       ];
 
+  EmployeeManagementController get _employeeController =>
+      Get.find<EmployeeManagementController>(tag: _controllerTag);
+
+  HrService get _hrService => _employeeController.hrService;
+  AuthService get _authService => _employeeController.authService;
+  MasterService get _masterService => _employeeController.masterService;
+  AssetsService get _assetsService => _employeeController.assetsService;
+  MediaService get _mediaService => _employeeController.mediaService;
+  ScrollController get _pageScrollController =>
+      _employeeController.pageScrollController;
+  GlobalKey<FormState> get _primaryEmployeeFormKey =>
+      _employeeController.primaryEmployeeFormKey;
+  SettingsWorkspaceController get _workspaceController =>
+      _employeeController.workspaceController;
+  TextEditingController get _searchController =>
+      _employeeController.searchController;
+  TextEditingController get _employeeCodeController =>
+      _employeeController.employeeCodeController;
+  TextEditingController get _employeeNameController =>
+      _employeeController.employeeNameController;
+  TextEditingController get _mobileController =>
+      _employeeController.mobileController;
+  TextEditingController get _emailController =>
+      _employeeController.emailController;
+  TextEditingController get _joiningDateController =>
+      _employeeController.joiningDateController;
+  TextEditingController get _relievingDateController =>
+      _employeeController.relievingDateController;
+  TextEditingController get _bankAccountNoController =>
+      _employeeController.bankAccountNoController;
+  TextEditingController get _ifscCodeController =>
+      _employeeController.ifscCodeController;
+  TextEditingController get _profilePhotoController =>
+      _employeeController.profilePhotoController;
+  TextEditingController get _esiNoController =>
+      _employeeController.esiNoController;
+  TextEditingController get _pfUanNoController =>
+      _employeeController.pfUanNoController;
+  TextEditingController get _pfAccountNoController =>
+      _employeeController.pfAccountNoController;
+  TextEditingController get _passportNoController =>
+      _employeeController.passportNoController;
+  TextEditingController get _passportIssueDateController =>
+      _employeeController.passportIssueDateController;
+  TextEditingController get _passportExpiryDateController =>
+      _employeeController.passportExpiryDateController;
+  TextEditingController get _passportPlaceOfIssueController =>
+      _employeeController.passportPlaceOfIssueController;
+  TextEditingController get _personalInsuranceProviderController =>
+      _employeeController.personalInsuranceProviderController;
+  TextEditingController get _personalInsurancePolicyNoController =>
+      _employeeController.personalInsurancePolicyNoController;
+  TextEditingController get _personalInsuranceAmountController =>
+      _employeeController.personalInsuranceAmountController;
+  TextEditingController get _companyInsuranceProviderController =>
+      _employeeController.companyInsuranceProviderController;
+  TextEditingController get _companyInsurancePolicyNoController =>
+      _employeeController.companyInsurancePolicyNoController;
+  TextEditingController get _companyInsuranceAmountController =>
+      _employeeController.companyInsuranceAmountController;
+  TextEditingController get _addressLine1Controller =>
+      _employeeController.addressLine1Controller;
+  TextEditingController get _addressLine2Controller =>
+      _employeeController.addressLine2Controller;
+  TextEditingController get _addressLandmarkController =>
+      _employeeController.addressLandmarkController;
+  TextEditingController get _addressCityController =>
+      _employeeController.addressCityController;
+  TextEditingController get _addressStateController =>
+      _employeeController.addressStateController;
+  TextEditingController get _addressPostalCodeController =>
+      _employeeController.addressPostalCodeController;
+  TextEditingController get _addressCountryController =>
+      _employeeController.addressCountryController;
+  TextEditingController get _addressPhoneController =>
+      _employeeController.addressPhoneController;
+  TextEditingController get _relationNameController =>
+      _employeeController.relationNameController;
+  TextEditingController get _relationAgeController =>
+      _employeeController.relationAgeController;
+  TextEditingController get _relationPhoneController =>
+      _employeeController.relationPhoneController;
+  TextEditingController get _relationRelationshipController =>
+      _employeeController.relationRelationshipController;
+  TextEditingController get _structureEffectiveFromController =>
+      _employeeController.structureEffectiveFromController;
+  TextEditingController get _structureBasicSalaryController =>
+      _employeeController.structureBasicSalaryController;
+  TextEditingController get _structureGrossSalaryController =>
+      _employeeController.structureGrossSalaryController;
+  TextEditingController get _structureNetSalaryController =>
+      _employeeController.structureNetSalaryController;
+  TextEditingController get _structureCtcMonthlyController =>
+      _employeeController.structureCtcMonthlyController;
+  TextEditingController get _componentNameController =>
+      _employeeController.componentNameController;
+  TextEditingController get _componentAmountController =>
+      _employeeController.componentAmountController;
+  TextEditingController get _componentPercentController =>
+      _employeeController.componentPercentController;
+
+  bool get _employeeCodeManuallyEdited =>
+      _employeeController.employeeCodeManuallyEdited;
+  set _employeeCodeManuallyEdited(bool value) =>
+      _employeeController.employeeCodeManuallyEdited = value;
+  bool get _suppressEmployeeCodeListener =>
+      _employeeController.suppressEmployeeCodeListener;
+  set _suppressEmployeeCodeListener(bool value) =>
+      _employeeController.suppressEmployeeCodeListener = value;
+  bool get _initialLoading => _employeeController.initialLoading;
+  set _initialLoading(bool value) => _employeeController.initialLoading = value;
+  bool get _saving => _employeeController.saving;
+  set _saving(bool value) => _employeeController.saving = value;
+  bool get _uploadingPhoto => _employeeController.uploadingPhoto;
+  set _uploadingPhoto(bool value) => _employeeController.uploadingPhoto = value;
+  bool get _showDraftStructureTile =>
+      _employeeController.showDraftStructureTile;
+  set _showDraftStructureTile(bool value) =>
+      _employeeController.showDraftStructureTile = value;
+  bool get _showDraftComponentTile =>
+      _employeeController.showDraftComponentTile;
+  set _showDraftComponentTile(bool value) =>
+      _employeeController.showDraftComponentTile = value;
+  bool get _showDraftAddressTile => _employeeController.showDraftAddressTile;
+  set _showDraftAddressTile(bool value) =>
+      _employeeController.showDraftAddressTile = value;
+  bool get _showDraftRelationTile => _employeeController.showDraftRelationTile;
+  set _showDraftRelationTile(bool value) =>
+      _employeeController.showDraftRelationTile = value;
+  String? get _pageError => _employeeController.pageError;
+  set _pageError(String? value) => _employeeController.pageError = value;
+  String? get _formError => _employeeController.formError;
+  set _formError(String? value) => _employeeController.formError = value;
+  String? get _statutoryFormError => _employeeController.statutoryFormError;
+  set _statutoryFormError(String? value) =>
+      _employeeController.statutoryFormError = value;
+  String? get _structureFormError => _employeeController.structureFormError;
+  set _structureFormError(String? value) =>
+      _employeeController.structureFormError = value;
+  String? get _componentFormError => _employeeController.componentFormError;
+  set _componentFormError(String? value) =>
+      _employeeController.componentFormError = value;
+  String? get _addressFormError => _employeeController.addressFormError;
+  set _addressFormError(String? value) =>
+      _employeeController.addressFormError = value;
+  String? get _relationFormError => _employeeController.relationFormError;
+  set _relationFormError(String? value) =>
+      _employeeController.relationFormError = value;
+  List<EmployeeModel> get _employees => _employeeController.employees;
+  set _employees(List<EmployeeModel> value) =>
+      _employeeController.employees = value;
+  List<EmployeeModel> get _filteredEmployees =>
+      _employeeController.filteredEmployees;
+  set _filteredEmployees(List<EmployeeModel> value) =>
+      _employeeController.filteredEmployees = value;
+  List<CompanyModel> get _companies => _employeeController.companies;
+  set _companies(List<CompanyModel> value) =>
+      _employeeController.companies = value;
+  List<DepartmentModel> get _departments => _employeeController.departments;
+  set _departments(List<DepartmentModel> value) =>
+      _employeeController.departments = value;
+  List<DesignationModel> get _designations => _employeeController.designations;
+  set _designations(List<DesignationModel> value) =>
+      _employeeController.designations = value;
+  List<CostCenterModel> get _costCenters => _employeeController.costCenters;
+  set _costCenters(List<CostCenterModel> value) =>
+      _employeeController.costCenters = value;
+  List<ExpenseClaimModel> get _employeeExpenseClaims =>
+      _employeeController.employeeExpenseClaims;
+  set _employeeExpenseClaims(List<ExpenseClaimModel> value) =>
+      _employeeController.employeeExpenseClaims = value;
+  String? get _employeeClaimsLoadError =>
+      _employeeController.employeeClaimsLoadError;
+  set _employeeClaimsLoadError(String? value) =>
+      _employeeController.employeeClaimsLoadError = value;
+  List<EmployeeAddressDraft> get _addresses => _employeeController.addresses;
+  set _addresses(List<EmployeeAddressDraft> value) =>
+      _employeeController.addresses = value;
+  List<EmployeeRelationDraft> get _relations => _employeeController.relations;
+  set _relations(List<EmployeeRelationDraft> value) =>
+      _employeeController.relations = value;
+  List<EmployeeSalaryStructureDraft> get _salaryStructures =>
+      _employeeController.salaryStructures;
+  set _salaryStructures(List<EmployeeSalaryStructureDraft> value) =>
+      _employeeController.salaryStructures = value;
+  EmployeeModel? get _selectedEmployee => _employeeController.selectedEmployee;
+  set _selectedEmployee(EmployeeModel? value) =>
+      _employeeController.selectedEmployee = value;
+  int? get _contextCompanyId => _employeeController.contextCompanyId;
+  set _contextCompanyId(int? value) =>
+      _employeeController.contextCompanyId = value;
+  int? get _companyId => _employeeController.companyId;
+  set _companyId(int? value) => _employeeController.companyId = value;
+  int? get _departmentId => _employeeController.departmentId;
+  set _departmentId(int? value) => _employeeController.departmentId = value;
+  int? get _designationId => _employeeController.designationId;
+  set _designationId(int? value) => _employeeController.designationId = value;
+  int? get _costCenterId => _employeeController.costCenterId;
+  set _costCenterId(int? value) => _employeeController.costCenterId = value;
+  String get _employmentType => _employeeController.employmentType;
+  set _employmentType(String value) =>
+      _employeeController.employmentType = value;
+  String get _status => _employeeController.status;
+  set _status(String value) => _employeeController.status = value;
+  String get _salaryMode => _employeeController.salaryMode;
+  set _salaryMode(String value) => _employeeController.salaryMode = value;
+  int get _draftKeySeed => _employeeController.draftKeySeed;
+  set _draftKeySeed(int value) => _employeeController.draftKeySeed = value;
+  String get _addressType => _employeeController.addressType;
+  set _addressType(String value) => _employeeController.addressType = value;
+  int? get _selectedAddressKey => _employeeController.selectedAddressKey;
+  set _selectedAddressKey(int? value) =>
+      _employeeController.selectedAddressKey = value;
+  int? get _selectedRelationKey => _employeeController.selectedRelationKey;
+  set _selectedRelationKey(int? value) =>
+      _employeeController.selectedRelationKey = value;
+  int? get _selectedStructureKey => _employeeController.selectedStructureKey;
+  set _selectedStructureKey(int? value) =>
+      _employeeController.selectedStructureKey = value;
+  bool get _structureIsActive => _employeeController.structureIsActive;
+  set _structureIsActive(bool value) =>
+      _employeeController.structureIsActive = value;
+  int? get _selectedComponentParentKey =>
+      _employeeController.selectedComponentParentKey;
+  set _selectedComponentParentKey(int? value) =>
+      _employeeController.selectedComponentParentKey = value;
+  int? get _selectedComponentKey => _employeeController.selectedComponentKey;
+  set _selectedComponentKey(int? value) =>
+      _employeeController.selectedComponentKey = value;
+  String get _componentType => _employeeController.componentType;
+  set _componentType(String value) => _employeeController.componentType = value;
+  String get _componentCalculationBasis =>
+      _employeeController.componentCalculationBasis;
+  set _componentCalculationBasis(String value) =>
+      _employeeController.componentCalculationBasis = value;
+  String get _componentContributionRole =>
+      _employeeController.componentContributionRole;
+  set _componentContributionRole(String value) =>
+      _employeeController.componentContributionRole = value;
+
+  void _updateController(VoidCallback action) {
+    action();
+    if (mounted) {
+      _employeeController.update();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _controllerTag = persistentControllerTag('EmployeeManagementController');
+    Get.put(
+      EmployeeManagementController(),
+      tag: _controllerTag,
+      permanent: true,
+    );
     _tabController = TabController(length: 7, vsync: this);
+    _employeeController.setActiveEditorTabIndex(_tabController.index);
     _tabController.addListener(() {
       if (!mounted || _tabController.indexIsChanging) {
         return;
       }
-      setState(() {});
+      _updateController(() {});
+      _employeeController.setActiveEditorTabIndex(_tabController.index);
       _bumpEmployeeEditorRoute();
     });
     _searchController.addListener(_applySearch);
@@ -229,54 +352,9 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
   @override
   void dispose() {
-    _employeeEditorRouteRevision.dispose();
     _tabController.dispose();
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
+    _searchController.removeListener(_applySearch);
     _employeeCodeController.removeListener(_handleEmployeeCodeChanged);
-    _employeeCodeController.dispose();
-    _employeeNameController.dispose();
-    _mobileController.dispose();
-    _emailController.dispose();
-    _joiningDateController.dispose();
-    _relievingDateController.dispose();
-    _bankAccountNoController.dispose();
-    _ifscCodeController.dispose();
-    _profilePhotoController.dispose();
-    _esiNoController.dispose();
-    _pfUanNoController.dispose();
-    _pfAccountNoController.dispose();
-    _passportNoController.dispose();
-    _passportIssueDateController.dispose();
-    _passportExpiryDateController.dispose();
-    _passportPlaceOfIssueController.dispose();
-    _personalInsuranceProviderController.dispose();
-    _personalInsurancePolicyNoController.dispose();
-    _personalInsuranceAmountController.dispose();
-    _companyInsuranceProviderController.dispose();
-    _companyInsurancePolicyNoController.dispose();
-    _companyInsuranceAmountController.dispose();
-    _addressLine1Controller.dispose();
-    _addressLine2Controller.dispose();
-    _addressLandmarkController.dispose();
-    _addressCityController.dispose();
-    _addressStateController.dispose();
-    _addressPostalCodeController.dispose();
-    _addressCountryController.dispose();
-    _addressPhoneController.dispose();
-    _relationNameController.dispose();
-    _relationAgeController.dispose();
-    _relationPhoneController.dispose();
-    _relationRelationshipController.dispose();
-    _structureEffectiveFromController.dispose();
-    _structureBasicSalaryController.dispose();
-    _structureGrossSalaryController.dispose();
-    _structureNetSalaryController.dispose();
-    _structureCtcMonthlyController.dispose();
-    _componentNameController.dispose();
-    _componentAmountController.dispose();
-    _componentPercentController.dispose();
     super.dispose();
   }
 
@@ -290,12 +368,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       if (!mounted) {
         return;
       }
-      _employeeEditorRouteRevision.value++;
+      _employeeController.bumpEditorTabBody();
     });
   }
 
   Future<void> _loadData({int? selectId}) async {
-    setState(() {
+    _updateController(() {
       _initialLoading = _employees.isEmpty;
       _pageError = null;
     });
@@ -346,7 +424,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
       if (!mounted) return;
 
-      setState(() {
+      _updateController(() {
         _employees = employees;
         _departments = departments;
         _designations = designations;
@@ -396,7 +474,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       }
     } catch (error) {
       if (!mounted) return;
-      setState(() {
+      _updateController(() {
         _pageError = error.toString();
         _initialLoading = false;
       });
@@ -422,7 +500,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       final idx = employees.indexWhere((EmployeeModel e) => e.id == employeeId);
       final EmployeeModel? row = idx >= 0 ? employees[idx] : null;
 
-      setState(() {
+      _updateController(() {
         _employees = employees;
         _filteredEmployees = _filterEmployees(
           employees,
@@ -483,7 +561,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }
 
   void _applySearch() {
-    setState(() {
+    _updateController(() {
       _filteredEmployees = _filterEmployees(_employees, _searchController.text);
     });
   }
@@ -529,14 +607,14 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
         full.personalInsuranceProvider ?? '';
     _personalInsurancePolicyNoController.text =
         full.personalInsurancePolicyNo ?? '';
-    _personalInsuranceAmountController.text = _decimalText(
+    _personalInsuranceAmountController.text = employeeDecimalText(
       full.personalInsuranceAmount,
     );
     _companyInsuranceProviderController.text =
         full.companyInsuranceProvider ?? '';
     _companyInsurancePolicyNoController.text =
         full.companyInsurancePolicyNo ?? '';
-    _companyInsuranceAmountController.text = _decimalText(
+    _companyInsuranceAmountController.text = employeeDecimalText(
       full.companyInsuranceAmount,
     );
     _costCenterId = full.costCenterId;
@@ -572,7 +650,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _resetComponentEditor(silent: true);
     _statutoryFormError = null;
     _formError = null;
-    setState(() {});
+    _updateController(() {});
     _bumpEmployeeEditorRoute();
   }
 
@@ -612,16 +690,16 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _costCenterId = null;
     _employeeExpenseClaims = const <ExpenseClaimModel>[];
     _employeeClaimsLoadError = null;
-    _addresses = <_EmployeeAddressDraft>[];
-    _relations = <_EmployeeRelationDraft>[];
-    _salaryStructures = <_EmployeeSalaryStructureDraft>[];
+    _addresses = <EmployeeAddressDraft>[];
+    _relations = <EmployeeRelationDraft>[];
+    _salaryStructures = <EmployeeSalaryStructureDraft>[];
     _resetAddressEditor(silent: true);
     _resetRelationEditor(silent: true);
     _resetStructureEditor(silent: true);
     _resetComponentEditor(silent: true);
     _statutoryFormError = null;
     _formError = null;
-    setState(() {});
+    _updateController(() {});
     _primeEmployeeCodeSuggestion();
     _bumpEmployeeEditorRoute();
   }
@@ -663,7 +741,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       }
 
       _setEmployeeCode(suggestedCode!.trim(), autoGenerated: true);
-      setState(() {});
+      _updateController(() {});
     } catch (_) {}
   }
 
@@ -733,7 +811,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       return;
     }
 
-    setState(() {
+    _updateController(() {
       _saving = true;
       _formError = null;
     });
@@ -746,7 +824,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       final saved = response.data;
       if (!mounted) return;
       if (saved == null) {
-        setState(() => _formError = response.message);
+        _updateController(() => _formError = response.message);
         return;
       }
 
@@ -764,11 +842,11 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       }
     } catch (error) {
       if (!mounted) return;
-      setState(() => _formError = error.toString());
+      _updateController(() => _formError = error.toString());
       _bumpEmployeeEditorRoute();
     } finally {
       if (mounted) {
-        setState(() => _saving = false);
+        _updateController(() => _saving = false);
         _bumpEmployeeEditorRoute();
       }
     }
@@ -778,7 +856,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     final id = _selectedEmployee?.id;
     if (id == null) return;
 
-    setState(() {
+    _updateController(() {
       _saving = true;
       _formError = null;
     });
@@ -793,11 +871,11 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       _popEmployeeEditorIfFullscreen();
     } catch (error) {
       if (!mounted) return;
-      setState(() => _formError = error.toString());
+      _updateController(() => _formError = error.toString());
       _bumpEmployeeEditorRoute();
     } finally {
       if (mounted) {
-        setState(() => _saving = false);
+        _updateController(() => _saving = false);
         _bumpEmployeeEditorRoute();
       }
     }
@@ -812,7 +890,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       return;
     }
 
-    setState(() {
+    _updateController(() {
       _saving = true;
       _formError = null;
     });
@@ -836,11 +914,11 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       }
     } catch (error) {
       if (!mounted) return;
-      setState(() => onError(error.toString()));
+      _updateController(() => onError(error.toString()));
       _bumpEmployeeEditorRoute();
     } finally {
       if (mounted) {
-        setState(() => _saving = false);
+        _updateController(() => _saving = false);
         _bumpEmployeeEditorRoute();
       }
     }
@@ -852,7 +930,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       return;
     }
 
-    setState(() {
+    _updateController(() {
       _saving = true;
       _structureFormError = null;
       _componentFormError = null;
@@ -878,14 +956,14 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       }
     } catch (error) {
       if (!mounted) return;
-      setState(() {
+      _updateController(() {
         _structureFormError = error.toString();
         _componentFormError = error.toString();
       });
       _bumpEmployeeEditorRoute();
     } finally {
       if (mounted) {
-        setState(() => _saving = false);
+        _updateController(() => _saving = false);
         _bumpEmployeeEditorRoute();
       }
     }
@@ -893,10 +971,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
   int _nextDraftKey() => _draftKeySeed--;
 
-  _EmployeeAddressDraft _employeeAddressDraftFromModel(
+  EmployeeAddressDraft _employeeAddressDraftFromModel(
     EmployeeAddressModel model,
   ) {
-    return _EmployeeAddressDraft(
+    return EmployeeAddressDraft(
       key: model.id ?? _nextDraftKey(),
       id: model.id,
       addressType: model.addressType ?? 'present',
@@ -911,10 +989,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  _EmployeeRelationDraft _employeeRelationDraftFromModel(
+  EmployeeRelationDraft _employeeRelationDraftFromModel(
     EmployeeRelationModel model,
   ) {
-    return _EmployeeRelationDraft(
+    return EmployeeRelationDraft(
       key: model.id ?? _nextDraftKey(),
       id: model.id,
       relationName: model.relationName ?? '',
@@ -938,7 +1016,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _addressPhoneController.clear();
     _addressFormError = null;
     if (!silent && mounted) {
-      setState(() {});
+      _updateController(() {});
     }
   }
 
@@ -957,10 +1035,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _addressCountryController.clear();
     _addressPhoneController.clear();
     _addressFormError = null;
-    setState(() {});
+    _updateController(() {});
   }
 
-  void _selectAddress(_EmployeeAddressDraft draft) {
+  void _selectAddress(EmployeeAddressDraft draft) {
     _showDraftAddressTile = false;
     _selectedAddressKey = draft.key;
     _addressType = draft.addressType;
@@ -973,16 +1051,18 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _addressCountryController.text = draft.country;
     _addressPhoneController.text = draft.phoneNumber;
     _addressFormError = null;
-    setState(() {});
+    _updateController(() {});
   }
 
   Future<void> _saveAddress() async {
     if (_addressLine1Controller.text.trim().isEmpty) {
-      setState(() => _addressFormError = 'Address Line 1 is required.');
+      _updateController(
+        () => _addressFormError = 'Address Line 1 is required.',
+      );
       return;
     }
 
-    final draft = _EmployeeAddressDraft(
+    final draft = EmployeeAddressDraft(
       key: _selectedAddressKey ?? _nextDraftKey(),
       id: _addresses
           .where((item) => item.key == _selectedAddressKey)
@@ -999,8 +1079,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       phoneNumber: _addressPhoneController.text.trim(),
     );
 
-    setState(() {
-      var next = List<_EmployeeAddressDraft>.from(_addresses)
+    _updateController(() {
+      var next = List<EmployeeAddressDraft>.from(_addresses)
         ..removeWhere((item) => item.addressType == draft.addressType);
       final index = next.indexWhere((item) => item.key == draft.key);
       if (index >= 0) {
@@ -1017,8 +1097,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  Future<void> _removeAddress(_EmployeeAddressDraft draft) async {
-    setState(() {
+  Future<void> _removeAddress(EmployeeAddressDraft draft) async {
+    _updateController(() {
       _addresses = _addresses.where((item) => item.key != draft.key).toList();
       if (_selectedAddressKey == draft.key) {
         _resetAddressEditor(silent: true);
@@ -1039,7 +1119,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _relationRelationshipController.clear();
     _relationFormError = null;
     if (!silent && mounted) {
-      setState(() {});
+      _updateController(() {});
     }
   }
 
@@ -1051,10 +1131,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _relationPhoneController.clear();
     _relationRelationshipController.clear();
     _relationFormError = null;
-    setState(() {});
+    _updateController(() {});
   }
 
-  void _selectRelation(_EmployeeRelationDraft draft) {
+  void _selectRelation(EmployeeRelationDraft draft) {
     _showDraftRelationTile = false;
     _selectedRelationKey = draft.key;
     _relationNameController.text = draft.relationName;
@@ -1062,25 +1142,29 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _relationPhoneController.text = draft.phoneNumber;
     _relationRelationshipController.text = draft.relationship;
     _relationFormError = null;
-    setState(() {});
+    _updateController(() {});
   }
 
   Future<void> _saveRelation() async {
     if (_relationNameController.text.trim().isEmpty) {
-      setState(() => _relationFormError = 'Relation Name is required.');
+      _updateController(
+        () => _relationFormError = 'Relation Name is required.',
+      );
       return;
     }
     if (_relationRelationshipController.text.trim().isEmpty) {
-      setState(() => _relationFormError = 'Relationship is required.');
+      _updateController(() => _relationFormError = 'Relationship is required.');
       return;
     }
     final ageText = _relationAgeController.text.trim();
     if (ageText.isNotEmpty && int.tryParse(ageText) == null) {
-      setState(() => _relationFormError = 'Age must be a valid whole number.');
+      _updateController(
+        () => _relationFormError = 'Age must be a valid whole number.',
+      );
       return;
     }
 
-    final draft = _EmployeeRelationDraft(
+    final draft = EmployeeRelationDraft(
       key: _selectedRelationKey ?? _nextDraftKey(),
       id: _relations
           .where((item) => item.key == _selectedRelationKey)
@@ -1092,8 +1176,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       relationship: _relationRelationshipController.text.trim(),
     );
 
-    setState(() {
-      final next = List<_EmployeeRelationDraft>.from(_relations);
+    _updateController(() {
+      final next = List<EmployeeRelationDraft>.from(_relations);
       final index = next.indexWhere((item) => item.key == draft.key);
       if (index >= 0) {
         next[index] = draft;
@@ -1109,8 +1193,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  Future<void> _removeRelation(_EmployeeRelationDraft draft) async {
-    setState(() {
+  Future<void> _removeRelation(EmployeeRelationDraft draft) async {
+    _updateController(() {
       _relations = _relations.where((item) => item.key != draft.key).toList();
       if (_selectedRelationKey == draft.key) {
         _resetRelationEditor(silent: true);
@@ -1122,28 +1206,28 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  _EmployeeSalaryStructureDraft _salaryStructureDraftFromModel(
+  EmployeeSalaryStructureDraft _salaryStructureDraftFromModel(
     EmployeeSalaryStructureModel model,
   ) {
-    return _EmployeeSalaryStructureDraft(
+    return EmployeeSalaryStructureDraft(
       key: model.id ?? _nextDraftKey(),
       id: model.id,
       effectiveFrom: model.effectiveFrom ?? '',
-      basicSalary: _decimalText(model.basicSalary),
-      grossSalary: _decimalText(model.grossSalary),
-      netSalary: _decimalText(model.netSalary),
-      ctcMonthly: _decimalText(model.ctcMonthly),
+      basicSalary: employeeDecimalText(model.basicSalary),
+      grossSalary: employeeDecimalText(model.grossSalary),
+      netSalary: employeeDecimalText(model.netSalary),
+      ctcMonthly: employeeDecimalText(model.ctcMonthly),
       isActive: model.isActive,
       components: model.components
           .map(
-            (item) => _EmployeeSalaryComponentDraft(
+            (item) => EmployeeSalaryComponentDraft(
               key: item.id ?? _nextDraftKey(),
               id: item.id,
               componentName: item.componentName ?? '',
               componentType: item.componentType ?? 'earning',
-              amount: _decimalText(item.amount),
+              amount: employeeDecimalText(item.amount),
               calculationBasis: item.calculationBasis ?? 'fixed',
-              percentValue: _decimalText(item.percentValue),
+              percentValue: employeeDecimalText(item.percentValue),
               contributionRole: item.contributionRole ?? 'employee',
             ),
           )
@@ -1211,7 +1295,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureIsActive = true;
     _structureFormError = null;
     if (!silent && mounted) {
-      setState(() {});
+      _updateController(() {});
     }
   }
 
@@ -1226,10 +1310,10 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureCtcMonthlyController.clear();
     _structureIsActive = true;
     _structureFormError = null;
-    setState(() {});
+    _updateController(() {});
   }
 
-  void _selectStructure(_EmployeeSalaryStructureDraft draft) {
+  void _selectStructure(EmployeeSalaryStructureDraft draft) {
     _showDraftStructureTile = false;
     _selectedStructureKey = draft.key;
     _structureEffectiveFromController.text = draft.effectiveFrom;
@@ -1240,23 +1324,25 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _structureIsActive = draft.isActive;
     _structureFormError = null;
     _resetComponentEditor(silent: true);
-    setState(() {});
+    _updateController(() {});
   }
 
   Future<void> _saveStructure() async {
     final effectiveFrom = _structureEffectiveFromController.text.trim();
     if (effectiveFrom.isEmpty) {
-      setState(() => _structureFormError = 'Effective From is required.');
+      _updateController(
+        () => _structureFormError = 'Effective From is required.',
+      );
       return;
     }
     if (Validators.date('Effective From')(effectiveFrom) != null) {
-      setState(
+      _updateController(
         () => _structureFormError = 'Effective From must be a valid date.',
       );
       return;
     }
 
-    final draft = _EmployeeSalaryStructureDraft(
+    final draft = EmployeeSalaryStructureDraft(
       key: _selectedStructureKey ?? _nextDraftKey(),
       id: _salaryStructures
           .where((item) => item.key == _selectedStructureKey)
@@ -1269,18 +1355,18 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       ctcMonthly: _structureCtcMonthlyController.text.trim(),
       isActive: _structureIsActive,
       components: _selectedStructureKey == null
-          ? <_EmployeeSalaryComponentDraft>[]
+          ? <EmployeeSalaryComponentDraft>[]
           : _salaryStructures
                     .where((item) => item.key == _selectedStructureKey)
                     .firstOrNull
                     ?.components
                     .map((item) => item.copy())
                     .toList(growable: true) ??
-                <_EmployeeSalaryComponentDraft>[],
+                <EmployeeSalaryComponentDraft>[],
     );
 
-    setState(() {
-      final next = List<_EmployeeSalaryStructureDraft>.from(_salaryStructures);
+    _updateController(() {
+      final next = List<EmployeeSalaryStructureDraft>.from(_salaryStructures);
       final index = next.indexWhere((item) => item.key == draft.key);
       if (index >= 0) {
         next[index] = draft;
@@ -1293,8 +1379,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     await _persistSalaryData('Employee salary structure saved successfully.');
   }
 
-  Future<void> _removeStructure(_EmployeeSalaryStructureDraft draft) async {
-    setState(() {
+  Future<void> _removeStructure(EmployeeSalaryStructureDraft draft) async {
+    _updateController(() {
       _salaryStructures = _salaryStructures
           .where((item) => item.key != draft.key)
           .toList();
@@ -1320,7 +1406,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _componentContributionRole = 'employee';
     _componentFormError = null;
     if (!silent && mounted) {
-      setState(() {});
+      _updateController(() {});
     }
   }
 
@@ -1335,12 +1421,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _componentCalculationBasis = 'fixed';
     _componentContributionRole = 'employee';
     _componentFormError = null;
-    setState(() {});
+    _updateController(() {});
   }
 
   void _selectComponent(
-    _EmployeeSalaryStructureDraft parent,
-    _EmployeeSalaryComponentDraft component,
+    EmployeeSalaryStructureDraft parent,
+    EmployeeSalaryComponentDraft component,
   ) {
     _showDraftComponentTile = false;
     _selectedComponentParentKey = parent.key;
@@ -1352,16 +1438,20 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     _componentCalculationBasis = component.calculationBasis;
     _componentContributionRole = component.contributionRole;
     _componentFormError = null;
-    setState(() {});
+    _updateController(() {});
   }
 
   Future<void> _saveComponent() async {
     if (_selectedComponentParentKey == null) {
-      setState(() => _componentFormError = 'Salary Structure is required.');
+      _updateController(
+        () => _componentFormError = 'Salary Structure is required.',
+      );
       return;
     }
     if (_componentNameController.text.trim().isEmpty) {
-      setState(() => _componentFormError = 'Component Name is required.');
+      _updateController(
+        () => _componentFormError = 'Component Name is required.',
+      );
       return;
     }
     final amountText = _componentAmountController.text.trim();
@@ -1370,14 +1460,16 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       if (amountText.isEmpty ||
           double.tryParse(amountText) == null ||
           (double.tryParse(amountText) ?? 0) < 0) {
-        setState(() => _componentFormError = 'Amount must be a valid number.');
+        _updateController(
+          () => _componentFormError = 'Amount must be a valid number.',
+        );
         return;
       }
     } else {
       if (percentText.isEmpty ||
           double.tryParse(percentText) == null ||
           (double.tryParse(percentText) ?? 0) < 0) {
-        setState(
+        _updateController(
           () => _componentFormError = 'Percentage must be a valid number.',
         );
         return;
@@ -1385,7 +1477,9 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       if (amountText.isNotEmpty &&
           (double.tryParse(amountText) == null ||
               (double.tryParse(amountText) ?? 0) < 0)) {
-        setState(() => _componentFormError = 'Amount must be a valid number.');
+        _updateController(
+          () => _componentFormError = 'Amount must be a valid number.',
+        );
         return;
       }
     }
@@ -1394,20 +1488,20 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       (item) => item.key == _selectedComponentParentKey,
     );
     if (parentIndex < 0) {
-      setState(
+      _updateController(
         () => _componentFormError = 'Selected salary structure not found.',
       );
       return;
     }
 
-    final nextStructures = List<_EmployeeSalaryStructureDraft>.from(
+    final nextStructures = List<EmployeeSalaryStructureDraft>.from(
       _salaryStructures,
     );
     final parent = nextStructures[parentIndex];
-    final nextComponents = List<_EmployeeSalaryComponentDraft>.from(
+    final nextComponents = List<EmployeeSalaryComponentDraft>.from(
       parent.components,
     );
-    final draft = _EmployeeSalaryComponentDraft(
+    final draft = EmployeeSalaryComponentDraft(
       key: _selectedComponentKey ?? _nextDraftKey(),
       id: nextComponents
           .where((item) => item.key == _selectedComponentKey)
@@ -1432,7 +1526,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     }
 
     nextStructures[parentIndex] = parent.copyWith(components: nextComponents);
-    setState(() {
+    _updateController(() {
       _salaryStructures = nextStructures;
     });
     _resetComponentEditor();
@@ -1440,8 +1534,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }
 
   Future<void> _removeComponent(
-    _EmployeeSalaryStructureDraft parent,
-    _EmployeeSalaryComponentDraft component,
+    EmployeeSalaryStructureDraft parent,
+    EmployeeSalaryComponentDraft component,
   ) async {
     final parentIndex = _salaryStructures.indexWhere(
       (item) => item.key == parent.key,
@@ -1450,17 +1544,17 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       return;
     }
 
-    final nextStructures = List<_EmployeeSalaryStructureDraft>.from(
+    final nextStructures = List<EmployeeSalaryStructureDraft>.from(
       _salaryStructures,
     );
-    final nextComponents = List<_EmployeeSalaryComponentDraft>.from(
+    final nextComponents = List<EmployeeSalaryComponentDraft>.from(
       nextStructures[parentIndex].components,
     )..removeWhere((item) => item.key == component.key);
 
     nextStructures[parentIndex] = nextStructures[parentIndex].copyWith(
       components: nextComponents,
     );
-    setState(() {
+    _updateController(() {
       _salaryStructures = nextStructures;
       if (_selectedComponentKey == component.key) {
         _resetComponentEditor(silent: true);
@@ -1554,7 +1648,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
     if (!mounted) return;
     final createdDepartment = created!;
-    setState(() {
+    _updateController(() {
       _departments = refreshed.data ?? <DepartmentModel>[createdDepartment];
       _departmentId = createdDepartment.id;
     });
@@ -1645,7 +1739,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
     if (!mounted) return;
     final createdDesignation = created!;
-    setState(() {
+    _updateController(() {
       _designations = refreshed.data ?? <DesignationModel>[createdDesignation];
       _designationId = createdDesignation.id;
     });
@@ -1657,12 +1751,12 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       mediaService: _mediaService,
       onLoading: (isLoading) {
         if (mounted) {
-          setState(() => _uploadingPhoto = isLoading);
+          _updateController(() => _uploadingPhoto = isLoading);
         }
       },
       onSuccess: (filePath) {
         if (mounted) {
-          setState(() {
+          _updateController(() {
             _profilePhotoController.text = filePath;
             _formError = null;
           });
@@ -1670,7 +1764,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       },
       onError: (error) {
         if (mounted) {
-          setState(() => _formError = error);
+          _updateController(() => _formError = error);
         }
       },
       module: 'hr',
@@ -1701,24 +1795,29 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent();
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _startNew,
-        icon: Icons.person_add_alt_1_outlined,
-        label: 'New Employee',
-      ),
-    ];
+    return GetBuilder<EmployeeManagementController>(
+      tag: _controllerTag,
+      builder: (_) {
+        final content = _buildContent();
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: _startNew,
+            icon: Icons.person_add_alt_1_outlined,
+            label: 'New Employee',
+          ),
+        ];
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
 
-    return AppStandaloneShell(
-      title: 'Employees',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+        return AppStandaloneShell(
+          title: 'Employees',
+          scrollController: _pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
@@ -1821,10 +1920,11 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingLg),
-        AnimatedBuilder(
-          animation: _employeeEditorRouteRevision,
-          builder: (BuildContext context, Widget? _) {
-            return _buildEmployeeEditorTabBody(_tabController.index);
+        GetBuilder<EmployeeManagementController>(
+          tag: _controllerTag,
+          builder: (controller) {
+            final _ = controller.editorTabRevision;
+            return _buildEmployeeEditorTabBody(controller.activeEditorTabIndex);
           },
         ),
       ],
@@ -1890,7 +1990,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                       )
                       .toList(growable: false),
                   initialValue: _departmentId,
-                  onChanged: (value) => setState(() => _departmentId = value),
+                  onChanged: (value) =>
+                      _updateController(() => _departmentId = value),
                 ),
               ),
               InlineFieldAction(
@@ -1908,7 +2009,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                       )
                       .toList(growable: false),
                   initialValue: _designationId,
-                  onChanged: (value) => setState(() => _designationId = value),
+                  onChanged: (value) =>
+                      _updateController(() => _designationId = value),
                 ),
               ),
               AppFormTextField(
@@ -1949,22 +2051,23 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                 labelText: 'Employment Type',
                 mappedItems: _employmentTypeItems,
                 initialValue: _employmentType,
-                onChanged: (value) =>
-                    setState(() => _employmentType = value ?? 'permanent'),
+                onChanged: (value) => _updateController(
+                  () => _employmentType = value ?? 'permanent',
+                ),
               ),
               AppDropdownField<String>.fromMapped(
                 labelText: 'Status',
                 mappedItems: _statusItems,
                 initialValue: _status,
                 onChanged: (value) =>
-                    setState(() => _status = value ?? 'active'),
+                    _updateController(() => _status = value ?? 'active'),
               ),
               AppDropdownField<String>.fromMapped(
                 labelText: 'Salary Mode',
                 mappedItems: _salaryModeItems,
                 initialValue: _salaryMode,
                 onChanged: (value) =>
-                    setState(() => _salaryMode = value ?? 'monthly'),
+                    _updateController(() => _salaryMode = value ?? 'monthly'),
               ),
               AppDropdownField<int>.fromMapped(
                 labelText: 'Cost Center',
@@ -1978,7 +2081,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                     )
                     .toList(growable: false),
                 initialValue: _costCenterId,
-                onChanged: (value) => setState(() => _costCenterId = value),
+                onChanged: (value) =>
+                    _updateController(() => _costCenterId = value),
               ),
               AppFormTextField(
                 controller: _bankAccountNoController,
@@ -2265,7 +2369,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           icon: Icons.save_outlined,
           label: 'Save Statutory Details',
           onPressed: () async {
-            setState(() => _statutoryFormError = null);
+            _updateController(() => _statutoryFormError = null);
             final passportIssueDate = _passportIssueDateController.text.trim();
             final passportExpiryDate = _passportExpiryDateController.text
                 .trim();
@@ -2273,14 +2377,14 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               passportIssueDate,
             );
             if (issueError != null) {
-              setState(() => _statutoryFormError = issueError);
+              _updateController(() => _statutoryFormError = issueError);
               return;
             }
             final expiryError = Validators.optionalDate('Passport Expiry Date')(
               passportExpiryDate,
             );
             if (expiryError != null) {
-              setState(() => _statutoryFormError = expiryError);
+              _updateController(() => _statutoryFormError = expiryError);
               return;
             }
             await _persistEmployeeDetails(
@@ -2369,7 +2473,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  Widget _buildAddressEditor({_EmployeeAddressDraft? current}) {
+  Widget _buildAddressEditor({EmployeeAddressDraft? current}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2380,7 +2484,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               mappedItems: _addressTypeItems,
               initialValue: _addressType,
               onChanged: (value) =>
-                  setState(() => _addressType = value ?? _addressType),
+                  _updateController(() => _addressType = value ?? _addressType),
             ),
             AppFormTextField(
               controller: _addressLine1Controller,
@@ -2515,7 +2619,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  Widget _buildRelationEditor({_EmployeeRelationDraft? current}) {
+  Widget _buildRelationEditor({EmployeeRelationDraft? current}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2650,7 +2754,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     );
   }
 
-  Widget _buildStructureEditor({_EmployeeSalaryStructureDraft? current}) {
+  Widget _buildStructureEditor({EmployeeSalaryStructureDraft? current}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2697,7 +2801,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
             AppSwitchTile(
               label: 'Active',
               value: _structureIsActive,
-              onChanged: (value) => setState(() => _structureIsActive = value),
+              onChanged: (value) =>
+                  _updateController(() => _structureIsActive = value),
             ),
           ],
         ),
@@ -2739,11 +2844,11 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       );
     }
 
-    final componentItems = <_ComponentEntry>[];
+    final componentItems = <EmployeeComponentEntry>[];
     for (final structure in _salaryStructures) {
       for (final component in structure.components) {
         componentItems.add(
-          _ComponentEntry(structure: structure, component: component),
+          EmployeeComponentEntry(structure: structure, component: component),
         );
       }
     }
@@ -2832,8 +2937,8 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   }
 
   Widget _buildComponentEditor({
-    _EmployeeSalaryStructureDraft? currentParent,
-    _EmployeeSalaryComponentDraft? current,
+    EmployeeSalaryStructureDraft? currentParent,
+    EmployeeSalaryComponentDraft? current,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2854,7 +2959,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
                   .toList(growable: false),
               initialValue: _selectedComponentParentKey,
               onChanged: (value) =>
-                  setState(() => _selectedComponentParentKey = value),
+                  _updateController(() => _selectedComponentParentKey = value),
               validator: Validators.requiredSelection('Salary Structure'),
             ),
             AppFormTextField(
@@ -2870,13 +2975,13 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               mappedItems: _componentTypeItems,
               initialValue: _componentType,
               onChanged: (value) =>
-                  setState(() => _componentType = value ?? 'earning'),
+                  _updateController(() => _componentType = value ?? 'earning'),
             ),
             AppDropdownField<String>.fromMapped(
               labelText: 'Calculation',
               mappedItems: _componentCalculationItems,
               initialValue: _componentCalculationBasis,
-              onChanged: (value) => setState(() {
+              onChanged: (value) => _updateController(() {
                 _componentCalculationBasis = value ?? 'fixed';
                 if (_componentCalculationBasis == 'fixed') {
                   _componentPercentController.clear();
@@ -2887,7 +2992,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
               labelText: 'Contribution',
               mappedItems: _contributionRoleItems,
               initialValue: _componentContributionRole,
-              onChanged: (value) => setState(
+              onChanged: (value) => _updateController(
                 () => _componentContributionRole = value ?? 'employee',
               ),
             ),
@@ -2946,222 +3051,4 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       ],
     );
   }
-}
-
-class _EmployeeSalaryStructureDraft {
-  _EmployeeSalaryStructureDraft({
-    required this.key,
-    this.id,
-    required this.effectiveFrom,
-    required this.basicSalary,
-    required this.grossSalary,
-    required this.netSalary,
-    required this.ctcMonthly,
-    required this.isActive,
-    required this.components,
-  });
-
-  final int key;
-  final int? id;
-  final String effectiveFrom;
-  final String basicSalary;
-  final String grossSalary;
-  final String netSalary;
-  final String ctcMonthly;
-  final bool isActive;
-  final List<_EmployeeSalaryComponentDraft> components;
-
-  _EmployeeSalaryStructureDraft copyWith({
-    int? key,
-    int? id,
-    String? effectiveFrom,
-    String? basicSalary,
-    String? grossSalary,
-    String? netSalary,
-    String? ctcMonthly,
-    bool? isActive,
-    List<_EmployeeSalaryComponentDraft>? components,
-  }) {
-    return _EmployeeSalaryStructureDraft(
-      key: key ?? this.key,
-      id: id ?? this.id,
-      effectiveFrom: effectiveFrom ?? this.effectiveFrom,
-      basicSalary: basicSalary ?? this.basicSalary,
-      grossSalary: grossSalary ?? this.grossSalary,
-      netSalary: netSalary ?? this.netSalary,
-      ctcMonthly: ctcMonthly ?? this.ctcMonthly,
-      isActive: isActive ?? this.isActive,
-      components: components ?? this.components,
-    );
-  }
-
-  EmployeeSalaryStructureModel toModel({int? employeeId}) {
-    final ctc = ctcMonthly.trim();
-    return EmployeeSalaryStructureModel(
-      id: id,
-      employeeId: employeeId,
-      effectiveFrom: effectiveFrom,
-      basicSalary: double.tryParse(basicSalary),
-      grossSalary: double.tryParse(grossSalary),
-      netSalary: double.tryParse(netSalary),
-      ctcMonthly: ctc.isEmpty ? null : double.tryParse(ctc),
-      isActive: isActive,
-      components: components
-          .map((item) => item.toModel())
-          .toList(growable: false),
-    );
-  }
-}
-
-class _EmployeeSalaryComponentDraft {
-  _EmployeeSalaryComponentDraft({
-    required this.key,
-    this.id,
-    required this.componentName,
-    required this.componentType,
-    required this.amount,
-    required this.calculationBasis,
-    required this.percentValue,
-    required this.contributionRole,
-  });
-
-  final int key;
-  final int? id;
-  final String componentName;
-  final String componentType;
-  final String amount;
-  final String calculationBasis;
-  final String percentValue;
-  final String contributionRole;
-
-  String get listDetailLine {
-    if (calculationBasis == 'fixed') {
-      return amount;
-    }
-    final basisLabel = switch (calculationBasis) {
-      'percent_basic' => 'basic',
-      'percent_gross' => 'gross',
-      'percent_ctc' => 'CTC',
-      _ => calculationBasis,
-    };
-    final pct = percentValue;
-    final amt = amount.trim();
-    final amtPart = amt.isNotEmpty && amt != '0' ? ' • Amt $amt' : '';
-    return '$pct% of $basisLabel$amtPart';
-  }
-
-  _EmployeeSalaryComponentDraft copy() {
-    return _EmployeeSalaryComponentDraft(
-      key: key,
-      id: id,
-      componentName: componentName,
-      componentType: componentType,
-      amount: amount,
-      calculationBasis: calculationBasis,
-      percentValue: percentValue,
-      contributionRole: contributionRole,
-    );
-  }
-
-  EmployeeSalaryComponentModel toModel() {
-    final pct = percentValue.trim();
-    return EmployeeSalaryComponentModel(
-      id: id,
-      componentName: componentName,
-      componentType: componentType,
-      amount: double.tryParse(amount),
-      calculationBasis: calculationBasis,
-      percentValue: calculationBasis == 'fixed' || pct.isEmpty
-          ? null
-          : double.tryParse(pct),
-      contributionRole: contributionRole,
-    );
-  }
-}
-
-class _EmployeeAddressDraft {
-  _EmployeeAddressDraft({
-    required this.key,
-    this.id,
-    required this.addressType,
-    required this.addressLine1,
-    required this.addressLine2,
-    required this.landmark,
-    required this.city,
-    required this.stateName,
-    required this.postalCode,
-    required this.country,
-    required this.phoneNumber,
-  });
-
-  final int key;
-  final int? id;
-  final String addressType;
-  final String addressLine1;
-  final String addressLine2;
-  final String landmark;
-  final String city;
-  final String stateName;
-  final String postalCode;
-  final String country;
-  final String phoneNumber;
-
-  EmployeeAddressModel toModel({int? employeeId}) {
-    return EmployeeAddressModel(
-      id: id,
-      employeeId: employeeId,
-      addressType: addressType,
-      addressLine1: addressLine1,
-      addressLine2: addressLine2,
-      landmark: landmark,
-      city: city,
-      stateName: stateName,
-      postalCode: postalCode,
-      country: country,
-      phoneNumber: phoneNumber,
-    );
-  }
-}
-
-class _EmployeeRelationDraft {
-  _EmployeeRelationDraft({
-    required this.key,
-    this.id,
-    required this.relationName,
-    required this.age,
-    required this.phoneNumber,
-    required this.relationship,
-  });
-
-  final int key;
-  final int? id;
-  final String relationName;
-  final String age;
-  final String phoneNumber;
-  final String relationship;
-
-  EmployeeRelationModel toModel({int? employeeId}) {
-    return EmployeeRelationModel(
-      id: id,
-      employeeId: employeeId,
-      relationName: relationName,
-      age: int.tryParse(age),
-      phoneNumber: phoneNumber,
-      relationship: relationship,
-    );
-  }
-}
-
-class _ComponentEntry {
-  const _ComponentEntry({required this.structure, required this.component});
-
-  final _EmployeeSalaryStructureDraft structure;
-  final _EmployeeSalaryComponentDraft component;
-}
-
-String _decimalText(double? value) {
-  if (value == null) {
-    return '';
-  }
-  return value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(2);
 }

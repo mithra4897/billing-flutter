@@ -23,11 +23,11 @@ Status legend:
 | Core | `lib/View/core/app_shell_page.dart` | page | `done` | Migrated to `AppShellController` |
 | Dashboard | `lib/View/dashboard/crm_dashboard_page.dart` | page | `done` | Already stateless wrapper over shared ERP dashboard loader |
 | Dashboard | `lib/View/dashboard/erp_module_dashboard_page.dart` | page | `done` | Migrated to `ErpModuleDashboardController` |
-| HR | `lib/View/hr/employee_page.dart` | page | `pending` | Remaining `AnimatedBuilder` hotspot |
-| HR | `lib/View/hr/expense_claims_page.dart` | page | `pending` |  |
-| HR | `lib/View/hr/hr_statutory_settings_page.dart` | page | `pending` |  |
-| HR | `lib/View/hr/leave_request_page.dart` | page | `pending` |  |
-| HR | `lib/View/hr/leave_type_page.dart` | page | `pending` |  |
+| HR | `lib/View/hr/employee_page.dart` | page | `done` | Fully moved employee page state off local `setState` to `EmployeeManagementController` |
+| HR | `lib/View/hr/expense_claims_page.dart` | page | `done` | Migrated to `ExpenseClaimsManagementController` |
+| HR | `lib/View/hr/hr_statutory_settings_page.dart` | page | `done` | Migrated to `HrStatutorySettingsController` |
+| HR | `lib/View/hr/leave_request_page.dart` | page | `done` | Migrated to `LeaveRequestManagementController` |
+| HR | `lib/View/hr/leave_type_page.dart` | page | `done` | Migrated to `LeaveTypeManagementController` |
 | Inventory | `lib/View/inventory/inventory_inquiry_page.dart` | page | `pending` |  |
 | Inventory | `lib/View/inventory/opening_stock_page.dart` | page | `pending` |  |
 | Manufacturing | `lib/View/manufacturing/production_material_issue_page.dart` | page | `pending` |  |
