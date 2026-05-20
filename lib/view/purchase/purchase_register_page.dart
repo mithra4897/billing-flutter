@@ -1,3 +1,4 @@
+import '../../controller/purchase/purchase_register_page_controller.dart';
 import '../../screen.dart';
 
 class PurchaseRegisterColumn<T> {
@@ -48,19 +49,27 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
 }
 
 class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
-  int _currentPage = 1;
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag('PurchaseRegisterPageController');
+    Get.put(PurchaseRegisterPageController(), tag: _controllerTag);
+  }
 
   @override
   void didUpdateWidget(covariant PurchaseRegisterPage<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final controller = Get.find<PurchaseRegisterPageController>(
+      tag: _controllerTag,
+    );
     if (!identical(oldWidget.rows, widget.rows)) {
-      _currentPage = 1;
+      controller.resetPage();
     }
 
     final totalPages = _totalPages(widget.rows.length);
-    if (_currentPage > totalPages) {
-      _currentPage = totalPages;
-    }
+    controller.clampToTotalPages(totalPages);
   }
 
   int _totalPages(int itemCount) {
@@ -71,11 +80,14 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
   }
 
   List<T> _pagedRows() {
+    final controller = Get.find<PurchaseRegisterPageController>(
+      tag: _controllerTag,
+    );
     if (widget.rows.isEmpty) {
       return <T>[];
     }
 
-    final start = (_currentPage - 1) * kLocalListPageSize;
+    final start = (controller.currentPage - 1) * kLocalListPageSize;
     if (start >= widget.rows.length) {
       return <T>[];
     }
@@ -88,19 +100,27 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent(context);
-    if (widget.embedded) {
-      return ShellPageActions(actions: widget.actions, child: content);
-    }
-    return AppStandaloneShell(
-      title: widget.title,
-      scrollController: ScrollController(),
-      actions: widget.actions,
-      child: content,
+    return GetBuilder<PurchaseRegisterPageController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = _buildContent(context, controller);
+        if (widget.embedded) {
+          return ShellPageActions(actions: widget.actions, child: content);
+        }
+        return AppStandaloneShell(
+          title: widget.title,
+          scrollController: controller.pageScrollController,
+          actions: widget.actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(
+    BuildContext context,
+    PurchaseRegisterPageController controller,
+  ) {
     final visibleRows = _pagedRows();
 
     if (widget.loading) {
@@ -162,9 +182,8 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
                           ),
                           child: LocalPageNavigation(
                             totalItems: widget.rows.length,
-                            currentPage: _currentPage,
-                            onPageChanged: (page) =>
-                                setState(() => _currentPage = page),
+                            currentPage: controller.currentPage,
+                            onPageChanged: controller.setPage,
                           ),
                         ),
                       ],

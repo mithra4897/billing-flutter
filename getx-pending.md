@@ -21,7 +21,7 @@ Status legend:
 | Auth | `lib/View/auth/login_page.dart` | page | `pending` |  |
 | Core | `lib/View/core/app_bootstrap_page.dart` | page | `done` | Migrated to `AppBootstrapController` |
 | Core | `lib/View/core/app_shell_page.dart` | page | `pending` |  |
-| Dashboard | `lib/View/dashboard/crm_dashboard_page.dart` | page | `pending` |  |
+| Dashboard | `lib/View/dashboard/crm_dashboard_page.dart` | page | `done` | Already stateless wrapper over shared ERP dashboard loader |
 | Dashboard | `lib/View/dashboard/erp_module_dashboard_page.dart` | page | `pending` |  |
 | HR | `lib/View/hr/employee_page.dart` | page | `pending` | Remaining `AnimatedBuilder` hotspot |
 | HR | `lib/View/hr/expense_claims_page.dart` | page | `pending` |  |
@@ -44,7 +44,7 @@ Status legend:
 | Purchase | `lib/View/purchase/purchase_order_page.dart` | page | `pending` |  |
 | Purchase | `lib/View/purchase/purchase_payment_page.dart` | page | `pending` |  |
 | Purchase | `lib/View/purchase/purchase_receipt_page.dart` | page | `pending` |  |
-| Purchase | `lib/View/purchase/purchase_register_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_register_page.dart` | page | `done` | Migrated local pagination state to `PurchaseRegisterPageController` |
 | Purchase | `lib/View/purchase/purchase_requisition_page.dart` | page | `pending` |  |
 | Purchase | `lib/View/purchase/purchase_return_page.dart` | page | `pending` |  |
 | Sales | `lib/View/sales/sales_delivery_page.dart` | page | `pending` |  |
@@ -70,7 +70,7 @@ Status legend:
 | Settings Master | `lib/View/settings/master/item_supplier_map_page.dart` | page | `pending` |  |
 | Settings Master | `lib/View/settings/master/physical_stock_count_page.dart` | page | `pending` |  |
 | Settings Master | `lib/View/settings/master/stock_balance_page.dart` | page | `done` | Migrated to `StockBalanceManagementController` |
-| Settings Master | `lib/View/settings/master/uom_conversion_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/uom_conversion_page.dart` | page | `done` | Migrated to `UomConversionManagementController` |
 | Settings Master | `lib/View/settings/master/warehouse_page.dart` | page | `pending` |  |
 | Settings Tax | `lib/View/settings/tax/document_tax_lines_register_page.dart` | page | `pending` |  |
 | Settings Tax | `lib/View/settings/tax/gst_registration_page.dart` | page | `pending` |  |

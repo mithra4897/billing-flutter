@@ -1,4 +1,5 @@
 import '../../controller/crm/crm_leads_controller.dart';
+import '../../controller/crm/crm_lead_register_controller.dart';
 import '../../screen.dart';
 
 void _openCrmShellRoute(BuildContext context, String route) {
@@ -20,150 +21,74 @@ class CrmLeadRegisterPage extends StatefulWidget {
 }
 
 class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
-  static const List<AppDropdownItem<String>> _statusItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: '', label: 'All'),
-        AppDropdownItem(value: 'new', label: 'New'),
-        AppDropdownItem(value: 'in_progress', label: 'In Progress'),
-        AppDropdownItem(value: 'converted', label: 'Converted'),
-        AppDropdownItem(value: 'lost', label: 'Lost'),
-      ];
-
-  final CrmService _service = CrmService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String _status = '';
-  List<CrmLeadModel> _rows = const <CrmLeadModel>[];
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.leads(
-        filters: const {'per_page': 200, 'sort_by': 'lead_name'},
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <CrmLeadModel>[];
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<CrmLeadModel> get _filtered {
-    final query = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((row) {
-          final data = row.toJson();
-          final statusOk =
-              _status.isEmpty || stringValue(data, 'lead_status') == _status;
-          final searchOk =
-              query.isEmpty ||
-              [
-                stringValue(data, 'lead_name'),
-                stringValue(data, 'company_name'),
-                stringValue(data, 'mobile'),
-                stringValue(data, 'email'),
-                stringValue(data, 'lead_status'),
-              ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
-  }
-
-  String _statusLabel(String value) {
-    switch (value.trim().toLowerCase()) {
-      case 'in_progress':
-        return 'In Progress';
-      case 'converted':
-        return 'Converted';
-      case 'lost':
-        return 'Lost';
-      case 'new':
-      default:
-        return 'New';
-    }
+    _controllerTag = persistentControllerTag('CrmLeadRegisterController');
+    Get.put(CrmLeadRegisterController(), tag: _controllerTag);
   }
 
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<CrmLeadModel>(
-      title: 'CRM Leads',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No CRM leads yet. Create a new lead to get started.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openCrmShellRoute(context, '/crm/leads/new'),
-          icon: Icons.add_outlined,
-          label: 'New lead',
-        ),
-      ],
-      filters: _CrmLeadRegisterFilters(
-        searchController: _searchController,
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: (value) => setState(() => _status = value ?? ''),
-      ),
-      rows: _filtered,
-      columns: [
-        PurchaseRegisterColumn<CrmLeadModel>(
-          label: 'Lead',
-          flex: 3,
-          valueBuilder: (row) => stringValue(row.toJson(), 'lead_name'),
-        ),
-        PurchaseRegisterColumn<CrmLeadModel>(
-          label: 'Company',
-          flex: 3,
-          valueBuilder: (row) => stringValue(row.toJson(), 'company_name'),
-        ),
-        PurchaseRegisterColumn<CrmLeadModel>(
-          label: 'Mobile',
-          valueBuilder: (row) => stringValue(row.toJson(), 'mobile'),
-        ),
-        PurchaseRegisterColumn<CrmLeadModel>(
-          label: 'Email',
-          flex: 3,
-          valueBuilder: (row) => stringValue(row.toJson(), 'email'),
-        ),
-        PurchaseRegisterColumn<CrmLeadModel>(
-          label: 'Status',
-          valueBuilder: (row) =>
-              _statusLabel(stringValue(row.toJson(), 'lead_status')),
-        ),
-      ],
-      onRowTap: (row) => _openCrmShellRoute(
-        context,
-        '/crm/leads/${intValue(row.toJson(), 'id')}',
-      ),
+    return GetBuilder<CrmLeadRegisterController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<CrmLeadModel>(
+          title: 'CRM Leads',
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: 'No CRM leads yet. Create a new lead to get started.',
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: () => _openCrmShellRoute(context, '/crm/leads/new'),
+              icon: Icons.add_outlined,
+              label: 'New lead',
+            ),
+          ],
+          filters: _CrmLeadRegisterFilters(
+            searchController: controller.searchController,
+            status: controller.status,
+            statusItems: CrmLeadRegisterController.statusItems,
+            onStatusChanged: controller.setStatus,
+          ),
+          rows: controller.filteredRows,
+          columns: [
+            PurchaseRegisterColumn<CrmLeadModel>(
+              label: 'Lead',
+              flex: 3,
+              valueBuilder: (row) => stringValue(row.toJson(), 'lead_name'),
+            ),
+            PurchaseRegisterColumn<CrmLeadModel>(
+              label: 'Company',
+              flex: 3,
+              valueBuilder: (row) => stringValue(row.toJson(), 'company_name'),
+            ),
+            PurchaseRegisterColumn<CrmLeadModel>(
+              label: 'Mobile',
+              valueBuilder: (row) => stringValue(row.toJson(), 'mobile'),
+            ),
+            PurchaseRegisterColumn<CrmLeadModel>(
+              label: 'Email',
+              flex: 3,
+              valueBuilder: (row) => stringValue(row.toJson(), 'email'),
+            ),
+            PurchaseRegisterColumn<CrmLeadModel>(
+              label: 'Status',
+              valueBuilder: (row) => controller.statusLabel(
+                stringValue(row.toJson(), 'lead_status'),
+              ),
+            ),
+          ],
+          onRowTap: (row) => _openCrmShellRoute(
+            context,
+            '/crm/leads/${intValue(row.toJson(), 'id')}',
+          ),
+        );
+      },
     );
   }
 }
