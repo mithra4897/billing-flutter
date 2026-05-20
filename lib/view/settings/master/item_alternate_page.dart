@@ -1,3 +1,4 @@
+import '../../../controller/settings/master/item_alternate_management_controller.dart';
 import '../../../screen.dart';
 
 class ItemAlternateManagementPage extends StatefulWidget {
@@ -19,338 +20,44 @@ class ItemAlternateManagementPage extends StatefulWidget {
 
 class _ItemAlternateManagementPageState
     extends State<ItemAlternateManagementPage> {
-  final InventoryService _inventoryService = InventoryService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _masterSearchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _priorityController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  bool _showDraftTile = false;
-  String? _pageError;
-  String? _formError;
-  List<ItemAlternateModel> _items = const <ItemAlternateModel>[];
-  List<ItemAlternateModel> _filteredItems = const <ItemAlternateModel>[];
-  List<ItemModel> _allItems = const <ItemModel>[];
-  List<ItemModel> _filteredMasterItems = const <ItemModel>[];
-  ItemAlternateModel? _selectedItem;
-  int? _selectedMasterId;
-  int? _counterpartyId;
-  bool _isActive = true;
-  static const String _pageTitle = 'Item Alternates';
-  static const String _masterLabel = 'Item';
-  static const String _counterpartyLabel = 'Alternate Item';
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _masterSearchController.addListener(_applyMasterSearch);
-    _loadData();
-  }
-
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _masterSearchController.dispose();
-    _priorityController.dispose();
-    _remarksController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadData({int? selectId}) async {
-    setState(() {
-      _initialLoading = _allItems.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final response = await _inventoryService.items(
-        filters: const {'per_page': 300, 'sort_by': 'item_name'},
-      );
-      final items = response.data ?? const <ItemModel>[];
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _allItems = items
-            .where((item) => item.isActive)
-            .toList(growable: false);
-        _filteredMasterItems = _filterMasterItems(
-          _allItems,
-          _masterSearchController.text,
-        );
-      });
-
-      if (widget.fixedItemId != null) {
-        _selectedMasterId = widget.fixedItemId;
-      } else {
-        _selectedMasterId ??= _allItems.isNotEmpty ? _allItems.first.id : null;
-      }
-      await _loadMappings(selectId: selectId);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  Future<void> _loadMappings({int? selectId}) async {
-    if (_selectedMasterId == null) {
-      setState(() {
-        _items = const <ItemAlternateModel>[];
-        _filteredItems = const <ItemAlternateModel>[];
-        _initialLoading = false;
-      });
-      _resetForm();
-      return;
-    }
-
-    try {
-      final responses =
-          await Future.wait<PaginatedResponse<ItemAlternateModel>>([
-            _inventoryService.itemAlternates(
-              filters: {
-                'per_page': 300,
-                'sort_by': 'priority_order',
-                'sort_order': 'asc',
-                'item_id': _selectedMasterId,
-              },
-            ),
-            _inventoryService.itemAlternates(
-              filters: {
-                'per_page': 300,
-                'sort_by': 'priority_order',
-                'sort_order': 'asc',
-                'alternate_item_id': _selectedMasterId,
-              },
-            ),
-          ]);
-      final uniqueItems = <int?, ItemAlternateModel>{};
-      for (final item in <ItemAlternateModel>[
-        ...(responses[0].data ?? const <ItemAlternateModel>[]),
-        ...(responses[1].data ?? const <ItemAlternateModel>[]),
-      ]) {
-        uniqueItems[item.id] = item;
-      }
-      final items = uniqueItems.values.toList(growable: false);
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _items = items;
-        _filteredItems = items;
-        _initialLoading = false;
-      });
-
-      final selected = selectId != null
-          ? items.cast<ItemAlternateModel?>().firstWhere(
-              (item) => item?.id == selectId,
-              orElse: () => null,
-            )
-          : (_selectedItem == null
-                ? null
-                : items.cast<ItemAlternateModel?>().firstWhere(
-                    (item) => item?.id == _selectedItem?.id,
-                    orElse: () => null,
-                  ));
-
-      if (selected != null) {
-        _selectMapping(selected);
-      } else {
-        _resetForm();
-      }
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  List<ItemModel> _filterMasterItems(List<ItemModel> source, String query) {
-    return filterMasterList(source, query, (item) {
-      return [item.itemCode, item.itemName, item.itemType ?? ''];
-    });
-  }
-
-  void _applyMasterSearch() {
-    setState(() {
-      _filteredMasterItems = _filterMasterItems(
-        _allItems,
-        _masterSearchController.text,
-      );
-    });
-  }
-
-  void _selectMaster(int id) {
-    setState(() {
-      _selectedMasterId = id;
-    });
-    _loadMappings();
-  }
-
-  void _selectMapping(ItemAlternateModel item) {
-    if (_selectedItem?.id == item.id) {
-      _resetForm();
-      return;
-    }
-    _showDraftTile = false;
-    _selectedItem = item;
-    _counterpartyId = _counterpartyIdFor(item);
-    _priorityController.text = item.priorityOrder?.toString() ?? '1';
-    _remarksController.text = item.reason ?? '';
-    _isActive = item.isActive;
-    _formError = null;
-    setState(() {});
-  }
-
-  void _resetForm() {
-    _selectedItem = null;
-    _counterpartyId = null;
-    _priorityController.text = '1';
-    _remarksController.clear();
-    _isActive = true;
-    _formError = null;
-    setState(() {});
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate() || _selectedMasterId == null) {
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    final model = ItemAlternateModel(
-      id: _selectedItem?.id,
-      itemId: _itemIdForSave(),
-      alternateItemId: _alternateItemIdForSave(),
-      priorityOrder: int.tryParse(_priorityController.text.trim()) ?? 1,
-      isActive: _isActive,
-      reason: nullIfEmpty(_remarksController.text),
+    _controllerTag = persistentControllerTag(
+      'ItemAlternateManagementController'
+      '-${widget.fixedItemId ?? 'all'}',
     );
-
-    try {
-      final response = _selectedItem == null
-          ? await _inventoryService.createItemAlternate(model)
-          : await _inventoryService.updateItemAlternate(
-              _selectedItem!.id!,
-              model,
-            );
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      _showDraftTile = false;
-      _resetForm();
-      await _loadMappings();
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
+    Get.put(
+      ItemAlternateManagementController(
+        fixedItemId: widget.fixedItemId,
+        fixedItemLabel: widget.fixedItemLabel,
+      ),
+      tag: _controllerTag,
+    );
   }
 
-  int? _itemIdForSave() {
-    if (_selectedItem != null && widget.fixedItemId != null) {
-      if (_selectedItem!.itemId == _selectedMasterId) {
-        return _selectedMasterId;
-      }
-      if (_selectedItem!.alternateItemId == _selectedMasterId) {
-        return _counterpartyId;
-      }
-    }
-    return _selectedMasterId;
-  }
-
-  int? _alternateItemIdForSave() {
-    if (_selectedItem != null && widget.fixedItemId != null) {
-      if (_selectedItem!.itemId == _selectedMasterId) {
-        return _counterpartyId;
-      }
-      if (_selectedItem!.alternateItemId == _selectedMasterId) {
-        return _selectedMasterId;
-      }
-    }
-    return _counterpartyId;
-  }
-
-  Future<void> _delete() async {
-    final id = _selectedItem?.id;
-    if (id == null) {
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    try {
-      final response = await _inventoryService.deleteItemAlternate(id);
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadMappings();
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _confirmDelete(ItemAlternateModel item) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    ItemAlternateManagementController controller,
+    ItemAlternateModel item,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Remove Alternate'),
           content: Text(
-            'Remove ${_counterpartyLabelFor(item)} from this item alternates list?',
+            'Remove ${controller.counterpartyLabelFor(item)} from this item alternates list?',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('Remove'),
             ),
           ],
@@ -358,186 +65,114 @@ class _ItemAlternateManagementPageState
       },
     );
 
-    if (confirmed != true || !mounted) {
-      return;
+    if (confirmed == true) {
+      await controller.confirmDelete(item);
     }
-
-    _selectMapping(item);
-    await _delete();
-  }
-
-  String _itemLabel(ItemModel item) {
-    final code = item.itemCode.trim();
-    final name = item.itemName.trim();
-    if (code.isNotEmpty && name.isNotEmpty) {
-      return '$code - $name';
-    }
-    return name.isNotEmpty ? name : code;
-  }
-
-  String _itemSubtitle(ItemModel item) {
-    return [
-      item.itemType ?? '',
-      item.categoryName ?? item.categoryCode ?? '',
-      item.baseUomSymbol ?? item.baseUomCode ?? '',
-    ].where((value) => value.trim().isNotEmpty).join(' · ');
-  }
-
-  String get _selectedMasterTitle {
-    final selected = _allItems.cast<ItemModel?>().firstWhere(
-      (item) => item?.id == _selectedMasterId,
-      orElse: () => null,
-    );
-    return selected == null ? _pageTitle : _itemLabel(selected);
-  }
-
-  int? _counterpartyIdFor(ItemAlternateModel item) {
-    if (item.itemId == _selectedMasterId) {
-      return item.alternateItemId;
-    }
-    if (item.alternateItemId == _selectedMasterId) {
-      return item.itemId;
-    }
-    return item.alternateItemId;
-  }
-
-  String _counterpartyLabelFor(ItemAlternateModel item) {
-    final isDirect = item.itemId == _selectedMasterId;
-    final code = isDirect ? item.alternateItemCode : item.itemCode;
-    final name = isDirect ? item.alternateItemName : item.itemName;
-    if (name.isNotEmpty) {
-      return name;
-    }
-    return code;
-  }
-
-  List<ItemModel> get _availableCounterpartyOptions {
-    final selectedIds = _items.map(_counterpartyIdFor).whereType<int>().toSet();
-
-    return _allItems
-        .where(
-          (item) =>
-              item.id != null &&
-              item.id != _selectedMasterId &&
-              !selectedIds.contains(item.id),
-        )
-        .toList(growable: false);
-  }
-
-  List<ItemModel> get _dropdownCounterpartyOptions {
-    final options = _availableCounterpartyOptions.toList(growable: true);
-    if (_counterpartyId != null) {
-      final selected = _allItems.cast<ItemModel?>().firstWhere(
-        (item) => item?.id == _counterpartyId,
-        orElse: () => null,
-      );
-      if (selected != null &&
-          options.every((option) => option.id != selected.id)) {
-        options.insert(0, selected);
-      }
-    }
-    return options;
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent();
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _selectedMasterId == null
-            ? null
-            : () {
-                setState(() {
-                  _showDraftTile = true;
-                });
-                _resetForm();
-              },
-        icon: Icons.compare_arrows_outlined,
-        label: 'Add Alternate',
-      ),
-    ];
+    return GetBuilder<ItemAlternateManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: controller.selectedMasterId == null
+                ? null
+                : () => controller.startNew(
+                    isDesktop: Responsive.isDesktop(context),
+                  ),
+            icon: Icons.compare_arrows_outlined,
+            label: 'Add Alternate',
+          ),
+        ];
 
-    if (widget.fixedItemId != null) {
-      return content;
-    }
+        if (widget.fixedItemId != null) {
+          return _buildContent(context, controller);
+        }
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
+        if (widget.embedded) {
+          return ShellPageActions(
+            actions: actions,
+            child: _buildContent(context, controller),
+          );
+        }
 
-    return AppStandaloneShell(
-      title: _pageTitle,
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+        return AppStandaloneShell(
+          title: ItemAlternateManagementController.pageTitle,
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: _buildContent(context, controller),
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
-    if (_initialLoading) {
-      return AppLoadingView(message: 'Loading ${_pageTitle.toLowerCase()}...');
-    }
-
-    if (_pageError != null) {
-      return AppErrorStateView(
-        title: 'Unable to load ${_pageTitle.toLowerCase()}',
-        message: _pageError!,
-        onRetry: _loadData,
+  Widget _buildContent(
+    BuildContext context,
+    ItemAlternateManagementController controller,
+  ) {
+    if (controller.initialLoading) {
+      return AppLoadingView(
+        message:
+            'Loading ${ItemAlternateManagementController.pageTitle.toLowerCase()}...',
       );
     }
 
-    final selectedMaster = _allItems.cast<ItemModel?>().firstWhere(
-      (item) => item?.id == _selectedMasterId,
-      orElse: () => null,
-    );
+    if (controller.pageError != null) {
+      return AppErrorStateView(
+        title:
+            'Unable to load ${ItemAlternateManagementController.pageTitle.toLowerCase()}',
+        message: controller.pageError!,
+        onRetry: controller.loadData,
+      );
+    }
 
     if (widget.fixedItemId != null) {
-      return _selectedMasterId == null
+      return controller.selectedMasterId == null
           ? const SettingsEmptyState(
               icon: Icons.compare_arrows_outlined,
               title: 'Item Not Found',
               message: 'The selected item is not available.',
             )
-          : _buildEditorBody();
+          : _buildEditorBody(context, controller);
     }
 
     return SettingsWorkspace(
-      controller: _workspaceController,
-      title: _pageTitle,
-      editorTitle: _selectedMasterTitle,
-      scrollController: _pageScrollController,
+      controller: controller.workspaceController,
+      title: ItemAlternateManagementController.pageTitle,
+      editorTitle: controller.selectedMasterTitle,
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<ItemModel>(
-        searchController: _masterSearchController,
-        searchHint: 'Search $_masterLabel',
-        items: _filteredMasterItems,
-        selectedItem: selectedMaster,
-        emptyMessage: 'No $_masterLabel records found.',
+        searchController: controller.masterSearchController,
+        searchHint: 'Search ${ItemAlternateManagementController.masterLabel}',
+        items: controller.filteredMasterItems,
+        selectedItem: controller.selectedMasterItem,
+        emptyMessage:
+            'No ${ItemAlternateManagementController.masterLabel} records found.',
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.itemName,
           subtitle: item.itemCode,
           selected: selected,
-          onTap: () => _selectMaster(item.id!),
+          onTap: () => controller.selectMaster(item.id!),
         ),
       ),
       editor: AppSectionCard(
-        child: _selectedMasterId == null
-            ? SettingsEmptyState(
+        child: controller.selectedMasterId == null
+            ? const SettingsEmptyState(
                 icon: Icons.compare_arrows_outlined,
-                title: 'Select $_masterLabel',
-                message:
-                    'Choose a $_masterLabel from the left to manage alternates.',
+                title: 'Select Item',
+                message: 'Choose an Item from the left to manage alternates.',
               )
-            : _buildEditorBody(),
+            : _buildEditorBody(context, controller),
       ),
     );
   }
 
-  Widget _buildEditorBody() {
-    final selectedCounterparty = _allItems.cast<ItemModel?>().firstWhere(
-      (item) => item?.id == _counterpartyId,
-      orElse: () => null,
-    );
-
+  Widget _buildEditorBody(
+    BuildContext context,
+    ItemAlternateManagementController controller,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -547,54 +182,43 @@ class _ItemAlternateManagementPageState
             child: AppActionButton(
               icon: Icons.compare_arrows_outlined,
               label: 'Add Alternate',
-              onPressed: _selectedMasterId == null
+              onPressed: controller.selectedMasterId == null
                   ? null
-                  : () {
-                      setState(() {
-                        _showDraftTile = true;
-                      });
-                      _resetForm();
-                    },
+                  : () => controller.startNew(
+                      isDesktop: Responsive.isDesktop(context),
+                    ),
             ),
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
         ],
-        if (_filteredItems.isEmpty && !_showDraftTile) ...[
+        if (controller.filteredItems.isEmpty && !controller.showDraftTile)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
             child: Text('No alternates mapped for this item.'),
           ),
-        ],
-        if (_showDraftTile && _selectedItem == null) ...[
+        if (controller.showDraftTile && controller.selectedItem == null) ...[
           SettingsExpandableTile(
             key: const ValueKey('alt-draft'),
-            title: selectedCounterparty == null
+            title: controller.selectedCounterpartyItem == null
                 ? 'New Alternate Item'
-                : _itemLabel(selectedCounterparty),
+                : controller.itemLabel(controller.selectedCounterpartyItem!),
             subtitle: 'Add an alternate item for this product.',
             expanded: true,
             highlighted: true,
             leadingIcon: Icons.add_outlined,
-            onToggle: () {
-              setState(() {
-                _showDraftTile = false;
-              });
-              _resetForm();
-            },
-            child: _buildAlternateForm(
-              selectedCounterparty: selectedCounterparty,
-            ),
+            onToggle: controller.hideDraftTile,
+            child: _buildAlternateForm(context, controller),
           ),
-          if (_filteredItems.isNotEmpty)
+          if (controller.filteredItems.isNotEmpty)
             const SizedBox(height: AppUiConstants.spacingSm),
         ],
-        ..._filteredItems.map((item) {
-          final expanded = identical(item, _selectedItem);
+        ...controller.filteredItems.map((item) {
+          final expanded = identical(item, controller.selectedItem);
           return Padding(
             padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
             child: SettingsExpandableTile(
               key: ValueKey('alt-${item.id}-$expanded'),
-              title: _counterpartyLabelFor(item),
+              title: controller.counterpartyLabelFor(item),
               subtitle: [
                 if (item.priorityOrder != null)
                   'Priority ${item.priorityOrder}',
@@ -604,19 +228,19 @@ class _ItemAlternateManagementPageState
               highlighted: expanded,
               trailing: IconButton(
                 tooltip: 'Remove alternate',
-                onPressed: _saving ? null : () => _confirmDelete(item),
+                onPressed: controller.saving
+                    ? null
+                    : () => _confirmDelete(context, controller, item),
                 icon: const Icon(Icons.remove_circle_outline),
               ),
               onToggle: () {
                 if (expanded) {
-                  _resetForm();
+                  controller.resetForm();
                 } else {
-                  _selectMapping(item);
+                  controller.selectMapping(item);
                 }
               },
-              child: _buildAlternateForm(
-                selectedCounterparty: selectedCounterparty,
-              ),
+              child: _buildAlternateForm(context, controller),
             ),
           );
         }),
@@ -624,51 +248,58 @@ class _ItemAlternateManagementPageState
     );
   }
 
-  Widget _buildAlternateForm({required ItemModel? selectedCounterparty}) {
+  Widget _buildAlternateForm(
+    BuildContext context,
+    ItemAlternateManagementController controller,
+  ) {
     return Form(
-      key: _formKey,
+      key: controller.formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_formError != null) ...[
-            AppErrorStateView.inline(message: _formError!),
+          if (controller.formError != null) ...[
+            AppErrorStateView.inline(message: controller.formError!),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
           if (widget.fixedItemId == null) ...[
             DropdownButtonFormField<int>(
-              initialValue: _counterpartyId,
-              decoration: const InputDecoration(labelText: _counterpartyLabel),
-              items: _allItems
+              initialValue: controller.counterpartyId,
+              decoration: const InputDecoration(
+                labelText: ItemAlternateManagementController.counterpartyLabel,
+              ),
+              items: controller.allItems
                   .where(
-                    (item) => _dropdownCounterpartyOptions.any(
+                    (item) => controller.dropdownCounterpartyOptions.any(
                       (option) => option.id == item.id,
                     ),
                   )
                   .map(
                     (item) => DropdownMenuItem<int>(
                       value: item.id,
-                      child: Text(_itemLabel(item)),
+                      child: Text(controller.itemLabel(item)),
                     ),
                   )
                   .toList(growable: false),
-              onChanged: (value) => setState(() => _counterpartyId = value),
-              validator: Validators.requiredSelection(_counterpartyLabel),
+              onChanged: controller.setCounterpartyId,
+              validator: Validators.requiredSelection(
+                ItemAlternateManagementController.counterpartyLabel,
+              ),
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-          ] else if (_selectedItem == null) ...[
+          ] else if (controller.selectedItem == null) ...[
             AppSearchPickerField<int>(
-              labelText: _counterpartyLabel,
-              selectedLabel: selectedCounterparty == null
+              labelText: ItemAlternateManagementController.counterpartyLabel,
+              selectedLabel: controller.selectedCounterpartyItem == null
                   ? null
-                  : _itemLabel(selectedCounterparty),
+                  : controller.itemLabel(controller.selectedCounterpartyItem!),
               hintText: 'Search alternate item to add',
-              options: _availableCounterpartyOptions
+              options: controller.availableCounterpartyOptions
                   .where((item) => item.id != null)
                   .map(
                     (item) => AppSearchPickerOption<int>(
                       value: item.id!,
-                      label: _itemLabel(item),
-                      subtitle: _itemSubtitle(item),
+                      label: controller.itemLabel(item),
+                      subtitle: controller.itemSubtitle(item),
                       searchText: [
                         item.sku ?? '',
                         item.hsnSacCode ?? '',
@@ -678,18 +309,18 @@ class _ItemAlternateManagementPageState
                   )
                   .toList(growable: false),
               onChanged: (value) {
-                if (value == null) {
-                  return;
+                if (value != null) {
+                  controller.setCounterpartyId(value);
                 }
-                setState(() => _counterpartyId = value);
               },
-              validator: (_) =>
-                  _counterpartyId == null ? 'Alternate Item is required' : null,
+              validator: (_) => controller.counterpartyId == null
+                  ? 'Alternate Item is required'
+                  : null,
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-          ] else if (selectedCounterparty != null) ...[
+          ] else if (controller.selectedCounterpartyItem != null) ...[
             Text(
-              _itemLabel(selectedCounterparty),
+              controller.itemLabel(controller.selectedCounterpartyItem!),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
@@ -698,7 +329,7 @@ class _ItemAlternateManagementPageState
             children: [
               AppFormTextField(
                 labelText: 'Priority',
-                controller: _priorityController,
+                controller: controller.priorityController,
                 keyboardType: TextInputType.number,
                 validator: Validators.compose([
                   Validators.required('Priority'),
@@ -707,7 +338,7 @@ class _ItemAlternateManagementPageState
               ),
               AppFormTextField(
                 labelText: 'Reason',
-                controller: _remarksController,
+                controller: controller.remarksController,
                 maxLines: 3,
                 validator: Validators.optionalMaxLength(255, 'Reason'),
               ),
@@ -718,8 +349,8 @@ class _ItemAlternateManagementPageState
             width: AppUiConstants.switchFieldWidth,
             child: AppSwitchTile(
               label: 'Active',
-              value: _isActive,
-              onChanged: (value) => setState(() => _isActive = value),
+              value: controller.isActive,
+              onChanged: controller.setIsActive,
             ),
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
@@ -729,17 +360,19 @@ class _ItemAlternateManagementPageState
             children: [
               AppActionButton(
                 icon: Icons.save_outlined,
-                label: _selectedItem == null
+                label: controller.selectedItem == null
                     ? 'Save Mapping'
                     : 'Update Mapping',
-                onPressed: _save,
-                busy: _saving,
+                onPressed: controller.save,
+                busy: controller.saving,
               ),
-              if (_selectedItem?.id != null)
+              if (controller.selectedItem?.id != null)
                 AppActionButton(
                   icon: Icons.delete_outline,
                   label: 'Delete',
-                  onPressed: _saving ? null : _delete,
+                  onPressed: controller.saving
+                      ? null
+                      : controller.deleteSelected,
                   filled: false,
                 ),
             ],

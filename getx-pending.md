@@ -64,14 +64,14 @@ Status legend:
 | Settings Communication | `lib/View/settings/communication/email_rules_page.dart` | page | `done` | Migrated to `EmailRulesManagementController` |
 | Settings Communication | `lib/View/settings/communication/email_settings_page.dart` | page | `done` | Migrated to `EmailSettingsManagementController` |
 | Settings Communication | `lib/View/settings/communication/email_templates_page.dart` | page | `done` | Migrated to `EmailTemplatesManagementController` |
-| Settings Master | `lib/View/settings/master/business_location_page.dart` | page | `pending` |  |
-| Settings Master | `lib/View/settings/master/item_alternate_page.dart` | page | `pending` |  |
-| Settings Master | `lib/View/settings/master/item_price_page.dart` | page | `pending` |  |
-| Settings Master | `lib/View/settings/master/item_supplier_map_page.dart` | page | `pending` |  |
-| Settings Master | `lib/View/settings/master/physical_stock_count_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/business_location_page.dart` | page | `done` | Migrated to `BusinessLocationManagementController` |
+| Settings Master | `lib/View/settings/master/item_alternate_page.dart` | page | `done` | Migrated to `ItemAlternateManagementController` |
+| Settings Master | `lib/View/settings/master/item_price_page.dart` | page | `done` | Migrated to `ItemPriceManagementController` |
+| Settings Master | `lib/View/settings/master/item_supplier_map_page.dart` | page | `done` | Migrated to `ItemSupplierMapManagementController` |
+| Settings Master | `lib/View/settings/master/physical_stock_count_page.dart` | page | `done` | Migrated to `PhysicalStockCountManagementController` |
 | Settings Master | `lib/View/settings/master/stock_balance_page.dart` | page | `done` | Migrated to `StockBalanceManagementController` |
 | Settings Master | `lib/View/settings/master/uom_conversion_page.dart` | page | `done` | Migrated to `UomConversionManagementController` |
-| Settings Master | `lib/View/settings/master/warehouse_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/warehouse_page.dart` | page | `done` | Migrated to `WarehouseManagementController` |
 | Settings Tax | `lib/View/settings/tax/document_tax_lines_register_page.dart` | page | `pending` |  |
 | Settings Tax | `lib/View/settings/tax/gst_registration_page.dart` | page | `pending` |  |
 | Settings User | `lib/View/settings/user/login_history_page.dart` | page | `done` | Migrated to `LoginHistoryManagementController` |

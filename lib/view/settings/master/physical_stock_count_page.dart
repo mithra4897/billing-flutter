@@ -1,3 +1,4 @@
+import '../../../controller/settings/master/physical_stock_count_management_controller.dart';
 import '../../../screen.dart';
 
 class PhysicalStockCountPage extends StatefulWidget {
@@ -10,558 +11,76 @@ class PhysicalStockCountPage extends StatefulWidget {
 }
 
 class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
-  static const List<AppDropdownItem<String>> _scopeItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'selected_items', label: 'Selected Items'),
-        AppDropdownItem(value: 'full_warehouse', label: 'Full Warehouse'),
-        AppDropdownItem(value: 'category', label: 'Category'),
-        AppDropdownItem(value: 'batch', label: 'Batch'),
-        AppDropdownItem(value: 'serial', label: 'Serial'),
-      ];
-
-  final InventoryService _inventoryService = InventoryService();
-  final MasterService _masterService = MasterService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _countNoController = TextEditingController();
-  final TextEditingController _countDateController = TextEditingController();
-  final TextEditingController _remarksController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  List<PhysicalStockCountModel> _items = const <PhysicalStockCountModel>[];
-  List<PhysicalStockCountModel> _filteredItems =
-      const <PhysicalStockCountModel>[];
-  List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
-  List<WarehouseModel> _warehouses = const <WarehouseModel>[];
-  List<ItemModel> _allItems = const <ItemModel>[];
-  List<UomModel> _uoms = const <UomModel>[];
-  List<StockBatchModel> _batches = const <StockBatchModel>[];
-  List<StockSerialModel> _serials = const <StockSerialModel>[];
-  PhysicalStockCountModel? _selectedItem;
-  List<PhysicalStockCountLineModel> _lines = <PhysicalStockCountLineModel>[];
-  int? _contextCompanyId;
-  int? _contextBranchId;
-  int? _contextLocationId;
-  int? _contextFinancialYearId;
-  int? _companyId;
-  int? _branchId;
-  int? _locationId;
-  int? _financialYearId;
-  int? _documentSeriesId;
-  int? _warehouseId;
-  String _countScope = 'selected_items';
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_applySearch);
-    _loadData();
-  }
-
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
-    _countNoController.dispose();
-    _countDateController.dispose();
-    _remarksController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadData({int? selectId}) async {
-    setState(() {
-      _initialLoading = _items.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final responses = await Future.wait<dynamic>([
-        _inventoryService.physicalStockCounts(
-          filters: const {'per_page': 200, 'sort_by': 'count_date'},
-        ),
-        _masterService.companies(filters: const {'per_page': 200}),
-        _masterService.branches(filters: const {'per_page': 200}),
-        _masterService.businessLocations(filters: const {'per_page': 200}),
-        _masterService.financialYears(filters: const {'per_page': 200}),
-        _masterService.documentSeries(filters: const {'per_page': 200}),
-        _masterService.warehouses(filters: const {'per_page': 200}),
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'uom_name'},
-        ),
-        _inventoryService.stockBatchesDropdown(filters: const {}),
-        _inventoryService.stockSerialsDropdown(filters: const {}),
-      ]);
-
-      final counts =
-          (responses[0] as PaginatedResponse<PhysicalStockCountModel>).data ??
-          const <PhysicalStockCountModel>[];
-      final companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final locations =
-          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
-          const <BusinessLocationModel>[];
-      final financialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-      final documentSeries =
-          (responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-          const <DocumentSeriesModel>[];
-      final warehouses =
-          (responses[6] as PaginatedResponse<WarehouseModel>).data ??
-          const <WarehouseModel>[];
-      final items =
-          (responses[7] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      final uoms =
-          (responses[8] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
-      final batches =
-          (responses[9] as ApiResponse<List<StockBatchModel>>).data ??
-          const <StockBatchModel>[];
-      final serials =
-          (responses[10] as ApiResponse<List<StockSerialModel>>).data ??
-          const <StockSerialModel>[];
-      final activeCompanies = companies
-          .where((company) => company.isActive)
-          .toList();
-      final activeBranches = branches
-          .where((branch) => branch.isActive)
-          .toList();
-      final activeLocations = locations
-          .where((location) => location.isActive)
-          .toList();
-      final activeFinancialYears = financialYears
-          .where((fy) => fy.isActive)
-          .toList();
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
-            locations: activeLocations,
-            financialYears: activeFinancialYears,
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _items = counts;
-        _filteredItems = _filterCounts(counts, _searchController.text);
-        _contextCompanyId = contextSelection.companyId;
-        _contextBranchId = contextSelection.branchId;
-        _contextLocationId = contextSelection.locationId;
-        _contextFinancialYearId = contextSelection.financialYearId;
-        _documentSeries = documentSeries
-            .where((series) => series.documentType == 'STOCK_COUNT')
-            .toList();
-        _warehouses = warehouses
-            .where((warehouse) => warehouse.isActive)
-            .toList();
-        _allItems = items.where((item) => item.isActive).toList();
-        _uoms = uoms.where((uom) => uom.isActive).toList();
-        _batches = batches;
-        _serials = serials;
-        _initialLoading = false;
-      });
-
-      final selected = selectId != null
-          ? counts.cast<PhysicalStockCountModel?>().firstWhere(
-              (item) => item?.id == selectId,
-              orElse: () => null,
-            )
-          : (_selectedItem == null
-                ? (counts.isNotEmpty ? counts.first : null)
-                : counts.cast<PhysicalStockCountModel?>().firstWhere(
-                    (item) => item?.id == _selectedItem?.id,
-                    orElse: () => counts.isNotEmpty ? counts.first : null,
-                  ));
-
-      if (selected != null) {
-        _selectCount(selected);
-      } else {
-        _resetForm();
-      }
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  List<PhysicalStockCountModel> _filterCounts(
-    List<PhysicalStockCountModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [
-        item.countNo ?? '',
-        item.countStatus ?? '',
-        item.countScope ?? '',
-        item.warehouseName ?? '',
-      ];
-    });
-  }
-
-  void _applySearch() {
-    setState(() {
-      _filteredItems = _filterCounts(_items, _searchController.text);
-    });
-  }
-
-  void _selectCount(PhysicalStockCountModel item) {
-    _selectedItem = item;
-    _companyId = item.companyId;
-    _branchId = item.branchId;
-    _locationId = item.locationId;
-    _financialYearId = item.financialYearId;
-    _documentSeriesId = item.documentSeriesId;
-    _warehouseId = item.warehouseId;
-    _countNoController.text = item.countNo ?? '';
-    _countDateController.text =
-        item.countDate?.split('T').first.split(' ').first ??
-        DateTime.now().toIso8601String().split('T').first;
-    _remarksController.text = item.remarks ?? '';
-    _countScope = item.countScope ?? 'selected_items';
-    _lines = item.items.toList(growable: true);
-    _formError = null;
-    setState(() {});
-  }
-
-  void _resetForm() {
-    _selectedItem = null;
-    _companyId = _contextCompanyId;
-    _branchId = _contextBranchId;
-    _locationId = _contextLocationId;
-    _financialYearId = _contextFinancialYearId;
-    _documentSeriesId = _filteredDocumentSeriesOptions.isNotEmpty
-        ? _filteredDocumentSeriesOptions.first.id
-        : null;
-    _warehouseId = _filteredWarehouseOptions.isNotEmpty
-        ? _filteredWarehouseOptions.first.id
-        : null;
-    _countNoController.clear();
-    _countDateController.text = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first;
-    _remarksController.clear();
-    _countScope = 'selected_items';
-    _lines = <PhysicalStockCountLineModel>[];
-    _formError = null;
-    setState(() {});
-  }
-
-  List<DocumentSeriesModel> get _filteredDocumentSeriesOptions =>
-      _documentSeries
-          .where(
-            (series) => _companyId == null || series.companyId == _companyId,
-          )
-          .toList(growable: false);
-
-  List<WarehouseModel> get _filteredWarehouseOptions => _warehouses
-      .where(
-        (warehouse) =>
-            (_companyId == null || warehouse.companyId == _companyId) &&
-            (_branchId == null || warehouse.branchId == _branchId) &&
-            (_locationId == null || warehouse.locationId == _locationId),
-      )
-      .toList(growable: false);
-
-  void _addLine() {
-    final defaultItem = _allItems.isNotEmpty ? _allItems.first : null;
-    final defaultUomId =
-        defaultItem?.baseUomId ?? (_uoms.isNotEmpty ? _uoms.first.id : null);
-    setState(() {
-      _lines = <PhysicalStockCountLineModel>[
-        ..._lines,
-        PhysicalStockCountLineModel(
-          itemId: defaultItem?.id,
-          uomId: defaultUomId,
-          countedQty: 0,
-        ),
-      ];
-    });
-  }
-
-  void _updateLine(int index, PhysicalStockCountLineModel line) {
-    setState(() {
-      _lines[index] = line;
-    });
-  }
-
-  void _removeLine(int index) {
-    setState(() {
-      _lines.removeAt(index);
-    });
-  }
-
-  List<StockBatchModel> _batchOptionsForItem(int? itemId) {
-    return _batches
-        .where((batch) {
-          final json = batch.toJson();
-          return itemId == null ||
-              json['item_id']?.toString() == itemId.toString();
-        })
-        .toList(growable: false);
-  }
-
-  List<StockSerialModel> _serialOptionsForItem(int? itemId, int? batchId) {
-    return _serials
-        .where((serial) {
-          final json = serial.toJson();
-          final matchesItem =
-              itemId == null ||
-              json['item_id']?.toString() == itemId.toString();
-          final matchesBatch =
-              batchId == null ||
-              json['batch_id']?.toString() == batchId.toString();
-          return matchesItem && matchesBatch;
-        })
-        .toList(growable: false);
-  }
-
-  String _batchLabel(StockBatchModel batch) {
-    final json = batch.toJson();
-    return json['batch_no']?.toString() ?? 'Batch';
-  }
-
-  String _serialLabel(StockSerialModel serial) {
-    final json = serial.toJson();
-    return json['serial_no']?.toString() ?? 'Serial';
-  }
-
-  PhysicalStockCountModel _buildModel() {
-    return PhysicalStockCountModel(
-      id: _selectedItem?.id,
-      companyId: _companyId,
-      branchId: _branchId,
-      locationId: _locationId,
-      financialYearId: _financialYearId,
-      documentSeriesId: _documentSeriesId,
-      warehouseId: _warehouseId,
-      countNo: nullIfEmpty(_countNoController.text),
-      countDate: _countDateController.text.trim(),
-      countScope: _countScope,
-      remarks: nullIfEmpty(_remarksController.text),
-      items: _lines,
+    _controllerTag = persistentControllerTag(
+      'PhysicalStockCountManagementController',
     );
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_lines.isEmpty) {
-      setState(() {
-        _formError = 'At least one item line is required';
-      });
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    final model = _buildModel();
-
-    try {
-      final response = _selectedItem == null
-          ? await _inventoryService.createPhysicalStockCount(model)
-          : await _inventoryService.updatePhysicalStockCount(
-              _selectedItem!.id!,
-              model,
-            );
-      final saved = response.data;
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData(selectId: saved?.id);
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final id = _selectedItem?.id;
-    if (id == null) {
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    try {
-      final response = await _inventoryService.deletePhysicalStockCount(id);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData();
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _markCounted() async {
-    final id = _selectedItem?.id;
-    if (id == null) {
-      return;
-    }
-    await _runDocumentAction(
-      () => _inventoryService.markPhysicalCounted(id, _buildModel()),
-    );
-  }
-
-  Future<void> _reconcile() async {
-    final id = _selectedItem?.id;
-    if (id == null) {
-      return;
-    }
-    await _runDocumentAction(
-      () => _inventoryService.reconcilePhysicalStockCount(id, _buildModel()),
-    );
-  }
-
-  Future<void> _cancel() async {
-    final id = _selectedItem?.id;
-    if (id == null) {
-      return;
-    }
-    await _runDocumentAction(
-      () => _inventoryService.cancelPhysicalStockCount(id, _buildModel()),
-    );
-  }
-
-  Future<void> _runDocumentAction(
-    Future<ApiResponse<PhysicalStockCountModel>> Function() action,
-  ) async {
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    try {
-      final response = await action();
-      final saved = response.data;
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadData(selectId: saved?.id);
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  void _startNew() {
-    _resetForm();
-    if (!Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
+    Get.put(PhysicalStockCountManagementController(), tag: _controllerTag);
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent();
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _startNew,
-        icon: Icons.checklist_rtl_outlined,
-        label: 'New Count',
-      ),
-    ];
+    return GetBuilder<PhysicalStockCountManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () =>
+                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+            icon: Icons.checklist_rtl_outlined,
+            label: 'New Count',
+          ),
+        ];
 
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
+        if (widget.embedded) {
+          return ShellPageActions(
+            actions: actions,
+            child: _buildContent(context, controller),
+          );
+        }
 
-    return AppStandaloneShell(
-      title: 'Physical Counts',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+        return AppStandaloneShell(
+          title: 'Physical Counts',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: _buildContent(context, controller),
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
-    if (_initialLoading) {
+  Widget _buildContent(
+    BuildContext context,
+    PhysicalStockCountManagementController controller,
+  ) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading physical counts...');
     }
 
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load physical counts',
-        message: _pageError!,
-        onRetry: _loadData,
+        message: controller.pageError!,
+        onRetry: controller.loadData,
       );
     }
 
-    final countStatus = _selectedItem?.countStatus ?? 'draft';
+    final countStatus = controller.selectedCount?.countStatus ?? 'draft';
 
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Physical Counts',
-      editorTitle: _selectedItem?.toString(),
-      scrollController: _pageScrollController,
+      editorTitle: controller.selectedCount?.toString(),
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<PhysicalStockCountModel>(
-        searchController: _searchController,
+        searchController: controller.searchController,
         searchHint: 'Search physical counts',
-        items: _filteredItems,
-        selectedItem: _selectedItem,
+        items: controller.filteredItems,
+        selectedItem: controller.selectedCount,
         emptyMessage: 'No physical counts found.',
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.countNo ?? '-',
@@ -571,43 +90,42 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
             item.warehouseName ?? '',
           ].where((value) => value.trim().isNotEmpty).join(' · '),
           selected: selected,
-          onTap: () => _selectCount(item),
+          onTap: () => controller.selectCount(item),
         ),
       ),
       editor: AppSectionCard(
         child: Form(
-          key: _formKey,
+          key: controller.formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_formError != null) ...[
-                AppErrorStateView.inline(message: _formError!),
+              if (controller.formError != null) ...[
+                AppErrorStateView.inline(message: controller.formError!),
                 const SizedBox(height: 16),
               ],
               SettingsFormWrap(
                 children: [
                   AppDropdownField<int?>.fromMapped(
-                    initialValue: _documentSeriesId,
+                    initialValue: controller.documentSeriesId,
                     labelText: 'Document Series',
                     mappedItems: <AppDropdownItem<int?>>[
                       const AppDropdownItem<int?>(
                         value: null,
                         label: 'Auto / None',
                       ),
-                      ..._filteredDocumentSeriesOptions.map(
+                      ...controller.filteredDocumentSeriesOptions.map(
                         (series) => AppDropdownItem<int?>(
                           value: series.id,
                           label: series.toString(),
                         ),
                       ),
                     ],
-                    onChanged: (value) =>
-                        setState(() => _documentSeriesId = value),
+                    onChanged: controller.setDocumentSeriesId,
                   ),
                   AppDropdownField<int?>.fromMapped(
-                    initialValue: _warehouseId,
+                    initialValue: controller.warehouseId,
                     labelText: 'Warehouse',
-                    mappedItems: _filteredWarehouseOptions
+                    mappedItems: controller.filteredWarehouseOptions
                         .where((warehouse) => warehouse.id != null)
                         .map(
                           (warehouse) => AppDropdownItem<int?>(
@@ -616,17 +134,17 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                           ),
                         )
                         .toList(growable: false),
-                    onChanged: (value) => setState(() => _warehouseId = value),
+                    onChanged: controller.setWarehouseId,
                     validator: Validators.requiredSelection('Warehouse'),
                   ),
                   AppFormTextField(
                     labelText: 'Count No',
-                    controller: _countNoController,
+                    controller: controller.countNoController,
                     validator: Validators.optionalMaxLength(100, 'Count No'),
                   ),
                   AppFormTextField(
                     labelText: 'Count Date',
-                    controller: _countDateController,
+                    controller: controller.countDateController,
                     hintText: 'YYYY-MM-DD',
                     validator: Validators.compose([
                       Validators.required('Count Date'),
@@ -634,9 +152,9 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                     ]),
                   ),
                   DropdownButtonFormField<String>(
-                    initialValue: _countScope,
+                    initialValue: controller.countScope,
                     decoration: const InputDecoration(labelText: 'Count Scope'),
-                    items: _scopeItems
+                    items: PhysicalStockCountManagementController.scopeItems
                         .map(
                           (scope) => DropdownMenuItem<String>(
                             value: scope.value,
@@ -644,15 +162,14 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                           ),
                         )
                         .toList(growable: false),
-                    onChanged: (value) =>
-                        setState(() => _countScope = value ?? 'selected_items'),
+                    onChanged: controller.setCountScope,
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               AppFormTextField(
                 labelText: 'Remarks',
-                controller: _remarksController,
+                controller: controller.remarksController,
                 maxLines: 3,
               ),
               const SizedBox(height: 20),
@@ -666,25 +183,27 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                   AppActionButton(
                     icon: Icons.add_circle_outline,
                     label: 'Add Line',
-                    onPressed: _addLine,
+                    onPressed: controller.addLine,
                     filled: false,
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              if (_lines.isEmpty)
+              if (controller.lines.isEmpty)
                 const Text('No item lines added yet.')
               else
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _lines.length,
+                  itemCount: controller.lines.length,
                   separatorBuilder: (context, index) =>
                       const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final line = _lines[index];
-                    final batchOptions = _batchOptionsForItem(line.itemId);
-                    final serialOptions = _serialOptionsForItem(
+                    final line = controller.lines[index];
+                    final batchOptions = controller.batchOptionsForItem(
+                      line.itemId,
+                    );
+                    final serialOptions = controller.serialOptionsForItem(
                       line.itemId,
                       line.batchId,
                     );
@@ -710,7 +229,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                             children: [
                               Text('Line ${index + 1}'),
                               IconButton(
-                                onPressed: () => _removeLine(index),
+                                onPressed: () => controller.removeLine(index),
                                 icon: const Icon(Icons.delete_outline),
                               ),
                             ],
@@ -722,7 +241,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                 decoration: const InputDecoration(
                                   labelText: 'Item',
                                 ),
-                                items: _allItems
+                                items: controller.allItems
                                     .where((item) => item.id != null)
                                     .map(
                                       (item) => DropdownMenuItem<int>(
@@ -732,13 +251,13 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                     )
                                     .toList(growable: false),
                                 onChanged: (value) {
-                                  final item = _allItems
+                                  final item = controller.allItems
                                       .cast<ItemModel?>()
                                       .firstWhere(
                                         (entry) => entry?.id == value,
                                         orElse: () => null,
                                       );
-                                  _updateLine(
+                                  controller.updateLine(
                                     index,
                                     PhysicalStockCountLineModel(
                                       id: line.id,
@@ -746,8 +265,8 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                       uomId:
                                           item?.baseUomId ??
                                           line.uomId ??
-                                          (_uoms.isNotEmpty
-                                              ? _uoms.first.id
+                                          (controller.uoms.isNotEmpty
+                                              ? controller.uoms.first.id
                                               : null),
                                       countedQty: line.countedQty,
                                       systemQty: line.systemQty,
@@ -762,7 +281,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                 decoration: const InputDecoration(
                                   labelText: 'UOM',
                                 ),
-                                items: _uoms
+                                items: controller.uoms
                                     .where((uom) => uom.id != null)
                                     .map(
                                       (uom) => DropdownMenuItem<int>(
@@ -771,7 +290,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                       ),
                                     )
                                     .toList(growable: false),
-                                onChanged: (value) => _updateLine(
+                                onChanged: (value) => controller.updateLine(
                                   index,
                                   PhysicalStockCountLineModel(
                                     id: line.id,
@@ -801,11 +320,11 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                       value: int.tryParse(
                                         batch.toJson()['id']?.toString() ?? '',
                                       ),
-                                      child: Text(_batchLabel(batch)),
+                                      child: Text(controller.batchLabel(batch)),
                                     ),
                                   ),
                                 ],
-                                onChanged: (value) => _updateLine(
+                                onChanged: (value) => controller.updateLine(
                                   index,
                                   PhysicalStockCountLineModel(
                                     id: line.id,
@@ -835,11 +354,13 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                       value: int.tryParse(
                                         serial.toJson()['id']?.toString() ?? '',
                                       ),
-                                      child: Text(_serialLabel(serial)),
+                                      child: Text(
+                                        controller.serialLabel(serial),
+                                      ),
                                     ),
                                   ),
                                 ],
-                                onChanged: (value) => _updateLine(
+                                onChanged: (value) => controller.updateLine(
                                   index,
                                   PhysicalStockCountLineModel(
                                     id: line.id,
@@ -861,7 +382,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                     const TextInputType.numberWithOptions(
                                       decimal: true,
                                     ),
-                                onChanged: (value) => _updateLine(
+                                onChanged: (value) => controller.updateLine(
                                   index,
                                   PhysicalStockCountLineModel(
                                     id: line.id,
@@ -883,7 +404,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                     const TextInputType.numberWithOptions(
                                       decimal: true,
                                     ),
-                                onChanged: (value) => _updateLine(
+                                onChanged: (value) => controller.updateLine(
                                   index,
                                   PhysicalStockCountLineModel(
                                     id: line.id,
@@ -905,7 +426,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                     const TextInputType.numberWithOptions(
                                       decimal: true,
                                     ),
-                                onChanged: (value) => _updateLine(
+                                onChanged: (value) => controller.updateLine(
                                   index,
                                   PhysicalStockCountLineModel(
                                     id: line.id,
@@ -924,7 +445,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                                 labelText: 'Line Remarks',
                                 controller: remarksController,
                                 maxLines: 2,
-                                onChanged: (value) => _updateLine(
+                                onChanged: (value) => controller.updateLine(
                                   index,
                                   PhysicalStockCountLineModel(
                                     id: line.id,
@@ -953,41 +474,49 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
                 children: [
                   AppActionButton(
                     icon: Icons.save_outlined,
-                    label: _selectedItem == null
+                    label: controller.selectedCount == null
                         ? 'Save Count'
                         : 'Update Count',
-                    onPressed: _save,
-                    busy: _saving,
+                    onPressed: controller.save,
+                    busy: controller.saving,
                   ),
-                  if (_selectedItem?.id != null && countStatus == 'draft')
+                  if (controller.selectedCount?.id != null &&
+                      countStatus == 'draft')
                     AppActionButton(
                       icon: Icons.delete_outline,
                       label: 'Delete',
-                      onPressed: _saving ? null : _delete,
+                      onPressed: controller.saving
+                          ? null
+                          : controller.deleteSelected,
                       filled: false,
                     ),
-                  if (_selectedItem?.id != null && countStatus == 'draft')
+                  if (controller.selectedCount?.id != null &&
+                      countStatus == 'draft')
                     AppActionButton(
                       icon: Icons.playlist_add_check_outlined,
                       label: 'Mark Counted',
-                      onPressed: _saving ? null : _markCounted,
+                      onPressed: controller.saving
+                          ? null
+                          : controller.markCounted,
                       filled: false,
                     ),
-                  if (_selectedItem?.id != null &&
+                  if (controller.selectedCount?.id != null &&
                       (countStatus == 'draft' || countStatus == 'counted'))
                     AppActionButton(
                       icon: Icons.check_circle_outline,
                       label: 'Reconcile',
-                      onPressed: _saving ? null : _reconcile,
+                      onPressed: controller.saving
+                          ? null
+                          : controller.reconcile,
                       filled: false,
                     ),
-                  if (_selectedItem?.id != null &&
+                  if (controller.selectedCount?.id != null &&
                       countStatus != 'reconciled' &&
                       countStatus != 'cancelled')
                     AppActionButton(
                       icon: Icons.cancel_outlined,
                       label: 'Cancel',
-                      onPressed: _saving ? null : _cancel,
+                      onPressed: controller.saving ? null : controller.cancel,
                       filled: false,
                     ),
                 ],

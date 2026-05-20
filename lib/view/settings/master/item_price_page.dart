@@ -1,3 +1,4 @@
+import '../../../controller/settings/master/item_price_management_controller.dart';
 import '../../../screen.dart';
 
 class ItemPriceManagementPage extends StatefulWidget {
@@ -20,496 +21,120 @@ class ItemPriceManagementPage extends StatefulWidget {
 }
 
 class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
-  static const List<AppDropdownItem<String>> _priceTypeItems =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'purchase', label: 'Purchase'),
-        AppDropdownItem(value: 'sales', label: 'Sales'),
-        AppDropdownItem(value: 'mrp', label: 'MRP'),
-        AppDropdownItem(value: 'retail', label: 'Retail'),
-        AppDropdownItem(value: 'wholesale', label: 'Wholesale'),
-        AppDropdownItem(value: 'special', label: 'Special'),
-      ];
-
-  final InventoryService _inventoryService = InventoryService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _masterSearchController = TextEditingController();
-  final TextEditingController _priceSearchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _validFromController = TextEditingController();
-  final TextEditingController _validToController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  bool _showDraftTile = false;
-  String? _pageError;
-  String? _formError;
-  List<ItemModel> _allItems = const <ItemModel>[];
-  List<ItemModel> _filteredItems = const <ItemModel>[];
-  List<ItemPriceModel> _prices = const <ItemPriceModel>[];
-  List<ItemPriceModel> _filteredPrices = const <ItemPriceModel>[];
-  List<UomModel> _uoms = const <UomModel>[];
-  List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
-  ItemModel? _selectedItemMaster;
-  ItemPriceModel? _selectedPrice;
-  int? _uomId;
-  String _priceType = 'sales';
-  bool _isDefault = false;
-  bool _isActive = true;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _masterSearchController.addListener(_applyMasterSearch);
-    _priceSearchController.addListener(_applyPriceSearch);
-    _loadData();
-  }
-
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _masterSearchController.dispose();
-    _priceSearchController.dispose();
-    _priceController.dispose();
-    _validFromController.dispose();
-    _validToController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadData({int? selectPriceId}) async {
-    setState(() {
-      _initialLoading = _allItems.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final responses = await Future.wait<dynamic>([
-        _inventoryService.items(
-          filters: const {'per_page': 300, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'uom_name'},
-        ),
-        _inventoryService.uomConversions(
-          filters: const {
-            'per_page': 500,
-            'sort_by': 'from_uom_id',
-            'sort_order': 'asc',
-          },
-        ),
-      ]);
-
-      final items =
-          (responses[0] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      final uoms =
-          (responses[1] as PaginatedResponse<UomModel>).data ??
-          const <UomModel>[];
-      final uomConversions =
-          (responses[2] as PaginatedResponse<UomConversionModel>).data ??
-          const <UomConversionModel>[];
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _allItems = items;
-        _filteredItems = _filterItemList(items, _masterSearchController.text);
-        _uoms = uoms.where((uom) => uom.isActive).toList(growable: false);
-        _uomConversions = uomConversions
-            .where((conversion) => conversion.isActive)
-            .toList(growable: false);
-      });
-
-      if (widget.fixedItemId != null) {
-        _selectedItemMaster =
-            widget.fixedItem ??
-            items.cast<ItemModel?>().firstWhere(
-              (item) => item?.id == widget.fixedItemId,
-              orElse: () => null,
-            );
-      } else {
-        _selectedItemMaster ??= items.isNotEmpty ? items.first : null;
-      }
-      await _loadPrices(selectPriceId: selectPriceId);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  Future<void> _loadPrices({int? selectPriceId}) async {
-    final itemId = _selectedItemMaster?.id;
-    if (itemId == null) {
-      setState(() {
-        _prices = const <ItemPriceModel>[];
-        _filteredPrices = const <ItemPriceModel>[];
-        _initialLoading = false;
-      });
-      _resetForm();
-      return;
-    }
-
-    try {
-      final response = await _inventoryService.itemPrices(
-        filters: {
-          'per_page': 300,
-          'item_id': itemId,
-          'sort_by': 'valid_from',
-          'sort_order': 'desc',
-        },
-      );
-      final items = response.data ?? const <ItemPriceModel>[];
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _prices = items;
-        _filteredPrices = _filterPrices(items, _priceSearchController.text);
-        _initialLoading = false;
-      });
-
-      final selected = selectPriceId != null
-          ? items.cast<ItemPriceModel?>().firstWhere(
-              (item) => item?.id == selectPriceId,
-              orElse: () => null,
-            )
-          : (_selectedPrice == null
-                ? null
-                : items.cast<ItemPriceModel?>().firstWhere(
-                    (item) => item?.id == _selectedPrice?.id,
-                    orElse: () => null,
-                  ));
-
-      if (selected != null) {
-        _selectPrice(selected);
-      } else {
-        _resetForm();
-      }
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  List<ItemModel> _filterItemList(List<ItemModel> source, String query) {
-    return filterMasterList(source, query, (item) {
-      return [item.itemCode, item.itemName, item.itemType ?? ''];
-    });
-  }
-
-  List<ItemPriceModel> _filterPrices(
-    List<ItemPriceModel> source,
-    String query,
-  ) {
-    return filterMasterList(source, query, (item) {
-      return [
-        item.priceType ?? '',
-        item.uomName ?? '',
-        item.uomSymbol ?? '',
-        item.validFrom ?? '',
-        item.validTo ?? '',
-      ];
-    });
-  }
-
-  Set<int> _allowedUomIdsForItem(ItemModel? item) {
-    final seedIds = <int>{
-      if (item?.baseUomId != null) item!.baseUomId!,
-      if (item?.purchaseUomId != null) item!.purchaseUomId!,
-      if (item?.salesUomId != null) item!.salesUomId!,
-    };
-
-    if (seedIds.isEmpty) {
-      return <int>{};
-    }
-
-    final allowed = <int>{...seedIds};
-    for (final conversion in _uomConversions) {
-      final fromId = conversion.fromUomId;
-      final toId = conversion.toUomId;
-      if (fromId == null || toId == null) {
-        continue;
-      }
-      if (seedIds.contains(fromId) || seedIds.contains(toId)) {
-        allowed.add(fromId);
-        allowed.add(toId);
-      }
-    }
-    return allowed;
-  }
-
-  List<UomModel> get _allowedUoms {
-    final allowedIds = _allowedUomIdsForItem(_selectedItemMaster);
-    if (_selectedPrice?.uomId != null) {
-      allowedIds.add(_selectedPrice!.uomId!);
-    }
-    if (allowedIds.isEmpty) {
-      return _uoms;
-    }
-
-    return _uoms
-        .where((uom) => uom.id != null && allowedIds.contains(uom.id))
-        .toList(growable: false);
-  }
-
-  int? get _defaultUomId {
-    final item = _selectedItemMaster;
-    final allowedIds = _allowedUomIdsForItem(item);
-    final preferred = <int?>[
-      item?.salesUomId,
-      item?.baseUomId,
-      item?.purchaseUomId,
-    ];
-    for (final id in preferred) {
-      if (id != null && (allowedIds.isEmpty || allowedIds.contains(id))) {
-        return id;
-      }
-    }
-    return _allowedUoms.isNotEmpty ? _allowedUoms.first.id : null;
-  }
-
-  void _applyMasterSearch() {
-    setState(() {
-      _filteredItems = _filterItemList(_allItems, _masterSearchController.text);
-    });
-  }
-
-  void _applyPriceSearch() {
-    setState(() {
-      _filteredPrices = _filterPrices(_prices, _priceSearchController.text);
-    });
-  }
-
-  void _selectMasterItem(ItemModel item) {
-    _selectedItemMaster = item;
-    _selectedPrice = null;
-    _uomId = _defaultUomId;
-    _loadPrices();
-  }
-
-  void _selectPrice(ItemPriceModel item) {
-    if (_selectedPrice?.id == item.id) {
-      _resetForm();
-      return;
-    }
-    _showDraftTile = false;
-    _selectedPrice = item;
-    _uomId = item.uomId;
-    _priceType = item.priceType ?? 'sales';
-    _priceController.text = item.price?.toString() ?? '';
-    _validFromController.text = item.validFrom ?? '';
-    _validToController.text = item.validTo ?? '';
-    _isDefault = item.isDefault;
-    _isActive = item.isActive;
-    _formError = null;
-    setState(() {});
-  }
-
-  void _resetForm() {
-    _selectedPrice = null;
-    _uomId = _defaultUomId;
-    _priceType = 'sales';
-    _priceController.clear();
-    _validFromController.clear();
-    _validToController.clear();
-    _isDefault = false;
-    _isActive = true;
-    _formError = null;
-    setState(() {});
-  }
-
-  Future<void> _save() async {
-    final itemId = _selectedItemMaster?.id;
-    if (!_formKey.currentState!.validate() || itemId == null) {
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    final model = ItemPriceModel(
-      id: _selectedPrice?.id,
-      itemId: itemId,
-      priceType: _priceType,
-      uomId: _uomId,
-      price: double.tryParse(_priceController.text.trim()),
-      validFrom: nullIfEmpty(_validFromController.text),
-      validTo: nullIfEmpty(_validToController.text),
-      isDefault: _isDefault,
-      isActive: _isActive,
+    _controllerTag = persistentControllerTag(
+      'ItemPriceManagementController'
+      '-${widget.fixedItemId ?? 'all'}',
     );
-
-    try {
-      final response = _selectedPrice == null
-          ? await _inventoryService.createItemPrice(model)
-          : await _inventoryService.updateItemPrice(_selectedPrice!.id!, model);
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      _showDraftTile = false;
-      _resetForm();
-      await _loadPrices();
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final id = _selectedPrice?.id;
-    if (id == null) {
-      return;
-    }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
-    });
-
-    try {
-      final response = await _inventoryService.deleteItemPrice(id);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPrices();
-    } catch (error) {
-      setState(() {
-        _formError = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  void _startNew() {
-    _showDraftTile = true;
-    _resetForm();
-    if (widget.fixedItemId == null && !Responsive.isDesktop(context)) {
-      _workspaceController.openEditor();
-    }
+    Get.put(
+      ItemPriceManagementController(
+        fixedItemId: widget.fixedItemId,
+        fixedItem: widget.fixedItem,
+        fixedItemLabel: widget.fixedItemLabel,
+      ),
+      tag: _controllerTag,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent();
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: _selectedItemMaster == null ? null : _startNew,
-        icon: Icons.price_change_outlined,
-        label: 'New Price',
-      ),
-    ];
+    return GetBuilder<ItemPriceManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: controller.selectedItemMaster == null
+                ? null
+                : () => controller.startNew(
+                    isDesktop: Responsive.isDesktop(context),
+                  ),
+            icon: Icons.price_change_outlined,
+            label: 'New Price',
+          ),
+        ];
 
-    if (widget.fixedItemId != null) {
-      return content;
-    }
-
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
-
-    return AppStandaloneShell(
-      title: 'Item Prices',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+        if (widget.fixedItemId != null) {
+          return _buildContent(context, controller);
+        }
+        if (widget.embedded) {
+          return ShellPageActions(
+            actions: actions,
+            child: _buildContent(context, controller),
+          );
+        }
+        return AppStandaloneShell(
+          title: 'Item Prices',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: _buildContent(context, controller),
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
-    if (_initialLoading) {
+  Widget _buildContent(
+    BuildContext context,
+    ItemPriceManagementController controller,
+  ) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading item prices...');
     }
-
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load item prices',
-        message: _pageError!,
-        onRetry: _loadData,
+        message: controller.pageError!,
+        onRetry: controller.loadData,
       );
     }
 
     if (widget.fixedItemId != null) {
-      return _selectedItemMaster == null
+      return controller.selectedItemMaster == null
           ? const SettingsEmptyState(
               icon: Icons.price_change_outlined,
               title: 'Item Not Found',
               message: 'The selected item is not available.',
             )
-          : _buildEditorBody();
+          : _buildEditorBody(context, controller);
     }
 
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Item Prices',
-      editorTitle: _selectedItemMaster?.toString(),
-      scrollController: _pageScrollController,
+      editorTitle: controller.selectedItemMaster?.toString(),
+      scrollController: controller.pageScrollController,
       list: SettingsListCard<ItemModel>(
-        searchController: _masterSearchController,
+        searchController: controller.masterSearchController,
         searchHint: 'Search items',
-        items: _filteredItems,
-        selectedItem: _selectedItemMaster,
+        items: controller.filteredItems,
+        selectedItem: controller.selectedItemMaster,
         emptyMessage: 'No items found.',
         itemBuilder: (item, selected) => SettingsListTile(
           title: item.itemName,
           subtitle: item.itemCode,
           selected: selected,
-          onTap: () => _selectMasterItem(item),
+          onTap: () => controller.selectMasterItem(item),
         ),
       ),
       editor: AppSectionCard(
-        child: _selectedItemMaster == null
+        child: controller.selectedItemMaster == null
             ? const SettingsEmptyState(
                 icon: Icons.price_change_outlined,
                 title: 'Select Item',
                 message: 'Choose an item from the left to manage price rows.',
               )
-            : _buildEditorBody(),
+            : _buildEditorBody(context, controller),
       ),
     );
   }
 
-  Widget _buildEditorBody() {
-    if (_selectedItemMaster == null) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _buildEditorBody(
+    BuildContext context,
+    ItemPriceManagementController controller,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -519,17 +144,18 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
             child: AppActionButton(
               icon: Icons.price_change_outlined,
               label: 'New Price',
-              onPressed: _startNew,
+              onPressed: () =>
+                  controller.startNew(isDesktop: Responsive.isDesktop(context)),
             ),
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
         ],
-        if (_filteredPrices.isEmpty && !_showDraftTile)
+        if (controller.filteredPrices.isEmpty && !controller.showDraftTile)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
             child: Text('No price rows found for this item.'),
           ),
-        if (_showDraftTile && _selectedPrice == null) ...[
+        if (controller.showDraftTile && controller.selectedPrice == null) ...[
           SettingsExpandableTile(
             key: const ValueKey('price-draft'),
             title: 'New Price',
@@ -537,19 +163,14 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
             expanded: true,
             highlighted: true,
             leadingIcon: Icons.add_outlined,
-            onToggle: () {
-              setState(() {
-                _showDraftTile = false;
-              });
-              _resetForm();
-            },
-            child: _buildPriceForm(),
+            onToggle: controller.hideDraftTile,
+            child: _buildPriceForm(context, controller),
           ),
-          if (_filteredPrices.isNotEmpty)
+          if (controller.filteredPrices.isNotEmpty)
             const SizedBox(height: AppUiConstants.spacingSm),
         ],
-        ..._filteredPrices.map((price) {
-          final expanded = identical(price, _selectedPrice);
+        ...controller.filteredPrices.map((price) {
+          final expanded = identical(price, controller.selectedPrice);
           return Padding(
             padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
             child: SettingsExpandableTile(
@@ -567,12 +188,12 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
               highlighted: expanded,
               onToggle: () {
                 if (expanded) {
-                  _resetForm();
+                  controller.resetForm();
                 } else {
-                  _selectPrice(price);
+                  controller.selectPrice(price);
                 }
               },
-              child: _buildPriceForm(),
+              child: _buildPriceForm(context, controller),
             ),
           );
         }),
@@ -580,22 +201,25 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
     );
   }
 
-  Widget _buildPriceForm() {
+  Widget _buildPriceForm(
+    BuildContext context,
+    ItemPriceManagementController controller,
+  ) {
     return Form(
-      key: _formKey,
+      key: controller.formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_formError != null) ...[
-            AppErrorStateView.inline(message: _formError!),
+          if (controller.formError != null) ...[
+            AppErrorStateView.inline(message: controller.formError!),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
           SettingsFormWrap(
             children: [
               DropdownButtonFormField<String>(
-                initialValue: _priceType,
+                initialValue: controller.priceType,
                 decoration: const InputDecoration(labelText: 'Price Type'),
-                items: _priceTypeItems
+                items: ItemPriceManagementController.priceTypeItems
                     .map(
                       (item) => DropdownMenuItem<String>(
                         value: item.value,
@@ -603,13 +227,12 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                       ),
                     )
                     .toList(growable: false),
-                onChanged: (value) =>
-                    setState(() => _priceType = value ?? 'sales'),
+                onChanged: controller.setPriceType,
               ),
               DropdownButtonFormField<int>(
-                initialValue: _uomId,
+                initialValue: controller.uomId,
                 decoration: const InputDecoration(labelText: 'UOM'),
-                items: _allowedUoms
+                items: controller.allowedUoms
                     .where((uom) => uom.id != null)
                     .map(
                       (uom) => DropdownMenuItem<int>(
@@ -618,12 +241,12 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                       ),
                     )
                     .toList(growable: false),
-                onChanged: (value) => setState(() => _uomId = value),
+                onChanged: controller.setUomId,
                 validator: Validators.requiredSelection('UOM'),
               ),
               AppFormTextField(
                 labelText: 'Price',
-                controller: _priceController,
+                controller: controller.priceController,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -634,17 +257,17 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
               ),
               AppFormTextField(
                 labelText: 'Valid From',
-                controller: _validFromController,
+                controller: controller.validFromController,
                 hintText: 'YYYY-MM-DD',
                 validator: Validators.optionalDate('Valid From'),
               ),
               AppFormTextField(
                 labelText: 'Valid To',
-                controller: _validToController,
+                controller: controller.validToController,
                 hintText: 'YYYY-MM-DD',
                 validator: Validators.optionalDateOnOrAfter(
                   'Valid To',
-                  () => _validFromController.text,
+                  () => controller.validFromController.text,
                   startFieldName: 'Valid From',
                 ),
               ),
@@ -659,16 +282,16 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                 width: AppUiConstants.switchFieldWidth,
                 child: AppSwitchTile(
                   label: 'Default Price',
-                  value: _isDefault,
-                  onChanged: (value) => setState(() => _isDefault = value),
+                  value: controller.isDefault,
+                  onChanged: controller.setIsDefault,
                 ),
               ),
               SizedBox(
                 width: AppUiConstants.switchFieldWidth,
                 child: AppSwitchTile(
                   label: 'Active',
-                  value: _isActive,
-                  onChanged: (value) => setState(() => _isActive = value),
+                  value: controller.isActive,
+                  onChanged: controller.setIsActive,
                 ),
               ),
             ],
@@ -680,15 +303,19 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
             children: [
               AppActionButton(
                 icon: Icons.save_outlined,
-                label: _selectedPrice == null ? 'Save Price' : 'Update Price',
-                onPressed: _save,
-                busy: _saving,
+                label: controller.selectedPrice == null
+                    ? 'Save Price'
+                    : 'Update Price',
+                onPressed: controller.save,
+                busy: controller.saving,
               ),
-              if (_selectedPrice?.id != null)
+              if (controller.selectedPrice?.id != null)
                 AppActionButton(
                   icon: Icons.delete_outline,
                   label: 'Delete',
-                  onPressed: _saving ? null : _delete,
+                  onPressed: controller.saving
+                      ? null
+                      : controller.deleteSelectedPrice,
                   filled: false,
                 ),
             ],
