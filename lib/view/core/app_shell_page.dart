@@ -1,3 +1,4 @@
+import '../../controller/core/app_shell_controller.dart';
 import '../../screen.dart';
 
 class AppShellPage extends StatefulWidget {
@@ -15,180 +16,83 @@ class AppShellPage extends StatefulWidget {
 }
 
 class _AppShellPageState extends State<AppShellPage> {
-  PublicBrandingModel _branding = const PublicBrandingModel(
-    companyName: 'Billing ERP',
-  );
-  AuthContextModel? _authContext;
-  bool _isCheckingSession = true;
-  late String _currentPath;
-  late Map<String, String> _currentQueryParameters;
-  late final ShellPageActionsController _shellPageActionsController;
-  int _contextVersion = 0;
+  late final String _controllerTag;
+  late final AppShellController _controller;
 
   @override
   void initState() {
     super.initState();
-    _currentPath = widget.path;
-    _currentQueryParameters = Map<String, String>.from(widget.queryParameters);
-    _shellPageActionsController = ShellPageActionsController();
-    AppSessionService.accessVersion.addListener(_handleAccessVersionChanged);
-    WorkingContextService.version.addListener(_handleWorkingContextChanged);
-    _bootstrapShell();
+    _controllerTag = persistentControllerTag('AppShellController');
+    _controller = Get.put(
+      AppShellController(
+        initialPath: widget.path,
+        initialQueryParameters: widget.queryParameters,
+      ),
+      tag: _controllerTag,
+      permanent: true,
+    );
   }
 
   @override
-  void dispose() {
-    AppSessionService.accessVersion.removeListener(_handleAccessVersionChanged);
-    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
-    _shellPageActionsController.dispose();
-    super.dispose();
-  }
+  void dispose() => super.dispose();
 
   @override
   void didUpdateWidget(covariant AppShellPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.path != widget.path ||
         !_sameQuery(oldWidget.queryParameters, widget.queryParameters)) {
-      _currentPath = widget.path;
-      _currentQueryParameters = Map<String, String>.from(
-        widget.queryParameters,
+      _controller.syncRouteInputs(
+        path: widget.path,
+        queryParameters: widget.queryParameters,
       );
     }
   }
 
-  Future<void> _loadShellContext() async {
-    final branding = await SessionStorage.getBranding();
-    final authContext = await SessionStorage.getAuthContext();
-    final permissionCodes = await SessionStorage.getPermissionCodes();
-    final currentUser = await SessionStorage.getCurrentUser();
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _branding = branding ?? _branding;
-      _authContext = authContext;
-    });
-
-    _ensureCurrentRouteAllowed(
-      permissionCodes: permissionCodes.toSet(),
-      isSuperAdmin:
-          currentUser?['is_super_admin'] == true ||
-          currentUser?['is_super_admin'] == 1,
-      orderedModules: authContext?.menuModules ?? const <ModuleModel>[],
-    );
-  }
-
-  Future<void> _bootstrapShell() async {
-    final hasSession = await AppSessionService.instance.bootstrap();
-    if (!mounted) {
-      return;
-    }
-
-    if (!hasSession) {
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(_loginRoute(), (_) => false);
-      return;
-    }
-
-    await _loadShellContext();
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _isCheckingSession = false;
-    });
-
-    unawaited(_refreshShellContextInBackground());
-  }
-
-  Future<void> _refreshShellContextInBackground() async {
-    try {
-      await AppSessionService.instance.refreshUserAccess();
-    } catch (_) {}
-  }
-
-  String _loginRoute() {
-    final redirectTo = Uri(
-      path: _currentPath,
-      queryParameters: _currentQueryParameters.isEmpty
-          ? null
-          : _currentQueryParameters,
-    ).toString();
-
-    return Uri(
-      path: '/login',
-      queryParameters: <String, String>{'redirect': redirectTo},
-    ).toString();
-  }
-
-  void _handleAccessVersionChanged() {
-    _loadShellContext();
-  }
-
-  void _handleWorkingContextChanged() {
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _contextVersion = WorkingContextService.version.value;
-    });
-  }
-
-  void _ensureCurrentRouteAllowed({
-    required Set<String> permissionCodes,
-    required bool isSuperAdmin,
-    required List<ModuleModel> orderedModules,
-  }) {
-    // Do not force shell routes back to dashboard during startup or refresh.
-    // Deep links should stay on the requested page, and real authorization
-    // failures are handled by the API client/session flow.
-    return;
-  }
-
-  void _handleNavigate(String route) {
-    final uri = Uri.parse(route);
-    _shellPageActionsController.clearActions();
-    setState(() {
-      _currentPath = uri.path;
-      _currentQueryParameters = Map<String, String>.from(uri.queryParameters);
-    });
-    AppRouteState.update(uri.toString());
-
-    SystemNavigator.routeInformationUpdated(uri: uri, replace: true);
-  }
+  PublicBrandingModel get _branding => _controller.branding;
+  AuthContextModel? get _authContext => _controller.authContext;
+  bool get _isCheckingSession => _controller.isCheckingSession;
+  String get _currentPath => _controller.currentPath;
+  Map<String, String> get _currentQueryParameters =>
+      _controller.currentQueryParameters;
+  ShellPageActionsController get _shellPageActionsController =>
+      _controller.shellPageActionsController;
+  int get _contextVersion => _controller.contextVersion;
+  void _handleNavigate(String route) => _controller.handleNavigate(route);
 
   @override
   Widget build(BuildContext context) {
-    if (_isCheckingSession) {
-      return const Scaffold(
-        body: AppLoadingView(message: 'Restoring your session...'),
-      );
-    }
+    return GetBuilder<AppShellController>(
+      tag: _controllerTag,
+      builder: (_) {
+        if (_isCheckingSession) {
+          return const Scaffold(
+            body: AppLoadingView(message: 'Restoring your session...'),
+          );
+        }
 
-    return AdaptiveShell(
-      title: _titleForPath(_currentPath, _authContext),
-      branding: _branding,
-      currentPath: _buildCurrentRoute(),
-      actionsListenable: _shellPageActionsController,
-      onNavigate: _handleNavigate,
-      child: Align(
-        alignment: AlignmentGeometry.topCenter,
-        child: ShellPageActionsScope(
-          controller: _shellPageActionsController,
-          child: ShellRouteScope(
-            onNavigate: _handleNavigate,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 140),
-              switchInCurve: Curves.easeOut,
-              switchOutCurve: Curves.easeOut,
-              child: _buildContent(),
+        return AdaptiveShell(
+          title: _titleForPath(_currentPath, _authContext),
+          branding: _branding,
+          currentPath: _buildCurrentRoute(),
+          actionsListenable: _shellPageActionsController,
+          onNavigate: _handleNavigate,
+          child: Align(
+            alignment: AlignmentGeometry.topCenter,
+            child: ShellPageActionsScope(
+              controller: _shellPageActionsController,
+              child: ShellRouteScope(
+                onNavigate: _handleNavigate,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 140),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeOut,
+                  child: _buildContent(),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
