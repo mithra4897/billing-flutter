@@ -79,10 +79,6 @@ class SessionStorage {
   }
 
   static Future<bool> hasRestorableSession() async {
-    if (!await shouldAutoLogin()) {
-      return false;
-    }
-
     return hasActiveSession();
   }
 

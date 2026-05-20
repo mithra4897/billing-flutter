@@ -42,42 +42,27 @@ class _AppBootstrapPageState extends State<AppBootstrapPage> {
         return;
       }
 
-      try {
-        final me = await _authService.me();
-        if (!mounted) {
-          return;
-        }
-        if (me.success) {
-          if (me.data != null) {
-            await AppSessionService.instance.updateCurrentUser(me.data!);
-          }
-          await AppSessionService.instance.refreshUserAccess();
-          if (!mounted) {
-            return;
-          }
-          Navigator.of(context).pushReplacementNamed(widget.redirectTo);
-          return;
-        }
-      } on ApiException catch (error) {
-        if (error.isConnectivityIssue) {
-          _showError(error.message);
-          return;
-        }
-      } catch (_) {
-        _showError('Unable to connect to the server right now.');
-        return;
-      }
-
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.of(context).pushReplacementNamed(_loginRoute());
+      Navigator.of(context).pushReplacementNamed(widget.redirectTo);
+      unawaited(_refreshSessionInBackground());
     } on ApiException catch (error) {
       _showError(error.message);
     } catch (_) {
       _showError('Unable to start the application right now.');
     }
+  }
+
+  Future<void> _refreshSessionInBackground() async {
+    try {
+      final me = await _authService.me();
+      if (me.success && me.data != null) {
+        await AppSessionService.instance.updateCurrentUser(me.data!);
+      }
+      await AppSessionService.instance.refreshUserAccess();
+    } on ApiException catch (error) {
+      if (error.statusCode == 401 || error.statusCode == 403) {
+        await AppSessionService.instance.clearSession();
+      }
+    } catch (_) {}
   }
 
   String _loginRoute() {

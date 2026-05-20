@@ -100,6 +100,14 @@ class _AppShellPageState extends State<AppShellPage> {
     setState(() {
       _isCheckingSession = false;
     });
+
+    unawaited(_refreshShellContextInBackground());
+  }
+
+  Future<void> _refreshShellContextInBackground() async {
+    try {
+      await AppSessionService.instance.refreshUserAccess();
+    } catch (_) {}
   }
 
   String _loginRoute() {
@@ -134,43 +142,10 @@ class _AppShellPageState extends State<AppShellPage> {
     required bool isSuperAdmin,
     required List<ModuleModel> orderedModules,
   }) {
-    if (_currentPath == '/dashboard' ||
-        _currentPath == '/crm/dashboard' ||
-        _currentPath == '/settings/profile') {
-      return;
-    }
-
-    final normalizedPath = _normalizeEditorRoutePath(_currentPath);
-    final routeItem = AppNavigation.findByPath(normalizedPath);
-    if (routeItem == null) {
-      return;
-    }
-
-    final visibleMenu = AppNavigation.visibleMenu(
-      permissionCodes: permissionCodes,
-      isSuperAdmin: isSuperAdmin,
-      orderedModules: orderedModules,
-    );
-
-    final isVisible = _containsPath(visibleMenu, normalizedPath);
-    if (isVisible || !mounted) {
-      return;
-    }
-
-    _handleNavigate('/dashboard');
-  }
-
-  bool _containsPath(List<AppNavigationItem> items, String path) {
-    for (final item in items) {
-      if (item.path == path) {
-        return true;
-      }
-      if (item.children.isNotEmpty && _containsPath(item.children, path)) {
-        return true;
-      }
-    }
-
-    return false;
+    // Do not force shell routes back to dashboard during startup or refresh.
+    // Deep links should stay on the requested page, and real authorization
+    // failures are handled by the API client/session flow.
+    return;
   }
 
   void _handleNavigate(String route) {
