@@ -1,0 +1,112 @@
+# GetX Pending Tracker
+
+This tracker lists the remaining files that still need GetX MVC migration or cleanup.
+
+Status legend:
+
+| Status | Meaning |
+| --- | --- |
+| `pending` | Not migrated yet |
+| `in_progress` | Currently being migrated |
+| `done` | Completed and verified |
+| `blocked` | Needs a decision or prerequisite |
+
+## Pending Pages
+
+| Area | File | Type | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Assets | `lib/View/assets/asset_cost_center_page.dart` | page | `pending` |  |
+| Assets | `lib/View/assets/asset_disposal_page.dart` | page | `pending` |  |
+| Assets | `lib/View/assets/fixed_asset_page.dart` | page | `pending` |  |
+| Auth | `lib/View/auth/login_page.dart` | page | `pending` |  |
+| Core | `lib/View/core/app_bootstrap_page.dart` | page | `pending` |  |
+| Core | `lib/View/core/app_shell_page.dart` | page | `pending` |  |
+| Dashboard | `lib/View/dashboard/crm_dashboard_page.dart` | page | `pending` |  |
+| Dashboard | `lib/View/dashboard/erp_module_dashboard_page.dart` | page | `pending` |  |
+| HR | `lib/View/hr/employee_page.dart` | page | `pending` | Remaining `AnimatedBuilder` hotspot |
+| HR | `lib/View/hr/expense_claims_page.dart` | page | `pending` |  |
+| HR | `lib/View/hr/hr_statutory_settings_page.dart` | page | `pending` |  |
+| HR | `lib/View/hr/leave_request_page.dart` | page | `pending` |  |
+| HR | `lib/View/hr/leave_type_page.dart` | page | `pending` |  |
+| Inventory | `lib/View/inventory/inventory_inquiry_page.dart` | page | `pending` |  |
+| Inventory | `lib/View/inventory/opening_stock_page.dart` | page | `pending` |  |
+| Manufacturing | `lib/View/manufacturing/production_material_issue_page.dart` | page | `pending` |  |
+| Parties | `lib/View/parties/party_management_page.dart` | page | `pending` | Remaining `AnimatedBuilder` hotspot |
+| Project | `lib/View/project/project_billing_page.dart` | page | `pending` |  |
+| Project | `lib/View/project/project_expense_page.dart` | page | `pending` |  |
+| Project | `lib/View/project/project_milestone_page.dart` | page | `pending` |  |
+| Project | `lib/View/project/project_page.dart` | page | `pending` |  |
+| Project | `lib/View/project/project_resource_usage_page.dart` | page | `pending` |  |
+| Project | `lib/View/project/project_task_page.dart` | page | `pending` |  |
+| Project | `lib/View/project/project_timesheet_page.dart` | page | `pending` |  |
+| Project | `lib/View/project/project_vendor_work_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_invoice_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_order_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_payment_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_receipt_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_register_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_requisition_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_return_page.dart` | page | `pending` |  |
+| Sales | `lib/View/sales/sales_delivery_page.dart` | page | `pending` |  |
+| Sales | `lib/View/sales/sales_invoice_page.dart` | page | `pending` |  |
+| Sales | `lib/View/sales/sales_order_page.dart` | page | `pending` |  |
+| Sales | `lib/View/sales/sales_quotation_page.dart` | page | `pending` |  |
+| Sales | `lib/View/sales/sales_receipt_page.dart` | page | `pending` |  |
+| Sales | `lib/View/sales/sales_return_page.dart` | page | `pending` |  |
+| Settings Accounting | `lib/View/settings/accounting/budget_page.dart` | page | `pending` |  |
+| Settings Accounting | `lib/View/settings/accounting/cash_session_page.dart` | page | `pending` |  |
+| Settings Accounting | `lib/View/settings/accounting/document_posting_page.dart` | page | `pending` |  |
+| Settings Accounting | `lib/View/settings/accounting/financial_reports_page.dart` | page | `pending` |  |
+| Settings Accounting | `lib/View/settings/accounting/party_account_register_page.dart` | page | `pending` |  |
+| Settings Accounting | `lib/View/settings/accounting/voucher_page.dart` | page | `pending` |  |
+| Settings Communication | `lib/View/settings/communication/email_messages_page.dart` | page | `pending` |  |
+| Settings Communication | `lib/View/settings/communication/email_module_settings_page.dart` | page | `pending` |  |
+| Settings Communication | `lib/View/settings/communication/email_rules_page.dart` | page | `pending` |  |
+| Settings Communication | `lib/View/settings/communication/email_settings_page.dart` | page | `pending` |  |
+| Settings Communication | `lib/View/settings/communication/email_templates_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/business_location_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/item_alternate_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/item_price_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/item_supplier_map_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/physical_stock_count_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/stock_balance_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/uom_conversion_page.dart` | page | `pending` |  |
+| Settings Master | `lib/View/settings/master/warehouse_page.dart` | page | `pending` |  |
+| Settings Tax | `lib/View/settings/tax/document_tax_lines_register_page.dart` | page | `pending` |  |
+| Settings Tax | `lib/View/settings/tax/gst_registration_page.dart` | page | `pending` |  |
+| Settings User | `lib/View/settings/user/login_history_page.dart` | page | `pending` |  |
+| Settings User | `lib/View/settings/user/module_preferences_page.dart` | page | `pending` |  |
+| Settings User | `lib/View/settings/user/profile_page.dart` | page | `pending` |  |
+
+## Pending Widgets And Support Files
+
+| Area | File | Type | Status | Notes |
+| --- | --- | --- | --- | --- |
+| Assets | `lib/View/assets/asset_registers.dart` | widget/support | `pending` |  |
+| Dashboard | `lib/View/dashboard/erp_module_dashboard_support.dart` | widget/support | `pending` |  |
+| HR | `lib/View/hr/hr_registers.dart` | widget/support | `pending` |  |
+| Inventory | `lib/View/inventory/inventory_registers.dart` | widget/support | `pending` |  |
+| Jobwork | `lib/View/jobwork/jobwork_registers.dart` | widget/support | `pending` |  |
+| Maintenance | `lib/View/maintenance/maintenance_registers.dart` | widget/support | `pending` |  |
+| Manufacturing | `lib/View/manufacturing/manufacturing_registers.dart` | widget/support | `pending` |  |
+| Printing | `lib/View/printing/document_print_designer.dart` | widget/support | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_register_screens.dart` | widget/support | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_support.dart` | widget/support | `pending` |  |
+| Quality | `lib/View/quality/quality_registers.dart` | widget/support | `pending` |  |
+| Sales | `lib/View/sales/sales_register_screens.dart` | widget/support | `pending` |  |
+| Sales | `lib/View/sales/sales_support.dart` | widget/support | `pending` |  |
+| Service | `lib/View/service/service_registers.dart` | widget/support | `pending` |  |
+| Settings | `lib/View/settings/widgets/settings_workspace.dart` | widget/support | `pending` |  |
+
+## Suggested Order
+
+| Order | Scope | Status | Notes |
+| --- | --- | --- | --- |
+| 1 | Settings Master remaining 8 | `pending` | Best next batch |
+| 2 | Settings Accounting remaining 6 | `pending` | Best next batch |
+| 3 | `employee_page.dart` | `pending` | Large screen, still uses `AnimatedBuilder` |
+| 4 | `party_management_page.dart` | `pending` | Large screen, still uses `AnimatedBuilder` |
+| 5 | Communication settings | `pending` | Smaller grouped forms |
+| 6 | Sales and Purchase | `pending` | Larger document flows |
+| 7 | Project module | `pending` | Multi-form workflows |
+| 8 | Support/register widgets | `pending` | Cleanup after pages |
