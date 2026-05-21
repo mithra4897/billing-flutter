@@ -1,0 +1,870 @@
+import '../../screen.dart';
+
+class PurchaseReceiptLineDraft {
+  PurchaseReceiptLineDraft({
+    this.purchaseOrderLineId,
+    this.itemId,
+    this.warehouseId,
+    this.uomId,
+    this.serialId,
+    String? description,
+    String? receivedQty,
+    String? acceptedQty,
+    String? rejectedQty,
+    String? rate,
+    String? remarks,
+  }) : descriptionController = TextEditingController(text: description ?? ''),
+       receivedQtyController = TextEditingController(text: receivedQty ?? ''),
+       acceptedQtyController = TextEditingController(text: acceptedQty ?? ''),
+       rejectedQtyController = TextEditingController(text: rejectedQty ?? ''),
+       rateController = TextEditingController(text: rate ?? ''),
+       remarksController = TextEditingController(text: remarks ?? '');
+
+  factory PurchaseReceiptLineDraft.fromJson(Map<String, dynamic> json) {
+    return PurchaseReceiptLineDraft(
+      purchaseOrderLineId: intValue(json, 'purchase_order_line_id'),
+      itemId: intValue(json, 'item_id'),
+      warehouseId: intValue(json, 'warehouse_id'),
+      uomId: intValue(json, 'uom_id'),
+      serialId: intValue(json, 'serial_id'),
+      description: stringValue(json, 'description'),
+      receivedQty: stringValue(json, 'received_qty'),
+      acceptedQty: stringValue(json, 'accepted_qty'),
+      rejectedQty: stringValue(json, 'rejected_qty'),
+      rate: stringValue(json, 'rate'),
+      remarks: stringValue(json, 'remarks'),
+    );
+  }
+
+  int? purchaseOrderLineId;
+  int? itemId;
+  int? warehouseId;
+  int? uomId;
+  int? serialId;
+  final TextEditingController descriptionController;
+  final TextEditingController receivedQtyController;
+  final TextEditingController acceptedQtyController;
+  final TextEditingController rejectedQtyController;
+  final TextEditingController rateController;
+  final TextEditingController remarksController;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'purchase_order_line_id': purchaseOrderLineId,
+      'item_id': itemId,
+      'warehouse_id': warehouseId,
+      'uom_id': uomId,
+      'serial_id': serialId,
+      'description': nullIfEmpty(descriptionController.text),
+      'received_qty': double.tryParse(receivedQtyController.text.trim()) ?? 0,
+      'accepted_qty': double.tryParse(acceptedQtyController.text.trim()) ?? 0,
+      'rejected_qty': double.tryParse(rejectedQtyController.text.trim()) ?? 0,
+      'rate': double.tryParse(rateController.text.trim()) ?? 0,
+      'remarks': nullIfEmpty(remarksController.text),
+    };
+  }
+
+  void dispose() {
+    descriptionController.dispose();
+    receivedQtyController.dispose();
+    acceptedQtyController.dispose();
+    rejectedQtyController.dispose();
+    rateController.dispose();
+    remarksController.dispose();
+  }
+}
+
+class PurchaseReceiptManagementController extends GetxController {
+  PurchaseReceiptManagementController();
+
+  static const List<AppDropdownItem<String>> statusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(
+          value: 'partially_invoiced',
+          label: 'Partially Invoiced',
+        ),
+        AppDropdownItem(value: 'fully_invoiced', label: 'Fully Invoiced'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
+
+  final PurchaseService _purchaseService = PurchaseService();
+  final MasterService _masterService = MasterService();
+  final PartiesService _partiesService = PartiesService();
+  final InventoryService _inventoryService = InventoryService();
+  final ScrollController pageScrollController = ScrollController();
+  final SettingsWorkspaceController workspaceController =
+      SettingsWorkspaceController();
+  final TextEditingController searchController = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  final TextEditingController receiptNoController = TextEditingController();
+  final TextEditingController receiptDateController = TextEditingController();
+  final TextEditingController supplierInvoiceNoController =
+      TextEditingController();
+  final TextEditingController supplierInvoiceDateController =
+      TextEditingController();
+  final TextEditingController supplierDcNoController = TextEditingController();
+  final TextEditingController supplierDcDateController =
+      TextEditingController();
+  final TextEditingController notesController = TextEditingController();
+
+  bool initialLoading = true;
+  bool saving = false;
+  String? pageError;
+  String? formError;
+  String statusFilter = '';
+  List<PurchaseReceiptModel> items = const <PurchaseReceiptModel>[];
+  List<PurchaseReceiptModel> filteredItems = const <PurchaseReceiptModel>[];
+  List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
+  List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
+  List<PurchaseOrderModel> orders = const <PurchaseOrderModel>[];
+  List<PartyModel> suppliers = const <PartyModel>[];
+  List<WarehouseModel> warehouses = const <WarehouseModel>[];
+  List<ItemModel> itemsLookup = const <ItemModel>[];
+  List<UomModel> uoms = const <UomModel>[];
+  List<UomConversionModel> uomConversions = const <UomConversionModel>[];
+  final Map<String, List<StockSerialModel>> serialOptionsByItemWarehouse =
+      <String, List<StockSerialModel>>{};
+  final Set<String> serialOptionsLoadingKeys = <String>{};
+  PurchaseReceiptModel? selectedItem;
+  int? contextCompanyId;
+  int? contextBranchId;
+  int? contextLocationId;
+  int? contextFinancialYearId;
+  int? companyId;
+  int? branchId;
+  int? locationId;
+  int? financialYearId;
+  int? documentSeriesId;
+  int? purchaseOrderId;
+  int? supplierPartyId;
+  int? warehouseId;
+  bool isActive = true;
+  List<PurchaseReceiptLineDraft> lines = <PurchaseReceiptLineDraft>[];
+  bool _initialized = false;
+
+  @override
+  void onInit() {
+    super.onInit();
+    searchController.addListener(_applyFilters);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
+
+  @override
+  void onClose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
+    pageScrollController.dispose();
+    workspaceController.dispose();
+    searchController
+      ..removeListener(_applyFilters)
+      ..dispose();
+    receiptNoController.dispose();
+    receiptDateController.dispose();
+    supplierInvoiceNoController.dispose();
+    supplierInvoiceDateController.dispose();
+    supplierDcNoController.dispose();
+    supplierDcDateController.dispose();
+    notesController.dispose();
+    _disposeLines(lines);
+    super.onClose();
+  }
+
+  Future<void> initialize({int? initialId}) async {
+    if (!_initialized) {
+      _initialized = true;
+    }
+    await loadPage(selectId: initialId);
+  }
+
+  Future<void> _handleWorkingContextChanged() async {
+    await loadPage(
+      selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
+    );
+  }
+
+  Future<void> loadPage({int? selectId}) async {
+    initialLoading = items.isEmpty;
+    pageError = null;
+    update();
+    try {
+      final responses = await Future.wait<dynamic>([
+        _purchaseService.receipts(
+          filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
+        ),
+        _masterService.companies(
+          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
+        ),
+        _masterService.branches(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
+        _masterService.businessLocations(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
+        _masterService.financialYears(
+          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
+        ),
+        _masterService.documentSeries(
+          filters: const {'per_page': 200, 'sort_by': 'series_name'},
+        ),
+        _purchaseService.ordersAll(filters: const {'sort_by': 'order_date'}),
+        _partiesService.partyTypes(filters: const {'per_page': 100}),
+        _partiesService.parties(
+          filters: const {'per_page': 300, 'sort_by': 'party_name'},
+        ),
+        _masterService.warehouses(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
+        _inventoryService.items(
+          filters: const {'per_page': 300, 'sort_by': 'item_name'},
+        ),
+        _inventoryService.uoms(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
+        ),
+        _inventoryService.uomConversionsAll(
+          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
+        ),
+      ]);
+      final contextSelection = await WorkingContextService.instance
+          .resolveSelection(
+            companies:
+                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                        const <CompanyModel>[])
+                    .where((item) => item.isActive)
+                    .toList(growable: false),
+            branches:
+                ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                        const <BranchModel>[])
+                    .where((item) => item.isActive)
+                    .toList(growable: false),
+            locations:
+                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
+                            .data ??
+                        const <BusinessLocationModel>[])
+                    .where((item) => item.isActive)
+                    .toList(growable: false),
+            financialYears:
+                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+                        const <FinancialYearModel>[])
+                    .where((item) => item.isActive)
+                    .toList(growable: false),
+          );
+
+      items =
+          (responses[0] as PaginatedResponse<PurchaseReceiptModel>).data ??
+          const <PurchaseReceiptModel>[];
+      financialYears =
+          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+          const <FinancialYearModel>[];
+      documentSeries =
+          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
+                  const <DocumentSeriesModel>[])
+              .where((item) => item.isActive)
+              .toList(growable: false);
+      orders =
+          (responses[6] as ApiResponse<List<PurchaseOrderModel>>).data ??
+          const <PurchaseOrderModel>[];
+      suppliers = purchaseSuppliers(
+        parties:
+            (responses[8] as PaginatedResponse<PartyModel>).data ??
+            const <PartyModel>[],
+        partyTypes:
+            (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
+            const <PartyTypeModel>[],
+      );
+      warehouses =
+          ((responses[9] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((item) => item.isActive)
+              .toList(growable: false);
+      itemsLookup =
+          ((responses[10] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((item) => item.isActive)
+              .toList(growable: false);
+      uoms =
+          ((responses[11] as PaginatedResponse<UomModel>).data ??
+                  const <UomModel>[])
+              .where((item) => item.isActive)
+              .toList(growable: false);
+      uomConversions =
+          ((responses[12] as ApiResponse<List<UomConversionModel>>).data ??
+                  const <UomConversionModel>[])
+              .where((item) => item.isActive)
+              .toList(growable: false);
+      contextCompanyId = contextSelection.companyId;
+      contextBranchId = contextSelection.branchId;
+      contextLocationId = contextSelection.locationId;
+      contextFinancialYearId = contextSelection.financialYearId;
+      initialLoading = false;
+      filteredItems = _filterItems(items, searchController.text, statusFilter);
+      update();
+
+      final selected = selectId != null
+          ? items.cast<PurchaseReceiptModel?>().firstWhere(
+              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
+              orElse: () => null,
+            )
+          : null;
+      if (selected != null) {
+        await selectDocument(selected, notify: false);
+      } else {
+        resetForm(notify: false);
+      }
+      update();
+    } catch (errorValue) {
+      pageError = errorValue.toString();
+      initialLoading = false;
+      update();
+    }
+  }
+
+  Future<void> selectDocument(
+    PurchaseReceiptModel item, {
+    bool notify = true,
+  }) async {
+    final id = intValue(item.toJson(), 'id');
+    if (id == null) return;
+    final response = await _purchaseService.receipt(id);
+    final full = response.data ?? item;
+    final data = full.toJson();
+    final nextLines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(PurchaseReceiptLineDraft.fromJson)
+        .toList(growable: true);
+    _disposeLines(lines);
+    selectedItem = full;
+    companyId = intValue(data, 'company_id');
+    branchId = intValue(data, 'branch_id');
+    locationId = intValue(data, 'location_id');
+    financialYearId = intValue(data, 'financial_year_id');
+    documentSeriesId = intValue(data, 'document_series_id');
+    purchaseOrderId = intValue(data, 'purchase_order_id');
+    supplierPartyId = intValue(data, 'supplier_party_id');
+    warehouseId = intValue(data, 'warehouse_id');
+    receiptNoController.text = stringValue(data, 'receipt_no');
+    receiptDateController.text = displayDate(
+      nullableStringValue(data, 'receipt_date'),
+    );
+    supplierInvoiceNoController.text = stringValue(data, 'supplier_invoice_no');
+    supplierInvoiceDateController.text = displayDate(
+      nullableStringValue(data, 'supplier_invoice_date'),
+    );
+    supplierDcNoController.text = stringValue(data, 'supplier_dc_no');
+    supplierDcDateController.text = displayDate(
+      nullableStringValue(data, 'supplier_dc_date'),
+    );
+    notesController.text = stringValue(data, 'notes');
+    isActive = boolValue(data, 'is_active', fallback: true);
+    lines = nextLines.isEmpty
+        ? <PurchaseReceiptLineDraft>[PurchaseReceiptLineDraft()]
+        : nextLines;
+    formError = null;
+    for (final line in lines) {
+      if (isSerialManagedItem(line.itemId)) {
+        unawaited(syncSerialOptionsForLine(line));
+      }
+    }
+    if (notify) update();
+  }
+
+  void resetForm({bool notify = true}) {
+    final series = seriesOptions();
+    _disposeLines(lines);
+    selectedItem = null;
+    companyId = contextCompanyId;
+    branchId = contextBranchId;
+    locationId = contextLocationId;
+    financialYearId = contextFinancialYearId;
+    documentSeriesId = series.isNotEmpty ? series.first.id : null;
+    purchaseOrderId = null;
+    supplierPartyId = null;
+    warehouseId = null;
+    receiptNoController.clear();
+    receiptDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
+    supplierInvoiceNoController.clear();
+    supplierInvoiceDateController.clear();
+    supplierDcNoController.clear();
+    supplierDcDateController.clear();
+    notesController.clear();
+    isActive = true;
+    lines = <PurchaseReceiptLineDraft>[PurchaseReceiptLineDraft()];
+    formError = null;
+    if (notify) update();
+  }
+
+  void setStatusFilter(String value) {
+    statusFilter = value;
+    filteredItems = _filterItems(items, searchController.text, statusFilter);
+    update();
+  }
+
+  List<PurchaseReceiptModel> _filterItems(
+    List<PurchaseReceiptModel> source,
+    String query,
+    String status,
+  ) {
+    final search = query.trim().toLowerCase();
+    return source
+        .where((item) {
+          final data = item.toJson();
+          final statusOk =
+              status.isEmpty || stringValue(data, 'receipt_status') == status;
+          final searchOk =
+              search.isEmpty ||
+              [
+                stringValue(data, 'receipt_no'),
+                stringValue(data, 'receipt_status'),
+                stringValue(data, 'supplier_name'),
+              ].join(' ').toLowerCase().contains(search);
+          return statusOk && searchOk;
+        })
+        .toList(growable: false);
+  }
+
+  void _applyFilters() {
+    filteredItems = _filterItems(items, searchController.text, statusFilter);
+    update();
+  }
+
+  List<UomModel> uomOptionsForItem(int? itemId) {
+    final item = itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return allowedUomsForItem(item, uoms, uomConversions);
+  }
+
+  int? resolveDefaultUom(int? itemId, int? currentUomId) {
+    final item = itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return defaultUomIdForItem(
+      item,
+      uoms,
+      uomConversions,
+      current: currentUomId,
+    );
+  }
+
+  bool isSerialManagedItem(int? itemId) {
+    if (itemId == null) return false;
+    final item = itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+    return item?.hasSerial ?? false;
+  }
+
+  String serialCacheKey(int? itemId, int? warehouseId) =>
+      '${itemId ?? 0}:${warehouseId ?? 0}';
+
+  List<StockSerialModel> serialOptionsForLine(PurchaseReceiptLineDraft line) {
+    if (!isSerialManagedItem(line.itemId) ||
+        line.itemId == null ||
+        line.warehouseId == null) {
+      return const <StockSerialModel>[];
+    }
+    return serialOptionsByItemWarehouse[serialCacheKey(
+          line.itemId,
+          line.warehouseId,
+        )] ??
+        const <StockSerialModel>[];
+  }
+
+  Future<void> syncSerialOptionsForLine(PurchaseReceiptLineDraft line) async {
+    final itemId = line.itemId;
+    final localWarehouseId = line.warehouseId;
+    if (itemId == null ||
+        localWarehouseId == null ||
+        !isSerialManagedItem(itemId)) {
+      return;
+    }
+    final cacheKey = serialCacheKey(itemId, localWarehouseId);
+    final cached = serialOptionsByItemWarehouse[cacheKey];
+    if (cached != null) {
+      final hasSelected = cached.any(
+        (serial) => intValue(serial.toJson(), 'id') == line.serialId,
+      );
+      if ((line.serialId != null && !hasSelected) ||
+          (line.serialId == null && cached.length == 1)) {
+        line.serialId = cached.length == 1
+            ? intValue(cached.first.toJson(), 'id')
+            : null;
+        update();
+      }
+      return;
+    }
+    if (serialOptionsLoadingKeys.contains(cacheKey)) {
+      return;
+    }
+    serialOptionsLoadingKeys.add(cacheKey);
+    try {
+      final response = await _inventoryService.stockSerialsDropdown(
+        filters: <String, dynamic>{
+          'item_id': itemId,
+          'warehouse_id': localWarehouseId,
+        },
+      );
+      final serials = response.data ?? const <StockSerialModel>[];
+      serialOptionsByItemWarehouse[cacheKey] = serials;
+      final hasSelected = serials.any(
+        (serial) => intValue(serial.toJson(), 'id') == line.serialId,
+      );
+      if (line.itemId == itemId &&
+          line.warehouseId == localWarehouseId &&
+          line.serialId != null &&
+          !hasSelected) {
+        line.serialId = serials.length == 1
+            ? intValue(serials.first.toJson(), 'id')
+            : null;
+      } else if (line.itemId == itemId &&
+          line.warehouseId == localWarehouseId &&
+          line.serialId == null &&
+          serials.length == 1) {
+        line.serialId = intValue(serials.first.toJson(), 'id');
+      }
+      update();
+    } catch (_) {
+      serialOptionsByItemWarehouse[cacheKey] = const <StockSerialModel>[];
+      if (line.itemId == itemId && line.warehouseId == localWarehouseId) {
+        line.serialId = null;
+      }
+      update();
+    } finally {
+      serialOptionsLoadingKeys.remove(cacheKey);
+    }
+  }
+
+  List<DocumentSeriesModel> seriesOptions() {
+    return documentSeries
+        .where((item) {
+          final typeOk =
+              item.documentType == null ||
+              item.documentType == 'PURCHASE_RECEIPT';
+          final companyOk = companyId == null || item.companyId == companyId;
+          final fyOk =
+              financialYearId == null ||
+              item.financialYearId == financialYearId;
+          return typeOk && companyOk && fyOk;
+        })
+        .toList(growable: false);
+  }
+
+  int? defaultSeriesIdFor({
+    required int? companyId,
+    required int? financialYearId,
+  }) {
+    final options = documentSeries
+        .where((item) {
+          final typeOk =
+              item.documentType == null ||
+              item.documentType == 'PURCHASE_RECEIPT';
+          final companyOk = companyId == null || item.companyId == companyId;
+          final fyOk =
+              financialYearId == null ||
+              item.financialYearId == financialYearId;
+          return typeOk && companyOk && fyOk;
+        })
+        .toList(growable: false);
+    return options.isNotEmpty ? options.first.id : null;
+  }
+
+  double pendingReceiptQtyForOrderLine(Map<String, dynamic> line) {
+    final orderedQty = double.tryParse(stringValue(line, 'ordered_qty')) ?? 0;
+    final receivedQty = double.tryParse(stringValue(line, 'received_qty')) ?? 0;
+    return (orderedQty - receivedQty).clamp(0, double.infinity).toDouble();
+  }
+
+  List<PurchaseReceiptLineDraft> buildReceiptLinesFromOrder(
+    PurchaseOrderModel order,
+  ) {
+    final orderLines = (order.toJson()['lines'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>();
+
+    final drafts = orderLines
+        .expand((line) {
+          final pendingQty = pendingReceiptQtyForOrderLine(line);
+          if (pendingQty <= 0) {
+            return const <PurchaseReceiptLineDraft>[];
+          }
+          final itemId = intValue(line, 'item_id');
+          if (isSerialManagedItem(itemId)) {
+            final units = pendingQty.floor();
+            return List<PurchaseReceiptLineDraft>.generate(
+              units > 0 ? units : 1,
+              (_) => PurchaseReceiptLineDraft(
+                purchaseOrderLineId: intValue(line, 'id'),
+                itemId: itemId,
+                warehouseId: intValue(line, 'warehouse_id'),
+                uomId: intValue(line, 'uom_id'),
+                description: stringValue(line, 'description'),
+                receivedQty: '1',
+                acceptedQty: '1',
+                rejectedQty: '0',
+                rate: stringValue(line, 'rate'),
+                remarks: stringValue(line, 'remarks'),
+              ),
+              growable: false,
+            );
+          }
+
+          return <PurchaseReceiptLineDraft>[
+            PurchaseReceiptLineDraft(
+              purchaseOrderLineId: intValue(line, 'id'),
+              itemId: itemId,
+              warehouseId: intValue(line, 'warehouse_id'),
+              uomId: intValue(line, 'uom_id'),
+              description: stringValue(line, 'description'),
+              receivedQty: pendingQty.toString(),
+              acceptedQty: pendingQty.toString(),
+              rejectedQty: '0',
+              rate: stringValue(line, 'rate'),
+              remarks: stringValue(line, 'remarks'),
+            ),
+          ];
+        })
+        .toList(growable: false);
+
+    return drafts.isEmpty
+        ? <PurchaseReceiptLineDraft>[PurchaseReceiptLineDraft()]
+        : drafts;
+  }
+
+  Future<void> handlePurchaseOrderChanged(int? orderId) async {
+    if (orderId == null) {
+      _disposeLines(lines);
+      purchaseOrderId = null;
+      supplierPartyId = null;
+      warehouseId = null;
+      lines = <PurchaseReceiptLineDraft>[PurchaseReceiptLineDraft()];
+      formError = null;
+      update();
+      return;
+    }
+
+    final response = await _purchaseService.order(orderId);
+    final order = response.data;
+    if (order == null) return;
+
+    final data = order.toJson();
+    final nextLines = buildReceiptLinesFromOrder(order);
+    final defaultWarehouseId = nextLines
+        .map((line) => line.warehouseId)
+        .whereType<int>()
+        .cast<int?>()
+        .firstWhere((value) => value != null, orElse: () => null);
+    final nextCompanyId = intValue(data, 'company_id');
+    final nextFinancialYearId = intValue(data, 'financial_year_id');
+
+    _disposeLines(lines);
+    purchaseOrderId = orderId;
+    companyId = nextCompanyId;
+    branchId = intValue(data, 'branch_id');
+    locationId = intValue(data, 'location_id');
+    financialYearId = nextFinancialYearId;
+    documentSeriesId = defaultSeriesIdFor(
+      companyId: nextCompanyId,
+      financialYearId: nextFinancialYearId,
+    );
+    supplierPartyId = intValue(data, 'supplier_party_id');
+    warehouseId = defaultWarehouseId;
+    receiptNoController.clear();
+    supplierInvoiceNoController.clear();
+    supplierInvoiceDateController.clear();
+    supplierDcNoController.clear();
+    supplierDcDateController.clear();
+    notesController.text = stringValue(data, 'notes');
+    lines = nextLines;
+    formError = nextLines.length == 1 && nextLines.first.itemId == null
+        ? 'Selected purchase order has no pending receipt quantity.'
+        : null;
+    for (final line in lines) {
+      if (isSerialManagedItem(line.itemId)) {
+        unawaited(syncSerialOptionsForLine(line));
+      }
+    }
+    update();
+  }
+
+  void addLine() {
+    lines = List<PurchaseReceiptLineDraft>.from(lines)
+      ..add(PurchaseReceiptLineDraft());
+    update();
+  }
+
+  void removeLine(int index) {
+    final updated = List<PurchaseReceiptLineDraft>.from(lines);
+    final removed = updated.removeAt(index);
+    removed.dispose();
+    if (updated.isEmpty) {
+      updated.add(PurchaseReceiptLineDraft());
+    }
+    lines = updated;
+    update();
+  }
+
+  void setFinancialYearId(int? value) {
+    financialYearId = value;
+    final series = seriesOptions();
+    documentSeriesId = series.isNotEmpty ? series.first.id : null;
+    update();
+  }
+
+  void setDocumentSeriesId(int? value) {
+    documentSeriesId = value;
+    update();
+  }
+
+  void setSupplierPartyId(int? value) {
+    supplierPartyId = value;
+    update();
+  }
+
+  void setWarehouseId(int? value) {
+    warehouseId = value;
+    update();
+  }
+
+  void setIsActive(bool value) {
+    isActive = value;
+    update();
+  }
+
+  Future<void> setLineItemId(PurchaseReceiptLineDraft line, int? value) async {
+    line.itemId = value;
+    line.uomId = resolveDefaultUom(value, line.uomId);
+    line.serialId = null;
+    update();
+    await syncSerialOptionsForLine(line);
+  }
+
+  Future<void> setLineWarehouseId(
+    PurchaseReceiptLineDraft line,
+    int? value,
+  ) async {
+    line.warehouseId = value;
+    line.serialId = null;
+    update();
+    await syncSerialOptionsForLine(line);
+  }
+
+  void setLineSerialId(PurchaseReceiptLineDraft line, int? value) {
+    line.serialId = value;
+    update();
+  }
+
+  void setLineUomId(PurchaseReceiptLineDraft line, int? value) {
+    line.uomId = value;
+    update();
+  }
+
+  Future<void> save(BuildContext context) async {
+    if (!formKey.currentState!.validate()) return;
+    if (lines.any(
+      (line) =>
+          line.itemId == null ||
+          line.uomId == null ||
+          line.warehouseId == null ||
+          (isSerialManagedItem(line.itemId) && line.serialId == null) ||
+          (double.tryParse(line.receivedQtyController.text.trim()) ?? 0) <= 0,
+    )) {
+      formError =
+          'Each line needs item, warehouse, UOM, received quantity, and serial for serial-managed items.';
+      update();
+      return;
+    }
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index];
+      if (isSerialManagedItem(line.itemId)) {
+        final receivedQty =
+            double.tryParse(line.receivedQtyController.text.trim()) ?? 0;
+        final acceptedQty =
+            double.tryParse(line.acceptedQtyController.text.trim()) ?? 0;
+        if (receivedQty != 1 || acceptedQty != 1) {
+          formError =
+              'Serial-managed receipt lines must have received qty 1 and accepted qty 1 at line ${index + 1}.';
+          update();
+          return;
+        }
+      }
+    }
+    saving = true;
+    formError = null;
+    update();
+    final payload = <String, dynamic>{
+      'company_id': companyId,
+      'branch_id': branchId,
+      'location_id': locationId,
+      'financial_year_id': financialYearId,
+      'document_series_id': documentSeriesId,
+      'purchase_order_id': purchaseOrderId,
+      'receipt_no': nullIfEmpty(receiptNoController.text),
+      'receipt_date': receiptDateController.text.trim(),
+      'supplier_party_id': supplierPartyId,
+      'warehouse_id': warehouseId,
+      'supplier_invoice_no': nullIfEmpty(supplierInvoiceNoController.text),
+      'supplier_invoice_date': nullIfEmpty(supplierInvoiceDateController.text),
+      'supplier_dc_no': nullIfEmpty(supplierDcNoController.text),
+      'supplier_dc_date': nullIfEmpty(supplierDcDateController.text),
+      'notes': nullIfEmpty(notesController.text),
+      'is_active': isActive,
+      'lines': lines.map((line) => line.toJson()).toList(growable: false),
+    };
+    try {
+      final response = selectedItem == null
+          ? await _purchaseService.createReceipt(
+              PurchaseReceiptModel.fromJson(payload),
+            )
+          : await _purchaseService.updateReceipt(
+              intValue(selectedItem!.toJson(), 'id')!,
+              PurchaseReceiptModel.fromJson(payload),
+            );
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(response.message)));
+      }
+      await loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
+    } catch (errorValue) {
+      formError = errorValue.toString();
+      update();
+    } finally {
+      saving = false;
+      update();
+    }
+  }
+
+  Future<void> docAction(
+    BuildContext context,
+    Future<ApiResponse<PurchaseReceiptModel>> Function() action,
+  ) async {
+    try {
+      final response = await action();
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(response.message)));
+      }
+      await loadPage(
+        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+      );
+    } catch (errorValue) {
+      formError = errorValue.toString();
+      update();
+    }
+  }
+
+  void _disposeLines(List<PurchaseReceiptLineDraft> entries) {
+    for (final line in entries) {
+      line.dispose();
+    }
+  }
+}

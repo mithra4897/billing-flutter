@@ -40,13 +40,13 @@ Status legend:
 | Project | `lib/View/project/project_task_page.dart` | page | `done` | Migrated to `ProjectTaskManagementController` |
 | Project | `lib/View/project/project_timesheet_page.dart` | page | `done` | Migrated to `ProjectTimesheetManagementController` |
 | Project | `lib/View/project/project_vendor_work_page.dart` | page | `done` | Migrated to `ProjectVendorWorkManagementController` |
-| Purchase | `lib/View/purchase/purchase_invoice_page.dart` | page | `pending` |  |
-| Purchase | `lib/View/purchase/purchase_order_page.dart` | page | `pending` |  |
-| Purchase | `lib/View/purchase/purchase_payment_page.dart` | page | `pending` |  |
-| Purchase | `lib/View/purchase/purchase_receipt_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_invoice_page.dart` | page | `done` | Migrated to `PurchaseInvoiceManagementController` |
+| Purchase | `lib/View/purchase/purchase_order_page.dart` | page | `done` | Migrated to `PurchaseOrderManagementController` |
+| Purchase | `lib/View/purchase/purchase_payment_page.dart` | page | `done` | Migrated to `PurchasePaymentManagementController` |
+| Purchase | `lib/View/purchase/purchase_receipt_page.dart` | page | `done` | Migrated to `PurchaseReceiptManagementController` |
 | Purchase | `lib/View/purchase/purchase_register_page.dart` | page | `done` | Migrated local pagination state to `PurchaseRegisterPageController` |
-| Purchase | `lib/View/purchase/purchase_requisition_page.dart` | page | `pending` |  |
-| Purchase | `lib/View/purchase/purchase_return_page.dart` | page | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_requisition_page.dart` | page | `done` | Migrated to `PurchaseRequisitionManagementController` |
+| Purchase | `lib/View/purchase/purchase_return_page.dart` | page | `done` | Migrated to `PurchaseReturnManagementController` |
 | Sales | `lib/View/sales/sales_delivery_page.dart` | page | `pending` |  |
 | Sales | `lib/View/sales/sales_invoice_page.dart` | page | `pending` |  |
 | Sales | `lib/View/sales/sales_order_page.dart` | page | `pending` |  |
