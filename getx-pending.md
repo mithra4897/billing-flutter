@@ -72,8 +72,8 @@ Status legend:
 | Settings Master | `lib/View/settings/master/stock_balance_page.dart` | page | `done` | Migrated to `StockBalanceManagementController` |
 | Settings Master | `lib/View/settings/master/uom_conversion_page.dart` | page | `done` | Migrated to `UomConversionManagementController` |
 | Settings Master | `lib/View/settings/master/warehouse_page.dart` | page | `done` | Migrated to `WarehouseManagementController` |
-| Settings Tax | `lib/View/settings/tax/document_tax_lines_register_page.dart` | page | `pending` |  |
-| Settings Tax | `lib/View/settings/tax/gst_registration_page.dart` | page | `pending` |  |
+| Settings Tax | `lib/View/settings/tax/document_tax_lines_register_page.dart` | page | `done` | Migrated to `DocumentTaxLinesRegisterManagementController` |
+| Settings Tax | `lib/View/settings/tax/gst_registration_page.dart` | page | `done` | Migrated to `GstRegistrationManagementController` |
 | Settings User | `lib/View/settings/user/login_history_page.dart` | page | `done` | Migrated to `LoginHistoryManagementController` |
 | Settings User | `lib/View/settings/user/module_preferences_page.dart` | page | `done` | Migrated to `ModulePreferencesManagementController` |
 | Settings User | `lib/View/settings/user/profile_page.dart` | page | `done` | Migrated to `ProfileManagementController` |

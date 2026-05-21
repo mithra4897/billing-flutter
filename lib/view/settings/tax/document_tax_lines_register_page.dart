@@ -1,3 +1,4 @@
+import '../../../controller/settings/tax/document_tax_lines_register_management_controller.dart';
 import '../../../screen.dart';
 
 class DocumentTaxLinesRegisterPage extends StatefulWidget {
@@ -12,241 +13,31 @@ class DocumentTaxLinesRegisterPage extends StatefulWidget {
 
 class _DocumentTaxLinesRegisterPageState
     extends State<DocumentTaxLinesRegisterPage> {
-  final TaxesService _taxesService = TaxesService();
-  final MasterService _masterService = MasterService();
-  final ScrollController _pageScrollController = ScrollController();
-  final TextEditingController _dateFromController = TextEditingController();
-  final TextEditingController _dateToController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _loading = false;
-  String? _pageError;
-  List<DocumentTaxLineModel> _rows = const <DocumentTaxLineModel>[];
-  PaginationMeta? _meta;
-  int _page = 1;
-  int _perPage = 20;
-
-  List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
-  int? _companyId;
-  int? _branchId;
-  int? _financialYearId;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    final today = DateTime.now().toIso8601String().split('T').first;
-    _dateFromController.text = today;
-    _dateToController.text = today;
-    _bootstrap();
+    _controllerTag = persistentControllerTag(
+      'DocumentTaxLinesRegisterManagementController',
+    );
+    Get.put(
+      DocumentTaxLinesRegisterManagementController(),
+      tag: _controllerTag,
+    );
   }
 
-  @override
-  void dispose() {
-    _pageScrollController.dispose();
-    _dateFromController.dispose();
-    _dateToController.dispose();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  List<FinancialYearModel> get _financialYearOptions => _financialYears
-      .where(
-        (FinancialYearModel y) =>
-            _companyId == null ||
-            y.companyId == null ||
-            y.companyId == _companyId,
-      )
-      .toList(growable: false);
-
-  Future<void> _bootstrap() async {
-    setState(() {
-      _initialLoading = true;
-      _pageError = null;
-    });
-    try {
-      final results = await Future.wait<dynamic>([
-        _masterService.companies(
-          filters: const {'per_page': 200, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 500, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 200, 'sort_by': 'start_date'},
-        ),
-      ]);
-
-      final companies =
-          (results[0] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final branches =
-          (results[1] as PaginatedResponse<BranchModel>).data ??
-          const <BranchModel>[];
-      final years =
-          (results[2] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
-
-      final activeCompanies = companies
-          .where((CompanyModel c) => c.isActive)
-          .toList(growable: false);
-      final activeBranches = branches
-          .where((BranchModel b) => b.isActive)
-          .toList(growable: false);
-      final activeYears = years
-          .where((FinancialYearModel y) => y.isActive != false)
-          .toList(growable: false);
-
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies: activeCompanies,
-            branches: activeBranches,
-            locations: const <BusinessLocationModel>[],
-            financialYears: activeYears,
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _financialYears = activeYears;
-        _companyId = contextSelection.companyId;
-        _branchId = contextSelection.branchId;
-        _financialYearId = contextSelection.financialYearId;
-        _initialLoading = false;
-      });
-      await _fetch(resetPage: true);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  Future<void> _fetch({bool resetPage = false}) async {
-    if (_companyId == null) {
-      setState(() {
-        _pageError = 'Company is required.';
-      });
-      return;
-    }
-    if (resetPage) {
-      _page = 1;
-    }
-    setState(() {
-      _loading = true;
-      _pageError = null;
-    });
-    try {
-      final filters = <String, dynamic>{
-        'page': _page,
-        'per_page': _perPage,
-        'company_id': _companyId,
-        'sort_by': 'document_date',
-        'sort_order': 'desc',
-      };
-      if (_branchId != null) {
-        filters['branch_id'] = _branchId;
-      }
-      if (_financialYearId != null) {
-        filters['financial_year_id'] = _financialYearId;
-      }
-      final from = _dateFromController.text.trim();
-      final to = _dateToController.text.trim();
-      if (from.length == 10) {
-        filters['document_date_from'] = from;
-      }
-      if (to.length == 10) {
-        filters['document_date_to'] = to;
-      }
-      final q = _searchController.text.trim();
-      if (q.isNotEmpty) {
-        filters['search'] = q;
-      }
-
-      final response = await _taxesService.documentTaxLines(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <DocumentTaxLineModel>[];
-        _meta = response.meta;
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loading = false;
-        _pageError = error.toString();
-      });
-    }
-  }
-
-  PaginationMeta get _effectiveMeta =>
-      _meta ??
-      PaginationMeta(
-        currentPage: _page,
-        lastPage: 1,
-        perPage: _perPage,
-        total: _rows.length,
-      );
-
-  String _cell(DocumentTaxLineModel row, String key) {
-    final dynamic v = row.toJson()[key];
-    if (v == null) {
-      return '';
-    }
-    return v.toString();
-  }
-
-  String _itemLabel(DocumentTaxLineModel row) {
-    final dynamic item = row.toJson()['item'];
-    if (item is Map<String, dynamic>) {
-      return item['item_name']?.toString() ??
-          item['item_code']?.toString() ??
-          '';
-    }
-    return '';
-  }
-
-  String _taxLabel(DocumentTaxLineModel row) {
-    final dynamic tax = row.toJson()['tax_code'];
-    if (tax is Map<String, dynamic>) {
-      return tax['tax_name']?.toString() ?? tax['tax_code']?.toString() ?? '';
-    }
-    return '';
-  }
-
-  List<Widget> _buildShellActions() {
-    return [
-      AdaptiveShellActionButton(
-        onPressed: _loading ? null : _openFilterPanel,
-        icon: Icons.filter_alt_outlined,
-        label: 'Filter',
-        filled: false,
-      ),
-      AdaptiveShellActionButton(
-        onPressed: _loading ? null : () => _fetch(resetPage: true),
-        icon: Icons.refresh_outlined,
-        label: 'Refresh',
-      ),
-    ];
-  }
-
-  Future<void> _openFilterPanel() async {
+  Future<void> _openFilterPanel(
+    DocumentTaxLinesRegisterManagementController controller,
+  ) async {
     final fyItems = <AppDropdownItem<int?>>[
       const AppDropdownItem<int?>(value: null, label: 'All financial years'),
-      ..._financialYearOptions.map(
-        (FinancialYearModel y) => AppDropdownItem<int?>(
-          value: y.id,
-          label: y.fyName?.isNotEmpty == true ? y.fyName! : (y.fyCode ?? 'FY'),
+      ...controller.financialYearOptions.map(
+        (FinancialYearModel year) => AppDropdownItem<int?>(
+          value: year.id,
+          label: year.fyName?.isNotEmpty == true
+              ? year.fyName!
+              : (year.fyCode ?? 'FY'),
         ),
       ),
     ];
@@ -315,15 +106,15 @@ class _DocumentTaxLinesRegisterPageState
                             child: AppDropdownField<int?>.fromMapped(
                               labelText: 'Financial year',
                               mappedItems: fyItems,
-                              initialValue: _financialYearId,
+                              initialValue: controller.financialYearId,
                               onChanged: (value) => setDialogState(
-                                () => _financialYearId = value,
+                                () => controller.setFinancialYearId(value),
                               ),
                             ),
                           ),
                           _filterBox(
                             child: AppFormTextField(
-                              controller: _dateFromController,
+                              controller: controller.dateFromController,
                               labelText: 'From',
                               hintText: 'YYYY-MM-DD',
                               keyboardType: TextInputType.datetime,
@@ -332,7 +123,7 @@ class _DocumentTaxLinesRegisterPageState
                           ),
                           _filterBox(
                             child: AppFormTextField(
-                              controller: _dateToController,
+                              controller: controller.dateToController,
                               labelText: 'To',
                               hintText: 'YYYY-MM-DD',
                               keyboardType: TextInputType.datetime,
@@ -341,7 +132,7 @@ class _DocumentTaxLinesRegisterPageState
                           ),
                           _filterBox(
                             child: AppFormTextField(
-                              controller: _searchController,
+                              controller: controller.searchController,
                               labelText: 'Search',
                               hintText: 'Document no. / HSN',
                             ),
@@ -361,13 +152,7 @@ class _DocumentTaxLinesRegisterPageState
                           ),
                           OutlinedButton.icon(
                             onPressed: () {
-                              setState(() {
-                                _branchId = null;
-                                _financialYearId = null;
-                                _dateFromController.clear();
-                                _dateToController.clear();
-                                _searchController.clear();
-                              });
+                              controller.clearFilters();
                               Navigator.of(dialogContext).pop(true);
                             },
                             icon: const Icon(Icons.clear),
@@ -386,62 +171,97 @@ class _DocumentTaxLinesRegisterPageState
     );
 
     if (applied == true) {
-      _fetch(resetPage: true);
+      await controller.fetch(resetPage: true);
     }
+  }
+
+  List<Widget> _buildShellActions(
+    DocumentTaxLinesRegisterManagementController controller,
+  ) {
+    return [
+      AdaptiveShellActionButton(
+        onPressed: controller.loading
+            ? null
+            : () => _openFilterPanel(controller),
+        icon: Icons.filter_alt_outlined,
+        label: 'Filter',
+        filled: false,
+      ),
+      AdaptiveShellActionButton(
+        onPressed: controller.loading
+            ? null
+            : () => controller.fetch(resetPage: true),
+        icon: Icons.refresh_outlined,
+        label: 'Refresh',
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent(context);
-    if (widget.embedded) {
-      return ShellPageActions(actions: _buildShellActions(), child: content);
-    }
-    return AppStandaloneShell(
-      title: 'Document tax lines',
-      scrollController: _pageScrollController,
-      actions: _buildShellActions(),
-      child: content,
+    return GetBuilder<DocumentTaxLinesRegisterManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final content = _buildContent(context, controller);
+        if (widget.embedded) {
+          return ShellPageActions(
+            actions: _buildShellActions(controller),
+            child: content,
+          );
+        }
+        return AppStandaloneShell(
+          title: 'Document tax lines',
+          scrollController: controller.pageScrollController,
+          actions: _buildShellActions(controller),
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    if (_initialLoading) {
+  Widget _buildContent(
+    BuildContext context,
+    DocumentTaxLinesRegisterManagementController controller,
+  ) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading tax lines...');
     }
-    if (_pageError != null && _rows.isEmpty && !_loading) {
+    if (controller.pageError != null &&
+        controller.rows.isEmpty &&
+        !controller.loading) {
       return AppErrorStateView(
         title: 'Unable to load document tax lines',
-        message: _pageError!,
-        onRetry: _bootstrap,
+        message: controller.pageError!,
+        onRetry: controller.bootstrap,
       );
     }
 
     return SingleChildScrollView(
-      controller: _pageScrollController,
+      controller: controller.pageScrollController,
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_pageError != null) ...[
-            AppErrorStateView.inline(message: _pageError!),
+          if (controller.pageError != null) ...[
+            AppErrorStateView.inline(message: controller.pageError!),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
           ReportPaginationBar(
-            meta: _effectiveMeta,
+            meta: controller.effectiveMeta,
             onPerPageChanged: (value) {
-              setState(() => _perPage = value);
-              _fetch(resetPage: true);
+              controller.setPerPage(value);
+              controller.fetch(resetPage: true);
             },
             onPageChanged: (value) {
-              setState(() => _page = value);
-              _fetch();
+              controller.setPage(value);
+              controller.fetch();
             },
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
           AppSectionCard(
-            child: _loading && _rows.isEmpty
+            child: controller.loading && controller.rows.isEmpty
                 ? const AppLoadingView(message: 'Loading...')
-                : _rows.isEmpty
+                : controller.rows.isEmpty
                 ? const SettingsEmptyState(
                     icon: Icons.receipt_long_outlined,
                     title: 'No tax lines',
@@ -472,26 +292,58 @@ class _DocumentTaxLinesRegisterPageState
                               DataColumn(label: Text('Item')),
                               DataColumn(label: Text('Tax code')),
                             ],
-                            rows: _rows
+                            rows: controller.rows
                                 .map((DocumentTaxLineModel row) {
                                   return DataRow(
                                     cells: [
                                       DataCell(
-                                        Text(_cell(row, 'document_date')),
-                                      ),
-                                      DataCell(Text(_cell(row, 'document_no'))),
-                                      DataCell(
-                                        Text(_cell(row, 'document_module')),
+                                        Text(
+                                          controller.cell(row, 'document_date'),
+                                        ),
                                       ),
                                       DataCell(
-                                        Text(_cell(row, 'taxable_amount')),
+                                        Text(
+                                          controller.cell(row, 'document_no'),
+                                        ),
                                       ),
-                                      DataCell(Text(_cell(row, 'cgst_amount'))),
-                                      DataCell(Text(_cell(row, 'sgst_amount'))),
-                                      DataCell(Text(_cell(row, 'igst_amount'))),
-                                      DataCell(Text(_cell(row, 'cess_amount'))),
-                                      DataCell(Text(_itemLabel(row))),
-                                      DataCell(Text(_taxLabel(row))),
+                                      DataCell(
+                                        Text(
+                                          controller.cell(
+                                            row,
+                                            'document_module',
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          controller.cell(
+                                            row,
+                                            'taxable_amount',
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          controller.cell(row, 'cgst_amount'),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          controller.cell(row, 'sgst_amount'),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          controller.cell(row, 'igst_amount'),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          controller.cell(row, 'cess_amount'),
+                                        ),
+                                      ),
+                                      DataCell(Text(controller.itemLabel(row))),
+                                      DataCell(Text(controller.taxLabel(row))),
                                     ],
                                   );
                                 })
