@@ -1,3 +1,4 @@
+import '../../controller/manufacturing/production_material_issue_page_controller.dart';
 import '../../screen.dart';
 
 class ProductionMaterialIssuePage extends StatefulWidget {
@@ -24,19 +25,24 @@ class _ProductionMaterialIssuePageState
       SettingsWorkspaceController();
   final ManufacturingService _service = ManufacturingService();
   late final String _controllerTag;
+  late final String _pageControllerTag;
   late final ProductionMaterialIssueViewModel _viewModel;
-  bool _auditLogLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('ProductionMaterialIssueViewModel');
+    _controllerTag = persistentControllerTag(
+      'ProductionMaterialIssueViewModel',
+    );
+    _pageControllerTag = persistentControllerTag(
+      'ProductionMaterialIssuePageController',
+    );
+    Get.put(ProductionMaterialIssuePageController(), tag: _pageControllerTag);
     _viewModel = Get.put(
       ProductionMaterialIssueViewModel()
         ..load(selectId: widget.initialId, includeList: !widget.editorOnly),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -62,6 +68,9 @@ class _ProductionMaterialIssuePageState
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  ProductionMaterialIssuePageController get _pageController =>
+      Get.find<ProductionMaterialIssuePageController>(tag: _pageControllerTag);
+
   Future<void> _openAuditLog() async {
     final id = intValue(
       _viewModel.selected?.toJson() ?? const <String, dynamic>{},
@@ -70,7 +79,7 @@ class _ProductionMaterialIssuePageState
     if (id == null || !mounted) {
       return;
     }
-    setState(() => _auditLogLoading = true);
+    _pageController.setAuditLogLoading(true);
     try {
       final response = await _service.productionMaterialIssueAuditTrail(id);
       if (!mounted) {
@@ -182,7 +191,7 @@ class _ProductionMaterialIssuePageState
       );
     } finally {
       if (mounted) {
-        setState(() => _auditLogLoading = false);
+        _pageController.setAuditLogLoading(false);
       }
     }
   }
@@ -192,28 +201,33 @@ class _ProductionMaterialIssuePageState
     return GetBuilder<ProductionMaterialIssueViewModel>(
       tag: _controllerTag,
       builder: (_) {
-        final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () {
-              _viewModel.resetDraft();
-              _openRoute('/manufacturing/production-material-issues/new');
-              if (!Responsive.isDesktop(context)) {
-                _workspaceController.openEditor();
-              }
-            },
-            icon: Icons.add_outlined,
-            label: 'New Material Issue',
-          ),
-        ];
-        final content = _buildContent();
-        if (widget.embedded) {
-          return ShellPageActions(actions: actions, child: content);
-        }
-        return AppStandaloneShell(
-          title: 'Production Material Issues',
-          scrollController: _pageScrollController,
-          actions: actions,
-          child: content,
+        return GetBuilder<ProductionMaterialIssuePageController>(
+          tag: _pageControllerTag,
+          builder: (_) {
+            final actions = <Widget>[
+              AdaptiveShellActionButton(
+                onPressed: () {
+                  _viewModel.resetDraft();
+                  _openRoute('/manufacturing/production-material-issues/new');
+                  if (!Responsive.isDesktop(context)) {
+                    _workspaceController.openEditor();
+                  }
+                },
+                icon: Icons.add_outlined,
+                label: 'New Material Issue',
+              ),
+            ];
+            final content = _buildContent();
+            if (widget.embedded) {
+              return ShellPageActions(actions: actions, child: content);
+            }
+            return AppStandaloneShell(
+              title: 'Production Material Issues',
+              scrollController: _pageScrollController,
+              actions: actions,
+              child: content,
+            );
+          },
         );
       },
     );
@@ -288,7 +302,7 @@ class _ProductionMaterialIssuePageState
                 _openRoute('/manufacturing/production-material-issues');
               },
               onOpenAuditLog: _openAuditLog,
-              auditLogLoading: _auditLogLoading,
+              auditLogLoading: _pageController.auditLogLoading,
             ),
     );
   }

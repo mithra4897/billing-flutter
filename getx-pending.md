@@ -30,7 +30,7 @@ Status legend:
 | HR | `lib/View/hr/leave_type_page.dart` | page | `done` | Migrated to `LeaveTypeManagementController` |
 | Inventory | `lib/View/inventory/inventory_inquiry_page.dart` | page | `done` | Migrated to `InventoryInquiryManagementController` |
 | Inventory | `lib/View/inventory/opening_stock_page.dart` | page | `done` | Moved remaining page shell draft state to `OpeningStockPageController` |
-| Manufacturing | `lib/View/manufacturing/production_material_issue_page.dart` | page | `pending` |  |
+| Manufacturing | `lib/View/manufacturing/production_material_issue_page.dart` | page | `done` | Moved remaining page shell audit-log state to `ProductionMaterialIssuePageController` |
 | Parties | `lib/View/parties/party_management_page.dart` | page | `pending` | Remaining `AnimatedBuilder` hotspot |
 | Project | `lib/View/project/project_billing_page.dart` | page | `pending` |  |
 | Project | `lib/View/project/project_expense_page.dart` | page | `pending` |  |
