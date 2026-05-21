@@ -157,7 +157,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('PartyManagementController');
-    Get.put(PartyManagementController(), tag: _controllerTag);
+    if (!Get.isRegistered<PartyManagementController>(tag: _controllerTag)) {
+      Get.put(PartyManagementController(), tag: _controllerTag);
+    }
     _tabController =
         TabController(
           length: 8,
@@ -168,13 +170,19 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             _controller.setActiveTabIndex(_tabController.index);
           }
         });
-    _controller.setActiveTabIndex(_tabController.index);
     _partyCodeController.addListener(_handlePartyCodeChanged);
     _searchController.addListener(() {
       _controller.setSearchQuery(_searchController.text);
     });
-    _loadPartyAccountsAccess();
-    _loadPage(selectId: widget.initialPartyId);
+    _controller.activeTabIndex = _tabController.index;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _controller.update();
+      unawaited(_loadPartyAccountsAccess());
+      unawaited(_loadPage(selectId: widget.initialPartyId));
+    });
   }
 
   PartyManagementController get _controller =>

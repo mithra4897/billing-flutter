@@ -32,14 +32,14 @@ Status legend:
 | Inventory | `lib/View/inventory/opening_stock_page.dart` | page | `done` | Moved remaining page shell draft state to `OpeningStockPageController` |
 | Manufacturing | `lib/View/manufacturing/production_material_issue_page.dart` | page | `done` | Moved remaining page shell audit-log state to `ProductionMaterialIssuePageController` |
 | Parties | `lib/View/parties/party_management_page.dart` | page | `done` | Shell, filters, load/save workflow, and detail draft state moved to `PartyManagementController` |
-| Project | `lib/View/project/project_billing_page.dart` | page | `pending` |  |
-| Project | `lib/View/project/project_expense_page.dart` | page | `pending` |  |
-| Project | `lib/View/project/project_milestone_page.dart` | page | `pending` |  |
-| Project | `lib/View/project/project_page.dart` | page | `pending` |  |
-| Project | `lib/View/project/project_resource_usage_page.dart` | page | `pending` |  |
-| Project | `lib/View/project/project_task_page.dart` | page | `pending` |  |
-| Project | `lib/View/project/project_timesheet_page.dart` | page | `pending` |  |
-| Project | `lib/View/project/project_vendor_work_page.dart` | page | `pending` |  |
+| Project | `lib/View/project/project_billing_page.dart` | page | `done` | Migrated to `ProjectBillingManagementController` |
+| Project | `lib/View/project/project_expense_page.dart` | page | `done` | Migrated to `ProjectExpenseManagementController` |
+| Project | `lib/View/project/project_milestone_page.dart` | page | `done` | Migrated to `ProjectMilestoneManagementController` |
+| Project | `lib/View/project/project_page.dart` | page | `done` | Migrated to `ProjectManagementController` |
+| Project | `lib/View/project/project_resource_usage_page.dart` | page | `done` | Migrated to `ProjectResourceUsageManagementController` |
+| Project | `lib/View/project/project_task_page.dart` | page | `done` | Migrated to `ProjectTaskManagementController` |
+| Project | `lib/View/project/project_timesheet_page.dart` | page | `done` | Migrated to `ProjectTimesheetManagementController` |
+| Project | `lib/View/project/project_vendor_work_page.dart` | page | `done` | Migrated to `ProjectVendorWorkManagementController` |
 | Purchase | `lib/View/purchase/purchase_invoice_page.dart` | page | `pending` |  |
 | Purchase | `lib/View/purchase/purchase_order_page.dart` | page | `pending` |  |
 | Purchase | `lib/View/purchase/purchase_payment_page.dart` | page | `pending` |  |
