@@ -1,3 +1,4 @@
+import '../../controller/inventory/inventory_inquiry_management_controller.dart';
 import '../../screen.dart';
 
 class InventoryInquiryPage extends StatefulWidget {
@@ -10,195 +11,21 @@ class InventoryInquiryPage extends StatefulWidget {
 }
 
 class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
-  final InventoryService _inventoryService = InventoryService();
-  final MasterService _masterService = MasterService();
-  final ScrollController _scrollController = ScrollController();
-
-  bool _loadingLookups = true;
-  bool _running = false;
-  String? _error;
-
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<ItemModel> _items = const <ItemModel>[];
-  List<WarehouseModel> _warehouses = const <WarehouseModel>[];
-
-  int? _companyId;
-  int? _itemId;
-  int? _warehouseId;
-
-  static const List<AppDropdownItem<String>> _inquiryModes =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: 'summary', label: 'Stock summary'),
-        AppDropdownItem(value: 'warehouse', label: 'Warehouse-wise'),
-        AppDropdownItem(value: 'batch', label: 'Batch-wise'),
-        AppDropdownItem(value: 'serials', label: 'Available serials'),
-        AppDropdownItem(value: 'card', label: 'Stock card'),
-        AppDropdownItem(value: 'reorder', label: 'Reorder status'),
-      ];
-
-  String _mode = 'summary';
-  String? _resultText;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _bootstrap();
+    _controllerTag = persistentControllerTag(
+      'InventoryInquiryManagementController',
+    );
+    Get.put(InventoryInquiryManagementController(), tag: _controllerTag);
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _bootstrap() async {
-    setState(() {
-      _loadingLookups = true;
-      _error = null;
-    });
-    try {
-      final results = await Future.wait<dynamic>([
-        _masterService.companies(
-          filters: const {'per_page': 200, 'sort_by': 'legal_name'},
-        ),
-        _inventoryService.items(filters: const {'per_page': 500}),
-        _masterService.warehouses(filters: const {'per_page': 500}),
-      ]);
-      final companies =
-          (results[0] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
-      final items =
-          (results[1] as PaginatedResponse<ItemModel>).data ??
-          const <ItemModel>[];
-      final warehouses =
-          (results[2] as PaginatedResponse<WarehouseModel>).data ??
-          const <WarehouseModel>[];
-
-      final activeCompanies = companies
-          .where((CompanyModel c) => c.isActive)
-          .toList(growable: false);
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies: activeCompanies,
-            branches: const <BranchModel>[],
-            locations: const <BusinessLocationModel>[],
-            financialYears: const <FinancialYearModel>[],
-          );
-
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companies = activeCompanies;
-        _items = items
-            .where((ItemModel i) => i.isActive)
-            .toList(growable: false);
-        _warehouses = warehouses
-            .where((WarehouseModel w) => w.isActive)
-            .toList(growable: false);
-        _companyId = contextSelection.companyId;
-        _loadingLookups = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _loadingLookups = false;
-        _error = error.toString();
-      });
-    }
-  }
-
-  Future<void> _run() async {
-    final itemId = _itemId;
-    if (itemId == null) {
-      setState(() => _error = 'Item is required.');
-      return;
-    }
-
-    setState(() {
-      _running = true;
-      _error = null;
-      _resultText = null;
-    });
-
-    try {
-      final ApiResponse<dynamic> response = switch (_mode) {
-        'summary' => await _inventoryService.inquiryItemStockSummary(
-          itemId: itemId,
-          companyId: _companyId,
-        ),
-        'warehouse' => await _inventoryService.inquiryWarehouseWiseStock(
-          itemId: itemId,
-          companyId: _companyId,
-        ),
-        'batch' => await _inventoryService.inquiryBatchWiseStock(
-          itemId: itemId,
-          companyId: _companyId,
-          warehouseId: _warehouseId,
-        ),
-        'serials' => await _inventoryService.inquiryAvailableSerials(
-          itemId: itemId,
-          warehouseId: _warehouseId,
-        ),
-        'card' => await _inventoryService.inquiryStockCard(
-          itemId: itemId,
-          companyId: _companyId,
-        ),
-        _ => await _inventoryService.inquiryReorderStatus(
-          itemId: itemId,
-          companyId: _companyId,
-        ),
-      };
-
-      if (!mounted) {
-        return;
-      }
-
-      if (response.success != true) {
-        setState(() {
-          _running = false;
-          _error = response.message;
-        });
-        return;
-      }
-
-      final encoded = const JsonEncoder.withIndent(
-        '  ',
-      ).convert(_toEncodable(response.data));
-      setState(() {
-        _resultText = encoded;
-        _running = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _running = false;
-        _error = error.toString();
-      });
-    }
-  }
-
-  dynamic _toEncodable(dynamic value) {
-    if (value is Map) {
-      return value.map(
-        (dynamic k, dynamic v) =>
-            MapEntry<String, dynamic>(k.toString(), _toEncodable(v)),
-      );
-    }
-    if (value is List) {
-      return value.map(_toEncodable).toList();
-    }
-    return value;
-  }
-
-  List<Widget> _shellActions() {
+  List<Widget> _shellActions(InventoryInquiryManagementController controller) {
     return [
       AdaptiveShellActionButton(
-        onPressed: _running ? null : _run,
+        onPressed: controller.running ? null : controller.run,
         icon: Icons.play_arrow_outlined,
         label: 'Run inquiry',
       ),
@@ -207,53 +34,68 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final body = _buildBody(context);
-    if (widget.embedded) {
-      return ShellPageActions(actions: _shellActions(), child: body);
-    }
-    return AppStandaloneShell(
-      title: 'Inventory inquiry',
-      scrollController: _scrollController,
-      actions: _shellActions(),
-      child: body,
+    return GetBuilder<InventoryInquiryManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final body = _buildBody(context, controller);
+        if (widget.embedded) {
+          return ShellPageActions(
+            actions: _shellActions(controller),
+            child: body,
+          );
+        }
+        return AppStandaloneShell(
+          title: 'Inventory inquiry',
+          scrollController: controller.pageScrollController,
+          actions: _shellActions(controller),
+          child: body,
+        );
+      },
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    if (_loadingLookups) {
+  Widget _buildBody(
+    BuildContext context,
+    InventoryInquiryManagementController controller,
+  ) {
+    if (controller.loadingLookups) {
       return const AppLoadingView(message: 'Loading inquiry data...');
     }
-    if (_error != null && _items.isEmpty) {
+    if (controller.error != null && controller.items.isEmpty) {
       return AppErrorStateView(
         title: 'Unable to load inquiry',
-        message: _error!,
-        onRetry: _bootstrap,
+        message: controller.error!,
+        onRetry: controller.bootstrap,
       );
     }
 
-    final companyItems = _companies
+    final companyItems = controller.companies
         .map(
-          (CompanyModel c) =>
-              AppDropdownItem<int?>(value: c.id, label: c.toString()),
+          (CompanyModel company) => AppDropdownItem<int?>(
+            value: company.id,
+            label: company.toString(),
+          ),
         )
         .toList(growable: false);
 
     final warehouseItems = <AppDropdownItem<int?>>[
       const AppDropdownItem<int?>(value: null, label: 'All warehouses'),
-      ..._warehouses.map(
-        (WarehouseModel w) =>
-            AppDropdownItem<int?>(value: w.id, label: w.toString()),
+      ...controller.warehouses.map(
+        (WarehouseModel warehouse) => AppDropdownItem<int?>(
+          value: warehouse.id,
+          label: warehouse.toString(),
+        ),
       ),
     ];
 
     return SingleChildScrollView(
-      controller: _scrollController,
+      controller: controller.pageScrollController,
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_error != null) ...[
-            AppErrorStateView.inline(message: _error!),
+          if (controller.error != null) ...[
+            AppErrorStateView.inline(message: controller.error!),
             const SizedBox(height: AppUiConstants.spacingMd),
           ],
           AppSectionCard(
@@ -278,11 +120,11 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
                   children: [
                     AppDropdownField<String>.fromMapped(
                       labelText: 'Inquiry',
-                      mappedItems: _inquiryModes,
-                      initialValue: _mode,
+                      mappedItems:
+                          InventoryInquiryManagementController.inquiryModes,
+                      initialValue: controller.mode,
                       width: 240,
-                      onChanged: (value) =>
-                          setState(() => _mode = value ?? 'summary'),
+                      onChanged: controller.setMode,
                     ),
                     AppDropdownField<int?>.fromMapped(
                       labelText: 'Company (optional)',
@@ -293,20 +135,20 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
                         ),
                         ...companyItems,
                       ],
-                      initialValue: _companyId,
+                      initialValue: controller.companyId,
                       width: 260,
-                      onChanged: (value) => setState(() => _companyId = value),
+                      onChanged: controller.setCompanyId,
                     ),
                     AppSearchPickerField<int>(
                       labelText: 'Item',
-                      selectedLabel: _items
+                      selectedLabel: controller.items
                           .cast<ItemModel?>()
                           .firstWhere(
-                            (item) => item?.id == _itemId,
+                            (item) => item?.id == controller.itemId,
                             orElse: () => null,
                           )
                           ?.toString(),
-                      options: _items
+                      options: controller.items
                           .where((item) => item.id != null)
                           .map(
                             (item) => AppSearchPickerOption<int>(
@@ -317,18 +159,17 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
                           )
                           .toList(growable: false),
                       width: 320,
-                      onChanged: (value) => setState(() => _itemId = value),
+                      onChanged: controller.setItemId,
                     ),
-                    if (_mode == 'batch' || _mode == 'serials') ...[
+                    if (controller.mode == 'batch' ||
+                        controller.mode == 'serials')
                       AppDropdownField<int?>.fromMapped(
                         labelText: 'Warehouse',
                         mappedItems: warehouseItems,
-                        initialValue: _warehouseId,
+                        initialValue: controller.warehouseId,
                         width: 240,
-                        onChanged: (value) =>
-                            setState(() => _warehouseId = value),
+                        onChanged: controller.setWarehouseId,
                       ),
-                    ],
                   ],
                 ),
               ],
@@ -336,11 +177,11 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
           AppSectionCard(
-            child: _running
+            child: controller.running
                 ? const AppLoadingView(message: 'Running inquiry...')
-                : _resultText == null
+                : controller.resultText == null
                 ? const Text('Run an inquiry to see JSON results here.')
-                : SelectableText(_resultText!),
+                : SelectableText(controller.resultText!),
           ),
         ],
       ),

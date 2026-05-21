@@ -1,3 +1,4 @@
+import '../../controller/inventory/opening_stock_page_controller.dart';
 import '../../screen.dart';
 
 class OpeningStockPage extends StatefulWidget {
@@ -27,20 +28,22 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
   final SettingsWorkspaceController _workspaceController =
       SettingsWorkspaceController();
   late final String _controllerTag;
+  late final String _pageControllerTag;
   late final OpeningStockViewModel _viewModel;
-  bool _showDraftTile = false;
 
   @override
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('OpeningStockViewModel');
+    _pageControllerTag = persistentControllerTag('OpeningStockPageController');
+    Get.put(OpeningStockPageController(), tag: _pageControllerTag);
     _viewModel = Get.put(
       OpeningStockViewModel(
         initialItemId: widget.fixedItemId ?? widget.initialItemId,
         filterItemId: widget.fixedItemId,
       )..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -56,38 +59,43 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
     return GetBuilder<OpeningStockViewModel>(
       tag: _controllerTag,
       builder: (_) {
-        final content = _buildContent(context);
-        final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: _viewModel.loading
-                ? null
-                : () {
-                    if (widget.fixedItemId != null) {
-                      _startNew();
-                      return;
-                    }
-                    _viewModel.resetDraft();
-                    if (!Responsive.isDesktop(context)) {
-                      _workspaceController.openEditor();
-                    }
-                  },
-            icon: Icons.add_outlined,
-            label: 'New Opening Stock',
-          ),
-        ];
+        return GetBuilder<OpeningStockPageController>(
+          tag: _pageControllerTag,
+          builder: (_) {
+            final content = _buildContent(context);
+            final actions = <Widget>[
+              AdaptiveShellActionButton(
+                onPressed: _viewModel.loading
+                    ? null
+                    : () {
+                        if (widget.fixedItemId != null) {
+                          _startNew();
+                          return;
+                        }
+                        _viewModel.resetDraft();
+                        if (!Responsive.isDesktop(context)) {
+                          _workspaceController.openEditor();
+                        }
+                      },
+                icon: Icons.add_outlined,
+                label: 'New Opening Stock',
+              ),
+            ];
 
-        if (widget.fixedItemId != null) {
-          return content;
-        }
+            if (widget.fixedItemId != null) {
+              return content;
+            }
 
-        if (widget.embedded) {
-          return ShellPageActions(actions: actions, child: content);
-        }
-        return AppStandaloneShell(
-          title: 'Opening Stock',
-          scrollController: _pageScrollController,
-          actions: actions,
-          child: content,
+            if (widget.embedded) {
+              return ShellPageActions(actions: actions, child: content);
+            }
+            return AppStandaloneShell(
+              title: 'Opening Stock',
+              scrollController: _pageScrollController,
+              actions: actions,
+              child: content,
+            );
+          },
         );
       },
     );
@@ -104,9 +112,12 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
   }
 
   void _startNew() {
-    setState(() => _showDraftTile = true);
+    _pageController.setShowDraftTile(true);
     _viewModel.resetDraft();
   }
+
+  OpeningStockPageController get _pageController =>
+      Get.find<OpeningStockPageController>(tag: _pageControllerTag);
 
   Widget _buildContent(BuildContext context) {
     if (_viewModel.loading) {
@@ -224,12 +235,12 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
         ],
-        if (rows.isEmpty && !_showDraftTile)
+        if (rows.isEmpty && !_pageController.showDraftTile)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppUiConstants.spacingMd),
             child: Text('No opening stock documents found.'),
           ),
-        if (_showDraftTile && _viewModel.selected == null) ...[
+        if (_pageController.showDraftTile && _viewModel.selected == null) ...[
           SettingsExpandableTile(
             key: const ValueKey('opening-draft'),
             title: 'New Opening Stock',
@@ -240,7 +251,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
             highlighted: true,
             leadingIcon: Icons.add_outlined,
             onToggle: () {
-              setState(() => _showDraftTile = false);
+              _pageController.setShowDraftTile(false);
               _viewModel.resetDraft();
             },
             child: _OpeningStockEditor(
@@ -253,7 +264,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
                 }
                 await _viewModel.save();
                 if (mounted) {
-                  setState(() => _showDraftTile = false);
+                  _pageController.setShowDraftTile(false);
                 }
                 _showActionSnackBar();
               },
@@ -268,7 +279,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
               onDelete: () async {
                 await _viewModel.delete();
                 if (mounted) {
-                  setState(() => _showDraftTile = false);
+                  _pageController.setShowDraftTile(false);
                 }
                 _showActionSnackBar();
               },
@@ -295,11 +306,11 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
               highlighted: expanded,
               onToggle: () async {
                 if (expanded) {
-                  setState(() => _showDraftTile = false);
+                  _pageController.setShowDraftTile(false);
                   _viewModel.resetDraft();
                   return;
                 }
-                setState(() => _showDraftTile = false);
+                _pageController.setShowDraftTile(false);
                 await _viewModel.select(row);
               },
               child: _OpeningStockEditor(
