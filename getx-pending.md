@@ -31,7 +31,7 @@ Status legend:
 | Inventory | `lib/View/inventory/inventory_inquiry_page.dart` | page | `done` | Migrated to `InventoryInquiryManagementController` |
 | Inventory | `lib/View/inventory/opening_stock_page.dart` | page | `done` | Moved remaining page shell draft state to `OpeningStockPageController` |
 | Manufacturing | `lib/View/manufacturing/production_material_issue_page.dart` | page | `done` | Moved remaining page shell audit-log state to `ProductionMaterialIssuePageController` |
-| Parties | `lib/View/parties/party_management_page.dart` | page | `pending` | Remaining `AnimatedBuilder` hotspot |
+| Parties | `lib/View/parties/party_management_page.dart` | page | `done` | Shell, filters, load/save workflow, and detail draft state moved to `PartyManagementController` |
 | Project | `lib/View/project/project_billing_page.dart` | page | `pending` |  |
 | Project | `lib/View/project/project_expense_page.dart` | page | `pending` |  |
 | Project | `lib/View/project/project_milestone_page.dart` | page | `pending` |  |
@@ -105,7 +105,7 @@ Status legend:
 | 1 | Settings Master remaining 8 | `pending` | Best next batch |
 | 2 | Settings Accounting remaining 6 | `pending` | Best next batch |
 | 3 | `employee_page.dart` | `pending` | Large screen, still uses `AnimatedBuilder` |
-| 4 | `party_management_page.dart` | `pending` | Large screen, still uses `AnimatedBuilder` |
+| 4 | `party_management_page.dart` | `done` | Migrated to `PartyManagementController`; local `AnimatedBuilder`/shell state removed |
 | 5 | Communication settings | `pending` | Smaller grouped forms |
 | 6 | Sales and Purchase | `pending` | Larger document flows |
 | 7 | Project module | `pending` | Multi-form workflows |

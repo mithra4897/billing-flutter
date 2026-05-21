@@ -1,3 +1,4 @@
+import '../../controller/parties/party_management_controller.dart';
 import '../../screen.dart';
 
 class PartyManagementPage extends StatefulWidget {
@@ -72,6 +73,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       SettingsWorkspaceController();
   final TextEditingController _searchController = TextEditingController();
   late final TabController _tabController;
+  late final String _controllerTag;
 
   final GlobalKey<FormState> _partyFormKey = GlobalKey<FormState>();
   final TextEditingController _partyCodeController = TextEditingController();
@@ -148,67 +150,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   final TextEditingController _paymentRemarksController =
       TextEditingController();
 
-  bool _initialLoading = true;
-  bool _partySaving = false;
-  bool _detailSaving = false;
-  String? _pageError;
-  String? _partyFormError;
-  String? _detailFormError;
-
-  List<PartyTypeModel> _partyTypes = const <PartyTypeModel>[];
-  List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
-  List<PartyModel> _parties = const <PartyModel>[];
-  List<PartyModel> _filteredParties = const <PartyModel>[];
-  PartyModel? _selectedParty;
-  int _partyTypeFilterId = 0;
-  String _partySort = 'name_asc';
-
-  int? _partyTypeId;
-  bool _isCompany = false;
-  String _openingBalanceType = 'debit';
-  bool _partyActive = true;
-
-  List<PartyAddressModel> _addresses = const <PartyAddressModel>[];
-  PartyAddressModel? _selectedAddress;
-  String _addressType = 'billing';
-  bool _addressDefault = false;
-  bool _addressActive = true;
-
-  List<PartyContactModel> _contacts = const <PartyContactModel>[];
-  PartyContactModel? _selectedContact;
-  bool _contactPrimary = false;
-  bool _contactActive = true;
-
-  List<PartyGstDetailModel> _gstDetails = const <PartyGstDetailModel>[];
-  PartyGstDetailModel? _selectedGstDetail;
-  String _registrationType = 'regular';
-  bool _gstDefault = false;
-  bool _gstActive = true;
-
-  List<PartyBankAccountModel> _bankAccounts = const <PartyBankAccountModel>[];
-  PartyBankAccountModel? _selectedBankAccount;
-  bool _bankDefault = false;
-  bool _bankActive = true;
-
-  List<PartyCreditLimitModel> _creditLimits = const <PartyCreditLimitModel>[];
-  PartyCreditLimitModel? _selectedCreditLimit;
-  bool _creditActive = true;
-
-  List<PartyPaymentTermModel> _paymentTerms = const <PartyPaymentTermModel>[];
-  PartyPaymentTermModel? _selectedPaymentTerm;
-  String _dueBasis = 'invoice_date';
-  bool _paymentDefault = false;
-  bool _paymentActive = true;
-  bool _canViewPartyAccounts = false;
-  bool _partyAccountsAccessResolved = false;
   bool _partyCodeManuallyEdited = false;
-  final Set<String> _openDetailDrafts = <String>{};
   bool _suppressPartyCodeListener = false;
-  int _activeTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _controllerTag = persistentControllerTag('PartyManagementController');
+    Get.put(PartyManagementController(), tag: _controllerTag);
     _tabController =
         TabController(
           length: 8,
@@ -216,16 +165,64 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           initialIndex: widget.initialTabIndex.clamp(0, 7),
         )..addListener(() {
           if (!_tabController.indexIsChanging) {
-            _activeTabIndex = _tabController.index;
-            setState(() {});
+            _controller.setActiveTabIndex(_tabController.index);
           }
         });
-    _activeTabIndex = _tabController.index;
+    _controller.setActiveTabIndex(_tabController.index);
     _partyCodeController.addListener(_handlePartyCodeChanged);
-    _searchController.addListener(_applySearch);
+    _searchController.addListener(() {
+      _controller.setSearchQuery(_searchController.text);
+    });
     _loadPartyAccountsAccess();
     _loadPage(selectId: widget.initialPartyId);
   }
+
+  PartyManagementController get _controller =>
+      Get.find<PartyManagementController>(tag: _controllerTag);
+
+  bool get _isCompany => _controller.isCompany;
+  String get _openingBalanceType => _controller.openingBalanceType;
+  bool get _partyActive => _controller.partyActive;
+  String get _addressType => _controller.addressType;
+  bool get _addressDefault => _controller.addressDefault;
+  bool get _addressActive => _controller.addressActive;
+  bool get _contactPrimary => _controller.contactPrimary;
+  bool get _contactActive => _controller.contactActive;
+  String get _registrationType => _controller.registrationType;
+  bool get _gstDefault => _controller.gstDefault;
+  bool get _gstActive => _controller.gstActive;
+  bool get _bankDefault => _controller.bankDefault;
+  bool get _bankActive => _controller.bankActive;
+  bool get _creditActive => _controller.creditActive;
+  String get _dueBasis => _controller.dueBasis;
+  bool get _paymentDefault => _controller.paymentDefault;
+  bool get _paymentActive => _controller.paymentActive;
+  bool get _initialLoading => _controller.initialLoading;
+  bool get _partySaving => _controller.partySaving;
+  bool get _detailSaving => _controller.detailSaving;
+  String? get _pageError => _controller.pageError;
+  String? get _partyFormError => _controller.partyFormError;
+  String? get _detailFormError => _controller.detailFormError;
+  List<PartyTypeModel> get _partyTypes => _controller.partyTypes;
+  List<DocumentSeriesModel> get _documentSeries => _controller.documentSeries;
+  List<PartyModel> get _parties => _controller.parties;
+  PartyModel? get _selectedParty => _controller.selectedParty;
+  int? get _partyTypeId => _controller.partyTypeId;
+  List<PartyAddressModel> get _addresses => _controller.addresses;
+  PartyAddressModel? get _selectedAddress => _controller.selectedAddress;
+  List<PartyContactModel> get _contacts => _controller.contacts;
+  PartyContactModel? get _selectedContact => _controller.selectedContact;
+  List<PartyGstDetailModel> get _gstDetails => _controller.gstDetails;
+  PartyGstDetailModel? get _selectedGstDetail => _controller.selectedGstDetail;
+  List<PartyBankAccountModel> get _bankAccounts => _controller.bankAccounts;
+  PartyBankAccountModel? get _selectedBankAccount =>
+      _controller.selectedBankAccount;
+  List<PartyCreditLimitModel> get _creditLimits => _controller.creditLimits;
+  PartyCreditLimitModel? get _selectedCreditLimit =>
+      _controller.selectedCreditLimit;
+  List<PartyPaymentTermModel> get _paymentTerms => _controller.paymentTerms;
+  PartyPaymentTermModel? get _selectedPaymentTerm =>
+      _controller.selectedPaymentTerm;
 
   @override
   void dispose() {
@@ -292,10 +289,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       return;
     }
 
-    setState(() {
-      _canViewPartyAccounts = canViewPartyAccounts;
-      _partyAccountsAccessResolved = true;
-    });
+    _controller.setPartyAccountsAccess(canViewPartyAccounts);
+    _controller.setPartyAccountsAccessResolved(true);
   }
 
   void _handlePartyCodeChanged() {
@@ -307,10 +302,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Future<void> _loadPage({int? selectId}) async {
-    setState(() {
-      _initialLoading = _parties.isEmpty;
-      _pageError = null;
-    });
+    _controller.beginPageLoad(showFullLoading: _parties.isEmpty);
 
     try {
       final partyTypesResponse = await _partiesService.partyTypes(
@@ -336,13 +328,11 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           documentSeriesResponse.data ?? const <DocumentSeriesModel>[];
       final parties = partiesResponse.data ?? const <PartyModel>[];
 
-      setState(() {
-        _partyTypes = partyTypes;
-        _documentSeries = documentSeries;
-        _parties = parties;
-        _filteredParties = _computeFilteredParties(parties);
-        _initialLoading = false;
-      });
+      _controller.completePageLoad(
+        partyTypes: partyTypes,
+        documentSeries: documentSeries,
+        parties: parties,
+      );
 
       final selected = selectId != null
           ? parties.cast<PartyModel?>().firstWhere(
@@ -375,27 +365,20 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       if (!mounted) {
         return;
       }
-      setState(() {
-        _initialLoading = false;
-        _pageError = error.toString();
-      });
+      _controller.failPageLoad(error.toString());
     }
   }
 
-  void _applySearch() {
-    setState(() {
-      _filteredParties = _computeFilteredParties(_parties);
-    });
-  }
-
   List<PartyModel> _computeFilteredParties(List<PartyModel> source) {
-    final filteredByType = _partyTypeFilterId == 0
+    final filteredByType = _controller.partyTypeFilterId == 0
         ? source
         : source
-              .where((party) => party.partyTypeId == _partyTypeFilterId)
+              .where(
+                (party) => party.partyTypeId == _controller.partyTypeFilterId,
+              )
               .toList(growable: false);
 
-    final searched = filterMasterList(filteredByType, _searchController.text, (
+    final searched = filterMasterList(filteredByType, _controller.searchQuery, (
       party,
     ) {
       return [
@@ -414,7 +397,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       final leftCode = (left.partyCode ?? '').toLowerCase();
       final rightCode = (right.partyCode ?? '').toLowerCase();
 
-      switch (_partySort) {
+      switch (_controller.partySort) {
         case 'name_desc':
           return rightName.compareTo(leftName);
         case 'code_asc':
@@ -530,41 +513,33 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   void _onPartyTypeChanged(int? value) {
-    setState(() {
-      _partyTypeId = value;
-      if (!_supportsCompanyFlag(value)) {
-        _isCompany = false;
-      }
-      if (!_supportsGst(value)) {
-        _gstDetails = const <PartyGstDetailModel>[];
-        _selectedGstDetail = null;
-        _resetGstForm();
-      }
-    });
+    _controller.applyPartyTypeChange(
+      value,
+      supportsCompanyFlag: _supportsCompanyFlag(value),
+      supportsGst: _supportsGst(value),
+    );
+    if (!_supportsGst(value)) {
+      _resetGstForm();
+    }
 
     if (_selectedParty == null && !_partyCodeManuallyEdited) {
       _setPartyCode(_generatePartyCodeForType(value), autoGenerated: true);
-      setState(() {});
+      _controller.update();
     }
   }
 
   Future<void> _selectParty(PartyModel party) async {
-    _selectedParty = party;
+    _controller.selectParty(party);
     _partyCodeController.text = party.partyCode ?? '';
     _partyCodeManuallyEdited = true;
     _partyNameController.text = party.partyName ?? '';
     _displayNameController.text = party.displayName ?? '';
-    _partyTypeId = party.partyTypeId;
-    _isCompany = party.isCompany;
     _websiteController.text = party.website ?? '';
     _panController.text = party.pan ?? '';
     _aadhaarController.text = party.aadhaar ?? '';
     _currencyController.text = party.defaultCurrency ?? 'INR';
     _openingBalanceController.text = party.openingBalance?.toString() ?? '';
-    _openingBalanceType = party.openingBalanceType ?? 'debit';
     _remarksController.text = party.remarks ?? '';
-    _partyActive = party.isActive;
-    _partyFormError = null;
 
     _resetAddressForm();
     _resetContactForm();
@@ -572,8 +547,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _resetBankForm();
     _resetCreditForm();
     _resetPaymentTermForm();
-
-    setState(() {});
 
     await _loadPartyChildren(party.id!);
   }
@@ -591,58 +564,38 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         return;
       }
 
-      setState(() {
-        _addresses = addressesResponse.data ?? const <PartyAddressModel>[];
-        _contacts = contactsResponse.data ?? const <PartyContactModel>[];
-        _gstDetails = gstResponse.data ?? const <PartyGstDetailModel>[];
-        _bankAccounts = bankResponse.data ?? const <PartyBankAccountModel>[];
-        _creditLimits = creditResponse.data ?? const <PartyCreditLimitModel>[];
-        _paymentTerms = paymentResponse.data ?? const <PartyPaymentTermModel>[];
-      });
+      _controller.setPartyChildren(
+        addresses: addressesResponse.data ?? const <PartyAddressModel>[],
+        contacts: contactsResponse.data ?? const <PartyContactModel>[],
+        gstDetails: gstResponse.data ?? const <PartyGstDetailModel>[],
+        bankAccounts: bankResponse.data ?? const <PartyBankAccountModel>[],
+        creditLimits: creditResponse.data ?? const <PartyCreditLimitModel>[],
+        paymentTerms: paymentResponse.data ?? const <PartyPaymentTermModel>[],
+      );
     } catch (error) {
       if (!mounted) {
         return;
       }
 
-      setState(() {
-        _detailFormError = error.toString();
-      });
+      _controller.failDetailLoad(error.toString());
     }
   }
 
   void _resetPartyForm() {
-    _selectedParty = null;
+    _controller.resetPartyDraft();
     _setPartyCode('', autoGenerated: true);
     _partyNameController.clear();
     _displayNameController.clear();
-    _partyTypeId = null;
-    _isCompany = false;
     _websiteController.clear();
     _panController.clear();
     _aadhaarController.clear();
     _currencyController.text = 'INR';
     _openingBalanceController.clear();
-    _openingBalanceType = 'debit';
     _remarksController.clear();
-    _partyActive = true;
-    _partyFormError = null;
-    setState(() {});
   }
 
   void _clearDetailTabs() {
-    _addresses = const <PartyAddressModel>[];
-    _selectedAddress = null;
-    _contacts = const <PartyContactModel>[];
-    _selectedContact = null;
-    _gstDetails = const <PartyGstDetailModel>[];
-    _selectedGstDetail = null;
-    _bankAccounts = const <PartyBankAccountModel>[];
-    _selectedBankAccount = null;
-    _creditLimits = const <PartyCreditLimitModel>[];
-    _selectedCreditLimit = null;
-    _paymentTerms = const <PartyPaymentTermModel>[];
-    _selectedPaymentTerm = null;
-    _detailFormError = null;
+    _controller.clearDetailTabsState();
     _resetAddressForm();
     _resetContactForm();
     _resetGstForm();
@@ -656,10 +609,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       return;
     }
 
-    setState(() {
-      _partySaving = true;
-      _partyFormError = null;
-    });
+    _controller.beginPartySave();
 
     final model = PartyModel(
       id: _selectedParty?.id,
@@ -688,9 +638,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         return;
       }
       if (saved == null) {
-        setState(() {
-          _partyFormError = response.message;
-        });
+        _controller.failPartySave(response.message);
         return;
       }
 
@@ -699,21 +647,16 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPage(selectId: saved.id);
     } catch (error) {
-      setState(() {
-        _partyFormError = error.toString();
-      });
+      _controller.failPartySave(error.toString());
     } finally {
       if (mounted) {
-        setState(() {
-          _partySaving = false;
-        });
+        _controller.finishPartySave();
       }
     }
   }
 
   void _resetAddressForm() {
-    _selectedAddress = null;
-    _addressType = 'billing';
+    _controller.resetAddressDraft();
     _addressLine1Controller.clear();
     _addressLine2Controller.clear();
     _addressAreaController.clear();
@@ -723,13 +666,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _addressStateNameController.clear();
     _addressCountryCodeController.clear();
     _addressPostalCodeController.clear();
-    _addressDefault = false;
-    _addressActive = true;
   }
 
   void _selectAddress(PartyAddressModel address) {
-    _selectedAddress = address;
-    _addressType = address.addressType ?? 'billing';
+    _controller.selectAddress(address);
     _addressLine1Controller.text = address.addressLine1 ?? '';
     _addressLine2Controller.text = address.addressLine2 ?? '';
     _addressAreaController.text = address.area ?? '';
@@ -739,9 +679,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _addressStateNameController.text = address.stateName ?? '';
     _addressCountryCodeController.text = address.countryCode ?? '';
     _addressPostalCodeController.text = address.postalCode ?? '';
-    _addressDefault = address.isDefault;
-    _addressActive = address.isActive;
-    setState(() {});
   }
 
   Future<void> _saveAddress() async {
@@ -750,10 +687,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       return;
     }
 
-    setState(() {
-      _detailSaving = true;
-      _detailFormError = null;
-    });
+    _controller.beginDetailSave();
 
     try {
       final model = PartyAddressModel(
@@ -788,43 +722,33 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
-      _openDetailDrafts.remove('addresses');
+      _controller.closeDetailDraft('addresses');
       _resetAddressForm();
-      setState(() {});
     } catch (error) {
-      setState(() {
-        _detailFormError = error.toString();
-      });
+      _controller.failDetailSave(error.toString());
     } finally {
       if (mounted) {
-        setState(() {
-          _detailSaving = false;
-        });
+        _controller.finishDetailSave();
       }
     }
   }
 
   void _resetContactForm() {
-    _selectedContact = null;
+    _controller.resetContactDraft();
     _contactNameController.clear();
     _contactDesignationController.clear();
     _contactMobileController.clear();
     _contactPhoneController.clear();
     _contactEmailController.clear();
-    _contactPrimary = false;
-    _contactActive = true;
   }
 
   void _selectContact(PartyContactModel contact) {
-    _selectedContact = contact;
+    _controller.selectContact(contact);
     _contactNameController.text = contact.contactName ?? '';
     _contactDesignationController.text = contact.designation ?? '';
     _contactMobileController.text = contact.mobile ?? '';
     _contactPhoneController.text = contact.phone ?? '';
     _contactEmailController.text = contact.email ?? '';
-    _contactPrimary = contact.isPrimary;
-    _contactActive = contact.isActive;
-    setState(() {});
   }
 
   Future<void> _saveContact() async {
@@ -833,10 +757,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       return;
     }
 
-    setState(() {
-      _detailSaving = true;
-      _detailFormError = null;
-    });
+    _controller.beginDetailSave();
 
     try {
       final model = PartyContactModel(
@@ -866,26 +787,20 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
-      _openDetailDrafts.remove('contacts');
+      _controller.closeDetailDraft('contacts');
       _resetContactForm();
-      setState(() {});
     } catch (error) {
-      setState(() {
-        _detailFormError = error.toString();
-      });
+      _controller.failDetailSave(error.toString());
     } finally {
       if (mounted) {
-        setState(() {
-          _detailSaving = false;
-        });
+        _controller.finishDetailSave();
       }
     }
   }
 
   void _resetGstForm() {
-    _selectedGstDetail = null;
+    _controller.resetGstDraft();
     _gstinDetailController.clear();
-    _registrationType = 'regular';
     _gstLegalNameController.clear();
     _gstTradeNameController.clear();
     _gstStateCodeController.clear();
@@ -895,15 +810,12 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _gstCityController.clear();
     _gstDistrictController.clear();
     _gstPostalCodeController.clear();
-    _gstDefault = false;
-    _gstActive = true;
   }
 
   void _selectGstDetail(PartyGstDetailModel record) {
     final data = record.toJson();
-    _selectedGstDetail = record;
+    _controller.selectGstDetail(record, data);
     _gstinDetailController.text = stringValue(data, 'gstin');
-    _registrationType = stringValue(data, 'registration_type', 'regular');
     _gstLegalNameController.text = stringValue(data, 'legal_name');
     _gstTradeNameController.text = stringValue(data, 'trade_name');
     _gstStateCodeController.text = stringValue(data, 'state_code');
@@ -913,9 +825,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _gstCityController.text = stringValue(data, 'city');
     _gstDistrictController.text = stringValue(data, 'district');
     _gstPostalCodeController.text = stringValue(data, 'postal_code');
-    _gstDefault = boolValue(data, 'is_default');
-    _gstActive = boolValue(data, 'is_active', fallback: true);
-    setState(() {});
   }
 
   Future<void> _saveGstDetail() async {
@@ -924,10 +833,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       return;
     }
 
-    setState(() {
-      _detailSaving = true;
-      _detailFormError = null;
-    });
+    _controller.beginDetailSave();
 
     try {
       final body = PartyGstDetailModel.fromJson({
@@ -960,24 +866,19 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
-      _openDetailDrafts.remove('gst');
+      _controller.closeDetailDraft('gst');
       _resetGstForm();
-      setState(() {});
     } catch (error) {
-      setState(() {
-        _detailFormError = error.toString();
-      });
+      _controller.failDetailSave(error.toString());
     } finally {
       if (mounted) {
-        setState(() {
-          _detailSaving = false;
-        });
+        _controller.finishDetailSave();
       }
     }
   }
 
   void _resetBankForm() {
-    _selectedBankAccount = null;
+    _controller.resetBankDraft();
     _bankAccountHolderController.clear();
     _bankNameController.clear();
     _bankBranchController.clear();
@@ -986,13 +887,11 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _bankSwiftController.clear();
     _bankIbanController.clear();
     _bankUpiController.clear();
-    _bankDefault = false;
-    _bankActive = true;
   }
 
   void _selectBankAccount(PartyBankAccountModel record) {
     final data = record.toJson();
-    _selectedBankAccount = record;
+    _controller.selectBankAccount(record, data);
     _bankAccountHolderController.text = stringValue(
       data,
       'account_holder_name',
@@ -1004,9 +903,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _bankSwiftController.text = stringValue(data, 'swift_code');
     _bankIbanController.text = stringValue(data, 'iban');
     _bankUpiController.text = stringValue(data, 'upi_id');
-    _bankDefault = boolValue(data, 'is_default');
-    _bankActive = boolValue(data, 'is_active', fallback: true);
-    setState(() {});
   }
 
   Future<void> _saveBankAccount() async {
@@ -1015,10 +911,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       return;
     }
 
-    setState(() {
-      _detailSaving = true;
-      _detailFormError = null;
-    });
+    _controller.beginDetailSave();
 
     try {
       final body = PartyBankAccountModel.fromJson({
@@ -1048,40 +941,32 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
-      _openDetailDrafts.remove('bank');
+      _controller.closeDetailDraft('bank');
       _resetBankForm();
-      setState(() {});
     } catch (error) {
-      setState(() {
-        _detailFormError = error.toString();
-      });
+      _controller.failDetailSave(error.toString());
     } finally {
       if (mounted) {
-        setState(() {
-          _detailSaving = false;
-        });
+        _controller.finishDetailSave();
       }
     }
   }
 
   void _resetCreditForm() {
-    _selectedCreditLimit = null;
+    _controller.resetCreditDraft();
     _creditLimitController.clear();
     _creditDaysController.clear();
     _creditFromController.clear();
     _creditToController.clear();
-    _creditActive = true;
   }
 
   void _selectCreditLimit(PartyCreditLimitModel record) {
     final data = record.toJson();
-    _selectedCreditLimit = record;
+    _controller.selectCreditLimit(record, data);
     _creditLimitController.text = stringValue(data, 'credit_limit');
     _creditDaysController.text = stringValue(data, 'credit_days');
     _creditFromController.text = stringValue(data, 'effective_from');
     _creditToController.text = stringValue(data, 'effective_to');
-    _creditActive = boolValue(data, 'is_active', fallback: true);
-    setState(() {});
   }
 
   Future<void> _saveCreditLimit() async {
@@ -1090,10 +975,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       return;
     }
 
-    setState(() {
-      _detailSaving = true;
-      _detailFormError = null;
-    });
+    _controller.beginDetailSave();
 
     try {
       final body = PartyCreditLimitModel.fromJson({
@@ -1118,42 +1000,30 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
-      _openDetailDrafts.remove('credit');
+      _controller.closeDetailDraft('credit');
       _resetCreditForm();
-      setState(() {});
     } catch (error) {
-      setState(() {
-        _detailFormError = error.toString();
-      });
+      _controller.failDetailSave(error.toString());
     } finally {
       if (mounted) {
-        setState(() {
-          _detailSaving = false;
-        });
+        _controller.finishDetailSave();
       }
     }
   }
 
   void _resetPaymentTermForm() {
-    _selectedPaymentTerm = null;
+    _controller.resetPaymentTermDraft();
     _paymentTermNameController.clear();
     _paymentDaysController.clear();
     _paymentRemarksController.clear();
-    _dueBasis = 'invoice_date';
-    _paymentDefault = false;
-    _paymentActive = true;
   }
 
   void _selectPaymentTerm(PartyPaymentTermModel record) {
     final data = record.toJson();
-    _selectedPaymentTerm = record;
+    _controller.selectPaymentTerm(record, data);
     _paymentTermNameController.text = stringValue(data, 'term_name');
     _paymentDaysController.text = stringValue(data, 'days');
     _paymentRemarksController.text = stringValue(data, 'remarks');
-    _dueBasis = stringValue(data, 'due_basis', 'invoice_date');
-    _paymentDefault = boolValue(data, 'is_default');
-    _paymentActive = boolValue(data, 'is_active', fallback: true);
-    setState(() {});
   }
 
   Future<void> _savePaymentTerm() async {
@@ -1162,10 +1032,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       return;
     }
 
-    setState(() {
-      _detailSaving = true;
-      _detailFormError = null;
-    });
+    _controller.beginDetailSave();
 
     try {
       final body = PartyPaymentTermModel.fromJson({
@@ -1191,18 +1058,13 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
       await _loadPartyChildren(partyId);
-      _openDetailDrafts.remove('payment_terms');
+      _controller.closeDetailDraft('payment_terms');
       _resetPaymentTermForm();
-      setState(() {});
     } catch (error) {
-      setState(() {
-        _detailFormError = error.toString();
-      });
+      _controller.failDetailSave(error.toString());
     } finally {
       if (mounted) {
-        setState(() {
-          _detailSaving = false;
-        });
+        _controller.finishDetailSave();
       }
     }
   }
@@ -1254,6 +1116,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     }
 
     final partyTypeFilterItems = _partyTypeFilterItems();
+    final filteredParties = _computeFilteredParties(_parties);
 
     return SettingsWorkspace(
       controller: _workspaceController,
@@ -1273,28 +1136,20 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             AppDropdownField<int>.fromMapped(
               labelText: 'Party Type',
               mappedItems: partyTypeFilterItems,
-              initialValue: _partyTypeFilterId,
-              onChanged: (value) {
-                setState(() {
-                  _partyTypeFilterId = value ?? 0;
-                  _filteredParties = _computeFilteredParties(_parties);
-                });
-              },
+              initialValue: _controller.partyTypeFilterId,
+              onChanged: (value) =>
+                  _controller.setPartyTypeFilterId(value ?? 0),
             ),
             const SizedBox(height: 12),
             AppDropdownField<String>.fromMapped(
               labelText: 'Sort',
               mappedItems: _sortItems,
-              initialValue: _partySort,
-              onChanged: (value) {
-                setState(() {
-                  _partySort = value ?? 'name_asc';
-                  _filteredParties = _computeFilteredParties(_parties);
-                });
-              },
+              initialValue: _controller.partySort,
+              onChanged: (value) =>
+                  _controller.setPartySort(value ?? 'name_asc'),
             ),
             const SizedBox(height: 16),
-            if (_filteredParties.isEmpty)
+            if (filteredParties.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
                 child: Text('No parties found.'),
@@ -1303,10 +1158,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: _filteredParties.length,
+                itemCount: filteredParties.length,
                 separatorBuilder: (_, index) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
-                  final party = _filteredParties[index];
+                  final party = filteredParties[index];
                   final selected = identical(party, _selectedParty);
                   return SettingsListTile(
                     title: party.partyName ?? '-',
@@ -1327,48 +1182,43 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           ],
         ),
       ),
-      editor: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedBuilder(
-            animation: _tabController,
-            builder: (context, _) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    tabs: const [
-                      Tab(text: 'Primary'),
-                      Tab(text: 'Addresses'),
-                      Tab(text: 'Contacts'),
-                      Tab(text: 'GST Details'),
-                      Tab(text: 'Bank Accounts'),
-                      Tab(text: 'Credit Limits'),
-                      Tab(text: 'Payment Terms'),
-                      Tab(text: 'Party Accounts'),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  IndexedStack(
-                    index: _activeTabIndex,
-                    children: [
-                      _buildPrimaryTab(context),
-                      _buildAddressesTab(context),
-                      _buildContactsTab(context),
-                      _buildGstDetailsTab(context),
-                      _buildBankAccountsTab(context),
-                      _buildCreditLimitsTab(context),
-                      _buildPaymentTermsTab(context),
-                      _buildPartyAccountsTab(context),
-                    ],
-                  ),
+      editor: GetBuilder<PartyManagementController>(
+        tag: _controllerTag,
+        builder: (controller) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabs: const [
+                  Tab(text: 'Primary'),
+                  Tab(text: 'Addresses'),
+                  Tab(text: 'Contacts'),
+                  Tab(text: 'GST Details'),
+                  Tab(text: 'Bank Accounts'),
+                  Tab(text: 'Credit Limits'),
+                  Tab(text: 'Payment Terms'),
+                  Tab(text: 'Party Accounts'),
                 ],
-              );
-            },
-          ),
-        ],
+              ),
+              const SizedBox(height: 20),
+              IndexedStack(
+                index: controller.activeTabIndex,
+                children: [
+                  _buildPrimaryTab(context),
+                  _buildAddressesTab(context),
+                  _buildContactsTab(context),
+                  _buildGstDetailsTab(context),
+                  _buildBankAccountsTab(context),
+                  _buildCreditLimitsTab(context),
+                  _buildPaymentTermsTab(context),
+                  _buildPartyAccountsTab(context),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1460,7 +1310,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                 mappedItems: _openingBalanceTypeItems,
                 initialValue: _openingBalanceType,
                 onChanged: (value) =>
-                    setState(() => _openingBalanceType = value ?? 'debit'),
+                    _controller.setOpeningBalanceType(value ?? 'debit'),
               ),
               AppFormTextField(
                 labelText: 'Remarks',
@@ -1479,14 +1329,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                   child: AppSwitchTile(
                     label: 'Is Company',
                     value: _isCompany,
-                    onChanged: (value) => setState(() => _isCompany = value),
+                    onChanged: (value) => _controller.setIsCompany(value),
                   ),
                 ),
               SizedBox(
                 child: AppSwitchTile(
                   label: 'Active',
                   value: _partyActive,
-                  onChanged: (value) => setState(() => _partyActive = value),
+                  onChanged: (value) => _controller.setPartyActive(value),
                 ),
               ),
             ],
@@ -1659,11 +1509,11 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   }
 
   Widget _buildPartyAccountsTab(BuildContext context) {
-    if (!_partyAccountsAccessResolved) {
+    if (!_controller.partyAccountsAccessResolved) {
       return const AppLoadingView(message: 'Checking account access...');
     }
 
-    if (!_canViewPartyAccounts) {
+    if (!_controller.canViewPartyAccounts) {
       return const SettingsEmptyState(
         icon: Icons.lock_outline,
         title: 'Accounting access required',
@@ -1762,11 +1612,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               label: 'New',
               onPressed: () {
                 onNew();
-                setState(() {
-                  _openDetailDrafts
-                    ..remove(sectionKey)
-                    ..add(sectionKey);
-                });
+                _controller.openDetailDraft(sectionKey);
               },
             ),
           ],
@@ -1783,7 +1629,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           AppErrorStateView.inline(message: _detailFormError!),
         ],
         const SizedBox(height: 16),
-        if (_openDetailDrafts.contains(sectionKey)) ...[
+        if (_controller.isDetailDraftOpen(sectionKey)) ...[
           SettingsExpandableTile(
             key: ValueKey('$sectionKey-draft'),
             title: 'New $title',
@@ -1793,15 +1639,13 @@ class _PartyManagementPageState extends State<PartyManagementPage>
             leadingIcon: Icons.add_outlined,
             onToggle: () {
               onNew();
-              setState(() {
-                _openDetailDrafts.remove(sectionKey);
-              });
+              _controller.closeDetailDraft(sectionKey);
             },
             child: form,
           ),
           if (list.isNotEmpty) const SizedBox(height: 8),
         ],
-        if (list.isEmpty && !_openDetailDrafts.contains(sectionKey))
+        if (list.isEmpty && !_controller.isDetailDraftOpen(sectionKey))
           SettingsEmptyState(
             icon: Icons.inventory_2_outlined,
             title: 'No records yet',
@@ -1830,9 +1674,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                   } else {
                     onSelect(item);
                   }
-                  setState(() {
-                    _openDetailDrafts.remove(sectionKey);
-                  });
+                  _controller.closeDetailDraft(sectionKey);
                 },
                 child: form,
               );
@@ -1853,7 +1695,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               mappedItems: _addressTypeItems,
               initialValue: _addressType,
               onChanged: (value) =>
-                  setState(() => _addressType = value ?? 'billing'),
+                  _controller.setAddressType(value ?? 'billing'),
             ),
             AppFormTextField(
               labelText: 'Address Line 1',
@@ -1914,14 +1756,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               child: AppSwitchTile(
                 label: 'Default',
                 value: _addressDefault,
-                onChanged: (value) => setState(() => _addressDefault = value),
+                onChanged: (value) => _controller.setAddressDefault(value),
               ),
             ),
             SizedBox(
               child: AppSwitchTile(
                 label: 'Active',
                 value: _addressActive,
-                onChanged: (value) => setState(() => _addressActive = value),
+                onChanged: (value) => _controller.setAddressActive(value),
               ),
             ),
           ],
@@ -1985,14 +1827,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               child: AppSwitchTile(
                 label: 'Primary Contact',
                 value: _contactPrimary,
-                onChanged: (value) => setState(() => _contactPrimary = value),
+                onChanged: (value) => _controller.setContactPrimary(value),
               ),
             ),
             SizedBox(
               child: AppSwitchTile(
                 label: 'Active',
                 value: _contactActive,
-                onChanged: (value) => setState(() => _contactActive = value),
+                onChanged: (value) => _controller.setContactActive(value),
               ),
             ),
           ],
@@ -2027,7 +1869,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               mappedItems: _registrationTypeItems,
               initialValue: _registrationType,
               onChanged: (value) =>
-                  setState(() => _registrationType = value ?? 'regular'),
+                  _controller.setRegistrationType(value ?? 'regular'),
               validator: Validators.requiredSelection('Registration type'),
             ),
             AppFormTextField(
@@ -2086,14 +1928,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               child: AppSwitchTile(
                 label: 'Default GST Detail',
                 value: _gstDefault,
-                onChanged: (value) => setState(() => _gstDefault = value),
+                onChanged: (value) => _controller.setGstDefault(value),
               ),
             ),
             SizedBox(
               child: AppSwitchTile(
                 label: 'Active',
                 value: _gstActive,
-                onChanged: (value) => setState(() => _gstActive = value),
+                onChanged: (value) => _controller.setGstActive(value),
               ),
             ),
           ],
@@ -2180,14 +2022,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               child: AppSwitchTile(
                 label: 'Default Bank Account',
                 value: _bankDefault,
-                onChanged: (value) => setState(() => _bankDefault = value),
+                onChanged: (value) => _controller.setBankDefault(value),
               ),
             ),
             SizedBox(
               child: AppSwitchTile(
                 label: 'Active',
                 value: _bankActive,
-                onChanged: (value) => setState(() => _bankActive = value),
+                onChanged: (value) => _controller.setBankActive(value),
               ),
             ),
           ],
@@ -2248,7 +2090,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           child: AppSwitchTile(
             label: 'Active',
             value: _creditActive,
-            onChanged: (value) => setState(() => _creditActive = value),
+            onChanged: (value) => _controller.setCreditActive(value),
           ),
         ),
         const SizedBox(height: 16),
@@ -2289,7 +2131,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               mappedItems: _dueBasisItems,
               initialValue: _dueBasis,
               onChanged: (value) =>
-                  setState(() => _dueBasis = value ?? 'invoice_date'),
+                  _controller.setDueBasis(value ?? 'invoice_date'),
               validator: Validators.requiredSelection('Due basis'),
             ),
             AppFormTextField(
@@ -2308,14 +2150,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               child: AppSwitchTile(
                 label: 'Default Payment Term',
                 value: _paymentDefault,
-                onChanged: (value) => setState(() => _paymentDefault = value),
+                onChanged: (value) => _controller.setPaymentDefault(value),
               ),
             ),
             SizedBox(
               child: AppSwitchTile(
                 label: 'Active',
                 value: _paymentActive,
-                onChanged: (value) => setState(() => _paymentActive = value),
+                onChanged: (value) => _controller.setPaymentActive(value),
               ),
             ),
           ],
