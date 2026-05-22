@@ -8,7 +8,7 @@ class CrmLeadsController extends GetxController {
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'draft', label: 'Draft'),
         AppDropdownItem(value: 'in_progress', label: 'In Progress'),
-        AppDropdownItem(value: 'own', label: 'Own'),
+        AppDropdownItem(value: 'converted', label: 'Own'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
   static const List<AppDropdownItem<String>> activityTypes =
@@ -118,7 +118,7 @@ class CrmLeadsController extends GetxController {
   String effectiveLeadStatus() {
     final status = leadStatus.trim().toLowerCase();
     if (status == 'own' || status == 'converted') {
-      return 'own';
+      return 'converted';
     }
     if (status == 'lost') {
       return 'lost';

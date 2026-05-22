@@ -277,9 +277,20 @@ class CrmOpportunitiesPage extends StatefulWidget {
 
 class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     with SingleTickerProviderStateMixin {
+  static const double _opportunityColumnWidth = 210;
+  static const double _dateColumnWidth = 130;
+  static const double _customerColumnWidth = 240;
+  static const double _stageColumnWidth = 180;
+  static const double _valueColumnWidth = 150;
+  static const double _leadColumnWidth = 140;
+  static const double _ownerColumnWidth = 160;
+  static const double _statusColumnWidth = 120;
+
   late final String _controllerTag;
   late final CrmOpportunitiesController _controller;
   late final TabController _tabController;
+  final ScrollController _listHorizontalScrollController = ScrollController();
+  late final GlobalKey<FormState> _formKey;
 
   @override
   void initState() {
@@ -299,6 +310,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       ),
       tag: _controllerTag,
     );
+    _formKey = GlobalKey<FormState>();
+    _controller.formKey = _formKey;
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
@@ -323,7 +336,11 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
 
   @override
   void dispose() {
+    _listHorizontalScrollController.dispose();
     _tabController.dispose();
+    if (identical(_controller.formKey, _formKey)) {
+      _controller.formKey = null;
+    }
     if (Get.isRegistered<CrmOpportunitiesController>(tag: _controllerTag)) {
       Get.delete<CrmOpportunitiesController>(tag: _controllerTag);
     }
@@ -743,6 +760,45 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     return stringValue(assigned, 'username');
   }
 
+  Widget _tableHeader(String label, double width) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        width: width,
+        child: Text(
+          label,
+          textAlign: TextAlign.left,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
+  Widget _tableCellText(
+    String value,
+    double width, {
+    TextStyle? style,
+    int maxLines = 1,
+  }) {
+    return SizedBox(
+      width: width,
+      child: Text(
+        value,
+        style: style,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _tableCellTopAligned(Widget child, double width) {
+    return SizedBox(
+      width: width,
+      child: Align(alignment: Alignment.topLeft, child: child),
+    );
+  }
+
   Widget _buildOpportunityTable(
     BuildContext context,
     CrmOpportunitiesController controller,
@@ -769,116 +825,169 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
               child: Text('No CRM opportunities found.'),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 1100),
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text('Opportunity')),
-                    DataColumn(label: Text('Customer')),
-                    DataColumn(label: Text('Opportunity No')),
-                    DataColumn(label: Text('Lead')),
-                    DataColumn(label: Text('Stage')),
-                    DataColumn(label: Text('Expected Value')),
-                    DataColumn(label: Text('Probability %')),
-                    DataColumn(label: Text('Close Date')),
-                    DataColumn(label: Text('Owner')),
-                    DataColumn(label: Text('Status')),
-                  ],
-                  rows: controller.filteredItems
-                      .map((item) {
-                        final data = item.toJson();
-                        final selected = item == controller.selectedItem;
-                        final customerLabel = _customerLabel(data);
-                        final statusText = stringValue(data, 'status', 'open');
-                        final rowColor = selected
-                            ? theme.colorScheme.primary.withValues(alpha: 0.08)
-                            : null;
-                        return DataRow(
-                          selected: selected,
-                          color: rowColor == null
-                              ? null
-                              : WidgetStatePropertyAll<Color>(rowColor),
-                          cells: [
-                            DataCell(
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    stringValue(
-                                      data,
-                                      'opportunity_name',
-                                      'Opportunity',
-                                    ),
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
+            Scrollbar(
+              controller: _listHorizontalScrollController,
+              thumbVisibility: true,
+              trackVisibility: true,
+              notificationPredicate: (notification) =>
+                  notification.metrics.axis == Axis.horizontal,
+              child: SingleChildScrollView(
+                controller: _listHorizontalScrollController,
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 1440),
+                  child: DataTable(
+                    columns: [
+                      DataColumn(
+                        label: _tableHeader(
+                          'Opportunity No',
+                          _opportunityColumnWidth,
+                        ),
+                      ),
+                      DataColumn(label: _tableHeader('Date', _dateColumnWidth)),
+                      DataColumn(
+                        label: _tableHeader('Customer', _customerColumnWidth),
+                      ),
+                      DataColumn(
+                        label: _tableHeader('Stage', _stageColumnWidth),
+                      ),
+                      DataColumn(
+                        label: _tableHeader(
+                          'Expected Value',
+                          _valueColumnWidth,
+                        ),
+                      ),
+                      DataColumn(
+                        label: _tableHeader('Lead By', _leadColumnWidth),
+                      ),
+                      DataColumn(
+                        label: _tableHeader('Owner', _ownerColumnWidth),
+                      ),
+                      DataColumn(
+                        label: _tableHeader('Status', _statusColumnWidth),
+                      ),
+                    ],
+                    rows: controller.filteredItems
+                        .map((item) {
+                          final data = item.toJson();
+                          final selected = item == controller.selectedItem;
+                          final customerLabel = _customerLabel(data);
+                          final statusText = stringValue(
+                            data,
+                            'status',
+                            'open',
+                          );
+                          final rowColor = selected
+                              ? theme.colorScheme.primary.withValues(
+                                  alpha: 0.08,
+                                )
+                              : null;
+                          return DataRow(
+                            selected: selected,
+                            color: rowColor == null
+                                ? null
+                                : WidgetStatePropertyAll<Color>(rowColor),
+                            cells: [
+                              DataCell(
+                                _tableCellTopAligned(
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        stringValue(data, 'enquiry_no'),
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (stringValue(
+                                        data,
+                                        'opportunity_name',
+                                      ).isNotEmpty)
+                                        Text(
+                                          stringValue(data, 'opportunity_name'),
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(color: mutedText),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                    ],
                                   ),
-                                  if (stringValue(
-                                    data,
-                                    'products_count',
-                                  ).isNotEmpty)
-                                    Text(
-                                      'Products: ${stringValue(data, 'products_count')}',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(color: mutedText),
-                                    ),
-                                ],
+                                  _opportunityColumnWidth,
+                                ),
+                                onTap: () => controller.selectItem(item),
                               ),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              Text(customerLabel),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              Text(stringValue(data, 'enquiry_no')),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              Text(_leadLabel(data)),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              Text(_stageLabel(data)),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              Text(stringValue(data, 'expected_value')),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              Text(stringValue(data, 'probability_percent')),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              Text(
-                                displayDate(
-                                  nullableStringValue(
-                                    data,
-                                    'expected_close_date',
+                              DataCell(
+                                _tableCellTopAligned(
+                                  Text(
+                                    displayDate(
+                                      nullableStringValue(data, 'enquiry_date'),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  _dateColumnWidth,
+                                ),
+                                onTap: () => controller.selectItem(item),
+                              ),
+                              DataCell(
+                                _tableCellText(
+                                  customerLabel,
+                                  _customerColumnWidth,
+                                ),
+                                onTap: () => controller.selectItem(item),
+                              ),
+                              DataCell(
+                                _tableCellText(
+                                  _stageLabel(data),
+                                  _stageColumnWidth,
+                                  maxLines: 2,
+                                ),
+                                onTap: () => controller.selectItem(item),
+                              ),
+                              DataCell(
+                                _tableCellText(
+                                  stringValue(data, 'expected_value'),
+                                  _valueColumnWidth,
+                                ),
+                                onTap: () => controller.selectItem(item),
+                              ),
+                              DataCell(
+                                _tableCellText(
+                                  _leadLabel(data),
+                                  _leadColumnWidth,
+                                ),
+                                onTap: () => controller.selectItem(item),
+                              ),
+                              DataCell(
+                                _tableCellText(
+                                  _ownerLabel(data),
+                                  _ownerColumnWidth,
+                                ),
+                                onTap: () => controller.selectItem(item),
+                              ),
+                              DataCell(
+                                SizedBox(
+                                  width: _statusColumnWidth,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: SettingsStatusPill(
+                                      label: statusText,
+                                      active: statusText != 'lost',
+                                    ),
                                   ),
                                 ),
+                                onTap: () => controller.selectItem(item),
                               ),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              Text(_ownerLabel(data)),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                            DataCell(
-                              SettingsStatusPill(
-                                label: statusText,
-                                active: statusText != 'lost',
-                              ),
-                              onTap: () => controller.selectItem(item),
-                            ),
-                          ],
-                        );
-                      })
-                      .toList(growable: false),
+                            ],
+                          );
+                        })
+                        .toList(growable: false),
+                  ),
                 ),
               ),
             ),
@@ -893,7 +1002,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   ) {
     final isLocked = controller.isSelectedOpportunityReadOnly;
     return Form(
-      key: controller.formKey,
+      key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -905,6 +1014,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
             CrmSalesPipelineBar(
               data: controller.salesChain,
               title: 'Sales line',
+              hideEnquiryChip: true,
               hideOpportunityChip: true,
             ),
             const SizedBox(height: AppUiConstants.spacingSm),

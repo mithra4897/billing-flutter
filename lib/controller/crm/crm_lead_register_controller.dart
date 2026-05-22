@@ -10,7 +10,7 @@ class CrmLeadRegisterController extends GetxController {
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'draft', label: 'Draft'),
         AppDropdownItem(value: 'in_progress', label: 'In Progress'),
-        AppDropdownItem(value: 'own', label: 'Own'),
+        AppDropdownItem(value: 'converted', label: 'Own'),
         AppDropdownItem(value: 'lost', label: 'Lost'),
       ];
 

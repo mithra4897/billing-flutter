@@ -281,6 +281,13 @@ class AppNavigation {
           ],
         ),
         AppNavigationItem(
+          key: 'settings-uoms',
+          title: 'UOMs',
+          icon: Icons.straighten_outlined,
+          path: '/inventory/uoms',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
           key: 'settings-media',
           title: 'Media Files',
           path: '/media/files',
@@ -310,13 +317,7 @@ class AppNavigation {
         ),
       ],
     ),
-    AppNavigationItem(
-      key: 'settings-uoms',
-      title: 'UOMs',
-      icon: Icons.straighten_outlined,
-      path: '/inventory/uoms',
-      requiredPermissions: ['inventory.view'],
-    ),
+
 
     const AppNavigationItem(
       key: 'parties',
@@ -700,13 +701,6 @@ class AppNavigation {
           icon: Icons.category_outlined,
           path: '/inventory/item-categories',
           requiredPermissions: ['item_category.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-uoms',
-          title: 'UOMs',
-          icon: Icons.straighten_outlined,
-          path: '/inventory/uoms',
-          requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
           key: 'inventory-brands',

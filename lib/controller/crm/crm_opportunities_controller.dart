@@ -32,7 +32,7 @@ class CrmOpportunitiesController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  GlobalKey<FormState>? formKey;
   final TextEditingController remarksController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController expectedValueController = TextEditingController();
@@ -478,7 +478,7 @@ class CrmOpportunitiesController extends GetxController {
   }
 
   Future<void> save() async {
-    if (!formKey.currentState!.validate()) {
+    if (formKey?.currentState?.validate() != true) {
       return;
     }
     saving = true;
@@ -660,11 +660,10 @@ class OpportunityProductDraft {
     this.itemId,
     String? qty,
     String? estimatedPrice,
-  })
-    : qtyController = TextEditingController(text: qty ?? ''),
-      estimatedPriceController = TextEditingController(
-        text: estimatedPrice ?? '',
-      );
+  }) : qtyController = TextEditingController(text: qty ?? ''),
+       estimatedPriceController = TextEditingController(
+         text: estimatedPrice ?? '',
+       );
 
   factory OpportunityProductDraft.fromJson(Map<String, dynamic> json) {
     return OpportunityProductDraft(
@@ -715,12 +714,7 @@ class OpportunityProductDraft {
 }
 
 class OpportunityLineDraft {
-  OpportunityLineDraft({
-    this.id,
-    this.itemId,
-    String? description,
-    String? qty,
-  })
+  OpportunityLineDraft({this.id, this.itemId, String? description, String? qty})
     : descriptionController = TextEditingController(text: description ?? ''),
       qtyController = TextEditingController(text: qty ?? '');
 

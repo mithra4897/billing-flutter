@@ -15,6 +15,7 @@ class CrmLeadModel extends JsonModel {
     this.createdBy,
     this.createdAt,
     this.updatedAt,
+    this.activities = const <Map<String, dynamic>>[],
   });
 
   final int? companyId;
@@ -29,6 +30,7 @@ class CrmLeadModel extends JsonModel {
   final int? createdBy;
   final String? createdAt;
   final String? updatedAt;
+  final List<Map<String, dynamic>> activities;
 
   factory CrmLeadModel.fromJson(Map<String, dynamic> json) {
     return CrmLeadModel(
@@ -45,6 +47,7 @@ class CrmLeadModel extends JsonModel {
       createdBy: JsonModel.nullableInt(json['created_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      activities: JsonModel.mapListOf(json['activities']),
     );
   }
 
@@ -70,5 +73,6 @@ class CrmLeadModel extends JsonModel {
     if (createdBy != null) 'created_by': createdBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    'activities': activities,
   };
 }

@@ -171,11 +171,13 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   late final String _controllerTag;
   late final CrmLeadsController _controller;
   late final TabController _tabController;
+  late final bool _reusedController;
 
   @override
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('CrmLeadsController');
+    _reusedController = Get.isRegistered<CrmLeadsController>(tag: _controllerTag);
     _controller = Get.put(
       CrmLeadsController(
         startInNewMode: widget.startInNewMode,
@@ -192,7 +194,14 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         _controller.setActiveTabIndex(_tabController.index);
       }
     });
-    _syncRouteState();
+    if (_reusedController) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _syncRouteState();
+      });
+    }
   }
 
   @override
@@ -594,7 +603,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                 ),
               if (controller.isSelectedLeadReadOnly) ...[
                 Text(
-                  controller.effectiveLeadStatus() == 'own'
+                  controller.effectiveLeadStatus() == 'converted'
                       ? 'This lead already has an opportunity. Details are read-only. Open the linked opportunity to continue the sales process.'
                       : 'This lead is lost. Details are read-only.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
