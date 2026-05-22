@@ -1,3 +1,4 @@
+import '../../controller/sales/sales_quotation_management_controller.dart';
 import '../../screen.dart';
 
 void _openSalesShellRoute(BuildContext context, String route) {
@@ -21,8 +22,6 @@ class SalesQuotationPage extends StatefulWidget {
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
-
-  /// From `/sales/quotations/new?crm_opportunity_id=…` when opened from CRM.
   final int? initialCrmOpportunityId;
 
   @override
@@ -30,828 +29,114 @@ class SalesQuotationPage extends StatefulWidget {
 }
 
 class _SalesQuotationPageState extends State<SalesQuotationPage> {
-  static const List<AppDropdownItem<String>> _listStatusFilter =
-      <AppDropdownItem<String>>[
-        AppDropdownItem(value: '', label: 'All'),
-        AppDropdownItem(value: 'draft', label: 'Draft'),
-        AppDropdownItem(value: 'posted', label: 'Posted'),
-        AppDropdownItem(value: 'sent', label: 'Sent'),
-        AppDropdownItem(value: 'accepted', label: 'Accepted'),
-        AppDropdownItem(value: 'rejected', label: 'Rejected'),
-        AppDropdownItem(value: 'expired', label: 'Expired'),
-        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
-      ];
+  late final String _controllerTag;
 
-  final SalesService _salesService = SalesService();
-  final CrmService _crmService = CrmService();
-  final MasterService _masterService = MasterService();
-  final PartiesService _partiesService = PartiesService();
-  final InventoryService _inventoryService = InventoryService();
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
-  final TextEditingController _searchController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _quotationNoController = TextEditingController();
-  final TextEditingController _quotationDateController =
-      TextEditingController();
-  final TextEditingController _validUntilController = TextEditingController();
-  final TextEditingController _customerRefNoController =
-      TextEditingController();
-  final TextEditingController _customerRefDateController =
-      TextEditingController();
-  final TextEditingController _currencyCodeController = TextEditingController();
-  final TextEditingController _exchangeRateController = TextEditingController();
-  final TextEditingController _notesController = TextEditingController();
-  final TextEditingController _termsController = TextEditingController();
-
-  bool _initialLoading = true;
-  bool _saving = false;
-  String? _pageError;
-  String? _formError;
-  String _statusFilter = '';
-  List<SalesQuotationModel> _items = const <SalesQuotationModel>[];
-  List<SalesQuotationModel> _filteredItems = const <SalesQuotationModel>[];
-  List<CompanyModel> _companies = const <CompanyModel>[];
-  List<FinancialYearModel> _financialYears = const <FinancialYearModel>[];
-  List<DocumentSeriesModel> _documentSeries = const <DocumentSeriesModel>[];
-  List<PartyModel> _customers = const <PartyModel>[];
-  List<ItemModel> _itemsLookup = const <ItemModel>[];
-  List<UomModel> _uoms = const <UomModel>[];
-  List<UomConversionModel> _uomConversions = const <UomConversionModel>[];
-  List<TaxCodeModel> _taxCodes = const <TaxCodeModel>[];
-  SalesQuotationModel? _selectedItem;
-  int? _contextCompanyId;
-  int? _contextBranchId;
-  int? _contextLocationId;
-  int? _contextFinancialYearId;
-  int? _companyId;
-  int? _branchId;
-  int? _locationId;
-  int? _financialYearId;
-  int? _documentSeriesId;
-  int? _customerPartyId;
-  bool _isActive = true;
-  int? _crmOpportunityId;
-  Map<String, dynamic>? _salesChain;
-  List<_QuotationLineDraft> _lines = <_QuotationLineDraft>[];
-
-  String _errorMessage(Object error) {
-    if (error is ApiException) {
-      return error.displayMessage;
-    }
-    if (error is ApiResponse) {
-      return error.message;
-    }
-    return error.toString();
-  }
-
-  bool get _canEdit {
-    if (_selectedItem == null) {
-      return true;
-    }
-    return stringValue(_selectedItem!.toJson(), 'quotation_status') == 'draft';
-  }
-
-  String get _status => stringValue(
-    _selectedItem?.toJson() ?? const {},
-    'quotation_status',
-    'draft',
-  );
-
-  List<DocumentSeriesModel> _seriesOptions() {
-    return _documentSeries
-        .where((item) {
-          final typeOk =
-              item.documentType == null ||
-              item.documentType == 'SALES_QUOTATION';
-          final companyOk = _companyId == null || item.companyId == _companyId;
-          final fyOk =
-              _financialYearId == null ||
-              item.financialYearId == _financialYearId;
-          return typeOk && companyOk && fyOk;
-        })
-        .toList(growable: false);
-  }
+  SalesQuotationManagementController get _controller =>
+      Get.find<SalesQuotationManagementController>(tag: _controllerTag);
 
   @override
   void initState() {
     super.initState();
-    WorkingContextService.version.addListener(_handleWorkingContextChanged);
-    _searchController.addListener(_applyFilters);
-    _loadPage(selectId: widget.initialId);
-  }
-
-  void _handleWorkingContextChanged() {
-    _loadPage(selectId: intValue(_selectedItem?.toJson() ?? const {}, 'id'));
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
-    _pageScrollController.dispose();
-    _workspaceController.dispose();
-    _searchController.dispose();
-    _quotationNoController.dispose();
-    _quotationDateController.dispose();
-    _validUntilController.dispose();
-    _customerRefNoController.dispose();
-    _customerRefDateController.dispose();
-    _currencyCodeController.dispose();
-    _exchangeRateController.dispose();
-    _notesController.dispose();
-    _termsController.dispose();
-    for (final line in _lines) {
-      line.dispose();
-    }
-    super.dispose();
-  }
-
-  Future<void> _loadPage({int? selectId}) async {
-    setState(() {
-      _initialLoading = _items.isEmpty;
-      _pageError = null;
-    });
-
-    try {
-      final responses = await Future.wait<dynamic>([
-        _salesService.quotations(
-          filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
-        ),
-        _masterService.companies(
-          filters: const {'per_page': 100, 'sort_by': 'legal_name'},
-        ),
-        _masterService.branches(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.businessLocations(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _masterService.financialYears(
-          filters: const {'per_page': 100, 'sort_by': 'fy_name'},
-        ),
-        _masterService.documentSeries(
-          filters: const {'per_page': 200, 'sort_by': 'series_name'},
-        ),
-        _partiesService.partyTypes(filters: const {'per_page': 100}),
-        _partiesService.parties(
-          filters: const {'per_page': 400, 'sort_by': 'party_name'},
-        ),
-        _inventoryService.items(
-          filters: const {'per_page': 400, 'sort_by': 'item_name'},
-        ),
-        _inventoryService.uoms(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-        _inventoryService.uomConversionsAll(
-          filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
-        ),
-        _inventoryService.taxCodes(
-          filters: const {'per_page': 200, 'sort_by': 'name'},
-        ),
-      ]);
-
-      final contextSelection = await WorkingContextService.instance
-          .resolveSelection(
-            companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                        const <CompanyModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                        const <BranchModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
-                            .data ??
-                        const <BusinessLocationModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                        const <FinancialYearModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _items =
-            (responses[0] as PaginatedResponse<SalesQuotationModel>).data ??
-            const <SalesQuotationModel>[];
-        _companies =
-            (responses[1] as PaginatedResponse<CompanyModel>).data ??
-            const <CompanyModel>[];
-        _financialYears =
-            (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-            const <FinancialYearModel>[];
-        _documentSeries =
-            ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                    const <DocumentSeriesModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _customers = salesCustomersOrFallback(
-          parties:
-              ((responses[7] as PaginatedResponse<PartyModel>).data ??
-              const <PartyModel>[]),
-          partyTypes:
-              (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
-              const <PartyTypeModel>[],
-        );
-        _itemsLookup =
-            ((responses[8] as PaginatedResponse<ItemModel>).data ??
-                    const <ItemModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _uoms =
-            ((responses[9] as PaginatedResponse<UomModel>).data ??
-                    const <UomModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _uomConversions =
-            ((responses[10] as PaginatedResponse<UomConversionModel>).data ??
-                    const <UomConversionModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _taxCodes =
-            ((responses[11] as PaginatedResponse<TaxCodeModel>).data ??
-                    const <TaxCodeModel>[])
-                .where((item) => item.isActive)
-                .toList();
-        _contextCompanyId = contextSelection.companyId;
-        _contextBranchId = contextSelection.branchId;
-        _contextLocationId = contextSelection.locationId;
-        _contextFinancialYearId = contextSelection.financialYearId;
-        _initialLoading = false;
-      });
-      _applyFilters();
-
-      final selected = selectId != null
-          ? _items.cast<SalesQuotationModel?>().firstWhere(
-              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
-              orElse: () => null,
-            )
-          : (widget.editorOnly
-                ? null
-                : (_selectedItem == null
-                      ? (_items.isNotEmpty ? _items.first : null)
-                      : null));
-
-      if (selected != null) {
-        await _selectDocument(selected);
-      } else {
-        _resetForm();
-        final bootstrapOpp = widget.initialCrmOpportunityId;
-        if (bootstrapOpp != null) {
-          await _applyOpportunityBootstrap(bootstrapOpp);
-        }
-      }
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _pageError = _errorMessage(error);
-        _initialLoading = false;
-      });
-    }
-  }
-
-  Future<void> _selectDocument(SalesQuotationModel item) async {
-    final id = intValue(item.toJson(), 'id');
-    if (id == null) {
-      return;
-    }
-    final response = await _salesService.quotation(id);
-    final full = response.data ?? item;
-    final data = full.toJson();
-    final lines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
-        .whereType<Map<String, dynamic>>()
-        .map(_QuotationLineDraft.fromJson)
-        .toList(growable: true);
-    for (final old in _lines) {
-      old.dispose();
-    }
-    setState(() {
-      _selectedItem = full;
-      _companyId = intValue(data, 'company_id');
-      _branchId = intValue(data, 'branch_id');
-      _locationId = intValue(data, 'location_id');
-      _financialYearId = intValue(data, 'financial_year_id');
-      _documentSeriesId = intValue(data, 'document_series_id');
-      _customerPartyId = intValue(data, 'customer_party_id');
-      _quotationNoController.text = stringValue(data, 'quotation_no');
-      _quotationDateController.text = displayDate(
-        nullableStringValue(data, 'quotation_date'),
-      );
-      _validUntilController.text = displayDate(
-        nullableStringValue(data, 'valid_until'),
-      );
-      _customerRefNoController.text = stringValue(
-        data,
-        'customer_reference_no',
-      );
-      _customerRefDateController.text = displayDate(
-        nullableStringValue(data, 'customer_reference_date'),
-      );
-      _currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
-      _exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
-      _notesController.text = stringValue(data, 'notes');
-      _termsController.text = stringValue(data, 'terms_conditions');
-      _isActive = boolValue(data, 'is_active', fallback: true);
-      _crmOpportunityId = intValue(data, 'crm_opportunity_id');
-      _lines = lines.isEmpty
-          ? <_QuotationLineDraft>[_QuotationLineDraft()]
-          : lines;
-      _formError = null;
-    });
-    await _refreshSalesChain();
-  }
-
-  void _resetForm() {
-    for (final line in _lines) {
-      line.dispose();
-    }
-    final series = _seriesOptions();
-    setState(() {
-      _selectedItem = null;
-      _companyId = _contextCompanyId;
-      _branchId = _contextBranchId;
-      _locationId = _contextLocationId;
-      _financialYearId = _contextFinancialYearId;
-      _documentSeriesId = series.isNotEmpty ? series.first.id : null;
-      _customerPartyId = null;
-      _quotationNoController.clear();
-      _quotationDateController.text = DateTime.now()
-          .toIso8601String()
-          .split('T')
-          .first;
-      _validUntilController.clear();
-      _customerRefNoController.clear();
-      _customerRefDateController.clear();
-      _currencyCodeController.text = 'INR';
-      _exchangeRateController.text = '1';
-      _notesController.clear();
-      _termsController.clear();
-      _isActive = true;
-      _lines = <_QuotationLineDraft>[_QuotationLineDraft()];
-      _formError = null;
-      _crmOpportunityId = null;
-      _salesChain = null;
-    });
-  }
-
-  Future<void> _refreshSalesChain() async {
-    final savedId = intValue(_selectedItem?.toJson() ?? const {}, 'id');
-    try {
-      if (savedId != null) {
-        final r = await _crmService.salesChain(quotationId: savedId);
-        if (!mounted) {
-          return;
-        }
-        setState(() => _salesChain = r.data);
-        return;
-      }
-      if (_crmOpportunityId != null) {
-        final r = await _crmService.salesChain(
-          opportunityId: _crmOpportunityId,
-        );
-        if (!mounted) {
-          return;
-        }
-        setState(() => _salesChain = r.data);
-        return;
-      }
-      if (!mounted) {
-        return;
-      }
-      setState(() => _salesChain = null);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _salesChain = null);
-    }
-  }
-
-  Future<void> _applyOpportunityBootstrap(int opportunityId) async {
-    try {
-      final response = await _crmService.opportunity(opportunityId);
-      if (!mounted || response.data == null) {
-        return;
-      }
-      final od = response.data!.toJson();
-      final enq = od['enquiry'];
-      if (enq is! Map) {
-        return;
-      }
-      final e = Map<String, dynamic>.from(enq);
-      final cid = intValue(e, 'company_id');
-      final partyId = intValue(e, 'customer_party_id');
-      setState(() {
-        _crmOpportunityId = opportunityId;
-        if (cid != null) {
-          _companyId = cid;
-        }
-        if (partyId != null) {
-          _customerPartyId = partyId;
-        }
-        final note =
-            'Linked CRM opportunity: ${stringValue(od, 'opportunity_name')}'
-                .trim();
-        if (note.isNotEmpty && _notesController.text.trim().isEmpty) {
-          _notesController.text = note;
-        }
-      });
-      await _refreshSalesChain();
-    } catch (_) {
-      /* optional bootstrap */
-    }
-  }
-
-  void _applyFilters() {
-    final search = _searchController.text.trim().toLowerCase();
-    setState(() {
-      _filteredItems = _items
-          .where((item) {
-            final data = item.toJson();
-            final statusOk =
-                _statusFilter.isEmpty ||
-                stringValue(data, 'quotation_status') == _statusFilter;
-            final cust = quotationCustomerLabel(data);
-            final searchOk =
-                search.isEmpty ||
-                [
-                  stringValue(data, 'quotation_no'),
-                  stringValue(data, 'quotation_status'),
-                  cust,
-                ].join(' ').toLowerCase().contains(search);
-            return statusOk && searchOk;
-          })
-          .toList(growable: false);
-    });
-  }
-
-  List<UomModel> _uomOptionsForItem(int? itemId) {
-    final item = _itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
+    _controllerTag = persistentControllerTag(
+      'SalesQuotationManagementController',
     );
-    return allowedUomsForItem(item, _uoms, _uomConversions);
-  }
-
-  String get _currencyCodeForTaxSummary {
-    final currency = _currencyCodeController.text.trim();
-    return currency.isEmpty ? 'INR' : currency;
-  }
-
-  SalesLineTaxBreakdown _taxBreakdownForLine(_QuotationLineDraft line) {
-    return computeSalesLineTaxBreakdown(
-      qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
-      rate: double.tryParse(line.rateController.text.trim()) ?? 0,
-      discountPercent:
-          double.tryParse(line.discountController.text.trim()) ?? 0,
-      taxCode: salesTaxCodeById(_taxCodes, line.taxCodeId),
-    );
-  }
-
-  SalesDocumentTaxSummary _taxSummary() {
-    return summarizeSalesLineTaxes(_lines.map(_taxBreakdownForLine));
-  }
-
-  Widget _buildTaxSummaryCard(BuildContext context) {
-    final summary = _taxSummary();
-    return GstSummaryCard(
-      taxable: summary.taxable,
-      cgst: summary.cgst,
-      sgst: summary.sgst,
-      igst: summary.igst,
-      cess: summary.cess,
-      total: summary.total,
-      currencyCode: _currencyCodeForTaxSummary,
-    );
-  }
-
-  Map<String, dynamic> _linePayload(_QuotationLineDraft line) {
-    final payload = line.toJson();
-    final breakdown = _taxBreakdownForLine(line);
-    return <String, dynamic>{
-      ...payload,
-      'discount_amount': roundToDouble(breakdown.gross - breakdown.taxable, 2),
-      'gross_amount': roundToDouble(breakdown.gross, 2),
-      'taxable_amount': roundToDouble(breakdown.taxable, 2),
-      'tax_percent': roundToDouble(breakdown.taxPercent, 4),
-      'cgst_amount': roundToDouble(breakdown.cgst, 2),
-      'sgst_amount': roundToDouble(breakdown.sgst, 2),
-      'igst_amount': roundToDouble(breakdown.igst, 2),
-      'cess_amount': roundToDouble(breakdown.cess, 2),
-      'line_total': roundToDouble(breakdown.total, 2),
-    };
-  }
-
-  DocumentPrintDataModel _quotationPrintData() {
-    final summary = _taxSummary();
-    final selected = _selectedItem?.toJson() ?? const <String, dynamic>{};
-    final company = _companies.cast<CompanyModel?>().firstWhere(
-      (item) => item?.id == _companyId,
-      orElse: () => null,
-    );
-    final customer = _customers.cast<PartyModel?>().firstWhere(
-      (item) => item?.id == _customerPartyId,
-      orElse: () => null,
-    );
-    final customerData = selected['customer'] is Map<String, dynamic>
-        ? Map<String, dynamic>.from(
-            selected['customer'] as Map<String, dynamic>,
-          )
-        : customer?.toJson() ?? const <String, dynamic>{};
-    final gstBreakupGroups = <String, dynamic>{};
-    final lines = _lines
-        .where((line) => line.itemId != null && line.itemId! > 0)
-        .map((line) {
-          final item = _itemsLookup.cast<ItemModel?>().firstWhere(
-            (entry) => entry?.id == line.itemId,
-            orElse: () => null,
-          );
-          final breakdown = _taxBreakdownForLine(line);
-          accumulatePrintTemplateGstBreakup(
-            gstBreakupGroups,
-            taxCode: salesTaxCodeById(_taxCodes, line.taxCodeId),
-            taxPercent: breakdown.taxPercent,
-            taxable: breakdown.taxable,
-            cgst: breakdown.cgst,
-            sgst: breakdown.sgst,
-            igst: breakdown.igst,
-            cess: breakdown.cess,
-          );
-          return DocumentPrintLineModel(
-            itemName:
-                item?.itemName ??
-                item?.itemCode ??
-                line.descriptionController.text.trim(),
-            description: line.descriptionController.text.trim(),
-            qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
-            rate: double.tryParse(line.rateController.text.trim()) ?? 0,
-            taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
-            lineTotal: roundToDouble(breakdown.taxable, 2),
-          );
-        })
-        .toList(growable: false);
-    final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
-
-    return DocumentPrintDataModel(
-      companyName: companyNameById(_companies, _companyId),
-      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
-      companyGstin: company?.gstin ?? '',
-      documentNumber: nullIfEmpty(_quotationNoController.text) ?? 'Draft',
-      documentDate: _quotationDateController.text.trim(),
-      referenceNumber: _customerRefNoController.text.trim(),
-      partyName: stringValue(customerData, 'party_name').isNotEmpty
-          ? stringValue(customerData, 'party_name')
-          : quotationCustomerLabel(selected),
-      partyAddress: stringValue(customerData, 'address_line1'),
-      partyContact: stringValue(customerData, 'mobile_no'),
-      partyGstin: stringValue(customerData, 'gstin'),
-      notes: _notesController.text.trim(),
-      termsConditions: _termsController.text.trim(),
-      subtotal: roundToDouble(summary.taxable, 2),
-      taxAmount: roundToDouble(totalTax, 2),
-      totalAmount: roundToDouble(summary.total, 2),
-      amountInWords: printTemplateAmountInWords(
-        roundToDouble(summary.total, 2),
-        _currencyCodeController.text.trim().isEmpty
-            ? 'INR'
-            : _currencyCodeController.text.trim(),
-      ),
-      lines: lines,
-      gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
-    );
-  }
-
-  Future<void> _openPrintPreview() {
-    return openDocumentPrintDesigner(
-      context,
-      documentType: 'sales_quotation',
-      title: 'Quotation',
-      documentData: _quotationPrintData(),
-    );
-  }
-
-  void _addLine() {
-    setState(() {
-      _lines = List<_QuotationLineDraft>.from(_lines)
-        ..add(_QuotationLineDraft());
-    });
-  }
-
-  void _removeLine(int index) {
-    setState(() {
-      final next = List<_QuotationLineDraft>.from(_lines);
-      next.removeAt(index).dispose();
-      _lines = next.isEmpty
-          ? <_QuotationLineDraft>[_QuotationLineDraft()]
-          : next;
-    });
-  }
-
-  Future<void> _save() async {
-    if (!_canEdit) {
-      setState(() {
-        _formError = 'Only draft quotations can be updated.';
-      });
-      return;
-    }
-
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_lines.any(
-      (line) =>
-          line.itemId == null ||
-          line.uomId == null ||
-          (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
+    if (!Get.isRegistered<SalesQuotationManagementController>(
+      tag: _controllerTag,
     )) {
-      setState(() => _formError = 'Each line needs item, UOM, and quantity.');
-      return;
+      Get.put(SalesQuotationManagementController(), tag: _controllerTag);
     }
-
-    setState(() {
-      _saving = true;
-      _formError = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(
+        _controller.initialize(
+          initialId: widget.initialId,
+          initialCrmOpportunityId: widget.initialCrmOpportunityId,
+          editorOnly: widget.editorOnly,
+        ),
+      );
     });
-
-    final taxSummary = _taxSummary();
-    final payload = <String, dynamic>{
-      'company_id': _companyId,
-      'branch_id': _branchId,
-      'location_id': _locationId,
-      'financial_year_id': _financialYearId,
-      'document_series_id': _documentSeriesId,
-      'quotation_no': nullIfEmpty(_quotationNoController.text),
-      'quotation_date': _quotationDateController.text.trim(),
-      'valid_until': nullIfEmpty(_validUntilController.text),
-      'customer_party_id': _customerPartyId,
-      'customer_reference_no': nullIfEmpty(_customerRefNoController.text),
-      'customer_reference_date': nullIfEmpty(_customerRefDateController.text),
-      'currency_code': nullIfEmpty(_currencyCodeController.text) ?? 'INR',
-      'exchange_rate':
-          double.tryParse(_exchangeRateController.text.trim()) ?? 1,
-      'taxable_amount': roundToDouble(taxSummary.taxable, 2),
-      'cgst_amount': roundToDouble(taxSummary.cgst, 2),
-      'sgst_amount': roundToDouble(taxSummary.sgst, 2),
-      'igst_amount': roundToDouble(taxSummary.igst, 2),
-      'cess_amount': roundToDouble(taxSummary.cess, 2),
-      'total_amount': roundToDouble(taxSummary.total, 2),
-      'notes': nullIfEmpty(_notesController.text),
-      'terms_conditions': nullIfEmpty(_termsController.text),
-      'is_active': _isActive,
-      'lines': _lines.map(_linePayload).toList(growable: false),
-    };
-    if (_crmOpportunityId != null) {
-      payload['crm_opportunity_id'] = _crmOpportunityId;
-    }
-
-    try {
-      final response = _selectedItem == null
-          ? await _salesService.createQuotation(
-              SalesQuotationModel.fromJson(payload),
-            )
-          : await _salesService.updateQuotation(
-              intValue(_selectedItem!.toJson(), 'id')!,
-              SalesQuotationModel.fromJson(payload),
-            );
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _formError = _errorMessage(error));
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
-  }
-
-  Future<void> _docAction(
-    Future<ApiResponse<SalesQuotationModel>> Function() action,
-  ) async {
-    try {
-      final response = await action();
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _formError = _errorMessage(error));
-    }
-  }
-
-  Future<void> _delete() async {
-    final id = intValue(_selectedItem?.toJson() ?? const {}, 'id');
-    if (id == null) {
-      return;
-    }
-    try {
-      final response = await _salesService.deleteQuotation(id);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _formError = _errorMessage(error));
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final actions = <Widget>[
-      AdaptiveShellActionButton(
-        onPressed: () {
-          _resetForm();
-          if (!Responsive.isDesktop(context)) {
-            _workspaceController.openEditor();
-          }
-        },
-        icon: Icons.add_outlined,
-        label: 'New Quote',
-      ),
-    ];
-    final content = _buildContent();
-    if (widget.embedded) {
-      return ShellPageActions(actions: actions, child: content);
-    }
-    return AppStandaloneShell(
-      title: 'Sales Quotations',
-      scrollController: _pageScrollController,
-      actions: actions,
-      child: content,
+    return GetBuilder<SalesQuotationManagementController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () {
+              controller.resetForm();
+              if (!Responsive.isDesktop(context)) {
+                controller.workspaceController.openEditor();
+              }
+            },
+            icon: Icons.add_outlined,
+            label: 'New Quote',
+          ),
+        ];
+        final content = _buildContent(context, controller);
+        if (widget.embedded) {
+          return ShellPageActions(actions: actions, child: content);
+        }
+        return AppStandaloneShell(
+          title: 'Sales Quotations',
+          scrollController: controller.pageScrollController,
+          actions: actions,
+          child: content,
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
-    if (_initialLoading) {
+  Future<void> _openPrintPreview(
+    BuildContext context,
+    SalesQuotationManagementController controller,
+  ) {
+    return openDocumentPrintDesigner(
+      context,
+      documentType: 'sales_quotation',
+      title: 'Quotation',
+      documentData: controller.quotationPrintData(),
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    SalesQuotationManagementController controller,
+  ) {
+    if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading quotations...');
     }
-    if (_pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load quotations',
-        message: _pageError!,
-        onRetry: _loadPage,
+        message: controller.pageError!,
+        onRetry: controller.loadPage,
       );
     }
 
-    final sel = _selectedItem?.toJson() ?? const {};
-    final totalStr = stringValue(sel, 'total_amount');
+    final selected = controller.selectedItem?.toJson() ?? const {};
+    final totalStr = stringValue(selected, 'total_amount');
 
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Sales Quotations',
-      editorTitle: _selectedItem == null
+      editorTitle: controller.selectedItem == null
           ? 'New Quotation'
-          : stringValue(sel, 'quotation_no', 'Quotation'),
+          : stringValue(selected, 'quotation_no', 'Quotation'),
       editorOnly: widget.editorOnly,
-      scrollController: _pageScrollController,
+      scrollController: controller.pageScrollController,
       list: PurchaseListCard<SalesQuotationModel>(
-        items: _filteredItems,
-        selectedItem: _selectedItem,
+        items: controller.filteredItems,
+        selectedItem: controller.selectedItem,
         emptyMessage: 'No quotations yet.',
-        searchController: _searchController,
+        searchController: controller.searchController,
         searchHint: 'Search by number or customer',
-        statusValue: _statusFilter,
-        statusItems: _listStatusFilter,
-        onStatusChanged: (value) {
-          _statusFilter = value ?? '';
-          _applyFilters();
-        },
+        statusValue: controller.statusFilter,
+        statusItems: SalesQuotationManagementController.listStatusFilter,
+        onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(
@@ -862,27 +147,30 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: quotationCustomerLabel(data),
             selected: selected,
-            onTap: () => _selectDocument(item),
+            onTap: () => controller.selectDocument(item),
           );
         },
       ),
       editor: Form(
-        key: _formKey,
+        key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_formError != null) ...[
-              AppErrorStateView.inline(message: _formError!),
+            if (controller.formError != null) ...[
+              AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            CrmSalesPipelineBar(data: _salesChain, hideQuotationChip: true),
-            if (_selectedItem != null && totalStr.isNotEmpty)
+            CrmSalesPipelineBar(
+              data: controller.salesChain,
+              hideQuotationChip: true,
+            ),
+            if (controller.selectedItem != null && totalStr.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
                 child: Text(
-                  'Total: $totalStr ${_currencyCodeController.text.trim().isEmpty ? 'INR' : _currencyCodeController.text.trim()} · Status: ${_status.toUpperCase()}',
+                  'Total: $totalStr ${controller.currencyCodeController.text.trim().isEmpty ? 'INR' : controller.currencyCodeController.text.trim()} · Status: ${controller.status.toUpperCase()}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -892,7 +180,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
-                  mappedItems: _financialYears
+                  mappedItems: controller.financialYears
                       .where((item) => item.id != null)
                       .map(
                         (item) => AppDropdownItem(
@@ -901,24 +189,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                         ),
                       )
                       .toList(growable: false),
-                  initialValue: _financialYearId,
-                  onChanged: (value) {
-                    if (!_canEdit) {
-                      return;
-                    }
-                    setState(() {
-                      _financialYearId = value;
-                      final options = _seriesOptions();
-                      _documentSeriesId = options.isNotEmpty
-                          ? options.first.id
-                          : null;
-                    });
-                  },
+                  initialValue: controller.financialYearId,
+                  onChanged: controller.setFinancialYearId,
                   validator: Validators.requiredSelection('Financial Year'),
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Document Series',
-                  mappedItems: _seriesOptions()
+                  mappedItems: controller
+                      .seriesOptions()
                       .where((item) => item.id != null)
                       .map(
                         (item) => AppDropdownItem(
@@ -927,27 +205,22 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                         ),
                       )
                       .toList(growable: false),
-                  initialValue: _documentSeriesId,
-                  onChanged: (value) {
-                    if (!_canEdit) {
-                      return;
-                    }
-                    setState(() => _documentSeriesId = value);
-                  },
+                  initialValue: controller.documentSeriesId,
+                  onChanged: controller.setDocumentSeriesId,
                 ),
                 AppFormTextField(
                   labelText: 'Quotation No',
-                  controller: _quotationNoController,
+                  controller: controller.quotationNoController,
                   hintText: 'Leave blank if your series fills this in',
-                  enabled: _canEdit,
+                  enabled: controller.canEdit,
                   validator: Validators.optionalMaxLength(100, 'Quotation No'),
                 ),
                 AppFormTextField(
                   labelText: 'Quotation Date',
-                  controller: _quotationDateController,
+                  controller: controller.quotationDateController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
-                  enabled: _canEdit,
+                  enabled: controller.canEdit,
                   validator: Validators.compose([
                     Validators.required('Quotation Date'),
                     Validators.date('Quotation Date'),
@@ -955,15 +228,15 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                 ),
                 AppFormTextField(
                   labelText: 'Valid Until',
-                  controller: _validUntilController,
+                  controller: controller.validUntilController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
-                  enabled: _canEdit,
+                  enabled: controller.canEdit,
                   validator: Validators.compose([
                     Validators.optionalDate('Valid Until'),
                     Validators.optionalDateOnOrAfter(
                       'Valid Until',
-                      () => _quotationDateController.text.trim(),
+                      () => controller.quotationDateController.text.trim(),
                       startFieldName: 'Quotation Date',
                     ),
                   ]),
@@ -982,7 +255,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     );
                     openModuleShellRoute(context, uri.toString());
                   },
-                  mappedItems: _customers
+                  mappedItems: controller.customers
                       .where((item) => item.id != null)
                       .map(
                         (item) => AppDropdownItem(
@@ -991,68 +264,61 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                         ),
                       )
                       .toList(growable: false),
-                  initialValue: _customerPartyId,
-                  onChanged: (value) {
-                    if (!_canEdit) {
-                      return;
-                    }
-                    setState(() => _customerPartyId = value);
-                  },
+                  initialValue: controller.customerPartyId,
+                  onChanged: controller.setCustomerPartyId,
                   validator: Validators.requiredSelection('Customer'),
                 ),
                 AppFormTextField(
                   labelText: 'Customer PO / Ref',
-                  controller: _customerRefNoController,
-                  enabled: _canEdit,
+                  controller: controller.customerRefNoController,
+                  enabled: controller.canEdit,
                   validator: Validators.optionalMaxLength(100, 'Reference'),
                 ),
                 AppFormTextField(
                   labelText: 'Customer Ref Date',
-                  controller: _customerRefDateController,
+                  controller: controller.customerRefDateController,
                   keyboardType: TextInputType.datetime,
                   inputFormatters: const [DateInputFormatter()],
-                  enabled: _canEdit,
+                  enabled: controller.canEdit,
                   validator: Validators.optionalDate('Customer Ref Date'),
                 ),
                 AppFormTextField(
                   labelText: 'Currency',
-                  controller: _currencyCodeController,
-                  enabled: _canEdit,
-                  onChanged: (_) => setState(() {}),
+                  controller: controller.currencyCodeController,
+                  enabled: controller.canEdit,
+                  onChanged: (_) => controller.refreshComputedState(),
                   validator: Validators.optionalMaxLength(10, 'Currency'),
                 ),
                 AppFormTextField(
                   labelText: 'Exchange Rate',
-                  controller: _exchangeRateController,
+                  controller: controller.exchangeRateController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  enabled: _canEdit,
+                  enabled: controller.canEdit,
                   validator: Validators.optionalNonNegativeNumber(
                     'Exchange Rate',
                   ),
                 ),
                 AppFormTextField(
                   labelText: 'Notes (shown to customer)',
-                  controller: _notesController,
+                  controller: controller.notesController,
                   maxLines: 3,
-                  enabled: _canEdit,
+                  enabled: controller.canEdit,
                 ),
                 AppFormTextField(
                   labelText: 'Terms & Conditions',
-                  controller: _termsController,
+                  controller: controller.termsController,
                   maxLines: 3,
-                  enabled: _canEdit,
+                  enabled: controller.canEdit,
                 ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
             AppSwitchTile(
               label: 'Active',
-              value: _isActive,
-              onChanged: _canEdit
-                  ? (value) => setState(() => _isActive = value)
-                  : null,
+              value: controller.isActive,
+              onChanged: controller.canEdit ? controller.setIsActive : null,
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
             Row(
@@ -1067,24 +333,27 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                 AppActionButton(
                   icon: Icons.add_outlined,
                   label: 'Add line',
-                  onPressed: _canEdit ? _addLine : null,
+                  onPressed: controller.canEdit ? controller.addLine : null,
                   filled: false,
                 ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(_lines.length, (index) {
-              final line = _lines[index];
-              final breakdown = _taxBreakdownForLine(line);
+            ...List<Widget>.generate(controller.lines.length, (index) {
+              final line = controller.lines[index];
+              final breakdown = controller.taxBreakdownForLine(line);
               return Padding(
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),
                 child: PurchaseCompactLineCard(
                   index: index,
-                  total: _lines.length,
-                  removeEnabled: _canEdit && _lines.length > 1,
-                  onRemove: _canEdit ? () => _removeLine(index) : null,
+                  total: controller.lines.length,
+                  removeEnabled:
+                      controller.canEdit && controller.lines.length > 1,
+                  onRemove: controller.canEdit
+                      ? () => controller.removeLine(index)
+                      : null,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1092,14 +361,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                         children: [
                           AppSearchPickerField<int>(
                             labelText: 'Item',
-                            selectedLabel: _itemsLookup
+                            selectedLabel: controller.itemsLookup
                                 .cast<ItemModel?>()
                                 .firstWhere(
                                   (item) => item?.id == line.itemId,
                                   orElse: () => null,
                                 )
                                 ?.toString(),
-                            options: _itemsLookup
+                            options: controller.itemsLookup
                                 .where((item) => item.id != null)
                                 .map(
                                   (item) => AppSearchPickerOption<int>(
@@ -1109,36 +378,17 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                                   ),
                                 )
                                 .toList(growable: false),
-                            onChanged: (value) {
-                              if (!_canEdit) {
-                                return;
-                              }
-                              setState(() {
-                                line.itemId = value;
-                                final item = _itemsLookup
-                                    .cast<ItemModel?>()
-                                    .firstWhere(
-                                      (e) => e?.id == value,
-                                      orElse: () => null,
-                                    );
-                                applySalesLineDefaultsFromItemMaster(
-                                  item: item,
-                                  uoms: _uoms,
-                                  conversions: _uomConversions,
-                                  rateController: line.rateController,
-                                  setUom: (u) => line.uomId = u,
-                                  currentUomId: line.uomId,
-                                  setTaxCodeId: (t) => line.taxCodeId = t,
-                                );
-                              });
-                            },
+                            onChanged: (value) =>
+                                controller.setLineItemId(index, value),
                             validator: (_) =>
                                 line.itemId == null ? 'Item is required' : null,
                           ),
                           Builder(
                             builder: (context) {
-                              final options = _uomOptionsForItem(line.itemId);
-                              if (_canEdit && options.length == 1) {
+                              final options = controller.uomOptionsForItem(
+                                line.itemId,
+                              );
+                              if (controller.canEdit && options.length == 1) {
                                 final onlyId = options.first.id;
                                 if (line.uomId != onlyId) {
                                   line.uomId = onlyId;
@@ -1156,12 +406,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                                     )
                                     .toList(growable: false),
                                 initialValue: line.uomId,
-                                onChanged: (value) {
-                                  if (!_canEdit) {
-                                    return;
-                                  }
-                                  setState(() => line.uomId = value);
-                                },
+                                onChanged: (value) =>
+                                    controller.setLineUomId(index, value),
                                 validator: (_) {
                                   if (line.itemId == null) {
                                     return 'Select item first';
@@ -1176,8 +422,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                           AppFormTextField(
                             labelText: 'Qty',
                             controller: line.qtyController,
-                            enabled: _canEdit,
-                            onChanged: (_) => setState(() {}),
+                            enabled: controller.canEdit,
+                            onChanged: (_) => controller.refreshComputedState(),
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
@@ -1189,8 +435,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                           AppFormTextField(
                             labelText: 'Rate',
                             controller: line.rateController,
-                            enabled: _canEdit,
-                            onChanged: (_) => setState(() {}),
+                            enabled: controller.canEdit,
+                            onChanged: (_) => controller.refreshComputedState(),
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
@@ -1202,8 +448,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                           AppFormTextField(
                             labelText: 'Discount %',
                             controller: line.discountController,
-                            enabled: _canEdit,
-                            onChanged: (_) => setState(() {}),
+                            enabled: controller.canEdit,
+                            onChanged: (_) => controller.refreshComputedState(),
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
@@ -1213,7 +459,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                           ),
                           AppDropdownField<int>.fromMapped(
                             labelText: 'Tax code',
-                            mappedItems: _taxCodes
+                            mappedItems: controller.taxCodes
                                 .where((item) => item.id != null)
                                 .map(
                                   (item) => AppDropdownItem(
@@ -1223,22 +469,18 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                                 )
                                 .toList(growable: false),
                             initialValue: line.taxCodeId,
-                            onChanged: (value) {
-                              if (!_canEdit) {
-                                return;
-                              }
-                              setState(() => line.taxCodeId = value);
-                            },
+                            onChanged: (value) =>
+                                controller.setLineTaxCodeId(index, value),
                           ),
                           AppFormTextField(
                             labelText: 'Description',
                             controller: line.descriptionController,
-                            enabled: _canEdit,
+                            enabled: controller.canEdit,
                           ),
                           AppFormTextField(
                             labelText: 'Remarks',
                             controller: line.remarksController,
-                            enabled: _canEdit,
+                            enabled: controller.canEdit,
                             maxLines: 2,
                           ),
                         ],
@@ -1252,9 +494,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                         igst: breakdown.igst,
                         cess: breakdown.cess,
                         total: breakdown.total,
-                        currencyCode: _currencyCodeForTaxSummary,
+                        currencyCode: controller.currencyCodeForTaxSummary,
                         taxCodeLabel: salesTaxCodeById(
-                          _taxCodes,
+                          controller.taxCodes,
                           line.taxCodeId,
                         )?.toString(),
                       ),
@@ -1264,7 +506,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               );
             }),
             const SizedBox(height: AppUiConstants.spacingMd),
-            _buildTaxSummaryCard(context),
+            _buildTaxSummaryCard(controller),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
@@ -1274,60 +516,67 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   icon: Icons.print_outlined,
                   label: 'Print',
                   filled: false,
-                  onPressed: _openPrintPreview,
+                  onPressed: () => _openPrintPreview(context, controller),
                 ),
                 AppActionButton(
                   icon: Icons.save_outlined,
-                  label: _selectedItem == null ? 'Save quote' : 'Update quote',
-                  onPressed: _canEdit ? _save : null,
-                  busy: _saving,
+                  label: controller.selectedItem == null
+                      ? 'Save quote'
+                      : 'Update quote',
+                  onPressed: controller.canEdit
+                      ? () => controller.save(context)
+                      : null,
+                  busy: controller.saving,
                 ),
-                if (_selectedItem != null &&
+                if (controller.selectedItem != null &&
                     !const {
                       'rejected',
                       'expired',
                       'cancelled',
-                    }.contains(_status)) ...[
-                  if (_status == 'draft')
+                    }.contains(controller.status)) ...[
+                  if (controller.status == 'draft')
                     AppActionButton(
                       icon: Icons.publish_outlined,
                       label: 'Post',
                       filled: false,
-                      onPressed: () => _docAction(
-                        () => _salesService.postQuotation(
-                          intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel.fromJson(
-                            const <String, dynamic>{},
-                          ),
-                        ),
-                      ),
+                      onPressed: () => controller.postSelected(context),
                     ),
-                  if (const {'posted', 'sent', 'accepted'}.contains(_status))
+                  if (const {
+                    'posted',
+                    'sent',
+                    'accepted',
+                  }.contains(controller.status))
                     AppActionButton(
                       icon: Icons.shopping_cart_outlined,
                       label: 'Sales order',
                       filled: false,
                       onPressed: () {
-                        final id = intValue(_selectedItem!.toJson(), 'id');
-                        if (id == null) {
-                          return;
-                        }
+                        final id = intValue(
+                          controller.selectedItem!.toJson(),
+                          'id',
+                        );
+                        if (id == null) return;
                         _openSalesShellRoute(
                           context,
                           '/sales/orders/new?quotation_id=$id',
                         );
                       },
                     ),
-                  if (const {'posted', 'sent', 'accepted'}.contains(_status))
+                  if (const {
+                    'posted',
+                    'sent',
+                    'accepted',
+                  }.contains(controller.status))
                     AppActionButton(
                       icon: Icons.receipt_long_outlined,
                       label: 'Invoice',
                       filled: false,
                       onPressed: () {
-                        final id = intValue(_selectedItem!.toJson(), 'id');
-                        if (id == null) {
-                          return;
-                        }
+                        final id = intValue(
+                          controller.selectedItem!.toJson(),
+                          'id',
+                        );
+                        if (id == null) return;
                         _openSalesShellRoute(
                           context,
                           '/sales/invoices/new?quotation_id=$id',
@@ -1335,83 +584,51 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       },
                     ),
                 ],
-                if (_selectedItem != null) ...[
-                  if (_status == 'draft') ...[
+                if (controller.selectedItem != null) ...[
+                  if (controller.status == 'draft')
                     AppActionButton(
                       icon: Icons.delete_outline,
                       label: 'Delete',
                       filled: false,
-                      onPressed: _delete,
+                      onPressed: () => controller.deleteSelected(context),
                     ),
-                  ],
-                  if (_status == 'posted')
+                  if (controller.status == 'posted')
                     AppActionButton(
                       icon: Icons.send_outlined,
                       label: 'Send to customer',
                       filled: false,
-                      onPressed: () => _docAction(
-                        () => _salesService.sendQuotation(
-                          intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel.fromJson(
-                            const <String, dynamic>{},
-                          ),
-                        ),
-                      ),
+                      onPressed: () => controller.sendSelected(context),
                     ),
-                  if (_status == 'sent') ...[
+                  if (controller.status == 'sent') ...[
                     AppActionButton(
                       icon: Icons.check_circle_outline,
                       label: 'Mark accepted',
                       filled: false,
-                      onPressed: () => _docAction(
-                        () => _salesService.acceptQuotation(
-                          intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel.fromJson(
-                            const <String, dynamic>{},
-                          ),
-                        ),
-                      ),
+                      onPressed: () => controller.acceptSelected(context),
                     ),
                     AppActionButton(
                       icon: Icons.cancel_outlined,
                       label: 'Reject',
                       filled: false,
-                      onPressed: () => _docAction(
-                        () => _salesService.rejectQuotation(
-                          intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel.fromJson(
-                            const <String, dynamic>{},
-                          ),
-                        ),
-                      ),
+                      onPressed: () => controller.rejectSelected(context),
                     ),
                     AppActionButton(
                       icon: Icons.timer_off_outlined,
                       label: 'Expire',
                       filled: false,
-                      onPressed: () => _docAction(
-                        () => _salesService.expireQuotation(
-                          intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel.fromJson(
-                            const <String, dynamic>{},
-                          ),
-                        ),
-                      ),
+                      onPressed: () => controller.expireSelected(context),
                     ),
                   ],
-                  if (const {'draft', 'posted', 'sent'}.contains(_status))
+                  if (const {
+                    'draft',
+                    'posted',
+                    'sent',
+                  }.contains(controller.status))
                     AppActionButton(
                       icon: Icons.block_outlined,
                       label: 'Cancel quote',
                       filled: false,
-                      onPressed: () => _docAction(
-                        () => _salesService.cancelQuotation(
-                          intValue(_selectedItem!.toJson(), 'id')!,
-                          SalesQuotationModel.fromJson(
-                            const <String, dynamic>{},
-                          ),
-                        ),
-                      ),
+                      onPressed: () => controller.cancelSelected(context),
                     ),
                 ],
               ],
@@ -1421,68 +638,17 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       ),
     );
   }
-}
 
-class _QuotationLineDraft {
-  _QuotationLineDraft({
-    this.id,
-    this.itemId,
-    this.uomId,
-    this.taxCodeId,
-    String? description,
-    String? qty,
-    String? rate,
-    String? discountPercent,
-    String? remarks,
-  }) : descriptionController = TextEditingController(text: description ?? ''),
-       qtyController = TextEditingController(text: qty ?? ''),
-       rateController = TextEditingController(text: rate ?? ''),
-       discountController = TextEditingController(text: discountPercent ?? ''),
-       remarksController = TextEditingController(text: remarks ?? '');
-
-  factory _QuotationLineDraft.fromJson(Map<String, dynamic> json) {
-    return _QuotationLineDraft(
-      id: intValue(json, 'id'),
-      itemId: intValue(json, 'item_id'),
-      uomId: intValue(json, 'uom_id'),
-      taxCodeId: intValue(json, 'tax_code_id'),
-      description: stringValue(json, 'description'),
-      qty: stringValue(json, 'qty'),
-      rate: stringValue(json, 'rate'),
-      discountPercent: stringValue(json, 'discount_percent'),
-      remarks: stringValue(json, 'remarks'),
+  Widget _buildTaxSummaryCard(SalesQuotationManagementController controller) {
+    final summary = controller.taxSummary();
+    return GstSummaryCard(
+      taxable: summary.taxable,
+      cgst: summary.cgst,
+      sgst: summary.sgst,
+      igst: summary.igst,
+      cess: summary.cess,
+      total: summary.total,
+      currencyCode: controller.currencyCodeForTaxSummary,
     );
-  }
-
-  int? id;
-  int? itemId;
-  int? uomId;
-  int? taxCodeId;
-  final TextEditingController descriptionController;
-  final TextEditingController qtyController;
-  final TextEditingController rateController;
-  final TextEditingController discountController;
-  final TextEditingController remarksController;
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      if (id != null) 'id': id,
-      'item_id': itemId,
-      'uom_id': uomId,
-      'tax_code_id': taxCodeId,
-      'description': nullIfEmpty(descriptionController.text),
-      'qty': double.tryParse(qtyController.text.trim()) ?? 0,
-      'rate': double.tryParse(rateController.text.trim()) ?? 0,
-      'discount_percent': double.tryParse(discountController.text.trim()) ?? 0,
-      'remarks': nullIfEmpty(remarksController.text),
-    };
-  }
-
-  void dispose() {
-    descriptionController.dispose();
-    qtyController.dispose();
-    rateController.dispose();
-    discountController.dispose();
-    remarksController.dispose();
   }
 }

@@ -47,12 +47,12 @@ Status legend:
 | Purchase | `lib/View/purchase/purchase_register_page.dart` | page | `done` | Migrated local pagination state to `PurchaseRegisterPageController` |
 | Purchase | `lib/View/purchase/purchase_requisition_page.dart` | page | `done` | Migrated to `PurchaseRequisitionManagementController` |
 | Purchase | `lib/View/purchase/purchase_return_page.dart` | page | `done` | Migrated to `PurchaseReturnManagementController` |
-| Sales | `lib/View/sales/sales_delivery_page.dart` | page | `pending` |  |
-| Sales | `lib/View/sales/sales_invoice_page.dart` | page | `pending` |  |
-| Sales | `lib/View/sales/sales_order_page.dart` | page | `pending` |  |
-| Sales | `lib/View/sales/sales_quotation_page.dart` | page | `pending` |  |
-| Sales | `lib/View/sales/sales_receipt_page.dart` | page | `pending` |  |
-| Sales | `lib/View/sales/sales_return_page.dart` | page | `pending` |  |
+| Sales | `lib/View/sales/sales_delivery_page.dart` | page | `done` |  |
+| Sales | `lib/View/sales/sales_invoice_page.dart` | page | `done` | Migrated to `SalesInvoiceManagementController` |
+| Sales | `lib/View/sales/sales_order_page.dart` | page | `done` |  |
+| Sales | `lib/View/sales/sales_quotation_page.dart` | page | `done` |  |
+| Sales | `lib/View/sales/sales_receipt_page.dart` | page | `done` |  |
+| Sales | `lib/View/sales/sales_return_page.dart` | page | `done` |  |
 | Settings Accounting | `lib/View/settings/accounting/budget_page.dart` | page | `done` | Migrated to `BudgetManagementController` |
 | Settings Accounting | `lib/View/settings/accounting/cash_session_page.dart` | page | `done` | Migrated to `CashSessionManagementController` |
 | Settings Accounting | `lib/View/settings/accounting/document_posting_page.dart` | page | `done` | Migrated to `DocumentPostingManagementController` |
@@ -93,8 +93,8 @@ Status legend:
 | Purchase | `lib/View/purchase/purchase_register_screens.dart` | widget/support | `pending` |  |
 | Purchase | `lib/View/purchase/purchase_support.dart` | widget/support | `pending` |  |
 | Quality | `lib/View/quality/quality_registers.dart` | widget/support | `pending` |  |
-| Sales | `lib/View/sales/sales_register_screens.dart` | widget/support | `pending` |  |
-| Sales | `lib/View/sales/sales_support.dart` | widget/support | `pending` |  |
+| Sales | `lib/View/sales/sales_register_screens.dart` | widget/support | `done` | Migrated register shell state to `SalesRegisterController` |
+| Sales | `lib/View/sales/sales_support.dart` | widget/support | `done` | Stateless helper utilities; no GetX migration needed |
 | Service | `lib/View/service/service_registers.dart` | widget/support | `pending` |  |
 | Settings | `lib/View/settings/widgets/settings_workspace.dart` | widget/support | `pending` |  |
 

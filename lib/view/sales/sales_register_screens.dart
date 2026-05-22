@@ -1,5 +1,9 @@
 import '../../screen.dart';
 
+typedef SalesRegisterLoader<T> = Future<dynamic> Function(SalesService service);
+typedef SalesRegisterMatcher<T> =
+    bool Function(T row, String query, String status);
+
 void _openSalesShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
   if (navigate != null) {
@@ -9,18 +13,168 @@ void _openSalesShellRoute(BuildContext context, String route) {
   Navigator.of(context).pushNamed(route);
 }
 
-class SalesQuotationRegisterPage extends StatefulWidget {
+String _salesCustomerName(Map<String, dynamic> data) {
+  final customer = data['customer'];
+  if (customer is Map) {
+    return stringValue(Map<String, dynamic>.from(customer), 'party_name');
+  }
+  return stringValue(data, 'customer_name');
+}
+
+class SalesRegisterController<T> extends GetxController {
+  SalesRegisterController({required this.loader, required this.matches});
+
+  final SalesRegisterLoader<T> loader;
+  final SalesRegisterMatcher<T> matches;
+  final SalesService _service = SalesService();
+  final TextEditingController searchController = TextEditingController();
+
+  bool loading = true;
+  String? error;
+  String status = '';
+  List<T> rows = <T>[];
+
+  List<T> get filteredRows {
+    final query = searchController.text.trim().toLowerCase();
+    return rows
+        .where((row) => matches(row, query, status))
+        .toList(growable: false);
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    searchController.addListener(update);
+    unawaited(load());
+  }
+
+  @override
+  void onClose() {
+    searchController
+      ..removeListener(update)
+      ..dispose();
+    super.onClose();
+  }
+
+  void setStatus(String value) {
+    status = value;
+    update();
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
+    try {
+      final response = await loader(_service);
+      final data = response.data;
+      rows = data is List<T>
+          ? data
+          : data is List
+          ? data.whereType<T>().toList(growable: false)
+          : <T>[];
+      loading = false;
+      update();
+    } catch (err) {
+      error = err.toString();
+      loading = false;
+      update();
+    }
+  }
+}
+
+class _SalesRegisterShell<T> extends StatefulWidget {
+  const _SalesRegisterShell({
+    required this.controllerName,
+    required this.title,
+    required this.embedded,
+    required this.loader,
+    required this.matches,
+    required this.emptyMessage,
+    required this.newRoute,
+    required this.newLabel,
+    required this.searchHint,
+    required this.statusItems,
+    required this.columns,
+    required this.rowRoute,
+  });
+
+  final String controllerName;
+  final String title;
+  final bool embedded;
+  final SalesRegisterLoader<T> loader;
+  final SalesRegisterMatcher<T> matches;
+  final String emptyMessage;
+  final String newRoute;
+  final String newLabel;
+  final String searchHint;
+  final List<AppDropdownItem<String>> statusItems;
+  final List<PurchaseRegisterColumn<T>> columns;
+  final String Function(T row) rowRoute;
+
+  @override
+  State<_SalesRegisterShell<T>> createState() => _SalesRegisterShellState<T>();
+}
+
+class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(widget.controllerName);
+    if (!Get.isRegistered<SalesRegisterController<T>>(tag: _controllerTag)) {
+      Get.put(
+        SalesRegisterController<T>(
+          loader: widget.loader,
+          matches: widget.matches,
+        ),
+        tag: _controllerTag,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<SalesRegisterController<T>>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<T>(
+          title: widget.title,
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: widget.emptyMessage,
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: () => _openSalesShellRoute(context, widget.newRoute),
+              icon: Icons.add_outlined,
+              label: widget.newLabel,
+            ),
+          ],
+          filters: _SalesRegisterFilters(
+            searchController: controller.searchController,
+            searchHint: widget.searchHint,
+            status: controller.status,
+            statusItems: widget.statusItems,
+            onStatusChanged: (value) => controller.setStatus(value ?? ''),
+          ),
+          rows: controller.filteredRows,
+          columns: widget.columns,
+          onRowTap: (row) =>
+              _openSalesShellRoute(context, widget.rowRoute(row)),
+        );
+      },
+    );
+  }
+}
+
+class SalesQuotationRegisterPage extends StatelessWidget {
   const SalesQuotationRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
-  @override
-  State<SalesQuotationRegisterPage> createState() =>
-      _SalesQuotationRegisterPageState();
-}
-
-class _SalesQuotationRegisterPageState
-    extends State<SalesQuotationRegisterPage> {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
@@ -32,102 +186,31 @@ class _SalesQuotationRegisterPageState
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
-  final SalesService _service = SalesService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String _status = '';
-  List<SalesQuotationModel> _rows = const <SalesQuotationModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.quotations(
-        filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <SalesQuotationModel>[];
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<SalesQuotationModel> get _filtered {
-    final query = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((row) {
-          final data = row.toJson();
-          final statusOk =
-              _status.isEmpty ||
-              stringValue(data, 'quotation_status') == _status;
-          final customer = data['customer'];
-          final custName = customer is Map
-              ? stringValue(Map<String, dynamic>.from(customer), 'party_name')
-              : '';
-          final searchOk =
-              query.isEmpty ||
-              [
-                stringValue(data, 'quotation_no'),
-                stringValue(data, 'quotation_status'),
-                custName,
-              ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<SalesQuotationModel>(
+    return _SalesRegisterShell<SalesQuotationModel>(
+      controllerName: 'SalesQuotationRegisterController',
       title: 'Quotations',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No quotations yet. Create a quote for your customer.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openSalesShellRoute(context, '/sales/quotations/new'),
-          icon: Icons.add_outlined,
-          label: 'New quotation',
-        ),
-      ],
-      filters: _SalesRegisterFilters(
-        searchController: _searchController,
-        searchHint: 'Search number or customer',
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: (value) => setState(() => _status = value ?? ''),
+      embedded: embedded,
+      loader: (service) => service.quotations(
+        filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
       ),
-      rows: _filtered,
+      matches: (row, query, status) {
+        final data = row.toJson();
+        final rowStatus = stringValue(data, 'quotation_status');
+        final searchText = [
+          stringValue(data, 'quotation_no'),
+          rowStatus,
+          _salesCustomerName(data),
+        ].join(' ').toLowerCase();
+        return (status.isEmpty || rowStatus == status) &&
+            (query.isEmpty || searchText.contains(query));
+      },
+      emptyMessage: 'No quotations yet. Create a quote for your customer.',
+      newRoute: '/sales/quotations/new',
+      newLabel: 'New quotation',
+      searchHint: 'Search number or customer',
+      statusItems: _statusItems,
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -141,14 +224,7 @@ class _SalesQuotationRegisterPageState
         PurchaseRegisterColumn(
           label: 'Customer',
           flex: 3,
-          valueBuilder: (row) {
-            final data = row.toJson();
-            final c = data['customer'];
-            if (c is Map) {
-              return stringValue(Map<String, dynamic>.from(c), 'party_name');
-            }
-            return '';
-          },
+          valueBuilder: (row) => _salesCustomerName(row.toJson()),
         ),
         PurchaseRegisterColumn(
           label: 'Valid until',
@@ -164,24 +240,16 @@ class _SalesQuotationRegisterPageState
           valueBuilder: (row) => stringValue(row.toJson(), 'total_amount'),
         ),
       ],
-      onRowTap: (row) => _openSalesShellRoute(
-        context,
-        '/sales/quotations/${intValue(row.toJson(), 'id')}',
-      ),
+      rowRoute: (row) => '/sales/quotations/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class SalesOrderRegisterPage extends StatefulWidget {
+class SalesOrderRegisterPage extends StatelessWidget {
   const SalesOrderRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
-  @override
-  State<SalesOrderRegisterPage> createState() => _SalesOrderRegisterPageState();
-}
-
-class _SalesOrderRegisterPageState extends State<SalesOrderRegisterPage> {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
@@ -194,101 +262,32 @@ class _SalesOrderRegisterPageState extends State<SalesOrderRegisterPage> {
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
-  final SalesService _service = SalesService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String _status = '';
-  List<SalesOrderModel> _rows = const <SalesOrderModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.orders(
-        filters: const {'per_page': 200, 'sort_by': 'order_date'},
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <SalesOrderModel>[];
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<SalesOrderModel> get _filtered {
-    final query = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((row) {
-          final data = row.toJson();
-          final statusOk =
-              _status.isEmpty || stringValue(data, 'order_status') == _status;
-          final customer = data['customer'];
-          final custName = customer is Map
-              ? stringValue(Map<String, dynamic>.from(customer), 'party_name')
-              : '';
-          final searchOk =
-              query.isEmpty ||
-              [
-                stringValue(data, 'order_no'),
-                stringValue(data, 'order_status'),
-                custName,
-              ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<SalesOrderModel>(
+    return _SalesRegisterShell<SalesOrderModel>(
+      controllerName: 'SalesOrderRegisterController',
       title: 'Orders',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service) => service.orders(
+        filters: const {'per_page': 200, 'sort_by': 'order_date'},
+      ),
+      matches: (row, query, status) {
+        final data = row.toJson();
+        final rowStatus = stringValue(data, 'order_status');
+        final searchText = [
+          stringValue(data, 'order_no'),
+          rowStatus,
+          _salesCustomerName(data),
+        ].join(' ').toLowerCase();
+        return (status.isEmpty || rowStatus == status) &&
+            (query.isEmpty || searchText.contains(query));
+      },
       emptyMessage:
           'No sales orders yet. Create an order from a quote or directly.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openSalesShellRoute(context, '/sales/orders/new'),
-          icon: Icons.add_outlined,
-          label: 'New order',
-        ),
-      ],
-      filters: _SalesRegisterFilters(
-        searchController: _searchController,
-        searchHint: 'Search number or customer',
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: (value) => setState(() => _status = value ?? ''),
-      ),
-      rows: _filtered,
+      newRoute: '/sales/orders/new',
+      newLabel: 'New order',
+      searchHint: 'Search number or customer',
+      statusItems: _statusItems,
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -302,14 +301,7 @@ class _SalesOrderRegisterPageState extends State<SalesOrderRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Customer',
           flex: 3,
-          valueBuilder: (row) {
-            final data = row.toJson();
-            final c = data['customer'];
-            if (c is Map) {
-              return stringValue(Map<String, dynamic>.from(c), 'party_name');
-            }
-            return '';
-          },
+          valueBuilder: (row) => _salesCustomerName(row.toJson()),
         ),
         PurchaseRegisterColumn(
           label: 'Expected',
@@ -326,25 +318,16 @@ class _SalesOrderRegisterPageState extends State<SalesOrderRegisterPage> {
           valueBuilder: (row) => stringValue(row.toJson(), 'total_amount'),
         ),
       ],
-      onRowTap: (row) => _openSalesShellRoute(
-        context,
-        '/sales/orders/${intValue(row.toJson(), 'id')}',
-      ),
+      rowRoute: (row) => '/sales/orders/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class SalesInvoiceRegisterPage extends StatefulWidget {
+class SalesInvoiceRegisterPage extends StatelessWidget {
   const SalesInvoiceRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
-  @override
-  State<SalesInvoiceRegisterPage> createState() =>
-      _SalesInvoiceRegisterPageState();
-}
-
-class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
@@ -354,100 +337,31 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
-  final SalesService _service = SalesService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String _status = '';
-  List<SalesInvoiceModel> _rows = const <SalesInvoiceModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.invoices(
-        filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <SalesInvoiceModel>[];
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<SalesInvoiceModel> get _filtered {
-    final query = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((row) {
-          final data = row.toJson();
-          final st = row.invoiceStatus ?? '';
-          final statusOk = _status.isEmpty || st == _status;
-          final customer = data['customer'];
-          final custName = customer is Map
-              ? stringValue(Map<String, dynamic>.from(customer), 'party_name')
-              : '';
-          final searchOk =
-              query.isEmpty ||
-              [
-                row.invoiceNo ?? '',
-                st,
-                custName,
-              ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<SalesInvoiceModel>(
+    return _SalesRegisterShell<SalesInvoiceModel>(
+      controllerName: 'SalesInvoiceRegisterController',
       title: 'Invoices',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No invoices yet. Create an invoice for your customer.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openSalesShellRoute(context, '/sales/invoices/new'),
-          icon: Icons.add_outlined,
-          label: 'New invoice',
-        ),
-      ],
-      filters: _SalesRegisterFilters(
-        searchController: _searchController,
-        searchHint: 'Search number or customer',
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: (value) => setState(() => _status = value ?? ''),
+      embedded: embedded,
+      loader: (service) => service.invoices(
+        filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
       ),
-      rows: _filtered,
+      matches: (row, query, status) {
+        final data = row.toJson();
+        final rowStatus = row.invoiceStatus ?? '';
+        final searchText = [
+          row.invoiceNo ?? '',
+          rowStatus,
+          _salesCustomerName(data),
+        ].join(' ').toLowerCase();
+        return (status.isEmpty || rowStatus == status) &&
+            (query.isEmpty || searchText.contains(query));
+      },
+      emptyMessage: 'No invoices yet. Create an invoice for your customer.',
+      newRoute: '/sales/invoices/new',
+      newLabel: 'New invoice',
+      searchHint: 'Search number or customer',
+      statusItems: _statusItems,
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -461,18 +375,7 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Customer',
           flex: 3,
-          valueBuilder: (row) {
-            final data = row.toJson();
-            final c = data['customer'];
-            if (c is Map) {
-              return stringValue(Map<String, dynamic>.from(c), 'party_name');
-            }
-            return '';
-          },
-        ),
-        PurchaseRegisterColumn(
-          label: 'Due',
-          valueBuilder: (row) => displayDate(row.dueDate),
+          valueBuilder: (row) => _salesCustomerName(row.toJson()),
         ),
         PurchaseRegisterColumn(
           label: 'Status',
@@ -480,30 +383,23 @@ class _SalesInvoiceRegisterPageState extends State<SalesInvoiceRegisterPage> {
         ),
         PurchaseRegisterColumn(
           label: 'Total',
-          valueBuilder: (row) => row.totalAmount?.toStringAsFixed(2) ?? '',
+          valueBuilder: (row) => row.totalAmount?.toString() ?? '',
         ),
         PurchaseRegisterColumn(
-          label: 'Outstanding',
-          valueBuilder: (row) => row.balanceAmount?.toStringAsFixed(2) ?? '',
+          label: 'Balance',
+          valueBuilder: (row) => row.balanceAmount?.toString() ?? '',
         ),
       ],
-      onRowTap: (row) =>
-          _openSalesShellRoute(context, '/sales/invoices/${row.id}'),
+      rowRoute: (row) => '/sales/invoices/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class SalesDeliveryRegisterPage extends StatefulWidget {
+class SalesDeliveryRegisterPage extends StatelessWidget {
   const SalesDeliveryRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
-  @override
-  State<SalesDeliveryRegisterPage> createState() =>
-      _SalesDeliveryRegisterPageState();
-}
-
-class _SalesDeliveryRegisterPageState extends State<SalesDeliveryRegisterPage> {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
@@ -513,98 +409,31 @@ class _SalesDeliveryRegisterPageState extends State<SalesDeliveryRegisterPage> {
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
-  final SalesService _service = SalesService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String _status = '';
-  List<SalesDeliveryModel> _rows = const <SalesDeliveryModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.deliveries(
-        filters: const {'per_page': 200, 'sort_by': 'delivery_date'},
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <SalesDeliveryModel>[];
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<SalesDeliveryModel> get _filtered {
-    final query = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((row) {
-          final data = row.toJson();
-          final statusOk =
-              _status.isEmpty ||
-              stringValue(data, 'delivery_status') == _status;
-          final searchOk =
-              query.isEmpty ||
-              [
-                stringValue(data, 'delivery_no'),
-                stringValue(data, 'delivery_status'),
-                quotationCustomerLabel(data),
-              ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<SalesDeliveryModel>(
+    return _SalesRegisterShell<SalesDeliveryModel>(
+      controllerName: 'SalesDeliveryRegisterController',
       title: 'Deliveries',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No deliveries yet. Ship goods against a sales order.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openSalesShellRoute(context, '/sales/deliveries/new'),
-          icon: Icons.add_outlined,
-          label: 'New delivery',
-        ),
-      ],
-      filters: _SalesRegisterFilters(
-        searchController: _searchController,
-        searchHint: 'Search number or customer',
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: (value) => setState(() => _status = value ?? ''),
+      embedded: embedded,
+      loader: (service) => service.deliveries(
+        filters: const {'per_page': 200, 'sort_by': 'delivery_date'},
       ),
-      rows: _filtered,
+      matches: (row, query, status) {
+        final data = row.toJson();
+        final rowStatus = stringValue(data, 'delivery_status');
+        final searchText = [
+          stringValue(data, 'delivery_no'),
+          rowStatus,
+          _salesCustomerName(data),
+        ].join(' ').toLowerCase();
+        return (status.isEmpty || rowStatus == status) &&
+            (query.isEmpty || searchText.contains(query));
+      },
+      emptyMessage: 'No deliveries yet.',
+      newRoute: '/sales/deliveries/new',
+      newLabel: 'New delivery',
+      searchHint: 'Search number or customer',
+      statusItems: _statusItems,
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -618,131 +447,55 @@ class _SalesDeliveryRegisterPageState extends State<SalesDeliveryRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Customer',
           flex: 3,
-          valueBuilder: (row) => quotationCustomerLabel(row.toJson()),
+          valueBuilder: (row) => _salesCustomerName(row.toJson()),
         ),
         PurchaseRegisterColumn(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'delivery_status'),
         ),
       ],
-      onRowTap: (row) => _openSalesShellRoute(
-        context,
-        '/sales/deliveries/${intValue(row.toJson(), 'id')}',
-      ),
+      rowRoute: (row) => '/sales/deliveries/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class SalesReceiptRegisterPage extends StatefulWidget {
+class SalesReceiptRegisterPage extends StatelessWidget {
   const SalesReceiptRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
-  @override
-  State<SalesReceiptRegisterPage> createState() =>
-      _SalesReceiptRegisterPageState();
-}
-
-class _SalesReceiptRegisterPageState extends State<SalesReceiptRegisterPage> {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
     AppDropdownItem(value: 'posted', label: 'Posted'),
-    AppDropdownItem(value: 'partially_allocated', label: 'Partially allocated'),
-    AppDropdownItem(value: 'fully_allocated', label: 'Fully allocated'),
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
-  final SalesService _service = SalesService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String _status = '';
-  List<SalesReceiptModel> _rows = const <SalesReceiptModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.receipts(
-        filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <SalesReceiptModel>[];
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<SalesReceiptModel> get _filtered {
-    final query = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((row) {
-          final data = row.toJson();
-          final statusOk =
-              _status.isEmpty || stringValue(data, 'receipt_status') == _status;
-          final searchOk =
-              query.isEmpty ||
-              [
-                stringValue(data, 'receipt_no'),
-                stringValue(data, 'receipt_status'),
-                quotationCustomerLabel(data),
-              ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<SalesReceiptModel>(
+    return _SalesRegisterShell<SalesReceiptModel>(
+      controllerName: 'SalesReceiptRegisterController',
       title: 'Receipts',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No receipts yet. Record customer payments here.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openSalesShellRoute(context, '/sales/receipts/new'),
-          icon: Icons.add_outlined,
-          label: 'New receipt',
-        ),
-      ],
-      filters: _SalesRegisterFilters(
-        searchController: _searchController,
-        searchHint: 'Search number or customer',
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: (value) => setState(() => _status = value ?? ''),
+      embedded: embedded,
+      loader: (service) => service.receipts(
+        filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
       ),
-      rows: _filtered,
+      matches: (row, query, status) {
+        final data = row.toJson();
+        final rowStatus = stringValue(data, 'receipt_status');
+        final searchText = [
+          stringValue(data, 'receipt_no'),
+          rowStatus,
+          _salesCustomerName(data),
+        ].join(' ').toLowerCase();
+        return (status.isEmpty || rowStatus == status) &&
+            (query.isEmpty || searchText.contains(query));
+      },
+      emptyMessage: 'No receipts yet.',
+      newRoute: '/sales/receipts/new',
+      newLabel: 'New receipt',
+      searchHint: 'Search receipts',
+      statusItems: _statusItems,
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -756,40 +509,27 @@ class _SalesReceiptRegisterPageState extends State<SalesReceiptRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Customer',
           flex: 3,
-          valueBuilder: (row) => quotationCustomerLabel(row.toJson()),
+          valueBuilder: (row) => _salesCustomerName(row.toJson()),
         ),
         PurchaseRegisterColumn(
-          label: 'Mode',
-          valueBuilder: (row) => stringValue(row.toJson(), 'payment_mode'),
+          label: 'Amount',
+          valueBuilder: (row) => stringValue(row.toJson(), 'paid_amount'),
         ),
         PurchaseRegisterColumn(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'receipt_status'),
         ),
-        PurchaseRegisterColumn(
-          label: 'Paid',
-          valueBuilder: (row) => stringValue(row.toJson(), 'paid_amount'),
-        ),
       ],
-      onRowTap: (row) => _openSalesShellRoute(
-        context,
-        '/sales/receipts/${intValue(row.toJson(), 'id')}',
-      ),
+      rowRoute: (row) => '/sales/receipts/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class SalesReturnRegisterPage extends StatefulWidget {
+class SalesReturnRegisterPage extends StatelessWidget {
   const SalesReturnRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
-  @override
-  State<SalesReturnRegisterPage> createState() =>
-      _SalesReturnRegisterPageState();
-}
-
-class _SalesReturnRegisterPageState extends State<SalesReturnRegisterPage> {
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
     AppDropdownItem(value: 'draft', label: 'Draft'),
@@ -797,96 +537,31 @@ class _SalesReturnRegisterPageState extends State<SalesReturnRegisterPage> {
     AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
   ];
 
-  final SalesService _service = SalesService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String _status = '';
-  List<SalesReturnModel> _rows = const <SalesReturnModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.returns(
-        filters: const {'per_page': 200, 'sort_by': 'return_date'},
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _rows = response.data ?? const <SalesReturnModel>[];
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<SalesReturnModel> get _filtered {
-    final query = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((row) {
-          final data = row.toJson();
-          final statusOk =
-              _status.isEmpty || stringValue(data, 'return_status') == _status;
-          final searchOk =
-              query.isEmpty ||
-              [
-                stringValue(data, 'return_no'),
-                stringValue(data, 'return_status'),
-                quotationCustomerLabel(data),
-              ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<SalesReturnModel>(
+    return _SalesRegisterShell<SalesReturnModel>(
+      controllerName: 'SalesReturnRegisterController',
       title: 'Returns',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No returns yet. Create a return linked to an invoice.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openSalesShellRoute(context, '/sales/returns/new'),
-          icon: Icons.add_outlined,
-          label: 'New return',
-        ),
-      ],
-      filters: _SalesRegisterFilters(
-        searchController: _searchController,
-        searchHint: 'Search number or customer',
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: (value) => setState(() => _status = value ?? ''),
+      embedded: embedded,
+      loader: (service) => service.returns(
+        filters: const {'per_page': 200, 'sort_by': 'return_date'},
       ),
-      rows: _filtered,
+      matches: (row, query, status) {
+        final data = row.toJson();
+        final rowStatus = stringValue(data, 'return_status');
+        final searchText = [
+          stringValue(data, 'return_no'),
+          rowStatus,
+          _salesCustomerName(data),
+        ].join(' ').toLowerCase();
+        return (status.isEmpty || rowStatus == status) &&
+            (query.isEmpty || searchText.contains(query));
+      },
+      emptyMessage: 'No returns yet.',
+      newRoute: '/sales/returns/new',
+      newLabel: 'New return',
+      searchHint: 'Search returns',
+      statusItems: _statusItems,
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -900,17 +575,14 @@ class _SalesReturnRegisterPageState extends State<SalesReturnRegisterPage> {
         PurchaseRegisterColumn(
           label: 'Customer',
           flex: 3,
-          valueBuilder: (row) => quotationCustomerLabel(row.toJson()),
+          valueBuilder: (row) => _salesCustomerName(row.toJson()),
         ),
         PurchaseRegisterColumn(
           label: 'Status',
           valueBuilder: (row) => stringValue(row.toJson(), 'return_status'),
         ),
       ],
-      onRowTap: (row) => _openSalesShellRoute(
-        context,
-        '/sales/returns/${intValue(row.toJson(), 'id')}',
-      ),
+      rowRoute: (row) => '/sales/returns/${intValue(row.toJson(), 'id')}',
     );
   }
 }
@@ -932,20 +604,49 @@ class _SalesRegisterFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SettingsFormWrap(
-      children: [
-        AppFormTextField(
-          labelText: 'Search',
-          controller: searchController,
-          hintText: searchHint,
-        ),
-        AppDropdownField<String>.fromMapped(
-          labelText: 'Status',
-          mappedItems: statusItems,
-          initialValue: status,
-          onChanged: onStatusChanged,
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 720;
+          final children = <Widget>[
+            AppFormTextField(
+              labelText: searchHint,
+              controller: searchController,
+              prefixIcon: const Icon(Icons.search_outlined),
+            ),
+            AppDropdownField<String>.fromMapped(
+              labelText: 'Status',
+              mappedItems: statusItems,
+              initialValue: status,
+              onChanged: onStatusChanged,
+            ),
+          ];
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children
+                  .map(
+                    (child) => Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppUiConstants.spacingSm,
+                      ),
+                      child: child,
+                    ),
+                  )
+                  .toList(growable: false),
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: children[0]),
+              const SizedBox(width: AppUiConstants.spacingSm),
+              Expanded(child: children[1]),
+            ],
+          );
+        },
+      ),
     );
   }
 }
