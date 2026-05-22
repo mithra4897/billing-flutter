@@ -386,6 +386,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               final line = controller.lines[index];
               final breakdown = controller.taxBreakdownForLine(line);
               return Padding(
+                key: ObjectKey(line),
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
                 ),

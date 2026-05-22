@@ -257,7 +257,6 @@ class DocumentPostingManagementController extends GetxController {
           .map((entry) => Map<String, dynamic>.from(entry))
           .toList(growable: false);
 
-      _disposeLines(lines);
       selectedPosting = full;
       companyId = intValue(data, 'company_id');
       branchId = intValue(data, 'branch_id');
@@ -277,19 +276,20 @@ class DocumentPostingManagementController extends GetxController {
       voucherIdController.text = stringValue(data, 'voucher_id');
       postingStatus = stringValue(data, 'posting_status', 'pending');
       remarksController.text = stringValue(data, 'remarks');
-      lines = rawLines.isEmpty
-          ? <DocumentPostingLineDraft>[DocumentPostingLineDraft()]
-          : rawLines
-                .map(
-                  (entry) => DocumentPostingLineDraft(
-                    lineNo: intValue(entry, 'line_no'),
-                    accountId: intValue(entry, 'account_id'),
-                    entrySide: stringValue(entry, 'entry_side', 'debit'),
-                    amount: stringValue(entry, 'amount'),
-                    narration: stringValue(entry, 'narration'),
-                  ),
-                )
-                .toList(growable: true);
+      _replaceLines(
+        rawLines
+            .map(
+              (entry) => DocumentPostingLineDraft(
+                lineNo: intValue(entry, 'line_no'),
+                accountId: intValue(entry, 'account_id'),
+                entrySide: stringValue(entry, 'entry_side', 'debit'),
+                amount: stringValue(entry, 'amount'),
+                narration: stringValue(entry, 'narration'),
+              ),
+            )
+            .toList(growable: true),
+        notify: false,
+      );
       formError = null;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -301,7 +301,6 @@ class DocumentPostingManagementController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    _disposeLines(lines);
     selectedPosting = null;
     moduleController.clear();
     tableController.clear();
@@ -315,7 +314,7 @@ class DocumentPostingManagementController extends GetxController {
     voucherIdController.clear();
     postingStatus = 'pending';
     remarksController.clear();
-    lines = <DocumentPostingLineDraft>[DocumentPostingLineDraft()];
+    _replaceLines(const <DocumentPostingLineDraft>[], notify: false);
     formError = null;
     if (notify) {
       update();
@@ -329,12 +328,8 @@ class DocumentPostingManagementController extends GetxController {
   }
 
   void removeLine(int index) {
-    lines[index].dispose();
-    lines = List<DocumentPostingLineDraft>.from(lines)..removeAt(index);
-    if (lines.isEmpty) {
-      lines.add(DocumentPostingLineDraft());
-    }
-    update();
+    final next = List<DocumentPostingLineDraft>.from(lines)..removeAt(index);
+    _replaceLines(next);
   }
 
   void setFinancialYearId(int? value) {
@@ -482,6 +477,20 @@ class DocumentPostingManagementController extends GetxController {
     if (!isDesktop) {
       workspaceController.openEditor();
     }
+  }
+
+  void _replaceLines(
+    List<DocumentPostingLineDraft> nextLines, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<DocumentPostingLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => DocumentPostingLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void _disposeLines(List<DocumentPostingLineDraft> values) {

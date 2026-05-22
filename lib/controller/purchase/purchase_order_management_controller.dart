@@ -387,7 +387,6 @@ class PurchaseOrderManagementController extends GetxController {
         .whereType<Map<String, dynamic>>()
         .map(PurchaseOrderLineDraft.fromJson)
         .toList(growable: true);
-    _disposeLines(lines);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -415,9 +414,7 @@ class PurchaseOrderManagementController extends GetxController {
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
-    lines = nextLines.isEmpty
-        ? <PurchaseOrderLineDraft>[PurchaseOrderLineDraft()]
-        : nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = null;
     selectionInfo = null;
     if (notify) update();
@@ -425,7 +422,6 @@ class PurchaseOrderManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     final seriesOpts = seriesOptions();
-    _disposeLines(lines);
     selectedItem = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
@@ -447,7 +443,7 @@ class PurchaseOrderManagementController extends GetxController {
     notesController.clear();
     termsController.clear();
     isActive = true;
-    lines = <PurchaseOrderLineDraft>[PurchaseOrderLineDraft()];
+    _replaceLines(const <PurchaseOrderLineDraft>[], notify: false);
     formError = null;
     selectionInfo = null;
     linkDriver = PurchaseOrderLinkDriver.none;
@@ -549,11 +545,8 @@ class PurchaseOrderManagementController extends GetxController {
 
   void removeLine(int index) {
     final updated = List<PurchaseOrderLineDraft>.from(lines);
-    final removed = updated.removeAt(index);
-    removed.dispose();
-    if (updated.isEmpty) updated.add(PurchaseOrderLineDraft());
-    lines = updated;
-    update();
+    updated.removeAt(index);
+    _replaceLines(updated);
   }
 
   ItemModel? itemById(int? itemId) {
@@ -931,10 +924,7 @@ class PurchaseOrderManagementController extends GetxController {
         final mappedLines = linesFromAllRequisitions(
           supplierId: currentSupplierId,
         );
-        _disposeLines(lines);
-        lines = mappedLines.isEmpty
-            ? <PurchaseOrderLineDraft>[PurchaseOrderLineDraft()]
-            : mappedLines;
+        _replaceLines(mappedLines, notify: false);
         formError = mappedLines.isEmpty
             ? 'No requisition lines found to copy.'
             : null;
@@ -966,8 +956,7 @@ class PurchaseOrderManagementController extends GetxController {
         formError = !hasSpecificSupplierSelection
             ? 'Selected requisition has no lines to copy.'
             : 'No common items found between selected requisition and supplier.';
-        _disposeLines(lines);
-        lines = <PurchaseOrderLineDraft>[PurchaseOrderLineDraft()];
+        _replaceLines(const <PurchaseOrderLineDraft>[], notify: false);
         update();
         return;
       }
@@ -975,8 +964,7 @@ class PurchaseOrderManagementController extends GetxController {
       branchId = intValue(data, 'branch_id') ?? branchId;
       locationId = intValue(data, 'location_id') ?? locationId;
       financialYearId = intValue(data, 'financial_year_id') ?? financialYearId;
-      _disposeLines(lines);
-      lines = mappedLines;
+      _replaceLines(mappedLines, notify: false);
       selectionInfo = result.excluded > 0
           ? '${result.excluded} requisition item(s) excluded because they are not mapped to the selected supplier.'
           : null;
@@ -1049,14 +1037,12 @@ class PurchaseOrderManagementController extends GetxController {
         formError = !hasSpecificRequisitionSelection
             ? 'No supplier item mappings found for selected supplier.'
             : 'No common items found between selected supplier and requisition.';
-        _disposeLines(lines);
-        lines = <PurchaseOrderLineDraft>[PurchaseOrderLineDraft()];
+        _replaceLines(const <PurchaseOrderLineDraft>[], notify: false);
         update();
         return;
       }
 
-      _disposeLines(lines);
-      lines = mappedLines;
+      _replaceLines(mappedLines, notify: false);
       if (hasSpecificRequisitionSelection) {
         final result = linesFromRequisition(
           requisitionDetailCache[purchaseRequisitionId!]!,
@@ -1212,6 +1198,20 @@ class PurchaseOrderManagementController extends GetxController {
       formError = errorValue.toString();
       update();
     }
+  }
+
+  void _replaceLines(
+    List<PurchaseOrderLineDraft> nextLines, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<PurchaseOrderLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => PurchaseOrderLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void _disposeLines(List<PurchaseOrderLineDraft> entries) {

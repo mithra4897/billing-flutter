@@ -378,7 +378,6 @@ class SalesQuotationManagementController extends GetxController {
         .whereType<Map<String, dynamic>>()
         .map(QuotationLineDraft.fromJson)
         .toList(growable: true);
-    _disposeLines(lines);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -403,9 +402,7 @@ class SalesQuotationManagementController extends GetxController {
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
     crmOpportunityId = intValue(data, 'crm_opportunity_id');
-    lines = nextLines.isEmpty
-        ? <QuotationLineDraft>[QuotationLineDraft()]
-        : nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = null;
     await refreshSalesChain(notify: false);
     if (notify) {
@@ -414,7 +411,6 @@ class SalesQuotationManagementController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    _disposeLines(lines);
     final series = seriesOptions();
     selectedItem = null;
     companyId = contextCompanyId;
@@ -436,7 +432,7 @@ class SalesQuotationManagementController extends GetxController {
     notesController.clear();
     termsController.clear();
     isActive = true;
-    lines = <QuotationLineDraft>[QuotationLineDraft()];
+    _replaceLines(const <QuotationLineDraft>[], notify: false);
     formError = null;
     crmOpportunityId = null;
     salesChain = null;
@@ -660,9 +656,19 @@ class SalesQuotationManagementController extends GetxController {
 
   void removeLine(int index) {
     final next = List<QuotationLineDraft>.from(lines);
-    next.removeAt(index).dispose();
-    lines = next.isEmpty ? <QuotationLineDraft>[QuotationLineDraft()] : next;
-    update();
+    next.removeAt(index);
+    _replaceLines(next);
+  }
+
+  void _replaceLines(List<QuotationLineDraft> nextLines, {bool notify = true}) {
+    replaceDisposableDraftEntries<QuotationLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => QuotationLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void setFinancialYearId(int? value) {

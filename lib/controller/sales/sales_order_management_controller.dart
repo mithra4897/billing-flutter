@@ -525,7 +525,6 @@ class SalesOrderManagementController extends GetxController {
           .whereType<Map<String, dynamic>>()
           .map(OrderLineDraft.fromQuotationLine)
           .toList(growable: true);
-      _disposeLines(lines);
       salesQuotationId = quotationId;
       companyId = intValue(data, 'company_id');
       branchId = intValue(data, 'branch_id');
@@ -554,9 +553,7 @@ class SalesOrderManagementController extends GetxController {
       notesController.text = stringValue(data, 'notes');
       termsController.text = stringValue(data, 'terms_conditions');
       isActive = true;
-      lines = nextLines.isEmpty
-          ? <OrderLineDraft>[OrderLineDraft()]
-          : nextLines;
+      _replaceLines(nextLines, notify: false);
       formError = null;
       update();
       await fetchQuotationLines(quotationId);
@@ -582,7 +579,6 @@ class SalesOrderManagementController extends GetxController {
         .whereType<Map<String, dynamic>>()
         .map(OrderLineDraft.fromJson)
         .toList(growable: true);
-    _disposeLines(lines);
     final quotationId = intValue(data, 'sales_quotation_id');
     selectedItem = full;
     companyId = intValue(data, 'company_id');
@@ -613,7 +609,7 @@ class SalesOrderManagementController extends GetxController {
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
-    lines = nextLines.isEmpty ? <OrderLineDraft>[OrderLineDraft()] : nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = null;
     if (salesQuotationId != null) {
       await fetchQuotationLines(salesQuotationId!);
@@ -625,7 +621,6 @@ class SalesOrderManagementController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    _disposeLines(lines);
     final series = seriesOptions();
     selectedItem = null;
     companyId = contextCompanyId;
@@ -650,7 +645,7 @@ class SalesOrderManagementController extends GetxController {
     notesController.clear();
     termsController.clear();
     isActive = true;
-    lines = <OrderLineDraft>[OrderLineDraft()];
+    _replaceLines(const <OrderLineDraft>[], notify: false);
     formError = null;
     salesChain = null;
     if (notify) {
@@ -742,9 +737,8 @@ class SalesOrderManagementController extends GetxController {
 
   void removeLine(int index) {
     final next = List<OrderLineDraft>.from(lines);
-    next.removeAt(index).dispose();
-    lines = next.isEmpty ? <OrderLineDraft>[OrderLineDraft()] : next;
-    update();
+    next.removeAt(index);
+    _replaceLines(next);
   }
 
   void setFinancialYearId(int? value) {
@@ -976,6 +970,34 @@ class SalesOrderManagementController extends GetxController {
         SalesOrderModel.fromJson(const <String, dynamic>{}),
       ),
     );
+  }
+
+  void _replaceLines(List<OrderLineDraft> nextLines, {bool notify = true}) {
+    final previousLines = lines;
+    final normalizedLines = nextLines.isEmpty
+        ? <OrderLineDraft>[OrderLineDraft()]
+        : nextLines;
+    lines = normalizedLines;
+    if (notify) {
+      update();
+    }
+    final removedLines = previousLines
+        .where(
+          (previousLine) => !normalizedLines.any(
+            (nextLine) => identical(previousLine, nextLine),
+          ),
+        )
+        .toList(growable: false);
+    _disposeLinesDeferred(removedLines);
+  }
+
+  void _disposeLinesDeferred(List<OrderLineDraft> values) {
+    if (values.isEmpty) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _disposeLines(values);
+    });
   }
 
   void _disposeLines(List<OrderLineDraft> values) {

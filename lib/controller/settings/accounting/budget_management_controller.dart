@@ -192,7 +192,6 @@ class BudgetManagementController extends GetxController {
           .map((raw) => Map<String, dynamic>.from(raw))
           .toList(growable: false);
 
-      _disposeLines(lines);
       selectedBudget = full;
       companyId = intValue(data, 'company_id');
       financialYearId = intValue(data, 'financial_year_id');
@@ -213,17 +212,18 @@ class BudgetManagementController extends GetxController {
       status = stringValue(data, 'budget_status', 'draft');
       notesController.text = stringValue(data, 'notes');
       isActive = boolValue(data, 'is_active', fallback: true);
-      lines = lineMaps.isEmpty
-          ? <BudgetLineDraft>[BudgetLineDraft()]
-          : lineMaps
-                .map(
-                  (entry) => BudgetLineDraft(
-                    accountId: intValue(entry, 'account_id'),
-                    amount: stringValue(entry, 'budget_amount'),
-                    remarks: stringValue(entry, 'remarks'),
-                  ),
-                )
-                .toList(growable: true);
+      _replaceLines(
+        lineMaps
+            .map(
+              (entry) => BudgetLineDraft(
+                accountId: intValue(entry, 'account_id'),
+                amount: stringValue(entry, 'budget_amount'),
+                remarks: stringValue(entry, 'remarks'),
+              ),
+            )
+            .toList(growable: true),
+        notify: false,
+      );
       formError = null;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -235,7 +235,6 @@ class BudgetManagementController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    _disposeLines(lines);
     selectedBudget = null;
     codeController.clear();
     nameController.clear();
@@ -244,7 +243,7 @@ class BudgetManagementController extends GetxController {
     status = 'draft';
     notesController.clear();
     isActive = true;
-    lines = <BudgetLineDraft>[BudgetLineDraft()];
+    _replaceLines(const <BudgetLineDraft>[], notify: false);
     formError = null;
     if (notify) {
       update();
@@ -257,12 +256,8 @@ class BudgetManagementController extends GetxController {
   }
 
   void removeLine(int index) {
-    lines[index].dispose();
-    lines = List<BudgetLineDraft>.from(lines)..removeAt(index);
-    if (lines.isEmpty) {
-      lines.add(BudgetLineDraft());
-    }
-    update();
+    final next = List<BudgetLineDraft>.from(lines)..removeAt(index);
+    _replaceLines(next);
   }
 
   void setFinancialYearId(int? value) {
@@ -393,6 +388,17 @@ class BudgetManagementController extends GetxController {
     if (!isDesktop) {
       workspaceController.openEditor();
     }
+  }
+
+  void _replaceLines(List<BudgetLineDraft> nextLines, {bool notify = true}) {
+    replaceDisposableDraftEntries<BudgetLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => BudgetLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void _disposeLines(List<BudgetLineDraft> values) {
