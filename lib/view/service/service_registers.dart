@@ -122,114 +122,194 @@ class _SvcFilters extends StatelessWidget {
 
 // --- Registers ----------------------------------------------------------
 
-class ServiceContractRegisterPage extends StatefulWidget {
+typedef ServiceRegisterLoader<T> =
+    Future<dynamic> Function(
+      ServiceModuleService service,
+      ({int? companyId, String? banner}) info,
+    );
+typedef ServiceRegisterMatcher<T> = bool Function(T row, String query);
+
+class ServiceRegisterController<T> extends GetxController {
+  ServiceRegisterController({required this.loader, required this.matches});
+
+  final ServiceRegisterLoader<T> loader;
+  final ServiceRegisterMatcher<T> matches;
+  final ServiceModuleService _service = ServiceModuleService();
+  final TextEditingController searchController = TextEditingController();
+
+  bool loading = true;
+  String? error;
+  String? companyBanner;
+  List<T> rows = <T>[];
+
+  @override
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_onContextChanged);
+    searchController.addListener(update);
+    unawaited(load());
+  }
+
+  @override
+  void onClose() {
+    WorkingContextService.version.removeListener(_onContextChanged);
+    searchController
+      ..removeListener(update)
+      ..dispose();
+    super.onClose();
+  }
+
+  void _onContextChanged() {
+    unawaited(load());
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
+    try {
+      final info = await hrSessionCompanyInfo();
+      final response = await loader(_service, info);
+      final data = response.data;
+      companyBanner = info.banner;
+      rows = data is List<T>
+          ? data
+          : data is List
+          ? data.whereType<T>().toList(growable: false)
+          : <T>[];
+      loading = false;
+      update();
+    } catch (err) {
+      error = err.toString();
+      loading = false;
+      update();
+    }
+  }
+
+  List<T> get filteredRows {
+    final query = searchController.text.trim().toLowerCase();
+    return rows.where((row) => matches(row, query)).toList(growable: false);
+  }
+}
+
+class _ServiceRegisterShell<T> extends StatefulWidget {
+  const _ServiceRegisterShell({
+    required this.controllerName,
+    required this.title,
+    required this.embedded,
+    required this.loader,
+    required this.matches,
+    required this.emptyMessage,
+    required this.newRoute,
+    required this.newLabel,
+    required this.searchHint,
+    required this.columns,
+    required this.rowRoute,
+  });
+
+  final String controllerName;
+  final String title;
+  final bool embedded;
+  final ServiceRegisterLoader<T> loader;
+  final ServiceRegisterMatcher<T> matches;
+  final String emptyMessage;
+  final String newRoute;
+  final String newLabel;
+  final String searchHint;
+  final List<PurchaseRegisterColumn<T>> columns;
+  final String Function(T row) rowRoute;
+
+  @override
+  State<_ServiceRegisterShell<T>> createState() =>
+      _ServiceRegisterShellState<T>();
+}
+
+class _ServiceRegisterShellState<T> extends State<_ServiceRegisterShell<T>> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(widget.controllerName);
+    if (!Get.isRegistered<ServiceRegisterController<T>>(tag: _controllerTag)) {
+      Get.put(
+        ServiceRegisterController<T>(
+          loader: widget.loader,
+          matches: widget.matches,
+        ),
+        tag: _controllerTag,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<ServiceRegisterController<T>>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<T>(
+          title: widget.title,
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: widget.emptyMessage,
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: () => _openServiceShellRoute(context, widget.newRoute),
+              icon: Icons.add_outlined,
+              label: widget.newLabel,
+            ),
+          ],
+          filters: _SvcFilters(
+            searchController: controller.searchController,
+            searchHint: widget.searchHint,
+            companyBanner: controller.companyBanner,
+          ),
+          rows: controller.filteredRows,
+          columns: widget.columns,
+          onRowTap: (row) =>
+              _openServiceShellRoute(context, widget.rowRoute(row)),
+        );
+      },
+    );
+  }
+}
+
+class ServiceContractRegisterPage extends StatelessWidget {
   const ServiceContractRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<ServiceContractRegisterPage> createState() =>
-      _ServiceContractRegisterPageState();
-}
-
-class _ServiceContractRegisterPageState
-    extends State<ServiceContractRegisterPage> {
-  final ServiceModuleService _service = ServiceModuleService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<ServiceContractModel> _rows = const <ServiceContractModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.contracts(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <ServiceContractModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<ServiceContractModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((ServiceContractModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'contract_no'),
-            stringValue(data, 'contract_status'),
-            stringValue(data, 'contract_type'),
-            _customerName(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<ServiceContractModel>(
+    return _ServiceRegisterShell<ServiceContractModel>(
+      controllerName: 'ServiceContractRegisterController',
       title: 'Service contracts',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        return service.contracts(filters: filters);
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        if (query.isEmpty) {
+          return true;
+        }
+        return [
+          stringValue(data, 'contract_no'),
+          stringValue(data, 'contract_status'),
+          stringValue(data, 'contract_type'),
+          _customerName(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No service contracts found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openServiceShellRoute(context, '/service/contracts/new'),
-          icon: Icons.add_outlined,
-          label: 'New service contract',
-        ),
-      ],
-      filters: _SvcFilters(
-        searchController: _searchController,
-        searchHint: 'Search contract no., customer, status, type',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/service/contracts/new',
+      newLabel: 'New service contract',
+      searchHint: 'Search contract no., customer, status, type',
       columns: [
         PurchaseRegisterColumn<ServiceContractModel>(
           label: 'Contract no.',
@@ -253,131 +333,57 @@ class _ServiceContractRegisterPageState
               stringValue(row.toJson(), 'contract_status'),
         ),
       ],
-      onRowTap: (ServiceContractModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openServiceShellRoute(context, '/service/contracts/$id');
-      },
+      rowRoute: (ServiceContractModel row) =>
+          '/service/contracts/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class ServiceTicketRegisterPage extends StatefulWidget {
+class ServiceTicketRegisterPage extends StatelessWidget {
   const ServiceTicketRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<ServiceTicketRegisterPage> createState() =>
-      _ServiceTicketRegisterPageState();
-}
-
-class _ServiceTicketRegisterPageState extends State<ServiceTicketRegisterPage> {
-  final ServiceModuleService _service = ServiceModuleService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<ServiceTicketModel> _rows = const <ServiceTicketModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.tickets(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      var rows = response.data ?? const <ServiceTicketModel>[];
-      rows = rows
-          .where(
-            (r) => stringValue(r.toJson(), 'ticket_type') != 'warranty_claim',
-          )
-          .toList(growable: false);
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = rows;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<ServiceTicketModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((ServiceTicketModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'ticket_no'),
-            stringValue(data, 'issue_title'),
-            stringValue(data, 'ticket_status'),
-            stringValue(data, 'ticket_type'),
-            _customerName(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<ServiceTicketModel>(
+    return _ServiceRegisterShell<ServiceTicketModel>(
+      controllerName: 'ServiceTicketRegisterController',
       title: 'Service tickets',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) async {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        final response = await service.tickets(filters: filters);
+        final rows = (response.data ?? const <ServiceTicketModel>[])
+            .where(
+              (r) => stringValue(r.toJson(), 'ticket_type') != 'warranty_claim',
+            )
+            .toList(growable: false);
+        return ApiResponse<List<ServiceTicketModel>>(
+          success: response.success,
+          message: response.message,
+          data: rows,
+        );
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        if (query.isEmpty) {
+          return true;
+        }
+        return [
+          stringValue(data, 'ticket_no'),
+          stringValue(data, 'issue_title'),
+          stringValue(data, 'ticket_status'),
+          stringValue(data, 'ticket_type'),
+          _customerName(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No service tickets found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openServiceShellRoute(context, '/service/tickets/new'),
-          icon: Icons.add_outlined,
-          label: 'New ticket',
-        ),
-      ],
-      filters: _SvcFilters(
-        searchController: _searchController,
-        searchHint: 'Search ticket no., title, customer, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/service/tickets/new',
+      newLabel: 'New ticket',
+      searchHint: 'Search ticket no., title, customer, status',
       columns: [
         PurchaseRegisterColumn<ServiceTicketModel>(
           label: 'Ticket no.',
@@ -401,124 +407,46 @@ class _ServiceTicketRegisterPageState extends State<ServiceTicketRegisterPage> {
               stringValue(row.toJson(), 'ticket_status'),
         ),
       ],
-      onRowTap: (ServiceTicketModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openServiceShellRoute(context, '/service/tickets/$id');
-      },
+      rowRoute: (ServiceTicketModel row) =>
+          '/service/tickets/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class WarrantyClaimRegisterPage extends StatefulWidget {
+class WarrantyClaimRegisterPage extends StatelessWidget {
   const WarrantyClaimRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<WarrantyClaimRegisterPage> createState() =>
-      _WarrantyClaimRegisterPageState();
-}
-
-class _WarrantyClaimRegisterPageState extends State<WarrantyClaimRegisterPage> {
-  final ServiceModuleService _service = ServiceModuleService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<ServiceTicketModel> _rows = const <ServiceTicketModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.warrantyClaims(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <ServiceTicketModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<ServiceTicketModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((ServiceTicketModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'ticket_no'),
-            stringValue(data, 'issue_title'),
-            stringValue(data, 'ticket_status'),
-            _customerName(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<ServiceTicketModel>(
+    return _ServiceRegisterShell<ServiceTicketModel>(
+      controllerName: 'WarrantyClaimRegisterController',
       title: 'Warranty claims',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        return service.warrantyClaims(filters: filters);
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        if (query.isEmpty) {
+          return true;
+        }
+        return [
+          stringValue(data, 'ticket_no'),
+          stringValue(data, 'issue_title'),
+          stringValue(data, 'ticket_status'),
+          _customerName(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No warranty claims found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openServiceShellRoute(context, '/service/warranty-claims/new'),
-          icon: Icons.add_outlined,
-          label: 'New warranty claim',
-        ),
-      ],
-      filters: _SvcFilters(
-        searchController: _searchController,
-        searchHint: 'Search claim no., title, customer, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/service/warranty-claims/new',
+      newLabel: 'New warranty claim',
+      searchHint: 'Search claim no., title, customer, status',
       columns: [
         PurchaseRegisterColumn<ServiceTicketModel>(
           label: 'Claim no.',
@@ -542,125 +470,46 @@ class _WarrantyClaimRegisterPageState extends State<WarrantyClaimRegisterPage> {
               stringValue(row.toJson(), 'ticket_status'),
         ),
       ],
-      onRowTap: (ServiceTicketModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openServiceShellRoute(context, '/service/warranty-claims/$id');
-      },
+      rowRoute: (ServiceTicketModel row) =>
+          '/service/warranty-claims/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class ServiceWorkOrderRegisterPage extends StatefulWidget {
+class ServiceWorkOrderRegisterPage extends StatelessWidget {
   const ServiceWorkOrderRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<ServiceWorkOrderRegisterPage> createState() =>
-      _ServiceWorkOrderRegisterPageState();
-}
-
-class _ServiceWorkOrderRegisterPageState
-    extends State<ServiceWorkOrderRegisterPage> {
-  final ServiceModuleService _service = ServiceModuleService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<ServiceWorkOrderModel> _rows = const <ServiceWorkOrderModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.workOrders(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <ServiceWorkOrderModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<ServiceWorkOrderModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((ServiceWorkOrderModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'work_order_no'),
-            stringValue(data, 'work_order_status'),
-            _nestedTicketNo(data),
-            _customerName(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<ServiceWorkOrderModel>(
+    return _ServiceRegisterShell<ServiceWorkOrderModel>(
+      controllerName: 'ServiceWorkOrderRegisterController',
       title: 'Service work orders',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        return service.workOrders(filters: filters);
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        if (query.isEmpty) {
+          return true;
+        }
+        return [
+          stringValue(data, 'work_order_no'),
+          stringValue(data, 'work_order_status'),
+          _nestedTicketNo(data),
+          _customerName(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No service work orders found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openServiceShellRoute(context, '/service/work-orders/new'),
-          icon: Icons.add_outlined,
-          label: 'New work order',
-        ),
-      ],
-      filters: _SvcFilters(
-        searchController: _searchController,
-        searchHint: 'Search WO no., ticket, customer, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/service/work-orders/new',
+      newLabel: 'New work order',
+      searchHint: 'Search WO no., ticket, customer, status',
       columns: [
         PurchaseRegisterColumn<ServiceWorkOrderModel>(
           label: 'WO no.',
@@ -683,129 +532,55 @@ class _ServiceWorkOrderRegisterPageState
               stringValue(row.toJson(), 'work_order_status'),
         ),
       ],
-      onRowTap: (ServiceWorkOrderModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openServiceShellRoute(context, '/service/work-orders/$id');
-      },
+      rowRoute: (ServiceWorkOrderModel row) =>
+          '/service/work-orders/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class ServiceFeedbackRegisterPage extends StatefulWidget {
+class ServiceFeedbackRegisterPage extends StatelessWidget {
   const ServiceFeedbackRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<ServiceFeedbackRegisterPage> createState() =>
-      _ServiceFeedbackRegisterPageState();
-}
-
-class _ServiceFeedbackRegisterPageState
-    extends State<ServiceFeedbackRegisterPage> {
-  final ServiceModuleService _service = ServiceModuleService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<ServiceFeedbackModel> _rows = const <ServiceFeedbackModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final response = await _service.feedbacks(
-        filters: const {'per_page': 200},
-      );
-      if (!mounted) {
-        return;
-      }
-      var rows = response.data ?? const <ServiceFeedbackModel>[];
-      final cid = info.companyId;
-      if (cid != null) {
-        rows = rows
-            .where((r) => _feedbackTicketCompanyId(r.toJson()) == cid)
-            .toList(growable: false);
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = rows;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<ServiceFeedbackModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((ServiceFeedbackModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'rating_overall'),
-            _nestedTicketNo(data),
-            stringValue(data, 'customer_feedback'),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<ServiceFeedbackModel>(
+    return _ServiceRegisterShell<ServiceFeedbackModel>(
+      controllerName: 'ServiceFeedbackRegisterController',
       title: 'Service feedback',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) async {
+        final response = await service.feedbacks(
+          filters: const {'per_page': 200},
+        );
+        var rows = response.data ?? const <ServiceFeedbackModel>[];
+        final cid = info.companyId;
+        if (cid != null) {
+          rows = rows
+              .where((r) => _feedbackTicketCompanyId(r.toJson()) == cid)
+              .toList(growable: false);
+        }
+        return ApiResponse<List<ServiceFeedbackModel>>(
+          success: response.success,
+          message: response.message,
+          data: rows,
+        );
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        if (query.isEmpty) {
+          return true;
+        }
+        return [
+          stringValue(data, 'rating_overall'),
+          _nestedTicketNo(data),
+          stringValue(data, 'customer_feedback'),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No feedback records found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openServiceShellRoute(context, '/service/feedbacks/new'),
-          icon: Icons.add_outlined,
-          label: 'New feedback',
-        ),
-      ],
-      filters: _SvcFilters(
-        searchController: _searchController,
-        searchHint: 'Search ticket, ratings, feedback text',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/service/feedbacks/new',
+      newLabel: 'New feedback',
+      searchHint: 'Search ticket, ratings, feedback text',
       columns: [
         PurchaseRegisterColumn<ServiceFeedbackModel>(
           label: 'Date',
@@ -828,13 +603,8 @@ class _ServiceFeedbackRegisterPageState
               stringValue(row.toJson(), 'resolution_confirmed'),
         ),
       ],
-      onRowTap: (ServiceFeedbackModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openServiceShellRoute(context, '/service/feedbacks/$id');
-      },
+      rowRoute: (ServiceFeedbackModel row) =>
+          '/service/feedbacks/${intValue(row.toJson(), 'id')}',
     );
   }
 }

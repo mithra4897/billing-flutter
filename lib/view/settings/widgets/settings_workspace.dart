@@ -81,22 +81,46 @@ class _EditorRoutePlaceholder extends StatelessWidget {
   }
 }
 
+class _SettingsWorkspaceRouteController extends GetxController {
+  bool editorRouteOpen = false;
+
+  void setEditorRouteOpen(bool value) {
+    if (editorRouteOpen == value) {
+      return;
+    }
+    editorRouteOpen = value;
+    update();
+  }
+}
+
 class _SettingsWorkspaceState extends State<SettingsWorkspace> {
   late final SettingsWorkspaceController _controller;
   late final bool _ownsController;
-  bool _editorRouteOpen = false;
+  late final String _routeControllerTag;
+
+  _SettingsWorkspaceRouteController get _routeController =>
+      Get.find<_SettingsWorkspaceRouteController>(tag: _routeControllerTag);
 
   @override
   void initState() {
     super.initState();
     _ownsController = widget.controller == null;
     _controller = widget.controller ?? SettingsWorkspaceController();
+    _routeControllerTag = persistentControllerTag(
+      'SettingsWorkspaceRouteController',
+      scope: <String, Object?>{'identity': identityHashCode(widget)},
+    );
+    Get.put(_SettingsWorkspaceRouteController(), tag: _routeControllerTag);
     _controller.bindEditorRoute(_scheduleEditorRoutePush);
   }
 
   @override
   void dispose() {
     _controller.unbindEditorRoute();
+    Get.delete<_SettingsWorkspaceRouteController>(
+      tag: _routeControllerTag,
+      force: true,
+    );
     if (_ownsController) {
       _controller.dispose();
     }
@@ -105,82 +129,84 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final showInlineEditor = Responsive.isDesktop(context);
-        final theme = Theme.of(context).textTheme;
-        final editorBody = _editorRouteOpen
-            ? const _EditorRoutePlaceholder()
-            : widget.editor;
-        final editorContent = widget.wrapEditorInCard
-            ? AppSectionCard(
-                child: Column(
-                  children: [
-                    if (widget.editorTitle != null &&
-                        Responsive.isNotMobile(context)) ...[
-                      Text(widget.editorTitle!, style: theme.headlineSmall),
-                      const SizedBox(height: AppUiConstants.spacingXs),
-                    ],
-                    editorBody,
-                  ],
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.editorTitle != null &&
-                      Responsive.isNotMobile(context)) ...[
-                    Text(widget.editorTitle!, style: theme.headlineSmall),
-                    const SizedBox(height: AppUiConstants.spacingXs),
-                  ],
-                  editorBody,
-                ],
-              );
-
-        return _SettingsWorkspaceScope(
-          controller: _controller,
-          child: widget.editorOnly
-              ? SingleChildScrollView(
-                  controller: widget.scrollController,
-                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                  child: editorContent,
-                )
-              : showInlineEditor
-              ? SingleChildScrollView(
-                  controller: widget.scrollController,
-                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                  child: Row(
+    return GetBuilder<_SettingsWorkspaceRouteController>(
+      tag: _routeControllerTag,
+      builder: (routeController) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final showInlineEditor = Responsive.isDesktop(context);
+            final theme = Theme.of(context).textTheme;
+            final editorBody = routeController.editorRouteOpen
+                ? const _EditorRoutePlaceholder()
+                : widget.editor;
+            final editorContent = widget.wrapEditorInCard
+                ? AppSectionCard(
+                    child: Column(
+                      children: [
+                        if (widget.editorTitle != null &&
+                            Responsive.isNotMobile(context)) ...[
+                          Text(widget.editorTitle!, style: theme.headlineSmall),
+                          const SizedBox(height: AppUiConstants.spacingXs),
+                        ],
+                        editorBody,
+                      ],
+                    ),
+                  )
+                : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(width: widget.listWidth, child: widget.list),
-                      const SizedBox(width: AppUiConstants.spacingXl),
-
-                      Expanded(child: editorContent),
+                      if (widget.editorTitle != null &&
+                          Responsive.isNotMobile(context)) ...[
+                        Text(widget.editorTitle!, style: theme.headlineSmall),
+                        const SizedBox(height: AppUiConstants.spacingXs),
+                      ],
+                      editorBody,
                     ],
-                  ),
-                )
-              : SingleChildScrollView(
-                  controller: widget.scrollController,
-                  padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                  child: widget.list,
-                ),
+                  );
+
+            return _SettingsWorkspaceScope(
+              controller: _controller,
+              child: widget.editorOnly
+                  ? SingleChildScrollView(
+                      controller: widget.scrollController,
+                      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                      child: editorContent,
+                    )
+                  : showInlineEditor
+                  ? SingleChildScrollView(
+                      controller: widget.scrollController,
+                      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(width: widget.listWidth, child: widget.list),
+                          const SizedBox(width: AppUiConstants.spacingXl),
+                          Expanded(child: editorContent),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      controller: widget.scrollController,
+                      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                      child: widget.list,
+                    ),
+            );
+          },
         );
       },
     );
   }
 
   void _scheduleEditorRoutePush() {
-    if (_editorRouteOpen) {
+    if (_routeController.editorRouteOpen) {
       return;
     }
 
-    setState(() {
-      _editorRouteOpen = true;
-    });
+    _routeController.setEditorRouteOpen(true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
-        _editorRouteOpen = false;
+        _routeController.setEditorRouteOpen(false);
         return;
       }
 
@@ -189,7 +215,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
       // responsive transitions.
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted) {
-        _editorRouteOpen = false;
+        _routeController.setEditorRouteOpen(false);
         return;
       }
 
@@ -207,14 +233,12 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
         // inline editor, so keyed form subtrees cannot overlap for a frame.
         await WidgetsBinding.instance.endOfFrame;
         if (!mounted) {
-          _editorRouteOpen = false;
+          _routeController.setEditorRouteOpen(false);
           return;
         }
-        setState(() {
-          _editorRouteOpen = false;
-        });
+        _routeController.setEditorRouteOpen(false);
       } else {
-        _editorRouteOpen = false;
+        _routeController.setEditorRouteOpen(false);
       }
     });
   }
@@ -248,35 +272,77 @@ class SettingsListCard<T> extends StatefulWidget {
   State<SettingsListCard<T>> createState() => _SettingsListCardState<T>();
 }
 
-class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
-  int _currentPage = 1;
+class _SettingsListCardController extends GetxController {
+  int currentPage = 1;
 
-  @override
-  void didUpdateWidget(covariant SettingsListCard<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.items, widget.items)) {
-      _currentPage = 1;
-    }
-
-    final totalPages = _totalPages(widget.items.length);
-    if (_currentPage > totalPages) {
-      _currentPage = totalPages;
-    }
-  }
-
-  int _totalPages(int itemCount) {
+  int totalPages(int itemCount) {
     if (itemCount <= 0) {
       return 1;
     }
     return ((itemCount + kLocalListPageSize - 1) / kLocalListPageSize).floor();
   }
 
-  List<T> _pagedItems() {
+  void syncItemCountChange(int itemCount) {
+    final total = totalPages(itemCount);
+    if (currentPage > total) {
+      currentPage = total;
+      update();
+    }
+  }
+
+  void resetToFirstPage() {
+    if (currentPage != 1) {
+      currentPage = 1;
+      update();
+    }
+  }
+
+  void setPage(int page) {
+    if (currentPage == page) {
+      return;
+    }
+    currentPage = page;
+    update();
+  }
+}
+
+class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(
+      'SettingsListCardController',
+      scope: <String, Object?>{'identity': identityHashCode(widget)},
+    );
+    Get.put(_SettingsListCardController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    Get.delete<_SettingsListCardController>(tag: _controllerTag, force: true);
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingsListCard<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final controller = Get.find<_SettingsListCardController>(
+      tag: _controllerTag,
+    );
+    if (!identical(oldWidget.items, widget.items)) {
+      controller.resetToFirstPage();
+    }
+    controller.syncItemCountChange(widget.items.length);
+  }
+
+  List<T> _pagedItems(int currentPage) {
     if (widget.items.isEmpty) {
       return <T>[];
     }
 
-    final start = (_currentPage - 1) * kLocalListPageSize;
+    final start = (currentPage - 1) * kLocalListPageSize;
     if (start >= widget.items.length) {
       return <T>[];
     }
@@ -289,52 +355,57 @@ class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleItems = _pagedItems();
+    return GetBuilder<_SettingsListCardController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final visibleItems = _pagedItems(controller.currentPage);
 
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.showSearchBar &&
-              widget.searchController != null &&
-              (widget.searchHint?.isNotEmpty ?? false)) ...[
-            TextField(
-              controller: widget.searchController,
-              decoration: InputDecoration(
-                hintText: widget.searchHint,
-                prefixIcon: const Icon(Icons.search),
-              ),
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-          ],
-          if (widget.items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppUiConstants.spacingXl,
-              ),
-              child: Text(widget.emptyMessage),
-            )
-          else
-            SizedBox(
-              height: SettingsListCard.listViewportHeight,
-              child: ListView.separated(
-                primary: false,
-                itemCount: visibleItems.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: AppUiConstants.spacingXs),
-                itemBuilder: (context, index) => widget.itemBuilder(
-                  visibleItems[index],
-                  identical(visibleItems[index], widget.selectedItem),
+        return AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.showSearchBar &&
+                  widget.searchController != null &&
+                  (widget.searchHint?.isNotEmpty ?? false)) ...[
+                TextField(
+                  controller: widget.searchController,
+                  decoration: InputDecoration(
+                    hintText: widget.searchHint,
+                    prefixIcon: const Icon(Icons.search),
+                  ),
                 ),
+                const SizedBox(height: AppUiConstants.spacingMd),
+              ],
+              if (widget.items.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppUiConstants.spacingXl,
+                  ),
+                  child: Text(widget.emptyMessage),
+                )
+              else
+                SizedBox(
+                  height: SettingsListCard.listViewportHeight,
+                  child: ListView.separated(
+                    primary: false,
+                    itemCount: visibleItems.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: AppUiConstants.spacingXs),
+                    itemBuilder: (context, index) => widget.itemBuilder(
+                      visibleItems[index],
+                      identical(visibleItems[index], widget.selectedItem),
+                    ),
+                  ),
+                ),
+              LocalPageNavigation(
+                totalItems: widget.items.length,
+                currentPage: controller.currentPage,
+                onPageChanged: controller.setPage,
               ),
-            ),
-          LocalPageNavigation(
-            totalItems: widget.items.length,
-            currentPage: _currentPage,
-            onPageChanged: (page) => setState(() => _currentPage = page),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

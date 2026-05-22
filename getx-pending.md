@@ -95,8 +95,8 @@ Status legend:
 | Quality | `lib/View/quality/quality_registers.dart` | widget/support | `done` | Migrated QC plan and inspection register state to private GetX controllers. |
 | Sales | `lib/View/sales/sales_register_screens.dart` | widget/support | `done` | Migrated register shell state to `SalesRegisterController` |
 | Sales | `lib/View/sales/sales_support.dart` | widget/support | `done` | Stateless helper utilities; no GetX migration needed |
-| Service | `lib/View/service/service_registers.dart` | widget/support | `pending` |  |
-| Settings | `lib/View/settings/widgets/settings_workspace.dart` | widget/support | `pending` |  |
+| Service | `lib/View/service/service_registers.dart` | widget/support | `done` | Consolidated service contract, ticket, warranty, work-order, and feedback registers onto a shared GetX register shell. |
+| Settings | `lib/View/settings/widgets/settings_workspace.dart` | widget/support | `done` | Migrated workspace mobile editor-route placeholder and list-card pagination state to private GetX controllers. |
 
 ## Suggested Order
 
