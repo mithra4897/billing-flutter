@@ -1089,7 +1089,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent(context);
+    final content = GetBuilder<PartyManagementController>(
+      tag: _controllerTag,
+      builder: (_) => _buildContent(context),
+    );
     final actions = <Widget>[
       AdaptiveShellActionButton(
         onPressed: _startNewParty,
