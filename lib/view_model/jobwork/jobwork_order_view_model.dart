@@ -636,10 +636,12 @@ class JobworkOrderViewModel extends GetxController {
       return;
     }
     final copy = List<JobworkMaterialDraft>.from(materialDrafts);
-    copy[index].dispose();
-    copy.removeAt(index);
+    final removed = copy.removeAt(index);
     materialDrafts = copy;
     update();
+    disposeDraftEntriesNextFrame<JobworkMaterialDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void setMaterialItemId(int index, int? value) {
@@ -691,10 +693,12 @@ class JobworkOrderViewModel extends GetxController {
       return;
     }
     final copy = List<JobworkOutputDraft>.from(outputDrafts);
-    copy[index].dispose();
-    copy.removeAt(index);
+    final removed = copy.removeAt(index);
     outputDrafts = copy;
     update();
+    disposeDraftEntriesNextFrame<JobworkOutputDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void setOutputItemId(int index, int? value) {

@@ -333,7 +333,6 @@ class PurchaseReceiptManagementController extends GetxController {
         .whereType<Map<String, dynamic>>()
         .map(PurchaseReceiptLineDraft.fromJson)
         .toList(growable: true);
-    _disposeLines(lines);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -357,9 +356,7 @@ class PurchaseReceiptManagementController extends GetxController {
     );
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
-    lines = nextLines.isEmpty
-        ? <PurchaseReceiptLineDraft>[PurchaseReceiptLineDraft()]
-        : nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = null;
     for (final line in lines) {
       if (isSerialManagedItem(line.itemId)) {
@@ -371,7 +368,6 @@ class PurchaseReceiptManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
-    _disposeLines(lines);
     selectedItem = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
@@ -392,7 +388,7 @@ class PurchaseReceiptManagementController extends GetxController {
     supplierDcDateController.clear();
     notesController.clear();
     isActive = true;
-    lines = <PurchaseReceiptLineDraft>[PurchaseReceiptLineDraft()];
+    _replaceLines(const <PurchaseReceiptLineDraft>[], notify: false);
     formError = null;
     if (notify) update();
   }
@@ -638,11 +634,10 @@ class PurchaseReceiptManagementController extends GetxController {
 
   Future<void> handlePurchaseOrderChanged(int? orderId) async {
     if (orderId == null) {
-      _disposeLines(lines);
       purchaseOrderId = null;
       supplierPartyId = null;
       warehouseId = null;
-      lines = <PurchaseReceiptLineDraft>[PurchaseReceiptLineDraft()];
+      _replaceLines(const <PurchaseReceiptLineDraft>[], notify: false);
       formError = null;
       update();
       return;
@@ -662,7 +657,6 @@ class PurchaseReceiptManagementController extends GetxController {
     final nextCompanyId = intValue(data, 'company_id');
     final nextFinancialYearId = intValue(data, 'financial_year_id');
 
-    _disposeLines(lines);
     purchaseOrderId = orderId;
     companyId = nextCompanyId;
     branchId = intValue(data, 'branch_id');
@@ -680,7 +674,7 @@ class PurchaseReceiptManagementController extends GetxController {
     supplierDcNoController.clear();
     supplierDcDateController.clear();
     notesController.text = stringValue(data, 'notes');
-    lines = nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = nextLines.length == 1 && nextLines.first.itemId == null
         ? 'Selected purchase order has no pending receipt quantity.'
         : null;
@@ -700,13 +694,22 @@ class PurchaseReceiptManagementController extends GetxController {
 
   void removeLine(int index) {
     final updated = List<PurchaseReceiptLineDraft>.from(lines);
-    final removed = updated.removeAt(index);
-    removed.dispose();
-    if (updated.isEmpty) {
-      updated.add(PurchaseReceiptLineDraft());
-    }
-    lines = updated;
-    update();
+    updated.removeAt(index);
+    _replaceLines(updated);
+  }
+
+  void _replaceLines(
+    List<PurchaseReceiptLineDraft> nextLines, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<PurchaseReceiptLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => PurchaseReceiptLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void setFinancialYearId(int? value) {

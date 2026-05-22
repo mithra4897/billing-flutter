@@ -574,9 +574,11 @@ class PurchasePaymentManagementController extends GetxController {
   void removeAllocation(int index) {
     final updated = List<PaymentAllocationDraft>.from(allocations);
     final removed = updated.removeAt(index);
-    removed.dispose();
     allocations = updated;
     update();
+    disposeDraftEntriesNextFrame<PaymentAllocationDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void setFinancialYearId(int? value) {

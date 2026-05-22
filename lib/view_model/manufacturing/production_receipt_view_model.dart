@@ -300,11 +300,12 @@ class ProductionReceiptViewModel extends GetxController {
       return;
     }
     final next = List<ProductionReceiptLineDraft>.from(lines);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     lines = next.isEmpty
         ? <ProductionReceiptLineDraft>[ProductionReceiptLineDraft()]
         : next;
     update();
+    disposeDraftEntriesNextFrame<ProductionReceiptLineDraft>([removed], (entry) => entry.dispose());
   }
 
   void setLineItemId(int index, int? value) {

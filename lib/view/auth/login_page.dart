@@ -19,11 +19,21 @@ class _LoginPageState extends State<LoginPage> {
     _controllerTag = persistentControllerTag(
       'LoginManagementController-${widget.redirectTo ?? 'default'}',
     );
+    if (Get.isRegistered<LoginManagementController>(tag: _controllerTag)) {
+      Get.delete<LoginManagementController>(tag: _controllerTag, force: true);
+    }
     Get.put(
       LoginManagementController(redirectTo: widget.redirectTo),
       tag: _controllerTag,
-      permanent: true,
     );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<LoginManagementController>(tag: _controllerTag)) {
+      Get.delete<LoginManagementController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
   }
 
   void _showMessage(String message) {

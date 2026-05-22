@@ -522,11 +522,14 @@ class OpeningStockViewModel extends GetxController {
       return;
     }
     final next = List<OpeningStockLineDraft>.from(lines);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     lines = next.isEmpty
         ? <OpeningStockLineDraft>[OpeningStockLineDraft()]
         : next;
     update();
+    disposeDraftEntriesNextFrame<OpeningStockLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void onLineItemChanged(int index, int? value) {

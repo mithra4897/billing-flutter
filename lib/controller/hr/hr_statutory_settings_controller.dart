@@ -368,8 +368,10 @@ class HrStatutorySettingsController extends GetxController {
   }
 
   void removePtSlabAt(int index) {
-    ptSlabs[index].dispose();
-    ptSlabs.removeAt(index);
+    final removed = ptSlabs.removeAt(index);
     update();
+    disposeDraftEntriesNextFrame<HrPtSlabControllers>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 }

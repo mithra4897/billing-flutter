@@ -336,7 +336,6 @@ class PurchaseRequisitionManagementController extends GetxController {
         .map(PurchaseRequisitionLineDraft.fromJson)
         .toList(growable: true);
 
-    _disposeLines(lines);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -355,9 +354,7 @@ class PurchaseRequisitionManagementController extends GetxController {
     purposeController.text = stringValue(data, 'purpose');
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
-    lines = nextLines.isEmpty
-        ? <PurchaseRequisitionLineDraft>[PurchaseRequisitionLineDraft()]
-        : nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = null;
     if (notify) {
       update();
@@ -365,7 +362,6 @@ class PurchaseRequisitionManagementController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    _disposeLines(lines);
     selectedItem = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
@@ -384,7 +380,7 @@ class PurchaseRequisitionManagementController extends GetxController {
     purposeController.clear();
     notesController.clear();
     isActive = true;
-    lines = <PurchaseRequisitionLineDraft>[PurchaseRequisitionLineDraft()];
+    _replaceLines(const <PurchaseRequisitionLineDraft>[], notify: false);
     formError = null;
     if (notify) {
       update();
@@ -499,13 +495,22 @@ class PurchaseRequisitionManagementController extends GetxController {
 
   void removeLine(int index) {
     final updatedLines = List<PurchaseRequisitionLineDraft>.from(lines);
-    final removed = updatedLines.removeAt(index);
-    removed.dispose();
-    if (updatedLines.isEmpty) {
-      updatedLines.add(PurchaseRequisitionLineDraft());
-    }
-    lines = updatedLines;
-    update();
+    updatedLines.removeAt(index);
+    _replaceLines(updatedLines);
+  }
+
+  void _replaceLines(
+    List<PurchaseRequisitionLineDraft> nextLines, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<PurchaseRequisitionLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => PurchaseRequisitionLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void setFinancialYearId(int? value) {

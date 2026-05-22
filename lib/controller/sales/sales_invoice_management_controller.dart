@@ -2213,11 +2213,15 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   void removeLine(int index) {
+    late InvoiceLineDraft removed;
     setState(() {
       final next = List<InvoiceLineDraft>.from(lines);
-      next.removeAt(index).dispose();
+      removed = next.removeAt(index);
       lines = next.isEmpty ? <InvoiceLineDraft>[InvoiceLineDraft()] : next;
     });
+    disposeDraftEntriesNextFrame<InvoiceLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   List<SalesInvoiceLineModel> linesForSave() {

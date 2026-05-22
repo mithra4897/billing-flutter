@@ -333,9 +333,6 @@ class CrmOpportunitiesController extends GetxController {
             .map(OpportunityProductDraft.fromJson)
             .toList(growable: true);
 
-    disposeLines(lines);
-    disposeFollowups(followups);
-    disposeProducts(products);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     leadId = intValue(data, 'lead_id');
@@ -350,9 +347,9 @@ class CrmOpportunitiesController extends GetxController {
     expectedCloseDateController.text = displayDate(
       nullableStringValue(data, 'expected_close_date'),
     );
-    lines = nextLines;
-    followups = nextFollowups;
-    products = nextProducts;
+    _replaceLines(nextLines, notify: false);
+    _replaceFollowups(nextFollowups, notify: false);
+    _replaceProducts(nextProducts, notify: false);
     expandedLineIndex = null;
     expandedFollowupIndex = null;
     expandedProductIndex = null;
@@ -376,9 +373,6 @@ class CrmOpportunitiesController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    disposeLines(lines);
-    disposeFollowups(followups);
-    disposeProducts(products);
     selectedItem = null;
     companyId = contextCompanyId;
     leadId = null;
@@ -391,9 +385,9 @@ class CrmOpportunitiesController extends GetxController {
     expectedValueController.clear();
     probabilityController.clear();
     expectedCloseDateController.clear();
-    lines = <OpportunityLineDraft>[];
-    followups = <OpportunityFollowupDraft>[];
-    products = <OpportunityProductDraft>[];
+    _replaceLines(const <OpportunityLineDraft>[], notify: false);
+    _replaceFollowups(const <OpportunityFollowupDraft>[], notify: false);
+    _replaceProducts(const <OpportunityProductDraft>[], notify: false);
     expandedLineIndex = null;
     expandedFollowupIndex = null;
     expandedProductIndex = null;
@@ -423,8 +417,8 @@ class CrmOpportunitiesController extends GetxController {
 
   void removeLine(int index) {
     final nextLines = List<OpportunityLineDraft>.from(lines);
-    nextLines.removeAt(index).dispose();
-    lines = nextLines;
+    nextLines.removeAt(index);
+    _replaceLines(nextLines, notify: false);
     if (expandedLineIndex == index) {
       expandedLineIndex = null;
     } else if ((expandedLineIndex ?? -1) > index) {
@@ -442,8 +436,8 @@ class CrmOpportunitiesController extends GetxController {
 
   void removeFollowup(int index) {
     final nextFollowups = List<OpportunityFollowupDraft>.from(followups);
-    nextFollowups.removeAt(index).dispose();
-    followups = nextFollowups;
+    nextFollowups.removeAt(index);
+    _replaceFollowups(nextFollowups, notify: false);
     if (expandedFollowupIndex == index) {
       expandedFollowupIndex = null;
     } else if ((expandedFollowupIndex ?? -1) > index) {
@@ -467,14 +461,53 @@ class CrmOpportunitiesController extends GetxController {
 
   void removeProduct(int index) {
     final nextProducts = List<OpportunityProductDraft>.from(products);
-    nextProducts.removeAt(index).dispose();
-    products = nextProducts;
+    nextProducts.removeAt(index);
+    _replaceProducts(nextProducts, notify: false);
     if (expandedProductIndex == index) {
       expandedProductIndex = null;
     } else if ((expandedProductIndex ?? -1) > index) {
       expandedProductIndex = expandedProductIndex! - 1;
     }
     update();
+  }
+
+  void _replaceLines(List<OpportunityLineDraft> nextLines, {bool notify = true}) {
+    replaceDisposableDraftEntries<OpportunityLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => OpportunityLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
+  }
+
+  void _replaceFollowups(
+    List<OpportunityFollowupDraft> nextFollowups, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<OpportunityFollowupDraft>(
+      previous: followups,
+      next: nextFollowups,
+      createEmpty: () => OpportunityFollowupDraft(),
+      assign: (entries) => followups = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
+  }
+
+  void _replaceProducts(
+    List<OpportunityProductDraft> nextProducts, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<OpportunityProductDraft>(
+      previous: products,
+      next: nextProducts,
+      createEmpty: () => OpportunityProductDraft(),
+      assign: (entries) => products = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   Future<void> save() async {

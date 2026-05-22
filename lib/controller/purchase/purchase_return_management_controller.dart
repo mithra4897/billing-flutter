@@ -319,7 +319,6 @@ class PurchaseReturnManagementController extends GetxController {
         : await _purchaseService.invoice(invoiceId);
     final nextInvoiceLines =
         invoiceResponse?.data?.lines ?? const <PurchaseInvoiceLineModel>[];
-    _disposeLines(lines);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -336,9 +335,7 @@ class PurchaseReturnManagementController extends GetxController {
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     invoiceLines = nextInvoiceLines;
-    lines = nextLines.isEmpty
-        ? <PurchaseReturnLineDraft>[PurchaseReturnLineDraft()]
-        : nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = null;
     syncLineDisplayNames();
     if (notify) {
@@ -348,7 +345,6 @@ class PurchaseReturnManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
-    _disposeLines(lines);
     selectedItem = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
@@ -366,7 +362,7 @@ class PurchaseReturnManagementController extends GetxController {
     notesController.clear();
     isActive = true;
     invoiceLines = const <PurchaseInvoiceLineModel>[];
-    lines = <PurchaseReturnLineDraft>[PurchaseReturnLineDraft()];
+    _replaceLines(const <PurchaseReturnLineDraft>[], notify: false);
     formError = null;
     if (notify) {
       update();
@@ -456,8 +452,7 @@ class PurchaseReturnManagementController extends GetxController {
     purchaseInvoiceId = value;
     supplierPartyId = null;
     invoiceLines = const <PurchaseInvoiceLineModel>[];
-    _disposeLines(lines);
-    lines = <PurchaseReturnLineDraft>[PurchaseReturnLineDraft()];
+    _replaceLines(const <PurchaseReturnLineDraft>[], notify: false);
     update();
     if (value == null) {
       return;
@@ -466,12 +461,14 @@ class PurchaseReturnManagementController extends GetxController {
     final invoice = response.data;
     supplierPartyId = invoice?.supplierPartyId;
     invoiceLines = invoice?.lines ?? const <PurchaseInvoiceLineModel>[];
-    _disposeLines(lines);
-    lines = invoiceLines.isEmpty
-        ? <PurchaseReturnLineDraft>[PurchaseReturnLineDraft()]
-        : <PurchaseReturnLineDraft>[
-            PurchaseReturnLineDraft.fromInvoiceLine(invoiceLines.first),
-          ];
+    _replaceLines(
+      invoiceLines.isEmpty
+          ? const <PurchaseReturnLineDraft>[]
+          : <PurchaseReturnLineDraft>[
+              PurchaseReturnLineDraft.fromInvoiceLine(invoiceLines.first),
+            ],
+      notify: false,
+    );
     syncLineDisplayNames();
     update();
   }
@@ -492,13 +489,22 @@ class PurchaseReturnManagementController extends GetxController {
 
   void removeLine(int index) {
     final updated = List<PurchaseReturnLineDraft>.from(lines);
-    final removed = updated.removeAt(index);
-    removed.dispose();
-    if (updated.isEmpty) {
-      updated.add(PurchaseReturnLineDraft());
-    }
-    lines = updated;
-    update();
+    updated.removeAt(index);
+    _replaceLines(updated);
+  }
+
+  void _replaceLines(
+    List<PurchaseReturnLineDraft> nextLines, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<PurchaseReturnLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => PurchaseReturnLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void setFinancialYearId(int? value) {

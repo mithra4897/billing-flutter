@@ -345,13 +345,10 @@ class InternalStockReceiptViewModel extends GetxController {
         ? warehouseOptions.first.id
         : null;
     receiptSource = 'department_return';
-    for (final line in lines) {
-      line.dispose();
-    }
     final itemId = initialItemId;
-    lines = <InternalStockReceiptLineDraft>[
+    _replaceLines(<InternalStockReceiptLineDraft>[
       InternalStockReceiptLineDraft(itemId: itemId),
-    ];
+    ], notify: false);
     final item = (() {
       for (final x in items) {
         if (x.id == itemId) return x;
@@ -417,15 +414,15 @@ class InternalStockReceiptViewModel extends GetxController {
       );
       receivedFromController.text = stringValue(data, 'received_from');
       remarksController.text = stringValue(data, 'remarks');
-      for (final line in lines) {
-        line.dispose();
-      }
       final apiLines = (data['items'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .toList(growable: false);
-      lines = apiLines.isEmpty
-          ? <InternalStockReceiptLineDraft>[InternalStockReceiptLineDraft()]
-          : _buildLineDrafts(apiLines);
+      _replaceLines(
+        apiLines.isEmpty
+            ? const <InternalStockReceiptLineDraft>[]
+            : _buildLineDrafts(apiLines),
+        notify: false,
+      );
       detailLoading = false;
       update();
     } catch (e) {
@@ -510,11 +507,22 @@ class InternalStockReceiptViewModel extends GetxController {
       return;
     }
     final next = List<InternalStockReceiptLineDraft>.from(lines);
-    next.removeAt(index).dispose();
-    lines = next.isEmpty
-        ? <InternalStockReceiptLineDraft>[InternalStockReceiptLineDraft()]
-        : next;
-    update();
+    next.removeAt(index);
+    _replaceLines(next);
+  }
+
+  void _replaceLines(
+    List<InternalStockReceiptLineDraft> nextLines, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<InternalStockReceiptLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => InternalStockReceiptLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void onLineItemChanged(int index, int? value) {

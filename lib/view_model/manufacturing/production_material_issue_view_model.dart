@@ -548,11 +548,12 @@ class ProductionMaterialIssueViewModel extends GetxController {
       return;
     }
     final next = List<ProductionMaterialIssueLineDraft>.from(lines);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     lines = next.isEmpty
         ? <ProductionMaterialIssueLineDraft>[ProductionMaterialIssueLineDraft()]
         : next;
     _notifySafely();
+    disposeDraftEntriesNextFrame<ProductionMaterialIssueLineDraft>([removed], (entry) => entry.dispose());
   }
 
   void setLineItemId(int index, int? value) {

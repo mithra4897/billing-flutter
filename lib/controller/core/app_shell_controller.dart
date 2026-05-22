@@ -75,7 +75,11 @@ class AppShellController extends GetxController {
     }
 
     if (!hasSession) {
-      navigator.pushNamedAndRemoveUntil(loginRoute(), (_) => false);
+      _scheduleNavigation(() {
+        if (navigator.mounted) {
+          navigator.pushNamedAndRemoveUntil(loginRoute(), (_) => false);
+        }
+      });
       return;
     }
 
@@ -123,6 +127,12 @@ class AppShellController extends GetxController {
   void _handleWorkingContextChanged() {
     contextVersion = WorkingContextService.version.value;
     update();
+  }
+
+  void _scheduleNavigation(VoidCallback action) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      action();
+    });
   }
 
   void ensureCurrentRouteAllowed({

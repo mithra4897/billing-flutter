@@ -320,7 +320,6 @@ class JobworkChargeViewModel extends GetxController {
     selected = null;
     selectedOrderDetail = null;
     formError = null;
-    _disposeLines();
     final contextSelection = normalizedWorkingContextSelection(
       companies: companies,
       branches: branches,
@@ -346,7 +345,7 @@ class JobworkChargeViewModel extends GetxController {
     purchaseInvoiceIdController.clear();
     remarksController.clear();
     isActive = true;
-    lineDrafts = <JobworkChargeLineDraft>[JobworkChargeLineDraft()];
+    _replaceLineDrafts(const <JobworkChargeLineDraft>[], notify: false);
     update();
   }
 
@@ -378,10 +377,12 @@ class JobworkChargeViewModel extends GetxController {
       remarksController.text = doc.remarks ?? '';
       isActive = doc.isActive;
       await _loadOrderDetail(jobworkOrderId);
-      _disposeLines();
-      lineDrafts = doc.lines.isEmpty
-          ? <JobworkChargeLineDraft>[JobworkChargeLineDraft()]
-          : doc.lines.map(JobworkChargeLineDraft.fromModel).toList();
+      _replaceLineDrafts(
+        doc.lines.isEmpty
+            ? const <JobworkChargeLineDraft>[]
+            : doc.lines.map(JobworkChargeLineDraft.fromModel).toList(),
+        notify: false,
+      );
     } catch (e) {
       formError = e.toString();
     } finally {
@@ -466,10 +467,22 @@ class JobworkChargeViewModel extends GetxController {
       return;
     }
     final copy = List<JobworkChargeLineDraft>.from(lineDrafts);
-    copy[index].dispose();
     copy.removeAt(index);
-    lineDrafts = copy;
-    update();
+    _replaceLineDrafts(copy);
+  }
+
+  void _replaceLineDrafts(
+    List<JobworkChargeLineDraft> nextLineDrafts, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<JobworkChargeLineDraft>(
+      previous: lineDrafts,
+      next: nextLineDrafts,
+      createEmpty: () => JobworkChargeLineDraft(),
+      assign: (entries) => lineDrafts = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void setLineItemId(int index, int? value) {

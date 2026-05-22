@@ -379,7 +379,6 @@ class JobworkReceiptViewModel extends GetxController {
     selected = null;
     selectedOrderDetail = null;
     formError = null;
-    _disposeLines();
     final contextSelection = normalizedWorkingContextSelection(
       companies: companies,
       branches: branches,
@@ -414,7 +413,7 @@ class JobworkReceiptViewModel extends GetxController {
     lrDateController.clear();
     remarksController.clear();
     isActive = true;
-    lineDrafts = <JobworkReceiptLineDraft>[JobworkReceiptLineDraft()];
+    _replaceLineDrafts(const <JobworkReceiptLineDraft>[], notify: false);
     update();
   }
 
@@ -452,10 +451,12 @@ class JobworkReceiptViewModel extends GetxController {
       remarksController.text = doc.remarks ?? '';
       isActive = doc.isActive;
       await _loadOrderDetail(jobworkOrderId);
-      _disposeLines();
-      lineDrafts = doc.lines.isEmpty
-          ? <JobworkReceiptLineDraft>[JobworkReceiptLineDraft()]
-          : doc.lines.map(JobworkReceiptLineDraft.fromModel).toList();
+      _replaceLineDrafts(
+        doc.lines.isEmpty
+            ? const <JobworkReceiptLineDraft>[]
+            : doc.lines.map(JobworkReceiptLineDraft.fromModel).toList(),
+        notify: false,
+      );
     } catch (e) {
       formError = e.toString();
     } finally {
@@ -581,10 +582,22 @@ class JobworkReceiptViewModel extends GetxController {
       return;
     }
     final copy = List<JobworkReceiptLineDraft>.from(lineDrafts);
-    copy[index].dispose();
     copy.removeAt(index);
-    lineDrafts = copy;
-    update();
+    _replaceLineDrafts(copy);
+  }
+
+  void _replaceLineDrafts(
+    List<JobworkReceiptLineDraft> nextLineDrafts, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<JobworkReceiptLineDraft>(
+      previous: lineDrafts,
+      next: nextLineDrafts,
+      createEmpty: () => JobworkReceiptLineDraft(),
+      assign: (entries) => lineDrafts = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void setLineItemId(int index, int? value) {

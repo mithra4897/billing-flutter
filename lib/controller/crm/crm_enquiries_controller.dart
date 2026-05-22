@@ -424,8 +424,6 @@ class CrmEnquiriesController extends GetxController {
             .map(FollowupDraft.fromJson)
             .toList(growable: true);
 
-    disposeLines(lines);
-    disposeFollowups(followups);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     leadId = intValue(data, 'lead_id');
@@ -439,8 +437,8 @@ class CrmEnquiriesController extends GetxController {
       nullableStringValue(data, 'enquiry_date'),
     );
     remarksController.text = stringValue(data, 'remarks');
-    lines = nextLines;
-    followups = nextFollowups;
+    _replaceLines(nextLines, notify: false);
+    _replaceFollowups(nextFollowups, notify: false);
     expandedLineIndex = null;
     expandedFollowupIndex = null;
     formError = null;
@@ -483,8 +481,6 @@ class CrmEnquiriesController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    disposeLines(lines);
-    disposeFollowups(followups);
     selectedItem = null;
     companyId = contextCompanyId;
     leadId = null;
@@ -496,8 +492,8 @@ class CrmEnquiriesController extends GetxController {
     enquiryNoController.clear();
     enquiryDateController.text = DateTime.now().toIso8601String().split('T').first;
     remarksController.clear();
-    lines = <EnquiryLineDraft>[];
-    followups = <FollowupDraft>[];
+    _replaceLines(const <EnquiryLineDraft>[], notify: false);
+    _replaceFollowups(const <FollowupDraft>[], notify: false);
     expandedLineIndex = null;
     expandedFollowupIndex = null;
     formError = null;
@@ -526,8 +522,8 @@ class CrmEnquiriesController extends GetxController {
 
   void removeLine(int index) {
     final nextLines = List<EnquiryLineDraft>.from(lines);
-    nextLines.removeAt(index).dispose();
-    lines = nextLines;
+    nextLines.removeAt(index);
+    _replaceLines(nextLines, notify: false);
     if (expandedLineIndex == index) {
       expandedLineIndex = null;
     } else if ((expandedLineIndex ?? -1) > index) {
@@ -544,14 +540,36 @@ class CrmEnquiriesController extends GetxController {
 
   void removeFollowup(int index) {
     final nextFollowups = List<FollowupDraft>.from(followups);
-    nextFollowups.removeAt(index).dispose();
-    followups = nextFollowups;
+    nextFollowups.removeAt(index);
+    _replaceFollowups(nextFollowups, notify: false);
     if (expandedFollowupIndex == index) {
       expandedFollowupIndex = null;
     } else if ((expandedFollowupIndex ?? -1) > index) {
       expandedFollowupIndex = expandedFollowupIndex! - 1;
     }
     update();
+  }
+
+  void _replaceLines(List<EnquiryLineDraft> nextLines, {bool notify = true}) {
+    replaceDisposableDraftEntries<EnquiryLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => EnquiryLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
+  }
+
+  void _replaceFollowups(List<FollowupDraft> nextFollowups, {bool notify = true}) {
+    replaceDisposableDraftEntries<FollowupDraft>(
+      previous: followups,
+      next: nextFollowups,
+      createEmpty: () => FollowupDraft(),
+      assign: (entries) => followups = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   Future<void> save() async {

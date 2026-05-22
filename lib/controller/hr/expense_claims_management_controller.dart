@@ -729,9 +729,11 @@ class ExpenseClaimsManagementController extends GetxController {
   }
 
   void removeLineAt(int index) {
-    lineEditors[index].dispose();
-    lineEditors.removeAt(index);
+    final removed = lineEditors.removeAt(index);
     update();
+    disposeDraftEntriesNextFrame<ExpenseLineEditors>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   Future<void> selectClaim(ExpenseClaimModel item) async {

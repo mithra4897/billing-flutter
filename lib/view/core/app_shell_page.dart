@@ -23,18 +23,25 @@ class _AppShellPageState extends State<AppShellPage> {
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('AppShellController');
+    if (Get.isRegistered<AppShellController>(tag: _controllerTag)) {
+      Get.delete<AppShellController>(tag: _controllerTag, force: true);
+    }
     _controller = Get.put(
       AppShellController(
         initialPath: widget.path,
         initialQueryParameters: widget.queryParameters,
       ),
       tag: _controllerTag,
-      permanent: true,
     );
   }
 
   @override
-  void dispose() => super.dispose();
+  void dispose() {
+    if (Get.isRegistered<AppShellController>(tag: _controllerTag)) {
+      Get.delete<AppShellController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant AppShellPage oldWidget) {

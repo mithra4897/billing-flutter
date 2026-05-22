@@ -17,10 +17,21 @@ class _AppBootstrapPageState extends State<AppBootstrapPage> {
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('AppBootstrapController');
+    if (Get.isRegistered<AppBootstrapController>(tag: _controllerTag)) {
+      Get.delete<AppBootstrapController>(tag: _controllerTag, force: true);
+    }
     Get.put(
       AppBootstrapController(redirectTo: widget.redirectTo),
       tag: _controllerTag,
     );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<AppBootstrapController>(tag: _controllerTag)) {
+      Get.delete<AppBootstrapController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
   }
 
   @override

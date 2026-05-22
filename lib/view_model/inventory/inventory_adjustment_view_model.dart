@@ -511,11 +511,14 @@ class InventoryAdjustmentViewModel extends GetxController {
   void removeLine(int index) {
     if (index < 0 || index >= lines.length) return;
     final next = List<InventoryAdjustmentLineDraft>.from(lines);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     lines = next.isEmpty
         ? <InventoryAdjustmentLineDraft>[InventoryAdjustmentLineDraft()]
         : next;
     update();
+    disposeDraftEntriesNextFrame<InventoryAdjustmentLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void onLineItemChanged(int i, int? value) {

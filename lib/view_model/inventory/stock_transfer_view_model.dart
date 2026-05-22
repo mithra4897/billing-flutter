@@ -509,11 +509,14 @@ class StockTransferViewModel extends GetxController {
       return;
     }
     final next = List<StockTransferLineDraft>.from(lines);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     lines = next.isEmpty
         ? <StockTransferLineDraft>[StockTransferLineDraft()]
         : next;
     update();
+    disposeDraftEntriesNextFrame<StockTransferLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void onLineItemChanged(int index, int? value) {

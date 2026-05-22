@@ -359,7 +359,6 @@ class JobworkDispatchViewModel extends GetxController {
     selected = null;
     selectedOrderDetail = null;
     formError = null;
-    _disposeLines();
     final contextSelection = normalizedWorkingContextSelection(
       companies: companies,
       branches: branches,
@@ -393,7 +392,7 @@ class JobworkDispatchViewModel extends GetxController {
     lrDateController.clear();
     remarksController.clear();
     isActive = true;
-    lineDrafts = <JobworkDispatchLineDraft>[JobworkDispatchLineDraft()];
+    _replaceLineDrafts(const <JobworkDispatchLineDraft>[], notify: false);
     update();
   }
 
@@ -430,10 +429,12 @@ class JobworkDispatchViewModel extends GetxController {
       remarksController.text = doc.remarks ?? '';
       isActive = doc.isActive;
       await _loadOrderDetail(jobworkOrderId);
-      _disposeLines();
-      lineDrafts = doc.lines.isEmpty
-          ? <JobworkDispatchLineDraft>[JobworkDispatchLineDraft()]
-          : doc.lines.map(JobworkDispatchLineDraft.fromModel).toList();
+      _replaceLineDrafts(
+        doc.lines.isEmpty
+            ? const <JobworkDispatchLineDraft>[]
+            : doc.lines.map(JobworkDispatchLineDraft.fromModel).toList(),
+        notify: false,
+      );
     } catch (e) {
       formError = e.toString();
     } finally {
@@ -551,10 +552,22 @@ class JobworkDispatchViewModel extends GetxController {
       return;
     }
     final copy = List<JobworkDispatchLineDraft>.from(lineDrafts);
-    copy[index].dispose();
     copy.removeAt(index);
-    lineDrafts = copy;
-    update();
+    _replaceLineDrafts(copy);
+  }
+
+  void _replaceLineDrafts(
+    List<JobworkDispatchLineDraft> nextLineDrafts, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<JobworkDispatchLineDraft>(
+      previous: lineDrafts,
+      next: nextLineDrafts,
+      createEmpty: () => JobworkDispatchLineDraft(),
+      assign: (entries) => lineDrafts = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void setLineItemId(int index, int? value) {

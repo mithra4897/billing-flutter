@@ -346,7 +346,6 @@ class SalesReturnManagementController extends GetxController {
     final invoiceResponse = invoiceId == null
         ? null
         : await _salesService.invoice(invoiceId);
-    _disposeLines(lines);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -364,9 +363,7 @@ class SalesReturnManagementController extends GetxController {
     isActive = boolValue(data, 'is_active', fallback: true);
     invoiceLines =
         invoiceResponse?.data?.lines ?? const <SalesInvoiceLineModel>[];
-    lines = nextLines.isEmpty
-        ? <SalesReturnLineDraft>[SalesReturnLineDraft()]
-        : nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = null;
     _syncLineDisplayNames();
     if (notify) {
@@ -376,7 +373,6 @@ class SalesReturnManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
-    _disposeLines(lines);
     selectedItem = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
@@ -394,7 +390,7 @@ class SalesReturnManagementController extends GetxController {
     notesController.clear();
     isActive = true;
     invoiceLines = const <SalesInvoiceLineModel>[];
-    lines = <SalesReturnLineDraft>[SalesReturnLineDraft()];
+    _replaceLines(const <SalesReturnLineDraft>[], notify: false);
     formError = null;
     if (notify) {
       update();
@@ -517,11 +513,10 @@ class SalesReturnManagementController extends GetxController {
   }
 
   Future<void> handleInvoiceChanged(int? value) async {
-    _disposeLines(lines);
     salesInvoiceId = value;
     customerPartyId = null;
     invoiceLines = const <SalesInvoiceLineModel>[];
-    lines = <SalesReturnLineDraft>[SalesReturnLineDraft()];
+    _replaceLines(const <SalesReturnLineDraft>[], notify: false);
     update();
     if (value == null) {
       return;
@@ -530,12 +525,14 @@ class SalesReturnManagementController extends GetxController {
     final invoice = response.data;
     customerPartyId = invoice?.customerPartyId;
     invoiceLines = invoice?.lines ?? const <SalesInvoiceLineModel>[];
-    _disposeLines(lines);
-    lines = invoiceLines.isEmpty
-        ? <SalesReturnLineDraft>[SalesReturnLineDraft()]
-        : <SalesReturnLineDraft>[
-            SalesReturnLineDraft.fromInvoiceLine(invoiceLines.first),
-          ];
+    _replaceLines(
+      invoiceLines.isEmpty
+          ? const <SalesReturnLineDraft>[]
+          : <SalesReturnLineDraft>[
+              SalesReturnLineDraft.fromInvoiceLine(invoiceLines.first),
+            ],
+      notify: false,
+    );
     _syncLineDisplayNames();
     update();
   }
@@ -613,13 +610,19 @@ class SalesReturnManagementController extends GetxController {
 
   void removeLine(int index) {
     final nextLines = List<SalesReturnLineDraft>.from(lines);
-    final removed = nextLines.removeAt(index);
-    removed.dispose();
-    if (nextLines.isEmpty) {
-      nextLines.add(SalesReturnLineDraft());
-    }
-    lines = nextLines;
-    update();
+    nextLines.removeAt(index);
+    _replaceLines(nextLines);
+  }
+
+  void _replaceLines(List<SalesReturnLineDraft> nextLines, {bool notify = true}) {
+    replaceDisposableDraftEntries<SalesReturnLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => SalesReturnLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void handleLineSelected(int index, int? value) {

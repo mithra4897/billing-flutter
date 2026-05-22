@@ -508,9 +508,12 @@ class StockIssueViewModel extends GetxController {
       return;
     }
     final next = List<StockIssueLineDraft>.from(lines);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     lines = next.isEmpty ? <StockIssueLineDraft>[StockIssueLineDraft()] : next;
     update();
+    disposeDraftEntriesNextFrame<StockIssueLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void onLineItemChanged(int index, int? value) {

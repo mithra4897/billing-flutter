@@ -319,7 +319,6 @@ class CrmLeadsController extends GetxController {
             .map(LeadActivityDraft.fromJson)
             .toList(growable: true);
 
-    disposeActivities(activities);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     sourceId = intValue(data, 'source_id');
@@ -333,7 +332,7 @@ class CrmLeadsController extends GetxController {
     mobileController.text = stringValue(data, 'mobile');
     emailController.text = stringValue(data, 'email');
     remarksController.text = stringValue(data, 'remarks');
-    activities = nextActivities;
+    _replaceActivities(nextActivities, notify: false);
     expandedActivityIndex = null;
     formError = null;
     await refreshSalesChainForLead(id);
@@ -368,7 +367,6 @@ class CrmLeadsController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    disposeActivities(activities);
     selectedItem = null;
     companyId = contextCompanyId;
     sourceId = null;
@@ -380,7 +378,7 @@ class CrmLeadsController extends GetxController {
     mobileController.clear();
     emailController.clear();
     remarksController.clear();
-    activities = <LeadActivityDraft>[];
+    _replaceActivities(const <LeadActivityDraft>[], notify: false);
     expandedActivityIndex = null;
     formError = null;
     activeTabIndex = 0;
@@ -405,14 +403,25 @@ class CrmLeadsController extends GetxController {
 
   void removeActivity(int index) {
     final nextActivities = List<LeadActivityDraft>.from(activities);
-    nextActivities.removeAt(index).dispose();
-    activities = nextActivities;
+    nextActivities.removeAt(index);
+    _replaceActivities(nextActivities, notify: false);
     if (expandedActivityIndex == index) {
       expandedActivityIndex = null;
     } else if ((expandedActivityIndex ?? -1) > index) {
       expandedActivityIndex = expandedActivityIndex! - 1;
     }
     update();
+  }
+
+  void _replaceActivities(List<LeadActivityDraft> nextActivities, {bool notify = true}) {
+    replaceDisposableDraftEntries<LeadActivityDraft>(
+      previous: activities,
+      next: nextActivities,
+      createEmpty: () => LeadActivityDraft(),
+      assign: (entries) => activities = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   Future<void> save() async {

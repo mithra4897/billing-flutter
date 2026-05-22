@@ -474,11 +474,14 @@ class StockDamageViewModel extends GetxController {
   void removeLine(int index) {
     if (index < 0 || index >= lines.length) return;
     final next = List<StockDamageLineDraft>.from(lines);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     lines = next.isEmpty
         ? <StockDamageLineDraft>[StockDamageLineDraft()]
         : next;
     update();
+    disposeDraftEntriesNextFrame<StockDamageLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void onLineItemChanged(int index, int? value) {

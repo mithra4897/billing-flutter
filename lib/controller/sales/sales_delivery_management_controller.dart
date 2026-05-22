@@ -594,7 +594,6 @@ class SalesDeliveryManagementController extends GetxController {
         .whereType<Map<String, dynamic>>()
         .map(SalesDeliveryLineDraft.fromJson)
         .toList(growable: true);
-    _disposeLines(lines);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -613,9 +612,7 @@ class SalesDeliveryManagementController extends GetxController {
     lrDateController.text = displayDate(nullableStringValue(data, 'lr_date'));
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
-    lines = nextLines.isEmpty
-        ? <SalesDeliveryLineDraft>[SalesDeliveryLineDraft()]
-        : nextLines;
+    _replaceLines(nextLines, notify: false);
     formError = null;
     syncInventoryOptionsForLines(lines);
     await refreshSalesChain();
@@ -638,7 +635,6 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    _disposeLines(lines);
     final series = seriesOptions();
     selectedItem = null;
     companyId = contextCompanyId;
@@ -659,7 +655,7 @@ class SalesDeliveryManagementController extends GetxController {
     lrDateController.clear();
     notesController.clear();
     isActive = true;
-    lines = <SalesDeliveryLineDraft>[SalesDeliveryLineDraft()];
+    _replaceLines(const <SalesDeliveryLineDraft>[], notify: false);
     formError = null;
     salesChain = null;
     if (notify) update();
@@ -735,7 +731,6 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   void applyLinesFromOrderJson(Map<String, dynamic> data) {
-    _disposeLines(lines);
     final drafts = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .map((line) {
@@ -767,9 +762,7 @@ class SalesDeliveryManagementController extends GetxController {
           return qty > 0;
         })
         .toList(growable: true);
-    lines = drafts.isEmpty
-        ? <SalesDeliveryLineDraft>[SalesDeliveryLineDraft()]
-        : drafts;
+    _replaceLines(drafts, notify: false);
   }
 
   DocumentPrintDataModel salesDeliveryPrintData() {
@@ -859,12 +852,19 @@ class SalesDeliveryManagementController extends GetxController {
 
   void removeLine(int index) {
     final next = List<SalesDeliveryLineDraft>.from(lines);
-    next.removeAt(index).dispose();
-    lines = next;
-    if (lines.isEmpty) {
-      lines.add(SalesDeliveryLineDraft());
-    }
-    update();
+    next.removeAt(index);
+    _replaceLines(next);
+  }
+
+  void _replaceLines(List<SalesDeliveryLineDraft> nextLines, {bool notify = true}) {
+    replaceDisposableDraftEntries<SalesDeliveryLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => SalesDeliveryLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void setFinancialYearId(int? value) {

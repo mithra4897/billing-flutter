@@ -296,7 +296,6 @@ class QcPlanViewModel extends GetxController {
   void resetDraft() {
     selected = null;
     formError = null;
-    _disposeLines();
     final contextSelection = normalizedWorkingContextSelection(
       companies: companies,
       branches: branches,
@@ -323,7 +322,7 @@ class QcPlanViewModel extends GetxController {
     notesController.clear();
     isDefault = false;
     isActive = true;
-    lineDrafts = <QcPlanLineDraft>[QcPlanLineDraft()];
+    _replaceLineDrafts(const <QcPlanLineDraft>[], notify: false);
     update();
   }
 
@@ -357,10 +356,12 @@ class QcPlanViewModel extends GetxController {
       notesController.text = doc.notes ?? '';
       isDefault = doc.isDefault;
       isActive = doc.isActive;
-      _disposeLines();
-      lineDrafts = doc.lines.isEmpty
-          ? <QcPlanLineDraft>[QcPlanLineDraft()]
-          : doc.lines.map(QcPlanLineDraft.fromModel).toList();
+      _replaceLineDrafts(
+        doc.lines.isEmpty
+            ? const <QcPlanLineDraft>[]
+            : doc.lines.map(QcPlanLineDraft.fromModel).toList(),
+        notify: false,
+      );
     } catch (e) {
       formError = e.toString();
     } finally {
@@ -483,10 +484,22 @@ class QcPlanViewModel extends GetxController {
       return;
     }
     final copy = List<QcPlanLineDraft>.from(lineDrafts);
-    copy[index].dispose();
     copy.removeAt(index);
-    lineDrafts = copy;
-    update();
+    _replaceLineDrafts(copy);
+  }
+
+  void _replaceLineDrafts(
+    List<QcPlanLineDraft> nextLineDrafts, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<QcPlanLineDraft>(
+      previous: lineDrafts,
+      next: nextLineDrafts,
+      createEmpty: () => QcPlanLineDraft(),
+      assign: (entries) => lineDrafts = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   String? _validate() {

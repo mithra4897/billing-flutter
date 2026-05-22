@@ -547,9 +547,12 @@ class SalesReceiptManagementController extends GetxController {
 
   void removeAllocation(int index) {
     final nextAllocations = List<SalesReceiptAllocationDraft>.from(allocations);
-    nextAllocations.removeAt(index).dispose();
+    final removed = nextAllocations.removeAt(index);
     allocations = nextAllocations;
     update();
+    disposeDraftEntriesNextFrame<SalesReceiptAllocationDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void setAllocationSalesInvoiceId(int index, int? value) {

@@ -535,9 +535,10 @@ class BomViewModel extends GetxController {
   void removeLine(int index) {
     if (!canEdit || index < 0 || index >= lines.length) return;
     final next = List<BomLineDraft>.from(lines);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     lines = next.isEmpty ? <BomLineDraft>[BomLineDraft()] : next;
     _notifySafely();
+    disposeDraftEntriesNextFrame<BomLineDraft>([removed], (entry) => entry.dispose());
   }
 
   void addOperation() {
@@ -550,9 +551,10 @@ class BomViewModel extends GetxController {
   void removeOperation(int index) {
     if (!canEdit || index < 0 || index >= operations.length) return;
     final next = List<BomOperationDraft>.from(operations);
-    next.removeAt(index).dispose();
+    final removed = next.removeAt(index);
     operations = next.isEmpty ? <BomOperationDraft>[BomOperationDraft()] : next;
     _notifySafely();
+    disposeDraftEntriesNextFrame<BomOperationDraft>([removed], (entry) => entry.dispose());
   }
 
   String? validateForm() {

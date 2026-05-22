@@ -33,11 +33,19 @@ class AppBootstrapController extends GetxController {
       }
 
       if (!restoredSession) {
-        navigator.pushReplacementNamed(loginRoute());
+        _scheduleNavigation(() {
+          if (navigator.mounted) {
+            navigator.pushReplacementNamed(loginRoute());
+          }
+        });
         return;
       }
 
-      navigator.pushReplacementNamed(redirectTo);
+      _scheduleNavigation(() {
+        if (navigator.mounted) {
+          navigator.pushReplacementNamed(redirectTo);
+        }
+      });
       unawaited(_refreshSessionInBackground());
     } on ApiException catch (error) {
       _showError(error.message);
@@ -71,5 +79,11 @@ class AppBootstrapController extends GetxController {
     isLoading = false;
     errorMessage = message;
     update();
+  }
+
+  void _scheduleNavigation(VoidCallback action) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      action();
+    });
   }
 }
