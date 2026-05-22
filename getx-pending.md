@@ -90,8 +90,8 @@ Status legend:
 | Maintenance | `lib/View/maintenance/maintenance_registers.dart` | widget/support | `done` | Migrated maintenance work order register state to a GetX controller |
 | Manufacturing | `lib/View/manufacturing/manufacturing_registers.dart` | widget/support | `done` | Consolidated manufacturing register pages onto a shared GetX register shell |
 | Printing | `lib/View/printing/document_print_designer.dart` | widget/support | `done` | Migrated outer print designer editor state from page-local setState to GetX controller |
-| Purchase | `lib/View/purchase/purchase_register_screens.dart` | widget/support | `pending` |  |
-| Purchase | `lib/View/purchase/purchase_support.dart` | widget/support | `pending` |  |
+| Purchase | `lib/View/purchase/purchase_register_screens.dart` | widget/support | `done` | Consolidated purchase register pages onto a shared GetX register shell |
+| Purchase | `lib/View/purchase/purchase_support.dart` | widget/support | `done` | Migrated `PurchaseListCard` pagination state to a private GetX controller; remaining support helpers were already stateless. |
 | Quality | `lib/View/quality/quality_registers.dart` | widget/support | `pending` |  |
 | Sales | `lib/View/sales/sales_register_screens.dart` | widget/support | `done` | Migrated register shell state to `SalesRegisterController` |
 | Sales | `lib/View/sales/sales_support.dart` | widget/support | `done` | Stateless helper utilities; no GetX migration needed |

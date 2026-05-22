@@ -250,35 +250,77 @@ class PurchaseListCard<T> extends StatefulWidget {
   State<PurchaseListCard<T>> createState() => _PurchaseListCardState<T>();
 }
 
-class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
-  int _currentPage = 1;
+class _PurchaseListCardController extends GetxController {
+  int currentPage = 1;
 
-  @override
-  void didUpdateWidget(covariant PurchaseListCard<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.items, widget.items)) {
-      _currentPage = 1;
-    }
-
-    final totalPages = _totalPages(widget.items.length);
-    if (_currentPage > totalPages) {
-      _currentPage = totalPages;
-    }
-  }
-
-  int _totalPages(int itemCount) {
+  int totalPages(int itemCount) {
     if (itemCount <= 0) {
       return 1;
     }
     return ((itemCount + kLocalListPageSize - 1) / kLocalListPageSize).floor();
   }
 
-  List<T> _pagedItems() {
+  void syncItemCountChange(int itemCount) {
+    final total = totalPages(itemCount);
+    if (currentPage > total) {
+      currentPage = total;
+      update();
+    }
+  }
+
+  void resetToFirstPage() {
+    if (currentPage != 1) {
+      currentPage = 1;
+      update();
+    }
+  }
+
+  void setPage(int page) {
+    if (currentPage == page) {
+      return;
+    }
+    currentPage = page;
+    update();
+  }
+}
+
+class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(
+      'PurchaseListCardController',
+      scope: <String, Object?>{'identity': identityHashCode(widget)},
+    );
+    Get.put(_PurchaseListCardController(), tag: _controllerTag);
+  }
+
+  @override
+  void dispose() {
+    Get.delete<_PurchaseListCardController>(tag: _controllerTag, force: true);
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant PurchaseListCard<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final controller = Get.find<_PurchaseListCardController>(
+      tag: _controllerTag,
+    );
+    if (!identical(oldWidget.items, widget.items)) {
+      controller.resetToFirstPage();
+    }
+    controller.syncItemCountChange(widget.items.length);
+  }
+
+  List<T> _pagedItems(int currentPage) {
     if (widget.items.isEmpty) {
       return <T>[];
     }
 
-    final start = (_currentPage - 1) * kLocalListPageSize;
+    final start = (currentPage - 1) * kLocalListPageSize;
     if (start >= widget.items.length) {
       return <T>[];
     }
@@ -291,58 +333,63 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleItems = _pagedItems();
+    return GetBuilder<_PurchaseListCardController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final visibleItems = _pagedItems(controller.currentPage);
 
-    return AppSectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: widget.searchController,
-            decoration: InputDecoration(
-              hintText: widget.searchHint,
-              prefixIcon: const Icon(Icons.search),
-            ),
-          ),
-          if (widget.statusItems.isNotEmpty &&
-              widget.onStatusChanged != null) ...[
-            const SizedBox(height: AppUiConstants.spacingSm),
-            AppDropdownField<String>.fromMapped(
-              labelText: 'Status',
-              mappedItems: widget.statusItems,
-              initialValue: widget.statusValue,
-              onChanged: widget.onStatusChanged!,
-            ),
-          ],
-          const SizedBox(height: AppUiConstants.spacingMd),
-          if (widget.items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppUiConstants.spacingXl,
-              ),
-              child: Text(widget.emptyMessage),
-            )
-          else
-            SizedBox(
-              height: PurchaseListCard.listViewportHeight,
-              child: ListView.separated(
-                primary: false,
-                itemCount: visibleItems.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: AppUiConstants.spacingXs),
-                itemBuilder: (context, index) => widget.itemBuilder(
-                  visibleItems[index],
-                  identical(visibleItems[index], widget.selectedItem),
+        return AppSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: widget.searchController,
+                decoration: InputDecoration(
+                  hintText: widget.searchHint,
+                  prefixIcon: const Icon(Icons.search),
                 ),
               ),
-            ),
-          LocalPageNavigation(
-            totalItems: widget.items.length,
-            currentPage: _currentPage,
-            onPageChanged: (page) => setState(() => _currentPage = page),
+              if (widget.statusItems.isNotEmpty &&
+                  widget.onStatusChanged != null) ...[
+                const SizedBox(height: AppUiConstants.spacingSm),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Status',
+                  mappedItems: widget.statusItems,
+                  initialValue: widget.statusValue,
+                  onChanged: widget.onStatusChanged!,
+                ),
+              ],
+              const SizedBox(height: AppUiConstants.spacingMd),
+              if (widget.items.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppUiConstants.spacingXl,
+                  ),
+                  child: Text(widget.emptyMessage),
+                )
+              else
+                SizedBox(
+                  height: PurchaseListCard.listViewportHeight,
+                  child: ListView.separated(
+                    primary: false,
+                    itemCount: visibleItems.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: AppUiConstants.spacingXs),
+                    itemBuilder: (context, index) => widget.itemBuilder(
+                      visibleItems[index],
+                      identical(visibleItems[index], widget.selectedItem),
+                    ),
+                  ),
+                ),
+              LocalPageNavigation(
+                totalItems: widget.items.length,
+                currentPage: controller.currentPage,
+                onPageChanged: controller.setPage,
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
