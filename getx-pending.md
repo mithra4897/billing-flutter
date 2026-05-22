@@ -47,12 +47,12 @@ Status legend:
 | Purchase | `lib/View/purchase/purchase_register_page.dart` | page | `done` | Migrated local pagination state to `PurchaseRegisterPageController` |
 | Purchase | `lib/View/purchase/purchase_requisition_page.dart` | page | `done` | Migrated to `PurchaseRequisitionManagementController` |
 | Purchase | `lib/View/purchase/purchase_return_page.dart` | page | `done` | Migrated to `PurchaseReturnManagementController` |
-| Sales | `lib/View/sales/sales_delivery_page.dart` | page | `done` |  |
-| Sales | `lib/View/sales/sales_invoice_page.dart` | page | `done` | Migrated to `SalesInvoiceManagementController` |
-| Sales | `lib/View/sales/sales_order_page.dart` | page | `done` |  |
-| Sales | `lib/View/sales/sales_quotation_page.dart` | page | `done` |  |
-| Sales | `lib/View/sales/sales_receipt_page.dart` | page | `done` |  |
-| Sales | `lib/View/sales/sales_return_page.dart` | page | `done` |  |
+| Sales | `lib/View/sales/sales_delivery_page.dart` | page | `done` | Migrated to `SalesDeliveryManagementController`; page shell now fully controller-driven |
+| Sales | `lib/View/sales/sales_invoice_page.dart` | page | `done` | Migrated to `SalesInvoiceManagementController`; normalized all remaining controller mutations off `setState` naming |
+| Sales | `lib/View/sales/sales_order_page.dart` | page | `done` | Migrated to `SalesOrderManagementController`; page shell now fully controller-driven |
+| Sales | `lib/View/sales/sales_quotation_page.dart` | page | `done` | Migrated to `SalesQuotationManagementController`; page shell now fully controller-driven |
+| Sales | `lib/View/sales/sales_receipt_page.dart` | page | `done` | Migrated to `SalesReceiptManagementController`; page shell now fully controller-driven |
+| Sales | `lib/View/sales/sales_return_page.dart` | page | `done` | Migrated to `SalesReturnManagementController`; page shell now fully controller-driven |
 | Settings Accounting | `lib/View/settings/accounting/budget_page.dart` | page | `done` | Migrated to `BudgetManagementController` |
 | Settings Accounting | `lib/View/settings/accounting/cash_session_page.dart` | page | `done` | Migrated to `CashSessionManagementController` |
 | Settings Accounting | `lib/View/settings/accounting/document_posting_page.dart` | page | `done` | Migrated to `DocumentPostingManagementController` |
@@ -92,7 +92,7 @@ Status legend:
 | Printing | `lib/View/printing/document_print_designer.dart` | widget/support | `done` | Migrated outer print designer editor state from page-local setState to GetX controller |
 | Purchase | `lib/View/purchase/purchase_register_screens.dart` | widget/support | `done` | Consolidated purchase register pages onto a shared GetX register shell |
 | Purchase | `lib/View/purchase/purchase_support.dart` | widget/support | `done` | Migrated `PurchaseListCard` pagination state to a private GetX controller; remaining support helpers were already stateless. |
-| Quality | `lib/View/quality/quality_registers.dart` | widget/support | `pending` |  |
+| Quality | `lib/View/quality/quality_registers.dart` | widget/support | `done` | Migrated QC plan and inspection register state to private GetX controllers. |
 | Sales | `lib/View/sales/sales_register_screens.dart` | widget/support | `done` | Migrated register shell state to `SalesRegisterController` |
 | Sales | `lib/View/sales/sales_support.dart` | widget/support | `done` | Stateless helper utilities; no GetX migration needed |
 | Service | `lib/View/service/service_registers.dart` | widget/support | `pending` |  |
@@ -107,6 +107,6 @@ Status legend:
 | 3 | `employee_page.dart` | `pending` | Large screen, still uses `AnimatedBuilder` |
 | 4 | `party_management_page.dart` | `done` | Migrated to `PartyManagementController`; local `AnimatedBuilder`/shell state removed |
 | 5 | Communication settings | `pending` | Smaller grouped forms |
-| 6 | Sales and Purchase | `pending` | Larger document flows |
+| 6 | Sales and Purchase | `done` | Sales and purchase document flows are migrated and verified |
 | 7 | Project module | `pending` | Multi-form workflows |
 | 8 | Support/register widgets | `pending` | Cleanup after pages |

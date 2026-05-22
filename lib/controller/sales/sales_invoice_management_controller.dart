@@ -475,7 +475,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         final party = (responses[0] as ApiResponse<PartyModel>).data;
         if (party != null) {
           customerDetailsById[partyId] = party;
@@ -541,7 +541,7 @@ class SalesInvoiceManagementController extends GetxController {
         return;
       }
       if (applyAllowedWarehousesToLine(line, cachedWarehouseIds)) {
-        setState(() {});
+        State(() {});
       }
       return;
     }
@@ -578,14 +578,14 @@ class SalesInvoiceManagementController extends GetxController {
         return;
       }
       applyAllowedWarehousesToLine(line, allowedWarehouseIds);
-      setState(() {
+      State(() {
         allowedWarehouseIdsByItem[itemId] = allowedWarehouseIds;
       });
     } catch (_) {
       if (!mounted) {
         return;
       }
-      setState(() => allowedWarehouseIdsByItem[itemId] = <int>{});
+      State(() => allowedWarehouseIdsByItem[itemId] = <int>{});
     } finally {
       warehouseOptionsLoadingItemIds.remove(itemId);
     }
@@ -628,7 +628,7 @@ class SalesInvoiceManagementController extends GetxController {
       );
       if ((line.batchId != null && !hasSelectedBatch) ||
           (line.batchId == null && cachedBatches.length == 1)) {
-        setState(() {
+        State(() {
           if (cachedBatches.length == 1) {
             line.batchId = int.tryParse(
               cachedBatches.first['batch_id']?.toString() ?? '',
@@ -666,7 +666,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         availableBatchesByItemWarehouse[cacheKey] = batches;
         final hasSelectedBatch = batches.any(
           (batch) =>
@@ -692,7 +692,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         availableBatchesByItemWarehouse[cacheKey] =
             const <Map<String, dynamic>>[];
       });
@@ -740,7 +740,7 @@ class SalesInvoiceManagementController extends GetxController {
       );
       if ((line.serialId != null && !hasSelectedSerial) ||
           (line.serialId == null && cachedSerials.length == 1)) {
-        setState(() {
+        State(() {
           if (cachedSerials.length == 1) {
             line.serialId = int.tryParse(
               cachedSerials.first['serial_id']?.toString() ?? '',
@@ -777,7 +777,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         availableSerialsByItemWarehouse[cacheKey] = serials;
         reconcileLineSerials(line, serials);
         final hasSelectedSerial = serials.any(
@@ -818,7 +818,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         availableSerialsByItemWarehouse[cacheKey] =
             const <Map<String, dynamic>>[];
         if (line.itemId == itemId && line.warehouseId == warehouseId) {
@@ -958,7 +958,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         ordersAll = const <SalesOrderModel>[];
         deliveriesAll = const <SalesDeliveryModel>[];
       });
@@ -985,7 +985,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         ordersAll =
             (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
             const <SalesOrderModel>[];
@@ -1104,13 +1104,13 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return null;
       }
-      setState(() {
+      State(() {
         orderLinesCache = list ?? const <Map<String, dynamic>>[];
       });
       return j;
     } catch (_) {
       if (mounted) {
-        setState(() => orderLinesCache = const <Map<String, dynamic>>[]);
+        State(() => orderLinesCache = const <Map<String, dynamic>>[]);
       }
       return null;
     }
@@ -1128,13 +1128,13 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return null;
       }
-      setState(() {
+      State(() {
         deliveryLinesCache = list ?? const <Map<String, dynamic>>[];
       });
       return j;
     } catch (_) {
       if (mounted) {
-        setState(() => deliveryLinesCache = const <Map<String, dynamic>>[]);
+        State(() => deliveryLinesCache = const <Map<String, dynamic>>[]);
       }
       return null;
     }
@@ -1163,7 +1163,7 @@ class SalesInvoiceManagementController extends GetxController {
         if (!mounted) {
           return;
         }
-        setState(() => salesChain = r.data);
+        State(() => salesChain = r.data);
         return;
       }
       if (oid != null) {
@@ -1171,7 +1171,7 @@ class SalesInvoiceManagementController extends GetxController {
         if (!mounted) {
           return;
         }
-        setState(() => salesChain = r.data);
+        State(() => salesChain = r.data);
         return;
       }
       if (quotationId != null) {
@@ -1179,18 +1179,18 @@ class SalesInvoiceManagementController extends GetxController {
         if (!mounted) {
           return;
         }
-        setState(() => salesChain = r.data);
+        State(() => salesChain = r.data);
         return;
       }
       if (!mounted) {
         return;
       }
-      setState(() => salesChain = null);
+      State(() => salesChain = null);
     } catch (_) {
       if (!mounted) {
         return;
       }
-      setState(() => salesChain = null);
+      State(() => salesChain = null);
     }
   }
 
@@ -1198,12 +1198,12 @@ class SalesInvoiceManagementController extends GetxController {
     if (salesOrderId != null) {
       await fetchOrderDetail(salesOrderId!);
     } else if (mounted) {
-      setState(() => orderLinesCache = null);
+      State(() => orderLinesCache = null);
     }
     if (salesDeliveryId != null) {
       await fetchDeliveryDetail(salesDeliveryId!);
     } else if (mounted) {
-      setState(() => deliveryLinesCache = null);
+      State(() => deliveryLinesCache = null);
     }
   }
 
@@ -1243,7 +1243,7 @@ class SalesInvoiceManagementController extends GetxController {
     if (!canEdit) {
       return;
     }
-    setState(() {
+    State(() {
       salesOrderId = value;
       orderLinesCache = value == null ? null : const <Map<String, dynamic>>[];
       if (salesDeliveryId != null && value != null) {
@@ -1261,7 +1261,7 @@ class SalesInvoiceManagementController extends GetxController {
         await refreshSalesChain();
         return;
       }
-      setState(() {
+      State(() {
         if (orderJson != null) {
           applyInvoiceHeaderFromOrderJson(orderJson);
         }
@@ -1272,10 +1272,10 @@ class SalesInvoiceManagementController extends GetxController {
       await reloadSourceDocumentsForCompany(companyId);
     } else {
       if (mounted) {
-        setState(() => orderLinesCache = null);
+        State(() => orderLinesCache = null);
       }
       if (mounted && canEdit) {
-        setState(() {
+        State(() {
           disposeAllInvoiceLineDrafts();
           lines = <InvoiceLineDraft>[InvoiceLineDraft()];
         });
@@ -1288,7 +1288,7 @@ class SalesInvoiceManagementController extends GetxController {
     if (!canEdit) {
       return;
     }
-    setState(() {
+    State(() {
       salesDeliveryId = value;
       deliveryLinesCache = value == null
           ? null
@@ -1300,7 +1300,7 @@ class SalesInvoiceManagementController extends GetxController {
       Map<String, dynamic>? orderJson;
       if (dOrd != null && dOrd != 0) {
         if (salesOrderId == null) {
-          setState(() => salesOrderId = dOrd);
+          State(() => salesOrderId = dOrd);
         }
         orderJson = await fetchOrderDetail(dOrd);
       } else if (salesOrderId != null) {
@@ -1310,7 +1310,7 @@ class SalesInvoiceManagementController extends GetxController {
         await refreshSalesChain();
         return;
       }
-      setState(() {
+      State(() {
         if (orderJson != null) {
           applyInvoiceHeaderFromOrderJson(orderJson);
         } else if (dJson != null) {
@@ -1328,7 +1328,7 @@ class SalesInvoiceManagementController extends GetxController {
       await reloadSourceDocumentsForCompany(companyId);
     } else {
       if (mounted) {
-        setState(() => deliveryLinesCache = null);
+        State(() => deliveryLinesCache = null);
       }
       if (mounted && canEdit && salesOrderId != null) {
         await fetchOrderDetail(salesOrderId!);
@@ -1336,7 +1336,7 @@ class SalesInvoiceManagementController extends GetxController {
           await refreshSalesChain();
           return;
         }
-        setState(() {
+        State(() {
           if (orderLinesCache != null && orderLinesCache!.isNotEmpty) {
             applyLinesFromOrderCache();
           } else {
@@ -1345,7 +1345,7 @@ class SalesInvoiceManagementController extends GetxController {
           }
         });
       } else if (mounted && canEdit) {
-        setState(() {
+        State(() {
           disposeAllInvoiceLineDrafts();
           lines = <InvoiceLineDraft>[InvoiceLineDraft()];
         });
@@ -1355,7 +1355,7 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   void applyOrderLinePick(InvoiceLineDraft line, int? orderLineId) {
-    setState(() {
+    State(() {
       line.salesOrderLineId = orderLineId;
       line.salesDeliveryLineId = null;
       if (orderLineId == null) {
@@ -1396,7 +1396,7 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   void applyDeliveryLinePick(InvoiceLineDraft line, int? deliveryLineId) {
-    setState(() {
+    State(() {
       line.salesDeliveryLineId = deliveryLineId;
       if (deliveryLineId == null) {
         return;
@@ -1517,7 +1517,7 @@ class SalesInvoiceManagementController extends GetxController {
 
   bool get mounted => !isClosed;
 
-  void setState(VoidCallback fn) {
+  void State(VoidCallback fn) {
     if (isClosed) {
       return;
     }
@@ -1600,7 +1600,7 @@ class SalesInvoiceManagementController extends GetxController {
         return;
       }
 
-      setState(() {
+      State(() {
         accounts =
             ((responses[0] as ApiResponse<List<AccountModel>>).data ??
                     const <AccountModel>[])
@@ -1636,7 +1636,7 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   Future<void> loadPage({int? selectId}) async {
-    setState(() {
+    State(() {
       initialLoading = items.isEmpty;
       pageError = null;
     });
@@ -1730,7 +1730,7 @@ class SalesInvoiceManagementController extends GetxController {
         return;
       }
 
-      setState(() {
+      State(() {
         items =
             (responses[0] as PaginatedResponse<SalesInvoiceModel>).data ??
             const <SalesInvoiceModel>[];
@@ -1796,7 +1796,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         pageError = errorMessage(error);
         initialLoading = false;
       });
@@ -1822,7 +1822,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() {
+      State(() {
         applyInvoiceHeaderFromQuotationJson(data);
         salesOrderId = null;
         salesDeliveryId = null;
@@ -1845,7 +1845,7 @@ class SalesInvoiceManagementController extends GetxController {
       await refreshSalesChain(quotationId: quotationId);
     } catch (e) {
       if (mounted) {
-        setState(() => formError = e.toString());
+        State(() => formError = e.toString());
       }
     }
   }
@@ -1856,7 +1856,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (orderJson == null || !mounted) {
         return;
       }
-      setState(() {
+      State(() {
         salesOrderId = orderId;
         salesDeliveryId = null;
         deliveryLinesCache = null;
@@ -1876,7 +1876,7 @@ class SalesInvoiceManagementController extends GetxController {
       await refreshSalesChain();
     } catch (e) {
       if (mounted) {
-        setState(() => formError = e.toString());
+        State(() => formError = e.toString());
       }
     }
   }
@@ -1892,7 +1892,7 @@ class SalesInvoiceManagementController extends GetxController {
     for (final old in lines) {
       old.dispose();
     }
-    setState(() {
+    State(() {
       selectedItem = full;
       companyId = full.companyId;
       branchId = full.branchId;
@@ -1944,7 +1944,7 @@ class SalesInvoiceManagementController extends GetxController {
       line.dispose();
     }
     final series = seriesOptions();
-    setState(() {
+    State(() {
       selectedItem = null;
       companyId = contextCompanyId;
       branchId = contextBranchId;
@@ -1982,7 +1982,7 @@ class SalesInvoiceManagementController extends GetxController {
 
   void applyFilters() {
     final search = searchController.text.trim().toLowerCase();
-    setState(() {
+    State(() {
       filteredItems = items
           .where((item) {
             final data = rowJson(item);
@@ -2207,14 +2207,14 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   void addLine() {
-    setState(() {
+    State(() {
       lines = List<InvoiceLineDraft>.from(lines)..add(InvoiceLineDraft());
     });
   }
 
   void removeLine(int index) {
     late InvoiceLineDraft removed;
-    setState(() {
+    State(() {
       final next = List<InvoiceLineDraft>.from(lines);
       removed = next.removeAt(index);
       lines = next.isEmpty ? <InvoiceLineDraft>[InvoiceLineDraft()] : next;
@@ -2294,7 +2294,7 @@ class SalesInvoiceManagementController extends GetxController {
 
   Future<void> save(BuildContext context) async {
     if (!canEdit) {
-      setState(() {
+      State(() {
         formError = 'Only draft invoices can be updated.';
       });
       return;
@@ -2315,20 +2315,20 @@ class SalesInvoiceManagementController extends GetxController {
           line.uomId == null ||
           (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
     )) {
-      setState(() => formError = 'Each line needs item, UOM, and quantity.');
+      State(() => formError = 'Each line needs item, UOM, and quantity.');
       return;
     }
 
     final adjAmt = double.tryParse(adjustmentAmountController.text.trim()) ?? 0;
     if (adjAmt != 0 && adjustmentAccountId == null) {
-      setState(
+      State(
         () => formError =
             'Choose an adjustment account when adjustment amount is not zero.',
       );
       return;
     }
 
-    setState(() {
+    State(() {
       saving = true;
       formError = null;
     });
@@ -2375,10 +2375,10 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() => formError = errorMessage(error));
+      State(() => formError = errorMessage(error));
     } finally {
       if (mounted) {
-        setState(() => saving = false);
+        State(() => saving = false);
       }
     }
   }
@@ -2399,7 +2399,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() => formError = errorMessage(error));
+      State(() => formError = errorMessage(error));
     }
   }
 
@@ -2420,7 +2420,7 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      setState(() => formError = errorMessage(error));
+      State(() => formError = errorMessage(error));
     }
   }
 

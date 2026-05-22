@@ -127,6 +127,78 @@ class _QualityFilters extends StatelessWidget {
 
 // --- Registers ----------------------------------------------------------
 
+class QcPlanRegisterController extends GetxController {
+  final QualityService _service = QualityService();
+  final TextEditingController searchController = TextEditingController();
+
+  bool loading = true;
+  String? error;
+  String? companyBanner;
+  List<QcPlanModel> rows = const <QcPlanModel>[];
+
+  @override
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_onContextChanged);
+    searchController.addListener(update);
+    unawaited(load());
+  }
+
+  @override
+  void onClose() {
+    WorkingContextService.version.removeListener(_onContextChanged);
+    searchController
+      ..removeListener(update)
+      ..dispose();
+    super.onClose();
+  }
+
+  void _onContextChanged() {
+    unawaited(load());
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
+    try {
+      final info = await hrSessionCompanyInfo();
+      final filters = <String, dynamic>{'per_page': 200};
+      if (info.companyId != null) {
+        filters['company_id'] = info.companyId;
+      }
+      final response = await _service.qcPlans(filters: filters);
+      companyBanner = info.banner;
+      rows = response.data ?? const <QcPlanModel>[];
+      loading = false;
+      update();
+    } catch (err) {
+      error = err.toString();
+      loading = false;
+      update();
+    }
+  }
+
+  List<QcPlanModel> get filteredRows {
+    final query = searchController.text.trim().toLowerCase();
+    return rows
+        .where((QcPlanModel row) {
+          if (query.isEmpty) {
+            return true;
+          }
+          return [
+            row.planCode,
+            row.planName,
+            row.approvalStatus,
+            row.qcScope,
+            row.itemLabel,
+            row.categoryLabel,
+          ].join(' ').toLowerCase().contains(query);
+        })
+        .toList(growable: false);
+  }
+}
+
 class QcPlanRegisterPage extends StatefulWidget {
   const QcPlanRegisterPage({super.key, this.embedded = false});
 
@@ -137,130 +209,143 @@ class QcPlanRegisterPage extends StatefulWidget {
 }
 
 class _QcPlanRegisterPageState extends State<QcPlanRegisterPage> {
-  final QualityService _service = QualityService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<QcPlanModel> _rows = const <QcPlanModel>[];
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
+    _controllerTag = persistentControllerTag('QcPlanRegisterController');
+    if (!Get.isRegistered<QcPlanRegisterController>(tag: _controllerTag)) {
+      Get.put(QcPlanRegisterController(), tag: _controllerTag);
+    }
   }
 
   @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return GetBuilder<QcPlanRegisterController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<QcPlanModel>(
+          title: 'QC plans',
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: 'No QC plans found.',
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  _openQualityShellRoute(context, '/quality/qc-plans/new'),
+              icon: Icons.add_outlined,
+              label: 'New QC plan',
+            ),
+          ],
+          filters: _QualityFilters(
+            searchController: controller.searchController,
+            searchHint: 'Search code, name, scope, item, status',
+            companyBanner: controller.companyBanner,
+          ),
+          rows: controller.filteredRows,
+          columns: [
+            PurchaseRegisterColumn<QcPlanModel>(
+              label: 'Code',
+              valueBuilder: (QcPlanModel row) => row.planCode,
+            ),
+            PurchaseRegisterColumn<QcPlanModel>(
+              label: 'Name',
+              flex: 2,
+              valueBuilder: (QcPlanModel row) => row.planName,
+            ),
+            PurchaseRegisterColumn<QcPlanModel>(
+              label: 'Scope',
+              valueBuilder: (QcPlanModel row) => row.qcScope,
+            ),
+            PurchaseRegisterColumn<QcPlanModel>(
+              label: 'Status',
+              valueBuilder: (QcPlanModel row) => row.approvalStatus,
+            ),
+          ],
+          onRowTap: (QcPlanModel row) {
+            final id = row.id;
+            if (id == null) {
+              return;
+            }
+            _openQualityShellRoute(context, '/quality/qc-plans/$id');
+          },
+        );
+      },
+    );
+  }
+}
+
+class QcInspectionRegisterController extends GetxController {
+  final QualityService _service = QualityService();
+  final TextEditingController searchController = TextEditingController();
+
+  bool loading = true;
+  String? error;
+  String? companyBanner;
+  List<QcInspectionModel> rows = const <QcInspectionModel>[];
+
+  @override
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_onContextChanged);
+    searchController.addListener(update);
+    unawaited(load());
   }
 
-  void _onContextChanged() => _load();
+  @override
+  void onClose() {
+    WorkingContextService.version.removeListener(_onContextChanged);
+    searchController
+      ..removeListener(update)
+      ..dispose();
+    super.onClose();
+  }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  void _onContextChanged() {
+    unawaited(load());
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
     try {
       final info = await hrSessionCompanyInfo();
       final filters = <String, dynamic>{'per_page': 200};
       if (info.companyId != null) {
         filters['company_id'] = info.companyId;
       }
-      final response = await _service.qcPlans(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <QcPlanModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      final response = await _service.qcInspections(filters: filters);
+      companyBanner = info.banner;
+      rows = response.data ?? const <QcInspectionModel>[];
+      loading = false;
+      update();
+    } catch (err) {
+      error = err.toString();
+      loading = false;
+      update();
     }
   }
 
-  List<QcPlanModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((QcPlanModel row) {
-          if (q.isEmpty) {
+  List<QcInspectionModel> get filteredRows {
+    final query = searchController.text.trim().toLowerCase();
+    return rows
+        .where((QcInspectionModel row) {
+          final data = row.toJson();
+          if (query.isEmpty) {
             return true;
           }
           return [
-            row.planCode,
-            row.planName,
-            row.approvalStatus,
-            row.qcScope,
-            row.itemLabel,
-            row.categoryLabel,
-          ].join(' ').toLowerCase().contains(q);
+            stringValue(data, 'inspection_no'),
+            stringValue(data, 'inspection_status'),
+            _qcPlanLabel(data),
+            _itemLabel(data),
+          ].join(' ').toLowerCase().contains(query);
         })
         .toList(growable: false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return PurchaseRegisterPage<QcPlanModel>(
-      title: 'QC plans',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No QC plans found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openQualityShellRoute(context, '/quality/qc-plans/new'),
-          icon: Icons.add_outlined,
-          label: 'New QC plan',
-        ),
-      ],
-      filters: _QualityFilters(
-        searchController: _searchController,
-        searchHint: 'Search code, name, scope, item, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
-      columns: [
-        PurchaseRegisterColumn<QcPlanModel>(
-          label: 'Code',
-          valueBuilder: (QcPlanModel row) => row.planCode,
-        ),
-        PurchaseRegisterColumn<QcPlanModel>(
-          label: 'Name',
-          flex: 2,
-          valueBuilder: (QcPlanModel row) => row.planName,
-        ),
-        PurchaseRegisterColumn<QcPlanModel>(
-          label: 'Scope',
-          valueBuilder: (QcPlanModel row) => row.qcScope,
-        ),
-        PurchaseRegisterColumn<QcPlanModel>(
-          label: 'Status',
-          valueBuilder: (QcPlanModel row) => row.approvalStatus,
-        ),
-      ],
-      onRowTap: (QcPlanModel row) {
-        final id = row.id;
-        if (id == null) {
-          return;
-        }
-        _openQualityShellRoute(context, '/quality/qc-plans/$id');
-      },
-    );
   }
 }
 
@@ -275,130 +360,79 @@ class QcInspectionRegisterPage extends StatefulWidget {
 }
 
 class _QcInspectionRegisterPageState extends State<QcInspectionRegisterPage> {
-  final QualityService _service = QualityService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<QcInspectionModel> _rows = const <QcInspectionModel>[];
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.qcInspections(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <QcInspectionModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+    _controllerTag = persistentControllerTag('QcInspectionRegisterController');
+    if (!Get.isRegistered<QcInspectionRegisterController>(
+      tag: _controllerTag,
+    )) {
+      Get.put(QcInspectionRegisterController(), tag: _controllerTag);
     }
-  }
-
-  List<QcInspectionModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((QcInspectionModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'inspection_no'),
-            stringValue(data, 'inspection_status'),
-            _qcPlanLabel(data),
-            _itemLabel(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<QcInspectionModel>(
-      title: 'QC inspections',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No QC inspections found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openQualityShellRoute(context, '/quality/qc-inspections/new'),
-          icon: Icons.add_outlined,
-          label: 'New QC inspection',
-        ),
-      ],
-      filters: _QualityFilters(
-        searchController: _searchController,
-        searchHint: 'Search inspection no., plan, item, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
-      columns: [
-        PurchaseRegisterColumn<QcInspectionModel>(
-          label: 'Inspection no.',
-          valueBuilder: (QcInspectionModel row) =>
-              stringValue(row.toJson(), 'inspection_no'),
-        ),
-        PurchaseRegisterColumn<QcInspectionModel>(
-          label: 'Date',
-          valueBuilder: (QcInspectionModel row) =>
-              displayDate(nullableStringValue(row.toJson(), 'inspection_date')),
-        ),
-        PurchaseRegisterColumn<QcInspectionModel>(
-          label: 'Plan',
-          flex: 2,
-          valueBuilder: (QcInspectionModel row) => _qcPlanLabel(row.toJson()),
-        ),
-        PurchaseRegisterColumn<QcInspectionModel>(
-          label: 'Status',
-          valueBuilder: (QcInspectionModel row) =>
-              stringValue(row.toJson(), 'inspection_status'),
-        ),
-      ],
-      onRowTap: (QcInspectionModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openQualityShellRoute(context, '/quality/qc-inspections/$id');
+    return GetBuilder<QcInspectionRegisterController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<QcInspectionModel>(
+          title: 'QC inspections',
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: 'No QC inspections found.',
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: () => _openQualityShellRoute(
+                context,
+                '/quality/qc-inspections/new',
+              ),
+              icon: Icons.add_outlined,
+              label: 'New QC inspection',
+            ),
+          ],
+          filters: _QualityFilters(
+            searchController: controller.searchController,
+            searchHint: 'Search inspection no., plan, item, status',
+            companyBanner: controller.companyBanner,
+          ),
+          rows: controller.filteredRows,
+          columns: [
+            PurchaseRegisterColumn<QcInspectionModel>(
+              label: 'Inspection no.',
+              valueBuilder: (QcInspectionModel row) =>
+                  stringValue(row.toJson(), 'inspection_no'),
+            ),
+            PurchaseRegisterColumn<QcInspectionModel>(
+              label: 'Date',
+              valueBuilder: (QcInspectionModel row) => displayDate(
+                nullableStringValue(row.toJson(), 'inspection_date'),
+              ),
+            ),
+            PurchaseRegisterColumn<QcInspectionModel>(
+              label: 'Plan',
+              flex: 2,
+              valueBuilder: (QcInspectionModel row) =>
+                  _qcPlanLabel(row.toJson()),
+            ),
+            PurchaseRegisterColumn<QcInspectionModel>(
+              label: 'Status',
+              valueBuilder: (QcInspectionModel row) =>
+                  stringValue(row.toJson(), 'inspection_status'),
+            ),
+          ],
+          onRowTap: (QcInspectionModel row) {
+            final id = intValue(row.toJson(), 'id');
+            if (id == null) {
+              return;
+            }
+            _openQualityShellRoute(context, '/quality/qc-inspections/$id');
+          },
+        );
       },
     );
   }

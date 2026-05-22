@@ -279,7 +279,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     if (!controller.canEdit) {
                       return;
                     }
-                    controller.setState(() {
+                    controller.State(() {
                       controller.financialYearId = value;
                       final options = controller.seriesOptions();
                       controller.documentSeriesId = options.isNotEmpty
@@ -306,7 +306,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     if (!controller.canEdit) {
                       return;
                     }
-                    controller.setState(
+                    controller.State(
                       () => controller.documentSeriesId = value,
                     );
                   },
@@ -372,7 +372,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     if (!controller.canEdit) {
                       return;
                     }
-                    controller.setState(() {
+                    controller.State(() {
                       controller.customerPartyId = value;
                       controller.billingAddressId = null;
                       controller.shippingAddressId = null;
@@ -436,7 +436,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   labelText: 'Currency',
                   controller: controller.currencyCodeController,
                   enabled: controller.canEdit,
-                  onChanged: (_) => controller.setState(() {}),
+                  onChanged: (_) => controller.State(() {}),
                   validator: Validators.optionalMaxLength(10, 'Currency'),
                 ),
                 AppFormTextField(
@@ -458,7 +458,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     signed: true,
                   ),
                   enabled: controller.canEdit,
-                  onChanged: (_) => controller.setState(() {}),
+                  onChanged: (_) => controller.State(() {}),
                   validator: (value) {
                     final trimmed = value?.trim() ?? '';
                     if (trimmed.isEmpty) {
@@ -486,7 +486,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     if (!controller.canEdit) {
                       return;
                     }
-                    controller.setState(
+                    controller.State(
                       () => controller.adjustmentAccountId = value,
                     );
                   },
@@ -517,7 +517,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               value: controller.isActive,
               onChanged: controller.canEdit
                   ? (value) =>
-                        controller.setState(() => controller.isActive = value)
+                        controller.State(() => controller.isActive = value)
                   : null,
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
@@ -637,7 +637,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           if (!controller.canEdit) {
                             return;
                           }
-                          controller.setState(() {
+                          controller.State(() {
                             line.itemId = value;
                             line.salesOrderLineId = null;
                             line.salesDeliveryLineId = null;
@@ -703,7 +703,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                               if (!controller.canEdit) {
                                 return;
                               }
-                              controller.setState(() => line.uomId = value);
+                              controller.State(() => line.uomId = value);
                             },
                             validator: (_) {
                               if (line.itemId == null) {
@@ -733,7 +733,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           if (!controller.canEdit) {
                             return;
                           }
-                          controller.setState(() {
+                          controller.State(() {
                             line.warehouseId = value;
                             line.batchId = null;
                             line.serialId = null;
@@ -781,7 +781,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                             if (!controller.canEdit) {
                               return;
                             }
-                            controller.setState(() {
+                            controller.State(() {
                               line.batchId = value;
                               line.serialId = null;
                             });
@@ -853,7 +853,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                             return null;
                           },
                           onChanged: (values) {
-                            controller.setState(() {
+                            controller.State(() {
                               if (controller.isSerialManagedItem(line.itemId)) {
                                 controller.replaceLineWithSerialDrafts(
                                   line,
@@ -871,7 +871,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         enabled:
                             controller.canEdit &&
                             !controller.isSerialManagedItem(line.itemId),
-                        onChanged: (_) => controller.setState(() {}),
+                        onChanged: (_) => controller.State(() {}),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
@@ -908,7 +908,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         labelText: 'Rate',
                         controller: line.rateController,
                         enabled: controller.canEdit,
-                        onChanged: (_) => controller.setState(() {}),
+                        onChanged: (_) => controller.State(() {}),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
@@ -921,7 +921,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         labelText: 'Discount %',
                         controller: line.discountController,
                         enabled: controller.canEdit,
-                        onChanged: (_) => controller.setState(() {}),
+                        onChanged: (_) => controller.State(() {}),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
@@ -945,7 +945,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           if (!controller.canEdit) {
                             return;
                           }
-                          controller.setState(() => line.taxCodeId = value);
+                          controller.State(() => line.taxCodeId = value);
                         },
                       ),
                       AppFormTextField(
