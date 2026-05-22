@@ -55,6 +55,15 @@ class _FinancialYearManagementPageState
     return GetBuilder<FinancialYearManagementController>(
       tag: _controllerTag,
       builder: (controller) {
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () => controller.startNewFinancialYear(
+              isDesktop: Responsive.isDesktop(context),
+            ),
+            icon: Icons.add_outlined,
+            label: 'New Financial Year',
+          ),
+        ];
         if (controller.initialLoading) {
           return const AppLoadingView(message: 'Loading financial years...');
         }
@@ -67,21 +76,16 @@ class _FinancialYearManagementPageState
         }
 
         if (widget.embedded) {
-          return _buildEmbeddedContent(context, controller);
+          return ShellPageActions(
+            actions: actions,
+            child: _buildEmbeddedContent(context, controller),
+          );
         }
 
         return AppStandaloneShell(
           title: 'Financial Years',
           scrollController: controller.pageScrollController,
-          actions: [
-            AdaptiveShellActionButton(
-              onPressed: () => controller.startNewFinancialYear(
-                isDesktop: Responsive.isDesktop(context),
-              ),
-              icon: Icons.add_outlined,
-              label: 'New Financial Year',
-            ),
-          ],
+          actions: actions,
           child: SettingsWorkspace(
             controller: controller.workspaceController,
             title: 'Financial Years',
@@ -269,20 +273,6 @@ class _FinancialYearManagementPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
-            children: [
-              AppActionButton(
-                icon: Icons.add_outlined,
-                label: 'New Financial Year',
-                onPressed: () => controller.startNewFinancialYear(
-                  isDesktop: Responsive.isDesktop(context),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
           if (controller.filteredFinancialYears.isEmpty &&
               !controller.showDraftTile &&
               controller.selectedFinancialYear == null)

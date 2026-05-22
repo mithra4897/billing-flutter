@@ -121,6 +121,13 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
     return GetBuilder<HrStatutorySettingsController>(
       tag: _controllerTag,
       builder: (controller) {
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: controller.saving ? null : controller.startNewForm,
+            icon: Icons.add_outlined,
+            label: 'New Profile',
+          ),
+        ];
         final body = controller.loading
             ? const AppLoadingView(message: 'Loading statutory settings...')
             : controller.error != null &&
@@ -513,12 +520,12 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
               );
 
         if (widget.embedded) {
-          return body;
+          return ShellPageActions(actions: actions, child: body);
         }
         return AppStandaloneShell(
           title: 'HR · PF, ESI & PT',
           scrollController: controller.scroll,
-          actions: const <Widget>[],
+          actions: actions,
           child: body,
         );
       },

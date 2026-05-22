@@ -64,7 +64,10 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
         ];
 
         if (widget.embedded) {
-          return _buildEmbeddedContent(context, controller);
+          return ShellPageActions(
+            actions: actions,
+            child: _buildEmbeddedContent(context, controller),
+          );
         }
 
         return AppStandaloneShell(
@@ -312,18 +315,6 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            AppActionButton(
-              onPressed: controller.saving
-                  ? null
-                  : () => controller.startNewWarehouse(isDesktop: false),
-              icon: Icons.add_home_work_outlined,
-              label: 'New Warehouse',
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
         if (controller.filteredWarehouses.isEmpty &&
             !controller.showDraftTile &&
             controller.selectedWarehouse == null)

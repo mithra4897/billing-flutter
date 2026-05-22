@@ -94,22 +94,6 @@ class _GstRegistrationManagementPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
-            children: [
-              AppActionButton(
-                icon: Icons.add_outlined,
-                label: 'New GST Registration',
-                onPressed: controller.saving
-                    ? null
-                    : () => controller.startNew(
-                        isDesktop: Responsive.isDesktop(context),
-                      ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
           if (controller.filteredItems.isEmpty &&
               !controller.showDraftTile &&
               controller.selectedItem == null)
@@ -187,6 +171,14 @@ class _GstRegistrationManagementPageState
     return GetBuilder<GstRegistrationManagementController>(
       tag: _controllerTag,
       builder: (controller) {
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () =>
+                controller.startNew(isDesktop: Responsive.isDesktop(context)),
+            icon: Icons.add_outlined,
+            label: 'New GST Registration',
+          ),
+        ];
         if (controller.initialLoading) {
           return const AppLoadingView(message: 'Loading GST registrations...');
         }
@@ -199,20 +191,16 @@ class _GstRegistrationManagementPageState
         }
 
         if (widget.embedded) {
-          return _buildEmbeddedContent(controller);
+          return ShellPageActions(
+            actions: actions,
+            child: _buildEmbeddedContent(controller),
+          );
         }
 
         return AppStandaloneShell(
           title: 'GST Registrations',
           scrollController: controller.pageScrollController,
-          actions: [
-            AdaptiveShellActionButton(
-              onPressed: () =>
-                  controller.startNew(isDesktop: Responsive.isDesktop(context)),
-              icon: Icons.add_outlined,
-              label: 'New GST Registration',
-            ),
-          ],
+          actions: actions,
           child: SettingsWorkspace(
             controller: controller.workspaceController,
             title: 'GST Registrations',

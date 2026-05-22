@@ -68,7 +68,10 @@ class _BusinessLocationManagementPageState
         ];
 
         if (widget.embedded) {
-          return _buildEmbeddedContent(context, controller);
+          return ShellPageActions(
+            actions: actions,
+            child: _buildEmbeddedContent(context, controller),
+          );
         }
 
         return AppStandaloneShell(
@@ -322,18 +325,6 @@ class _BusinessLocationManagementPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            AppActionButton(
-              onPressed: controller.saving
-                  ? null
-                  : () => controller.startNewLocation(isDesktop: false),
-              icon: Icons.add_location_alt_outlined,
-              label: 'New Location',
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
         if (controller.filteredLocations.isEmpty &&
             !controller.showDraftTile &&
             controller.selectedLocation == null)
