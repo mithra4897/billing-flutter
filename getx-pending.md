@@ -84,7 +84,7 @@ Status legend:
 | --- | --- | --- | --- | --- |
 | Assets | `lib/View/assets/asset_registers.dart` | widget/support | `done` | Migrated asset register/report/dialog state to shared GetX controllers |
 | Dashboard | `lib/View/dashboard/erp_module_dashboard_support.dart` | widget/support | `done` | Support loaders already stateless; custom trend range dialog state moved to GetX in dashboard page |
-| HR | `lib/View/hr/hr_registers.dart` | widget/support | `pending` |  |
+| HR | `lib/View/hr/hr_registers.dart` | widget/support | `done` | Migrated attendance, payroll run, and payslip register state to GetX controllers |
 | Inventory | `lib/View/inventory/inventory_registers.dart` | widget/support | `pending` |  |
 | Jobwork | `lib/View/jobwork/jobwork_registers.dart` | widget/support | `pending` |  |
 | Maintenance | `lib/View/maintenance/maintenance_registers.dart` | widget/support | `pending` |  |
