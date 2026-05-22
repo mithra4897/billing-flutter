@@ -193,133 +193,127 @@ class _CustomRangeDialog extends StatefulWidget {
 }
 
 class _CustomRangeDialogState extends State<_CustomRangeDialog> {
-  late DateTime _start;
-  late DateTime _end;
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _start = widget.initialRange.start;
-    _end = widget.initialRange.end;
+    _controllerTag = persistentControllerTag(
+      'ErpDashboardCustomRangeController',
+      scope: <String, Object?>{
+        'start': widget.initialRange.start.toIso8601String(),
+        'end': widget.initialRange.end.toIso8601String(),
+      },
+    );
+    Get.put(
+      _CustomRangeDialogController(initialRange: widget.initialRange),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    Get.delete<_CustomRangeDialogController>(tag: _controllerTag, force: true);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isCompact = MediaQuery.of(context).size.width < 980;
+    return GetBuilder<_CustomRangeDialogController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final isCompact = MediaQuery.of(context).size.width < 980;
 
-    return Dialog(
-      insetPadding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 920),
-        child: Padding(
-          padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Custom Range',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppUiConstants.spacingXs),
-              Text(
-                '${_formatDate(_start)} - ${_formatDate(_end)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Flexible(
-                child: isCompact
-                    ? SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            _CustomRangeCalendar(
-                              label: 'Start Date',
-                              selectedDate: _start,
-                              firstDate: widget.firstDate,
-                              lastDate: widget.lastDate,
-                              onChanged: (value) {
-                                setState(() {
-                                  _start = value;
-                                  if (_end.isBefore(_start)) {
-                                    _end = _start;
-                                  }
-                                });
-                              },
-                            ),
-                            const SizedBox(height: AppUiConstants.spacingMd),
-                            _CustomRangeCalendar(
-                              label: 'End Date',
-                              selectedDate: _end,
-                              firstDate: widget.firstDate,
-                              lastDate: widget.lastDate,
-                              onChanged: (value) {
-                                setState(() {
-                                  _end = value.isBefore(_start)
-                                      ? _start
-                                      : value;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _CustomRangeCalendar(
-                            label: 'Start Date',
-                            selectedDate: _start,
-                            firstDate: widget.firstDate,
-                            lastDate: widget.lastDate,
-                            onChanged: (value) {
-                              setState(() {
-                                _start = value;
-                                if (_end.isBefore(_start)) {
-                                  _end = _start;
-                                }
-                              });
-                            },
-                          ),
-                          const SizedBox(width: AppUiConstants.spacingMd),
-                          _CustomRangeCalendar(
-                            label: 'End Date',
-                            selectedDate: _end,
-                            firstDate: widget.firstDate,
-                            lastDate: widget.lastDate,
-                            onChanged: (value) {
-                              setState(() {
-                                _end = value.isBefore(_start) ? _start : value;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+        return Dialog(
+          insetPadding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 920),
+            child: Padding(
+              padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                  Text(
+                    'Select Custom Range',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  const SizedBox(width: AppUiConstants.spacingSm),
-                  FilledButton(
-                    onPressed: () {
-                      Navigator.of(
-                        context,
-                      ).pop(DateTimeRange(start: _start, end: _end));
-                    },
-                    child: const Text('Apply'),
+                  const SizedBox(height: AppUiConstants.spacingXs),
+                  Text(
+                    '${_formatDate(controller.start)} - ${_formatDate(controller.end)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  Flexible(
+                    child: isCompact
+                        ? SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                _CustomRangeCalendar(
+                                  label: 'Start Date',
+                                  selectedDate: controller.start,
+                                  firstDate: widget.firstDate,
+                                  lastDate: widget.lastDate,
+                                  onChanged: controller.setStart,
+                                ),
+                                const SizedBox(
+                                  height: AppUiConstants.spacingMd,
+                                ),
+                                _CustomRangeCalendar(
+                                  label: 'End Date',
+                                  selectedDate: controller.end,
+                                  firstDate: widget.firstDate,
+                                  lastDate: widget.lastDate,
+                                  onChanged: controller.setEnd,
+                                ),
+                              ],
+                            ),
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _CustomRangeCalendar(
+                                label: 'Start Date',
+                                selectedDate: controller.start,
+                                firstDate: widget.firstDate,
+                                lastDate: widget.lastDate,
+                                onChanged: controller.setStart,
+                              ),
+                              const SizedBox(width: AppUiConstants.spacingMd),
+                              _CustomRangeCalendar(
+                                label: 'End Date',
+                                selectedDate: controller.end,
+                                firstDate: widget.firstDate,
+                                lastDate: widget.lastDate,
+                                onChanged: controller.setEnd,
+                              ),
+                            ],
+                          ),
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: AppUiConstants.spacingSm),
+                      FilledButton(
+                        onPressed: () =>
+                            Navigator.of(context).pop(controller.selectedRange),
+                        child: const Text('Apply'),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -327,6 +321,30 @@ class _CustomRangeDialogState extends State<_CustomRangeDialog> {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
     return '${value.year}-$month-$day';
+  }
+}
+
+class _CustomRangeDialogController extends GetxController {
+  _CustomRangeDialogController({required DateTimeRange initialRange})
+    : start = initialRange.start,
+      end = initialRange.end;
+
+  DateTime start;
+  DateTime end;
+
+  DateTimeRange get selectedRange => DateTimeRange(start: start, end: end);
+
+  void setStart(DateTime value) {
+    start = value;
+    if (end.isBefore(start)) {
+      end = start;
+    }
+    update();
+  }
+
+  void setEnd(DateTime value) {
+    end = value.isBefore(start) ? start : value;
+    update();
   }
 }
 

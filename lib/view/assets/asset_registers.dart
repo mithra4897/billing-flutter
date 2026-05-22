@@ -1,5 +1,13 @@
 import '../../screen.dart';
 
+typedef AssetCompanyInfo = ({int? companyId, String? banner});
+typedef AssetRegisterLoader<T> =
+    Future<List<T>> Function(AssetsService service, AssetCompanyInfo info);
+typedef AssetRegisterMatcher<T> = bool Function(T row, String query);
+typedef AssetRegisterCompanyFilter<T> =
+    List<T> Function(List<T> rows, AssetCompanyInfo info);
+typedef AssetRegisterScopeHintBuilder = String Function(AssetCompanyInfo info);
+
 Map<String, dynamic>? _asJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
     return value;
@@ -101,6 +109,38 @@ List<Map<String, dynamic>> _reportLines(Map<String, dynamic>? payload) {
       .toList(growable: false);
 }
 
+void _showAssetSnack(String message) {
+  appScaffoldMessengerKey.currentState?.showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}
+
+Future<bool> _confirmAssetAction(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String confirmLabel = 'Delete',
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
 class _AssetFilters extends StatelessWidget {
   const _AssetFilters({
     required this.searchController,
@@ -174,603 +214,330 @@ class _AssetFilters extends StatelessWidget {
   }
 }
 
-// --- Cost center -------------------------------------------------------
+class AssetRegisterController<T> extends GetxController {
+  AssetRegisterController({
+    required this.loader,
+    required this.matches,
+    required this.scopeHintBuilder,
+    this.companyFilter,
+  });
 
-class _CostCenterDetailDialog extends StatefulWidget {
-  const _CostCenterDetailDialog({required this.costCenterId});
+  final AssetRegisterLoader<T> loader;
+  final AssetRegisterMatcher<T> matches;
+  final AssetRegisterScopeHintBuilder scopeHintBuilder;
+  final AssetRegisterCompanyFilter<T>? companyFilter;
+  final AssetsService _service = AssetsService();
+  final TextEditingController searchController = TextEditingController();
+
+  bool loading = true;
+  String? error;
+  String? companyBanner;
+  int? sessionCompanyId;
+  String scopeHint = '';
+  List<T> rows = <T>[];
+
+  List<T> get filteredRows {
+    final query = searchController.text.trim().toLowerCase();
+    return rows
+        .where((row) => query.isEmpty || matches(row, query))
+        .toList(growable: false);
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    searchController.addListener(update);
+    WorkingContextService.version.addListener(_onContextChanged);
+    unawaited(load());
+  }
+
+  @override
+  void onClose() {
+    searchController
+      ..removeListener(update)
+      ..dispose();
+    WorkingContextService.version.removeListener(_onContextChanged);
+    super.onClose();
+  }
+
+  void _onContextChanged() {
+    unawaited(load());
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
+    try {
+      final info = await hrSessionCompanyInfo();
+      var nextRows = await loader(_service, info);
+      if (companyFilter != null) {
+        nextRows = companyFilter!(nextRows, info);
+      }
+      companyBanner = info.banner;
+      sessionCompanyId = info.companyId;
+      scopeHint = scopeHintBuilder(info);
+      rows = nextRows;
+      loading = false;
+      update();
+    } catch (err) {
+      error = err.toString();
+      loading = false;
+      update();
+    }
+  }
+}
+
+class _CostCenterDetailController extends GetxController {
+  _CostCenterDetailController({required this.costCenterId});
 
   final int costCenterId;
-
-  @override
-  State<_CostCenterDetailDialog> createState() =>
-      _CostCenterDetailDialogState();
-}
-
-class _CostCenterDetailDialogState extends State<_CostCenterDetailDialog> {
   final AssetsService _api = AssetsService();
-  bool _loading = true;
-  String? _error;
-  CostCenterModel? _model;
-  bool _busy = false;
+
+  bool loading = true;
+  bool busy = false;
+  String? error;
+  CostCenterModel? model;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void onInit() {
+    super.onInit();
+    unawaited(load());
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
     try {
-      final response = await _api.costCenter(widget.costCenterId);
-      if (!mounted) {
-        return;
-      }
+      final response = await _api.costCenter(costCenterId);
       if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
+        error = response.message;
+      } else {
+        model = response.data;
       }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete cost center'),
-        content: const Text(
-          'Only cost centers without children or linked assets can be deleted.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _api.deleteCostCenter(widget.costCenterId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Cost center deleted.')));
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
+    } catch (err) {
+      error = err.toString();
     } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+      loading = false;
+      update();
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
+  Future<bool> delete() async {
+    busy = true;
+    update();
+    try {
+      final response = await _api.deleteCostCenter(costCenterId);
+      if (response.success != true) {
+        _showAssetSnack(response.message);
+        return false;
+      }
+      _showAssetSnack('Cost center deleted.');
+      return true;
+    } catch (err) {
+      _showAssetSnack(err.toString());
+      return false;
+    } finally {
+      busy = false;
+      update();
     }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Cost center'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final raw = _model!.toJson();
-    final text = const JsonEncoder.withIndent('  ').convert(raw);
-
-    return AlertDialog(
-      title: Text('Cost center #${widget.costCenterId}'),
-      content: SizedBox(
-        width: 560,
-        height: 440,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              children: [
-                OutlinedButton(
-                  onPressed: _busy ? null : _delete,
-                  child: const Text('Delete'),
-                ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
   }
 }
 
-// --- Asset books sub-dialog -------------------------------------------
-
-class _AssetBooksDialog extends StatefulWidget {
-  const _AssetBooksDialog({required this.assetId});
+class _AssetBooksDialogController extends GetxController {
+  _AssetBooksDialogController({required this.assetId});
 
   final int assetId;
-
-  @override
-  State<_AssetBooksDialog> createState() => _AssetBooksDialogState();
-}
-
-class _AssetBooksDialogState extends State<_AssetBooksDialog> {
   final AssetsService _api = AssetsService();
-  bool _loading = true;
-  String? _error;
-  List<AssetBookModel> _books = const <AssetBookModel>[];
-  bool _busy = false;
+
+  bool loading = true;
+  bool busy = false;
+  String? error;
+  List<AssetBookModel> books = const <AssetBookModel>[];
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void onInit() {
+    super.onInit();
+    unawaited(load());
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
     try {
       final response = await _api.assetBooks(
-        widget.assetId,
-        filters: <String, dynamic>{'per_page': 100},
+        assetId,
+        filters: const <String, dynamic>{'per_page': 100},
       );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _books = response.data ?? const <AssetBookModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _deleteBook(int bookId) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete asset book'),
-        content: const Text('Delete this book for the asset?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _api.deleteAssetBook(widget.assetId, bookId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
+      books = response.data ?? const <AssetBookModel>[];
+    } catch (err) {
+      error = err.toString();
     } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+      loading = false;
+      update();
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Books - asset #${widget.assetId}'),
-      content: SizedBox(
-        width: 480,
-        height: 360,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-            ? Text(_error!)
-            : _busy
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                itemCount: _books.length,
-                itemBuilder: (ctx, i) {
-                  final b = _books[i].toJson();
-                  final id = intValue(b, 'id');
-                  final type = stringValue(b, 'book_type');
-                  final nbv = b['net_book_value']?.toString() ?? '';
-                  return ListTile(
-                    title: Text(type.isEmpty ? 'Book' : type),
-                    subtitle: Text('NBV: $nbv'),
-                    trailing: id == null
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _deleteBook(id),
-                          ),
-                  );
-                },
-              ),
-      ),
-      actions: [
-        TextButton(onPressed: _load, child: const Text('Refresh')),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
+  Future<void> deleteBook(int bookId) async {
+    busy = true;
+    update();
+    try {
+      final response = await _api.deleteAssetBook(assetId, bookId);
+      if (response.success != true) {
+        _showAssetSnack(response.message);
+        return;
+      }
+      await load();
+    } catch (err) {
+      _showAssetSnack(err.toString());
+    } finally {
+      busy = false;
+      update();
+    }
   }
 }
 
-// --- Fixed asset -------------------------------------------------------
-
-class _FixedAssetDetailDialog extends StatefulWidget {
-  const _FixedAssetDetailDialog({required this.assetId});
+class _FixedAssetDetailController extends GetxController {
+  _FixedAssetDetailController({required this.assetId});
 
   final int assetId;
-
-  @override
-  State<_FixedAssetDetailDialog> createState() =>
-      _FixedAssetDetailDialogState();
-}
-
-class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
   final AssetsService _api = AssetsService();
-  bool _loading = true;
-  String? _error;
-  AssetModel? _model;
-  bool _busy = false;
+
+  bool loading = true;
+  bool busy = false;
+  String? error;
+  AssetModel? model;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void onInit() {
+    super.onInit();
+    unawaited(load());
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
     try {
-      final response = await _api.asset(widget.assetId);
-      if (!mounted) {
-        return;
-      }
+      final response = await _api.asset(assetId);
       if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
+        error = response.message;
+      } else {
+        model = response.data;
       }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _act(Future<ApiResponse<AssetModel>> Function() fn) async {
-    setState(() => _busy = true);
-    try {
-      final response = await fn();
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Asset updated.')));
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
+    } catch (err) {
+      error = err.toString();
     } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+      loading = false;
+      update();
     }
   }
 
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete asset'),
-        content: const Text(
-          'Requires all asset books to be removed first. Continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+  Future<void> activate() async {
+    await _runAction(
+      () =>
+          _api.activateAsset(assetId, AssetModel.fromJson(<String, dynamic>{})),
+      successMessage: 'Asset updated.',
+      reloadOnSuccess: true,
     );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
+  }
+
+  Future<bool> delete() async {
+    return _runAction(
+      () => _api.deleteAsset(assetId),
+      successMessage: 'Asset deleted.',
+      reloadOnSuccess: false,
+    );
+  }
+
+  Future<bool> _runAction(
+    Future<ApiResponse<dynamic>> Function() request, {
+    required String successMessage,
+    required bool reloadOnSuccess,
+  }) async {
+    busy = true;
+    update();
     try {
-      final response = await _api.deleteAsset(widget.assetId);
-      if (!mounted) {
-        return;
-      }
+      final response = await request();
       if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
+        _showAssetSnack(response.message);
+        return false;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Asset deleted.')));
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      _showAssetSnack(successMessage);
+      if (reloadOnSuccess) {
+        await load();
       }
+      return true;
+    } catch (err) {
+      _showAssetSnack(err.toString());
+      return false;
     } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+      busy = false;
+      update();
     }
-  }
-
-  void _openBooks() {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => _AssetBooksDialog(assetId: widget.assetId),
-    ).then((_) {
-      if (mounted) {
-        _load();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Asset'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final data = _model!.toJson();
-    final st = stringValue(data, 'asset_status');
-    final empty = AssetModel.fromJson(<String, dynamic>{});
-    final canActivate = st != 'disposed';
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-
-    return AlertDialog(
-      title: Text('Asset #${widget.assetId}'),
-      content: SizedBox(
-        width: 560,
-        height: 440,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (canActivate)
-                  FilledButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _api.activateAsset(widget.assetId, empty),
-                          ),
-                    child: const Text('Activate'),
-                  ),
-                FilledButton.tonal(
-                  onPressed: _busy ? null : _openBooks,
-                  child: const Text('Books'),
-                ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _delete,
-                  child: const Text('Delete'),
-                ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
   }
 }
-
-// --- Reports hub -------------------------------------------------------
 
 enum _AssetReportTab { register, depreciation, disposal }
 
-class AssetReportsHubPage extends StatefulWidget {
-  const AssetReportsHubPage({super.key, this.embedded = false});
-
-  final bool embedded;
-
-  @override
-  State<AssetReportsHubPage> createState() => _AssetReportsHubPageState();
-}
-
-class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
+class _AssetReportsHubController extends GetxController {
   final AssetsService _api = AssetsService();
-  _AssetReportTab _tab = _AssetReportTab.register;
-  bool _loading = false;
-  String? _error;
-  Map<String, dynamic>? _payload;
-  String? _companyBanner;
+
+  _AssetReportTab tab = _AssetReportTab.register;
+  bool loading = false;
+  String? error;
+  String? companyBanner;
+  Map<String, dynamic>? payload;
 
   @override
-  void initState() {
-    super.initState();
-    _loadBanner();
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_onContextChanged);
+    unawaited(loadBanner());
   }
 
-  Future<void> _loadBanner() async {
+  @override
+  void onClose() {
+    WorkingContextService.version.removeListener(_onContextChanged);
+    super.onClose();
+  }
+
+  void _onContextChanged() {
+    unawaited(loadBanner());
+  }
+
+  Future<void> loadBanner() async {
     final info = await hrSessionCompanyInfo();
-    if (mounted) {
-      setState(() => _companyBanner = info.banner);
-    }
+    companyBanner = info.banner;
+    update();
   }
 
-  Future<void> _fetch() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-      _payload = null;
-    });
+  void setTab(_AssetReportTab next) {
+    if (tab == next) {
+      return;
+    }
+    tab = next;
+    payload = null;
+    error = null;
+    update();
+  }
+
+  Future<void> fetch() async {
+    loading = true;
+    error = null;
+    payload = null;
+    update();
     try {
       final info = await hrSessionCompanyInfo();
+      companyBanner = info.banner;
       final filters = <String, dynamic>{};
       if (info.companyId != null) {
         filters['company_id'] = info.companyId;
       }
       final ApiResponse<Map<String, dynamic>> response;
-      switch (_tab) {
+      switch (tab) {
         case _AssetReportTab.register:
           response = await _api.fetchAssetRegisterReport(filters: filters);
           break;
@@ -783,278 +550,667 @@ class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
           response = await _api.fetchDisposalSummaryReport(filters: filters);
           break;
       }
-      if (!mounted) {
-        return;
-      }
       if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
+        error = response.message;
+      } else {
+        payload = response.data;
       }
-      setState(() {
-        _payload = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+    } catch (err) {
+      error = err.toString();
+    } finally {
+      loading = false;
+      update();
     }
   }
+}
 
-  List<DataColumn> _buildColumns(List<Map<String, dynamic>> lines) {
-    if (lines.isEmpty) {
-      return const <DataColumn>[];
-    }
-    final keys = lines.first.keys.toList()..sort();
-    return keys
-        .map(
-          (k) => DataColumn(
-            label: Text(
-              k,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
+List<DataColumn> _buildReportColumns(List<Map<String, dynamic>> lines) {
+  if (lines.isEmpty) {
+    return const <DataColumn>[];
+  }
+  final keys = lines.first.keys.toList()..sort();
+  return keys
+      .map(
+        (k) => DataColumn(
+          label: Text(
+            k,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
           ),
-        )
-        .toList(growable: false);
-  }
+        ),
+      )
+      .toList(growable: false);
+}
 
-  List<DataRow> _buildRows(List<Map<String, dynamic>> lines) {
-    if (lines.isEmpty) {
-      return const <DataRow>[];
-    }
-    final keys = lines.first.keys.toList()..sort();
-    return lines
-        .map(
-          (row) => DataRow(
-            cells: keys
-                .map(
-                  (k) => DataCell(
-                    SelectableText(
-                      row[k]?.toString() ?? '',
-                      style: const TextStyle(fontSize: 13),
-                    ),
+List<DataRow> _buildReportRows(List<Map<String, dynamic>> lines) {
+  if (lines.isEmpty) {
+    return const <DataRow>[];
+  }
+  final keys = lines.first.keys.toList()..sort();
+  return lines
+      .map(
+        (row) => DataRow(
+          cells: keys
+              .map(
+                (k) => DataCell(
+                  SelectableText(
+                    row[k]?.toString() ?? '',
+                    style: const TextStyle(fontSize: 13),
                   ),
-                )
-                .toList(growable: false),
-          ),
-        )
-        .toList(growable: false);
+                ),
+              )
+              .toList(growable: false),
+        ),
+      )
+      .toList(growable: false);
+}
+
+class _AssetRegisterShell<T> extends StatefulWidget {
+  const _AssetRegisterShell({
+    required this.controllerName,
+    required this.title,
+    required this.embedded,
+    required this.loader,
+    required this.matches,
+    required this.scopeHintBuilder,
+    required this.emptyMessage,
+    required this.searchHint,
+    required this.columns,
+    required this.onRowTap,
+    required this.actionsBuilder,
+    this.companyFilter,
+  });
+
+  final String controllerName;
+  final String title;
+  final bool embedded;
+  final AssetRegisterLoader<T> loader;
+  final AssetRegisterMatcher<T> matches;
+  final AssetRegisterScopeHintBuilder scopeHintBuilder;
+  final AssetRegisterCompanyFilter<T>? companyFilter;
+  final String emptyMessage;
+  final String searchHint;
+  final List<PurchaseRegisterColumn<T>> columns;
+  final void Function(BuildContext, AssetRegisterController<T>, T) onRowTap;
+  final List<Widget> Function(BuildContext, AssetRegisterController<T>)
+  actionsBuilder;
+
+  @override
+  State<_AssetRegisterShell<T>> createState() => _AssetRegisterShellState<T>();
+}
+
+class _AssetRegisterShellState<T> extends State<_AssetRegisterShell<T>> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(widget.controllerName);
+    if (!Get.isRegistered<AssetRegisterController<T>>(tag: _controllerTag)) {
+      Get.put(
+        AssetRegisterController<T>(
+          loader: widget.loader,
+          matches: widget.matches,
+          scopeHintBuilder: widget.scopeHintBuilder,
+          companyFilter: widget.companyFilter,
+        ),
+        tag: _controllerTag,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final lines = _reportLines(_payload);
-    final summaryEntries =
-        _payload?.entries
-            .where((e) => e.key != 'lines')
-            .toList(growable: false) ??
-        const <MapEntry<String, dynamic>>[];
-
-    final body = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_companyBanner != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
-            child: Text(
-              'Session company: $_companyBanner. Reports use company_id when set.',
-              style: theme.textTheme.bodySmall,
-            ),
+    return GetBuilder<AssetRegisterController<T>>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<T>(
+          title: widget.title,
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: widget.emptyMessage,
+          actions: widget.actionsBuilder(context, controller),
+          filters: _AssetFilters(
+            searchController: controller.searchController,
+            searchHint: widget.searchHint,
+            companyBanner: controller.companyBanner,
+            scopeHint: controller.scopeHint,
           ),
-        SegmentedButton<_AssetReportTab>(
-          segments: const <ButtonSegment<_AssetReportTab>>[
-            ButtonSegment(
-              value: _AssetReportTab.register,
-              label: Text('Register'),
-              icon: Icon(Icons.list_alt_outlined),
-            ),
-            ButtonSegment(
-              value: _AssetReportTab.depreciation,
-              label: Text('Depreciation'),
-              icon: Icon(Icons.trending_down_outlined),
-            ),
-            ButtonSegment(
-              value: _AssetReportTab.disposal,
-              label: Text('Disposals'),
-              icon: Icon(Icons.delete_sweep_outlined),
-            ),
-          ],
-          selected: <_AssetReportTab>{_tab},
-          onSelectionChanged: (Set<_AssetReportTab> s) {
-            setState(() {
-              _tab = s.first;
-              _payload = null;
-              _error = null;
-            });
-          },
-        ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        FilledButton.icon(
-          onPressed: _loading ? null : _fetch,
-          icon: _loading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.download_outlined),
-          label: const Text('Load report'),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
-          Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
-        ],
-        if (_payload != null && _error == null) ...[
-          const SizedBox(height: AppUiConstants.spacingMd),
-          Wrap(
-            spacing: AppUiConstants.spacingMd,
-            runSpacing: AppUiConstants.spacingSm,
-            children: summaryEntries
-                .map((e) => Chip(label: Text('${e.key}: ${e.value}')))
-                .toList(growable: false),
-          ),
-          const SizedBox(height: AppUiConstants.spacingSm),
-          Expanded(
-            child: lines.isEmpty
-                ? const Center(child: Text('No lines in report.'))
-                : Scrollbar(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SingleChildScrollView(
-                        child: DataTable(
-                          columns: _buildColumns(lines),
-                          rows: _buildRows(lines),
-                        ),
-                      ),
-                    ),
-                  ),
-          ),
-        ],
-      ],
-    );
-
-    if (widget.embedded) {
-      return Padding(
-        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-        child: body,
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Asset reports')),
-      body: Padding(
-        padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-        child: body,
-      ),
+          rows: controller.filteredRows,
+          columns: widget.columns,
+          onRowTap: (row) => widget.onRowTap(context, controller, row),
+        );
+      },
     );
   }
 }
 
-// --- Registers ---------------------------------------------------------
+class _CostCenterDetailDialog extends StatefulWidget {
+  const _CostCenterDetailDialog({required this.costCenterId});
 
-class AssetCategoryRegisterPage extends StatefulWidget {
+  final int costCenterId;
+
+  @override
+  State<_CostCenterDetailDialog> createState() =>
+      _CostCenterDetailDialogState();
+}
+
+class _CostCenterDetailDialogState extends State<_CostCenterDetailDialog> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(
+      'AssetCostCenterDetailController',
+      scope: <String, Object?>{'costCenterId': widget.costCenterId},
+    );
+    Get.put(
+      _CostCenterDetailController(costCenterId: widget.costCenterId),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    Get.delete<_CostCenterDetailController>(tag: _controllerTag, force: true);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<_CostCenterDetailController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        if (controller.loading) {
+          return const AlertDialog(
+            content: SizedBox(
+              height: 120,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+        if (controller.error != null) {
+          return AlertDialog(
+            title: const Text('Cost center'),
+            content: Text(controller.error!),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        }
+        final raw = controller.model!.toJson();
+        final text = const JsonEncoder.withIndent('  ').convert(raw);
+        return AlertDialog(
+          title: Text('Cost center #${widget.costCenterId}'),
+          content: SizedBox(
+            width: 560,
+            height: 440,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (controller.busy)
+                  const LinearProgressIndicator()
+                else
+                  const SizedBox(height: 4),
+                Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  children: [
+                    OutlinedButton(
+                      onPressed: controller.busy
+                          ? null
+                          : () async {
+                              final ok = await _confirmAssetAction(
+                                context,
+                                title: 'Delete cost center',
+                                message:
+                                    'Only cost centers without children '
+                                    'or linked assets can be deleted.',
+                              );
+                              if (!ok || !context.mounted) {
+                                return;
+                              }
+                              final deleted = await controller.delete();
+                              if (deleted && context.mounted) {
+                                Navigator.pop(context, true);
+                              }
+                            },
+                      child: const Text('Delete'),
+                    ),
+                    OutlinedButton(
+                      onPressed: controller.busy ? null : controller.load,
+                      child: const Text('Refresh'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppUiConstants.spacingSm),
+                Expanded(
+                  child: SingleChildScrollView(child: SelectableText(text)),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: controller.busy ? null : () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AssetBooksDialog extends StatefulWidget {
+  const _AssetBooksDialog({required this.assetId});
+
+  final int assetId;
+
+  @override
+  State<_AssetBooksDialog> createState() => _AssetBooksDialogState();
+}
+
+class _AssetBooksDialogState extends State<_AssetBooksDialog> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(
+      'AssetBooksDialogController',
+      scope: <String, Object?>{'assetId': widget.assetId},
+    );
+    Get.put(
+      _AssetBooksDialogController(assetId: widget.assetId),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    Get.delete<_AssetBooksDialogController>(tag: _controllerTag, force: true);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<_AssetBooksDialogController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return AlertDialog(
+          title: Text('Books - asset #${widget.assetId}'),
+          content: SizedBox(
+            width: 480,
+            height: 360,
+            child: controller.loading
+                ? const Center(child: CircularProgressIndicator())
+                : controller.error != null
+                ? Text(controller.error!)
+                : controller.busy
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    itemCount: controller.books.length,
+                    itemBuilder: (ctx, i) {
+                      final b = controller.books[i].toJson();
+                      final id = intValue(b, 'id');
+                      final type = stringValue(b, 'book_type');
+                      final nbv = b['net_book_value']?.toString() ?? '';
+                      return ListTile(
+                        title: Text(type.isEmpty ? 'Book' : type),
+                        subtitle: Text('NBV: $nbv'),
+                        trailing: id == null
+                            ? null
+                            : IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () async {
+                                  final ok = await _confirmAssetAction(
+                                    context,
+                                    title: 'Delete asset book',
+                                    message: 'Delete this book for the asset?',
+                                  );
+                                  if (!ok) {
+                                    return;
+                                  }
+                                  await controller.deleteBook(id);
+                                },
+                              ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: controller.load,
+              child: const Text('Refresh'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FixedAssetDetailDialog extends StatefulWidget {
+  const _FixedAssetDetailDialog({required this.assetId});
+
+  final int assetId;
+
+  @override
+  State<_FixedAssetDetailDialog> createState() =>
+      _FixedAssetDetailDialogState();
+}
+
+class _FixedAssetDetailDialogState extends State<_FixedAssetDetailDialog> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(
+      'FixedAssetDetailController',
+      scope: <String, Object?>{'assetId': widget.assetId},
+    );
+    Get.put(
+      _FixedAssetDetailController(assetId: widget.assetId),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    Get.delete<_FixedAssetDetailController>(tag: _controllerTag, force: true);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<_FixedAssetDetailController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        if (controller.loading) {
+          return const AlertDialog(
+            content: SizedBox(
+              height: 120,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+        if (controller.error != null) {
+          return AlertDialog(
+            title: const Text('Asset'),
+            content: Text(controller.error!),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        }
+        final data = controller.model!.toJson();
+        final st = stringValue(data, 'asset_status');
+        final canActivate = st != 'disposed';
+        final text = const JsonEncoder.withIndent('  ').convert(data);
+        return AlertDialog(
+          title: Text('Asset #${widget.assetId}'),
+          content: SizedBox(
+            width: 560,
+            height: 440,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (controller.busy)
+                  const LinearProgressIndicator()
+                else
+                  const SizedBox(height: 4),
+                Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingSm,
+                  children: [
+                    if (canActivate)
+                      FilledButton(
+                        onPressed: controller.busy ? null : controller.activate,
+                        child: const Text('Activate'),
+                      ),
+                    FilledButton.tonal(
+                      onPressed: controller.busy
+                          ? null
+                          : () async {
+                              await showDialog<void>(
+                                context: context,
+                                builder: (ctx) =>
+                                    _AssetBooksDialog(assetId: widget.assetId),
+                              );
+                              await controller.load();
+                            },
+                      child: const Text('Books'),
+                    ),
+                    OutlinedButton(
+                      onPressed: controller.busy
+                          ? null
+                          : () async {
+                              final ok = await _confirmAssetAction(
+                                context,
+                                title: 'Delete asset',
+                                message:
+                                    'Requires all asset books to be '
+                                    'removed first. Continue?',
+                              );
+                              if (!ok || !context.mounted) {
+                                return;
+                              }
+                              final deleted = await controller.delete();
+                              if (deleted && context.mounted) {
+                                Navigator.pop(context, true);
+                              }
+                            },
+                      child: const Text('Delete'),
+                    ),
+                    OutlinedButton(
+                      onPressed: controller.busy ? null : controller.load,
+                      child: const Text('Refresh'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppUiConstants.spacingSm),
+                Expanded(
+                  child: SingleChildScrollView(child: SelectableText(text)),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: controller.busy ? null : () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class AssetReportsHubPage extends StatefulWidget {
+  const AssetReportsHubPage({super.key, this.embedded = false});
+
+  final bool embedded;
+
+  @override
+  State<AssetReportsHubPage> createState() => _AssetReportsHubPageState();
+}
+
+class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag('AssetReportsHubController');
+    if (!Get.isRegistered<_AssetReportsHubController>(tag: _controllerTag)) {
+      Get.put(_AssetReportsHubController(), tag: _controllerTag);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<_AssetReportsHubController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        final theme = Theme.of(context);
+        final lines = _reportLines(controller.payload);
+        final summaryEntries =
+            controller.payload?.entries
+                .where((e) => e.key != 'lines')
+                .toList(growable: false) ??
+            const <MapEntry<String, dynamic>>[];
+
+        final body = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (controller.companyBanner != null)
+              Padding(
+                padding: const EdgeInsets.only(
+                  bottom: AppUiConstants.spacingSm,
+                ),
+                child: Text(
+                  'Session company: ${controller.companyBanner}. '
+                  'Reports use company_id when set.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            SegmentedButton<_AssetReportTab>(
+              segments: const <ButtonSegment<_AssetReportTab>>[
+                ButtonSegment(
+                  value: _AssetReportTab.register,
+                  label: Text('Register'),
+                  icon: Icon(Icons.list_alt_outlined),
+                ),
+                ButtonSegment(
+                  value: _AssetReportTab.depreciation,
+                  label: Text('Depreciation'),
+                  icon: Icon(Icons.trending_down_outlined),
+                ),
+                ButtonSegment(
+                  value: _AssetReportTab.disposal,
+                  label: Text('Disposals'),
+                  icon: Icon(Icons.delete_sweep_outlined),
+                ),
+              ],
+              selected: <_AssetReportTab>{controller.tab},
+              onSelectionChanged: (Set<_AssetReportTab> s) =>
+                  controller.setTab(s.first),
+            ),
+            const SizedBox(height: AppUiConstants.spacingSm),
+            FilledButton.icon(
+              onPressed: controller.loading ? null : controller.fetch,
+              icon: controller.loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_outlined),
+              label: const Text('Load report'),
+            ),
+            if (controller.error != null) ...[
+              const SizedBox(height: AppUiConstants.spacingSm),
+              Text(
+                controller.error!,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ],
+            if (controller.payload != null && controller.error == null) ...[
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Wrap(
+                spacing: AppUiConstants.spacingMd,
+                runSpacing: AppUiConstants.spacingSm,
+                children: summaryEntries
+                    .map((e) => Chip(label: Text('${e.key}: ${e.value}')))
+                    .toList(growable: false),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+              Expanded(
+                child: lines.isEmpty
+                    ? const Center(child: Text('No lines in report.'))
+                    : Scrollbar(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              columns: _buildReportColumns(lines),
+                              rows: _buildReportRows(lines),
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ],
+        );
+
+        if (widget.embedded) {
+          return Padding(
+            padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+            child: body,
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('Asset reports')),
+          body: Padding(
+            padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+            child: body,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AssetCategoryRegisterPage extends StatelessWidget {
   const AssetCategoryRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<AssetCategoryRegisterPage> createState() =>
-      _AssetCategoryRegisterPageState();
-}
-
-class _AssetCategoryRegisterPageState extends State<AssetCategoryRegisterPage> {
-  final AssetsService _api = AssetsService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<AssetCategoryModel> _rows = const <AssetCategoryModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _api.categories(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <AssetCategoryModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<AssetCategoryModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((AssetCategoryModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'category_code'),
-            stringValue(data, 'category_name'),
-            stringValue(data, 'asset_type'),
-            _parentCategoryName(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<AssetCategoryModel>(
+    return _AssetRegisterShell<AssetCategoryModel>(
+      controllerName: 'AssetCategoryRegisterController',
       title: 'Asset categories',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) async {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        final response = await service.categories(filters: filters);
+        return response.data ?? const <AssetCategoryModel>[];
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'category_code'),
+          stringValue(data, 'category_name'),
+          stringValue(data, 'asset_type'),
+          _parentCategoryName(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
+      scopeHintBuilder: (_) =>
+          'Lists use company_id when a session company is set.',
       emptyMessage: 'No categories found.',
-      actions: [
+      searchHint: 'Search code, name, type, parent',
+      actionsBuilder: (context, controller) => [
         AdaptiveShellActionButton(
           onPressed: () =>
               openAssetShellRoute(context, '/assets/categories/new'),
@@ -1062,37 +1218,26 @@ class _AssetCategoryRegisterPageState extends State<AssetCategoryRegisterPage> {
           label: 'New category',
         ),
       ],
-      filters: _AssetFilters(
-        searchController: _searchController,
-        searchHint: 'Search code, name, type, parent',
-        companyBanner: _companyBanner,
-        scopeHint: 'Lists use company_id when a session company is set.',
-      ),
-      rows: _filtered,
       columns: [
         PurchaseRegisterColumn<AssetCategoryModel>(
           label: 'Code',
-          valueBuilder: (AssetCategoryModel row) =>
-              stringValue(row.toJson(), 'category_code'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'category_code'),
         ),
         PurchaseRegisterColumn<AssetCategoryModel>(
           label: 'Name',
           flex: 2,
-          valueBuilder: (AssetCategoryModel row) =>
-              stringValue(row.toJson(), 'category_name'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'category_name'),
         ),
         PurchaseRegisterColumn<AssetCategoryModel>(
           label: 'Type',
-          valueBuilder: (AssetCategoryModel row) =>
-              stringValue(row.toJson(), 'asset_type'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'asset_type'),
         ),
         PurchaseRegisterColumn<AssetCategoryModel>(
           label: 'Parent',
-          valueBuilder: (AssetCategoryModel row) =>
-              _parentCategoryName(row.toJson()),
+          valueBuilder: (row) => _parentCategoryName(row.toJson()),
         ),
       ],
-      onRowTap: (AssetCategoryModel row) {
+      onRowTap: (context, controller, row) {
         final id = intValue(row.toJson(), 'id');
         if (id == null) {
           return;
@@ -1103,386 +1248,177 @@ class _AssetCategoryRegisterPageState extends State<AssetCategoryRegisterPage> {
   }
 }
 
-class AssetCostCenterRegisterPage extends StatefulWidget {
+class AssetCostCenterRegisterPage extends StatelessWidget {
   const AssetCostCenterRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<AssetCostCenterRegisterPage> createState() =>
-      _AssetCostCenterRegisterPageState();
-}
-
-class _AssetCostCenterRegisterPageState
-    extends State<AssetCostCenterRegisterPage> {
-  final AssetsService _api = AssetsService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<CostCenterModel> _rows = const <CostCenterModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _api.costCenters(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <CostCenterModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<CostCenterModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((CostCenterModel row) {
-          final raw = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            row.costCenterCode ?? '',
-            row.costCenterName ?? '',
-            stringValue(raw, 'cost_center_type'),
-            _costCenterParentName(raw),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<CostCenterModel>(
+    return _AssetRegisterShell<CostCenterModel>(
+      controllerName: 'AssetCostCenterRegisterController',
       title: 'Cost centers',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) async {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        final response = await service.costCenters(filters: filters);
+        return response.data ?? const <CostCenterModel>[];
+      },
+      matches: (row, query) {
+        final raw = row.toJson();
+        return [
+          row.costCenterCode ?? '',
+          row.costCenterName ?? '',
+          stringValue(raw, 'cost_center_type'),
+          _costCenterParentName(raw),
+        ].join(' ').toLowerCase().contains(query);
+      },
+      scopeHintBuilder: (_) =>
+          'Lists use company_id when a session company is set.',
       emptyMessage: 'No cost centers found.',
-      actions: const <Widget>[],
-      filters: _AssetFilters(
-        searchController: _searchController,
-        searchHint: 'Search code, name, type, parent',
-        companyBanner: _companyBanner,
-        scopeHint: 'Lists use company_id when a session company is set.',
-      ),
-      rows: _filtered,
+      searchHint: 'Search code, name, type, parent',
+      actionsBuilder: (context, controller) => const <Widget>[],
       columns: [
         PurchaseRegisterColumn<CostCenterModel>(
           label: 'Code',
-          valueBuilder: (CostCenterModel row) => row.costCenterCode ?? '',
+          valueBuilder: (row) => row.costCenterCode ?? '',
         ),
         PurchaseRegisterColumn<CostCenterModel>(
           label: 'Name',
           flex: 2,
-          valueBuilder: (CostCenterModel row) => row.costCenterName ?? '',
+          valueBuilder: (row) => row.costCenterName ?? '',
         ),
         PurchaseRegisterColumn<CostCenterModel>(
           label: 'Type',
-          valueBuilder: (CostCenterModel row) =>
-              stringValue(row.toJson(), 'cost_center_type'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'cost_center_type'),
         ),
         PurchaseRegisterColumn<CostCenterModel>(
           label: 'Parent',
-          valueBuilder: (CostCenterModel row) =>
-              _costCenterParentName(row.toJson()),
+          valueBuilder: (row) => _costCenterParentName(row.toJson()),
         ),
       ],
-      onRowTap: (CostCenterModel row) {
+      onRowTap: (context, controller, row) async {
         final id = row.id;
         if (id == null) {
           return;
         }
-        showDialog<void>(
+        await showDialog<void>(
           context: context,
           builder: (ctx) => _CostCenterDetailDialog(costCenterId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        );
+        await controller.load();
       },
     );
   }
 }
 
-class FixedAssetRegisterPage extends StatefulWidget {
+class FixedAssetRegisterPage extends StatelessWidget {
   const FixedAssetRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<FixedAssetRegisterPage> createState() => _FixedAssetRegisterPageState();
-}
-
-class _FixedAssetRegisterPageState extends State<FixedAssetRegisterPage> {
-  final AssetsService _api = AssetsService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<AssetModel> _rows = const <AssetModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _api.assets(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <AssetModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<AssetModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((AssetModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'asset_code'),
-            stringValue(data, 'asset_name'),
-            stringValue(data, 'asset_status'),
-            _categoryLabel(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<AssetModel>(
+    return _AssetRegisterShell<AssetModel>(
+      controllerName: 'FixedAssetRegisterController',
       title: 'Fixed assets',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) async {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        final response = await service.assets(filters: filters);
+        return response.data ?? const <AssetModel>[];
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'asset_code'),
+          stringValue(data, 'asset_name'),
+          stringValue(data, 'asset_status'),
+          _categoryLabel(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
+      scopeHintBuilder: (_) =>
+          'Lists use company_id when a session company is set.',
       emptyMessage: 'No assets found.',
-      actions: const <Widget>[],
-      filters: _AssetFilters(
-        searchController: _searchController,
-        searchHint: 'Search code, name, category, status',
-        companyBanner: _companyBanner,
-        scopeHint: 'Lists use company_id when a session company is set.',
-      ),
-      rows: _filtered,
+      searchHint: 'Search code, name, category, status',
+      actionsBuilder: (context, controller) => const <Widget>[],
       columns: [
         PurchaseRegisterColumn<AssetModel>(
           label: 'Code',
-          valueBuilder: (AssetModel row) =>
-              stringValue(row.toJson(), 'asset_code'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'asset_code'),
         ),
         PurchaseRegisterColumn<AssetModel>(
           label: 'Name',
           flex: 2,
-          valueBuilder: (AssetModel row) =>
-              stringValue(row.toJson(), 'asset_name'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'asset_name'),
         ),
         PurchaseRegisterColumn<AssetModel>(
           label: 'Category',
-          valueBuilder: (AssetModel row) => _categoryLabel(row.toJson()),
+          valueBuilder: (row) => _categoryLabel(row.toJson()),
         ),
         PurchaseRegisterColumn<AssetModel>(
           label: 'Status',
-          valueBuilder: (AssetModel row) =>
-              stringValue(row.toJson(), 'asset_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'asset_status'),
         ),
         PurchaseRegisterColumn<AssetModel>(
           label: 'Books',
-          valueBuilder: (AssetModel row) =>
+          valueBuilder: (row) =>
               intValue(row.toJson(), 'books_count')?.toString() ?? '-',
         ),
       ],
-      onRowTap: (AssetModel row) {
+      onRowTap: (context, controller, row) async {
         final id = intValue(row.toJson(), 'id');
         if (id == null) {
           return;
         }
-        showDialog<void>(
+        await showDialog<void>(
           context: context,
           builder: (ctx) => _FixedAssetDetailDialog(assetId: id),
-        ).then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        );
+        await controller.load();
       },
     );
   }
 }
 
-class AssetDepreciationRunRegisterPage extends StatefulWidget {
+class AssetDepreciationRunRegisterPage extends StatelessWidget {
   const AssetDepreciationRunRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<AssetDepreciationRunRegisterPage> createState() =>
-      _AssetDepreciationRunRegisterPageState();
-}
-
-class _AssetDepreciationRunRegisterPageState
-    extends State<AssetDepreciationRunRegisterPage> {
-  final AssetsService _api = AssetsService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<AssetDepreciationRunModel> _rows = const <AssetDepreciationRunModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _api.depreciationRuns(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <AssetDepreciationRunModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<AssetDepreciationRunModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((AssetDepreciationRunModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'run_no'),
-            stringValue(data, 'run_status'),
-            stringValue(data, 'book_type'),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<AssetDepreciationRunModel>(
+    return _AssetRegisterShell<AssetDepreciationRunModel>(
+      controllerName: 'AssetDepreciationRunRegisterController',
       title: 'Depreciation runs',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) async {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        final response = await service.depreciationRuns(filters: filters);
+        return response.data ?? const <AssetDepreciationRunModel>[];
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'run_no'),
+          stringValue(data, 'run_status'),
+          stringValue(data, 'book_type'),
+        ].join(' ').toLowerCase().contains(query);
+      },
+      scopeHintBuilder: (_) =>
+          'Lists use company_id when a session company is set.',
       emptyMessage: 'No depreciation runs found.',
-      actions: [
+      searchHint: 'Search run no., status, book type',
+      actionsBuilder: (context, controller) => [
         AdaptiveShellActionButton(
           onPressed: () =>
               openAssetShellRoute(context, '/assets/depreciation-runs/new'),
@@ -1490,36 +1426,27 @@ class _AssetDepreciationRunRegisterPageState
           label: 'New depreciation run',
         ),
       ],
-      filters: _AssetFilters(
-        searchController: _searchController,
-        searchHint: 'Search run no., status, book type',
-        companyBanner: _companyBanner,
-        scopeHint: 'Lists use company_id when a session company is set.',
-      ),
-      rows: _filtered,
       columns: [
         PurchaseRegisterColumn<AssetDepreciationRunModel>(
           label: 'Run no.',
-          valueBuilder: (AssetDepreciationRunModel row) =>
-              stringValue(row.toJson(), 'run_no'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'run_no'),
         ),
         PurchaseRegisterColumn<AssetDepreciationRunModel>(
           label: 'Date',
-          valueBuilder: (AssetDepreciationRunModel row) =>
+          valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'run_date')),
         ),
         PurchaseRegisterColumn<AssetDepreciationRunModel>(
           label: 'Status',
-          valueBuilder: (AssetDepreciationRunModel row) =>
-              stringValue(row.toJson(), 'run_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'run_status'),
         ),
         PurchaseRegisterColumn<AssetDepreciationRunModel>(
           label: 'Lines',
-          valueBuilder: (AssetDepreciationRunModel row) =>
+          valueBuilder: (row) =>
               intValue(row.toJson(), 'lines_count')?.toString() ?? '-',
         ),
       ],
-      onRowTap: (AssetDepreciationRunModel row) {
+      onRowTap: (context, controller, row) {
         final id = intValue(row.toJson(), 'id');
         if (id == null) {
           return;
@@ -1530,99 +1457,38 @@ class _AssetDepreciationRunRegisterPageState
   }
 }
 
-class AssetTransferRegisterPage extends StatefulWidget {
+class AssetTransferRegisterPage extends StatelessWidget {
   const AssetTransferRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<AssetTransferRegisterPage> createState() =>
-      _AssetTransferRegisterPageState();
-}
-
-class _AssetTransferRegisterPageState extends State<AssetTransferRegisterPage> {
-  final AssetsService _api = AssetsService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<AssetTransferModel> _rows = const <AssetTransferModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _api.transfers(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <AssetTransferModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<AssetTransferModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((AssetTransferModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'transfer_no'),
-            stringValue(data, 'transfer_status'),
-            _branchPair(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<AssetTransferModel>(
+    return _AssetRegisterShell<AssetTransferModel>(
+      controllerName: 'AssetTransferRegisterController',
       title: 'Asset transfers',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) async {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (info.companyId != null) {
+          filters['company_id'] = info.companyId;
+        }
+        final response = await service.transfers(filters: filters);
+        return response.data ?? const <AssetTransferModel>[];
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'transfer_no'),
+          stringValue(data, 'transfer_status'),
+          _branchPair(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
+      scopeHintBuilder: (_) =>
+          'Lists use company_id when a session company is set.',
       emptyMessage: 'No transfers found.',
-      actions: [
+      searchHint: 'Search no., branches, status',
+      actionsBuilder: (context, controller) => [
         AdaptiveShellActionButton(
           onPressed: () =>
               openAssetShellRoute(context, '/assets/transfers/new'),
@@ -1630,36 +1496,27 @@ class _AssetTransferRegisterPageState extends State<AssetTransferRegisterPage> {
           label: 'New transfer',
         ),
       ],
-      filters: _AssetFilters(
-        searchController: _searchController,
-        searchHint: 'Search no., branches, status',
-        companyBanner: _companyBanner,
-        scopeHint: 'Lists use company_id when a session company is set.',
-      ),
-      rows: _filtered,
       columns: [
         PurchaseRegisterColumn<AssetTransferModel>(
           label: 'Transfer no.',
-          valueBuilder: (AssetTransferModel row) =>
-              stringValue(row.toJson(), 'transfer_no'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'transfer_no'),
         ),
         PurchaseRegisterColumn<AssetTransferModel>(
           label: 'Date',
-          valueBuilder: (AssetTransferModel row) =>
+          valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'transfer_date')),
         ),
         PurchaseRegisterColumn<AssetTransferModel>(
           label: 'Branches',
           flex: 2,
-          valueBuilder: (AssetTransferModel row) => _branchPair(row.toJson()),
+          valueBuilder: (row) => _branchPair(row.toJson()),
         ),
         PurchaseRegisterColumn<AssetTransferModel>(
           label: 'Status',
-          valueBuilder: (AssetTransferModel row) =>
-              stringValue(row.toJson(), 'transfer_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'transfer_status'),
         ),
       ],
-      onRowTap: (AssetTransferModel row) {
+      onRowTap: (context, controller, row) {
         final id = intValue(row.toJson(), 'id');
         if (id == null) {
           return;
@@ -1670,113 +1527,48 @@ class _AssetTransferRegisterPageState extends State<AssetTransferRegisterPage> {
   }
 }
 
-class AssetDisposalRegisterPage extends StatefulWidget {
+class AssetDisposalRegisterPage extends StatelessWidget {
   const AssetDisposalRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<AssetDisposalRegisterPage> createState() =>
-      _AssetDisposalRegisterPageState();
-}
-
-class _AssetDisposalRegisterPageState extends State<AssetDisposalRegisterPage> {
-  final AssetsService _api = AssetsService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  int? _sessionCompanyId;
-  List<AssetDisposalModel> _rows = const <AssetDisposalModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final response = await _api.disposals(
-        filters: <String, dynamic>{'per_page': 200},
-      );
-      if (!mounted) {
-        return;
-      }
-      var rows = response.data ?? const <AssetDisposalModel>[];
-      if (info.companyId != null) {
-        final cid = info.companyId!;
-        rows = rows
-            .where((AssetDisposalModel r) {
-              return _disposalAssetCompanyId(r.toJson()) == cid;
-            })
-            .toList(growable: false);
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _sessionCompanyId = info.companyId;
-        _rows = rows;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<AssetDisposalModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((AssetDisposalModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'disposal_no'),
-            stringValue(data, 'disposal_status'),
-            _assetFromDisposal(data),
-            _salePartyName(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final scopeHint = _sessionCompanyId != null
-        ? 'Disposals are filtered client-side by nested asset.company_id.'
-        : 'API list is not company-scoped; select a session company to filter.';
-
-    return PurchaseRegisterPage<AssetDisposalModel>(
+    return _AssetRegisterShell<AssetDisposalModel>(
+      controllerName: 'AssetDisposalRegisterController',
       title: 'Asset disposals',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, info) async {
+        final response = await service.disposals(
+          filters: const <String, dynamic>{'per_page': 200},
+        );
+        return response.data ?? const <AssetDisposalModel>[];
+      },
+      companyFilter: (rows, info) {
+        if (info.companyId == null) {
+          return rows;
+        }
+        return rows
+            .where(
+              (row) => _disposalAssetCompanyId(row.toJson()) == info.companyId,
+            )
+            .toList(growable: false);
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'disposal_no'),
+          stringValue(data, 'disposal_status'),
+          _assetFromDisposal(data),
+          _salePartyName(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
+      scopeHintBuilder: (info) => info.companyId != null
+          ? 'Disposals are filtered client-side by nested asset.company_id.'
+          : 'API list is not company-scoped; select a session company to filter.',
       emptyMessage: 'No disposals found.',
-      actions: [
+      searchHint: 'Search no., asset, party, status',
+      actionsBuilder: (context, controller) => [
         AdaptiveShellActionButton(
           onPressed: () =>
               openAssetShellRoute(context, '/assets/disposals/new'),
@@ -1784,37 +1576,27 @@ class _AssetDisposalRegisterPageState extends State<AssetDisposalRegisterPage> {
           label: 'New disposal',
         ),
       ],
-      filters: _AssetFilters(
-        searchController: _searchController,
-        searchHint: 'Search no., asset, party, status',
-        companyBanner: _companyBanner,
-        scopeHint: scopeHint,
-      ),
-      rows: _filtered,
       columns: [
         PurchaseRegisterColumn<AssetDisposalModel>(
           label: 'Disposal no.',
-          valueBuilder: (AssetDisposalModel row) =>
-              stringValue(row.toJson(), 'disposal_no'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'disposal_no'),
         ),
         PurchaseRegisterColumn<AssetDisposalModel>(
           label: 'Date',
-          valueBuilder: (AssetDisposalModel row) =>
+          valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'disposal_date')),
         ),
         PurchaseRegisterColumn<AssetDisposalModel>(
           label: 'Asset',
           flex: 2,
-          valueBuilder: (AssetDisposalModel row) =>
-              _assetFromDisposal(row.toJson()),
+          valueBuilder: (row) => _assetFromDisposal(row.toJson()),
         ),
         PurchaseRegisterColumn<AssetDisposalModel>(
           label: 'Status',
-          valueBuilder: (AssetDisposalModel row) =>
-              stringValue(row.toJson(), 'disposal_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'disposal_status'),
         ),
       ],
-      onRowTap: (AssetDisposalModel row) {
+      onRowTap: (context, controller, row) {
         final id = intValue(row.toJson(), 'id');
         if (id == null) {
           return;

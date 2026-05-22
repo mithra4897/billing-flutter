@@ -82,8 +82,8 @@ Status legend:
 
 | Area | File | Type | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Assets | `lib/View/assets/asset_registers.dart` | widget/support | `pending` |  |
-| Dashboard | `lib/View/dashboard/erp_module_dashboard_support.dart` | widget/support | `pending` |  |
+| Assets | `lib/View/assets/asset_registers.dart` | widget/support | `done` | Migrated asset register/report/dialog state to shared GetX controllers |
+| Dashboard | `lib/View/dashboard/erp_module_dashboard_support.dart` | widget/support | `done` | Support loaders already stateless; custom trend range dialog state moved to GetX in dashboard page |
 | HR | `lib/View/hr/hr_registers.dart` | widget/support | `pending` |  |
 | Inventory | `lib/View/inventory/inventory_registers.dart` | widget/support | `pending` |  |
 | Jobwork | `lib/View/jobwork/jobwork_registers.dart` | widget/support | `pending` |  |
