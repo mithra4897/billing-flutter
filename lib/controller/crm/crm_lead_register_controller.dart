@@ -16,10 +16,12 @@ class CrmLeadRegisterController extends GetxController {
 
   final CrmService _service = CrmService();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
 
   bool loading = true;
   String? error;
-  String status = '';
+  Set<String> statuses = <String>{'draft', 'in_progress'};
   List<CrmLeadModel> rows = const <CrmLeadModel>[];
 
   @override
@@ -36,6 +38,8 @@ class CrmLeadRegisterController extends GetxController {
     searchController
       ..removeListener(_notifySearch)
       ..dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     super.onClose();
   }
 
@@ -58,9 +62,71 @@ class CrmLeadRegisterController extends GetxController {
 
   void _notifySearch() => update();
 
-  void setStatus(String? value) {
-    status = value ?? '';
+  void setStatuses(Set<String> values) {
+    statuses = values;
     update();
+  }
+
+  bool _matchesStatus(String rowStatus, Iterable<String> requestedStatuses) {
+    final normalizedRow = rowStatus.trim().toLowerCase();
+    final normalizedRequested = requestedStatuses
+        .map((item) => item.trim().toLowerCase())
+        .where((item) => item.isNotEmpty)
+        .toSet();
+
+    if (normalizedRequested.isEmpty) {
+      return true;
+    }
+
+    for (final status in normalizedRequested) {
+      if (status == 'draft' &&
+          (normalizedRow == 'draft' || normalizedRow == 'new')) {
+        return true;
+      }
+
+      if ((status == 'converted' || status == 'own') &&
+          (normalizedRow == 'converted' || normalizedRow == 'own')) {
+        return true;
+      }
+
+      if (normalizedRow == status) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool _matchesDateRange(String? rawDate) {
+    final fromDate = tryParseCalendarDate(dateFromController.text.trim());
+    final toDate = tryParseCalendarDate(dateToController.text.trim());
+    if (fromDate == null && toDate == null) {
+      return true;
+    }
+
+    final rowDate = DateTime.tryParse((rawDate ?? '').trim());
+    if (rowDate == null) {
+      return false;
+    }
+
+    final normalizedRow = DateTime(rowDate.year, rowDate.month, rowDate.day);
+    if (fromDate != null) {
+      final normalizedFrom = DateTime(
+        fromDate.year,
+        fromDate.month,
+        fromDate.day,
+      );
+      if (normalizedRow.isBefore(normalizedFrom)) {
+        return false;
+      }
+    }
+    if (toDate != null) {
+      final normalizedTo = DateTime(toDate.year, toDate.month, toDate.day);
+      if (normalizedRow.isAfter(normalizedTo)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   List<CrmLeadModel> get filteredRows {
@@ -68,8 +134,13 @@ class CrmLeadRegisterController extends GetxController {
     return rows
         .where((row) {
           final data = row.toJson();
-          final statusOk =
-              status.isEmpty || stringValue(data, 'lead_status') == status;
+          final statusOk = _matchesStatus(
+            stringValue(data, 'lead_status'),
+            statuses,
+          );
+          final dateOk = _matchesDateRange(
+            nullableStringValue(data, 'created_at'),
+          );
           final searchOk =
               query.isEmpty ||
               [
@@ -79,7 +150,7 @@ class CrmLeadRegisterController extends GetxController {
                 stringValue(data, 'email'),
                 stringValue(data, 'lead_status'),
               ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
+          return statusOk && dateOk && searchOk;
         })
         .toList(growable: false);
   }

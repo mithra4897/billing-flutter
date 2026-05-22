@@ -5,7 +5,6 @@ class LoginManagementController extends GetxController {
 
   final String? redirectTo;
 
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController loginController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
@@ -74,8 +73,8 @@ class LoginManagementController extends GetxController {
     update();
   }
 
-  Future<bool> signIn() async {
-    if (!(formKey.currentState?.validate() ?? false)) {
+  Future<bool> signIn(BuildContext formContext) async {
+    if (Form.of(formContext).validate() != true) {
       return false;
     }
 

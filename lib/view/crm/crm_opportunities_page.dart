@@ -11,9 +11,14 @@ void _openCrmOpportunityShellRoute(BuildContext context, String route) {
 }
 
 class CrmOpportunityRegisterPage extends StatefulWidget {
-  const CrmOpportunityRegisterPage({super.key, this.embedded = false});
+  const CrmOpportunityRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   @override
   State<CrmOpportunityRegisterPage> createState() =>
@@ -31,22 +36,183 @@ class _CrmOpportunityRegisterPageState
 
   final CrmService _service = CrmService();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _dateFromController = TextEditingController();
+  final TextEditingController _dateToController = TextEditingController();
   bool _loading = true;
   String? _error;
-  String _status = '';
+  String _status = 'open';
   List<CrmOpportunityModel> _rows = const <CrmOpportunityModel>[];
+
+  String _dashboardStatus() {
+    switch ((widget.queryParameters['dashboard_filter'] ?? '').trim()) {
+      case 'open_pending':
+        return 'open';
+      default:
+        return 'open';
+    }
+  }
+
+  void _applyDashboardFilters() {
+    _searchController.clear();
+    _dateFromController.clear();
+    _dateToController.clear();
+    _status = _dashboardStatus();
+  }
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() => setState(() {}));
+    _applyDashboardFilters();
     _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant CrmOpportunityRegisterPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+      setState(_applyDashboardFilters);
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _dateFromController.dispose();
+    _dateToController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openRegisterFilterPanel(BuildContext context) async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+    final searchController = TextEditingController(
+      text: _searchController.text,
+    );
+    final dateFromController = TextEditingController(
+      text: _dateFromController.text,
+    );
+    final dateToController = TextEditingController(
+      text: _dateToController.text,
+    );
+    String tempStatus = _status;
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return Dialog(
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 20,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    dialogPadding,
+                    dialogPadding,
+                    dialogPadding,
+                    MediaQuery.of(dialogContext).viewInsets.bottom +
+                        dialogPadding,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Filter CRM Opportunities',
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close),
+                            color: appTheme.mutedText,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _CrmOpportunityRegisterFilters(
+                        searchController: searchController,
+                        dateFromController: dateFromController,
+                        dateToController: dateToController,
+                        status: tempStatus,
+                        statusItems: _statusItems,
+                        onStatusChanged: (value) {
+                          setDialogState(() {
+                            tempStatus = value ?? '';
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _searchController.text = searchController.text;
+                                _dateFromController.text =
+                                    dateFromController.text;
+                                _dateToController.text = dateToController.text;
+                                _status = tempStatus;
+                              });
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.search),
+                            label: const Text('Apply Filters'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                                _dateFromController.clear();
+                                _dateToController.clear();
+                                _status = 'open';
+                              });
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    searchController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
+    if (applied == true && mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _load() async {
@@ -78,6 +244,8 @@ class _CrmOpportunityRegisterPageState
 
   List<CrmOpportunityModel> get _filtered {
     final query = _searchController.text.trim().toLowerCase();
+    final fromDate = tryParseCalendarDate(_dateFromController.text.trim());
+    final toDate = tryParseCalendarDate(_dateToController.text.trim());
     return _rows
         .where((row) {
           final data = row.toJson();
@@ -89,6 +257,23 @@ class _CrmOpportunityRegisterPageState
               JsonModel.mapOf(data['lead']) ?? const <String, dynamic>{};
           final statusOk =
               _status.isEmpty || stringValue(data, 'status') == _status;
+          final enquiryDate = DateTime.tryParse(
+            nullableStringValue(data, 'enquiry_date') ?? '',
+          );
+          final normalizedRowDate = enquiryDate == null
+              ? null
+              : DateTime(enquiryDate.year, enquiryDate.month, enquiryDate.day);
+          final dateOk =
+              (fromDate == null && toDate == null) ||
+              (normalizedRowDate != null &&
+                  (fromDate == null ||
+                      !normalizedRowDate.isBefore(
+                        DateTime(fromDate.year, fromDate.month, fromDate.day),
+                      )) &&
+                  (toDate == null ||
+                      !normalizedRowDate.isAfter(
+                        DateTime(toDate.year, toDate.month, toDate.day),
+                      )));
           final searchOk =
               query.isEmpty ||
               [
@@ -100,7 +285,7 @@ class _CrmOpportunityRegisterPageState
                 stringValue(stage, 'stage_name'),
                 stringValue(lead, 'lead_name'),
               ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
+          return statusOk && dateOk && searchOk;
         })
         .toList(growable: false);
   }
@@ -161,18 +346,18 @@ class _CrmOpportunityRegisterPageState
           'No CRM opportunities yet. Create a new opportunity to get started.',
       actions: [
         AdaptiveShellActionButton(
+          onPressed: () => _openRegisterFilterPanel(context),
+          icon: Icons.filter_alt_outlined,
+          label: 'Filter',
+          filled: false,
+        ),
+        AdaptiveShellActionButton(
           onPressed: () =>
               _openCrmOpportunityShellRoute(context, '/crm/opportunities/new'),
           icon: Icons.add_outlined,
           label: 'New opportunity',
         ),
       ],
-      filters: _CrmOpportunityRegisterFilters(
-        searchController: _searchController,
-        status: _status,
-        statusItems: _statusItems,
-        onStatusChanged: (value) => setState(() => _status = value ?? ''),
-      ),
       rows: _filtered,
       columns: [
         PurchaseRegisterColumn<CrmOpportunityModel>(
@@ -226,12 +411,16 @@ class _CrmOpportunityRegisterPageState
 class _CrmOpportunityRegisterFilters extends StatelessWidget {
   const _CrmOpportunityRegisterFilters({
     required this.searchController,
+    required this.dateFromController,
+    required this.dateToController,
     required this.status,
     required this.statusItems,
     required this.onStatusChanged,
   });
 
   final TextEditingController searchController;
+  final TextEditingController dateFromController;
+  final TextEditingController dateToController;
   final String status;
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<String?> onStatusChanged;
@@ -246,6 +435,8 @@ class _CrmOpportunityRegisterFilters extends StatelessWidget {
           hintText:
               'Search opportunity, number, customer, stage, owner, or lead',
         ),
+        AppDateField(labelText: 'From Date', controller: dateFromController),
+        AppDateField(labelText: 'To Date', controller: dateToController),
         AppDropdownField<String>.fromMapped(
           labelText: 'Status',
           mappedItems: statusItems,

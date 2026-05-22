@@ -74,6 +74,29 @@ Future<ErpDashboardSnapshot> loadErpDashboardSnapshot(
   }
 }
 
+bool _crmIsCompletedBoardFollowupStatus(String? status) {
+  return crmIsCompletedFollowupStatus(status);
+}
+
+bool _crmIsBoardFollowupDueToday(
+  Map<String, dynamic> row,
+  DateTime currentDate,
+) {
+  final rawDate = nullableStringValue(row, 'followup_date');
+  final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
+  if (parsed == null) {
+    return false;
+  }
+
+  final normalizedCurrent = DateTime(
+    currentDate.year,
+    currentDate.month,
+    currentDate.day,
+  );
+  final normalizedParsed = DateTime(parsed.year, parsed.month, parsed.day);
+  return normalizedParsed == normalizedCurrent;
+}
+
 Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   required CrmService crmService,
   required DateTime Function() now,
@@ -101,10 +124,23 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     (sum, response) =>
         sum + (response.meta?.total ?? response.data?.length ?? 0),
   );
-  final enquiryResponse = await crmService.enquiries(
-    filters: const <String, dynamic>{'per_page': 1},
+  final openOpportunityResponse = await crmService.opportunities(
+    filters: const <String, dynamic>{'per_page': 1, 'status': 'open'},
   );
   final pendingFollowupResponse = await crmService.pendingFollowups();
+  final followupBoardResponse = await crmService.opportunityFollowupsBoard();
+  final followupBoardData =
+      followupBoardResponse.data ?? const <String, dynamic>{};
+  final followupBoardRows =
+      (followupBoardData['followups'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .where(
+            (row) => !_crmIsCompletedBoardFollowupStatus(
+              nullableStringValue(row, 'status'),
+            ),
+          )
+          .toList(growable: false);
   final followupItems =
       (pendingFollowupResponse.data ?? const <CrmFollowupModel>[])
           .map((item) => CrmPendingFollowupItem.fromJson(item.toJson()))
@@ -122,12 +158,8 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     today: currentDate,
   );
 
-  final todayCount = pendingItems
-      .where(
-        (item) =>
-            crmFollowupBucket(item, today: currentDate) ==
-            CrmFollowupTimingBucket.today,
-      )
+  final todayCount = followupBoardRows
+      .where((row) => _crmIsBoardFollowupDueToday(row, currentDate))
       .length;
   final overdueCount = pendingItems
       .where(
@@ -176,17 +208,19 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         helper: 'Open CRM leads in new and in progress stages',
         icon: Icons.groups_2_outlined,
         color: const Color(0xFF2F6FED),
-        route: '/crm/leads',
+        route: '/crm/leads?dashboard_filter=pending',
       ),
       ErpDashboardStat(
-        label: 'Total Opportunities',
+        label: 'Total Pending Opportunities',
         value: _formatInt(
-          enquiryResponse.meta?.total ?? enquiryResponse.data?.length ?? 0,
+          openOpportunityResponse.meta?.total ??
+              openOpportunityResponse.data?.length ??
+              0,
         ),
         helper: 'Tracked across the sales pipeline',
         icon: Icons.mark_email_unread_outlined,
         color: const Color(0xFF19A7B8),
-        route: '/crm/opportunities',
+        route: '/crm/opportunities?dashboard_filter=open_pending',
       ),
       ErpDashboardStat(
         label: 'Due Today',
@@ -194,15 +228,15 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         helper: 'Follow-ups scheduled for today',
         icon: Icons.today_outlined,
         color: const Color(0xFFE67E22),
-        route: '/crm/opportunities',
+        route: '/crm/follow-ups?dashboard_filter=due_today',
       ),
       ErpDashboardStat(
         label: 'Open Follow-ups',
-        value: _formatInt(pendingItems.length),
+        value: _formatInt(followupBoardRows.length),
         helper: 'Pending calls, emails, and next steps',
         icon: Icons.assignment_late_outlined,
         color: const Color(0xFFDA4D78),
-        route: '/crm/opportunities',
+        route: '/crm/follow-ups?dashboard_filter=open_followups',
       ),
     ],
     primarySections: <ErpDashboardListSection>[

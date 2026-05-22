@@ -114,11 +114,11 @@ class _LoginPageState extends State<LoginPage> {
                             ],
                           ),
                           child: Form(
-                            key: controller.formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+                            child: Builder(
+                              builder: (formContext) => Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                 AppBrandingLogo(branding: branding, size: 48),
                                 const SizedBox(height: 18),
                                 Text(
@@ -208,7 +208,7 @@ class _LoginPageState extends State<LoginPage> {
                                         ? null
                                         : () async {
                                             final success = await controller
-                                                .signIn();
+                                                .signIn(formContext);
                                             if (!context.mounted || !success) {
                                               return;
                                             }
@@ -249,7 +249,8 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                   ),
                                 ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),

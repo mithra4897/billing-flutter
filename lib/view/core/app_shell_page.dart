@@ -388,7 +388,11 @@ class _AppShellPageState extends State<AppShellPage> {
           openSendComposerOnInit: true,
         );
       case '/crm/leads':
-        return CrmLeadRegisterPage(key: routeKey, embedded: true);
+        return CrmLeadRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/crm/enquiries':
         return CrmEnquiriesPage(
           key: routeKey,
@@ -399,9 +403,17 @@ class _AppShellPageState extends State<AppShellPage> {
           ),
         );
       case '/crm/opportunities':
-        return CrmOpportunityRegisterPage(key: routeKey, embedded: true);
+        return CrmOpportunityRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/crm/follow-ups':
-        return CrmFollowupsPage(key: routeKey, embedded: true);
+        return CrmFollowupsPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/crm/sources':
         return CrmSourcesPage(
           key: routeKey,

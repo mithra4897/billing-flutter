@@ -64,7 +64,7 @@ class CrmOpportunitiesController extends GetxController {
   int? stageId;
   int? assignedTo;
   int? filterStageId;
-  String? filterStatus;
+  String? filterStatus = 'open';
   String status = 'open';
   List<OpportunityLineDraft> lines = <OpportunityLineDraft>[];
   List<OpportunityFollowupDraft> followups = <OpportunityFollowupDraft>[];
@@ -624,7 +624,7 @@ class CrmOpportunitiesController extends GetxController {
 
   void clearFilters() {
     filterStageId = null;
-    filterStatus = null;
+    filterStatus = 'open';
     filtersApplied = false;
     filterCloseFromController.clear();
     filterCloseToController.clear();

@@ -20,12 +20,12 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
     required this.loading,
     required this.errorMessage,
     required this.onRetry,
-    required this.filters,
     required this.actions,
     required this.rows,
     required this.columns,
     required this.onRowTap,
     required this.emptyMessage,
+    this.filters,
     this.embedded = false,
   });
 
@@ -33,7 +33,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final bool loading;
   final String? errorMessage;
   final Future<void> Function() onRetry;
-  final Widget filters;
+  final Widget? filters;
   final List<Widget> actions;
   final List<T> rows;
   final List<PurchaseRegisterColumn<T>> columns;
@@ -152,11 +152,13 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: AppSectionCard(child: widget.filters),
-          ),
-          const SizedBox(height: AppUiConstants.spacingLg),
+          if (widget.filters != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: AppSectionCard(child: widget.filters!),
+            ),
+            const SizedBox(height: AppUiConstants.spacingLg),
+          ],
           SizedBox(
             width: double.infinity,
             child: AppSectionCard(

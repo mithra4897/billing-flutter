@@ -1,5 +1,6 @@
 import '../../controller/crm/crm_leads_controller.dart';
 import '../../controller/crm/crm_lead_register_controller.dart';
+import '../../components/app_checkbox_filter.dart';
 import '../../screen.dart';
 
 void _openCrmShellRoute(BuildContext context, String route) {
@@ -12,9 +13,14 @@ void _openCrmShellRoute(BuildContext context, String route) {
 }
 
 class CrmLeadRegisterPage extends StatefulWidget {
-  const CrmLeadRegisterPage({super.key, this.embedded = false});
+  const CrmLeadRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   @override
   State<CrmLeadRegisterPage> createState() => _CrmLeadRegisterPageState();
@@ -22,6 +28,22 @@ class CrmLeadRegisterPage extends StatefulWidget {
 
 class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
   late final String _controllerTag;
+
+  Set<String> _dashboardStatuses() {
+    switch ((widget.queryParameters['dashboard_filter'] ?? '').trim()) {
+      case 'pending':
+        return <String>{'draft', 'in_progress'};
+      default:
+        return <String>{'draft', 'in_progress'};
+    }
+  }
+
+  void _applyDashboardFilters(CrmLeadRegisterController controller) {
+    controller.searchController.clear();
+    controller.dateFromController.clear();
+    controller.dateToController.clear();
+    controller.setStatuses(_dashboardStatuses());
+  }
 
   @override
   void initState() {
@@ -38,6 +60,31 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
       CrmLeadRegisterController(instanceTag: _controllerTag),
       tag: _controllerTag,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !Get.isRegistered<CrmLeadRegisterController>(tag: _controllerTag)) {
+        return;
+      }
+      _applyDashboardFilters(
+        Get.find<CrmLeadRegisterController>(tag: _controllerTag),
+      );
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant CrmLeadRegisterPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !Get.isRegistered<CrmLeadRegisterController>(tag: _controllerTag)) {
+          return;
+        }
+        _applyDashboardFilters(
+          Get.find<CrmLeadRegisterController>(tag: _controllerTag),
+        );
+      });
+    }
   }
 
   @override
@@ -46,6 +93,142 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
       Get.delete<CrmLeadRegisterController>(tag: _controllerTag);
     }
     super.dispose();
+  }
+
+  Future<void> _openRegisterFilterPanel(
+    BuildContext context,
+    CrmLeadRegisterController controller,
+  ) async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+    final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+    final searchController = TextEditingController(
+      text: controller.searchController.text,
+    );
+    final dateFromController = TextEditingController(
+      text: controller.dateFromController.text,
+    );
+    final dateToController = TextEditingController(
+      text: controller.dateToController.text,
+    );
+    Set<String> tempStatuses = Set<String>.from(controller.statuses);
+
+    final applied = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return Dialog(
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 20,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    dialogPadding,
+                    dialogPadding,
+                    dialogPadding,
+                    MediaQuery.of(dialogContext).viewInsets.bottom +
+                        dialogPadding,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Filter CRM Leads',
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close),
+                            color: appTheme.mutedText,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _CrmLeadRegisterFilters(
+                        searchController: searchController,
+                        dateFromController: dateFromController,
+                        dateToController: dateToController,
+                        statuses: tempStatuses,
+                        statusItems: CrmLeadRegisterController.statusItems,
+                        onStatusesChanged: (value) {
+                          setDialogState(() {
+                            tempStatuses = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () {
+                              controller.searchController.text =
+                                  searchController.text;
+                              controller.dateFromController.text =
+                                  dateFromController.text;
+                              controller.dateToController.text =
+                                  dateToController.text;
+                              controller.setStatuses(tempStatuses);
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.search),
+                            label: const Text('Apply Filters'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              controller.searchController.clear();
+                              controller.dateFromController.clear();
+                              controller.dateToController.clear();
+                              controller.setStatuses(<String>{
+                                'draft',
+                                'in_progress',
+                              });
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    searchController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
+    if (applied == true) {
+      controller.update();
+    }
   }
 
   @override
@@ -62,17 +245,17 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
           emptyMessage: 'No CRM leads yet. Create a new lead to get started.',
           actions: [
             AdaptiveShellActionButton(
+              onPressed: () => _openRegisterFilterPanel(context, controller),
+              icon: Icons.filter_alt_outlined,
+              label: 'Filter',
+              filled: false,
+            ),
+            AdaptiveShellActionButton(
               onPressed: () => _openCrmShellRoute(context, '/crm/leads/new'),
               icon: Icons.add_outlined,
               label: 'New lead',
             ),
           ],
-          filters: _CrmLeadRegisterFilters(
-            searchController: controller.searchController,
-            status: controller.status,
-            statusItems: CrmLeadRegisterController.statusItems,
-            onStatusChanged: controller.setStatus,
-          ),
           rows: controller.filteredRows,
           columns: [
             PurchaseRegisterColumn<CrmLeadModel>(
@@ -114,15 +297,19 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
 class _CrmLeadRegisterFilters extends StatelessWidget {
   const _CrmLeadRegisterFilters({
     required this.searchController,
-    required this.status,
+    required this.dateFromController,
+    required this.dateToController,
+    required this.statuses,
     required this.statusItems,
-    required this.onStatusChanged,
+    required this.onStatusesChanged,
   });
 
   final TextEditingController searchController;
-  final String status;
+  final TextEditingController dateFromController;
+  final TextEditingController dateToController;
+  final Set<String> statuses;
   final List<AppDropdownItem<String>> statusItems;
-  final ValueChanged<String?> onStatusChanged;
+  final ValueChanged<Set<String>> onStatusesChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -133,11 +320,31 @@ class _CrmLeadRegisterFilters extends StatelessWidget {
           controller: searchController,
           hintText: 'Search lead, company, mobile, or email',
         ),
-        AppDropdownField<String>.fromMapped(
-          labelText: 'Status',
-          mappedItems: statusItems,
-          initialValue: status,
-          onChanged: onStatusChanged,
+        AppDateField(labelText: 'From Date', controller: dateFromController),
+        AppDateField(labelText: 'To Date', controller: dateToController),
+        AppCheckboxFilter<String>(
+          label: 'Status',
+          hintText: 'Search Status',
+          emptyLabel: 'Search Status',
+          allValue: '',
+          selectedValues: statuses,
+          options: statusItems
+              .map(
+                (item) => AppCheckboxFilterOption<String>(
+                  value: item.value,
+                  label: item.label,
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (value) {
+            final nextValues = Set<String>.from(statuses);
+            if (value.isEmpty) {
+              nextValues.clear();
+            } else if (!nextValues.add(value)) {
+              nextValues.remove(value);
+            }
+            onStatusesChanged(nextValues);
+          },
         ),
       ],
     );
@@ -177,7 +384,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('CrmLeadsController');
-    _reusedController = Get.isRegistered<CrmLeadsController>(tag: _controllerTag);
+    _reusedController = Get.isRegistered<CrmLeadsController>(
+      tag: _controllerTag,
+    );
     _controller = Get.put(
       CrmLeadsController(
         startInNewMode: widget.startInNewMode,
@@ -279,6 +488,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
     final screenWidth = MediaQuery.of(context).size.width;
     final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
     final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+    Set<String> selectedStatuses = Set<String>.from(
+      controller.filterLeadStatuses,
+    );
 
     final applied = await showDialog<bool>(
       context: context,
@@ -288,144 +500,179 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
           dialogContext,
         ).extension<AppThemeExtension>()!;
 
-        return Dialog(
-          insetPadding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 20,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                dialogPadding,
-                dialogPadding,
-                dialogPadding,
-                MediaQuery.of(dialogContext).viewInsets.bottom + dialogPadding,
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 20,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Filter CRM Leads',
-                          style: Theme.of(dialogContext).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        tooltip: 'Close',
-                        icon: const Icon(Icons.close),
-                        color: appTheme.mutedText,
-                      ),
-                    ],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    dialogPadding,
+                    dialogPadding,
+                    dialogPadding,
+                    MediaQuery.of(dialogContext).viewInsets.bottom +
+                        dialogPadding,
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _filterBox(
-                        child: AppDropdownField<int>.fromMapped(
-                          labelText: 'Source',
-                          initialValue:
-                              controller.filterSourceId ??
-                              CrmLeadsController.allFilterIntValue,
-                          mappedItems: <AppDropdownItem<int>>[
-                            const AppDropdownItem<int>(
-                              value: CrmLeadsController.allFilterIntValue,
-                              label: 'All',
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Filter CRM Leads',
+                              style: Theme.of(dialogContext)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
-                            ...controller.sources
-                                .where(
-                                  (item) =>
-                                      intValue(item.toJson(), 'id') != null,
-                                )
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item.toJson(), 'id')!,
-                                    label: item.toString(),
+                          ),
+                          IconButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close),
+                            color: appTheme.mutedText,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _filterBox(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: 'Source',
+                              initialValue:
+                                  controller.filterSourceId ??
+                                  CrmLeadsController.allFilterIntValue,
+                              mappedItems: <AppDropdownItem<int>>[
+                                const AppDropdownItem<int>(
+                                  value: CrmLeadsController.allFilterIntValue,
+                                  label: 'All',
+                                ),
+                                ...controller.sources
+                                    .where(
+                                      (item) =>
+                                          intValue(item.toJson(), 'id') != null,
+                                    )
+                                    .map(
+                                      (item) => AppDropdownItem<int>(
+                                        value: intValue(item.toJson(), 'id')!,
+                                        label: item.toString(),
+                                      ),
+                                    ),
+                              ],
+                              onChanged: controller.setFilterSourceId,
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: 'Assigned To',
+                              initialValue:
+                                  controller.filterAssignedTo ??
+                                  CrmLeadsController.allFilterIntValue,
+                              mappedItems: <AppDropdownItem<int>>[
+                                const AppDropdownItem<int>(
+                                  value: CrmLeadsController.allFilterIntValue,
+                                  label: 'All',
+                                ),
+                                ...controller.users
+                                    .where((item) => item.id != null)
+                                    .map(
+                                      (item) => AppDropdownItem<int>(
+                                        value: item.id!,
+                                        label:
+                                            item.displayName ??
+                                            item.username ??
+                                            '',
+                                      ),
+                                    ),
+                              ],
+                              onChanged: controller.setFilterAssignedTo,
+                            ),
+                          ),
+                          _filterBox(
+                            child: AppCheckboxFilter<String>(
+                              label: 'Status',
+                              selectedValues: selectedStatuses.isEmpty
+                                  ? <String>{
+                                      CrmLeadsController.allFilterStringValue,
+                                    }
+                                  : selectedStatuses,
+                              options: <AppCheckboxFilterOption<String>>[
+                                const AppCheckboxFilterOption<String>(
+                                  value:
+                                      CrmLeadsController.allFilterStringValue,
+                                  label: 'All',
+                                ),
+                                ...CrmLeadsController.leadFilterStatuses.map(
+                                  (item) => AppCheckboxFilterOption<String>(
+                                    value: item.value,
+                                    label: item.label,
                                   ),
                                 ),
-                          ],
-                          onChanged: controller.setFilterSourceId,
-                        ),
-                      ),
-                      _filterBox(
-                        child: AppDropdownField<int>.fromMapped(
-                          labelText: 'Assigned To',
-                          initialValue:
-                              controller.filterAssignedTo ??
-                              CrmLeadsController.allFilterIntValue,
-                          mappedItems: <AppDropdownItem<int>>[
-                            const AppDropdownItem<int>(
-                              value: CrmLeadsController.allFilterIntValue,
-                              label: 'All',
+                              ],
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  if (value ==
+                                      CrmLeadsController.allFilterStringValue) {
+                                    selectedStatuses.clear();
+                                    return;
+                                  }
+                                  if (!selectedStatuses.add(value)) {
+                                    selectedStatuses.remove(value);
+                                  }
+                                });
+                              },
                             ),
-                            ...controller.users
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: item.id!,
-                                    label:
-                                        item.displayName ?? item.username ?? '',
-                                  ),
-                                ),
-                          ],
-                          onChanged: controller.setFilterAssignedTo,
-                        ),
+                          ),
+                        ],
                       ),
-                      _filterBox(
-                        child: AppDropdownField<String>.fromMapped(
-                          labelText: 'Status',
-                          initialValue:
-                              controller.filterLeadStatus ??
-                              CrmLeadsController.allFilterStringValue,
-                          mappedItems: <AppDropdownItem<String>>[
-                            const AppDropdownItem<String>(
-                              value: CrmLeadsController.allFilterStringValue,
-                              label: 'All',
-                            ),
-                            ...CrmLeadsController.leadFilterStatuses,
-                          ],
-                          onChanged: controller.setFilterLeadStatus,
-                        ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () {
+                              controller.setFilterLeadStatuses(
+                                Set<String>.from(selectedStatuses),
+                              );
+                              controller.markFiltersApplied();
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.search),
+                            label: const Text('Apply Filters'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              controller.clearFilters();
+                              setDialogState(() {
+                                selectedStatuses.clear();
+                              });
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () {
-                          controller.markFiltersApplied();
-                          Navigator.of(dialogContext).pop(true);
-                        },
-                        icon: const Icon(Icons.search),
-                        label: const Text('Apply Filters'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          controller.clearFilters();
-                          Navigator.of(dialogContext).pop(true);
-                        },
-                        icon: const Icon(Icons.clear),
-                        label: const Text('Clear'),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -465,7 +712,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
               controller.filterCompanyId != null ||
               controller.filterSourceId != null ||
               controller.filterAssignedTo != null ||
-              (controller.filterLeadStatus ?? '').isNotEmpty ||
+              controller.filterLeadStatuses.isNotEmpty ||
               controller.filtersApplied)
             const SizedBox(height: AppUiConstants.spacingMd),
           SettingsListCard<CrmLeadModel>(
@@ -548,9 +795,8 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
         'Source: ${controller.filterSourceId == null ? 'All' : controller.sources.cast<CrmSourceModel?>().firstWhere((item) => intValue(item?.toJson() ?? const {}, "id") == controller.filterSourceId, orElse: () => null)?.toString() ?? controller.filterSourceId}',
       if (controller.filterAssignedTo != null || controller.filtersApplied)
         'Assigned: ${controller.filterAssignedTo == null ? 'All' : controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.displayName ?? controller.users.cast<UserModel?>().firstWhere((item) => item?.id == controller.filterAssignedTo, orElse: () => null)?.username ?? controller.filterAssignedTo}',
-      if ((controller.filterLeadStatus ?? '').isNotEmpty ||
-          controller.filtersApplied)
-        'Status: ${(controller.filterLeadStatus ?? CrmLeadsController.allFilterStringValue) == CrmLeadsController.allFilterStringValue ? 'All' : controller.leadStatusLabel(controller.filterLeadStatus)}',
+      if (controller.filterLeadStatuses.isNotEmpty || controller.filtersApplied)
+        'Status: ${controller.filterLeadStatuses.isEmpty ? 'All' : controller.filterLeadStatuses.map(controller.leadStatusLabel).join(', ')}',
     ];
 
     if (chips.isEmpty) return const SizedBox.shrink();

@@ -63,7 +63,7 @@ class CrmLeadsController extends GetxController {
   int? filterCompanyId;
   int? filterSourceId;
   int? filterAssignedTo;
-  String? filterLeadStatus;
+  Set<String> filterLeadStatuses = <String>{};
   String leadStatus = 'new';
   List<LeadActivityDraft> activities = <LeadActivityDraft>[];
   int? expandedActivityIndex;
@@ -79,9 +79,11 @@ class CrmLeadsController extends GetxController {
       return false;
     }
 
-    return const {'draft', 'new', 'in_progress'}.contains(
-      effectiveLeadStatus(),
-    );
+    return const {
+      'draft',
+      'new',
+      'in_progress',
+    }.contains(effectiveLeadStatus());
   }
 
   @override
@@ -114,6 +116,39 @@ class CrmLeadsController extends GetxController {
 
   static bool isLockedLeadStatus(String status) =>
       status == 'own' || status == 'converted' || status == 'lost';
+
+  static bool matchesLeadFilterStatus(
+    String? rowStatus,
+    Iterable<String> requested,
+  ) {
+    final normalizedRow = (rowStatus ?? '').trim().toLowerCase();
+    final normalizedRequested = requested
+        .map((item) => item.trim().toLowerCase())
+        .where((item) => item.isNotEmpty && item != allFilterStringValue)
+        .toSet();
+
+    if (normalizedRequested.isEmpty) {
+      return true;
+    }
+
+    for (final status in normalizedRequested) {
+      if (status == 'draft' &&
+          (normalizedRow == 'draft' || normalizedRow == 'new')) {
+        return true;
+      }
+
+      if ((status == 'converted' || status == 'own') &&
+          (normalizedRow == 'converted' || normalizedRow == 'own')) {
+        return true;
+      }
+
+      if (normalizedRow == status) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   String effectiveLeadStatus() {
     final status = leadStatus.trim().toLowerCase();
@@ -266,16 +301,11 @@ class CrmLeadsController extends GetxController {
               final data = item.toJson();
               final completed = isCompletedLead(item);
               final rowStatus = stringValue(data, 'lead_status', 'new');
-              final requestedStatus =
-                  (filtersApplied
-                          ? (filterLeadStatus ?? allFilterStringValue)
-                          : (filterLeadStatus ?? ''))
-                      .trim();
-              final showAllStatuses =
-                  filtersApplied && requestedStatus == allFilterStringValue;
+              final hasStatusFilters = filterLeadStatuses.isNotEmpty;
+              final showAllStatuses = filtersApplied && !hasStatusFilters;
               if (completed &&
                   !showAllStatuses &&
-                  requestedStatus != rowStatus) {
+                  !matchesLeadFilterStatus(rowStatus, filterLeadStatuses)) {
                 return false;
               }
               if (filterCompanyId != null &&
@@ -292,9 +322,7 @@ class CrmLeadsController extends GetxController {
                   intValue(data, 'assigned_to') != filterAssignedTo) {
                 return false;
               }
-              if ((filterLeadStatus ?? '').isNotEmpty &&
-                  filterLeadStatus != allFilterStringValue &&
-                  rowStatus != filterLeadStatus) {
+              if (!matchesLeadFilterStatus(rowStatus, filterLeadStatuses)) {
                 return false;
               }
               return true;
@@ -562,15 +590,15 @@ class CrmLeadsController extends GetxController {
     update();
   }
 
-  void setFilterLeadStatus(String? value) {
-    filterLeadStatus = value;
+  void setFilterLeadStatuses(Set<String> values) {
+    filterLeadStatuses = values;
     update();
   }
 
   void clearFilters() {
     filterSourceId = null;
     filterAssignedTo = null;
-    filterLeadStatus = null;
+    filterLeadStatuses = <String>{};
     filtersApplied = false;
     applySearch();
   }

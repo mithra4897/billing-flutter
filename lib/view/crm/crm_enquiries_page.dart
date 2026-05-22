@@ -487,41 +487,45 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
           ),
         ],
       ),
-      editor: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TabBar(
-            controller: _tabController,
-            onTap: controller.setActiveTabIndex,
-            isScrollable: true,
-            tabs: const [
-              Tab(text: 'Primary'),
-              Tab(text: 'Lines'),
-              Tab(text: 'Followups'),
-            ],
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          IndexedStack(
-            index: controller.activeTabIndex,
+      editor: Form(
+        child: Builder(
+          builder: (formContext) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildPrimaryTab(context, controller),
-              controller.selectedItem?.toJson()['id'] == null
-                  ? _buildDependentTabPlaceholder(
-                      title: 'Lines',
-                      message:
-                          'Save this opportunity first to manage requested items and descriptions.',
-                    )
-                  : _buildLinesTab(context, controller),
-              controller.selectedItem?.toJson()['id'] == null
-                  ? _buildDependentTabPlaceholder(
-                      title: 'Followups',
-                      message:
-                          'Save this opportunity first to manage follow-up dates, notes, and next actions.',
-                    )
-                  : _buildFollowupsTab(context, controller),
+              TabBar(
+                controller: _tabController,
+                onTap: controller.setActiveTabIndex,
+                isScrollable: true,
+                tabs: const [
+                  Tab(text: 'Primary'),
+                  Tab(text: 'Lines'),
+                  Tab(text: 'Followups'),
+                ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              IndexedStack(
+                index: controller.activeTabIndex,
+                children: [
+                  _buildPrimaryTab(context, controller, formContext),
+                  controller.selectedItem?.toJson()['id'] == null
+                      ? _buildDependentTabPlaceholder(
+                          title: 'Lines',
+                          message:
+                              'Save this opportunity first to manage requested items and descriptions.',
+                        )
+                      : _buildLinesTab(context, controller, formContext),
+                  controller.selectedItem?.toJson()['id'] == null
+                      ? _buildDependentTabPlaceholder(
+                          title: 'Followups',
+                          message:
+                              'Save this opportunity first to manage follow-up dates, notes, and next actions.',
+                        )
+                      : _buildFollowupsTab(context, controller, formContext),
+                ],
+              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -578,6 +582,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   Widget _buildPrimaryTab(
     BuildContext context,
     CrmEnquiriesController controller,
+    BuildContext formContext,
   ) {
     final isLocked = controller.isSelectedEnquiryLocked();
     final lifecycleStatus = controller.effectiveLifecycleStatus();
@@ -588,11 +593,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
         controller.opportunityStatus != 'won';
     final canLose = controller.selectedItem != null && !isLocked;
 
-    return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
           if (controller.formError != null) ...[
             AppErrorStateView.inline(message: controller.formError!),
             const SizedBox(height: AppUiConstants.spacingSm),
@@ -727,7 +730,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   label: controller.selectedItem == null
                       ? 'Save Opportunity'
                       : 'Update Opportunity',
-                  onPressed: controller.save,
+                  onPressed: () => controller.save(formContext),
                   busy: controller.saving,
                 ),
               if (controller.selectedItem != null) ...[
@@ -754,14 +757,14 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
               ],
             ],
           ),
-        ],
-      ),
+      ],
     );
   }
 
   Widget _buildLinesTab(
     BuildContext context,
     CrmEnquiriesController controller,
+    BuildContext formContext,
   ) {
     final isLocked = controller.isSelectedEnquiryLocked();
     return Column(
@@ -866,7 +869,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             label: controller.selectedItem == null
                 ? 'Save Opportunity'
                 : 'Update Opportunity',
-            onPressed: controller.save,
+            onPressed: () => controller.save(formContext),
             busy: controller.saving,
           ),
         ],
@@ -877,6 +880,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
   Widget _buildFollowupsTab(
     BuildContext context,
     CrmEnquiriesController controller,
+    BuildContext formContext,
   ) {
     final isLocked = controller.isSelectedEnquiryLocked();
     return Column(
@@ -994,7 +998,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             label: controller.selectedItem == null
                 ? 'Save Opportunity'
                 : 'Update Opportunity',
-            onPressed: controller.save,
+            onPressed: () => controller.save(formContext),
             busy: controller.saving,
           ),
         ],

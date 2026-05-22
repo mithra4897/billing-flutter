@@ -27,13 +27,16 @@ class CrmPendingFollowupItem {
     final assignedUser = json['assigned_user'] is Map<String, dynamic>
         ? json['assigned_user'] as Map<String, dynamic>
         : null;
-    final subjectName = stringValue(json, 'subject_name').trim().isNotEmpty
-        ? stringValue(json, 'subject_name').trim()
-        : (stringValue(json, 'customer_name').trim().isNotEmpty
-              ? stringValue(json, 'customer_name').trim()
-              : (stringValue(json, 'lead_name').trim().isNotEmpty
-                    ? stringValue(json, 'lead_name').trim()
-                    : 'Unknown lead/customer'));
+    final subjectName = [
+      stringValue(json, 'subject_name'),
+      stringValue(json, 'opportunity_no'),
+      stringValue(json, 'customer_name'),
+      stringValue(json, 'opportunity_name'),
+      stringValue(json, 'lead_name'),
+    ].map((value) => value.trim()).where((value) => value.isNotEmpty).toList();
+    final resolvedSubjectName = subjectName.isEmpty
+        ? 'Pending Followup'
+        : subjectName.take(2).join(' • ');
     final assignedDisplayName = assignedUser == null
         ? null
         : (stringValue(assignedUser, 'display_name').trim().isNotEmpty
@@ -43,7 +46,7 @@ class CrmPendingFollowupItem {
     return CrmPendingFollowupItem(
       id: intValue(json, 'id'),
       enquiryId: intValue(json, 'enquiry_id'),
-      subjectName: subjectName,
+      subjectName: resolvedSubjectName,
       followupDateRaw: nullableStringValue(json, 'followup_date'),
       priority: crmNormalizePriority(
         nullableStringValue(json, 'priority') ??

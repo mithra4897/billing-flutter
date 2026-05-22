@@ -44,11 +44,21 @@ class _ErpModuleDashboardPageState extends State<ErpModuleDashboardPage> {
   @override
   void didUpdateWidget(covariant ErpModuleDashboardPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _controller.updateConfig(
-      nextModuleKey: widget.moduleKey,
-      nextLoader: widget.loader,
-      nextShellTitle: widget.shellTitle,
-    );
+    if (oldWidget.moduleKey == widget.moduleKey &&
+        oldWidget.loader == widget.loader &&
+        oldWidget.shellTitle == widget.shellTitle) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _controller.updateConfig(
+        nextModuleKey: widget.moduleKey,
+        nextLoader: widget.loader,
+        nextShellTitle: widget.shellTitle,
+      );
+    });
   }
 
   Future<void> _pickCustomRange() async {

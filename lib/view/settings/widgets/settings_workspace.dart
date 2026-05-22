@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../components/app_checkbox_filter.dart';
 
 class SettingsWorkspaceController extends ChangeNotifier {
   VoidCallback? _openEditorRoute;
@@ -641,6 +642,7 @@ class SettingsFormWrap extends StatelessWidget {
               .map((child) {
                 if (child is AppDropdownField ||
                     child is AppFormTextField ||
+                    child is AppCheckboxFilter ||
                     child is AppDateSelectorField ||
                     child is AppDateTimeSelectorField ||
                     child is ErpLinkField ||
