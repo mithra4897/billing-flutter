@@ -730,7 +730,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   label: controller.selectedItem == null
                       ? 'Save Opportunity'
                       : 'Update Opportunity',
-                  onPressed: () => controller.save(formContext),
+                  onPressed: controller.save,
                   busy: controller.saving,
                 ),
               if (controller.selectedItem != null) ...[
@@ -800,6 +800,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             final line = controller.lines[index];
             final expanded = controller.expandedLineIndex == index;
             return Padding(
+              key: ValueKey<EnquiryLineDraft>(line),
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
               child: SettingsExpandableTile(
                 title: line.itemLabel(controller.itemsLookup),
@@ -822,6 +823,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   child: PurchaseCompactFieldGrid(
                     children: [
                       AppSearchPickerField<int>(
+                        key: ValueKey<Object>(line),
                         labelText: 'Item',
                         selectedLabel: controller.itemsLookup
                             .cast<ItemModel?>()
@@ -846,10 +848,16 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         },
                       ),
                       AppFormTextField(
+                        key: ValueKey<TextEditingController>(
+                          line.descriptionController,
+                        ),
                         controller: line.descriptionController,
                         labelText: 'Description',
                       ),
                       AppFormTextField(
+                        key: ValueKey<TextEditingController>(
+                          line.qtyController,
+                        ),
                         controller: line.qtyController,
                         labelText: 'Quantity',
                         keyboardType: const TextInputType.numberWithOptions(
@@ -869,7 +877,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             label: controller.selectedItem == null
                 ? 'Save Opportunity'
                 : 'Update Opportunity',
-            onPressed: () => controller.save(formContext),
+            onPressed: controller.save,
             busy: controller.saving,
           ),
         ],
@@ -916,6 +924,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             final followup = controller.followups[index];
             final expanded = controller.expandedFollowupIndex == index;
             return Padding(
+              key: ValueKey<FollowupDraft>(followup),
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
               child: SettingsExpandableTile(
                 title: followup.statusLabel,
@@ -942,6 +951,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                   child: PurchaseCompactFieldGrid(
                     children: [
                       AppDateTimeSelectorField(
+                        key: ValueKey<TextEditingController>(
+                          followup.followupDateController,
+                        ),
                         controller: followup.followupDateController,
                         labelText: 'Followup Date',
                         hintText: 'YYYY-MM-DD HH:MM:SS',
@@ -949,6 +961,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                             _pickFollowupDate(context, controller, followup),
                       ),
                       AppDateTimeSelectorField(
+                        key: ValueKey<TextEditingController>(
+                          followup.nextFollowupController,
+                        ),
                         controller: followup.nextFollowupController,
                         labelText: 'Next Followup',
                         hintText: 'YYYY-MM-DD HH:MM:SS',
@@ -959,6 +974,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                         ),
                       ),
                       AppDropdownField<int>.fromMapped(
+                        key: ValueKey<String>(
+                          'followup-assignee-${identityHashCode(followup)}',
+                        ),
                         labelText: 'Assigned To',
                         mappedItems: controller.users
                             .where((item) => item.id != null)
@@ -974,6 +992,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                             controller.setFollowupAssignedTo(followup, value),
                       ),
                       AppDropdownField<String>.fromMapped(
+                        key: ValueKey<String>(
+                          'followup-status-${identityHashCode(followup)}',
+                        ),
                         labelText: 'Status',
                         mappedItems: CrmEnquiriesController.followupStatuses,
                         initialValue: followup.status,
@@ -981,6 +1002,9 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
                             controller.setFollowupStatus(followup, value),
                       ),
                       AppFormTextField(
+                        key: ValueKey<TextEditingController>(
+                          followup.notesController,
+                        ),
                         controller: followup.notesController,
                         labelText: 'Notes',
                         maxLines: 2,
@@ -998,7 +1022,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
             label: controller.selectedItem == null
                 ? 'Save Opportunity'
                 : 'Update Opportunity',
-            onPressed: () => controller.save(formContext),
+            onPressed: controller.save,
             busy: controller.saving,
           ),
         ],

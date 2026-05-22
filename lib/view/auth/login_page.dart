@@ -17,11 +17,14 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag(
-      'LoginManagementController-${widget.redirectTo ?? 'default'}',
+      'LoginManagementController',
+      scope: <String, Object?>{
+        'widget': widget.runtimeType,
+        'key': widget.key,
+        'state': identityHashCode(this),
+        'redirectTo': widget.redirectTo,
+      },
     );
-    if (Get.isRegistered<LoginManagementController>(tag: _controllerTag)) {
-      Get.delete<LoginManagementController>(tag: _controllerTag, force: true);
-    }
     Get.put(
       LoginManagementController(redirectTo: widget.redirectTo),
       tag: _controllerTag,
