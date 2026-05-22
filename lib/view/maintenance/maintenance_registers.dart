@@ -106,6 +106,77 @@ class _MaintFilters extends StatelessWidget {
   }
 }
 
+class MaintenanceWorkOrderRegisterController extends GetxController {
+  final MaintenanceService _service = MaintenanceService();
+  final TextEditingController searchController = TextEditingController();
+
+  bool loading = true;
+  String? error;
+  String? companyBanner;
+  List<MaintenanceWorkOrderModel> rows = const <MaintenanceWorkOrderModel>[];
+
+  @override
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_onContextChanged);
+    searchController.addListener(update);
+    unawaited(load());
+  }
+
+  @override
+  void onClose() {
+    WorkingContextService.version.removeListener(_onContextChanged);
+    searchController
+      ..removeListener(update)
+      ..dispose();
+    super.onClose();
+  }
+
+  void _onContextChanged() {
+    unawaited(load());
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
+    try {
+      final info = await hrSessionCompanyInfo();
+      final filters = <String, dynamic>{'per_page': 200};
+      if (info.companyId != null) {
+        filters['company_id'] = info.companyId;
+      }
+      final response = await _service.workOrders(filters: filters);
+      companyBanner = info.banner;
+      rows = response.data ?? const <MaintenanceWorkOrderModel>[];
+      loading = false;
+      update();
+    } catch (err) {
+      error = err.toString();
+      loading = false;
+      update();
+    }
+  }
+
+  List<MaintenanceWorkOrderModel> get filteredRows {
+    final query = searchController.text.trim().toLowerCase();
+    return rows
+        .where((row) {
+          if (query.isEmpty) {
+            return true;
+          }
+          final data = row.toJson();
+          return [
+            stringValue(data, 'work_order_no'),
+            stringValue(data, 'work_order_status'),
+            stringValue(data, 'work_order_type'),
+            _workOrderAssetLabel(row),
+          ].join(' ').toLowerCase().contains(query);
+        })
+        .toList(growable: false);
+  }
+}
+
 class MaintenanceWorkOrderRegisterPage extends StatefulWidget {
   const MaintenanceWorkOrderRegisterPage({super.key, this.embedded = false});
 
@@ -118,133 +189,79 @@ class MaintenanceWorkOrderRegisterPage extends StatefulWidget {
 
 class _MaintenanceWorkOrderRegisterPageState
     extends State<MaintenanceWorkOrderRegisterPage> {
-  final MaintenanceService _service = MaintenanceService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<MaintenanceWorkOrderModel> _rows = const <MaintenanceWorkOrderModel>[];
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.workOrders(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <MaintenanceWorkOrderModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+    _controllerTag = persistentControllerTag(
+      'MaintenanceWorkOrderRegisterController',
+    );
+    if (!Get.isRegistered<MaintenanceWorkOrderRegisterController>(
+      tag: _controllerTag,
+    )) {
+      Get.put(MaintenanceWorkOrderRegisterController(), tag: _controllerTag);
     }
-  }
-
-  List<MaintenanceWorkOrderModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((MaintenanceWorkOrderModel row) {
-          if (q.isEmpty) {
-            return true;
-          }
-          final data = row.toJson();
-          return [
-            stringValue(data, 'work_order_no'),
-            stringValue(data, 'work_order_status'),
-            stringValue(data, 'work_order_type'),
-            _workOrderAssetLabel(row),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
   }
 
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<MaintenanceWorkOrderModel>(
-      title: 'Work orders',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No work orders found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openMaintenanceShellRoute(
-            context,
-            '/maintenance/work-orders/new',
+    return GetBuilder<MaintenanceWorkOrderRegisterController>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<MaintenanceWorkOrderModel>(
+          title: 'Work orders',
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: 'No work orders found.',
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: () => _openMaintenanceShellRoute(
+                context,
+                '/maintenance/work-orders/new',
+              ),
+              icon: Icons.add_outlined,
+              label: 'New work order',
+            ),
+          ],
+          filters: _MaintFilters(
+            searchController: controller.searchController,
+            searchHint: 'Search WO no., asset, type, status',
+            companyBanner: controller.companyBanner,
           ),
-          icon: Icons.add_outlined,
-          label: 'New work order',
-        ),
-      ],
-      filters: _MaintFilters(
-        searchController: _searchController,
-        searchHint: 'Search WO no., asset, type, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
-      columns: [
-        PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
-          label: 'WO no.',
-          valueBuilder: (MaintenanceWorkOrderModel row) =>
-              _workOrderNoLabel(row),
-        ),
-        PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
-          label: 'Date',
-          valueBuilder: (MaintenanceWorkOrderModel row) =>
-              displayDate(nullableStringValue(row.toJson(), 'work_order_date')),
-        ),
-        PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
-          label: 'Asset',
-          flex: 2,
-          valueBuilder: (MaintenanceWorkOrderModel row) =>
-              _workOrderAssetLabel(row),
-        ),
-        PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
-          label: 'Status',
-          valueBuilder: (MaintenanceWorkOrderModel row) =>
-              stringValue(row.toJson(), 'work_order_status'),
-        ),
-      ],
-      onRowTap: (MaintenanceWorkOrderModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openMaintenanceShellRoute(context, '/maintenance/work-orders/$id');
+          rows: controller.filteredRows,
+          columns: [
+            PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
+              label: 'WO no.',
+              valueBuilder: (row) => _workOrderNoLabel(row),
+            ),
+            PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
+              label: 'Date',
+              valueBuilder: (row) => displayDate(
+                nullableStringValue(row.toJson(), 'work_order_date'),
+              ),
+            ),
+            PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
+              label: 'Asset',
+              flex: 2,
+              valueBuilder: (row) => _workOrderAssetLabel(row),
+            ),
+            PurchaseRegisterColumn<MaintenanceWorkOrderModel>(
+              label: 'Status',
+              valueBuilder: (row) =>
+                  stringValue(row.toJson(), 'work_order_status'),
+            ),
+          ],
+          onRowTap: (row) {
+            final id = intValue(row.toJson(), 'id');
+            if (id == null) {
+              return;
+            }
+            _openMaintenanceShellRoute(context, '/maintenance/work-orders/$id');
+          },
+        );
       },
     );
   }

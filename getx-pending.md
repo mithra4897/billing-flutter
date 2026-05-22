@@ -87,9 +87,9 @@ Status legend:
 | HR | `lib/View/hr/hr_registers.dart` | widget/support | `done` | Migrated attendance, payroll run, and payslip register state to GetX controllers |
 | Inventory | `lib/View/inventory/inventory_registers.dart` | widget/support | `done` | Consolidated inventory register pages onto a shared GetX register shell |
 | Jobwork | `lib/View/jobwork/jobwork_registers.dart` | widget/support | `done` | Consolidated jobwork register pages onto a shared GetX register shell |
-| Maintenance | `lib/View/maintenance/maintenance_registers.dart` | widget/support | `pending` |  |
-| Manufacturing | `lib/View/manufacturing/manufacturing_registers.dart` | widget/support | `pending` |  |
-| Printing | `lib/View/printing/document_print_designer.dart` | widget/support | `pending` |  |
+| Maintenance | `lib/View/maintenance/maintenance_registers.dart` | widget/support | `done` | Migrated maintenance work order register state to a GetX controller |
+| Manufacturing | `lib/View/manufacturing/manufacturing_registers.dart` | widget/support | `done` | Consolidated manufacturing register pages onto a shared GetX register shell |
+| Printing | `lib/View/printing/document_print_designer.dart` | widget/support | `done` | Migrated outer print designer editor state from page-local setState to GetX controller |
 | Purchase | `lib/View/purchase/purchase_register_screens.dart` | widget/support | `pending` |  |
 | Purchase | `lib/View/purchase/purchase_support.dart` | widget/support | `pending` |  |
 | Quality | `lib/View/quality/quality_registers.dart` | widget/support | `pending` |  |

@@ -1,5 +1,12 @@
 import '../../screen.dart';
 
+typedef ManufacturingRegisterLoader<T> =
+    Future<ApiResponse<List<T>>> Function(
+      ManufacturingService service,
+      int? companyId,
+    );
+typedef ManufacturingRegisterMatcher<T> = bool Function(T row, String query);
+
 void _openManufacturingShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
   if (navigate != null) {
@@ -119,1532 +126,378 @@ class _MfgFilters extends StatelessWidget {
   }
 }
 
-class _BomDetailDialog extends StatefulWidget {
-  const _BomDetailDialog({required this.bomId});
+class ManufacturingRegisterController<T> extends GetxController {
+  ManufacturingRegisterController({
+    required this.loader,
+    required this.matches,
+  });
 
-  final int bomId;
+  final ManufacturingRegisterLoader<T> loader;
+  final ManufacturingRegisterMatcher<T> matches;
+  final ManufacturingService _service = ManufacturingService();
+  final TextEditingController searchController = TextEditingController();
+
+  bool loading = true;
+  String? error;
+  String? companyBanner;
+  List<T> rows = <T>[];
+
+  List<T> get filteredRows {
+    final query = searchController.text.trim().toLowerCase();
+    return rows
+        .where((row) => query.isEmpty || matches(row, query))
+        .toList(growable: false);
+  }
 
   @override
-  State<_BomDetailDialog> createState() => _BomDetailDialogState();
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_onContextChanged);
+    searchController.addListener(update);
+    unawaited(load());
+  }
+
+  @override
+  void onClose() {
+    WorkingContextService.version.removeListener(_onContextChanged);
+    searchController
+      ..removeListener(update)
+      ..dispose();
+    super.onClose();
+  }
+
+  void _onContextChanged() {
+    unawaited(load());
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
+    try {
+      final info = await hrSessionCompanyInfo();
+      final response = await loader(_service, info.companyId);
+      companyBanner = info.banner;
+      rows = response.data ?? <T>[];
+      loading = false;
+      update();
+    } catch (err) {
+      error = err.toString();
+      loading = false;
+      update();
+    }
+  }
 }
 
-class _BomDetailDialogState extends State<_BomDetailDialog> {
-  final ManufacturingService _service = ManufacturingService();
-  bool _loading = true;
-  String? _error;
-  BomModel? _model;
-  bool _busy = false;
+class _ManufacturingRegisterShell<T> extends StatefulWidget {
+  const _ManufacturingRegisterShell({
+    required this.controllerName,
+    required this.title,
+    required this.embedded,
+    required this.loader,
+    required this.matches,
+    required this.emptyMessage,
+    required this.newRoute,
+    required this.newLabel,
+    required this.searchHint,
+    required this.columns,
+    required this.rowRoute,
+  });
+
+  final String controllerName;
+  final String title;
+  final bool embedded;
+  final ManufacturingRegisterLoader<T> loader;
+  final ManufacturingRegisterMatcher<T> matches;
+  final String emptyMessage;
+  final String newRoute;
+  final String newLabel;
+  final String searchHint;
+  final List<PurchaseRegisterColumn<T>> columns;
+  final String Function(T row) rowRoute;
+
+  @override
+  State<_ManufacturingRegisterShell<T>> createState() =>
+      _ManufacturingRegisterShellState<T>();
+}
+
+class _ManufacturingRegisterShellState<T>
+    extends State<_ManufacturingRegisterShell<T>> {
+  late final String _controllerTag;
 
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.bom(widget.bomId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _act(Future<ApiResponse<dynamic>> Function() fn) async {
-    setState(() => _busy = true);
-    try {
-      final response = await fn();
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('BOM updated.')));
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete BOM'),
-        content: const Text('Only non-approved BOMs can be deleted. Continue?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _service.deleteBom(widget.bomId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('BOM deleted.')));
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+    _controllerTag = persistentControllerTag(widget.controllerName);
+    if (!Get.isRegistered<ManufacturingRegisterController<T>>(
+      tag: _controllerTag,
+    )) {
+      Get.put(
+        ManufacturingRegisterController<T>(
+          loader: widget.loader,
+          matches: widget.matches,
+        ),
+        tag: _controllerTag,
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('BOM'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final data = _model!.toJson();
-    final approval = stringValue(data, 'approval_status');
-    final canApprove = approval != 'approved';
-    final canDelete = approval != 'approved';
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-
-    return AlertDialog(
-      title: Text('BOM #${widget.bomId}'),
-      content: SizedBox(
-        width: 560,
-        height: 420,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (canApprove)
-                  FilledButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _service.approveBom(
-                              widget.bomId,
-                              BomModel.fromJson(<String, dynamic>{}),
-                            ),
-                          ),
-                    child: const Text('Approve'),
-                  ),
-                if (canDelete)
-                  FilledButton.tonal(
-                    onPressed: _busy ? null : _delete,
-                    child: const Text('Delete'),
-                  ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
+    return GetBuilder<ManufacturingRegisterController<T>>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<T>(
+          title: widget.title,
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: widget.emptyMessage,
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: () =>
+                  _openManufacturingShellRoute(context, widget.newRoute),
+              icon: Icons.add_outlined,
+              label: widget.newLabel,
             ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
           ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
+          filters: _MfgFilters(
+            searchController: controller.searchController,
+            searchHint: widget.searchHint,
+            companyBanner: controller.companyBanner,
+          ),
+          rows: controller.filteredRows,
+          columns: widget.columns,
+          onRowTap: (row) =>
+              _openManufacturingShellRoute(context, widget.rowRoute(row)),
+        );
+      },
     );
   }
 }
 
-class _ProductionOrderDetailDialog extends StatefulWidget {
-  const _ProductionOrderDetailDialog({required this.orderId});
-
-  final int orderId;
-
-  @override
-  State<_ProductionOrderDetailDialog> createState() =>
-      _ProductionOrderDetailDialogState();
-}
-
-class _ProductionOrderDetailDialogState
-    extends State<_ProductionOrderDetailDialog> {
-  final ManufacturingService _service = ManufacturingService();
-  bool _loading = true;
-  String? _error;
-  ProductionOrderModel? _model;
-  bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.productionOrder(widget.orderId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _act(
-    Future<ApiResponse<ProductionOrderModel>> Function() fn,
-  ) async {
-    setState(() => _busy = true);
-    try {
-      final response = await fn();
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Production order updated.')),
-      );
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete production order'),
-        content: const Text(
-          'Only draft production orders can be deleted. Continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _service.deleteProductionOrder(widget.orderId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Production order deleted.')),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Production order'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final data = _model!.toJson();
-    final st = stringValue(data, 'production_status');
-    final canRelease = st == 'draft';
-    final canClose = st == 'completed' || st == 'partially_completed';
-    final canCancel = st != 'completed' && st != 'closed';
-    final canDelete = st == 'draft';
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-
-    return AlertDialog(
-      title: Text('Production order #${widget.orderId}'),
-      content: SizedBox(
-        width: 560,
-        height: 440,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (canRelease)
-                  FilledButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _service.releaseProductionOrder(
-                              widget.orderId,
-                              ProductionOrderModel.fromJson(
-                                <String, dynamic>{},
-                              ),
-                            ),
-                          ),
-                    child: const Text('Release'),
-                  ),
-                if (canClose)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _service.closeProductionOrder(
-                              widget.orderId,
-                              ProductionOrderModel.fromJson(
-                                <String, dynamic>{},
-                              ),
-                            ),
-                          ),
-                    child: const Text('Close'),
-                  ),
-                if (canCancel)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _service.cancelProductionOrder(
-                              widget.orderId,
-                              ProductionOrderModel.fromJson(
-                                <String, dynamic>{},
-                              ),
-                            ),
-                          ),
-                    child: const Text('Cancel order'),
-                  ),
-                if (canDelete)
-                  OutlinedButton(
-                    onPressed: _busy ? null : _delete,
-                    child: const Text('Delete'),
-                  ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
-
-class _MaterialIssueDetailDialog extends StatefulWidget {
-  const _MaterialIssueDetailDialog({required this.issueId});
-
-  final int issueId;
-
-  @override
-  State<_MaterialIssueDetailDialog> createState() =>
-      _MaterialIssueDetailDialogState();
-}
-
-class _MaterialIssueDetailDialogState
-    extends State<_MaterialIssueDetailDialog> {
-  final ManufacturingService _service = ManufacturingService();
-  bool _loading = true;
-  String? _error;
-  ProductionMaterialIssueModel? _model;
-  bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.productionMaterialIssue(widget.issueId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _act(
-    Future<ApiResponse<ProductionMaterialIssueModel>> Function() fn,
-  ) async {
-    setState(() => _busy = true);
-    try {
-      final response = await fn();
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Material issue updated.')));
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete material issue'),
-        content: const Text(
-          'Only draft material issues can be deleted. Continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('No'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _service.deleteProductionMaterialIssue(
-        widget.issueId,
-      );
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Material issue deleted.')));
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Material issue'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final data = _model!.toJson();
-    final st = stringValue(data, 'issue_status');
-    final canPost = st == 'draft';
-    final canCancel = st == 'draft';
-    final canDelete = st == 'draft';
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-
-    return AlertDialog(
-      title: Text('Material issue #${widget.issueId}'),
-      content: SizedBox(
-        width: 560,
-        height: 420,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (canPost)
-                  FilledButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _service.postProductionMaterialIssue(
-                              widget.issueId,
-                              ProductionMaterialIssueModel.fromJson(
-                                <String, dynamic>{},
-                              ),
-                            ),
-                          ),
-                    child: const Text('Post'),
-                  ),
-                if (canCancel)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _service.cancelProductionMaterialIssue(
-                              widget.issueId,
-                              ProductionMaterialIssueModel.fromJson(
-                                <String, dynamic>{},
-                              ),
-                            ),
-                          ),
-                    child: const Text('Cancel doc'),
-                  ),
-                if (canDelete)
-                  OutlinedButton(
-                    onPressed: _busy ? null : _delete,
-                    child: const Text('Delete'),
-                  ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProductionReceiptDetailDialog extends StatefulWidget {
-  const _ProductionReceiptDetailDialog({required this.receiptId});
-
-  final int receiptId;
-
-  @override
-  State<_ProductionReceiptDetailDialog> createState() =>
-      _ProductionReceiptDetailDialogState();
-}
-
-class _ProductionReceiptDetailDialogState
-    extends State<_ProductionReceiptDetailDialog> {
-  final ManufacturingService _service = ManufacturingService();
-  bool _loading = true;
-  String? _error;
-  ProductionReceiptModel? _model;
-  bool _busy = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final response = await _service.productionReceipt(widget.receiptId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true || response.data == null) {
-        setState(() {
-          _error = response.message;
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _model = response.data;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _act(
-    Future<ApiResponse<ProductionReceiptModel>> Function() fn,
-  ) async {
-    setState(() => _busy = true);
-    try {
-      final response = await fn();
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Production receipt updated.')),
-      );
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete production receipt'),
-        content: const Text('Only draft receipts can be deleted. Continue?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('No'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) {
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final response = await _service.deleteProductionReceipt(widget.receiptId);
-      if (!mounted) {
-        return;
-      }
-      if (response.success != true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.message)));
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Receipt deleted.')));
-      Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const AlertDialog(
-        content: SizedBox(
-          height: 120,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    if (_error != null) {
-      return AlertDialog(
-        title: const Text('Production receipt'),
-        content: Text(_error!),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      );
-    }
-    final data = _model!.toJson();
-    final st = stringValue(data, 'receipt_status');
-    final canPost = st == 'draft';
-    final canCancel = st == 'draft';
-    final canDelete = st == 'draft';
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-
-    return AlertDialog(
-      title: Text('Production receipt #${widget.receiptId}'),
-      content: SizedBox(
-        width: 560,
-        height: 420,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_busy)
-              const LinearProgressIndicator()
-            else
-              const SizedBox(height: 4),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (canPost)
-                  FilledButton(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _service.postProductionReceipt(
-                              widget.receiptId,
-                              ProductionReceiptModel.fromJson(
-                                <String, dynamic>{},
-                              ),
-                            ),
-                          ),
-                    child: const Text('Post'),
-                  ),
-                if (canCancel)
-                  FilledButton.tonal(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(
-                            () => _service.cancelProductionReceipt(
-                              widget.receiptId,
-                              ProductionReceiptModel.fromJson(
-                                <String, dynamic>{},
-                              ),
-                            ),
-                          ),
-                    child: const Text('Cancel doc'),
-                  ),
-                if (canDelete)
-                  OutlinedButton(
-                    onPressed: _busy ? null : _delete,
-                    child: const Text('Delete'),
-                  ),
-                OutlinedButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            Expanded(child: SingleChildScrollView(child: SelectableText(text))),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-}
-
-// --- Registers ----------------------------------------------------------
-
-class BomRegisterPage extends StatefulWidget {
+class BomRegisterPage extends StatelessWidget {
   const BomRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<BomRegisterPage> createState() => _BomRegisterPageState();
-}
-
-class _BomRegisterPageState extends State<BomRegisterPage> {
-  final ManufacturingService _service = ManufacturingService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<BomModel> _rows = const <BomModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.boms(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <BomModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<BomModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((BomModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'bom_code'),
-            stringValue(data, 'bom_name'),
-            stringValue(data, 'approval_status'),
-            stringValue(data, 'version_no'),
-            _outputItemLabel(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<BomModel>(
+    return _ManufacturingRegisterShell<BomModel>(
+      controllerName: 'BomRegisterController',
       title: 'Bills of material',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, companyId) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (companyId != null) {
+          filters['company_id'] = companyId;
+        }
+        return service.boms(filters: filters);
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'bom_code'),
+          stringValue(data, 'bom_name'),
+          stringValue(data, 'approval_status'),
+          stringValue(data, 'version_no'),
+          _outputItemLabel(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No BOMs found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openManufacturingShellRoute(context, '/manufacturing/boms/new'),
-          icon: Icons.add_outlined,
-          label: 'New BOM',
-        ),
-      ],
-      filters: _MfgFilters(
-        searchController: _searchController,
-        searchHint: 'Search code, name, output item, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/manufacturing/boms/new',
+      newLabel: 'New BOM',
+      searchHint: 'Search code, name, output item, status',
       columns: [
         PurchaseRegisterColumn<BomModel>(
           label: 'Code',
-          valueBuilder: (BomModel row) => stringValue(row.toJson(), 'bom_code'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'bom_code'),
         ),
         PurchaseRegisterColumn<BomModel>(
           label: 'Name',
           flex: 2,
-          valueBuilder: (BomModel row) => stringValue(row.toJson(), 'bom_name'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'bom_name'),
         ),
         PurchaseRegisterColumn<BomModel>(
           label: 'Output',
           flex: 2,
-          valueBuilder: (BomModel row) => _outputItemLabel(row.toJson()),
+          valueBuilder: (row) => _outputItemLabel(row.toJson()),
         ),
         PurchaseRegisterColumn<BomModel>(
           label: 'Approval',
-          valueBuilder: (BomModel row) =>
-              stringValue(row.toJson(), 'approval_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'approval_status'),
         ),
       ],
-      onRowTap: (BomModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openManufacturingShellRoute(context, '/manufacturing/boms/$id');
-      },
+      rowRoute: (row) => '/manufacturing/boms/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class ProductionOrderRegisterPage extends StatefulWidget {
+class ProductionOrderRegisterPage extends StatelessWidget {
   const ProductionOrderRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<ProductionOrderRegisterPage> createState() =>
-      _ProductionOrderRegisterPageState();
-}
-
-class _ProductionOrderRegisterPageState
-    extends State<ProductionOrderRegisterPage> {
-  final ManufacturingService _service = ManufacturingService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<ProductionOrderModel> _rows = const <ProductionOrderModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.productionOrders(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <ProductionOrderModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<ProductionOrderModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((ProductionOrderModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'production_no'),
-            stringValue(data, 'production_status'),
-            _outputItemLabel(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<ProductionOrderModel>(
+    return _ManufacturingRegisterShell<ProductionOrderModel>(
+      controllerName: 'ProductionOrderRegisterController',
       title: 'Production orders',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, companyId) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (companyId != null) {
+          filters['company_id'] = companyId;
+        }
+        return service.productionOrders(filters: filters);
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'production_no'),
+          stringValue(data, 'production_status'),
+          _outputItemLabel(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No production orders found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openManufacturingShellRoute(
-            context,
-            '/manufacturing/production-orders/new',
-          ),
-          icon: Icons.add_outlined,
-          label: 'New production order',
-        ),
-      ],
-      filters: _MfgFilters(
-        searchController: _searchController,
-        searchHint: 'Search document no., status, output item',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/manufacturing/production-orders/new',
+      newLabel: 'New production order',
+      searchHint: 'Search document no., status, output item',
       columns: [
         PurchaseRegisterColumn<ProductionOrderModel>(
           label: 'No.',
-          valueBuilder: (ProductionOrderModel row) =>
-              stringValue(row.toJson(), 'production_no'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'production_no'),
         ),
         PurchaseRegisterColumn<ProductionOrderModel>(
           label: 'Date',
-          valueBuilder: (ProductionOrderModel row) =>
+          valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'production_date')),
         ),
         PurchaseRegisterColumn<ProductionOrderModel>(
           label: 'Output',
           flex: 2,
-          valueBuilder: (ProductionOrderModel row) =>
-              _outputItemLabel(row.toJson()),
+          valueBuilder: (row) => _outputItemLabel(row.toJson()),
         ),
         PurchaseRegisterColumn<ProductionOrderModel>(
           label: 'Status',
-          valueBuilder: (ProductionOrderModel row) =>
-              stringValue(row.toJson(), 'production_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'production_status'),
         ),
       ],
-      onRowTap: (ProductionOrderModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openManufacturingShellRoute(
-          context,
-          '/manufacturing/production-orders/$id',
-        );
-      },
+      rowRoute: (row) =>
+          '/manufacturing/production-orders/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class ProductionMaterialIssueRegisterPage extends StatefulWidget {
+class ProductionMaterialIssueRegisterPage extends StatelessWidget {
   const ProductionMaterialIssueRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<ProductionMaterialIssueRegisterPage> createState() =>
-      _ProductionMaterialIssueRegisterPageState();
-}
-
-class _ProductionMaterialIssueRegisterPageState
-    extends State<ProductionMaterialIssueRegisterPage> {
-  final ManufacturingService _service = ManufacturingService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<ProductionMaterialIssueModel> _rows =
-      const <ProductionMaterialIssueModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.productionMaterialIssues(
-        filters: filters,
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <ProductionMaterialIssueModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<ProductionMaterialIssueModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((ProductionMaterialIssueModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'issue_no'),
-            stringValue(data, 'issue_status'),
-            _productionOrderNo(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<ProductionMaterialIssueModel>(
+    return _ManufacturingRegisterShell<ProductionMaterialIssueModel>(
+      controllerName: 'ProductionMaterialIssueRegisterController',
       title: 'Production material issues',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, companyId) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (companyId != null) {
+          filters['company_id'] = companyId;
+        }
+        return service.productionMaterialIssues(filters: filters);
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'issue_no'),
+          stringValue(data, 'issue_status'),
+          _productionOrderNo(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No material issues found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openManufacturingShellRoute(
-            context,
-            '/manufacturing/production-material-issues/new',
-          ),
-          icon: Icons.add_outlined,
-          label: 'New material issue',
-        ),
-      ],
-      filters: _MfgFilters(
-        searchController: _searchController,
-        searchHint: 'Search issue no., status, production order',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/manufacturing/production-material-issues/new',
+      newLabel: 'New material issue',
+      searchHint: 'Search issue no., status, production order',
       columns: [
         PurchaseRegisterColumn<ProductionMaterialIssueModel>(
           label: 'Issue no.',
-          valueBuilder: (ProductionMaterialIssueModel row) =>
-              stringValue(row.toJson(), 'issue_no'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'issue_no'),
         ),
         PurchaseRegisterColumn<ProductionMaterialIssueModel>(
           label: 'Date',
-          valueBuilder: (ProductionMaterialIssueModel row) =>
+          valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'issue_date')),
         ),
         PurchaseRegisterColumn<ProductionMaterialIssueModel>(
           label: 'Prod. order',
           flex: 2,
-          valueBuilder: (ProductionMaterialIssueModel row) =>
-              _productionOrderNo(row.toJson()),
+          valueBuilder: (row) => _productionOrderNo(row.toJson()),
         ),
         PurchaseRegisterColumn<ProductionMaterialIssueModel>(
           label: 'Status',
-          valueBuilder: (ProductionMaterialIssueModel row) =>
-              stringValue(row.toJson(), 'issue_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'issue_status'),
         ),
       ],
-      onRowTap: (ProductionMaterialIssueModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openManufacturingShellRoute(
-          context,
-          '/manufacturing/production-material-issues/$id',
-        );
-      },
+      rowRoute: (row) =>
+          '/manufacturing/production-material-issues/${intValue(row.toJson(), 'id')}',
     );
   }
 }
 
-class ProductionReceiptRegisterPage extends StatefulWidget {
+class ProductionReceiptRegisterPage extends StatelessWidget {
   const ProductionReceiptRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<ProductionReceiptRegisterPage> createState() =>
-      _ProductionReceiptRegisterPageState();
-}
-
-class _ProductionReceiptRegisterPageState
-    extends State<ProductionReceiptRegisterPage> {
-  final ManufacturingService _service = ManufacturingService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<ProductionReceiptModel> _rows = const <ProductionReceiptModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.productionReceipts(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <ProductionReceiptModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<ProductionReceiptModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((ProductionReceiptModel row) {
-          final data = row.toJson();
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            stringValue(data, 'receipt_no'),
-            stringValue(data, 'receipt_status'),
-            _productionOrderNo(data),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<ProductionReceiptModel>(
+    return _ManufacturingRegisterShell<ProductionReceiptModel>(
+      controllerName: 'ProductionReceiptRegisterController',
       title: 'Production receipts',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, companyId) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (companyId != null) {
+          filters['company_id'] = companyId;
+        }
+        return service.productionReceipts(filters: filters);
+      },
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'receipt_no'),
+          stringValue(data, 'receipt_status'),
+          _productionOrderNo(data),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No production receipts found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () => _openManufacturingShellRoute(
-            context,
-            '/manufacturing/production-receipts/new',
-          ),
-          icon: Icons.add_outlined,
-          label: 'New production receipt',
-        ),
-      ],
-      filters: _MfgFilters(
-        searchController: _searchController,
-        searchHint: 'Search receipt no., status, production order',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/manufacturing/production-receipts/new',
+      newLabel: 'New production receipt',
+      searchHint: 'Search receipt no., status, production order',
       columns: [
         PurchaseRegisterColumn<ProductionReceiptModel>(
           label: 'Receipt no.',
-          valueBuilder: (ProductionReceiptModel row) =>
-              stringValue(row.toJson(), 'receipt_no'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'receipt_no'),
         ),
         PurchaseRegisterColumn<ProductionReceiptModel>(
           label: 'Date',
-          valueBuilder: (ProductionReceiptModel row) =>
+          valueBuilder: (row) =>
               displayDate(nullableStringValue(row.toJson(), 'receipt_date')),
         ),
         PurchaseRegisterColumn<ProductionReceiptModel>(
           label: 'Prod. order',
           flex: 2,
-          valueBuilder: (ProductionReceiptModel row) =>
-              _productionOrderNo(row.toJson()),
+          valueBuilder: (row) => _productionOrderNo(row.toJson()),
         ),
         PurchaseRegisterColumn<ProductionReceiptModel>(
           label: 'Status',
-          valueBuilder: (ProductionReceiptModel row) =>
-              stringValue(row.toJson(), 'receipt_status'),
+          valueBuilder: (row) => stringValue(row.toJson(), 'receipt_status'),
         ),
       ],
-      onRowTap: (ProductionReceiptModel row) {
-        final id = intValue(row.toJson(), 'id');
-        if (id == null) {
-          return;
-        }
-        _openManufacturingShellRoute(
-          context,
-          '/manufacturing/production-receipts/$id',
-        );
-      },
+      rowRoute: (row) =>
+          '/manufacturing/production-receipts/${intValue(row.toJson(), 'id')}',
     );
   }
 }

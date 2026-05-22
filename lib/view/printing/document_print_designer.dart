@@ -26,6 +26,28 @@ Future<void> openDocumentPrintDesigner(
   );
 }
 
+class _DocumentPrintDesignerController extends GetxController {
+  DocumentPrintTemplate? template;
+  String? selectedShapeId;
+  Set<String> selectedShapeIds = <String>{};
+  double canvasZoom = 1.0;
+  bool uploadingImage = false;
+  bool uploadingBackground = false;
+  bool editMode = false;
+  bool loading = true;
+  bool saving = false;
+  bool printingPdf = false;
+  bool downloadingPdf = false;
+  _DesignerOperation operation = _DesignerOperation.select;
+  Offset? drawStart;
+  Offset? drawCurrent;
+
+  void updateState(VoidCallback mutate) {
+    mutate();
+    update();
+  }
+}
+
 class DocumentPrintDesignerPage extends StatefulWidget {
   const DocumentPrintDesignerPage({
     super.key,
@@ -50,27 +72,57 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final GlobalKey _pdfPreviewBoundaryKey = GlobalKey();
   final ScrollController _pageScrollController = ScrollController();
   final ScrollController _toolbarScrollController = ScrollController();
-  DocumentPrintTemplate? _template;
-  String? _selectedShapeId;
-  Set<String> _selectedShapeIds = <String>{};
-  double _canvasZoom = 1.0;
-  bool _uploadingImage = false;
-  bool _uploadingBackground = false;
-  bool _editMode = false;
-  bool _loading = true;
-  bool _saving = false;
-  bool _printingPdf = false;
-  bool _downloadingPdf = false;
-  _DesignerOperation _operation = _DesignerOperation.select;
-  Offset? _drawStart;
-  Offset? _drawCurrent;
   final FocusNode _designerFocusNode = FocusNode();
+  late final String _controllerTag;
+  late final _DocumentPrintDesignerController _controller;
+
+  DocumentPrintTemplate? get _template => _controller.template;
+  set _template(DocumentPrintTemplate? value) => _controller.template = value;
+  String? get _selectedShapeId => _controller.selectedShapeId;
+  set _selectedShapeId(String? value) => _controller.selectedShapeId = value;
+  Set<String> get _selectedShapeIds => _controller.selectedShapeIds;
+  set _selectedShapeIds(Set<String> value) =>
+      _controller.selectedShapeIds = value;
+  double get _canvasZoom => _controller.canvasZoom;
+  set _canvasZoom(double value) => _controller.canvasZoom = value;
+  bool get _uploadingImage => _controller.uploadingImage;
+  set _uploadingImage(bool value) => _controller.uploadingImage = value;
+  bool get _uploadingBackground => _controller.uploadingBackground;
+  set _uploadingBackground(bool value) =>
+      _controller.uploadingBackground = value;
+  bool get _editMode => _controller.editMode;
+  set _editMode(bool value) => _controller.editMode = value;
+  bool get _loading => _controller.loading;
+  set _loading(bool value) => _controller.loading = value;
+  bool get _saving => _controller.saving;
+  set _saving(bool value) => _controller.saving = value;
+  bool get _printingPdf => _controller.printingPdf;
+  set _printingPdf(bool value) => _controller.printingPdf = value;
+  bool get _downloadingPdf => _controller.downloadingPdf;
+  set _downloadingPdf(bool value) => _controller.downloadingPdf = value;
+  _DesignerOperation get _operation => _controller.operation;
+  set _operation(_DesignerOperation value) => _controller.operation = value;
+  Offset? get _drawStart => _controller.drawStart;
+  set _drawStart(Offset? value) => _controller.drawStart = value;
+  Offset? get _drawCurrent => _controller.drawCurrent;
+  set _drawCurrent(Offset? value) => _controller.drawCurrent = value;
 
   Map<String, dynamic> get _documentDataJson => widget.documentData.toJson();
 
   @override
   void initState() {
     super.initState();
+    _controllerTag = persistentControllerTag(
+      'DocumentPrintDesignerController',
+      scope: <String, Object?>{
+        'documentType': widget.documentType,
+        'title': widget.title,
+      },
+    );
+    _controller = Get.put(
+      _DocumentPrintDesignerController(),
+      tag: _controllerTag,
+    );
     _loadTemplate();
   }
 
@@ -79,6 +131,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     _pageScrollController.dispose();
     _toolbarScrollController.dispose();
     _designerFocusNode.dispose();
+    Get.delete<_DocumentPrintDesignerController>(
+      tag: _controllerTag,
+      force: true,
+    );
     super.dispose();
   }
 
@@ -89,12 +145,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         return;
       }
       if (response.success && response.data != null) {
-        setState(() {
+        _controller.updateState(() {
           _template = _prepareTemplate(response.data!);
           _loading = false;
         });
       } else {
-        setState(() {
+        _controller.updateState(() {
           _template = _prepareTemplate(
             DocumentPrintTemplate.defaults(
               widget.documentType,
@@ -108,7 +164,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       if (!mounted) {
         return;
       }
-      setState(() {
+      _controller.updateState(() {
         _template = _prepareTemplate(
           DocumentPrintTemplate.defaults(
             widget.documentType,
@@ -229,7 +285,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (template == null) {
       return;
     }
-    setState(() => _saving = true);
+    _controller.updateState(() => _saving = true);
     try {
       final response = await _service.saveTemplate(
         widget.documentType,
@@ -256,18 +312,21 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       ).showSnackBar(SnackBar(content: Text('Error saving template: $e')));
     } finally {
       if (mounted) {
-        setState(() => _saving = false);
+        _controller.updateState(() => _saving = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppStandaloneShell(
-      title: '${widget.title} Preview',
-      scrollController: _pageScrollController,
-      actions: _buildShellActions(),
-      child: _buildContent(),
+    return GetBuilder<_DocumentPrintDesignerController>(
+      tag: _controllerTag,
+      builder: (_) => AppStandaloneShell(
+        title: '${widget.title} Preview',
+        scrollController: _pageScrollController,
+        actions: _buildShellActions(),
+        child: _buildContent(),
+      ),
     );
   }
 
@@ -287,7 +346,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
     actions.add(
       AdaptiveShellActionButton(
-        onPressed: () => setState(() {
+        onPressed: () => _controller.updateState(() {
           _editMode = !_editMode;
           if (!_editMode) {
             _selectedShapeId = null;
@@ -534,7 +593,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             OutlinedButton.icon(
               onPressed: _canvasZoom <= 0.7
                   ? null
-                  : () => setState(
+                  : () => _controller.updateState(
                       () => _canvasZoom = (_canvasZoom - 0.15).clamp(0.55, 2.5),
                     ),
               icon: const Icon(Icons.zoom_out_outlined),
@@ -542,14 +601,14 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             ),
             const SizedBox(width: AppUiConstants.spacingXs),
             OutlinedButton(
-              onPressed: () => setState(() => _canvasZoom = 1.0),
+              onPressed: () => _controller.updateState(() => _canvasZoom = 1.0),
               child: const Text('Fit'),
             ),
             const SizedBox(width: AppUiConstants.spacingXs),
             OutlinedButton.icon(
               onPressed: _canvasZoom >= 2.5
                   ? null
-                  : () => setState(
+                  : () => _controller.updateState(
                       () => _canvasZoom = (_canvasZoom + 0.15).clamp(0.55, 2.5),
                     ),
               icon: const Icon(Icons.zoom_in_outlined),
@@ -564,7 +623,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   Widget _modeButton(IconData icon, String label, _DesignerOperation mode) {
     final selected = _operation == mode;
     return FilledButton.tonalIcon(
-      onPressed: () => setState(() {
+      onPressed: () => _controller.updateState(() {
         _operation = mode;
         _drawStart = null;
         _drawCurrent = null;
@@ -603,7 +662,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         math.max(0.0, template.pageHeight - shape.height - 24),
       ),
     );
-    setState(() {
+    _controller.updateState(() {
       _template = template.copyWith(shapes: [...template.shapes, placed]);
       _selectedShapeId = placed.id;
       _selectedShapeIds = <String>{placed.id};
@@ -711,7 +770,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               : selected == null
               ? DocumentDesignerPageInspector(
                   template: template,
-                  onChanged: (next) => setState(() => _template = next),
+                  onChanged: (next) =>
+                      _controller.updateState(() => _template = next),
                   isUploadingBackground: _uploadingBackground,
                   onUploadBackground: _uploadBackgroundImage,
                 )
@@ -740,7 +800,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   void _resetTemplate() {
-    setState(() {
+    _controller.updateState(() {
       _template = _prepareTemplate(
         DocumentPrintTemplate.defaults(
           widget.documentType,
@@ -759,7 +819,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (!_operation.isDrawTool) {
       return;
     }
-    setState(() {
+    _controller.updateState(() {
       _drawStart = point;
       _drawCurrent = point;
     });
@@ -769,7 +829,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (!_operation.isDrawTool || _drawStart == null) {
       return;
     }
-    setState(() => _drawCurrent = point);
+    _controller.updateState(() => _drawCurrent = point);
   }
 
   void _handleDrawEnd(DocumentPrintTemplate template) {
@@ -777,7 +837,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       return;
     }
     final draft = _activeDraftShape(template);
-    setState(() {
+    _controller.updateState(() {
       if (draft != null) {
         _template = template.copyWith(shapes: [...template.shapes, draft]);
         _selectedShapeId = draft.id;
@@ -802,7 +862,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       x: point.dx.clamp(0.0, math.max(0.0, template.pageWidth - base.width)),
       y: point.dy.clamp(0.0, math.max(0.0, template.pageHeight - base.height)),
     );
-    setState(() {
+    _controller.updateState(() {
       _template = template.copyWith(shapes: [...template.shapes, draft]);
       _selectedShapeId = draft.id;
       _selectedShapeIds = <String>{draft.id};
@@ -848,7 +908,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       if (!mounted) {
         return;
       }
-      setState(() {
+      _controller.updateState(() {
         _template = next;
         _selectedShapeId = null;
         _selectedShapeIds = <String>{};
@@ -907,7 +967,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final shapes = template.shapes
         .map((shape) => shape.id == next.id ? next : shape)
         .toList(growable: false);
-    setState(() => _template = template.copyWith(shapes: shapes));
+    _controller.updateState(
+      () => _template = template.copyWith(shapes: shapes),
+    );
   }
 
   void _handleShapeSelection(String? shapeId) {
@@ -915,7 +977,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         HardwareKeyboard.instance.isMetaPressed ||
         HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isShiftPressed;
-    setState(() {
+    _controller.updateState(() {
       if (shapeId == null) {
         _selectedShapeId = null;
         _selectedShapeIds = <String>{};
@@ -952,7 +1014,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       isPublic: true,
       onLoading: (loading) {
         if (mounted) {
-          setState(() => _uploadingImage = loading);
+          _controller.updateState(() => _uploadingImage = loading);
         }
       },
       onSuccess: (filePath) {
@@ -984,14 +1046,14 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       isPublic: true,
       onLoading: (loading) {
         if (mounted) {
-          setState(() => _uploadingBackground = loading);
+          _controller.updateState(() => _uploadingBackground = loading);
         }
       },
       onSuccess: (filePath) {
         if (!mounted) {
           return;
         }
-        setState(() {
+        _controller.updateState(() {
           _template = template.copyWith(backgroundImagePath: filePath);
         });
       },
@@ -1029,7 +1091,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           return shape.copyWith(x: math.max(0, nextX), y: math.max(0, nextY));
         })
         .toList(growable: false);
-    setState(() => _template = template.copyWith(shapes: shapes));
+    _controller.updateState(
+      () => _template = template.copyWith(shapes: shapes),
+    );
   }
 
   void _resizeShape(String shapeId, Offset delta) {
@@ -1058,7 +1122,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           );
         })
         .toList(growable: false);
-    setState(() => _template = template.copyWith(shapes: shapes));
+    _controller.updateState(
+      () => _template = template.copyWith(shapes: shapes),
+    );
   }
 
   void _deleteSelectedShape() {
@@ -1066,7 +1132,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (template == null || _selectedShapeIds.isEmpty) {
       return;
     }
-    setState(() {
+    _controller.updateState(() {
       _template = template.copyWith(
         shapes: template.shapes
             .where((shape) => !_selectedShapeIds.contains(shape.id))
@@ -1092,7 +1158,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         shapes[index + 1] = current;
       }
     }
-    setState(() => _template = template.copyWith(shapes: shapes));
+    _controller.updateState(
+      () => _template = template.copyWith(shapes: shapes),
+    );
   }
 
   void _sendSelectedBackward() {
@@ -1110,7 +1178,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         shapes[index - 1] = current;
       }
     }
-    setState(() => _template = template.copyWith(shapes: shapes));
+    _controller.updateState(
+      () => _template = template.copyWith(shapes: shapes),
+    );
   }
 
   void _bringSelectedToFront() {
@@ -1124,7 +1194,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final selected = template.shapes
         .where((shape) => _selectedShapeIds.contains(shape.id))
         .toList(growable: false);
-    setState(() {
+    _controller.updateState(() {
       _template = template.copyWith(shapes: [...unselected, ...selected]);
     });
   }
@@ -1140,7 +1210,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final unselected = template.shapes
         .where((shape) => !_selectedShapeIds.contains(shape.id))
         .toList(growable: false);
-    setState(() {
+    _controller.updateState(() {
       _template = template.copyWith(shapes: [...selected, ...unselected]);
     });
   }
@@ -1160,7 +1230,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           ),
         )
         .toList(growable: false);
-    setState(() {
+    _controller.updateState(() {
       _template = template.copyWith(
         shapes: [...template.shapes, ...duplicates],
       );
@@ -1224,7 +1294,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   Future<void> _printPdf() async {
-    setState(() => _printingPdf = true);
+    _controller.updateState(() => _printingPdf = true);
     try {
       final bytes = await _buildPdfBytes();
       if (bytes == null) {
@@ -1247,13 +1317,13 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _printingPdf = false);
+        _controller.updateState(() => _printingPdf = false);
       }
     }
   }
 
   Future<void> _downloadPdf() async {
-    setState(() => _downloadingPdf = true);
+    _controller.updateState(() => _downloadingPdf = true);
     try {
       final bytes = await _buildPdfBytes();
       if (bytes == null) {
@@ -1268,7 +1338,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _downloadingPdf = false);
+        _controller.updateState(() => _downloadingPdf = false);
       }
     }
   }
