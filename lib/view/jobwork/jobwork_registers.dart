@@ -1,5 +1,12 @@
 import '../../screen.dart';
 
+typedef JobworkRegisterLoader<T> =
+    Future<ApiResponse<List<T>>> Function(
+      JobworkService service,
+      int? companyId,
+    );
+typedef JobworkRegisterMatcher<T> = bool Function(T row, String query);
+
 void _openJobworkShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
   if (navigate != null) {
@@ -82,556 +89,368 @@ class _JwFilters extends StatelessWidget {
   }
 }
 
-// --- Registers ----------------------------------------------------------
+class JobworkRegisterController<T> extends GetxController {
+  JobworkRegisterController({required this.loader, required this.matches});
 
-class JobworkOrderRegisterPage extends StatefulWidget {
-  const JobworkOrderRegisterPage({super.key, this.embedded = false});
-
-  final bool embedded;
-
-  @override
-  State<JobworkOrderRegisterPage> createState() =>
-      _JobworkOrderRegisterPageState();
-}
-
-class _JobworkOrderRegisterPageState extends State<JobworkOrderRegisterPage> {
+  final JobworkRegisterLoader<T> loader;
+  final JobworkRegisterMatcher<T> matches;
   final JobworkService _service = JobworkService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<JobworkOrderModel> _rows = const <JobworkOrderModel>[];
+  final TextEditingController searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
+  bool loading = true;
+  String? error;
+  String? companyBanner;
+  List<T> rows = <T>[];
 
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.orders(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <JobworkOrderModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<JobworkOrderModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((JobworkOrderModel row) {
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            row.jobworkNo,
-            row.processName,
-            row.jobworkStatus,
-            row.supplierLabel,
-          ].join(' ').toLowerCase().contains(q);
-        })
+  List<T> get filteredRows {
+    final query = searchController.text.trim().toLowerCase();
+    return rows
+        .where((row) => query.isEmpty || matches(row, query))
         .toList(growable: false);
   }
 
   @override
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_onContextChanged);
+    searchController.addListener(update);
+    unawaited(load());
+  }
+
+  @override
+  void onClose() {
+    WorkingContextService.version.removeListener(_onContextChanged);
+    searchController
+      ..removeListener(update)
+      ..dispose();
+    super.onClose();
+  }
+
+  void _onContextChanged() {
+    unawaited(load());
+  }
+
+  Future<void> load() async {
+    loading = true;
+    error = null;
+    update();
+    try {
+      final info = await hrSessionCompanyInfo();
+      final response = await loader(_service, info.companyId);
+      companyBanner = info.banner;
+      rows = response.data ?? <T>[];
+      loading = false;
+      update();
+    } catch (err) {
+      error = err.toString();
+      loading = false;
+      update();
+    }
+  }
+}
+
+class _JobworkRegisterShell<T> extends StatefulWidget {
+  const _JobworkRegisterShell({
+    required this.controllerName,
+    required this.title,
+    required this.embedded,
+    required this.loader,
+    required this.matches,
+    required this.emptyMessage,
+    required this.newRoute,
+    required this.newLabel,
+    required this.searchHint,
+    required this.columns,
+    required this.rowRoute,
+  });
+
+  final String controllerName;
+  final String title;
+  final bool embedded;
+  final JobworkRegisterLoader<T> loader;
+  final JobworkRegisterMatcher<T> matches;
+  final String emptyMessage;
+  final String newRoute;
+  final String newLabel;
+  final String searchHint;
+  final List<PurchaseRegisterColumn<T>> columns;
+  final String Function(T row) rowRoute;
+
+  @override
+  State<_JobworkRegisterShell<T>> createState() =>
+      _JobworkRegisterShellState<T>();
+}
+
+class _JobworkRegisterShellState<T> extends State<_JobworkRegisterShell<T>> {
+  late final String _controllerTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag = persistentControllerTag(widget.controllerName);
+    if (!Get.isRegistered<JobworkRegisterController<T>>(tag: _controllerTag)) {
+      Get.put(
+        JobworkRegisterController<T>(
+          loader: widget.loader,
+          matches: widget.matches,
+        ),
+        tag: _controllerTag,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<JobworkOrderModel>(
-      title: 'Jobwork orders',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
-      emptyMessage: 'No jobwork orders found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openJobworkShellRoute(context, '/jobwork/orders/new'),
-          icon: Icons.add_outlined,
-          label: 'New jobwork order',
-        ),
-      ],
-      filters: _JwFilters(
-        searchController: _searchController,
-        searchHint: 'Search order no., process, supplier, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
-      columns: [
-        PurchaseRegisterColumn<JobworkOrderModel>(
-          label: 'Order no.',
-          valueBuilder: (JobworkOrderModel row) => row.jobworkNo,
-        ),
-        PurchaseRegisterColumn<JobworkOrderModel>(
-          label: 'Date',
-          valueBuilder: (JobworkOrderModel row) =>
-              displayDate(row.jobworkDate.isNotEmpty ? row.jobworkDate : null),
-        ),
-        PurchaseRegisterColumn<JobworkOrderModel>(
-          label: 'Supplier',
-          flex: 2,
-          valueBuilder: (JobworkOrderModel row) => row.supplierLabel,
-        ),
-        PurchaseRegisterColumn<JobworkOrderModel>(
-          label: 'Status',
-          valueBuilder: (JobworkOrderModel row) => row.jobworkStatus,
-        ),
-      ],
-      onRowTap: (JobworkOrderModel row) {
-        final id = row.id;
-        if (id == null) {
-          return;
-        }
-        _openJobworkShellRoute(context, '/jobwork/orders/$id');
+    return GetBuilder<JobworkRegisterController<T>>(
+      tag: _controllerTag,
+      builder: (controller) {
+        return PurchaseRegisterPage<T>(
+          title: widget.title,
+          embedded: widget.embedded,
+          loading: controller.loading,
+          errorMessage: controller.error,
+          onRetry: controller.load,
+          emptyMessage: widget.emptyMessage,
+          actions: [
+            AdaptiveShellActionButton(
+              onPressed: () => _openJobworkShellRoute(context, widget.newRoute),
+              icon: Icons.add_outlined,
+              label: widget.newLabel,
+            ),
+          ],
+          filters: _JwFilters(
+            searchController: controller.searchController,
+            searchHint: widget.searchHint,
+            companyBanner: controller.companyBanner,
+          ),
+          rows: controller.filteredRows,
+          columns: widget.columns,
+          onRowTap: (row) =>
+              _openJobworkShellRoute(context, widget.rowRoute(row)),
+        );
       },
     );
   }
 }
 
-class JobworkDispatchRegisterPage extends StatefulWidget {
+class JobworkOrderRegisterPage extends StatelessWidget {
+  const JobworkOrderRegisterPage({super.key, this.embedded = false});
+
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context) {
+    return _JobworkRegisterShell<JobworkOrderModel>(
+      controllerName: 'JobworkOrderRegisterController',
+      title: 'Jobwork orders',
+      embedded: embedded,
+      loader: (service, companyId) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (companyId != null) {
+          filters['company_id'] = companyId;
+        }
+        return service.orders(filters: filters);
+      },
+      matches: (row, query) {
+        return [
+          row.jobworkNo,
+          row.processName,
+          row.jobworkStatus,
+          row.supplierLabel,
+        ].join(' ').toLowerCase().contains(query);
+      },
+      emptyMessage: 'No jobwork orders found.',
+      newRoute: '/jobwork/orders/new',
+      newLabel: 'New jobwork order',
+      searchHint: 'Search order no., process, supplier, status',
+      columns: [
+        PurchaseRegisterColumn<JobworkOrderModel>(
+          label: 'Order no.',
+          valueBuilder: (row) => row.jobworkNo,
+        ),
+        PurchaseRegisterColumn<JobworkOrderModel>(
+          label: 'Date',
+          valueBuilder: (row) =>
+              displayDate(row.jobworkDate.isNotEmpty ? row.jobworkDate : null),
+        ),
+        PurchaseRegisterColumn<JobworkOrderModel>(
+          label: 'Supplier',
+          flex: 2,
+          valueBuilder: (row) => row.supplierLabel,
+        ),
+        PurchaseRegisterColumn<JobworkOrderModel>(
+          label: 'Status',
+          valueBuilder: (row) => row.jobworkStatus,
+        ),
+      ],
+      rowRoute: (row) => '/jobwork/orders/${row.id}',
+    );
+  }
+}
+
+class JobworkDispatchRegisterPage extends StatelessWidget {
   const JobworkDispatchRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<JobworkDispatchRegisterPage> createState() =>
-      _JobworkDispatchRegisterPageState();
-}
-
-class _JobworkDispatchRegisterPageState
-    extends State<JobworkDispatchRegisterPage> {
-  final JobworkService _service = JobworkService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<JobworkDispatchModel> _rows = const <JobworkDispatchModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.dispatches(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <JobworkDispatchModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<JobworkDispatchModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((JobworkDispatchModel row) {
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            row.dispatchNo,
-            row.dispatchStatus,
-            row.jobworkOrderNoLabel,
-            row.supplierLabel,
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<JobworkDispatchModel>(
+    return _JobworkRegisterShell<JobworkDispatchModel>(
+      controllerName: 'JobworkDispatchRegisterController',
       title: 'Jobwork dispatches',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, companyId) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (companyId != null) {
+          filters['company_id'] = companyId;
+        }
+        return service.dispatches(filters: filters);
+      },
+      matches: (row, query) {
+        return [
+          row.dispatchNo,
+          row.dispatchStatus,
+          row.jobworkOrderNoLabel,
+          row.supplierLabel,
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No jobwork dispatches found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openJobworkShellRoute(context, '/jobwork/dispatches/new'),
-          icon: Icons.add_outlined,
-          label: 'New dispatch',
-        ),
-      ],
-      filters: _JwFilters(
-        searchController: _searchController,
-        searchHint: 'Search dispatch no., order, supplier, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/jobwork/dispatches/new',
+      newLabel: 'New dispatch',
+      searchHint: 'Search dispatch no., order, supplier, status',
       columns: [
         PurchaseRegisterColumn<JobworkDispatchModel>(
           label: 'Dispatch no.',
-          valueBuilder: (JobworkDispatchModel row) => row.dispatchNo,
+          valueBuilder: (row) => row.dispatchNo,
         ),
         PurchaseRegisterColumn<JobworkDispatchModel>(
           label: 'Date',
-          valueBuilder: (JobworkDispatchModel row) => displayDate(
+          valueBuilder: (row) => displayDate(
             row.dispatchDate.isNotEmpty ? row.dispatchDate : null,
           ),
         ),
         PurchaseRegisterColumn<JobworkDispatchModel>(
           label: 'Jobwork order',
           flex: 2,
-          valueBuilder: (JobworkDispatchModel row) => row.jobworkOrderNoLabel,
+          valueBuilder: (row) => row.jobworkOrderNoLabel,
         ),
         PurchaseRegisterColumn<JobworkDispatchModel>(
           label: 'Status',
-          valueBuilder: (JobworkDispatchModel row) => row.dispatchStatus,
+          valueBuilder: (row) => row.dispatchStatus,
         ),
       ],
-      onRowTap: (JobworkDispatchModel row) {
-        final id = row.id;
-        if (id == null) {
-          return;
-        }
-        _openJobworkShellRoute(context, '/jobwork/dispatches/$id');
-      },
+      rowRoute: (row) => '/jobwork/dispatches/${row.id}',
     );
   }
 }
 
-class JobworkReceiptRegisterPage extends StatefulWidget {
+class JobworkReceiptRegisterPage extends StatelessWidget {
   const JobworkReceiptRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<JobworkReceiptRegisterPage> createState() =>
-      _JobworkReceiptRegisterPageState();
-}
-
-class _JobworkReceiptRegisterPageState
-    extends State<JobworkReceiptRegisterPage> {
-  final JobworkService _service = JobworkService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<JobworkReceiptModel> _rows = const <JobworkReceiptModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.receipts(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <JobworkReceiptModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<JobworkReceiptModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((JobworkReceiptModel row) {
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            row.receiptNo,
-            row.receiptStatus,
-            row.jobworkOrderNoLabel,
-            row.supplierLabel,
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<JobworkReceiptModel>(
+    return _JobworkRegisterShell<JobworkReceiptModel>(
+      controllerName: 'JobworkReceiptRegisterController',
       title: 'Jobwork receipts',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, companyId) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (companyId != null) {
+          filters['company_id'] = companyId;
+        }
+        return service.receipts(filters: filters);
+      },
+      matches: (row, query) {
+        return [
+          row.receiptNo,
+          row.receiptStatus,
+          row.jobworkOrderNoLabel,
+          row.supplierLabel,
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No jobwork receipts found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openJobworkShellRoute(context, '/jobwork/receipts/new'),
-          icon: Icons.add_outlined,
-          label: 'New receipt',
-        ),
-      ],
-      filters: _JwFilters(
-        searchController: _searchController,
-        searchHint: 'Search receipt no., order, supplier, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/jobwork/receipts/new',
+      newLabel: 'New receipt',
+      searchHint: 'Search receipt no., order, supplier, status',
       columns: [
         PurchaseRegisterColumn<JobworkReceiptModel>(
           label: 'Receipt no.',
-          valueBuilder: (JobworkReceiptModel row) => row.receiptNo,
+          valueBuilder: (row) => row.receiptNo,
         ),
         PurchaseRegisterColumn<JobworkReceiptModel>(
           label: 'Date',
-          valueBuilder: (JobworkReceiptModel row) =>
+          valueBuilder: (row) =>
               displayDate(row.receiptDate.isNotEmpty ? row.receiptDate : null),
         ),
         PurchaseRegisterColumn<JobworkReceiptModel>(
           label: 'Jobwork order',
           flex: 2,
-          valueBuilder: (JobworkReceiptModel row) => row.jobworkOrderNoLabel,
+          valueBuilder: (row) => row.jobworkOrderNoLabel,
         ),
         PurchaseRegisterColumn<JobworkReceiptModel>(
           label: 'Status',
-          valueBuilder: (JobworkReceiptModel row) => row.receiptStatus,
+          valueBuilder: (row) => row.receiptStatus,
         ),
       ],
-      onRowTap: (JobworkReceiptModel row) {
-        final id = row.id;
-        if (id == null) {
-          return;
-        }
-        _openJobworkShellRoute(context, '/jobwork/receipts/$id');
-      },
+      rowRoute: (row) => '/jobwork/receipts/${row.id}',
     );
   }
 }
 
-class JobworkChargeRegisterPage extends StatefulWidget {
+class JobworkChargeRegisterPage extends StatelessWidget {
   const JobworkChargeRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<JobworkChargeRegisterPage> createState() =>
-      _JobworkChargeRegisterPageState();
-}
-
-class _JobworkChargeRegisterPageState extends State<JobworkChargeRegisterPage> {
-  final JobworkService _service = JobworkService();
-  final TextEditingController _searchController = TextEditingController();
-  bool _loading = true;
-  String? _error;
-  String? _companyBanner;
-  List<JobworkChargeModel> _rows = const <JobworkChargeModel>[];
-
-  @override
-  void initState() {
-    super.initState();
-    WorkingContextService.version.addListener(_onContextChanged);
-    _searchController.addListener(() => setState(() {}));
-    _load();
-  }
-
-  @override
-  void dispose() {
-    WorkingContextService.version.removeListener(_onContextChanged);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _onContextChanged() => _load();
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final info = await hrSessionCompanyInfo();
-      final filters = <String, dynamic>{'per_page': 200};
-      if (info.companyId != null) {
-        filters['company_id'] = info.companyId;
-      }
-      final response = await _service.charges(filters: filters);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _companyBanner = info.banner;
-        _rows = response.data ?? const <JobworkChargeModel>[];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<JobworkChargeModel> get _filtered {
-    final q = _searchController.text.trim().toLowerCase();
-    return _rows
-        .where((JobworkChargeModel row) {
-          if (q.isEmpty) {
-            return true;
-          }
-          return [
-            row.chargeNo,
-            row.chargeStatus,
-            row.jobworkOrderNoLabel,
-            row.supplierLabel,
-            row.totalAmount.toString(),
-          ].join(' ').toLowerCase().contains(q);
-        })
-        .toList(growable: false);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<JobworkChargeModel>(
+    return _JobworkRegisterShell<JobworkChargeModel>(
+      controllerName: 'JobworkChargeRegisterController',
       title: 'Jobwork charges',
-      embedded: widget.embedded,
-      loading: _loading,
-      errorMessage: _error,
-      onRetry: _load,
+      embedded: embedded,
+      loader: (service, companyId) {
+        final filters = <String, dynamic>{'per_page': 200};
+        if (companyId != null) {
+          filters['company_id'] = companyId;
+        }
+        return service.charges(filters: filters);
+      },
+      matches: (row, query) {
+        return [
+          row.chargeNo,
+          row.chargeStatus,
+          row.jobworkOrderNoLabel,
+          row.supplierLabel,
+          row.totalAmount.toString(),
+        ].join(' ').toLowerCase().contains(query);
+      },
       emptyMessage: 'No jobwork charges found.',
-      actions: [
-        AdaptiveShellActionButton(
-          onPressed: () =>
-              _openJobworkShellRoute(context, '/jobwork/charges/new'),
-          icon: Icons.add_outlined,
-          label: 'New charge',
-        ),
-      ],
-      filters: _JwFilters(
-        searchController: _searchController,
-        searchHint: 'Search charge no., order, supplier, amount, status',
-        companyBanner: _companyBanner,
-      ),
-      rows: _filtered,
+      newRoute: '/jobwork/charges/new',
+      newLabel: 'New charge',
+      searchHint: 'Search charge no., order, supplier, amount, status',
       columns: [
         PurchaseRegisterColumn<JobworkChargeModel>(
           label: 'Charge no.',
-          valueBuilder: (JobworkChargeModel row) => row.chargeNo,
+          valueBuilder: (row) => row.chargeNo,
         ),
         PurchaseRegisterColumn<JobworkChargeModel>(
           label: 'Date',
-          valueBuilder: (JobworkChargeModel row) =>
+          valueBuilder: (row) =>
               displayDate(row.chargeDate.isNotEmpty ? row.chargeDate : null),
         ),
         PurchaseRegisterColumn<JobworkChargeModel>(
           label: 'Jobwork order',
           flex: 2,
-          valueBuilder: (JobworkChargeModel row) => row.jobworkOrderNoLabel,
+          valueBuilder: (row) => row.jobworkOrderNoLabel,
         ),
         PurchaseRegisterColumn<JobworkChargeModel>(
           label: 'Status',
-          valueBuilder: (JobworkChargeModel row) => row.chargeStatus,
+          valueBuilder: (row) => row.chargeStatus,
         ),
       ],
-      onRowTap: (JobworkChargeModel row) {
-        final id = row.id;
-        if (id == null) {
-          return;
-        }
-        _openJobworkShellRoute(context, '/jobwork/charges/$id');
-      },
+      rowRoute: (row) => '/jobwork/charges/${row.id}',
     );
   }
 }
