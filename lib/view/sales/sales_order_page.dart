@@ -602,6 +602,12 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               runSpacing: AppUiConstants.spacingSm,
               children: [
                 AppActionButton(
+                  icon: Icons.print_outlined,
+                  label: 'Print',
+                  filled: false,
+                  onPressed: () => controller.openPrintPreview(context),
+                ),
+                AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedItem == null
                       ? 'Save order'

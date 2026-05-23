@@ -132,10 +132,12 @@ class SalesOrderManagementController extends GetxController {
   String statusFilter = '';
   List<SalesOrderModel> items = const <SalesOrderModel>[];
   List<SalesOrderModel> filteredItems = const <SalesOrderModel>[];
+  List<CompanyModel> companies = const <CompanyModel>[];
   List<SalesQuotationModel> quotationsAll = const <SalesQuotationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> customers = const <PartyModel>[];
+  final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
   List<ItemModel> itemsLookup = const <ItemModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
@@ -435,6 +437,9 @@ class SalesOrderManagementController extends GetxController {
       items =
           (responses[0] as PaginatedResponse<SalesOrderModel>).data ??
           const <SalesOrderModel>[];
+      companies =
+          (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          const <CompanyModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
@@ -682,6 +687,53 @@ class SalesOrderManagementController extends GetxController {
     _applyFilters();
   }
 
+  PartyModel? customerListEntryById(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return customers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == partyId,
+      orElse: () => null,
+    );
+  }
+
+  PartyModel? customerForPrintContext(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return customerDetailsById[partyId] ?? customerListEntryById(partyId);
+  }
+
+  Future<void> ensureCustomerPrintContext(int? partyId) async {
+    if (partyId == null || customerDetailsById.containsKey(partyId)) {
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _partiesService.party(partyId),
+        _partiesService.partyAddresses(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyContacts(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+      ]);
+      final party = (responses[0] as ApiResponse<PartyModel>).data;
+      if (party != null) {
+        customerDetailsById[partyId] = party.copyWith(
+          addresses:
+              (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+              party.addresses,
+          contacts:
+              (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+              party.contacts,
+        );
+      }
+    } catch (_) {}
+  }
+
   List<UomModel> uomOptionsForItem(int? itemId) {
     final item = itemsLookup.cast<ItemModel?>().firstWhere(
       (entry) => entry?.id == itemId,
@@ -728,6 +780,102 @@ class SalesOrderManagementController extends GetxController {
       'cess_amount': roundToDouble(breakdown.cess, 2),
       'line_total': roundToDouble(breakdown.total, 2),
     };
+  }
+
+  DocumentPrintDataModel salesOrderPrintData() {
+    final summary = taxSummary();
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final company = companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == companyId,
+      orElse: () => null,
+    );
+    final customer = customerForPrintContext(customerPartyId);
+    final customerData = selected['customer'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(
+            selected['customer'] as Map<String, dynamic>,
+          )
+        : customer?.toJson() ?? const <String, dynamic>{};
+    final preferredAddress = preferredPartyAddress(customer);
+    final gstBreakupGroups = <String, dynamic>{};
+    final printLines = lines
+        .where((line) => line.itemId != null && line.itemId! > 0)
+        .map((line) {
+          final item = itemsLookup.cast<ItemModel?>().firstWhere(
+            (entry) => entry?.id == line.itemId,
+            orElse: () => null,
+          );
+          final breakdown = taxBreakdownForLine(line);
+          accumulatePrintTemplateGstBreakup(
+            gstBreakupGroups,
+            taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
+            taxPercent: breakdown.taxPercent,
+            taxable: breakdown.taxable,
+            cgst: breakdown.cgst,
+            sgst: breakdown.sgst,
+            igst: breakdown.igst,
+            cess: breakdown.cess,
+          );
+          return DocumentPrintLineModel(
+            itemName:
+                item?.itemName ??
+                item?.itemCode ??
+                line.descriptionController.text.trim(),
+            description: line.descriptionController.text.trim(),
+            qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
+            rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+            taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
+            lineTotal: roundToDouble(breakdown.taxable, 2),
+          );
+        })
+        .toList(growable: false);
+    final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
+
+    return DocumentPrintDataModel(
+      companyName: companyNameById(companies, companyId),
+      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
+      companyGstin: company?.gstin ?? '',
+      documentNumber: nullIfEmpty(orderNoController.text) ?? 'Draft',
+      documentDate: orderDateController.text.trim(),
+      referenceNumber: customerRefNoController.text.trim(),
+      partyName: stringValue(customerData, 'party_name').isNotEmpty
+          ? stringValue(customerData, 'party_name')
+          : quotationCustomerLabel(selected),
+      partyAddress: formatPartyAddress(
+        preferredAddress,
+        fallback: stringValue(customerData, 'address_line1'),
+      ),
+      partyContact: resolvePartyContact(
+        customer,
+        fallback: stringValue(customerData, 'mobile_no'),
+      ),
+      partyGstin: stringValue(customerData, 'gstin'),
+      notes: notesController.text.trim(),
+      termsConditions: termsController.text.trim(),
+      subtotal: roundToDouble(summary.taxable, 2),
+      taxAmount: roundToDouble(totalTax, 2),
+      totalAmount: roundToDouble(summary.total, 2),
+      amountInWords: printTemplateAmountInWords(
+        roundToDouble(summary.total, 2),
+        currencyCodeController.text.trim().isEmpty
+            ? 'INR'
+            : currencyCodeController.text.trim(),
+      ),
+      lines: printLines,
+      gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+    );
+  }
+
+  Future<void> openPrintPreview(BuildContext context) async {
+    await ensureCustomerPrintContext(customerPartyId);
+    if (!context.mounted) {
+      return;
+    }
+    await openDocumentPrintDesigner(
+      context,
+      documentType: 'sales_order',
+      title: 'Sales Order',
+      documentData: salesOrderPrintData(),
+    );
   }
 
   void addLine() {
