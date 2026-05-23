@@ -192,6 +192,15 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     followupItems,
     today: currentDate,
   );
+  final pendingTodayCount = pendingItems
+      .where((item) => crmFollowupBucket(item, today: currentDate) == CrmFollowupTimingBucket.today)
+      .length;
+  final pendingOverdueCount = pendingItems
+      .where((item) => crmFollowupBucket(item, today: currentDate) == CrmFollowupTimingBucket.overdue)
+      .length;
+  final pendingUpcomingCount = pendingItems
+      .where((item) => crmFollowupBucket(item, today: currentDate) == CrmFollowupTimingBucket.upcoming)
+      .length;
 
   final todayCount = followupBoardRows
       .where((row) => _crmIsBoardFollowupDueToday(row, currentDate))
@@ -330,7 +339,7 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     trend: ErpDashboardTrendCardData(
       title: 'Follow-up Status',
       subtitle:
-          'Completed and not completed follow-ups for ${_crmFilterLabel(activeFilter, currentDate)}.',
+          'Completion and timing breakdown for ${_crmFilterLabel(activeFilter, currentDate)}.',
       points: <ErpDashboardTrendPoint>[
         ErpDashboardTrendPoint(
           label: 'Completed',
@@ -338,9 +347,24 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
           color: const Color(0xFF1FA971),
         ),
         ErpDashboardTrendPoint(
-          label: 'Not Completed',
+          label: 'Pending',
           value: pendingItems.length.toDouble(),
           color: const Color(0xFFD84C4C),
+        ),
+        ErpDashboardTrendPoint(
+          label: 'Due Today',
+          value: pendingTodayCount.toDouble(),
+          color: const Color(0xFFE67E22),
+        ),
+        ErpDashboardTrendPoint(
+          label: 'Overdue',
+          value: pendingOverdueCount.toDouble(),
+          color: const Color(0xFFDA4D78),
+        ),
+        ErpDashboardTrendPoint(
+          label: 'Upcoming',
+          value: pendingUpcomingCount.toDouble(),
+          color: const Color(0xFF2F6FED),
         ),
       ],
       color: const Color(0xFF1FA971),
