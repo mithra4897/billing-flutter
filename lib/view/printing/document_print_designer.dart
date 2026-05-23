@@ -450,7 +450,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                                 child: _buildInspector(
                                   template,
                                   padding: const EdgeInsets.all(
-                                    AppUiConstants.spacingMd,
+                                    AppUiConstants.spacingSm,
                                   ),
                                 ),
                               ),

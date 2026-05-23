@@ -2,6 +2,10 @@ import 'dart:math' as math;
 
 import '../../screen.dart';
 
+const double _designerInspectorSectionGap = 8;
+const double _designerInspectorRowPadding = 5;
+const double _designerInspectorFieldPadding = 4;
+
 class DocumentDesignerPageInspector extends StatelessWidget {
   const DocumentDesignerPageInspector({
     super.key,
@@ -22,9 +26,7 @@ class DocumentDesignerPageInspector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Page', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        Text('Property Grid', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: AppUiConstants.spacingXs),
+        const SizedBox(height: _designerInspectorSectionGap),
         DocumentDesignerPropertyGrid(
           rows: [
             DocumentDesignerPropertyGridRow(
@@ -141,7 +143,7 @@ class DocumentDesignerPageInspector extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppUiConstants.spacingMd),
+        const SizedBox(height: _designerInspectorSectionGap),
         Text(
           'Select a shape on the page to edit it.',
           style: Theme.of(context).textTheme.bodySmall,
@@ -200,37 +202,53 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
               tooltip: 'Send backward',
               onPressed: onSendBackward,
               icon: const Icon(Icons.arrow_downward_outlined),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
             ),
             IconButton(
               tooltip: 'Bring forward',
               onPressed: onBringForward,
               icon: const Icon(Icons.arrow_upward_outlined),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
             ),
             IconButton(
               tooltip: 'Send to back',
               onPressed: onSendToBack,
               icon: const Icon(Icons.vertical_align_bottom_outlined),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
             ),
             IconButton(
               tooltip: 'Bring to front',
               onPressed: onBringToFront,
               icon: const Icon(Icons.vertical_align_top_outlined),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
             ),
             IconButton(
               tooltip: 'Duplicate',
               onPressed: onDuplicate,
               icon: const Icon(Icons.copy_outlined),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
             ),
             IconButton(
               tooltip: 'Delete',
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
             ),
           ],
         ),
-        const SizedBox(height: AppUiConstants.spacingSm),
-        Text('Property Grid', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: AppUiConstants.spacingXs),
+        const SizedBox(height: _designerInspectorSectionGap),
         DocumentDesignerPropertyGrid(
           rows: [
             DocumentDesignerPropertyGridRow(
@@ -324,26 +342,26 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
           ],
         ),
         if (shape.type == 'table') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerColorField(
             label: 'Header Color',
             value: shape.headerColor,
             onChanged: (value) => onChanged(shape.copyWith(headerColor: value)),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerColorField(
             label: 'Header Text Color',
             value: shape.headerTextColor,
             onChanged: (value) =>
                 onChanged(shape.copyWith(headerTextColor: value)),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           AppSwitchTile(
             label: 'Print Header',
             value: shape.printHeader,
             onChanged: (value) => onChanged(shape.copyWith(printHeader: value)),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           AppSwitchTile(
             label: 'Print Total Row',
             value: shape.printTotal,
@@ -351,7 +369,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
           ),
         ],
         if (shape.type == 'text') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerStringField(
             label: 'Text',
             value: shape.text,
@@ -359,14 +377,14 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
             onChanged: (value) =>
                 onChanged(shape.copyWith(text: value, multiline: true)),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerNumberField(
             label: 'Font Size',
             value: shape.fontSize,
             onChanged: (value) =>
                 onChanged(shape.copyWith(fontSize: math.max(1, value))),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           _CompactDropdownField<String>(
             value: shape.align,
             items: const [
@@ -380,25 +398,25 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
               }
             },
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           AppSwitchTile(
             label: 'Bold',
             value: shape.bold,
             onChanged: (value) => onChanged(shape.copyWith(bold: value)),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           AppSwitchTile(
             label: 'Italic',
             value: shape.italic,
             onChanged: (value) => onChanged(shape.copyWith(italic: value)),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           AppSwitchTile(
             label: 'Underline',
             value: shape.underline,
             onChanged: (value) => onChanged(shape.copyWith(underline: value)),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           Text('Bindings', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: AppUiConstants.spacingXs),
           Wrap(
@@ -421,7 +439,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
           ),
         ],
         if (shape.type == 'rectangle') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerNumberField(
             label: 'Border Radius',
             value: shape.borderRadius,
@@ -430,7 +448,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
           ),
         ],
         if (shape.type == 'polygon') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerNumberField(
             label: 'Sides',
             value: shape.sides.toDouble(),
@@ -439,7 +457,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
           ),
         ],
         if (shape.type == 'table') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerStringField(
             label: 'Rows Path',
             value: shape.dataPath,
@@ -466,21 +484,21 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
                   .toList(growable: false),
             ),
           ],
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerNumberField(
             label: 'Row Height',
             value: shape.rowHeight,
             onChanged: (value) =>
                 onChanged(shape.copyWith(rowHeight: math.max(20, value))),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerNumberField(
             label: 'Title Height',
             value: shape.titleHeight,
             onChanged: (value) =>
                 onChanged(shape.copyWith(titleHeight: math.max(20, value))),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerNumberField(
             label: 'Cell Gap',
             value: shape.cellGap,
@@ -488,7 +506,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
               shape.copyWith(cellGap: value.clamp(1, 24).toDouble()),
             ),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerTableColumnInspector(
             columns: shape.columns,
             availableKeys: rowBindings,
@@ -496,7 +514,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
           ),
         ],
         if (shape.type == 'image') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerImageShapeUploadField(
             value: shape.assetPath,
             isUploading: isUploadingImage,
@@ -505,13 +523,13 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
           ),
         ],
         if (shape.type == 'barcode') ...[
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerStringField(
             label: 'Barcode Value',
             value: shape.text,
             onChanged: (value) => onChanged(shape.copyWith(text: value)),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           _CompactDropdownField<String>(
             value: shape.barcodeType,
             items: const [
@@ -524,7 +542,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
               }
             },
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerNumberField(
             label: 'Font Size',
             value: shape.fontSize,
@@ -595,6 +613,7 @@ class _DocumentDesignerStringFieldState
       hintText: widget.label.isEmpty ? null : widget.label,
       controller: _controller,
       maxLines: widget.maxLines,
+      width: double.infinity,
     );
   }
 }
@@ -609,54 +628,45 @@ class DocumentDesignerPropertyGrid extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: rows
             .asMap()
             .entries
             .map((entry) {
-              final index = entry.key;
               final row = entry.value;
               return IntrinsicHeight(
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: index == 0
-                        ? null
-                        : Border(
-                            top: BorderSide(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.outlineVariant,
-                            ),
-                          ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        width: 130,
-                        padding: const EdgeInsets.all(AppUiConstants.spacingSm),
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest
-                            .withValues(alpha: 0.35),
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          row.label,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      width: 112,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _designerInspectorRowPadding,
+                        vertical: 2,
                       ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                            AppUiConstants.spacingXs,
-                          ),
-                          child: row.child,
-                        ),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.35),
+                      alignment: Alignment.center,
+                      child: Text(
+                        row.label,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
                       ),
-                    ],
-                  ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: _designerInspectorFieldPadding,
+                          vertical: 1,
+                        ),
+                        child: row.child,
+                      ),
+                    ),
+                  ],
                 ),
               );
             })
@@ -734,6 +744,7 @@ class _DocumentDesignerNumberFieldState
       hintText: widget.label.isEmpty ? null : widget.label,
       controller: _controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      width: double.infinity,
       onChanged: (next) {
         final parsed = double.tryParse(next.trim());
         if (parsed != null) {
@@ -853,7 +864,7 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppUiConstants.spacingXs),
+        const SizedBox(height: 4),
         if (availableKeys.isNotEmpty) ...[
           Wrap(
             spacing: 6,
@@ -879,15 +890,17 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                 )
                 .toList(growable: false),
           ),
-          const SizedBox(height: AppUiConstants.spacingSm),
+          const SizedBox(height: _designerInspectorSectionGap),
         ],
         ...columns.asMap().entries.map((entry) {
           final index = entry.key;
           final column = entry.value;
           return Padding(
-            padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
+            padding: const EdgeInsets.only(
+              bottom: _designerInspectorSectionGap,
+            ),
             child: AppSectionCard(
-              padding: const EdgeInsets.all(AppUiConstants.spacingSm),
+              padding: const EdgeInsets.all(_designerInspectorRowPadding),
               child: Column(
                 children: [
                   Row(
@@ -909,7 +922,7 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       Expanded(
@@ -921,7 +934,7 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                               _updateColumn(index, column.copyWith(key: val)),
                         ),
                       ),
-                      const SizedBox(width: AppUiConstants.spacingSm),
+                      const SizedBox(width: 6),
                       SizedBox(
                         width: 80,
                         child: DocumentDesignerNumberField(
@@ -936,7 +949,7 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
+                  const SizedBox(height: 4),
                   _CompactDropdownField<String>(
                     value: column.align,
                     items: const [
@@ -950,7 +963,7 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                       }
                     },
                   ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
+                  const SizedBox(height: 4),
                   _CompactDropdownField<String>(
                     value: column.titleAlign,
                     items: const [
@@ -964,7 +977,7 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                       }
                     },
                   ),
-                  const SizedBox(height: AppUiConstants.spacingXs),
+                  const SizedBox(height: 4),
                   AppSwitchTile(
                     label: 'Total Column',
                     value: column.totalColumn,
@@ -1111,24 +1124,22 @@ class _DocumentDesignerBackgroundImageFieldState
           previewIcon: Icons.layers_outlined,
           onUpload: widget.onUpload,
         ),
-        const SizedBox(height: AppUiConstants.spacingXs),
+        const SizedBox(height: 4),
         Align(
           alignment: Alignment.centerLeft,
-          child: Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               OutlinedButton.icon(
                 onPressed: () => widget.onChanged(_controller.text),
-                icon: const Icon(Icons.link_outlined),
-                label: const Text('Apply Path'),
+                label: const Text('Apply'),
               ),
+              const SizedBox(width: 8),
               OutlinedButton.icon(
                 onPressed: () {
                   _controller.clear();
                   widget.onChanged('');
                 },
-                icon: const Icon(Icons.clear_outlined),
                 label: const Text('Clear'),
               ),
             ],
@@ -1156,6 +1167,7 @@ class _CompactDropdownField<T> extends StatelessWidget {
       labelText: ' ',
       items: items,
       initialValue: value,
+      width: double.infinity,
       onChanged: onChanged,
     );
   }
