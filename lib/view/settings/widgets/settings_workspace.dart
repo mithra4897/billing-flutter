@@ -37,18 +37,23 @@ class SettingsWorkspace extends StatefulWidget {
     required this.title,
     required this.scrollController,
     required this.list,
-    required this.editor,
+    this.editor,
+    this.editorBuilder,
     this.breakpoint = 1120,
     this.listWidth = 360,
     this.editorTitle,
     this.controller,
     this.editorOnly = false,
     this.wrapEditorInCard = true,
-  });
+  }) : assert(
+         editor != null || editorBuilder != null,
+         'Either editor or editorBuilder must be provided.',
+       );
 
   final ScrollController scrollController;
   final Widget list;
-  final Widget editor;
+  final Widget? editor;
+  final WidgetBuilder? editorBuilder;
   final double breakpoint;
   final double listWidth;
   final String title;
@@ -136,32 +141,24 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
           builder: (context, constraints) {
             final showInlineEditor = Responsive.isDesktop(context);
             final theme = Theme.of(context).textTheme;
-            final editorBody = routeController.editorRouteOpen
-                ? const _EditorRoutePlaceholder()
-                : widget.editor;
-            final editorContent = widget.wrapEditorInCard
-                ? AppSectionCard(
-                    child: Column(
-                      children: [
-                        if (widget.editorTitle != null &&
-                            Responsive.isNotMobile(context)) ...[
-                          Text(widget.editorTitle!, style: theme.headlineSmall),
-                          const SizedBox(height: AppUiConstants.spacingXs),
-                        ],
-                        editorBody,
-                      ],
+            final showEditorTitle =
+                widget.editorTitle != null && Responsive.isNotMobile(context);
+            final editorContent = routeController.editorRouteOpen
+                ? _buildEditorContent(
+                    textTheme: theme,
+                    showEditorTitle: showEditorTitle,
+                    key: const ValueKey<String>(
+                      'settings-workspace-editor-placeholder',
                     ),
+                    child: const _EditorRoutePlaceholder(),
                   )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (widget.editorTitle != null &&
-                          Responsive.isNotMobile(context)) ...[
-                        Text(widget.editorTitle!, style: theme.headlineSmall),
-                        const SizedBox(height: AppUiConstants.spacingXs),
-                      ],
-                      editorBody,
-                    ],
+                : _buildEditorContent(
+                    textTheme: theme,
+                    showEditorTitle: showEditorTitle,
+                    key: const ValueKey<String>(
+                      'settings-workspace-editor-content',
+                    ),
+                    child: _buildEditorInstance(context),
                   );
 
             return _SettingsWorkspaceScope(
@@ -197,6 +194,35 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
     );
   }
 
+  Widget _buildEditorContent({
+    required TextTheme textTheme,
+    required bool showEditorTitle,
+    required Key key,
+    required Widget child,
+  }) {
+    final content = Column(
+      key: key,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showEditorTitle) ...[
+          Text(widget.editorTitle!, style: textTheme.headlineSmall),
+          const SizedBox(height: AppUiConstants.spacingXs),
+        ],
+        child,
+      ],
+    );
+
+    if (!widget.wrapEditorInCard) {
+      return content;
+    }
+
+    return AppSectionCard(child: content);
+  }
+
+  Widget _buildEditorInstance(BuildContext context) {
+    return widget.editorBuilder?.call(context) ?? widget.editor!;
+  }
+
   void _scheduleEditorRoutePush() {
     if (_routeController.editorRouteOpen) {
       return;
@@ -223,7 +249,7 @@ class _SettingsWorkspaceState extends State<SettingsWorkspace> {
         MaterialPageRoute<void>(
           builder: (context) => _SettingsEditorRoutePage(
             title: widget.editorTitle ?? widget.title,
-            child: widget.editor,
+            child: _buildEditorInstance(context),
           ),
         ),
       );

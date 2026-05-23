@@ -183,7 +183,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
     final shapes = normalized.shapes.map((shape) {
       if (_isGstBreakupTableShape(shape)) {
-        const columns = defaultGstBreakupTableColumns;
+        final columns = shape.columns.isEmpty
+            ? defaultGstBreakupTableColumns
+            : shape.columns;
         final tableHeight = measurePrintTableHeight(
           shape: shape,
           rows: widget.documentData.gstBreakup,
@@ -2156,7 +2158,7 @@ class DocumentCanvasPainter extends CustomPainter {
           cellRect,
           resolvePrintCellValue(row, column.key),
           _textAlignForColumn(column.align),
-          TextStyle(fontSize: 11 * scale, color: Color(shape.strokeColor)),
+          TextStyle(fontSize: 11 * scale, color: Color(shape.bodyTextColor)),
           centerVertically: true,
           cellGap: cellGap,
         );

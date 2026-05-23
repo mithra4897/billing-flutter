@@ -151,7 +151,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (context) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,6 +636,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           ],
         ),
       ),
+      editor: const SizedBox.shrink(),
     );
   }
 

@@ -618,6 +618,7 @@ class DocumentPrintShape {
     this.underline = false,
     this.multiline = false,
     this.strokeColor = 0xFF111827,
+    this.bodyTextColor = 0xFF111827,
     this.fillColor = 0xFFFFFFFF,
     this.fillAlpha = 0,
     this.strokeWidth = 1,
@@ -650,6 +651,7 @@ class DocumentPrintShape {
   final bool underline;
   final bool multiline;
   final int strokeColor;
+  final int bodyTextColor;
   final int fillColor;
   final double fillAlpha;
   final double strokeWidth;
@@ -683,6 +685,10 @@ class DocumentPrintShape {
       underline: boolValue(json, 'underline'),
       multiline: boolValue(json, 'multiline'),
       strokeColor: _toInt(json['strokeColor'], 0xFF111827),
+      bodyTextColor: _toInt(
+        json['bodyTextColor'],
+        _toInt(json['strokeColor'], 0xFF111827),
+      ),
       fillColor: _toInt(json['fillColor'], 0xFFFFFFFF),
       fillAlpha: _toDouble(json['fillAlpha'], 0),
       strokeWidth: _toDouble(json['strokeWidth'], 1),
@@ -761,6 +767,7 @@ class DocumentPrintShape {
           width: 500,
           height: 240,
           strokeColor: 0xFF94A3B8,
+          bodyTextColor: 0xFF111827,
           columns: defaultTableColumns(),
           fillAlpha: 0.0,
         );
@@ -889,6 +896,7 @@ class DocumentPrintShape {
     bool? underline,
     bool? multiline,
     int? strokeColor,
+    int? bodyTextColor,
     int? fillColor,
     double? fillAlpha,
     double? strokeWidth,
@@ -921,6 +929,7 @@ class DocumentPrintShape {
       underline: underline ?? this.underline,
       multiline: multiline ?? this.multiline,
       strokeColor: strokeColor ?? this.strokeColor,
+      bodyTextColor: bodyTextColor ?? this.bodyTextColor,
       fillColor: fillColor ?? this.fillColor,
       fillAlpha: fillAlpha ?? this.fillAlpha,
       strokeWidth: strokeWidth ?? this.strokeWidth,
@@ -956,6 +965,7 @@ class DocumentPrintShape {
       'underline': underline,
       'multiline': multiline,
       'strokeColor': strokeColor,
+      'bodyTextColor': bodyTextColor,
       'fillColor': fillColor,
       'fillAlpha': fillAlpha,
       'strokeWidth': strokeWidth,

@@ -315,7 +315,7 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
               ),
             ),
             DocumentDesignerPropertyGridRow(
-              label: 'Fill Color',
+              label: shape.type == 'table' ? 'Background Color' : 'Fill Color',
               child: DocumentDesignerColorField(
                 label: '',
                 value: shape.fillColor,
@@ -343,17 +343,36 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
         ),
         if (shape.type == 'table') ...[
           const SizedBox(height: _designerInspectorSectionGap),
-          DocumentDesignerColorField(
-            label: 'Header Color',
-            value: shape.headerColor,
-            onChanged: (value) => onChanged(shape.copyWith(headerColor: value)),
-          ),
-          const SizedBox(height: _designerInspectorSectionGap),
-          DocumentDesignerColorField(
-            label: 'Header Text Color',
-            value: shape.headerTextColor,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(headerTextColor: value)),
+          DocumentDesignerPropertyGrid(
+            rows: [
+              DocumentDesignerPropertyGridRow(
+                label: 'Body Text Color',
+                child: DocumentDesignerColorField(
+                  label: '',
+                  value: shape.bodyTextColor,
+                  onChanged: (value) =>
+                      onChanged(shape.copyWith(bodyTextColor: value)),
+                ),
+              ),
+              DocumentDesignerPropertyGridRow(
+                label: 'Header Fill Color',
+                child: DocumentDesignerColorField(
+                  label: '',
+                  value: shape.headerColor,
+                  onChanged: (value) =>
+                      onChanged(shape.copyWith(headerColor: value)),
+                ),
+              ),
+              DocumentDesignerPropertyGridRow(
+                label: 'Header Text Color',
+                child: DocumentDesignerColorField(
+                  label: '',
+                  value: shape.headerTextColor,
+                  onChanged: (value) =>
+                      onChanged(shape.copyWith(headerTextColor: value)),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: _designerInspectorSectionGap),
           AppSwitchTile(
@@ -786,31 +805,14 @@ class DocumentDesignerColorField extends StatelessWidget {
     final current = palette.values.contains(value)
         ? value
         : palette.values.first;
-    return _CompactDropdownField<int>(
-      value: current,
-      items: palette.entries
+    return AppDropdownField<int>.fromMapped(
+      labelText: ' ',
+      width: double.infinity,
+      initialValue: current,
+      mappedItems: palette.entries
           .map(
-            (entry) => DropdownMenuItem<int>(
-              value: entry.value,
-              child: Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Color(entry.value),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.grey.shade400,
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(entry.key),
-                ],
-              ),
-            ),
+            (entry) =>
+                AppDropdownItem<int>(value: entry.value, label: entry.key),
           )
           .toList(growable: false),
       onChanged: (next) {

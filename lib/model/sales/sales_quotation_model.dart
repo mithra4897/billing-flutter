@@ -40,6 +40,7 @@ class SalesQuotationModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.lines = const <Map<String, dynamic>>[],
   });
   final int? companyId;
   final int? branchId;
@@ -78,6 +79,7 @@ class SalesQuotationModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final List<Map<String, dynamic>> lines;
 
   factory SalesQuotationModel.fromJson(Map<String, dynamic> json) {
     return SalesQuotationModel(
@@ -121,6 +123,7 @@ class SalesQuotationModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      lines: _mapLines(json['lines']),
     );
   }
   @override
@@ -129,7 +132,6 @@ class SalesQuotationModel extends JsonModel {
     quotationDate,
     currencyCode,
   ], defaultValue: 'Sales Quotation');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -173,5 +175,14 @@ class SalesQuotationModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (lines.isNotEmpty) 'lines': lines,
   };
+
+  static List<Map<String, dynamic>> _mapLines(dynamic value) {
+    if (value is! List) {
+      return <Map<String, dynamic>>[];
+    }
+
+    return value.whereType<Map<String, dynamic>>().toList(growable: false);
+  }
 }
