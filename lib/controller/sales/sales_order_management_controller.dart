@@ -89,6 +89,8 @@ class OrderLineDraft {
 class SalesOrderManagementController extends GetxController {
   SalesOrderManagementController();
 
+  static const String lineItemsSectionId = 'sales_order_line_items';
+
   static const List<AppDropdownItem<String>>
   listStatusFilter = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All'),
@@ -139,6 +141,7 @@ class SalesOrderManagementController extends GetxController {
   List<PartyModel> customers = const <PartyModel>[];
   final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
   List<ItemModel> itemsLookup = const <ItemModel>[];
+  final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
@@ -226,6 +229,62 @@ class SalesOrderManagementController extends GetxController {
   String get status =>
       stringValue(selectedItem?.toJson() ?? const {}, 'order_status', 'draft');
 
+  List<AppDropdownItem<int>> get financialYearDropdownItems => financialYears
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get documentSeriesDropdownItems => seriesOptions()
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get customerDropdownItems => customers
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  List<AppDropdownItem<int?>> get quotationChoiceDropdownItems => [
+    const AppDropdownItem<int?>(value: null, label: 'None'),
+    ...quotationChoices
+        .map((quotation) => quotation.toJson())
+        .where((json) => intValue(json, 'id') != null)
+        .map(
+          (json) => AppDropdownItem<int?>(
+            value: intValue(json, 'id'),
+            label: stringValue(json, 'quotation_no', 'Quote'),
+          ),
+        ),
+  ];
+
+  List<AppSearchPickerOption<int>> get itemPickerOptions => itemsLookup
+      .where((item) => item.id != null)
+      .map(
+        (item) => AppSearchPickerOption<int>(
+          value: item.id!,
+          label: item.toString(),
+          subtitle: item.itemCode,
+        ),
+      )
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get warehouseDropdownItems => warehouses
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get taxCodeDropdownItems => taxCodes
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  ItemModel? itemById(int? itemId) =>
+      itemId == null ? null : itemLookupById[itemId];
+
+  String? itemLabelById(int? itemId) => itemById(itemId)?.toString();
+
+  void refreshLineItemsSection() => update(<Object>[lineItemsSectionId]);
+
   List<SalesQuotationModel> get quotationChoices {
     final currentCompanyId = companyId;
     final customerId = customerPartyId;
@@ -248,10 +307,7 @@ class SalesOrderManagementController extends GetxController {
 
   String quotationLinePickerLabel(Map<String, dynamic> line) {
     final itemId = intValue(line, 'item_id');
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
+    final item = itemById(itemId);
     final quoteQty = double.tryParse(line['qty']?.toString() ?? '') ?? 0;
     final lineNo = intValue(line, 'line_no') ?? 0;
     final name = (item?.itemName ?? '').trim().isNotEmpty
@@ -456,11 +512,25 @@ class SalesOrderManagementController extends GetxController {
             (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
             const <PartyTypeModel>[],
       );
+      customerDetailsById
+        ..clear()
+        ..addEntries(
+          customers
+              .where((item) => item.id != null)
+              .map((item) => MapEntry(item.id!, item)),
+        );
       itemsLookup =
           ((responses[8] as PaginatedResponse<ItemModel>).data ??
                   const <ItemModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      itemLookupById
+        ..clear()
+        ..addEntries(
+          itemsLookup
+              .where((item) => item.id != null)
+              .map((item) => MapEntry(item.id!, item)),
+        );
       uoms =
           ((responses[9] as PaginatedResponse<UomModel>).data ??
                   const <UomModel>[])
@@ -659,24 +729,20 @@ class SalesOrderManagementController extends GetxController {
   }
 
   void _applyFilters({bool notify = true}) {
-    final search = searchController.text.trim().toLowerCase();
-    filteredItems = items
-        .where((item) {
-          final data = item.toJson();
-          final statusOk =
-              statusFilter.isEmpty ||
-              stringValue(data, 'order_status') == statusFilter;
-          final customerLabel = quotationCustomerLabel(data);
-          final searchOk =
-              search.isEmpty ||
-              [
-                stringValue(data, 'order_no'),
-                stringValue(data, 'order_status'),
-                customerLabel,
-              ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
+    filteredItems = filterBySearchAndStatus(
+      items,
+      query: searchController.text,
+      status: statusFilter,
+      statusOf: (item) => stringValue(item.toJson(), 'order_status'),
+      searchFieldsOf: (item) {
+        final data = item.toJson();
+        return <String>[
+          stringValue(data, 'order_no'),
+          stringValue(data, 'order_status'),
+          quotationCustomerLabel(data),
+        ];
+      },
+    );
     if (notify) {
       update();
     }
@@ -688,13 +754,7 @@ class SalesOrderManagementController extends GetxController {
   }
 
   PartyModel? customerListEntryById(int? partyId) {
-    if (partyId == null) {
-      return null;
-    }
-    return customers.cast<PartyModel?>().firstWhere(
-      (item) => item?.id == partyId,
-      orElse: () => null,
-    );
+    return partyId == null ? null : customerDetailsById[partyId];
   }
 
   PartyModel? customerForPrintContext(int? partyId) {
@@ -735,11 +795,7 @@ class SalesOrderManagementController extends GetxController {
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return allowedUomsForItem(item, uoms, uomConversions);
+    return allowedUomsForItem(itemById(itemId), uoms, uomConversions);
   }
 
   String get currencyCodeForTaxSummary {
@@ -800,10 +856,7 @@ class SalesOrderManagementController extends GetxController {
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
         .map((line) {
-          final item = itemsLookup.cast<ItemModel?>().firstWhere(
-            (entry) => entry?.id == line.itemId,
-            orElse: () => null,
-          );
+          final item = itemById(line.itemId);
           final breakdown = taxBreakdownForLine(line);
           accumulatePrintTemplateGstBreakup(
             gstBreakupGroups,
@@ -830,10 +883,10 @@ class SalesOrderManagementController extends GetxController {
         .toList(growable: false);
     final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
 
-    return DocumentPrintDataModel(
-      companyName: companyNameById(companies, companyId),
-      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
-      companyGstin: company?.gstin ?? '',
+    return buildManagedDocumentPrintData(
+      companies: companies,
+      companyId: companyId,
+      company: company,
       documentNumber: nullIfEmpty(orderNoController.text) ?? 'Draft',
       documentDate: orderDateController.text.trim(),
       referenceNumber: customerRefNoController.text.trim(),
@@ -854,24 +907,18 @@ class SalesOrderManagementController extends GetxController {
       subtotal: roundToDouble(summary.taxable, 2),
       taxAmount: roundToDouble(totalTax, 2),
       totalAmount: roundToDouble(summary.total, 2),
-      amountInWords: printTemplateAmountInWords(
-        roundToDouble(summary.total, 2),
-        currencyCodeController.text.trim().isEmpty
-            ? 'INR'
-            : currencyCodeController.text.trim(),
-      ),
+      currencyCode: currencyCodeController.text.trim().isEmpty
+          ? 'INR'
+          : currencyCodeController.text.trim(),
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
     );
   }
 
   Future<void> openPrintPreview(BuildContext context) async {
-    await ensureCustomerPrintContext(customerPartyId);
-    if (!context.mounted) {
-      return;
-    }
-    await openDocumentPrintDesigner(
+    await openManagedDocumentPrintPreview(
       context,
+      prepare: () => ensureCustomerPrintContext(customerPartyId),
       documentType: 'sales_order',
       title: 'Sales Order',
       documentData: salesOrderPrintData(),
@@ -880,7 +927,7 @@ class SalesOrderManagementController extends GetxController {
 
   void addLine() {
     lines = List<OrderLineDraft>.from(lines)..add(OrderLineDraft());
-    update();
+    refreshLineItemsSection();
   }
 
   void removeLine(int index) {
@@ -928,7 +975,7 @@ class SalesOrderManagementController extends GetxController {
   }
 
   void refreshComputedState() {
-    update();
+    refreshLineItemsSection();
   }
 
   void setLineItemId(int index, int? value) {
@@ -936,10 +983,7 @@ class SalesOrderManagementController extends GetxController {
     final line = lines[index];
     line.itemId = value;
     line.salesQuotationLineId = null;
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == value,
-      orElse: () => null,
-    );
+    final item = itemById(value);
     applySalesLineDefaultsFromItemMaster(
       item: item,
       uoms: uoms,
@@ -952,25 +996,25 @@ class SalesOrderManagementController extends GetxController {
       currentWarehouseId: line.warehouseId,
       warehouses: warehouses,
     );
-    update();
+    refreshLineItemsSection();
   }
 
   void setLineUomId(int index, int? value) {
     if (!canEdit) return;
     lines[index].uomId = value;
-    update();
+    refreshLineItemsSection();
   }
 
   void setLineWarehouseId(int index, int? value) {
     if (!canEdit) return;
     lines[index].warehouseId = value;
-    update();
+    refreshLineItemsSection();
   }
 
   void setLineTaxCodeId(int index, int? value) {
     if (!canEdit) return;
     lines[index].taxCodeId = value;
-    update();
+    refreshLineItemsSection();
   }
 
   Future<void> save(BuildContext context) async {
@@ -1127,7 +1171,7 @@ class SalesOrderManagementController extends GetxController {
         : nextLines;
     lines = normalizedLines;
     if (notify) {
-      update();
+      refreshLineItemsSection();
     }
     final removedLines = previousLines
         .where(

@@ -455,23 +455,21 @@ class PurchaseOrderManagementController extends GetxController {
     String query,
     String status,
   ) {
-    final search = query.trim().toLowerCase();
-    return source
-        .where((item) {
-          final data = item.toJson();
-          final statusOk =
-              status.isEmpty || stringValue(data, 'order_status') == status;
-          final searchOk =
-              search.isEmpty ||
-              [
-                stringValue(data, 'order_no'),
-                stringValue(data, 'order_status'),
-                stringValue(data, 'supplier_name'),
-                stringValue(data, 'supplier_reference_no'),
-              ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
+    return filterBySearchAndStatus(
+      source,
+      query: query,
+      status: status,
+      statusOf: (item) => stringValue(item.toJson(), 'order_status'),
+      searchFieldsOf: (item) {
+        final data = item.toJson();
+        return <String>[
+          stringValue(data, 'order_no'),
+          stringValue(data, 'order_status'),
+          stringValue(data, 'supplier_name'),
+          stringValue(data, 'supplier_reference_no'),
+        ];
+      },
+    );
   }
 
   void _applyFilters() {
@@ -481,8 +479,7 @@ class PurchaseOrderManagementController extends GetxController {
 
   void setStatusFilter(String value) {
     statusFilter = value;
-    filteredItems = _filterItems(items, searchController.text, statusFilter);
-    update();
+    _applyFilters();
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {

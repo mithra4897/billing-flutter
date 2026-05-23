@@ -363,7 +363,10 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                           ),
                         ),
                         validator: (_) =>
-                            line.itemId <= 0 ? 'Item is required' : null,
+                            Validators.requiredSelectionOrPositiveIdField(
+                              line.itemId,
+                              'Item',
+                            ),
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Warehouse',
@@ -412,11 +415,11 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                               index,
                               line.copyWith(uomId: value ?? 0),
                             ),
-                            validator: (_) {
-                              return (line.uomId == 0)
-                                  ? 'UOM is required'
-                                  : null;
-                            },
+                            validator: (_) =>
+                                Validators.requiredSelectionOrPositiveIdField(
+                                  line.uomId,
+                                  'UOM',
+                                ),
                           );
                         },
                       ),

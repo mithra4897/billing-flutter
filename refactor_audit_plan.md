@@ -6,16 +6,16 @@ Status legend:
 
 ## High Priority
 
-- [ ] `Pending` Consolidate duplicated print-preview builders across quotation, sales order, delivery challan, and purchase invoice controllers.
-- [ ] `Pending` Replace repeated `firstWhere` item/customer/supplier lookups with indexed maps in controller hot paths.
-- [ ] `Pending` Reduce repeated rebuild work in sales document pages by narrowing `GetBuilder` scope and moving derived UI data out of `build()`.
+- [x] `Done` Consolidate duplicated print-preview builders across quotation, sales order, delivery challan, and purchase invoice controllers.
+- [x] `Done` Replace repeated `firstWhere` item/customer/supplier lookups with indexed maps in controller hot paths.
+- [x] `Done` Reduce repeated rebuild work in sales document pages by narrowing `GetBuilder` scope and moving derived UI data out of `build()`.
 
 ## Medium Priority
 
-- [ ] `Pending` Extract shared sales document UI blocks for header forms, line editors, totals, and action rows.
-- [ ] `Pending` Centralize repeated `_applyFilters` and status-filter logic into a reusable mixin/helper.
-- [ ] `Pending` Move inline validators into shared validator helpers.
-- [ ] `Pending` Reduce repeated serial-option scans and delivery save-time line expansion costs.
+- [x] `Done` Extract shared sales document UI blocks for header forms, line editors, totals, and action rows.
+- [x] `Done` Centralize repeated `_applyFilters` and status-filter logic into a reusable mixin/helper.
+- [x] `Done` Move inline validators into shared validator helpers.
+- [x] `Done` Reduce repeated serial-option scans and delivery save-time line expansion costs.
 
 ## Lower Priority
 
@@ -25,7 +25,7 @@ Status legend:
 
 ## Validation After Each Refactor
 
-- [ ] `Pending` Run `flutter analyze`.
+- [x] `Done` Run `flutter analyze`.
 - [ ] `Pending` Run `flutter test`.
 - [ ] `Pending` Smoke test quotation create/edit/print.
 - [ ] `Pending` Smoke test sales order create/edit/print.

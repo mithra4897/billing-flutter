@@ -5,6 +5,68 @@ import '../../screen.dart';
 const String defaultPrintLogoAsset = 'assets/sakthi-logo.jpg';
 const String legacyPbsLogoAsset = 'assets/pbs_logo.png';
 
+DocumentPrintDataModel buildManagedDocumentPrintData({
+  required List<CompanyModel> companies,
+  required int? companyId,
+  required CompanyModel? company,
+  required String documentNumber,
+  required String documentDate,
+  String referenceNumber = '',
+  required String partyName,
+  String partyAddress = '',
+  String partyContact = '',
+  String partyGstin = '',
+  String notes = '',
+  String termsConditions = '',
+  required double subtotal,
+  required double taxAmount,
+  required double totalAmount,
+  required String currencyCode,
+  required List<DocumentPrintLineModel> lines,
+  List<DocumentPrintTaxBreakupRowModel> gstBreakup =
+      const <DocumentPrintTaxBreakupRowModel>[],
+}) {
+  return DocumentPrintDataModel(
+    companyName: companyNameById(companies, companyId),
+    companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
+    companyGstin: company?.gstin ?? '',
+    documentNumber: documentNumber,
+    documentDate: documentDate,
+    referenceNumber: referenceNumber,
+    partyName: partyName,
+    partyAddress: partyAddress,
+    partyContact: partyContact,
+    partyGstin: partyGstin,
+    notes: notes,
+    termsConditions: termsConditions,
+    subtotal: subtotal,
+    taxAmount: taxAmount,
+    totalAmount: totalAmount,
+    amountInWords: printTemplateAmountInWords(totalAmount, currencyCode),
+    lines: lines,
+    gstBreakup: gstBreakup,
+  );
+}
+
+Future<void> openManagedDocumentPrintPreview(
+  BuildContext context, {
+  Future<void> Function()? prepare,
+  required String documentType,
+  required String title,
+  required DocumentPrintDataModel documentData,
+}) async {
+  await prepare?.call();
+  if (!context.mounted) {
+    return;
+  }
+  await openDocumentPrintDesigner(
+    context,
+    documentType: documentType,
+    title: title,
+    documentData: documentData,
+  );
+}
+
 DocumentPrintTemplate applyPrintPagePreset(
   DocumentPrintTemplate template, {
   String? mediaPreset,

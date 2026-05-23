@@ -389,8 +389,7 @@ class PurchaseRequisitionManagementController extends GetxController {
 
   void setStatusFilter(String value) {
     statusFilter = value;
-    filteredItems = _filterItems(items, searchController.text, statusFilter);
-    update();
+    _applyFilters();
   }
 
   List<PurchaseRequisitionModel> _filterItems(
@@ -398,24 +397,21 @@ class PurchaseRequisitionManagementController extends GetxController {
     String query,
     String status,
   ) {
-    final search = query.trim().toLowerCase();
-    return source
-        .where((item) {
-          final data = item.toJson();
-          final statusMatches =
-              status.isEmpty ||
-              stringValue(data, 'requisition_status') == status;
-          final searchMatches =
-              search.isEmpty ||
-              [
-                stringValue(data, 'requisition_no'),
-                stringValue(data, 'purpose'),
-                stringValue(data, 'department'),
-                stringValue(data, 'requisition_status'),
-              ].join(' ').toLowerCase().contains(search);
-          return statusMatches && searchMatches;
-        })
-        .toList(growable: false);
+    return filterBySearchAndStatus(
+      source,
+      query: query,
+      status: status,
+      statusOf: (item) => stringValue(item.toJson(), 'requisition_status'),
+      searchFieldsOf: (item) {
+        final data = item.toJson();
+        return <String>[
+          stringValue(data, 'requisition_no'),
+          stringValue(data, 'purpose'),
+          stringValue(data, 'department'),
+          stringValue(data, 'requisition_status'),
+        ];
+      },
+    );
   }
 
   void _applyFilters() {

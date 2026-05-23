@@ -306,9 +306,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     if (!controller.canEdit) {
                       return;
                     }
-                    controller.State(
-                      () => controller.documentSeriesId = value,
-                    );
+                    controller.State(() => controller.documentSeriesId = value);
                   },
                 ),
                 AppFormTextField(
@@ -832,17 +830,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                             if (serialOptions.isEmpty) {
                               return 'No serials found in backend for the selected warehouse.';
                             }
-                            final serialLabelSet = serialOptions
-                                .map(
-                                  (serial) =>
-                                      (serial['serial_no']
-                                          ?.toString()
-                                          .trim()
-                                          .toLowerCase() ??
-                                      ''),
-                                )
-                                .where((value) => value.isNotEmpty)
-                                .toSet();
+                            final serialLabelSet = controller
+                                .serialLabelSetForLine(line);
                             for (final value in values) {
                               if (!serialLabelSet.contains(
                                 value.trim().toLowerCase(),

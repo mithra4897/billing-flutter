@@ -272,9 +272,10 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                             .toList(growable: false),
                         onChanged: (value) =>
                             controller.selectInvoiceLine(line, value),
-                        validator: (_) => line.purchaseInvoiceLineId == null
-                            ? 'Purchase Invoice Line is required'
-                            : null,
+                        validator: (_) => Validators.requiredSelectionField(
+                          line.purchaseInvoiceLineId,
+                          'Purchase Invoice Line',
+                        ),
                       ),
                       AppFormTextField(
                         labelText: 'Item',

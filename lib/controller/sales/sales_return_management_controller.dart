@@ -398,24 +398,21 @@ class SalesReturnManagementController extends GetxController {
   }
 
   void _applyFilters({bool notify = true}) {
-    final search = searchController.text.trim().toLowerCase();
-    filteredItems = items
-        .where((item) {
-          final data = item.toJson();
-          final statusOk =
-              statusFilter.isEmpty ||
-              stringValue(data, 'return_status') == statusFilter;
-          final searchOk =
-              search.isEmpty ||
-              [
-                stringValue(data, 'return_no'),
-                stringValue(data, 'return_status'),
-                stringValue(data, 'reason'),
-                quotationCustomerLabel(data),
-              ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
+    filteredItems = filterBySearchAndStatus(
+      items,
+      query: searchController.text,
+      status: statusFilter,
+      statusOf: (item) => stringValue(item.toJson(), 'return_status'),
+      searchFieldsOf: (item) {
+        final data = item.toJson();
+        return <String>[
+          stringValue(data, 'return_no'),
+          stringValue(data, 'return_status'),
+          stringValue(data, 'reason'),
+          quotationCustomerLabel(data),
+        ];
+      },
+    );
     if (notify) {
       update();
     }
@@ -614,7 +611,10 @@ class SalesReturnManagementController extends GetxController {
     _replaceLines(nextLines);
   }
 
-  void _replaceLines(List<SalesReturnLineDraft> nextLines, {bool notify = true}) {
+  void _replaceLines(
+    List<SalesReturnLineDraft> nextLines, {
+    bool notify = true,
+  }) {
     replaceDisposableDraftEntries<SalesReturnLineDraft>(
       previous: lines,
       next: nextLines,

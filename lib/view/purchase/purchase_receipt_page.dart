@@ -316,8 +316,10 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                         onChanged: (value) async {
                           await controller.setLineItemId(line, value);
                         },
-                        validator: (_) =>
-                            line.itemId == null ? 'Item is required' : null,
+                        validator: (_) => Validators.requiredSelectionField(
+                          line.itemId,
+                          'Item',
+                        ),
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Warehouse',
@@ -362,15 +364,21 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                               onChanged: (value) =>
                                   controller.setLineSerialId(line, value),
                               validator: (_) {
-                                if (line.warehouseId == null) {
-                                  return 'Select warehouse first';
+                                final dependencyError =
+                                    Validators.dependentSelectionField(
+                                      prerequisite: line.warehouseId,
+                                      prerequisiteName: 'warehouse',
+                                      value: line.serialId,
+                                      fieldName: 'Serial number',
+                                    );
+                                if (dependencyError != null &&
+                                    line.warehouseId == null) {
+                                  return dependencyError;
                                 }
                                 if (serialOptions.isEmpty) {
                                   return 'No serial is available for the selected warehouse';
                                 }
-                                return line.serialId == null
-                                    ? 'Serial number is required'
-                                    : null;
+                                return dependencyError;
                               },
                             );
                           },
@@ -400,14 +408,13 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                             initialValue: line.uomId,
                             onChanged: (value) =>
                                 controller.setLineUomId(line, value),
-                            validator: (_) {
-                              if (line.itemId == null) {
-                                return 'Select item first';
-                              }
-                              return line.uomId == null
-                                  ? 'UOM is required'
-                                  : null;
-                            },
+                            validator: (_) =>
+                                Validators.dependentSelectionField(
+                                  prerequisite: line.itemId,
+                                  prerequisiteName: 'item',
+                                  value: line.uomId,
+                                  fieldName: 'UOM',
+                                ),
                           );
                         },
                       ),

@@ -460,23 +460,21 @@ class SalesReceiptManagementController extends GetxController {
     String searchText,
     String status,
   ) {
-    final search = searchText.trim().toLowerCase();
-    return source
-        .where((item) {
-          final data = item.toJson();
-          final statusOk =
-              status.isEmpty || stringValue(data, 'receipt_status') == status;
-          final searchOk =
-              search.isEmpty ||
-              [
-                stringValue(data, 'receipt_no'),
-                stringValue(data, 'receipt_status'),
-                quotationCustomerLabel(data),
-                stringValue(data, 'payment_reference_no'),
-              ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
+    return filterBySearchAndStatus(
+      source,
+      query: searchText,
+      status: status,
+      statusOf: (item) => stringValue(item.toJson(), 'receipt_status'),
+      searchFieldsOf: (item) {
+        final data = item.toJson();
+        return <String>[
+          stringValue(data, 'receipt_no'),
+          stringValue(data, 'receipt_status'),
+          quotationCustomerLabel(data),
+          stringValue(data, 'payment_reference_no'),
+        ];
+      },
+    );
   }
 
   void setStatusFilter(String value) {

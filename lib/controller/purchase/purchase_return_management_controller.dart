@@ -371,8 +371,7 @@ class PurchaseReturnManagementController extends GetxController {
 
   void setStatusFilter(String value) {
     statusFilter = value;
-    filteredItems = _filterItems(items, searchController.text, statusFilter);
-    update();
+    _applyFilters();
   }
 
   List<PurchaseReturnModel> _filterItems(
@@ -380,21 +379,19 @@ class PurchaseReturnManagementController extends GetxController {
     String query,
     String status,
   ) {
-    final search = query.trim().toLowerCase();
-    return source
-        .where((item) {
-          final data = item.toJson();
-          final statusOk =
-              status.isEmpty || stringValue(data, 'return_status') == status;
-          final searchOk =
-              search.isEmpty ||
-              [
-                stringValue(data, 'return_no'),
-                stringValue(data, 'return_status'),
-              ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
+    return filterBySearchAndStatus(
+      source,
+      query: query,
+      status: status,
+      statusOf: (item) => stringValue(item.toJson(), 'return_status'),
+      searchFieldsOf: (item) {
+        final data = item.toJson();
+        return <String>[
+          stringValue(data, 'return_no'),
+          stringValue(data, 'return_status'),
+        ];
+      },
+    );
   }
 
   void _applyFilters() {

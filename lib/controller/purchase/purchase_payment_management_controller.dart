@@ -398,8 +398,7 @@ class PurchasePaymentManagementController extends GetxController {
 
   void setStatusFilter(String value) {
     statusFilter = value;
-    filteredItems = _filterItems(items, searchController.text, statusFilter);
-    update();
+    _applyFilters();
   }
 
   List<PurchasePaymentModel> _filterItems(
@@ -407,23 +406,21 @@ class PurchasePaymentManagementController extends GetxController {
     String query,
     String status,
   ) {
-    final search = query.trim().toLowerCase();
-    return source
-        .where((item) {
-          final data = item.toJson();
-          final statusOk =
-              status.isEmpty || stringValue(data, 'payment_status') == status;
-          final searchOk =
-              search.isEmpty ||
-              [
-                stringValue(data, 'payment_no'),
-                stringValue(data, 'payment_status'),
-                stringValue(data, 'supplier_name'),
-                stringValue(data, 'reference_no'),
-              ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
+    return filterBySearchAndStatus(
+      source,
+      query: query,
+      status: status,
+      statusOf: (item) => stringValue(item.toJson(), 'payment_status'),
+      searchFieldsOf: (item) {
+        final data = item.toJson();
+        return <String>[
+          stringValue(data, 'payment_no'),
+          stringValue(data, 'payment_status'),
+          stringValue(data, 'supplier_name'),
+          stringValue(data, 'reference_no'),
+        ];
+      },
+    );
   }
 
   void _applyFilters() {

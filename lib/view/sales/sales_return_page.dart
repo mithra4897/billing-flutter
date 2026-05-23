@@ -289,9 +289,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                                 .toList(growable: false),
                             onChanged: (value) =>
                                 controller.handleLineSelected(index, value),
-                            validator: (_) => line.salesInvoiceLineId == null
-                                ? 'Sales invoice line is required'
-                                : null,
+                            validator: (_) => Validators.requiredSelectionField(
+                              line.salesInvoiceLineId,
+                              'Sales invoice line',
+                            ),
                           ),
                           AppFormTextField(
                             labelText: 'Item',

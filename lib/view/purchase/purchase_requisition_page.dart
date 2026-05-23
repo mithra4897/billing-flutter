@@ -362,7 +362,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
           )
           .toList(growable: false),
       onChanged: (value) => controller.setLineItemId(line, value),
-      validator: (_) => line.itemId == null ? 'Item is required' : null,
+      validator: (_) => Validators.requiredSelectionField(line.itemId, 'Item'),
     );
 
     final uomOptions = controller.uomOptionsForItem(line.itemId);

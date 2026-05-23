@@ -355,8 +355,10 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                             .toList(growable: false),
                         onChanged: (value) =>
                             controller.setLineItemId(line, value),
-                        validator: (_) =>
-                            line.itemId == null ? 'Item is required' : null,
+                        validator: (_) => Validators.requiredSelectionField(
+                          line.itemId,
+                          'Item',
+                        ),
                       ),
                       Builder(
                         builder: (context) {
@@ -383,14 +385,13 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                             initialValue: line.uomId,
                             onChanged: (value) =>
                                 controller.setLineUomId(line, value),
-                            validator: (_) {
-                              if (line.itemId == null) {
-                                return 'Select item first';
-                              }
-                              return line.uomId == null
-                                  ? 'UOM is required'
-                                  : null;
-                            },
+                            validator: (_) =>
+                                Validators.dependentSelectionField(
+                                  prerequisite: line.itemId,
+                                  prerequisiteName: 'item',
+                                  value: line.uomId,
+                                  fieldName: 'UOM',
+                                ),
                           );
                         },
                       ),

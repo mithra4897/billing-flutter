@@ -53,8 +53,10 @@ class PurchaseInvoiceManagementController extends GetxController {
   List<PurchaseOrderModel> orders = const <PurchaseOrderModel>[];
   List<PurchaseReceiptModel> receipts = const <PurchaseReceiptModel>[];
   List<PartyModel> suppliers = const <PartyModel>[];
+  final Map<int, PartyModel> supplierLookupById = <int, PartyModel>{};
   List<AccountModel> accounts = const <AccountModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
+  final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
@@ -218,6 +220,13 @@ class PurchaseInvoiceManagementController extends GetxController {
             (responses[8] as PaginatedResponse<PartyTypeModel>).data ??
             const <PartyTypeModel>[],
       );
+      supplierLookupById
+        ..clear()
+        ..addEntries(
+          suppliers
+              .where((item) => item.id != null)
+              .map((item) => MapEntry(item.id!, item)),
+        );
       accounts =
           ((responses[10] as ApiResponse<List<AccountModel>>).data ??
                   const <AccountModel>[])
@@ -228,6 +237,13 @@ class PurchaseInvoiceManagementController extends GetxController {
                   const <ItemModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      itemLookupById
+        ..clear()
+        ..addEntries(
+          itemsLookup
+              .where((item) => item.id != null)
+              .map((item) => MapEntry(item.id!, item)),
+        );
       uoms =
           ((responses[12] as PaginatedResponse<UomModel>).data ??
                   const <UomModel>[])
@@ -357,20 +373,17 @@ class PurchaseInvoiceManagementController extends GetxController {
     String query,
     String status,
   ) {
-    final search = query.trim().toLowerCase();
-    return source
-        .where((item) {
-          final statusOk = status.isEmpty || item.invoiceStatus == status;
-          final searchOk =
-              search.isEmpty ||
-              [
-                item.invoiceNo ?? '',
-                item.invoiceStatus ?? '',
-                item.toJson()['supplier_name']?.toString() ?? '',
-              ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
+    return filterBySearchAndStatus(
+      source,
+      query: query,
+      status: status,
+      statusOf: (item) => item.invoiceStatus,
+      searchFieldsOf: (item) => <String>[
+        item.invoiceNo ?? '',
+        item.invoiceStatus ?? '',
+        item.toJson()['supplier_name']?.toString() ?? '',
+      ],
+    );
   }
 
   void _applyFilters() {
@@ -380,19 +393,21 @@ class PurchaseInvoiceManagementController extends GetxController {
 
   void setStatusFilter(String value) {
     statusFilter = value;
-    filteredItems = _filterItems(items, searchController.text, statusFilter);
-    update();
+    _applyFilters();
   }
+
+  ItemModel? itemById(int? itemId) =>
+      itemId == null ? null : itemLookupById[itemId];
+
+  PartyModel? supplierById(int? supplierId) =>
+      supplierId == null ? null : supplierLookupById[supplierId];
 
   DocumentPrintDataModel purchaseInvoicePrintData() {
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
     );
-    final supplier = suppliers.cast<PartyModel?>().firstWhere(
-      (item) => item?.id == supplierPartyId,
-      orElse: () => null,
-    );
+    final supplier = supplierById(supplierPartyId);
     var subtotal = 0.0;
     var taxAmount = 0.0;
     final gstBreakupGroups = <String, dynamic>{};
@@ -424,10 +439,7 @@ class PurchaseInvoiceManagementController extends GetxController {
             sgst: breakdown.sgst,
             igst: breakdown.igst,
           );
-          final item = itemsLookup.cast<ItemModel?>().firstWhere(
-            (entry) => entry?.id == line.itemId,
-            orElse: () => null,
-          );
+          final item = itemById(line.itemId);
           return DocumentPrintLineModel(
             itemName:
                 item?.itemName ?? item?.itemCode ?? (line.description ?? ''),
@@ -442,34 +454,34 @@ class PurchaseInvoiceManagementController extends GetxController {
         })
         .toList(growable: false);
 
-    return DocumentPrintDataModel(
-      companyName: companyNameById(companies, companyId),
-      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
-      companyGstin: company?.gstin ?? '',
+    final roundedSubtotal = double.parse(subtotal.toStringAsFixed(2));
+    final roundedTax = double.parse(taxAmount.toStringAsFixed(2));
+    final roundedTotal = double.parse(
+      (subtotal + taxAmount).toStringAsFixed(2),
+    );
+    return buildManagedDocumentPrintData(
+      companies: companies,
+      companyId: companyId,
+      company: company,
       documentNumber: nullIfEmpty(invoiceNoController.text) ?? 'Draft',
       documentDate: invoiceDateController.text.trim(),
       referenceNumber: supplierReferenceNoController.text.trim(),
       partyName: supplier?.partyName ?? '',
-      partyAddress: '',
-      partyContact: '',
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
-      subtotal: double.parse(subtotal.toStringAsFixed(2)),
-      taxAmount: double.parse(taxAmount.toStringAsFixed(2)),
-      totalAmount: double.parse((subtotal + taxAmount).toStringAsFixed(2)),
-      amountInWords: printTemplateAmountInWords(
-        double.parse((subtotal + taxAmount).toStringAsFixed(2)),
-        currencyCodeController.text.trim().isEmpty
-            ? 'INR'
-            : currencyCodeController.text.trim(),
-      ),
+      subtotal: roundedSubtotal,
+      taxAmount: roundedTax,
+      totalAmount: roundedTotal,
+      currencyCode: currencyCodeController.text.trim().isEmpty
+          ? 'INR'
+          : currencyCodeController.text.trim(),
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
     );
   }
 
   Future<void> openPrintPreview(BuildContext context) {
-    return openDocumentPrintDesigner(
+    return openManagedDocumentPrintPreview(
       context,
       documentType: 'purchase_invoice',
       title: 'Purchase Invoice',
@@ -493,20 +505,12 @@ class PurchaseInvoiceManagementController extends GetxController {
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return allowedUomsForItem(item, uoms, uomConversions);
+    return allowedUomsForItem(itemById(itemId), uoms, uomConversions);
   }
 
   int? resolveDefaultUom(int? itemId, int? currentUomId) {
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
     return defaultUomIdForItem(
-      item,
+      itemById(itemId),
       uoms,
       uomConversions,
       current: currentUomId,

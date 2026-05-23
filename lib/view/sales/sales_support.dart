@@ -260,6 +260,172 @@ double roundToDouble(double value, int fractionDigits) {
   return double.parse(value.toStringAsFixed(fractionDigits));
 }
 
+List<Widget> buildSalesDocumentContextFields({
+  required List<AppDropdownItem<int>> financialYearItems,
+  required int? financialYearId,
+  required ValueChanged<int?> onFinancialYearChanged,
+  required List<AppDropdownItem<int>> documentSeriesItems,
+  required int? documentSeriesId,
+  required ValueChanged<int?> onDocumentSeriesChanged,
+}) {
+  return <Widget>[
+    AppDropdownField<int>.fromMapped(
+      labelText: 'Financial Year',
+      mappedItems: financialYearItems,
+      initialValue: financialYearId,
+      onChanged: onFinancialYearChanged,
+      validator: Validators.requiredSelection('Financial Year'),
+    ),
+    AppDropdownField<int>.fromMapped(
+      labelText: 'Document Series',
+      mappedItems: documentSeriesItems,
+      initialValue: documentSeriesId,
+      onChanged: onDocumentSeriesChanged,
+    ),
+  ];
+}
+
+List<Widget> buildSalesCustomerCommercialFields({
+  required BuildContext context,
+  required bool canEdit,
+  required List<AppDropdownItem<int>> customerItems,
+  required int? customerPartyId,
+  required ValueChanged<int?> onCustomerChanged,
+  required TextEditingController customerRefNoController,
+  required TextEditingController customerRefDateController,
+  required TextEditingController currencyCodeController,
+  required TextEditingController exchangeRateController,
+  required TextEditingController notesController,
+  required TextEditingController termsController,
+  ValueChanged<String>? onCurrencyChanged,
+}) {
+  return <Widget>[
+    AppDropdownField<int>.fromMapped(
+      labelText: 'Customer',
+      doctypeLabel: 'Customer',
+      allowCreate: true,
+      onNavigateToCreateNew: (name) {
+        final uri = Uri(
+          path: '/parties',
+          queryParameters: {
+            'new': '1',
+            if (name.trim().isNotEmpty) 'party_name': name.trim(),
+          },
+        );
+        openModuleShellRoute(context, uri.toString());
+      },
+      mappedItems: customerItems,
+      initialValue: customerPartyId,
+      onChanged: onCustomerChanged,
+      validator: Validators.requiredSelection('Customer'),
+    ),
+    AppFormTextField(
+      labelText: 'Customer PO / Ref',
+      controller: customerRefNoController,
+      enabled: canEdit,
+      validator: Validators.optionalMaxLength(100, 'Reference'),
+    ),
+    AppFormTextField(
+      labelText: 'Customer Ref Date',
+      controller: customerRefDateController,
+      keyboardType: TextInputType.datetime,
+      inputFormatters: const [DateInputFormatter()],
+      enabled: canEdit,
+      validator: Validators.optionalDate('Customer Ref Date'),
+    ),
+    AppFormTextField(
+      labelText: 'Currency',
+      controller: currencyCodeController,
+      enabled: canEdit,
+      onChanged: onCurrencyChanged,
+      validator: Validators.optionalMaxLength(10, 'Currency'),
+    ),
+    AppFormTextField(
+      labelText: 'Exchange Rate',
+      controller: exchangeRateController,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      enabled: canEdit,
+      validator: Validators.optionalNonNegativeNumber('Exchange Rate'),
+    ),
+    AppFormTextField(
+      labelText: 'Notes (shown to customer)',
+      controller: notesController,
+      maxLines: 3,
+      enabled: canEdit,
+    ),
+    AppFormTextField(
+      labelText: 'Terms & Conditions',
+      controller: termsController,
+      maxLines: 3,
+      enabled: canEdit,
+    ),
+  ];
+}
+
+class SalesDocumentLineSection extends StatelessWidget {
+  const SalesDocumentLineSection({
+    super.key,
+    required this.title,
+    required this.addLabel,
+    required this.onAdd,
+    required this.children,
+    this.footer,
+  });
+
+  final String title;
+  final String addLabel;
+  final VoidCallback? onAdd;
+  final List<Widget> children;
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const Spacer(),
+            AppActionButton(
+              icon: Icons.add_outlined,
+              label: addLabel,
+              onPressed: onAdd,
+              filled: false,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppUiConstants.spacingSm),
+        ...children,
+        if (footer != null) ...[
+          const SizedBox(height: AppUiConstants.spacingMd),
+          footer!,
+        ],
+      ],
+    );
+  }
+}
+
+class SalesDocumentActionRow extends StatelessWidget {
+  const SalesDocumentActionRow({super.key, required this.actions});
+
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: AppUiConstants.spacingSm,
+      runSpacing: AppUiConstants.spacingSm,
+      children: actions,
+    );
+  }
+}
+
 TaxCodeModel? salesTaxCodeById(List<TaxCodeModel> taxCodes, int? taxCodeId) {
   if (taxCodeId == null) {
     return null;

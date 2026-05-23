@@ -117,20 +117,7 @@ class Validators {
 
   /// Required numeric field that must parse and be strictly greater than zero.
   static String? Function(String?) requiredPositiveNumber(String fieldName) {
-    return (value) {
-      final text = (value ?? '').trim();
-      if (text.isEmpty) {
-        return '$fieldName is required';
-      }
-      final parsed = double.tryParse(text);
-      if (parsed == null) {
-        return '$fieldName must be a valid number';
-      }
-      if (parsed <= 0) {
-        return '$fieldName must be greater than zero';
-      }
-      return null;
-    };
+    return (value) => requiredPositiveNumberField(value, fieldName);
   }
 
   static String? requiredField(String? value, String fieldName) {
@@ -146,6 +133,53 @@ class Validators {
       return '$fieldName is required';
     }
 
+    return null;
+  }
+
+  static String? requiredSelectionOrPositiveIdField<T>(
+    T? value,
+    String fieldName,
+  ) {
+    if (value == null) {
+      return '$fieldName is required';
+    }
+    if (value is num && value <= 0) {
+      return '$fieldName is required';
+    }
+    return null;
+  }
+
+  static String? dependentSelectionField<T>({
+    required Object? prerequisite,
+    required String prerequisiteName,
+    required T? value,
+    required String fieldName,
+    bool treatZeroAsEmpty = false,
+  }) {
+    if (prerequisite == null || (prerequisite is num && prerequisite <= 0)) {
+      return 'Select $prerequisiteName first';
+    }
+    if (value == null) {
+      return '$fieldName is required';
+    }
+    if (treatZeroAsEmpty && value is num && value <= 0) {
+      return '$fieldName is required';
+    }
+    return null;
+  }
+
+  static String? requiredPositiveNumberField(String? value, String fieldName) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) {
+      return '$fieldName is required';
+    }
+    final parsed = double.tryParse(text);
+    if (parsed == null) {
+      return '$fieldName must be a valid number';
+    }
+    if (parsed <= 0) {
+      return '$fieldName must be greater than zero';
+    }
     return null;
   }
 

@@ -77,6 +77,8 @@ class SalesDeliveryLineDraft {
 class SalesDeliveryManagementController extends GetxController {
   SalesDeliveryManagementController();
 
+  static const String lineItemsSectionId = 'sales_delivery_line_items';
+
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
@@ -123,6 +125,7 @@ class SalesDeliveryManagementController extends GetxController {
   List<PartyModel> allParties = const <PartyModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
+  final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   final Map<String, List<Map<String, dynamic>>>
@@ -130,6 +133,9 @@ class SalesDeliveryManagementController extends GetxController {
   final Set<String> batchOptionsLoadingKeys = <String>{};
   final Map<String, List<Map<String, dynamic>>>
   availableSerialsByItemWarehouse = <String, List<Map<String, dynamic>>>{};
+  final Map<String, Map<String, Map<String, dynamic>>>
+  availableSerialLookupByItemWarehouse =
+      <String, Map<String, Map<String, dynamic>>>{};
   final Set<String> serialOptionsLoadingKeys = <String>{};
   SalesDeliveryModel? selectedItem;
   int? contextCompanyId;
@@ -190,14 +196,58 @@ class SalesDeliveryManagementController extends GetxController {
 
   bool get mounted => !isClosed;
 
+  List<AppDropdownItem<int>> get financialYearDropdownItems => financialYears
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get documentSeriesDropdownItems => seriesOptions()
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get customerDropdownItems => customers
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get orderDropdownItems => orders
+      .where((item) => intValue(item.toJson(), 'id') != null)
+      .map(
+        (item) => AppDropdownItem(
+          value: intValue(item.toJson(), 'id')!,
+          label: stringValue(item.toJson(), 'order_no', 'Order'),
+        ),
+      )
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get transporterDropdownItems => allParties
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  List<AppSearchPickerOption<int>> get itemPickerOptions => itemsLookup
+      .where((item) => item.id != null)
+      .map(
+        (item) => AppSearchPickerOption<int>(
+          value: item.id!,
+          label: item.toString(),
+          subtitle: item.itemCode,
+        ),
+      )
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get warehouseDropdownItems => warehouses
+      .where((item) => item.id != null)
+      .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
+      .toList(growable: false);
+
+  String? itemLabelById(int? itemId) => itemById(itemId)?.toString();
+
+  void refreshLineItemsSection() => update(<Object>[lineItemsSectionId]);
+
   PartyModel? customerListEntryById(int? partyId) {
-    if (partyId == null) {
-      return null;
-    }
-    return customers.cast<PartyModel?>().firstWhere(
-      (item) => item?.id == partyId,
-      orElse: () => null,
-    );
+    return partyId == null ? null : customerDetailsById[partyId];
   }
 
   PartyModel? customerForPrintContext(int? partyId) {
@@ -241,11 +291,7 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   ItemModel? itemById(int? itemId) {
-    if (itemId == null) return null;
-    return itemsLookup.cast<ItemModel?>().firstWhere(
-      (item) => item?.id == itemId,
-      orElse: () => null,
-    );
+    return itemId == null ? null : itemLookupById[itemId];
   }
 
   bool isSerialManagedItem(int? itemId) => itemById(itemId)?.hasSerial == true;
@@ -303,6 +349,43 @@ class SalesDeliveryManagementController extends GetxController {
         )] ??
         const <Map<String, dynamic>>[];
   }
+
+  Map<String, Map<String, dynamic>> serialLookupForLine(
+    SalesDeliveryLineDraft line,
+  ) {
+    if (!isSerialManagedItem(line.itemId) ||
+        line.itemId == null ||
+        line.warehouseId == null) {
+      return const <String, Map<String, dynamic>>{};
+    }
+    final cacheKey = serialCacheKey(
+      line.itemId,
+      line.warehouseId,
+      line.batchId,
+    );
+    final existing = availableSerialLookupByItemWarehouse[cacheKey];
+    if (existing != null) {
+      return existing;
+    }
+    final serials = availableSerialsByItemWarehouse[cacheKey];
+    if (serials == null) {
+      return const <String, Map<String, dynamic>>{};
+    }
+    final built = <String, Map<String, dynamic>>{
+      for (final serial in serials)
+        (serial['serial_no']?.toString().trim().toLowerCase() ?? ''): serial,
+    }..remove('');
+    availableSerialLookupByItemWarehouse[cacheKey] = built;
+    return built;
+  }
+
+  Set<String> serialLabelSetForLine(SalesDeliveryLineDraft line) =>
+      serialLookupForLine(line).keys.toSet();
+
+  Map<String, dynamic>? serialOptionByLabelForLine(
+    SalesDeliveryLineDraft line,
+    String serialNo,
+  ) => serialLookupForLine(line)[serialNo.trim().toLowerCase()];
 
   Future<void> syncBatchOptionsForLine(SalesDeliveryLineDraft line) async {
     final itemId = line.itemId;
@@ -408,13 +491,11 @@ class SalesDeliveryManagementController extends GetxController {
                 .toList(growable: false)
           : const <Map<String, dynamic>>[];
       availableSerialsByItemWarehouse[cacheKey] = serials;
-      final validLabels = serials
-          .map(
-            (serial) =>
-                (serial['serial_no']?.toString().trim().toLowerCase() ?? ''),
-          )
-          .where((value) => value.isNotEmpty)
-          .toSet();
+      availableSerialLookupByItemWarehouse[cacheKey] = {
+        for (final serial in serials)
+          (serial['serial_no']?.toString().trim().toLowerCase() ?? ''): serial,
+      }..remove('');
+      final validLabels = availableSerialLookupByItemWarehouse[cacheKey]!.keys;
       final filtered = lineSerialNumbers(line)
           .where((value) => validLabels.contains(value.toLowerCase()))
           .toList(growable: false);
@@ -423,6 +504,8 @@ class SalesDeliveryManagementController extends GetxController {
     } catch (_) {
       availableSerialsByItemWarehouse[cacheKey] =
           const <Map<String, dynamic>>[];
+      availableSerialLookupByItemWarehouse[cacheKey] =
+          const <String, Map<String, dynamic>>{};
       update();
     } finally {
       serialOptionsLoadingKeys.remove(cacheKey);
@@ -437,64 +520,44 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   List<Map<String, dynamic>> linesForSave() {
-    return lines
-        .expand((line) {
-          final deliveredQty =
-              double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
-          final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
-          final description = nullIfEmpty(line.descriptionController.text);
-          final remarks = nullIfEmpty(line.remarksController.text);
+    final result = <Map<String, dynamic>>[];
+    for (final line in lines) {
+      final deliveredQty =
+          double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
+      final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+      final description = nullIfEmpty(line.descriptionController.text);
+      final remarks = nullIfEmpty(line.remarksController.text);
+      final basePayload = <String, dynamic>{
+        if (line.salesOrderLineId != null)
+          'sales_order_line_id': line.salesOrderLineId,
+        'item_id': line.itemId,
+        'warehouse_id': line.warehouseId,
+        'uom_id': line.uomId,
+        if (line.batchId != null) 'batch_id': line.batchId,
+        'description': description,
+        'rate': rate,
+        'remarks': remarks,
+      };
 
-          if (isSerialManagedItem(line.itemId)) {
-            final serials = lineSerialNumbers(line);
-            return serials.map((serialNo) {
-              final matched = serialOptionsForLine(line)
-                  .cast<Map<String, dynamic>?>()
-                  .firstWhere(
-                    (serial) =>
-                        (serial?['serial_no']
-                                ?.toString()
-                                .trim()
-                                .toLowerCase() ??
-                            '') ==
-                        serialNo.toLowerCase(),
-                    orElse: () => null,
-                  );
-              return <String, dynamic>{
-                if (line.salesOrderLineId != null)
-                  'sales_order_line_id': line.salesOrderLineId,
-                'item_id': line.itemId,
-                'warehouse_id': line.warehouseId,
-                'uom_id': line.uomId,
-                if (line.batchId != null) 'batch_id': line.batchId,
-                if (matched != null)
-                  'serial_id': int.tryParse(
-                    matched['serial_id']?.toString() ?? '',
-                  ),
-                'description': description,
-                'delivered_qty': 1,
-                'rate': rate,
-                'remarks': remarks,
-              };
-            });
-          }
+      if (isSerialManagedItem(line.itemId)) {
+        for (final serialNo in lineSerialNumbers(line)) {
+          final matched = serialOptionByLabelForLine(line, serialNo);
+          result.add(<String, dynamic>{
+            ...basePayload,
+            if (matched != null)
+              'serial_id': int.tryParse(matched['serial_id']?.toString() ?? ''),
+            'delivered_qty': 1,
+          });
+        }
+        continue;
+      }
 
-          return <Map<String, dynamic>>[
-            <String, dynamic>{
-              if (line.salesOrderLineId != null)
-                'sales_order_line_id': line.salesOrderLineId,
-              'item_id': line.itemId,
-              'warehouse_id': line.warehouseId,
-              'uom_id': line.uomId,
-              if (line.batchId != null) 'batch_id': line.batchId,
-              'description': description,
-              'delivered_qty': deliveredQty,
-              'rate': rate,
-              'remarks': remarks,
-            },
-          ];
-        })
-        .toList(growable: false);
+      result.add(<String, dynamic>{
+        ...basePayload,
+        'delivered_qty': deliveredQty,
+      });
+    }
+    return result;
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -589,6 +652,13 @@ class SalesDeliveryManagementController extends GetxController {
             (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
             const <PartyTypeModel>[],
       );
+      customerDetailsById
+        ..clear()
+        ..addEntries(
+          customers
+              .where((item) => item.id != null)
+              .map((item) => MapEntry(item.id!, item)),
+        );
       warehouses =
           ((responses[9] as PaginatedResponse<WarehouseModel>).data ??
                   const <WarehouseModel>[])
@@ -599,6 +669,13 @@ class SalesDeliveryManagementController extends GetxController {
                   const <ItemModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      itemLookupById
+        ..clear()
+        ..addEntries(
+          itemsLookup
+              .where((item) => item.id != null)
+              .map((item) => MapEntry(item.id!, item)),
+        );
       uoms =
           ((responses[11] as PaginatedResponse<UomModel>).data ??
                   const <UomModel>[])
@@ -715,23 +792,20 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   void _applyFilters({bool notify = true}) {
-    final search = searchController.text.trim().toLowerCase();
-    filteredItems = items
-        .where((item) {
-          final data = item.toJson();
-          final statusOk =
-              statusFilter.isEmpty ||
-              stringValue(data, 'delivery_status') == statusFilter;
-          final searchOk =
-              search.isEmpty ||
-              [
-                stringValue(data, 'delivery_no'),
-                stringValue(data, 'delivery_status'),
-                quotationCustomerLabel(data),
-              ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
-        })
-        .toList(growable: false);
+    filteredItems = filterBySearchAndStatus(
+      items,
+      query: searchController.text,
+      status: statusFilter,
+      statusOf: (item) => stringValue(item.toJson(), 'delivery_status'),
+      searchFieldsOf: (item) {
+        final data = item.toJson();
+        return <String>[
+          stringValue(data, 'delivery_no'),
+          stringValue(data, 'delivery_status'),
+          quotationCustomerLabel(data),
+        ];
+      },
+    );
     if (notify) update();
   }
 
@@ -839,10 +913,7 @@ class SalesDeliveryManagementController extends GetxController {
           final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
           final total = qty * rate;
           subtotal += total;
-          final item = itemsLookup.cast<ItemModel?>().firstWhere(
-            (entry) => entry?.id == line.itemId,
-            orElse: () => null,
-          );
+          final item = itemById(line.itemId);
           return DocumentPrintLineModel(
             itemName:
                 item?.itemName ??
@@ -856,13 +927,12 @@ class SalesDeliveryManagementController extends GetxController {
         })
         .toList(growable: false);
 
-    return DocumentPrintDataModel(
-      companyName: companyNameById(companies, companyId),
-      companyLogoUrl: AppConfig.resolvePublicFileUrl(company?.logoPath) ?? '',
-      companyGstin: company?.gstin ?? '',
+    return buildManagedDocumentPrintData(
+      companies: companies,
+      companyId: companyId,
+      company: company,
       documentNumber: nullIfEmpty(deliveryNoController.text) ?? 'Draft',
       documentDate: deliveryDateController.text.trim(),
-      referenceNumber: '',
       partyName: customer?.partyName ?? '',
       partyAddress: formatPartyAddress(preferredAddress),
       partyContact: resolvePartyContact(customer),
@@ -870,21 +940,15 @@ class SalesDeliveryManagementController extends GetxController {
       subtotal: roundToDouble(subtotal, 2),
       taxAmount: 0,
       totalAmount: roundToDouble(subtotal, 2),
-      amountInWords: printTemplateAmountInWords(
-        roundToDouble(subtotal, 2),
-        'INR',
-      ),
+      currencyCode: 'INR',
       lines: printLines,
     );
   }
 
   Future<void> openPrintPreview(BuildContext context) async {
-    await ensureCustomerPrintContext(customerPartyId);
-    if (!context.mounted) {
-      return;
-    }
-    await openDocumentPrintDesigner(
+    await openManagedDocumentPrintPreview(
       context,
+      prepare: () => ensureCustomerPrintContext(customerPartyId),
       documentType: 'sales_delivery',
       title: 'Delivery Challan',
       documentData: salesDeliveryPrintData(),
@@ -916,7 +980,7 @@ class SalesDeliveryManagementController extends GetxController {
   void addLine() {
     lines = List<SalesDeliveryLineDraft>.from(lines)
       ..add(SalesDeliveryLineDraft());
-    update();
+    refreshLineItemsSection();
   }
 
   void removeLine(int index) {
@@ -935,7 +999,7 @@ class SalesDeliveryManagementController extends GetxController {
       createEmpty: () => SalesDeliveryLineDraft(),
       assign: (entries) => lines = entries,
       dispose: (entry) => entry.dispose(),
-      notify: notify ? update : null,
+      notify: notify ? refreshLineItemsSection : null,
     );
   }
 
@@ -972,10 +1036,7 @@ class SalesDeliveryManagementController extends GetxController {
     line.batchId = null;
     line.serialNumbers = <String>[];
     line.serialNoController.clear();
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == value,
-      orElse: () => null,
-    );
+    final item = itemById(value);
     applySalesLineDefaultsFromItemMaster(
       item: item,
       uoms: uoms,
@@ -990,7 +1051,7 @@ class SalesDeliveryManagementController extends GetxController {
     if (isSerialManagedItem(value)) {
       line.deliveredQtyController.text = '';
     }
-    update();
+    refreshLineItemsSection();
   }
 
   Future<void> setLineWarehouseId(int index, int? value) async {
@@ -999,7 +1060,7 @@ class SalesDeliveryManagementController extends GetxController {
     line.batchId = null;
     line.serialNumbers = <String>[];
     line.serialNoController.clear();
-    update();
+    refreshLineItemsSection();
     await syncBatchOptionsForLine(line);
     await syncSerialOptionsForLine(line);
   }
@@ -1009,17 +1070,17 @@ class SalesDeliveryManagementController extends GetxController {
     line.batchId = value;
     line.serialNumbers = <String>[];
     line.serialNoController.clear();
-    update();
+    refreshLineItemsSection();
     await syncSerialOptionsForLine(line);
   }
 
   void setLineUomId(int index, int? value) {
     lines[index].uomId = value;
-    update();
+    refreshLineItemsSection();
   }
 
   void refreshState() {
-    update();
+    refreshLineItemsSection();
   }
 
   Future<void> save(BuildContext context) async {

@@ -71,6 +71,9 @@ class SalesInvoiceManagementController extends GetxController {
   final Set<String> batchOptionsLoadingKeys = <String>{};
   final Map<String, List<Map<String, dynamic>>>
   availableSerialsByItemWarehouse = <String, List<Map<String, dynamic>>>{};
+  final Map<String, Map<String, Map<String, dynamic>>>
+  availableSerialLookupByItemWarehouse =
+      <String, Map<String, Map<String, dynamic>>>{};
   final Set<String> serialOptionsLoadingKeys = <String>{};
   int? salesOrderId;
   int? salesDeliveryId;
@@ -176,14 +179,7 @@ class SalesInvoiceManagementController extends GetxController {
     }
     line.qtyController.text = normalized.length.toString();
     if (normalized.length == 1) {
-      final matched = serialOptionsForLine(line)
-          .cast<Map<String, dynamic>?>()
-          .firstWhere(
-            (serial) =>
-                (serial?['serial_no']?.toString().trim().toLowerCase() ?? '') ==
-                normalized.first.toLowerCase(),
-            orElse: () => null,
-          );
+      final matched = serialOptionByLabelForLine(line, normalized.first);
       line.serialId = matched == null
           ? null
           : int.tryParse(matched['serial_id']?.toString() ?? '');
@@ -240,18 +236,9 @@ class SalesInvoiceManagementController extends GetxController {
       return;
     }
 
-    final serialOptions = serialOptionsForLine(line);
     final replacements = normalized
         .map((serialNo) {
-          final matched = serialOptions
-              .cast<Map<String, dynamic>?>()
-              .firstWhere(
-                (serial) =>
-                    (serial?['serial_no']?.toString().trim().toLowerCase() ??
-                        '') ==
-                    serialNo.toLowerCase(),
-                orElse: () => null,
-              );
+          final matched = serialOptionByLabelForLine(line, serialNo);
           return InvoiceLineDraft(
             salesOrderLineId: line.salesOrderLineId,
             salesDeliveryLineId: line.salesDeliveryLineId,
@@ -689,6 +676,41 @@ class SalesInvoiceManagementController extends GetxController {
         const <Map<String, dynamic>>[];
   }
 
+  Map<String, Map<String, dynamic>> serialLookupForLine(InvoiceLineDraft line) {
+    if (!isSerialManagedItem(line.itemId) ||
+        line.itemId == null ||
+        line.warehouseId == null) {
+      return const <String, Map<String, dynamic>>{};
+    }
+    final cacheKey = serialCacheKey(
+      line.itemId,
+      line.warehouseId,
+      line.batchId,
+    );
+    final existing = availableSerialLookupByItemWarehouse[cacheKey];
+    if (existing != null) {
+      return existing;
+    }
+    final serials = availableSerialsByItemWarehouse[cacheKey];
+    if (serials == null) {
+      return const <String, Map<String, dynamic>>{};
+    }
+    final built = <String, Map<String, dynamic>>{
+      for (final serial in serials)
+        (serial['serial_no']?.toString().trim().toLowerCase() ?? ''): serial,
+    }..remove('');
+    availableSerialLookupByItemWarehouse[cacheKey] = built;
+    return built;
+  }
+
+  Set<String> serialLabelSetForLine(InvoiceLineDraft line) =>
+      serialLookupForLine(line).keys.toSet();
+
+  Map<String, dynamic>? serialOptionByLabelForLine(
+    InvoiceLineDraft line,
+    String serialNo,
+  ) => serialLookupForLine(line)[serialNo.trim().toLowerCase()];
+
   Future<void> syncSerialOptionsForLine(InvoiceLineDraft line) async {
     final itemId = line.itemId;
     final warehouseId = line.warehouseId;
@@ -747,6 +769,11 @@ class SalesInvoiceManagementController extends GetxController {
       }
       State(() {
         availableSerialsByItemWarehouse[cacheKey] = serials;
+        availableSerialLookupByItemWarehouse[cacheKey] = {
+          for (final serial in serials)
+            (serial['serial_no']?.toString().trim().toLowerCase() ?? ''):
+                serial,
+        }..remove('');
         reconcileLineSerials(line, serials);
         final hasSelectedSerial = serials.any(
           (serial) =>
@@ -789,6 +816,8 @@ class SalesInvoiceManagementController extends GetxController {
       State(() {
         availableSerialsByItemWarehouse[cacheKey] =
             const <Map<String, dynamic>>[];
+        availableSerialLookupByItemWarehouse[cacheKey] =
+            const <String, Map<String, dynamic>>{};
         if (line.itemId == itemId && line.warehouseId == warehouseId) {
           line.serialId = null;
         }
@@ -2200,71 +2229,61 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   List<SalesInvoiceLineModel> linesForSave() {
-    return lines
-        .expand((line) {
-          final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-          final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
-          final disc =
-              double.tryParse(line.discountController.text.trim()) ?? 0;
-          final description = nullIfEmpty(line.descriptionController.text);
-          final remarks = nullIfEmpty(line.remarksController.text);
+    final result = <SalesInvoiceLineModel>[];
+    for (final line in lines) {
+      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+      final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+      final disc = double.tryParse(line.discountController.text.trim()) ?? 0;
+      final description = nullIfEmpty(line.descriptionController.text);
+      final remarks = nullIfEmpty(line.remarksController.text);
 
-          if (isSerialManagedItem(line.itemId)) {
-            final serials = lineSerialNumbers(line);
-            return serials.map((serialNo) {
-              final matched = serialOptionsForLine(line)
-                  .cast<Map<String, dynamic>?>()
-                  .firstWhere(
-                    (serial) =>
-                        (serial?['serial_no']
-                                ?.toString()
-                                .trim()
-                                .toLowerCase() ??
-                            '') ==
-                        serialNo.toLowerCase(),
-                    orElse: () => null,
-                  );
-              return SalesInvoiceLineModel(
-                salesOrderLineId: line.salesOrderLineId,
-                salesDeliveryLineId: line.salesDeliveryLineId,
-                itemId: line.itemId ?? 0,
-                uomId: line.uomId ?? 0,
-                invoicedQty: 1,
-                rate: rate,
-                warehouseId: line.warehouseId,
-                batchId: line.batchId,
-                serialId: matched == null
-                    ? null
-                    : int.tryParse(matched['serial_id']?.toString() ?? ''),
-                serialNo: serialNo,
-                taxCodeId: line.taxCodeId,
-                description: description,
-                discountPercent: disc == 0 ? null : disc,
-                remarks: remarks,
-              );
-            });
-          }
-
-          return <SalesInvoiceLineModel>[
+      if (isSerialManagedItem(line.itemId)) {
+        for (final serialNo in lineSerialNumbers(line)) {
+          final matched = serialOptionByLabelForLine(line, serialNo);
+          result.add(
             SalesInvoiceLineModel(
               salesOrderLineId: line.salesOrderLineId,
               salesDeliveryLineId: line.salesDeliveryLineId,
               itemId: line.itemId ?? 0,
               uomId: line.uomId ?? 0,
-              invoicedQty: qty,
+              invoicedQty: 1,
               rate: rate,
               warehouseId: line.warehouseId,
               batchId: line.batchId,
-              serialId: line.serialId,
-              serialNo: serialNumberForLine(line),
+              serialId: matched == null
+                  ? null
+                  : int.tryParse(matched['serial_id']?.toString() ?? ''),
+              serialNo: serialNo,
               taxCodeId: line.taxCodeId,
               description: description,
               discountPercent: disc == 0 ? null : disc,
               remarks: remarks,
             ),
-          ];
-        })
-        .toList(growable: false);
+          );
+        }
+        continue;
+      }
+
+      result.add(
+        SalesInvoiceLineModel(
+          salesOrderLineId: line.salesOrderLineId,
+          salesDeliveryLineId: line.salesDeliveryLineId,
+          itemId: line.itemId ?? 0,
+          uomId: line.uomId ?? 0,
+          invoicedQty: qty,
+          rate: rate,
+          warehouseId: line.warehouseId,
+          batchId: line.batchId,
+          serialId: line.serialId,
+          serialNo: serialNumberForLine(line),
+          taxCodeId: line.taxCodeId,
+          description: description,
+          discountPercent: disc == 0 ? null : disc,
+          remarks: remarks,
+        ),
+      );
+    }
+    return result;
   }
 
   Future<void> save(BuildContext context) async {
