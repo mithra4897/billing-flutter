@@ -342,6 +342,7 @@ class _CrmOpportunityRegisterPageState
     return PurchaseRegisterPage<CrmOpportunityModel>(
       title: 'CRM Opportunities',
       embedded: widget.embedded,
+      fullPageStyle: true,
       loading: _loading,
       errorMessage: _error,
       onRetry: _load,
@@ -564,10 +565,16 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
             filled: false,
           ),
           AdaptiveShellActionButton(
-            onPressed: () => _openCrmOpportunityShellRoute(
-              context,
-              '/crm/opportunities/new',
-            ),
+            onPressed: () {
+              if (widget.editorOnly && widget.startInNewMode) {
+                controller.resetForm();
+                return;
+              }
+              _openCrmOpportunityShellRoute(
+                context,
+                '/crm/opportunities/new',
+              );
+            },
             icon: Icons.add_outlined,
             label: 'New Opportunity',
           ),

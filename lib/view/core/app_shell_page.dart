@@ -78,16 +78,19 @@ class _AppShellPageState extends State<AppShellPage> {
               currentPath: _buildCurrentRoute(controller),
               actionsListenable: controller.shellPageActionsController,
               onNavigate: controller.handleNavigate,
-              child: Align(
-                alignment: AlignmentGeometry.topCenter,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 140),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeOut,
-                  child: _buildContent(controller),
+                child: Align(
+                  alignment: AlignmentGeometry.topCenter,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 140),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeOut,
+                    layoutBuilder: (currentChild, previousChildren) {
+                      return currentChild ?? const SizedBox.shrink();
+                    },
+                    child: _buildContent(controller),
+                  ),
                 ),
               ),
-            ),
           ),
         );
       },

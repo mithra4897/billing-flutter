@@ -239,6 +239,7 @@ class _CrmLeadRegisterPageState extends State<CrmLeadRegisterPage> {
         return PurchaseRegisterPage<CrmLeadModel>(
           title: 'CRM Leads',
           embedded: widget.embedded,
+          fullPageStyle: true,
           loading: controller.loading,
           errorMessage: controller.error,
           onRetry: controller.load,
@@ -461,7 +462,14 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             filled: false,
           ),
           AdaptiveShellActionButton(
-            onPressed: () => _openCrmShellRoute(context, '/crm/leads/new'),
+            onPressed: () {
+              if (widget.editorOnly && widget.startInNewMode) {
+                controller.resetForm(notify: false);
+                controller.applyInitialLeadDraft();
+                return;
+              }
+              _openCrmShellRoute(context, '/crm/leads/new');
+            },
             icon: Icons.add_outlined,
             label: 'New Lead',
           ),

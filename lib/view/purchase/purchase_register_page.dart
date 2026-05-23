@@ -27,6 +27,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
     required this.emptyMessage,
     this.filters,
     this.embedded = false,
+    this.fullPageStyle = false,
   });
 
   final String title;
@@ -40,6 +41,7 @@ class PurchaseRegisterPage<T> extends StatefulWidget {
   final ValueChanged<T> onRowTap;
   final String emptyMessage;
   final bool embedded;
+  final bool fullPageStyle;
 
   static const double listViewportHeight = 560;
 
@@ -147,7 +149,12 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
       );
     }
 
+    if (widget.fullPageStyle) {
+      return _buildFullPageContent(context, controller, visibleRows);
+    }
+
     return SingleChildScrollView(
+      controller: controller.pageScrollController,
       padding: const EdgeInsets.all(AppUiConstants.pagePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,6 +214,195 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFullPageContent(
+    BuildContext context,
+    PurchaseRegisterPageController controller,
+    List<T> visibleRows,
+  ) {
+    final appTheme = Theme.of(context).extension<AppThemeExtension>()!;
+    final useTable = MediaQuery.of(context).size.width >= 900;
+
+    return SingleChildScrollView(
+      controller: controller.pageScrollController,
+      padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.filters != null) ...[
+            AppSectionCard(child: widget.filters!),
+            const SizedBox(height: AppUiConstants.spacingLg),
+          ],
+          if (widget.rows.isEmpty)
+            Container(
+              constraints: const BoxConstraints(minHeight: 280),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: appTheme.cardBackground,
+                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: appTheme.cardShadow,
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Text(
+                widget.emptyMessage,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: appTheme.mutedText),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: appTheme.cardBackground,
+                borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: appTheme.cardShadow,
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (useTable)
+                      _buildDesktopTable(context, visibleRows)
+                    else
+                      _buildMobileCards(context, visibleRows, appTheme),
+                    const SizedBox(height: AppUiConstants.spacingMd),
+                    LocalPageNavigation(
+                      totalItems: widget.rows.length,
+                      currentPage: controller.currentPage,
+                      onPageChanged: controller.setPage,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopTable(BuildContext context, List<T> visibleRows) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppUiConstants.spacingSm,
+            vertical: AppUiConstants.spacingXs,
+          ),
+          child: Row(
+            children: widget.columns
+                .map(
+                  (column) => Expanded(
+                    flex: column.flex,
+                    child: Text(
+                      column.label,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ),
+        const Divider(height: 1),
+        ...visibleRows.map(
+          (row) => InkWell(
+            onTap: () => widget.onRowTap(row),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppUiConstants.spacingSm,
+                vertical: AppUiConstants.spacingMd,
+              ),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Color(0x11000000))),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: widget.columns
+                    .map(
+                      (column) => Expanded(
+                        flex: column.flex,
+                        child: Text(
+                          column.valueBuilder(row).trim().isEmpty
+                              ? '-'
+                              : column.valueBuilder(row),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileCards(
+    BuildContext context,
+    List<T> visibleRows,
+    AppThemeExtension appTheme,
+  ) {
+    return Column(
+      children: visibleRows.map((row) {
+        final primaryText = widget.columns.isEmpty
+            ? ''
+            : widget.columns.first.valueBuilder(row);
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: appTheme.subtleFill,
+            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+          ),
+          child: InkWell(
+            onTap: () => widget.onRowTap(row),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (primaryText.trim().isNotEmpty)
+                  Text(
+                    primaryText,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                if (primaryText.trim().isNotEmpty)
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                ...widget.columns.skip(primaryText.trim().isNotEmpty ? 1 : 0).map(
+                  (column) => Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacingXs,
+                    ),
+                    child: Text(
+                      '${column.label}: ${column.valueBuilder(row).trim().isEmpty ? '-' : column.valueBuilder(row)}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(growable: false),
     );
   }
 }
