@@ -39,10 +39,13 @@ class AppShellController extends GetxController {
   void syncRouteInputs({
     required String path,
     required Map<String, String> queryParameters,
+    bool notify = true,
   }) {
     currentPath = path;
     currentQueryParameters = Map<String, String>.from(queryParameters);
-    update();
+    if (notify) {
+      update();
+    }
   }
 
   Future<void> loadShellContext() async {

@@ -6,6 +6,11 @@ class CrmPendingFollowupItem {
   const CrmPendingFollowupItem({
     required this.id,
     required this.enquiryId,
+    required this.enquiryNo,
+    required this.opportunityName,
+    required this.expectedValue,
+    required this.customerName,
+    required this.leadName,
     required this.subjectName,
     required this.followupDateRaw,
     required this.priority,
@@ -16,6 +21,11 @@ class CrmPendingFollowupItem {
 
   final int? id;
   final int? enquiryId;
+  final String? enquiryNo;
+  final String? opportunityName;
+  final double? expectedValue;
+  final String? customerName;
+  final String? leadName;
   final String subjectName;
   final String? followupDateRaw;
   final String priority;
@@ -42,10 +52,20 @@ class CrmPendingFollowupItem {
         : (stringValue(assignedUser, 'display_name').trim().isNotEmpty
               ? stringValue(assignedUser, 'display_name').trim()
               : nullIfEmpty(stringValue(assignedUser, 'username')));
+    final enquiryNo = nullIfEmpty(stringValue(json, 'enquiry_no'));
+    final opportunityName = nullIfEmpty(stringValue(json, 'opportunity_name'));
+    final expectedValue = JsonModel.nullableDouble(json['expected_value']);
+    final customerName = nullIfEmpty(stringValue(json, 'customer_name'));
+    final leadName = nullIfEmpty(stringValue(json, 'lead_name'));
 
     return CrmPendingFollowupItem(
       id: intValue(json, 'id'),
       enquiryId: intValue(json, 'enquiry_id'),
+      enquiryNo: enquiryNo,
+      opportunityName: opportunityName,
+      expectedValue: expectedValue,
+      customerName: customerName,
+      leadName: leadName,
       subjectName: resolvedSubjectName,
       followupDateRaw: nullableStringValue(json, 'followup_date'),
       priority: crmNormalizePriority(

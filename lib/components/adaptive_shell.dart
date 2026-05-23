@@ -114,48 +114,55 @@ class _ShellHistoryButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (compact) {
-      return Column(
-        children: [
-          _ShellHistoryButton(
-            icon: Icons.arrow_back_rounded,
-            label: 'Back',
-            foregroundColor: foregroundColor,
-            onPressed: canNavigateBack ? onBackPressed : null,
-            compact: true,
-          ),
-          const SizedBox(height: AppUiConstants.spacingXs),
-          _ShellHistoryButton(
-            icon: Icons.arrow_forward_rounded,
-            label: 'Forward',
-            foregroundColor: foregroundColor,
-            onPressed: canNavigateForward ? onForwardPressed : null,
-            compact: true,
-          ),
-        ],
-      );
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useCompact =
+            compact || constraints.maxWidth < 180 || !constraints.hasBoundedWidth;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _ShellHistoryButton(
-            icon: Icons.arrow_back_rounded,
-            label: 'Back',
-            foregroundColor: foregroundColor,
-            onPressed: canNavigateBack ? onBackPressed : null,
-          ),
-        ),
-        const SizedBox(width: AppUiConstants.spacingXs),
-        Expanded(
-          child: _ShellHistoryButton(
-            icon: Icons.arrow_forward_rounded,
-            label: 'Forward',
-            foregroundColor: foregroundColor,
-            onPressed: canNavigateForward ? onForwardPressed : null,
-          ),
-        ),
-      ],
+        if (useCompact) {
+          return Column(
+            children: [
+              _ShellHistoryButton(
+                icon: Icons.arrow_back_rounded,
+                label: 'Back',
+                foregroundColor: foregroundColor,
+                onPressed: canNavigateBack ? onBackPressed : null,
+                compact: true,
+              ),
+              const SizedBox(height: AppUiConstants.spacingXs),
+              _ShellHistoryButton(
+                icon: Icons.arrow_forward_rounded,
+                label: 'Forward',
+                foregroundColor: foregroundColor,
+                onPressed: canNavigateForward ? onForwardPressed : null,
+                compact: true,
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: _ShellHistoryButton(
+                icon: Icons.arrow_back_rounded,
+                label: 'Back',
+                foregroundColor: foregroundColor,
+                onPressed: canNavigateBack ? onBackPressed : null,
+              ),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            Expanded(
+              child: _ShellHistoryButton(
+                icon: Icons.arrow_forward_rounded,
+                label: 'Forward',
+                foregroundColor: foregroundColor,
+                onPressed: canNavigateForward ? onForwardPressed : null,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -181,8 +188,13 @@ class _ShellHistoryButton extends StatelessWidget {
 
     return Opacity(
       opacity: enabled ? 1 : 0.45,
-      child: compact
-          ? Tooltip(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final useCompact =
+              compact || constraints.maxWidth < 96 || !constraints.hasBoundedWidth;
+
+          if (useCompact) {
+            return Tooltip(
               message: label,
               child: OutlinedButton(
                 onPressed: onPressed,
@@ -204,27 +216,35 @@ class _ShellHistoryButton extends StatelessWidget {
                 ),
                 child: Icon(icon, size: 18),
               ),
-            )
-          : OutlinedButton.icon(
-              onPressed: onPressed,
-              style: OutlinedButton.styleFrom(
-                alignment: Alignment.centerLeft,
-                minimumSize: const Size.fromHeight(42),
-                side: BorderSide(
-                  color: foregroundColor.withValues(alpha: 0.18),
-                ),
-                foregroundColor: foregroundColor,
-                disabledForegroundColor: foregroundColor,
-                disabledBackgroundColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppUiConstants.buttonRadius,
-                  ),
+            );
+          }
+
+          return OutlinedButton.icon(
+            onPressed: onPressed,
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              minimumSize: const Size.fromHeight(42),
+              side: BorderSide(
+                color: foregroundColor.withValues(alpha: 0.18),
+              ),
+              foregroundColor: foregroundColor,
+              disabledForegroundColor: foregroundColor,
+              disabledBackgroundColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
                 ),
               ),
-              icon: Icon(icon, size: 18),
-              label: Text(label),
             ),
+            icon: Icon(icon, size: 18),
+            label: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -82,10 +82,33 @@ bool _crmIsBoardFollowupDueToday(
   Map<String, dynamic> row,
   DateTime currentDate,
 ) {
+  return _crmBoardFollowupBucket(row, currentDate) == CrmFollowupTimingBucket.today;
+}
+
+bool _crmIsBoardFollowupOverdue(
+  Map<String, dynamic> row,
+  DateTime currentDate,
+) {
+  return _crmBoardFollowupBucket(row, currentDate) ==
+      CrmFollowupTimingBucket.overdue;
+}
+
+bool _crmIsBoardFollowupUpcoming(
+  Map<String, dynamic> row,
+  DateTime currentDate,
+) {
+  return _crmBoardFollowupBucket(row, currentDate) ==
+      CrmFollowupTimingBucket.upcoming;
+}
+
+CrmFollowupTimingBucket? _crmBoardFollowupBucket(
+  Map<String, dynamic> row,
+  DateTime currentDate,
+) {
   final rawDate = nullableStringValue(row, 'followup_date');
   final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
   if (parsed == null) {
-    return false;
+    return null;
   }
 
   final normalizedCurrent = DateTime(
@@ -94,7 +117,13 @@ bool _crmIsBoardFollowupDueToday(
     currentDate.day,
   );
   final normalizedParsed = DateTime(parsed.year, parsed.month, parsed.day);
-  return normalizedParsed == normalizedCurrent;
+  if (normalizedParsed == normalizedCurrent) {
+    return CrmFollowupTimingBucket.today;
+  }
+  if (normalizedParsed.isBefore(normalizedCurrent)) {
+    return CrmFollowupTimingBucket.overdue;
+  }
+  return CrmFollowupTimingBucket.upcoming;
 }
 
 Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
@@ -127,7 +156,6 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   final openOpportunityResponse = await crmService.opportunities(
     filters: const <String, dynamic>{'per_page': 1, 'status': 'open'},
   );
-  final pendingFollowupResponse = await crmService.pendingFollowups();
   final followupBoardResponse = await crmService.opportunityFollowupsBoard();
   final followupBoardData =
       followupBoardResponse.data ?? const <String, dynamic>{};
@@ -141,39 +169,38 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
             ),
           )
           .toList(growable: false);
-  final followupItems =
-      (pendingFollowupResponse.data ?? const <CrmFollowupModel>[])
-          .map((item) => CrmPendingFollowupItem.fromJson(item.toJson()))
-          .where(
-            (item) =>
-                _crmMatchesTrendFilter(item, activeFilter, today: currentDate),
-          )
+  final completedFollowupRows =
+      (followupBoardData['completed_followups'] as List<dynamic>? ??
+              const <dynamic>[])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
           .toList(growable: false);
-  final completedCount = followupItems
-      .where((item) => crmIsCompletedFollowupStatus(item.status))
+  final followupItems = followupBoardRows
+      .map(CrmPendingFollowupItem.fromJson)
+      .where(
+        (item) => _crmMatchesTrendFilter(item, activeFilter, today: currentDate),
+      )
+      .toList(growable: false);
+  final completedCount = completedFollowupRows
+      .map(CrmPendingFollowupItem.fromJson)
+      .where(
+        (item) => _crmMatchesTrendFilter(item, activeFilter, today: currentDate),
+      )
       .length;
 
   final pendingItems = sortCrmPendingFollowups(
-    followupItems.where((item) => !crmIsCompletedFollowupStatus(item.status)),
+    followupItems,
     today: currentDate,
   );
 
   final todayCount = followupBoardRows
       .where((row) => _crmIsBoardFollowupDueToday(row, currentDate))
       .length;
-  final overdueCount = pendingItems
-      .where(
-        (item) =>
-            crmFollowupBucket(item, today: currentDate) ==
-            CrmFollowupTimingBucket.overdue,
-      )
+  final overdueCount = followupBoardRows
+      .where((row) => _crmIsBoardFollowupOverdue(row, currentDate))
       .length;
-  final upcomingCount = pendingItems
-      .where(
-        (item) =>
-            crmFollowupBucket(item, today: currentDate) ==
-            CrmFollowupTimingBucket.upcoming,
-      )
+  final upcomingCount = followupBoardRows
+      .where((row) => _crmIsBoardFollowupUpcoming(row, currentDate))
       .length;
   final highPriority = pendingItems
       .where((item) => crmNormalizePriority(item.priority) == 'high')
@@ -247,21 +274,52 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         items: pendingItems
             .take(6)
             .map(
-              (item) => ErpDashboardListItem(
-                title: item.subjectName,
-                subtitle: [
-                  crmPriorityLabel(item.priority),
+              (item) {
+                final opportunityName = (item.opportunityName ?? '').trim();
+                final customerName = (item.customerName ?? '').trim();
+                final leadName = (item.leadName ?? '').trim();
+                final title = customerName.isNotEmpty
+                    ? customerName
+                    : opportunityName.isNotEmpty
+                    ? opportunityName
+                    : (item.subjectName.trim().isNotEmpty &&
+                          item.subjectName.trim().toLowerCase() !=
+                              'pending followup')
+                    ? item.subjectName.trim()
+                    : item.id != null
+                    ? 'Follow-up #${item.id}'
+                    : 'CRM Follow-up';
+                final subtitleParts = <String>[
+                  if ((item.enquiryNo ?? '').trim().isNotEmpty) item.enquiryNo!,
                   item.followupDateLabel.isEmpty
                       ? 'No follow-up date'
-                      : item.followupDateLabel,
-                ].join(' • '),
-                detail: item.summary ?? item.assignedUserName,
-                statusLabel: item.status.toUpperCase(),
-                statusColor: crmPriorityColor(item.priority),
-                route: item.enquiryId == null
-                    ? '/crm/opportunities'
-                    : '/crm/opportunities/${item.enquiryId}',
-              ),
+                      : 'Due ${item.followupDateLabel}',
+                  'Priority ${crmPriorityLabel(item.priority)}',
+                  if ((item.assignedUserName ?? '').trim().isNotEmpty)
+                    'Assigned ${item.assignedUserName!}',
+                ];
+                final detailParts = <String>[
+                  if (opportunityName.isNotEmpty &&
+                      opportunityName.toLowerCase() !=
+                          customerName.toLowerCase())
+                    opportunityName,
+                  if (leadName.isNotEmpty) 'Lead $leadName',
+                  if (_crmHasValue(item.expectedValue))
+                    'Expected ${_crmFormatExpectedValue(item.expectedValue!)}',
+                  if ((item.summary ?? '').trim().isNotEmpty) item.summary!,
+                ];
+
+                return ErpDashboardListItem(
+                  title: title,
+                  subtitle: subtitleParts.join(' • '),
+                  detail: detailParts.isEmpty ? null : detailParts.join(' • '),
+                  statusLabel: item.status.toUpperCase(),
+                  statusColor: crmPriorityColor(item.priority),
+                  route: item.enquiryId == null
+                      ? '/crm/opportunities'
+                      : '/crm/opportunities/${item.enquiryId}',
+                );
+              },
             )
             .toList(growable: false),
         emptyTitle: 'No pending CRM follow-ups',
@@ -318,18 +376,21 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
           value: _formatInt(todayCount),
           helper: 'Needs same-day attention',
           color: const Color(0xFFE67E22),
+          route: '/crm/follow-ups?dashboard_filter=due_today',
         ),
         ErpDashboardHighlightEntry(
           label: 'Overdue',
           value: _formatInt(overdueCount),
           helper: 'Past target follow-ups',
           color: const Color(0xFFDA4D78),
+          route: '/crm/follow-ups?dashboard_filter=overdue',
         ),
         ErpDashboardHighlightEntry(
           label: 'Upcoming',
           value: _formatInt(upcomingCount),
           helper: 'Planned next actions',
           color: const Color(0xFF2F6FED),
+          route: '/crm/follow-ups?dashboard_filter=upcoming',
         ),
       ],
     ),
@@ -3084,3 +3145,26 @@ bool _isLowStockBalance(StockBalanceModel item) {
 }
 
 String _formatInt(int value) => value.toString();
+
+bool _crmHasValue(double? value) => value != null && value != 0;
+
+String _crmFormatExpectedValue(double value) {
+  final absolute = value.abs();
+  final decimals = value == value.roundToDouble() ? 0 : 2;
+  final parts = absolute.toStringAsFixed(decimals).split('.');
+  final whole = parts.first;
+  final buffer = StringBuffer();
+
+  for (int index = 0; index < whole.length; index++) {
+    final reverseIndex = whole.length - index;
+    buffer.write(whole[index]);
+    if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+      buffer.write(',');
+    }
+  }
+
+  final formattedWhole = buffer.toString();
+  final decimalPart = parts.length > 1 && parts[1].isNotEmpty ? '.${parts[1]}' : '';
+  final prefix = value < 0 ? '-Rs ' : 'Rs ';
+  return '$prefix$formattedWhole$decimalPart';
+}

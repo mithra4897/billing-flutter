@@ -200,12 +200,14 @@ class ErpDashboardHighlightEntry {
     required this.value,
     this.helper,
     this.color = const Color(0xFF2F6FED),
+    this.route,
   });
 
   final String label;
   final String value;
   final String? helper;
   final Color color;
+  final String? route;
 }
 
 class ErpModuleDashboard extends StatelessWidget {
@@ -1135,38 +1137,56 @@ class _HighlightTile extends StatelessWidget {
               .clamp(120, 220)
               .toDouble()
         : double.infinity;
+    final route = entry.route?.trim();
+    final isInteractive = route != null && route.isNotEmpty;
 
     return SizedBox(
       width: width,
-      child: Container(
-        padding: const EdgeInsets.all(AppUiConstants.tilePadding),
-        decoration: BoxDecoration(
-          color: entry.color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-          border: Border.all(color: entry.color.withValues(alpha: 0.14)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              entry.label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: entry.color,
-                fontWeight: FontWeight.w700,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+        onTap: !isInteractive
+            ? null
+            : () {
+                final navigate = ShellRouteScope.maybeOf(context);
+                if (navigate != null) {
+                  navigate(route);
+                  return;
+                }
+                Navigator.of(context).pushNamed(route);
+              },
+        child: Container(
+          padding: const EdgeInsets.all(AppUiConstants.tilePadding),
+          decoration: BoxDecoration(
+            color: entry.color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+            border: Border.all(color: entry.color.withValues(alpha: 0.14)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: entry.color,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const SizedBox(height: AppUiConstants.spacingXs),
-            Text(
-              entry.value,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            if ((entry.helper ?? '').trim().isNotEmpty) ...[
-              const SizedBox(height: AppUiConstants.spacingXxs),
-              Text(entry.helper!, style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: AppUiConstants.spacingXs),
+              Text(
+                entry.value,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              if ((entry.helper ?? '').trim().isNotEmpty) ...[
+                const SizedBox(height: AppUiConstants.spacingXxs),
+                Text(
+                  entry.helper!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

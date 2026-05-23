@@ -31,6 +31,7 @@ class _CrmOpportunityRegisterPageState
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All'),
         AppDropdownItem(value: 'open', label: 'Open'),
+        AppDropdownItem(value: 'lost', label: 'Lost'),
         AppDropdownItem(value: 'won', label: 'Won'),
       ];
 
@@ -328,6 +329,8 @@ class _CrmOpportunityRegisterPageState
     switch (value.trim().toLowerCase()) {
       case 'won':
         return 'Won';
+      case 'lost':
+        return 'Lost';
       case 'open':
       default:
         return 'Open';
@@ -828,6 +831,10 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       editor: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (controller.formError != null) ...[
+            AppErrorStateView.inline(message: controller.formError!),
+            const SizedBox(height: AppUiConstants.spacingSm),
+          ],
           TabBar(
             controller: _tabController,
             onTap: controller.setActiveTabIndex,
@@ -840,33 +847,32 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
             ],
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
-          IndexedStack(
-            index: controller.activeTabIndex,
-            children: [
-              _buildPrimaryTab(context, controller),
-              controller.selectedItem?.toJson()['id'] == null
-                  ? _buildDependentTabPlaceholder(
-                      title: 'Followups',
-                      message:
-                          'Save this opportunity first to manage calls and followups.',
-                    )
-                  : _buildFollowupsTab(context, controller),
-              controller.selectedItem?.toJson()['id'] == null
-                  ? _buildDependentTabPlaceholder(
-                      title: 'Products',
-                      message:
-                          'Save this opportunity first to manage opportunity products.',
-                    )
-                  : _buildLinesTab(context, controller),
-              controller.selectedItem?.toJson()['id'] == null
-                  ? _buildDependentTabPlaceholder(
-                      title: 'Suggested Products',
-                      message:
-                          'Save this opportunity first to manage suggested products.',
-                    )
-                  : _buildProductsTab(context, controller),
-            ],
-          ),
+          if (controller.activeTabIndex == 0)
+            _buildPrimaryTab(context, controller)
+          else if (controller.activeTabIndex == 1)
+            controller.selectedItem?.toJson()['id'] == null
+                ? _buildDependentTabPlaceholder(
+                    title: 'Followups',
+                    message:
+                        'Save this opportunity first to manage calls and followups.',
+                  )
+                : _buildFollowupsTab(context, controller)
+          else if (controller.activeTabIndex == 2)
+            controller.selectedItem?.toJson()['id'] == null
+                ? _buildDependentTabPlaceholder(
+                    title: 'Products',
+                    message:
+                        'Save this opportunity first to manage opportunity products.',
+                  )
+                : _buildLinesTab(context, controller)
+          else
+            controller.selectedItem?.toJson()['id'] == null
+                ? _buildDependentTabPlaceholder(
+                    title: 'Suggested Products',
+                    message:
+                        'Save this opportunity first to manage suggested products.',
+                  )
+                : _buildProductsTab(context, controller),
         ],
       ),
     );
@@ -1197,10 +1203,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (controller.formError != null) ...[
-            AppErrorStateView.inline(message: controller.formError!),
-            const SizedBox(height: AppUiConstants.spacingSm),
-          ],
           if (controller.selectedOpportunityId() != null) ...[
             CrmSalesPipelineBar(
               data: controller.salesChain,

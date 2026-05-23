@@ -764,19 +764,16 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             ],
           ),
           const SizedBox(height: AppUiConstants.spacingMd),
-          IndexedStack(
-            index: controller.activeTabIndex,
-            children: [
-              _buildPrimaryTab(context, controller),
-              controller.selectedItem?.toJson()['id'] == null
-                  ? _buildDependentTabPlaceholder(
-                      title: 'Activities',
-                      message:
-                          'Save this lead first to manage calls, emails, meetings, and follow-up notes.',
-                    )
-                  : _buildActivitiesTab(context, controller),
-            ],
-          ),
+          if (controller.activeTabIndex == 0)
+            _buildPrimaryTab(context, controller)
+          else if (controller.selectedItem?.toJson()['id'] == null)
+            _buildDependentTabPlaceholder(
+              title: 'Activities',
+              message:
+                  'Save this lead first to manage calls, emails, meetings, and follow-up notes.',
+            )
+          else
+            _buildActivitiesTab(context, controller),
         ],
       ),
     );

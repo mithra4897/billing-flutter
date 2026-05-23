@@ -6,6 +6,7 @@ class CrmOpportunitiesController extends GetxController {
   static const List<AppDropdownItem<String>> filterStatusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'open', label: 'Open'),
+        AppDropdownItem(value: 'lost', label: 'Lost'),
         AppDropdownItem(value: 'won', label: 'Won'),
       ];
   static const List<AppDropdownItem<String>> followupStatuses =
@@ -114,9 +115,6 @@ class CrmOpportunitiesController extends GetxController {
     disposeProducts(products);
     super.onClose();
   }
-
-  static bool isCompletedOpportunity(CrmOpportunityModel item) =>
-      stringValue(item.toJson(), 'status') == 'won';
 
   String normalizedStageType(CrmStageModel stage) =>
       stringValue(stage.toJson(), 'stage_type').trim().toLowerCase();
@@ -270,17 +268,6 @@ class CrmOpportunitiesController extends GetxController {
             })
             .where((item) {
               final data = item.toJson();
-              final completed = isCompletedOpportunity(item);
-              final requestedStatus =
-                  (filtersApplied
-                          ? (filterStatus ?? allFilterStringValue)
-                          : (filterStatus ?? ''))
-                      .trim();
-              final showAllStatuses =
-                  filtersApplied && requestedStatus == allFilterStringValue;
-              if (completed && !showAllStatuses && requestedStatus != 'won') {
-                return false;
-              }
               final closeDate = displayDate(
                 nullableStringValue(data, 'expected_close_date'),
               );
@@ -511,7 +498,8 @@ class CrmOpportunitiesController extends GetxController {
   }
 
   Future<void> save() async {
-    if (formKey?.currentState?.validate() != true) {
+    final activeFormState = formKey?.currentState;
+    if (activeFormState != null && !activeFormState.validate()) {
       return;
     }
     saving = true;
@@ -554,6 +542,9 @@ class CrmOpportunitiesController extends GetxController {
       );
     } catch (error) {
       formError = error.toString();
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(formError!)),
+      );
       update();
     } finally {
       saving = false;
@@ -587,7 +578,7 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      await loadPage(selectId: id);
+      await loadPage(selectId: _filterAllowsStatus('won') ? id : null);
     } catch (error) {
       formError = error.toString();
       update();
@@ -605,7 +596,7 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      await loadPage(selectId: id);
+      await loadPage(selectId: _filterAllowsStatus('lost') ? id : null);
     } catch (error) {
       formError = error.toString();
       update();
@@ -684,6 +675,17 @@ class CrmOpportunitiesController extends GetxController {
   void setActiveTabIndex(int index) {
     activeTabIndex = index;
     update();
+  }
+
+  bool _filterAllowsStatus(String statusValue) {
+    final requestedStatus =
+        (filtersApplied
+                ? (filterStatus ?? allFilterStringValue)
+                : (filterStatus ?? ''))
+            .trim();
+    return requestedStatus.isEmpty ||
+        requestedStatus == allFilterStringValue ||
+        requestedStatus == statusValue;
   }
 }
 

@@ -43,6 +43,8 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       (widget.queryParameters['dashboard_filter'] ?? '').trim();
 
   bool get _showDueTodayOnly => _dashboardFilter == 'due_today';
+  bool get _showOverdueOnly => _dashboardFilter == 'overdue';
+  bool get _showUpcomingOnly => _dashboardFilter == 'upcoming';
   bool get _showOpenFollowupsOnly => _dashboardFilter == 'open_followups';
 
   DateTime _normalizeDate(DateTime value) =>
@@ -253,13 +255,23 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         return false;
       }
 
-      if (_showDueTodayOnly) {
+      if (_showDueTodayOnly || _showOverdueOnly || _showUpcomingOnly) {
         final rawDate = nullableStringValue(row, 'followup_date');
         final parsed = rawDate == null ? null : DateTime.tryParse(rawDate);
         if (parsed == null) {
           return false;
         }
-        return _normalizeDate(parsed) == _normalizeDate(DateTime.now());
+        final normalized = _normalizeDate(parsed);
+        final today = _normalizeDate(DateTime.now());
+        if (_showDueTodayOnly) {
+          return normalized == today;
+        }
+        if (_showOverdueOnly) {
+          return normalized.isBefore(today);
+        }
+        if (_showUpcomingOnly) {
+          return normalized.isAfter(today);
+        }
       }
 
       return true;
@@ -267,17 +279,61 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return rows.toList(growable: false);
   }
 
+  String get _pendingListTitle {
+    if (_showDueTodayOnly) {
+      return 'No Followups Due Today';
+    }
+    if (_showOverdueOnly) {
+      return 'No Overdue Followups';
+    }
+    if (_showUpcomingOnly) {
+      return 'No Upcoming Followups';
+    }
+    if (_showOpenFollowupsOnly) {
+      return 'No Open Followups';
+    }
+    return 'No Pending Followups';
+  }
+
+  String get _pendingSectionTitle {
+    if (_showDueTodayOnly) {
+      return 'Due Today';
+    }
+    if (_showOverdueOnly) {
+      return 'Overdue';
+    }
+    if (_showUpcomingOnly) {
+      return 'Upcoming';
+    }
+    return 'Pending Followups';
+  }
+
+  String get _pendingListMessage {
+    if (_showDueTodayOnly) {
+      return 'No pending followups are due today.';
+    }
+    if (_showOverdueOnly) {
+      return 'No pending followups are overdue right now.';
+    }
+    if (_showUpcomingOnly) {
+      return 'No pending followups are scheduled after today.';
+    }
+    if (_showOpenFollowupsOnly) {
+      return 'No open followups are assigned right now.';
+    }
+    return 'No pending followups are assigned to you right now.';
+  }
+
   Widget _buildPendingList(BuildContext context) {
-    if (_showDueTodayOnly || _showOpenFollowupsOnly) {
+    if (_showDueTodayOnly ||
+        _showOverdueOnly ||
+        _showUpcomingOnly ||
+        _showOpenFollowupsOnly) {
       if (_visiblePendingFollowups.isEmpty) {
         return SettingsEmptyState(
           icon: Icons.alarm_off_outlined,
-          title: _showDueTodayOnly
-              ? 'No Followups Due Today'
-              : 'No Open Followups',
-          message: _showDueTodayOnly
-              ? 'No pending followups are due today.'
-              : 'No open followups are assigned right now.',
+          title: _pendingListTitle,
+          message: _pendingListMessage,
           minHeight: 180,
         );
       }
@@ -362,12 +418,8 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     if (_visiblePendingFollowups.isEmpty) {
       return SettingsEmptyState(
         icon: Icons.alarm_off_outlined,
-        title: _showDueTodayOnly
-            ? 'No Followups Due Today'
-            : 'No Pending Followups',
-        message: _showDueTodayOnly
-            ? 'No pending followups are due today.'
-            : 'No pending followups are assigned to you right now.',
+        title: _pendingListTitle,
+        message: _pendingListMessage,
         minHeight: 180,
       );
     }
@@ -738,7 +790,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _showDueTodayOnly ? 'Due Today' : 'Pending Followups',
+                  _pendingSectionTitle,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -748,7 +800,10 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
               ],
             ),
           ),
-          if (!_showDueTodayOnly && !_showOpenFollowupsOnly) ...[
+          if (!_showDueTodayOnly &&
+              !_showOverdueOnly &&
+              !_showUpcomingOnly &&
+              !_showOpenFollowupsOnly) ...[
             const SizedBox(height: AppUiConstants.spacingMd),
             AppSectionCard(
               child: Column(

@@ -24,7 +24,13 @@ class _AppShellPageState extends State<AppShellPage> {
     super.initState();
     _controllerTag = persistentControllerTag('AppShellController');
     if (Get.isRegistered<AppShellController>(tag: _controllerTag)) {
-      Get.delete<AppShellController>(tag: _controllerTag, force: true);
+      _controller = Get.find<AppShellController>(tag: _controllerTag);
+      _controller.syncRouteInputs(
+        path: widget.path,
+        queryParameters: widget.queryParameters,
+        notify: false,
+      );
+      return;
     }
     _controller = Get.put(
       AppShellController(
@@ -33,14 +39,6 @@ class _AppShellPageState extends State<AppShellPage> {
       ),
       tag: _controllerTag,
     );
-  }
-
-  @override
-  void dispose() {
-    if (Get.isRegistered<AppShellController>(tag: _controllerTag)) {
-      Get.delete<AppShellController>(tag: _controllerTag, force: true);
-    }
-    super.dispose();
   }
 
   @override
@@ -55,45 +53,38 @@ class _AppShellPageState extends State<AppShellPage> {
     }
   }
 
-  PublicBrandingModel get _branding => _controller.branding;
-  AuthContextModel? get _authContext => _controller.authContext;
-  bool get _isCheckingSession => _controller.isCheckingSession;
   String get _currentPath => _controller.currentPath;
   Map<String, String> get _currentQueryParameters =>
       _controller.currentQueryParameters;
-  ShellPageActionsController get _shellPageActionsController =>
-      _controller.shellPageActionsController;
-  int get _contextVersion => _controller.contextVersion;
-  void _handleNavigate(String route) => _controller.handleNavigate(route);
 
   @override
   Widget build(BuildContext context) {
     return GetBuilder<AppShellController>(
       tag: _controllerTag,
-      builder: (_) {
-        if (_isCheckingSession) {
+      builder: (controller) {
+        if (controller.isCheckingSession) {
           return const Scaffold(
             body: AppLoadingView(message: 'Restoring your session...'),
           );
         }
 
         return ShellPageActionsScope(
-          controller: _shellPageActionsController,
+          controller: controller.shellPageActionsController,
           child: ShellRouteScope(
-            onNavigate: _handleNavigate,
+            onNavigate: controller.handleNavigate,
             child: AdaptiveShell(
-              title: _titleForPath(_currentPath, _authContext),
-              branding: _branding,
-              currentPath: _buildCurrentRoute(),
-              actionsListenable: _shellPageActionsController,
-              onNavigate: _handleNavigate,
+              title: _titleForPath(controller.currentPath, controller.authContext),
+              branding: controller.branding,
+              currentPath: _buildCurrentRoute(controller),
+              actionsListenable: controller.shellPageActionsController,
+              onNavigate: controller.handleNavigate,
               child: Align(
                 alignment: AlignmentGeometry.topCenter,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 140),
                   switchInCurve: Curves.easeOut,
                   switchOutCurve: Curves.easeOut,
-                  child: _buildContent(),
+                  child: _buildContent(controller),
                 ),
               ),
             ),
@@ -103,26 +94,28 @@ class _AppShellPageState extends State<AppShellPage> {
     );
   }
 
-  String _buildCurrentRoute() {
-    final normalizedPath = _normalizeEditorRoutePath(_currentPath);
+  String _buildCurrentRoute(AppShellController controller) {
+    final normalizedPath = _normalizeEditorRoutePath(controller.currentPath);
 
     final uri = Uri(
       path: normalizedPath,
-      queryParameters: _currentQueryParameters.isEmpty
+      queryParameters: controller.currentQueryParameters.isEmpty
           ? null
-          : _currentQueryParameters,
+          : controller.currentQueryParameters,
     );
     return uri.toString();
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(AppShellController controller) {
     final routeIdentity = Uri(
-      path: _currentPath,
-      queryParameters: _currentQueryParameters.isEmpty
+      path: controller.currentPath,
+      queryParameters: controller.currentQueryParameters.isEmpty
           ? null
-          : _currentQueryParameters,
+          : controller.currentQueryParameters,
     ).toString();
-    final routeKey = ValueKey<String>('$routeIdentity::$_contextVersion');
+    final routeKey = ValueKey<String>(
+      '$routeIdentity::${controller.contextVersion}',
+    );
     final salesRoute = _buildSalesContent(routeKey);
     if (salesRoute != null) {
       return salesRoute;
@@ -172,7 +165,7 @@ class _AppShellPageState extends State<AppShellPage> {
       return genericManagementRoute;
     }
 
-    switch (_currentPath) {
+    switch (controller.currentPath) {
       case '/dashboard':
         return DashboardPage(key: routeKey, embedded: true);
       case '/crm/dashboard':
