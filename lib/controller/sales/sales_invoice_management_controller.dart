@@ -357,58 +357,11 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   PartyAddressModel? preferredCustomerAddress(PartyModel? customer) {
-    if (customer == null) {
-      return null;
-    }
-
-    PartyAddressModel? byId(int? id) {
-      if (id == null) {
-        return null;
-      }
-      return customer.addresses.cast<PartyAddressModel?>().firstWhere(
-        (address) => address?.id == id,
-        orElse: () => null,
-      );
-    }
-
-    final preferred = byId(shippingAddressId) ?? byId(billingAddressId);
-    if (preferred != null && preferred.isActive) {
-      return preferred;
-    }
-
-    final shipping = customer.addresses.where(
-      (address) =>
-          address.isActive &&
-          (address.addressType ?? '').trim().toLowerCase() == 'shipping',
+    return preferredPartyAddress(
+      customer,
+      shippingAddressId: shippingAddressId,
+      billingAddressId: billingAddressId,
     );
-    if (shipping.isNotEmpty) {
-      return shipping.firstWhere(
-        (address) => address.isDefault,
-        orElse: () => shipping.first,
-      );
-    }
-
-    final billing = customer.addresses.where(
-      (address) =>
-          address.isActive &&
-          (address.addressType ?? '').trim().toLowerCase() == 'billing',
-    );
-    if (billing.isNotEmpty) {
-      return billing.firstWhere(
-        (address) => address.isDefault,
-        orElse: () => billing.first,
-      );
-    }
-
-    final active = customer.addresses.where((address) => address.isActive);
-    if (active.isNotEmpty) {
-      return active.firstWhere(
-        (address) => address.isDefault,
-        orElse: () => active.first,
-      );
-    }
-
-    return null;
   }
 
   String? resolveCustomerStateCodeForSummary() {
@@ -467,6 +420,14 @@ class SalesInvoiceManagementController extends GetxController {
     try {
       final responses = await Future.wait<dynamic>([
         partiesService.party(partyId),
+        partiesService.partyAddresses(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        partiesService.partyContacts(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
         partiesService.partyGstDetails(
           partyId,
           filters: const <String, dynamic>{'per_page': 100},
@@ -478,10 +439,17 @@ class SalesInvoiceManagementController extends GetxController {
       State(() {
         final party = (responses[0] as ApiResponse<PartyModel>).data;
         if (party != null) {
-          customerDetailsById[partyId] = party;
+          customerDetailsById[partyId] = party.copyWith(
+            addresses:
+                (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+                party.addresses,
+            contacts:
+                (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+                party.contacts,
+          );
         }
         customerGstDetailsById[partyId] =
-            (responses[1] as PaginatedResponse<PartyGstDetailModel>).data ??
+            (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
             const <PartyGstDetailModel>[];
       });
     } catch (_) {}
@@ -2103,6 +2071,7 @@ class SalesInvoiceManagementController extends GetxController {
             selected['customer'] as Map<String, dynamic>,
           )
         : customer?.toJson() ?? const <String, dynamic>{};
+    final preferredAddress = preferredCustomerAddress(customer);
     final gstBreakupGroups = <String, dynamic>{};
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
@@ -2158,8 +2127,14 @@ class SalesInvoiceManagementController extends GetxController {
       partyName: stringValue(customerData, 'party_name').isNotEmpty
           ? stringValue(customerData, 'party_name')
           : stringValue(selected, 'customer_name'),
-      partyAddress: stringValue(customerData, 'address_line1'),
-      partyContact: stringValue(customerData, 'mobile_no'),
+      partyAddress: formatPartyAddress(
+        preferredAddress,
+        fallback: stringValue(customerData, 'address_line1'),
+      ),
+      partyContact: resolvePartyContact(
+        customer,
+        fallback: stringValue(customerData, 'mobile_no'),
+      ),
       partyGstin: stringValue(customerData, 'gstin'),
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),

@@ -58,6 +58,115 @@ String quotationCustomerLabel(Map<String, dynamic> data) {
   return stringValue(data, 'customer_name');
 }
 
+PartyAddressModel? preferredPartyAddress(
+  PartyModel? party, {
+  int? shippingAddressId,
+  int? billingAddressId,
+}) {
+  if (party == null) {
+    return null;
+  }
+
+  PartyAddressModel? byId(int? id) {
+    if (id == null) {
+      return null;
+    }
+    return party.addresses.cast<PartyAddressModel?>().firstWhere(
+      (address) => address?.id == id,
+      orElse: () => null,
+    );
+  }
+
+  final preferred = byId(shippingAddressId) ?? byId(billingAddressId);
+  if (preferred != null && preferred.isActive) {
+    return preferred;
+  }
+
+  final shipping = party.addresses.where(
+    (address) =>
+        address.isActive &&
+        (address.addressType ?? '').trim().toLowerCase() == 'shipping',
+  );
+  if (shipping.isNotEmpty) {
+    return shipping.firstWhere(
+      (address) => address.isDefault,
+      orElse: () => shipping.first,
+    );
+  }
+
+  final billing = party.addresses.where(
+    (address) =>
+        address.isActive &&
+        (address.addressType ?? '').trim().toLowerCase() == 'billing',
+  );
+  if (billing.isNotEmpty) {
+    return billing.firstWhere(
+      (address) => address.isDefault,
+      orElse: () => billing.first,
+    );
+  }
+
+  final active = party.addresses.where((address) => address.isActive);
+  if (active.isNotEmpty) {
+    return active.firstWhere(
+      (address) => address.isDefault,
+      orElse: () => active.first,
+    );
+  }
+
+  return null;
+}
+
+String formatPartyAddress(PartyAddressModel? address, {String fallback = ''}) {
+  if (address == null) {
+    return fallback;
+  }
+  final values = <String>[
+    address.addressLine1 ?? '',
+    address.addressLine2 ?? '',
+    address.area ?? '',
+    address.city ?? '',
+    address.district ?? '',
+    address.stateName ?? '',
+    address.postalCode ?? '',
+    address.countryCode ?? '',
+  ].where((value) => value.trim().isNotEmpty).toList(growable: false);
+  if (values.isEmpty) {
+    return fallback;
+  }
+  return values.join(', ');
+}
+
+PartyContactModel? preferredPartyContact(PartyModel? party) {
+  if (party == null) {
+    return null;
+  }
+
+  final active = party.contacts.where((contact) => contact.isActive);
+  if (active.isEmpty) {
+    return null;
+  }
+
+  return active.firstWhere(
+    (contact) => contact.isPrimary,
+    orElse: () => active.first,
+  );
+}
+
+String resolvePartyContact(PartyModel? party, {String fallback = ''}) {
+  final contact = preferredPartyContact(party);
+  if (contact == null) {
+    return fallback;
+  }
+  return (contact.mobile ?? '').trim().isNotEmpty
+      ? contact.mobile!.trim()
+      : (contact.phone ?? '').trim().isNotEmpty
+      ? contact.phone!.trim()
+      : (contact.email ?? '').trim().isNotEmpty
+      ? contact.email!.trim()
+      : fallback;
+}
+
 /// Selling price from item master for defaulting document lines (standard rate, else MRP).
 String? formattedStandardSellingRate(ItemModel item) {
   final p = item.standardSellingPrice ?? item.mrp;

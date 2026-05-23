@@ -111,6 +111,7 @@ class SalesQuotationManagementController extends GetxController {
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> customers = const <PartyModel>[];
+  final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
   List<ItemModel> itemsLookup = const <ItemModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
@@ -198,6 +199,8 @@ class SalesQuotationManagementController extends GetxController {
     'quotation_status',
     'draft',
   );
+
+  bool get mounted => !isClosed;
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
@@ -526,6 +529,56 @@ class SalesQuotationManagementController extends GetxController {
     _applyFilters();
   }
 
+  PartyModel? customerListEntryById(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return customers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == partyId,
+      orElse: () => null,
+    );
+  }
+
+  PartyModel? customerForPrintContext(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return customerDetailsById[partyId] ?? customerListEntryById(partyId);
+  }
+
+  Future<void> ensureCustomerPrintContext(int? partyId) async {
+    if (partyId == null || customerDetailsById.containsKey(partyId)) {
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _partiesService.party(partyId),
+        _partiesService.partyAddresses(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyContacts(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      final party = (responses[0] as ApiResponse<PartyModel>).data;
+      if (party != null) {
+        customerDetailsById[partyId] = party.copyWith(
+          addresses:
+              (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+              party.addresses,
+          contacts:
+              (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+              party.contacts,
+        );
+      }
+    } catch (_) {}
+  }
+
   List<UomModel> uomOptionsForItem(int? itemId) {
     final item = itemsLookup.cast<ItemModel?>().firstWhere(
       (entry) => entry?.id == itemId,
@@ -577,15 +630,17 @@ class SalesQuotationManagementController extends GetxController {
       (item) => item?.id == companyId,
       orElse: () => null,
     );
-    final customer = customers.cast<PartyModel?>().firstWhere(
-      (item) => item?.id == customerPartyId,
-      orElse: () => null,
-    );
+    final customer = customerForPrintContext(customerPartyId);
     final customerData = selected['customer'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(
             selected['customer'] as Map<String, dynamic>,
           )
         : customer?.toJson() ?? const <String, dynamic>{};
+    final preferredAddress = preferredPartyAddress(
+      customer,
+      shippingAddressId: intValue(selected, 'shipping_address_id'),
+      billingAddressId: intValue(selected, 'billing_address_id'),
+    );
     final gstBreakupGroups = <String, dynamic>{};
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
@@ -630,8 +685,14 @@ class SalesQuotationManagementController extends GetxController {
       partyName: stringValue(customerData, 'party_name').isNotEmpty
           ? stringValue(customerData, 'party_name')
           : quotationCustomerLabel(selected),
-      partyAddress: stringValue(customerData, 'address_line1'),
-      partyContact: stringValue(customerData, 'mobile_no'),
+      partyAddress: formatPartyAddress(
+        preferredAddress,
+        fallback: stringValue(customerData, 'address_line1'),
+      ),
+      partyContact: resolvePartyContact(
+        customer,
+        fallback: stringValue(customerData, 'mobile_no'),
+      ),
       partyGstin: stringValue(customerData, 'gstin'),
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
@@ -646,6 +707,19 @@ class SalesQuotationManagementController extends GetxController {
       ),
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+    );
+  }
+
+  Future<void> openPrintPreview(BuildContext context) async {
+    await ensureCustomerPrintContext(customerPartyId);
+    if (!context.mounted) {
+      return;
+    }
+    await openDocumentPrintDesigner(
+      context,
+      documentType: 'sales_quotation',
+      title: 'Quotation',
+      documentData: quotationPrintData(),
     );
   }
 

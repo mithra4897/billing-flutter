@@ -44,12 +44,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     BuildContext context,
     SalesDeliveryManagementController controller,
   ) {
-    return openDocumentPrintDesigner(
-      context,
-      documentType: 'sales_delivery',
-      title: 'Delivery Challan',
-      documentData: controller.salesDeliveryPrintData(),
-    );
+    return controller.openPrintPreview(context);
   }
 
   @override

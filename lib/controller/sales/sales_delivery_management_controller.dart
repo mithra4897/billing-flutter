@@ -119,6 +119,7 @@ class SalesDeliveryManagementController extends GetxController {
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<SalesOrderModel> orders = const <SalesOrderModel>[];
   List<PartyModel> customers = const <PartyModel>[];
+  final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
   List<PartyModel> allParties = const <PartyModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
@@ -185,6 +186,58 @@ class SalesDeliveryManagementController extends GetxController {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
+  }
+
+  bool get mounted => !isClosed;
+
+  PartyModel? customerListEntryById(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return customers.cast<PartyModel?>().firstWhere(
+      (item) => item?.id == partyId,
+      orElse: () => null,
+    );
+  }
+
+  PartyModel? customerForPrintContext(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return customerDetailsById[partyId] ?? customerListEntryById(partyId);
+  }
+
+  Future<void> ensureCustomerPrintContext(int? partyId) async {
+    if (partyId == null || customerDetailsById.containsKey(partyId)) {
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _partiesService.party(partyId),
+        _partiesService.partyAddresses(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyContacts(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      final party = (responses[0] as ApiResponse<PartyModel>).data;
+      if (party != null) {
+        customerDetailsById[partyId] = party.copyWith(
+          addresses:
+              (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+              party.addresses,
+          contacts:
+              (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+              party.contacts,
+        );
+      }
+    } catch (_) {}
   }
 
   ItemModel? itemById(int? itemId) {
@@ -770,9 +823,12 @@ class SalesDeliveryManagementController extends GetxController {
       (item) => item?.id == companyId,
       orElse: () => null,
     );
-    final customer = customers.cast<PartyModel?>().firstWhere(
-      (item) => item?.id == customerPartyId,
-      orElse: () => null,
+    final customer = customerForPrintContext(customerPartyId);
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final preferredAddress = preferredPartyAddress(
+      customer,
+      shippingAddressId: intValue(selected, 'shipping_address_id'),
+      billingAddressId: intValue(selected, 'billing_address_id'),
     );
     var subtotal = 0.0;
     final printLines = lines
@@ -808,8 +864,8 @@ class SalesDeliveryManagementController extends GetxController {
       documentDate: deliveryDateController.text.trim(),
       referenceNumber: '',
       partyName: customer?.partyName ?? '',
-      partyAddress: '',
-      partyContact: '',
+      partyAddress: formatPartyAddress(preferredAddress),
+      partyContact: resolvePartyContact(customer),
       notes: notesController.text.trim(),
       subtotal: roundToDouble(subtotal, 2),
       taxAmount: 0,
@@ -819,6 +875,19 @@ class SalesDeliveryManagementController extends GetxController {
         'INR',
       ),
       lines: printLines,
+    );
+  }
+
+  Future<void> openPrintPreview(BuildContext context) async {
+    await ensureCustomerPrintContext(customerPartyId);
+    if (!context.mounted) {
+      return;
+    }
+    await openDocumentPrintDesigner(
+      context,
+      documentType: 'sales_delivery',
+      title: 'Delivery Challan',
+      documentData: salesDeliveryPrintData(),
     );
   }
 
@@ -856,7 +925,10 @@ class SalesDeliveryManagementController extends GetxController {
     _replaceLines(next);
   }
 
-  void _replaceLines(List<SalesDeliveryLineDraft> nextLines, {bool notify = true}) {
+  void _replaceLines(
+    List<SalesDeliveryLineDraft> nextLines, {
+    bool notify = true,
+  }) {
     replaceDisposableDraftEntries<SalesDeliveryLineDraft>(
       previous: lines,
       next: nextLines,

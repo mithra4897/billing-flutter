@@ -94,12 +94,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     BuildContext context,
     SalesQuotationManagementController controller,
   ) {
-    return openDocumentPrintDesigner(
-      context,
-      documentType: 'sales_quotation',
-      title: 'Quotation',
-      documentData: controller.quotationPrintData(),
-    );
+    return controller.openPrintPreview(context);
   }
 
   Widget _buildContent(

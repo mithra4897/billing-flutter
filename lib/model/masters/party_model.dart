@@ -40,6 +40,45 @@ class PartyModel extends JsonModel {
   @override
   String toString() => displayName ?? partyName ?? partyCode ?? 'New Party';
 
+  PartyModel copyWith({
+    String? partyCode,
+    String? partyName,
+    String? displayName,
+    int? partyTypeId,
+    String? partyType,
+    bool? isCompany,
+    String? website,
+    String? pan,
+    String? aadhaar,
+    String? defaultCurrency,
+    double? openingBalance,
+    String? openingBalanceType,
+    String? remarks,
+    bool? isActive,
+    List<PartyAddressModel>? addresses,
+    List<PartyContactModel>? contacts,
+  }) {
+    return PartyModel(
+      id: id,
+      partyCode: partyCode ?? this.partyCode,
+      partyName: partyName ?? this.partyName,
+      displayName: displayName ?? this.displayName,
+      partyTypeId: partyTypeId ?? this.partyTypeId,
+      partyType: partyType ?? this.partyType,
+      isCompany: isCompany ?? this.isCompany,
+      website: website ?? this.website,
+      pan: pan ?? this.pan,
+      aadhaar: aadhaar ?? this.aadhaar,
+      defaultCurrency: defaultCurrency ?? this.defaultCurrency,
+      openingBalance: openingBalance ?? this.openingBalance,
+      openingBalanceType: openingBalanceType ?? this.openingBalanceType,
+      remarks: remarks ?? this.remarks,
+      isActive: isActive ?? this.isActive,
+      addresses: addresses ?? this.addresses,
+      contacts: contacts ?? this.contacts,
+    );
+  }
+
   factory PartyModel.fromJson(Map<String, dynamic> json) {
     return PartyModel(
       id: _parseInt(json['id']),
@@ -86,6 +125,14 @@ class PartyModel extends JsonModel {
         'opening_balance_type': openingBalanceType,
       if (remarks != null) 'remarks': remarks,
       'is_active': isActive,
+      if (addresses.isNotEmpty)
+        'addresses': addresses
+            .map((address) => address.toJson())
+            .toList(growable: false),
+      if (contacts.isNotEmpty)
+        'contacts': contacts
+            .map((contact) => contact.toJson())
+            .toList(growable: false),
     };
   }
 

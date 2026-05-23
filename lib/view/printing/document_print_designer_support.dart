@@ -89,10 +89,35 @@ String resolvePrintCellValue(Map<String, dynamic> row, String key) {
 }
 
 String formatPrintAmount(double value) {
-  if (value == value.roundToDouble()) {
-    return value.round().toString();
+  final raw = value == value.roundToDouble()
+      ? value.round().toString()
+      : value.toStringAsFixed(2);
+  final negative = raw.startsWith('-');
+  final unsigned = negative ? raw.substring(1) : raw;
+  final parts = unsigned.split('.');
+  final whole = parts.first;
+  final decimal = parts.length > 1 ? '.${parts.last}' : '';
+  return '${negative ? '-' : ''}${_groupIndianDigits(whole)}$decimal';
+}
+
+String _groupIndianDigits(String digits) {
+  if (digits.length <= 3) {
+    return digits;
   }
-  return value.toStringAsFixed(2);
+
+  final lastThree = digits.substring(digits.length - 3);
+  var remaining = digits.substring(0, digits.length - 3);
+  final groups = <String>[];
+
+  while (remaining.length > 2) {
+    groups.insert(0, remaining.substring(remaining.length - 2));
+    remaining = remaining.substring(0, remaining.length - 2);
+  }
+  if (remaining.isNotEmpty) {
+    groups.insert(0, remaining);
+  }
+
+  return '${groups.join(',')},$lastThree';
 }
 
 bool printTableRowHasVisibleValues(

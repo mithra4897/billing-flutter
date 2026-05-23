@@ -104,6 +104,7 @@ class AppFormTextField extends StatelessWidget {
     return AppFieldBox(
       width: width,
       child: TextFormField(
+        key: controller != null ? ObjectKey(controller) : null,
         controller: controller,
         initialValue: controller == null ? initialValue : null,
         maxLines: maxLines,
