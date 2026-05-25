@@ -28,18 +28,24 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchaseReturnManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    if (!Get.isRegistered<PurchaseReturnManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(PurchaseReturnManagementController(), tag: _controllerTag);
-    }
+    Get.put(PurchaseReturnManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       unawaited(_controller.initialize(initialId: widget.initialId));
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<PurchaseReturnManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override

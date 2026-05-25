@@ -29,18 +29,24 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchaseRequisitionManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    if (!Get.isRegistered<PurchaseRequisitionManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(PurchaseRequisitionManagementController(), tag: _controllerTag);
-    }
+    Get.put(PurchaseRequisitionManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       unawaited(_controller.initialize(initialId: widget.initialId));
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<PurchaseRequisitionManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override

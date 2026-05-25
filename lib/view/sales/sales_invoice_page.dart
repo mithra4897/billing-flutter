@@ -34,12 +34,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'SalesInvoiceManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    if (!Get.isRegistered<SalesInvoiceManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(SalesInvoiceManagementController(), tag: _controllerTag);
-    }
+    Get.put(SalesInvoiceManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -53,6 +50,15 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         ),
       );
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<SalesInvoiceManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override

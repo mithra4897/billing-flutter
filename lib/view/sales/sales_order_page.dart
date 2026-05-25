@@ -37,12 +37,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('SalesOrderManagementController');
-    if (!Get.isRegistered<SalesOrderManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(SalesOrderManagementController(), tag: _controllerTag);
-    }
+    _controllerTag = persistentControllerTag(
+      'SalesOrderManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
+    );
+    Get.put(SalesOrderManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -55,6 +54,15 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         ),
       );
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<SalesOrderManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override

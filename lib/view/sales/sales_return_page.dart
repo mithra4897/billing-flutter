@@ -26,18 +26,26 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('SalesReturnManagementController');
-    if (!Get.isRegistered<SalesReturnManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(SalesReturnManagementController(), tag: _controllerTag);
-    }
+    _controllerTag = persistentControllerTag(
+      'SalesReturnManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
+    );
+    Get.put(SalesReturnManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       unawaited(_controller.initialize(initialId: widget.initialId));
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<SalesReturnManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override

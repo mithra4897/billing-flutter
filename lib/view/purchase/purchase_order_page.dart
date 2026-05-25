@@ -28,16 +28,22 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchaseOrderManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    if (!Get.isRegistered<PurchaseOrderManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(PurchaseOrderManagementController(), tag: _controllerTag);
-    }
+    Get.put(PurchaseOrderManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_controller.initialize(initialId: widget.initialId));
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<PurchaseOrderManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override

@@ -39,12 +39,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'SalesQuotationManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    if (!Get.isRegistered<SalesQuotationManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(SalesQuotationManagementController(), tag: _controllerTag);
-    }
+    Get.put(SalesQuotationManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -57,6 +54,15 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         ),
       );
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<SalesQuotationManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override

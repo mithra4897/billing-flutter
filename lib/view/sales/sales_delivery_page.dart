@@ -28,16 +28,22 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'SalesDeliveryManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    if (!Get.isRegistered<SalesDeliveryManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(SalesDeliveryManagementController(), tag: _controllerTag);
-    }
+    Get.put(SalesDeliveryManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_controller.initialize(initialId: widget.initialId));
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<SalesDeliveryManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   Future<void> _openPrintPreview(

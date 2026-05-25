@@ -362,47 +362,52 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
     AppThemeExtension appTheme,
   ) {
     return Column(
-      children: visibleRows.map((row) {
-        final primaryText = widget.columns.isEmpty
-            ? ''
-            : widget.columns.first.valueBuilder(row);
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: appTheme.subtleFill,
-            borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
-          ),
-          child: InkWell(
-            onTap: () => widget.onRowTap(row),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (primaryText.trim().isNotEmpty)
-                  Text(
-                    primaryText,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                if (primaryText.trim().isNotEmpty)
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                ...widget.columns.skip(primaryText.trim().isNotEmpty ? 1 : 0).map(
-                  (column) => Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: AppUiConstants.spacingXs,
-                    ),
-                    child: Text(
-                      '${column.label}: ${column.valueBuilder(row).trim().isEmpty ? '-' : column.valueBuilder(row)}',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ),
+      children: visibleRows
+          .map((row) {
+            final primaryText = widget.columns.isEmpty
+                ? ''
+                : widget.columns.first.valueBuilder(row);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: appTheme.subtleFill,
+                borderRadius: BorderRadius.circular(
+                  AppUiConstants.buttonRadius,
                 ),
-              ],
-            ),
-          ),
-        );
-      }).toList(growable: false),
+              ),
+              child: InkWell(
+                onTap: () => widget.onRowTap(row),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (primaryText.trim().isNotEmpty)
+                      Text(
+                        primaryText,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    if (primaryText.trim().isNotEmpty)
+                      const SizedBox(height: AppUiConstants.spacingSm),
+                    ...widget.columns
+                        .skip(primaryText.trim().isNotEmpty ? 1 : 0)
+                        .map(
+                          (column) => Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppUiConstants.spacingXs,
+                            ),
+                            child: Text(
+                              '${column.label}: ${column.valueBuilder(row).trim().isEmpty ? '-' : column.valueBuilder(row)}',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 }

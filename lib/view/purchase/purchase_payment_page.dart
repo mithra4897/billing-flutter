@@ -30,12 +30,9 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchasePaymentManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    if (!Get.isRegistered<PurchasePaymentManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(PurchasePaymentManagementController(), tag: _controllerTag);
-    }
+    Get.put(PurchasePaymentManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -47,6 +44,15 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
         ),
       );
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<PurchasePaymentManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override

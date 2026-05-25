@@ -28,18 +28,24 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchaseReceiptManagementController',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
-    if (!Get.isRegistered<PurchaseReceiptManagementController>(
-      tag: _controllerTag,
-    )) {
-      Get.put(PurchaseReceiptManagementController(), tag: _controllerTag);
-    }
+    Get.put(PurchaseReceiptManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       unawaited(_controller.initialize(initialId: widget.initialId));
     });
+  }
+
+  @override
+  void dispose() {
+    Get.delete<PurchaseReceiptManagementController>(
+      tag: _controllerTag,
+      force: true,
+    );
+    super.dispose();
   }
 
   @override
