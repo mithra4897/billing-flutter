@@ -145,6 +145,18 @@ class PurchaseReceiptManagementController extends GetxController {
   List<PurchaseReceiptLineDraft> lines = <PurchaseReceiptLineDraft>[];
   bool _initialized = false;
 
+  bool get canEditSelectedReceipt {
+    if (selectedItem == null) {
+      return true;
+    }
+    return purchaseDocumentIsDraftEditable(
+      stringValue(selectedItem!.toJson(), 'receipt_status'),
+    );
+  }
+
+  bool get isSelectedReceiptReadOnly =>
+      selectedItem != null && !canEditSelectedReceipt;
+
   @override
   void onInit() {
     super.onInit();
@@ -412,7 +424,7 @@ class PurchaseReceiptManagementController extends GetxController {
         final data = item.toJson();
         return <String>[
           stringValue(data, 'receipt_no'),
-          stringValue(data, 'receipt_status'),
+          purchaseStatusLabel(nullableStringValue(data, 'receipt_status')),
           stringValue(data, 'supplier_name'),
         ];
       },

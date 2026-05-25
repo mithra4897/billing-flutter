@@ -23,6 +23,7 @@ class PurchaseRequisitionModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.lines = const <PurchaseRequisitionLineModel>[],
   });
   final int? companyId;
   final int? branchId;
@@ -44,6 +45,7 @@ class PurchaseRequisitionModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final List<PurchaseRequisitionLineModel> lines;
 
   factory PurchaseRequisitionModel.fromJson(Map<String, dynamic> json) {
     return PurchaseRequisitionModel(
@@ -70,6 +72,10 @@ class PurchaseRequisitionModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      lines: JsonModel.listOf<PurchaseRequisitionLineModel>(
+        json['lines'],
+        PurchaseRequisitionLineModel.fromJson,
+      ),
     );
   }
   @override
@@ -103,5 +109,6 @@ class PurchaseRequisitionModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    'lines': lines.map((line) => line.toJson()).toList(growable: false),
   };
 }

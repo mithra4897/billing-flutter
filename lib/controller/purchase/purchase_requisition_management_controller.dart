@@ -59,6 +59,8 @@ class PurchaseRequisitionLineDraft {
 
 class PurchaseRequisitionManagementController extends GetxController {
   PurchaseRequisitionManagementController();
+  static const String registerControllerTag =
+      'PurchaseRequisitionRegisterController';
 
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
@@ -126,8 +128,13 @@ class PurchaseRequisitionManagementController extends GetxController {
     if (selectedItem == null) {
       return true;
     }
-    return stringValue(selectedItem!.toJson(), 'requisition_status') == 'draft';
+    return purchaseDocumentIsDraftEditable(
+      stringValue(selectedItem!.toJson(), 'requisition_status'),
+    );
   }
+
+  bool get isSelectedRequisitionReadOnly =>
+      selectedItem != null && !canEditSelectedRequisition;
 
   @override
   void onInit() {
@@ -337,6 +344,15 @@ class PurchaseRequisitionManagementController extends GetxController {
         .toList(growable: true);
 
     selectedItem = full;
+    final selectedId = intValue(full.toJson(), 'id');
+    if (selectedId != null) {
+      items = items
+          .map(
+            (item) => intValue(item.toJson(), 'id') == selectedId ? full : item,
+          )
+          .toList(growable: false);
+      filteredItems = _filterItems(items, searchController.text, statusFilter);
+    }
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
     locationId = intValue(data, 'location_id');
@@ -552,6 +568,18 @@ class PurchaseRequisitionManagementController extends GetxController {
     update();
   }
 
+  Future<void> _refreshRegisterListIfOpen() async {
+    if (!Get.isRegistered<PurchaseListRegisterController<PurchaseRequisitionModel>>(
+      tag: registerControllerTag,
+    )) {
+      return;
+    }
+
+    await Get.find<PurchaseListRegisterController<PurchaseRequisitionModel>>(
+      tag: registerControllerTag,
+    ).load();
+  }
+
   Future<void> save(BuildContext context) async {
     if (!canEditSelectedRequisition) {
       formError = 'Only draft purchase requisitions can be updated.';
@@ -612,6 +640,7 @@ class PurchaseRequisitionManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
+      await _refreshRegisterListIfOpen();
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
@@ -635,6 +664,7 @@ class PurchaseRequisitionManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
+      await _refreshRegisterListIfOpen();
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );

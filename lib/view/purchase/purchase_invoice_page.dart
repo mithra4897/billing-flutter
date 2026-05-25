@@ -116,7 +116,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
           title: item.invoiceNo ?? 'Draft Invoice',
           subtitle: [
             displayDate(item.invoiceDate),
-            item.invoiceStatus ?? '',
+            purchaseStatusLabel(item.invoiceStatus),
           ].where((value) => value.isNotEmpty).join(' · '),
           detail: item.toJson()['supplier_name']?.toString() ?? '',
           selected: selected,
@@ -132,8 +132,25 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            SettingsFormWrap(
-              children: [
+            if (controller.isSelectedInvoiceReadOnly) ...[
+              Text(
+                purchaseReadOnlyMessage(
+                  'purchase invoice',
+                  controller.selectedItem?.invoiceStatus,
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            IgnorePointer(
+              ignoring: controller.isSelectedInvoiceReadOnly,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SettingsFormWrap(
+                    children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: controller.financialYears
@@ -294,34 +311,36 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                   controller: controller.termsController,
                   maxLines: 3,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            AppSwitchTile(
-              label: 'Active',
-              value: controller.isActive,
-              onChanged: controller.setIsActive,
-            ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-            Row(
-              children: [
-                Text(
-                  'Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    ],
                   ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add Line',
-                  onPressed: controller.addLine,
-                  filled: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(controller.lines.length, (index) {
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  AppSwitchTile(
+                    label: 'Active',
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingLg),
+                  Row(
+                    children: [
+                      Text(
+                        'Lines',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      AppActionButton(
+                        icon: Icons.add_outlined,
+                        label: 'Add Line',
+                        onPressed: controller.isSelectedInvoiceReadOnly
+                            ? null
+                            : controller.addLine,
+                        filled: false,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  ...List<Widget>.generate(controller.lines.length, (index) {
               final line = controller.lines[index];
               return Padding(
                 key: ValueKey<String>(
@@ -529,16 +548,20 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                 ),
               );
             }),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            GstSummaryCard(
-              taxable: taxSummary.taxable,
-              cgst: taxSummary.cgst,
-              sgst: taxSummary.sgst,
-              igst: taxSummary.igst,
-              cess: 0,
-              total: taxSummary.total,
-              currencyCode: currency,
-              subtitle: 'Live totals for the current purchase invoice lines.',
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  GstSummaryCard(
+                    taxable: taxSummary.taxable,
+                    cgst: taxSummary.cgst,
+                    sgst: taxSummary.sgst,
+                    igst: taxSummary.igst,
+                    cess: 0,
+                    total: taxSummary.total,
+                    currencyCode: currency,
+                    subtitle:
+                        'Live totals for the current purchase invoice lines.',
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
@@ -551,14 +574,17 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                   filled: false,
                   onPressed: () => controller.openPrintPreview(context),
                 ),
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: controller.selectedItem == null
-                      ? 'Save Invoice'
-                      : 'Update Invoice',
-                  onPressed: () => controller.save(context),
-                  busy: controller.saving,
-                ),
+                if (!controller.isSelectedInvoiceReadOnly)
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: controller.selectedItem == null
+                        ? 'Save Invoice'
+                        : 'Update Invoice',
+                    onPressed: controller.canEditSelectedInvoice
+                        ? () => controller.save(context)
+                        : null,
+                    busy: controller.saving,
+                  ),
                 if (controller.selectedItem != null) ...[
                   if ((() {
                     final status =

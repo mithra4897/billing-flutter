@@ -122,7 +122,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             title: stringValue(data, 'order_no', 'Draft Order'),
             subtitle: [
               displayDate(nullableStringValue(data, 'order_date')),
-              stringValue(data, 'order_status'),
+              purchaseStatusLabel(nullableStringValue(data, 'order_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: stringValue(data, 'supplier_name'),
             selected: selected,
@@ -155,8 +155,28 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            SettingsFormWrap(
-              children: [
+            if (controller.isSelectedOrderReadOnly) ...[
+              Text(
+                purchaseReadOnlyMessage(
+                  'purchase order',
+                  nullableStringValue(
+                    controller.selectedItem?.toJson() ?? const {},
+                    'order_status',
+                  ),
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            IgnorePointer(
+              ignoring: controller.isSelectedOrderReadOnly,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SettingsFormWrap(
+                    children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: controller.financialYears
@@ -300,34 +320,36 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                   controller: controller.termsController,
                   maxLines: 3,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            AppSwitchTile(
-              label: 'Active',
-              value: controller.isActive,
-              onChanged: controller.setIsActive,
-            ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-            Row(
-              children: [
-                Text(
-                  'Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    ],
                   ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add Line',
-                  onPressed: controller.addLine,
-                  filled: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(controller.lines.length, (index) {
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  AppSwitchTile(
+                    label: 'Active',
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingLg),
+                  Row(
+                    children: [
+                      Text(
+                        'Lines',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      AppActionButton(
+                        icon: Icons.add_outlined,
+                        label: 'Add Line',
+                        onPressed: controller.isSelectedOrderReadOnly
+                            ? null
+                            : controller.addLine,
+                        filled: false,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  ...List<Widget>.generate(controller.lines.length, (index) {
               final line = controller.lines[index];
               return Padding(
                 padding: const EdgeInsets.only(
@@ -349,7 +371,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                               orElse: () => null,
                             )
                             ?.toString(),
-                        options: controller.itemsLookup
+                        options: controller.purchasableItemOptions
                             .where((item) => item.id != null)
                             .map(
                               (item) => AppSearchPickerOption<int>(
@@ -477,70 +499,115 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                 ),
               );
             }),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            GstSummaryCard(
-              taxable: taxSummary.taxable,
-              cgst: taxSummary.cgst,
-              sgst: taxSummary.sgst,
-              igst: taxSummary.igst,
-              cess: 0,
-              total: taxSummary.total,
-              currencyCode: currency,
-              subtitle: 'Live totals for the current purchase order lines.',
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  GstSummaryCard(
+                    taxable: taxSummary.taxable,
+                    cgst: taxSummary.cgst,
+                    sgst: taxSummary.sgst,
+                    igst: taxSummary.igst,
+                    cess: 0,
+                    total: taxSummary.total,
+                    currencyCode: currency,
+                    subtitle: 'Live totals for the current purchase order lines.',
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: controller.selectedItem == null
-                      ? 'Save Order'
-                      : 'Update Order',
-                  onPressed: controller.canEditSelectedOrder
-                      ? () => controller.save(context)
-                      : null,
-                  busy: controller.saving,
+                Builder(
+                  builder: (_) {
+                    final selectedData =
+                        controller.selectedItem?.toJson() ??
+                        const <String, dynamic>{};
+                    final status = stringValue(selectedData, 'order_status');
+                    final canPost =
+                        controller.selectedItem != null && status == 'draft';
+                    final canClose = controller.selectedItem != null &&
+                        status != 'closed' &&
+                        status != 'cancelled';
+                    final canCancel = controller.selectedItem != null &&
+                        status != 'fully_received' &&
+                        status != 'fully_invoiced' &&
+                        status != 'closed' &&
+                        status != 'cancelled';
+
+                    return Wrap(
+                      spacing: AppUiConstants.spacingSm,
+                      runSpacing: AppUiConstants.spacingSm,
+                      children: [
+                        if (!controller.isSelectedOrderReadOnly)
+                          AppActionButton(
+                            icon: Icons.save_outlined,
+                            label: controller.selectedItem == null
+                                ? 'Save Order'
+                                : 'Update Order',
+                            onPressed: controller.canEditSelectedOrder
+                                ? () => controller.save(context)
+                                : null,
+                            busy: controller.saving,
+                          ),
+                        if (canPost)
+                          AppActionButton(
+                            icon: Icons.publish_outlined,
+                            label: 'Post',
+                            filled: false,
+                            onPressed: () => controller.docAction(
+                              context,
+                              () => PurchaseService().postOrder(
+                                intValue(
+                                  controller.selectedItem!.toJson(),
+                                  'id',
+                                )!,
+                                PurchaseOrderModel.fromJson(
+                                  const <String, dynamic>{},
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (canClose)
+                          AppActionButton(
+                            icon: Icons.task_alt_outlined,
+                            label: 'Close',
+                            filled: false,
+                            onPressed: () => controller.docAction(
+                              context,
+                              () => PurchaseService().closeOrder(
+                                intValue(
+                                  controller.selectedItem!.toJson(),
+                                  'id',
+                                )!,
+                                PurchaseOrderModel.fromJson(
+                                  const <String, dynamic>{},
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (canCancel)
+                          AppActionButton(
+                            icon: Icons.cancel_outlined,
+                            label: 'Cancel',
+                            filled: false,
+                            onPressed: () => controller.docAction(
+                              context,
+                              () => PurchaseService().cancelOrder(
+                                intValue(
+                                  controller.selectedItem!.toJson(),
+                                  'id',
+                                )!,
+                                PurchaseOrderModel.fromJson(
+                                  const <String, dynamic>{},
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
-                if (controller.selectedItem != null) ...[
-                  AppActionButton(
-                    icon: Icons.publish_outlined,
-                    label: 'Post',
-                    filled: false,
-                    onPressed: () => controller.docAction(
-                      context,
-                      () => PurchaseService().postOrder(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchaseOrderModel.fromJson(const <String, dynamic>{}),
-                      ),
-                    ),
-                  ),
-                  AppActionButton(
-                    icon: Icons.task_alt_outlined,
-                    label: 'Close',
-                    filled: false,
-                    onPressed: () => controller.docAction(
-                      context,
-                      () => PurchaseService().closeOrder(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchaseOrderModel.fromJson(const <String, dynamic>{}),
-                      ),
-                    ),
-                  ),
-                  AppActionButton(
-                    icon: Icons.cancel_outlined,
-                    label: 'Cancel',
-                    filled: false,
-                    onPressed: () => controller.docAction(
-                      context,
-                      () => PurchaseService().cancelOrder(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchaseOrderModel.fromJson(const <String, dynamic>{}),
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ],

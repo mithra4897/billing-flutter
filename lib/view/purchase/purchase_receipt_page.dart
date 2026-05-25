@@ -120,7 +120,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
             title: stringValue(data, 'receipt_no', 'Draft Receipt'),
             subtitle: [
               displayDate(nullableStringValue(data, 'receipt_date')),
-              stringValue(data, 'receipt_status'),
+              purchaseStatusLabel(nullableStringValue(data, 'receipt_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: stringValue(data, 'supplier_name'),
             selected: selected,
@@ -137,8 +137,28 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            SettingsFormWrap(
-              children: [
+            if (controller.isSelectedReceiptReadOnly) ...[
+              Text(
+                purchaseReadOnlyMessage(
+                  'purchase receipt',
+                  nullableStringValue(
+                    controller.selectedItem?.toJson() ?? const {},
+                    'receipt_status',
+                  ),
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            IgnorePointer(
+              ignoring: controller.isSelectedReceiptReadOnly,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SettingsFormWrap(
+                    children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: controller.financialYears
@@ -260,34 +280,36 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                   controller: controller.notesController,
                   maxLines: 3,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            AppSwitchTile(
-              label: 'Active',
-              value: controller.isActive,
-              onChanged: controller.setIsActive,
-            ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-            Row(
-              children: [
-                Text(
-                  'Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    ],
                   ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add Line',
-                  onPressed: controller.addLine,
-                  filled: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(controller.lines.length, (index) {
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  AppSwitchTile(
+                    label: 'Active',
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingLg),
+                  Row(
+                    children: [
+                      Text(
+                        'Lines',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      AppActionButton(
+                        icon: Icons.add_outlined,
+                        label: 'Add Line',
+                        onPressed: controller.isSelectedReceiptReadOnly
+                            ? null
+                            : controller.addLine,
+                        filled: false,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  ...List<Widget>.generate(controller.lines.length, (index) {
               final line = controller.lines[index];
               return Padding(
                 padding: const EdgeInsets.only(
@@ -477,19 +499,25 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                 ),
               );
             }),
+                ],
+              ),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: controller.selectedItem == null
-                      ? 'Save Receipt'
-                      : 'Update Receipt',
-                  onPressed: () => controller.save(context),
-                  busy: controller.saving,
-                ),
+                if (!controller.isSelectedReceiptReadOnly)
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: controller.selectedItem == null
+                        ? 'Save Receipt'
+                        : 'Update Receipt',
+                    onPressed: controller.canEditSelectedReceipt
+                        ? () => controller.save(context)
+                        : null,
+                    busy: controller.saving,
+                  ),
                 if (controller.selectedItem != null) ...[
                   AppActionButton(
                     icon: Icons.publish_outlined,

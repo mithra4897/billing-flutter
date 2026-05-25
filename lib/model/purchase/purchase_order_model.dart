@@ -18,6 +18,8 @@ class PurchaseOrderModel extends JsonModel {
     this.contactId,
     this.supplierReferenceNo,
     this.supplierReferenceDate,
+    this.supplierName,
+    this.supplier,
     this.currencyCode,
     this.exchangeRate,
     this.subtotal,
@@ -39,6 +41,7 @@ class PurchaseOrderModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.lines = const <PurchaseOrderLineModel>[],
   });
   final int? companyId;
   final int? branchId;
@@ -55,6 +58,8 @@ class PurchaseOrderModel extends JsonModel {
   final int? contactId;
   final String? supplierReferenceNo;
   final String? supplierReferenceDate;
+  final String? supplierName;
+  final Map<String, dynamic>? supplier;
   final String? currencyCode;
   final double? exchangeRate;
   final double? subtotal;
@@ -76,6 +81,7 @@ class PurchaseOrderModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final List<PurchaseOrderLineModel> lines;
 
   factory PurchaseOrderModel.fromJson(Map<String, dynamic> json) {
     return PurchaseOrderModel(
@@ -97,6 +103,8 @@ class PurchaseOrderModel extends JsonModel {
       contactId: JsonModel.nullableInt(json['contact_id']),
       supplierReferenceNo: json['supplier_reference_no']?.toString(),
       supplierReferenceDate: json['supplier_reference_date']?.toString(),
+      supplierName: json['supplier_name']?.toString(),
+      supplier: JsonModel.mapOf(json['supplier']),
       currencyCode: json['currency_code']?.toString(),
       exchangeRate: JsonModel.nullableDouble(json['exchange_rate']),
       subtotal: JsonModel.nullableDouble(json['subtotal']),
@@ -120,6 +128,10 @@ class PurchaseOrderModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      lines: JsonModel.listOf<PurchaseOrderLineModel>(
+        json['lines'],
+        PurchaseOrderLineModel.fromJson,
+      ),
     );
   }
   @override
@@ -152,6 +164,8 @@ class PurchaseOrderModel extends JsonModel {
       'supplier_reference_no': supplierReferenceNo,
     if (supplierReferenceDate != null)
       'supplier_reference_date': supplierReferenceDate,
+    if (supplierName != null) 'supplier_name': supplierName,
+    if (supplier != null) 'supplier': supplier,
     if (currencyCode != null) 'currency_code': currencyCode,
     if (exchangeRate != null) 'exchange_rate': exchangeRate,
     if (subtotal != null) 'subtotal': subtotal,
@@ -173,5 +187,6 @@ class PurchaseOrderModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    'lines': lines.map((line) => line.toJson()).toList(growable: false),
   };
 }

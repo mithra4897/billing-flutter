@@ -24,6 +24,14 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   PurchaseRequisitionManagementController get _controller =>
       Get.find<PurchaseRequisitionManagementController>(tag: _controllerTag);
 
+  String _statusLabel(String? status) {
+    final normalized = status?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return '';
+    }
+    return normalized.replaceAll('_', ' ').titleCase;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,20 +62,18 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     return GetBuilder<PurchaseRequisitionManagementController>(
       tag: _controllerTag,
       builder: (controller) {
-        final actions = widget.editorOnly
-            ? const <Widget>[]
-            : <Widget>[
-                AdaptiveShellActionButton(
-                  onPressed: () {
-                    controller.resetForm();
-                    if (!Responsive.isDesktop(context)) {
-                      controller.workspaceController.openEditor();
-                    }
-                  },
-                  icon: Icons.add_outlined,
-                  label: 'New Requisition',
-                ),
-              ];
+        final actions = <Widget>[
+          AdaptiveShellActionButton(
+            onPressed: () {
+              controller.resetForm();
+              if (!Responsive.isDesktop(context)) {
+                controller.workspaceController.openEditor();
+              }
+            },
+            icon: Icons.add_outlined,
+            label: 'New Requisition',
+          ),
+        ];
 
         final content = _buildContent(context, controller);
         if (widget.embedded) {
@@ -125,7 +131,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
             title: stringValue(data, 'requisition_no', 'Draft Requisition'),
             subtitle: [
               displayDate(nullableStringValue(data, 'requisition_date')),
-              stringValue(data, 'requisition_status'),
+              _statusLabel(nullableStringValue(data, 'requisition_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: stringValue(data, 'purpose'),
             selected: selected,
@@ -142,8 +148,28 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            SettingsFormWrap(
-              children: [
+            if (controller.isSelectedRequisitionReadOnly) ...[
+              Text(
+                purchaseReadOnlyMessage(
+                  'purchase requisition',
+                  nullableStringValue(
+                    controller.selectedItem?.toJson() ?? const {},
+                    'requisition_status',
+                  ),
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            IgnorePointer(
+              ignoring: controller.isSelectedRequisitionReadOnly,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SettingsFormWrap(
+                    children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: controller.financialYears
@@ -237,64 +263,92 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                   controller: controller.notesController,
                   maxLines: 3,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            AppSwitchTile(
-              label: 'Active',
-              value: controller.isActive,
-              onChanged: controller.setIsActive,
-            ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-            Row(
-              children: [
-                Text(
-                  'Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    ],
                   ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add Line',
-                  onPressed: controller.addLine,
-                  filled: false,
-                ),
-              ],
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  AppSwitchTile(
+                    label: 'Active',
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingLg),
+                  Row(
+                    children: [
+                      Text(
+                        'Lines',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      AppActionButton(
+                        icon: Icons.add_outlined,
+                        label: 'Add Line',
+                        onPressed: controller.isSelectedRequisitionReadOnly
+                            ? null
+                            : controller.addLine,
+                        filled: false,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  ...List<Widget>.generate(controller.lines.length, (index) {
+                    final line = controller.lines[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppUiConstants.spacingSm,
+                      ),
+                      child: PurchaseCompactLineCard(
+                        index: index,
+                        total: controller.lines.length,
+                        removeEnabled: controller.lines.length > 1,
+                        onRemove: () => controller.removeLine(index),
+                        child: _buildLineFields(context, controller, line),
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(controller.lines.length, (index) {
-              final line = controller.lines[index];
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
-                ),
-                child: PurchaseCompactLineCard(
-                  index: index,
-                  total: controller.lines.length,
-                  removeEnabled: controller.lines.length > 1,
-                  onRemove: () => controller.removeLine(index),
-                  child: _buildLineFields(context, controller, line),
-                ),
-              );
-            }),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: controller.selectedItem == null
-                      ? 'Save Requisition'
-                      : 'Update Requisition',
-                  onPressed: controller.canEditSelectedRequisition
-                      ? () => controller.save(context)
-                      : null,
-                  busy: controller.saving,
-                ),
-                if (controller.selectedItem != null) ...[
+                Builder(
+                  builder: (_) {
+                    final selectedData =
+                        controller.selectedItem?.toJson() ??
+                        const <String, dynamic>{};
+                    final status = stringValue(
+                      selectedData,
+                      'requisition_status',
+                    );
+                    final canApprove =
+                        controller.selectedItem != null && status == 'draft';
+                    final canClose = controller.selectedItem != null &&
+                        status != 'closed' &&
+                        status != 'cancelled';
+                    final canCancel = controller.selectedItem != null &&
+                        status != 'closed' &&
+                        status != 'cancelled';
+
+                    return Wrap(
+                      spacing: AppUiConstants.spacingSm,
+                      runSpacing: AppUiConstants.spacingSm,
+                      children: [
+                if (!controller.isSelectedRequisitionReadOnly)
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: controller.selectedItem == null
+                        ? 'Save Requisition'
+                        : 'Update Requisition',
+                    onPressed: controller.canEditSelectedRequisition
+                        ? () => controller.save(context)
+                        : null,
+                    busy: controller.saving,
+                  ),
+                if (canApprove)
                   AppActionButton(
                     icon: Icons.check_circle_outline,
                     label: 'Approve',
@@ -309,6 +363,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     ),
                     filled: false,
                   ),
+                if (canClose)
                   AppActionButton(
                     icon: Icons.task_alt_outlined,
                     label: 'Close',
@@ -323,6 +378,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     ),
                     filled: false,
                   ),
+                if (canCancel)
                   AppActionButton(
                     icon: Icons.cancel_outlined,
                     label: 'Cancel',
@@ -337,7 +393,10 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     ),
                     filled: false,
                   ),
-                ],
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ],

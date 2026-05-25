@@ -120,7 +120,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
             title: stringValue(data, 'return_no', 'Draft Return'),
             subtitle: [
               displayDate(nullableStringValue(data, 'return_date')),
-              stringValue(data, 'return_status'),
+              purchaseStatusLabel(nullableStringValue(data, 'return_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: stringValue(data, 'return_reason'),
             selected: selected,
@@ -137,8 +137,28 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            SettingsFormWrap(
-              children: [
+            if (controller.isSelectedReturnReadOnly) ...[
+              Text(
+                purchaseReadOnlyMessage(
+                  'purchase return',
+                  nullableStringValue(
+                    controller.selectedItem?.toJson() ?? const {},
+                    'return_status',
+                  ),
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            IgnorePointer(
+              ignoring: controller.isSelectedReturnReadOnly,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SettingsFormWrap(
+                    children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: controller.financialYears
@@ -209,34 +229,36 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                   controller: controller.notesController,
                   maxLines: 3,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            AppSwitchTile(
-              label: 'Active',
-              value: controller.isActive,
-              onChanged: controller.setIsActive,
-            ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-            Row(
-              children: [
-                Text(
-                  'Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    ],
                   ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add Line',
-                  onPressed: controller.addLine,
-                  filled: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(controller.lines.length, (index) {
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  AppSwitchTile(
+                    label: 'Active',
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingLg),
+                  Row(
+                    children: [
+                      Text(
+                        'Lines',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      AppActionButton(
+                        icon: Icons.add_outlined,
+                        label: 'Add Line',
+                        onPressed: controller.isSelectedReturnReadOnly
+                            ? null
+                            : controller.addLine,
+                        filled: false,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  ...List<Widget>.generate(controller.lines.length, (index) {
               final line = controller.lines[index];
               return Padding(
                 padding: const EdgeInsets.only(
@@ -330,19 +352,25 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                 ),
               );
             }),
+                ],
+              ),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: controller.selectedItem == null
-                      ? 'Save Return'
-                      : 'Update Return',
-                  onPressed: () => controller.save(context),
-                  busy: controller.saving,
-                ),
+                if (!controller.isSelectedReturnReadOnly)
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: controller.selectedItem == null
+                        ? 'Save Return'
+                        : 'Update Return',
+                    onPressed: controller.canEditSelectedReturn
+                        ? () => controller.save(context)
+                        : null,
+                    busy: controller.saving,
+                  ),
                 if (controller.selectedItem != null) ...[
                   AppActionButton(
                     icon: Icons.publish_outlined,

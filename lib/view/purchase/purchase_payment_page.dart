@@ -127,7 +127,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
             title: stringValue(data, 'payment_no', 'Draft Payment'),
             subtitle: [
               displayDate(nullableStringValue(data, 'payment_date')),
-              stringValue(data, 'payment_status'),
+              purchaseStatusLabel(nullableStringValue(data, 'payment_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
             detail: stringValue(data, 'supplier_name'),
             selected: selected,
@@ -144,8 +144,28 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            SettingsFormWrap(
-              children: [
+            if (controller.isSelectedPaymentReadOnly) ...[
+              Text(
+                purchaseReadOnlyMessage(
+                  'purchase payment',
+                  nullableStringValue(
+                    controller.selectedItem?.toJson() ?? const {},
+                    'payment_status',
+                  ),
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+            ],
+            IgnorePointer(
+              ignoring: controller.isSelectedPaymentReadOnly,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SettingsFormWrap(
+                    children: [
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Financial Year',
                   mappedItems: controller.financialYears
@@ -259,39 +279,43 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                   controller: controller.notesController,
                   maxLines: 3,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            AppSwitchTile(
-              label: 'Active',
-              value: controller.isActive,
-              onChanged: controller.setIsActive,
-            ),
-            const SizedBox(height: AppUiConstants.spacingLg),
-            Row(
-              children: [
-                Text(
-                  'Allocations',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    ],
                   ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add Allocation',
-                  onPressed: controller.addAllocation,
-                  filled: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            if (controller.allocations.isEmpty)
-              const Text(
-                'This payment can stay on-account, or allocate it to one or more purchase invoices.',
-              )
-            else
-              ...List<Widget>.generate(controller.allocations.length, (index) {
+                  const SizedBox(height: AppUiConstants.spacingMd),
+                  AppSwitchTile(
+                    label: 'Active',
+                    value: controller.isActive,
+                    onChanged: controller.setIsActive,
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingLg),
+                  Row(
+                    children: [
+                      Text(
+                        'Allocations',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      AppActionButton(
+                        icon: Icons.add_outlined,
+                        label: 'Add Allocation',
+                        onPressed: controller.isSelectedPaymentReadOnly
+                            ? null
+                            : controller.addAllocation,
+                        filled: false,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  if (controller.allocations.isEmpty)
+                    const Text(
+                      'This payment can stay on-account, or allocate it to one or more purchase invoices.',
+                    )
+                  else
+                    ...List<Widget>.generate(controller.allocations.length, (
+                      index,
+                    ) {
                 final allocation = controller.allocations[index];
                 return Padding(
                   padding: const EdgeInsets.only(
@@ -376,19 +400,25 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                   ),
                 );
               }),
+                ],
+              ),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: controller.selectedItem == null
-                      ? 'Save Payment'
-                      : 'Update Payment',
-                  onPressed: () => controller.save(context),
-                  busy: controller.saving,
-                ),
+                if (!controller.isSelectedPaymentReadOnly)
+                  AppActionButton(
+                    icon: Icons.save_outlined,
+                    label: controller.selectedItem == null
+                        ? 'Save Payment'
+                        : 'Update Payment',
+                    onPressed: controller.canEditSelectedPayment
+                        ? () => controller.save(context)
+                        : null,
+                    busy: controller.saving,
+                  ),
                 if (controller.selectedItem != null) ...[
                   AppActionButton(
                     icon: Icons.publish_outlined,

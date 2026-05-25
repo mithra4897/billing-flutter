@@ -1,5 +1,26 @@
 import '../../screen.dart';
 
+String purchaseStatusLabel(String? status) {
+  final normalized = status?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return '';
+  }
+  return normalized.replaceAll('_', ' ').titleCase;
+}
+
+bool purchaseDocumentIsDraftEditable(String? status) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  return normalized.isEmpty || normalized == 'draft';
+}
+
+String purchaseReadOnlyMessage(String documentLabel, String? status) {
+  final label = purchaseStatusLabel(status);
+  if (label.isEmpty) {
+    return 'This $documentLabel is read-only.';
+  }
+  return 'This $documentLabel is ${label.toLowerCase()}. Details are read-only.';
+}
+
 List<PartyModel> purchaseSuppliers({
   required List<PartyModel> parties,
   required List<PartyTypeModel> partyTypes,

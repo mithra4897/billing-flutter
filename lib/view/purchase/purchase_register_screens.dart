@@ -214,7 +214,9 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
             query.isEmpty ||
             [
               stringValue(data, 'requisition_no'),
-              stringValue(data, 'requisition_status'),
+              purchaseStatusLabel(
+                nullableStringValue(data, 'requisition_status'),
+              ),
               stringValue(data, 'purpose'),
               stringValue(data, 'department'),
             ].join(' ').toLowerCase().contains(query);
@@ -247,8 +249,9 @@ class PurchaseRequisitionRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) =>
-              stringValue(row.toJson(), 'requisition_status'),
+          valueBuilder: (row) => purchaseStatusLabel(
+            nullableStringValue(row.toJson(), 'requisition_status'),
+          ),
         ),
       ],
       rowRoute: (row) =>
@@ -281,7 +284,7 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
       title: 'Purchase Orders',
       embedded: embedded,
       loader: (service) =>
-          service.orders(filters: {'per_page': 200, 'sort_by': 'order_date'}),
+          service.ordersAll(filters: {'sort_by': 'order_date'}),
       matches: (row, query, status) {
         final data = row.toJson();
         final statusOk =
@@ -291,7 +294,7 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
             [
               stringValue(data, 'order_no'),
               stringValue(data, 'supplier_name'),
-              stringValue(data, 'order_status'),
+              purchaseStatusLabel(nullableStringValue(data, 'order_status')),
             ].join(' ').toLowerCase().contains(query);
         return statusOk && searchOk;
       },
@@ -328,7 +331,9 @@ class PurchaseOrderRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'order_status'),
+          valueBuilder: (row) => purchaseStatusLabel(
+            nullableStringValue(row.toJson(), 'order_status'),
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/orders/${intValue(row.toJson(), 'id')}',
@@ -368,7 +373,7 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
             [
               stringValue(data, 'receipt_no'),
               stringValue(data, 'supplier_name'),
-              stringValue(data, 'receipt_status'),
+              purchaseStatusLabel(nullableStringValue(data, 'receipt_status')),
             ].join(' ').toLowerCase().contains(query);
         return statusOk && searchOk;
       },
@@ -404,7 +409,9 @@ class PurchaseReceiptRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'receipt_status'),
+          valueBuilder: (row) => purchaseStatusLabel(
+            nullableStringValue(row.toJson(), 'receipt_status'),
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/receipts/${intValue(row.toJson(), 'id')}',
@@ -443,7 +450,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
             query.isEmpty ||
             [
               row.invoiceNo ?? '',
-              row.invoiceStatus ?? '',
+              purchaseStatusLabel(row.invoiceStatus),
               _nestedName(
                 row.toJson(),
                 'supplier_name',
@@ -483,7 +490,7 @@ class PurchaseInvoiceRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => row.invoiceStatus ?? '',
+          valueBuilder: (row) => purchaseStatusLabel(row.invoiceStatus),
         ),
       ],
       rowRoute: (row) => '/purchase/invoices/${row.id}',
@@ -524,7 +531,7 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
               stringValue(data, 'payment_no'),
               stringValue(data, 'supplier_name'),
               stringValue(data, 'reference_no'),
-              stringValue(data, 'payment_status'),
+              purchaseStatusLabel(nullableStringValue(data, 'payment_status')),
             ].join(' ').toLowerCase().contains(query);
         return statusOk && searchOk;
       },
@@ -559,7 +566,9 @@ class PurchasePaymentRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'payment_status'),
+          valueBuilder: (row) => purchaseStatusLabel(
+            nullableStringValue(row.toJson(), 'payment_status'),
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/payments/${intValue(row.toJson(), 'id')}',
@@ -597,7 +606,7 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
             [
               stringValue(data, 'return_no'),
               stringValue(data, 'return_reason'),
-              stringValue(data, 'return_status'),
+              purchaseStatusLabel(nullableStringValue(data, 'return_status')),
             ].join(' ').toLowerCase().contains(query);
         return statusOk && searchOk;
       },
@@ -632,7 +641,9 @@ class PurchaseReturnRegisterPage extends StatelessWidget {
         ),
         PurchaseRegisterColumn(
           label: 'Status',
-          valueBuilder: (row) => stringValue(row.toJson(), 'return_status'),
+          valueBuilder: (row) => purchaseStatusLabel(
+            nullableStringValue(row.toJson(), 'return_status'),
+          ),
         ),
       ],
       rowRoute: (row) => '/purchase/returns/${intValue(row.toJson(), 'id')}',

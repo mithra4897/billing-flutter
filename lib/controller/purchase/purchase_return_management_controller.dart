@@ -146,6 +146,18 @@ class PurchaseReturnManagementController extends GetxController {
 
   bool _initialized = false;
 
+  bool get canEditSelectedReturn {
+    if (selectedItem == null) {
+      return true;
+    }
+    return purchaseDocumentIsDraftEditable(
+      stringValue(selectedItem!.toJson(), 'return_status'),
+    );
+  }
+
+  bool get isSelectedReturnReadOnly =>
+      selectedItem != null && !canEditSelectedReturn;
+
   @override
   void onInit() {
     super.onInit();
@@ -388,7 +400,7 @@ class PurchaseReturnManagementController extends GetxController {
         final data = item.toJson();
         return <String>[
           stringValue(data, 'return_no'),
-          stringValue(data, 'return_status'),
+          purchaseStatusLabel(nullableStringValue(data, 'return_status')),
         ];
       },
     );

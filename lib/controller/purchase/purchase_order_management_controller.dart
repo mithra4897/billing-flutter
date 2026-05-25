@@ -170,8 +170,13 @@ class PurchaseOrderManagementController extends GetxController {
 
   bool get canEditSelectedOrder {
     if (selectedItem == null) return true;
-    return stringValue(selectedItem!.toJson(), 'order_status') == 'draft';
+    return purchaseDocumentIsDraftEditable(
+      stringValue(selectedItem!.toJson(), 'order_status'),
+    );
   }
+
+  bool get isSelectedOrderReadOnly =>
+      selectedItem != null && !canEditSelectedOrder;
 
   bool get isAllSupplierSelected => supplierPartyId == allSelectionId;
   bool get isAllRequisitionSelected => purchaseRequisitionId == allSelectionId;
@@ -225,8 +230,8 @@ class PurchaseOrderManagementController extends GetxController {
     update();
     try {
       final responses = await Future.wait<dynamic>([
-        _purchaseService.orders(
-          filters: const {'per_page': 200, 'sort_by': 'order_date'},
+        _purchaseService.ordersAll(
+          filters: const {'sort_by': 'order_date'},
         ),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
@@ -296,7 +301,7 @@ class PurchaseOrderManagementController extends GetxController {
           );
 
       items =
-          (responses[0] as PaginatedResponse<PurchaseOrderModel>).data ??
+          (responses[0] as ApiResponse<List<PurchaseOrderModel>>).data ??
           const <PurchaseOrderModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
@@ -464,7 +469,7 @@ class PurchaseOrderManagementController extends GetxController {
         final data = item.toJson();
         return <String>[
           stringValue(data, 'order_no'),
-          stringValue(data, 'order_status'),
+          purchaseStatusLabel(nullableStringValue(data, 'order_status')),
           stringValue(data, 'supplier_name'),
           stringValue(data, 'supplier_reference_no'),
         ];
@@ -606,6 +611,31 @@ class PurchaseOrderManagementController extends GetxController {
   List<ItemSupplierMapModel> supplierMaps(int supplierId) {
     return itemSupplierMaps
         .where((entry) => entry.isActive && entry.supplierId == supplierId)
+        .toList(growable: false);
+  }
+
+  Set<int> mappedPurchaseItemIds({int? supplierId}) {
+    final mappedIds = itemSupplierMaps
+        .where(
+          (entry) =>
+              entry.isActive &&
+              (supplierId == null || entry.supplierId == supplierId),
+        )
+        .map((entry) => entry.itemId)
+        .whereType<int>()
+        .toSet();
+    return mappedIds;
+  }
+
+  List<ItemModel> get purchasableItemOptions {
+    final specificSupplierId =
+        hasSpecificSupplierSelection ? supplierPartyId : null;
+    final allowedIds = mappedPurchaseItemIds(supplierId: specificSupplierId);
+    if (allowedIds.isEmpty) {
+      return const <ItemModel>[];
+    }
+    return itemsLookup
+        .where((item) => item.id != null && allowedIds.contains(item.id))
         .toList(growable: false);
   }
 
@@ -869,18 +899,27 @@ class PurchaseOrderManagementController extends GetxController {
   }
 
   List<PurchaseRequisitionModel> get filteredRequisitionOptions {
+    final openRequisitions = requisitions.where((req) {
+      final id = intValue(req.toJson(), 'id');
+      final detail = id != null ? requisitionDetailCache[id] : null;
+      if (detail != null) {
+        return isOpenDemandRequisition(detail);
+      }
+      return isOpenDemandRequisition(req);
+    }).toList(growable: false);
+
     if (linkDriver != PurchaseOrderLinkDriver.supplier ||
         !hasSpecificSupplierSelection) {
-      return requisitions;
+      return openRequisitions;
     }
+
     final allowedItemIds = supplierItemIds(supplierPartyId!);
     if (allowedItemIds.isEmpty) return const <PurchaseRequisitionModel>[];
-    return requisitions
+    return openRequisitions
         .where((req) {
           final id = intValue(req.toJson(), 'id');
           final detail = id != null ? requisitionDetailCache[id] : null;
           if (detail == null) return true;
-          if (!isOpenDemandRequisition(detail)) return false;
           return requisitionLineMaps(detail).any((line) {
             final itemId = intValue(line, 'item_id');
             return itemId != null &&
@@ -1081,7 +1120,11 @@ class PurchaseOrderManagementController extends GetxController {
 
   void setLineItemId(PurchaseOrderLineDraft line, int? value) {
     line.itemId = value;
-    line.uomId = resolveDefaultUom(value, line.uomId);
+    line.warehouseId ??= warehouses.isNotEmpty ? warehouses.first.id : null;
+    applyItemAndSupplierDefaults(
+      line,
+      supplierId: hasSpecificSupplierSelection ? supplierPartyId : null,
+    );
     update();
   }
 

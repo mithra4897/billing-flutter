@@ -112,6 +112,18 @@ class PurchasePaymentManagementController extends GetxController {
 
   bool _initialized = false;
 
+  bool get canEditSelectedPayment {
+    if (selectedItem == null) {
+      return true;
+    }
+    return purchaseDocumentIsDraftEditable(
+      stringValue(selectedItem!.toJson(), 'payment_status'),
+    );
+  }
+
+  bool get isSelectedPaymentReadOnly =>
+      selectedItem != null && !canEditSelectedPayment;
+
   @override
   void onInit() {
     super.onInit();
@@ -415,7 +427,7 @@ class PurchasePaymentManagementController extends GetxController {
         final data = item.toJson();
         return <String>[
           stringValue(data, 'payment_no'),
-          stringValue(data, 'payment_status'),
+          purchaseStatusLabel(nullableStringValue(data, 'payment_status')),
           stringValue(data, 'supplier_name'),
           stringValue(data, 'reference_no'),
         ];

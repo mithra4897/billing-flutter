@@ -79,6 +79,16 @@ class PurchaseInvoiceManagementController extends GetxController {
   bool isActive = true;
   bool _initialized = false;
 
+  bool get canEditSelectedInvoice {
+    if (selectedItem == null) {
+      return true;
+    }
+    return purchaseDocumentIsDraftEditable(selectedItem!.invoiceStatus);
+  }
+
+  bool get isSelectedInvoiceReadOnly =>
+      selectedItem != null && !canEditSelectedInvoice;
+
   @override
   void onInit() {
     super.onInit();
@@ -380,7 +390,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       statusOf: (item) => item.invoiceStatus,
       searchFieldsOf: (item) => <String>[
         item.invoiceNo ?? '',
-        item.invoiceStatus ?? '',
+        purchaseStatusLabel(item.invoiceStatus),
         item.toJson()['supplier_name']?.toString() ?? '',
       ],
     );
