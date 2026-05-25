@@ -482,12 +482,17 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
-                AppActionButton(
-                  icon: Icons.print_outlined,
-                  label: 'Print',
-                  filled: false,
-                  onPressed: () => _openPrintPreview(context, controller),
-                ),
+                if (stringValue(
+                      controller.selectedItem?.toJson() ?? const {},
+                      'delivery_status',
+                    ) ==
+                    'posted')
+                  AppActionButton(
+                    icon: Icons.print_outlined,
+                    label: 'Print',
+                    filled: false,
+                    onPressed: () => _openPrintPreview(context, controller),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedItem == null

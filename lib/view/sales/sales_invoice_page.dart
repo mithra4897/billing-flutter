@@ -966,12 +966,13 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(
-                  icon: Icons.print_outlined,
-                  label: 'Print',
-                  filled: false,
-                  onPressed: () => controller.openPrintPreview(context),
-                ),
+                if (controller.status == 'posted')
+                  AppActionButton(
+                    icon: Icons.print_outlined,
+                    label: 'Print',
+                    filled: false,
+                    onPressed: () => controller.openPrintPreview(context),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedItem == null

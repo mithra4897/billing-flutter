@@ -25,6 +25,7 @@ class SalesDeliveryModel extends JsonModel {
     this.postedBy,
     this.postedAt,
     this.isActive,
+    this.lines = const <Map<String, dynamic>>[],
     this.createdBy,
     this.updatedBy,
     this.createdAt,
@@ -52,6 +53,7 @@ class SalesDeliveryModel extends JsonModel {
   final int? postedBy;
   final String? postedAt;
   final bool? isActive;
+  final List<Map<String, dynamic>> lines;
   final int? createdBy;
   final int? updatedBy;
   final String? createdAt;
@@ -84,6 +86,7 @@ class SalesDeliveryModel extends JsonModel {
       isActive: json['is_active'] == null
           ? null
           : JsonModel.boolOf(json['is_active']),
+      lines: _mapLines(json['lines']),
       createdBy: JsonModel.nullableInt(json['created_by']),
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
@@ -96,7 +99,6 @@ class SalesDeliveryModel extends JsonModel {
     vehicleNo,
     deliveryDate,
   ], defaultValue: 'Sales Delivery');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -123,9 +125,25 @@ class SalesDeliveryModel extends JsonModel {
     if (postedBy != null) 'posted_by': postedBy,
     if (postedAt != null) 'posted_at': postedAt,
     if (isActive != null) 'is_active': isActive,
+    if (lines.isNotEmpty) 'lines': lines,
     if (createdBy != null) 'created_by': createdBy,
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
   };
+
+  static List<Map<String, dynamic>> _mapLines(dynamic value) {
+    if (value is! List) {
+      return <Map<String, dynamic>>[];
+    }
+
+    return value
+        .whereType<Map>()
+        .map(
+          (line) => Map<String, dynamic>.from(
+            line.map((key, entryValue) => MapEntry(key.toString(), entryValue)),
+          ),
+        )
+        .toList(growable: false);
+  }
 }

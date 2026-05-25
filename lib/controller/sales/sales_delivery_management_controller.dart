@@ -566,7 +566,7 @@ class SalesDeliveryManagementController extends GetxController {
     update();
     try {
       final responses = await Future.wait<dynamic>([
-        _salesService.deliveries(
+        _salesService.deliveriesAll(
           filters: const {'per_page': 200, 'sort_by': 'delivery_date'},
         ),
         _masterService.companies(
@@ -627,7 +627,7 @@ class SalesDeliveryManagementController extends GetxController {
                     .toList(growable: false),
           );
       items =
-          (responses[0] as PaginatedResponse<SalesDeliveryModel>).data ??
+          (responses[0] as ApiResponse<List<SalesDeliveryModel>>).data ??
           const <SalesDeliveryModel>[];
       companies =
           (responses[1] as PaginatedResponse<CompanyModel>).data ??
@@ -765,12 +765,12 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   void resetForm({bool notify = true}) {
-    final series = seriesOptions();
     selectedItem = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
     locationId = contextLocationId;
     financialYearId = contextFinancialYearId;
+    final series = seriesOptions();
     documentSeriesId = series.isNotEmpty ? series.first.id : null;
     salesOrderId = null;
     customerPartyId = null;
@@ -839,10 +839,10 @@ class SalesDeliveryManagementController extends GetxController {
 
   int? deliveryDocumentSeriesIdFrom(Map<String, dynamic> data) {
     final seriesId = intValue(data, 'document_series_id');
-    if (seriesId != 0) {
+    final series = seriesOptions();
+    if (series.any((item) => item.id == seriesId)) {
       return seriesId;
     }
-    final series = seriesOptions();
     return series.isNotEmpty ? series.first.id : null;
   }
 
