@@ -86,6 +86,7 @@ class SalesReceiptManagementController extends GetxController {
   List<AccountModel> accounts = const <AccountModel>[];
   List<SalesInvoiceModel> invoices = const <SalesInvoiceModel>[];
   SalesReceiptModel? selectedItem;
+  SalesReceiptModel? pendingSelection;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -268,6 +269,22 @@ class SalesReceiptManagementController extends GetxController {
       items =
           (responses[0] as PaginatedResponse<SalesReceiptModel>).data ??
           const <SalesReceiptModel>[];
+      final pending = pendingSelection;
+      if (pending != null) {
+        final pendingId = intValue(pending.toJson(), 'id');
+        if (pendingId != null) {
+          final existingIndex = items.indexWhere(
+            (item) => intValue(item.toJson(), 'id') == pendingId,
+          );
+          if (existingIndex >= 0) {
+            final nextItems = List<SalesReceiptModel>.from(items);
+            nextItems[existingIndex] = pending;
+            items = nextItems;
+          } else {
+            items = <SalesReceiptModel>[pending, ...items];
+          }
+        }
+      }
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
@@ -303,7 +320,17 @@ class SalesReceiptManagementController extends GetxController {
       final selected = selectId != null
           ? items.cast<SalesReceiptModel?>().firstWhere(
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
-              orElse: () => null,
+              orElse: () {
+                final pending = pendingSelection;
+                if (intValue(pending?.toJson() ?? const {}, 'id') == selectId) {
+                  return pending;
+                }
+                final current = selectedItem;
+                if (intValue(current?.toJson() ?? const {}, 'id') == selectId) {
+                  return current;
+                }
+                return null;
+              },
             )
           : (editorOnly
                 ? null
@@ -311,6 +338,7 @@ class SalesReceiptManagementController extends GetxController {
                       ? (items.isNotEmpty ? items.first : null)
                       : null));
       if (selected != null) {
+        pendingSelection = null;
         await selectDocument(selected, notify: false);
       } else {
         resetForm(notify: false);
@@ -607,6 +635,28 @@ class SalesReceiptManagementController extends GetxController {
               intValue(selectedItem!.toJson(), 'id')!,
               SalesReceiptModel.fromJson(payload),
             );
+      final saved = response.data;
+      if (saved != null) {
+        pendingSelection = saved;
+        final savedId = intValue(saved.toJson(), 'id');
+        if (savedId != null) {
+          final existingIndex = items.indexWhere(
+            (item) => intValue(item.toJson(), 'id') == savedId,
+          );
+          if (existingIndex >= 0) {
+            final nextItems = List<SalesReceiptModel>.from(items);
+            nextItems[existingIndex] = saved;
+            items = nextItems;
+          } else {
+            items = <SalesReceiptModel>[saved, ...items];
+          }
+          filteredItems = _filterItems(
+            items,
+            searchController.text,
+            statusFilter,
+          );
+        }
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -630,6 +680,28 @@ class SalesReceiptManagementController extends GetxController {
   ) async {
     try {
       final response = await action();
+      final saved = response.data;
+      if (saved != null) {
+        pendingSelection = saved;
+        final savedId = intValue(saved.toJson(), 'id');
+        if (savedId != null) {
+          final existingIndex = items.indexWhere(
+            (item) => intValue(item.toJson(), 'id') == savedId,
+          );
+          if (existingIndex >= 0) {
+            final nextItems = List<SalesReceiptModel>.from(items);
+            nextItems[existingIndex] = saved;
+            items = nextItems;
+          } else {
+            items = <SalesReceiptModel>[saved, ...items];
+          }
+          filteredItems = _filterItems(
+            items,
+            searchController.text,
+            statusFilter,
+          );
+        }
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
