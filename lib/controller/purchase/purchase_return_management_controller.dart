@@ -31,13 +31,17 @@ class PurchaseReturnLineDraft {
   }
 
   factory PurchaseReturnLineDraft.fromJson(Map<String, dynamic> json) {
-    return PurchaseReturnLineDraft(
+    final draft = PurchaseReturnLineDraft(
       purchaseInvoiceLineId: intValue(json, 'purchase_invoice_line_id'),
       returnQty: stringValue(json, 'return_qty'),
       rate: stringValue(json, 'rate'),
       returnReason: stringValue(json, 'return_reason'),
       remarks: stringValue(json, 'remarks'),
     );
+    draft.itemId = intValue(json, 'item_id');
+    draft.warehouseId = intValue(json, 'warehouse_id');
+    draft.uomId = intValue(json, 'uom_id');
+    return draft;
   }
 
   int? purchaseInvoiceLineId;
@@ -350,6 +354,7 @@ class PurchaseReturnManagementController extends GetxController {
     _replaceLines(nextLines, notify: false);
     formError = null;
     syncLineDisplayNames();
+    _upsertReturn(full, notify: false);
     if (notify) {
       update();
     }
@@ -648,7 +653,7 @@ class PurchaseReturnManagementController extends GetxController {
     }
   }
 
-  void _upsertReturn(PurchaseReturnModel purchaseReturn) {
+  void _upsertReturn(PurchaseReturnModel purchaseReturn, {bool notify = true}) {
     final id = intValue(purchaseReturn.toJson(), 'id');
     if (id == null) {
       return;
@@ -663,7 +668,11 @@ class PurchaseReturnManagementController extends GetxController {
       nextItems.insert(0, purchaseReturn);
     }
     items = nextItems;
-    _applyFilters();
+    if (notify) {
+      _applyFilters();
+    } else {
+      filteredItems = _filterItems(items, searchController.text, statusFilter);
+    }
   }
 
   void _disposeLines(List<PurchaseReturnLineDraft> entries) {

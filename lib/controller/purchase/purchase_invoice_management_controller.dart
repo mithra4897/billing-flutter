@@ -131,8 +131,8 @@ class PurchaseInvoiceManagementController extends GetxController {
     update();
     try {
       final responses = await Future.wait<dynamic>([
-        _purchaseService.invoices(
-          filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
+        _purchaseService.invoicesAll(
+          filters: const {'sort_by': 'invoice_date'},
         ),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
@@ -203,7 +203,7 @@ class PurchaseInvoiceManagementController extends GetxController {
           );
 
       items =
-          (responses[0] as PaginatedResponse<PurchaseInvoiceModel>).data ??
+          (responses[0] as ApiResponse<List<PurchaseInvoiceModel>>).data ??
           const <PurchaseInvoiceModel>[];
       companies =
           (responses[1] as PaginatedResponse<CompanyModel>).data ??
@@ -343,6 +343,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     if (full.purchaseReceiptId != null) {
       unawaited(enrichLinesFromReceiptHeader(full.purchaseReceiptId!));
     }
+    _upsertInvoice(full, notify: false);
     if (notify) update();
   }
 
@@ -561,6 +562,49 @@ class PurchaseInvoiceManagementController extends GetxController {
     return options.isNotEmpty ? options.first.id : null;
   }
 
+  List<PurchaseOrderModel> invoiceOrderOptions() {
+    final selectedOrderId = purchaseOrderId;
+    return orders
+        .where((item) {
+          final data = item.toJson();
+          final id = intValue(data, 'id');
+          final status = stringValue(data, 'order_status').trim().toLowerCase();
+          if (selectedOrderId != null && id == selectedOrderId) {
+            return true;
+          }
+          return !const {'draft', 'closed', 'cancelled'}.contains(status);
+        })
+        .toList(growable: false);
+  }
+
+  List<PurchaseReceiptModel> invoiceReceiptOptions() {
+    final selectedReceiptId = purchaseReceiptId;
+    return receipts
+        .where((item) {
+          final data = item.toJson();
+          final id = intValue(data, 'id');
+          final status = stringValue(
+            data,
+            'receipt_status',
+          ).trim().toLowerCase();
+          if (selectedReceiptId != null && id == selectedReceiptId) {
+            return true;
+          }
+          return !const {'draft', 'closed', 'cancelled'}.contains(status);
+        })
+        .toList(growable: false);
+  }
+
+  PurchaseOrderModel? orderById(int? orderId) {
+    if (orderId == null) {
+      return null;
+    }
+    return orders.cast<PurchaseOrderModel?>().firstWhere(
+      (item) => item?.id == orderId,
+      orElse: () => null,
+    );
+  }
+
   double pendingInvoiceQtyForOrderLine(Map<String, dynamic> line) {
     final orderedQty = double.tryParse(stringValue(line, 'ordered_qty')) ?? 0;
     final invoicedQty = double.tryParse(stringValue(line, 'invoiced_qty')) ?? 0;
@@ -588,6 +632,43 @@ class PurchaseInvoiceManagementController extends GetxController {
                 double.tryParse(stringValue(line, 'discount_percent')) ?? 0,
             taxCodeId: intValue(line, 'tax_code_id'),
             remarks: nullableStringValue(line, 'remarks'),
+          );
+        })
+        .whereType<PurchaseInvoiceLineModel>()
+        .toList(growable: false);
+    return nextLines.isEmpty
+        ? <PurchaseInvoiceLineModel>[
+            PurchaseInvoiceLineModel(
+              itemId: 0,
+              uomId: 0,
+              invoicedQty: 0,
+              rate: 0,
+            ),
+          ]
+        : nextLines;
+  }
+
+  List<PurchaseInvoiceLineModel> buildInvoiceLinesFromReceipt(
+    PurchaseReceiptModel receipt,
+  ) {
+    final nextLines = receipt.lines
+        .map((line) {
+          final pendingQty = line.pendingInvoiceQty ?? 0;
+          if (pendingQty <= 0) {
+            return null;
+          }
+          return PurchaseInvoiceLineModel(
+            purchaseOrderLineId: line.purchaseOrderLineId,
+            purchaseReceiptLineId: line.id,
+            itemId: line.itemId ?? 0,
+            warehouseId: line.warehouseId,
+            uomId: line.uomId ?? 0,
+            batchId: line.batchId,
+            serialId: line.serialId,
+            invoicedQty: pendingQty,
+            rate: line.rate ?? 0,
+            description: line.description,
+            remarks: line.remarks,
           );
         })
         .whereType<PurchaseInvoiceLineModel>()
@@ -705,20 +786,46 @@ class PurchaseInvoiceManagementController extends GetxController {
     if (response.data == null) return;
     final receipt = response.data!;
     final receiptPoId = intValue(receipt.toJson(), 'purchase_order_id');
-    if (purchaseOrderId != null &&
-        receiptPoId != null &&
-        receiptPoId != purchaseOrderId) {
-      purchaseReceiptId = null;
-      lines = lines
-          .map((l) => l.copyWith(purchaseReceiptLineId: null))
-          .toList(growable: false);
-      formError =
-          'Purchase receipt does not belong to the selected purchase order.';
-      update();
-      return;
-    }
-    lines = mergeInvoiceLinesWithReceiptLines(receipt, lines);
-    formError = null;
+    final receiptOrder = orderById(receiptPoId);
+    final receiptOrderData =
+        receiptOrder?.toJson() ?? const <String, dynamic>{};
+    final nextCompanyId = receipt.companyId;
+    final nextFinancialYearId = receipt.financialYearId;
+    final nextLines = buildInvoiceLinesFromReceipt(receipt);
+    purchaseOrderId = receiptPoId;
+    companyId = nextCompanyId;
+    branchId = receipt.branchId;
+    locationId = receipt.locationId;
+    financialYearId = nextFinancialYearId;
+    documentSeriesId = defaultSeriesIdFor(
+      companyId: nextCompanyId,
+      financialYearId: nextFinancialYearId,
+    );
+    supplierPartyId = receipt.supplierPartyId;
+    invoiceNoController.clear();
+    dueDateController.text = displayDate(receipt.supplierInvoiceDate);
+    supplierReferenceNoController.text = receipt.supplierInvoiceNo ?? '';
+    supplierReferenceDateController.text = displayDate(
+      receipt.supplierInvoiceDate,
+    );
+    currencyCodeController.text = stringValue(
+      receiptOrderData,
+      'currency_code',
+      'INR',
+    );
+    exchangeRateController.text = stringValue(
+      receiptOrderData,
+      'exchange_rate',
+      '1',
+    );
+    notesController.text = receipt.notes?.trim().isNotEmpty == true
+        ? receipt.notes!
+        : stringValue(receiptOrderData, 'notes');
+    termsController.text = stringValue(receiptOrderData, 'terms_conditions');
+    lines = nextLines;
+    formError = nextLines.length == 1 && nextLines.first.itemId == 0
+        ? 'Selected purchase receipt has no pending invoice quantity.'
+        : null;
     update();
   }
 
@@ -913,7 +1020,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     }
   }
 
-  void _upsertInvoice(PurchaseInvoiceModel invoice) {
+  void _upsertInvoice(PurchaseInvoiceModel invoice, {bool notify = true}) {
     final id = invoice.id;
     if (id == null) {
       return;
@@ -926,6 +1033,10 @@ class PurchaseInvoiceManagementController extends GetxController {
       nextItems.insert(0, invoice);
     }
     items = nextItems;
-    _applyFilters();
+    if (notify) {
+      _applyFilters();
+    } else {
+      filteredItems = _filterItems(items, searchController.text, statusFilter);
+    }
   }
 }

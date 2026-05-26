@@ -9,6 +9,7 @@ class PurchaseReceiptModel extends JsonModel {
     this.financialYearId,
     this.documentSeriesId,
     this.purchaseOrderId,
+    this.purchaseOrderNo,
     this.receiptNo,
     this.receiptDate,
     this.supplierPartyId,
@@ -41,6 +42,7 @@ class PurchaseReceiptModel extends JsonModel {
   final int? financialYearId;
   final int? documentSeriesId;
   final int? purchaseOrderId;
+  final String? purchaseOrderNo;
   final String? receiptNo;
   final String? receiptDate;
   final int? supplierPartyId;
@@ -76,6 +78,7 @@ class PurchaseReceiptModel extends JsonModel {
       financialYearId: JsonModel.nullableInt(json['financial_year_id']),
       documentSeriesId: JsonModel.nullableInt(json['document_series_id']),
       purchaseOrderId: JsonModel.nullableInt(json['purchase_order_id']),
+      purchaseOrderNo: json['purchase_order_no']?.toString(),
       receiptNo: json['receipt_no']?.toString(),
       receiptDate: json['receipt_date']?.toString(),
       supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
@@ -124,6 +127,7 @@ class PurchaseReceiptModel extends JsonModel {
     if (financialYearId != null) 'financial_year_id': financialYearId,
     if (documentSeriesId != null) 'document_series_id': documentSeriesId,
     if (purchaseOrderId != null) 'purchase_order_id': purchaseOrderId,
+    if (purchaseOrderNo != null) 'purchase_order_no': purchaseOrderNo,
     if (receiptNo != null) 'receipt_no': receiptNo,
     if (receiptDate != null) 'receipt_date': receiptDate,
     if (supplierPartyId != null) 'supplier_party_id': supplierPartyId,

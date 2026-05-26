@@ -1,28 +1,45 @@
 import 'package:flutter/widgets.dart';
 
-List<T> normalizeDisposableDraftEntries<T>(
+final Expando<bool> _draftEntryPendingDispose = Expando<bool>(
+  'draftEntryPendingDispose',
+);
+
+List<T> normalizeDisposableDraftEntries<T extends Object>(
   List<T> entries,
   T Function() createEmpty,
 ) {
   return entries.isEmpty ? <T>[createEmpty()] : entries;
 }
 
-void disposeDraftEntriesNextFrame<T>(
+void disposeDraftEntriesNextFrame<T extends Object>(
   Iterable<T> entries,
   void Function(T entry) dispose,
 ) {
-  final capturedEntries = entries.toList(growable: false);
+  final capturedEntries = entries
+      .where((entry) {
+        final pending = _draftEntryPendingDispose[entry] ?? false;
+        if (pending) {
+          return false;
+        }
+        _draftEntryPendingDispose[entry] = true;
+        return true;
+      })
+      .toList(growable: false);
   if (capturedEntries.isEmpty) {
     return;
   }
   WidgetsBinding.instance.addPostFrameCallback((_) {
     for (final entry in capturedEntries) {
-      dispose(entry);
+      try {
+        dispose(entry);
+      } finally {
+        _draftEntryPendingDispose[entry] = false;
+      }
     }
   });
 }
 
-void replaceDisposableDraftEntries<T>({
+void replaceDisposableDraftEntries<T extends Object>({
   required List<T> previous,
   required List<T> next,
   required T Function() createEmpty,

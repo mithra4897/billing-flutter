@@ -215,6 +215,14 @@ class PurchaseService extends ErpModuleService {
     Map<String, dynamic>? filters,
   }) => invoices(filters: filters);
 
+  Future<ApiResponse<List<PurchaseInvoiceModel>>> invoicesAll({
+    Map<String, dynamic>? filters,
+  }) => collection<PurchaseInvoiceModel>(
+    ApiEndpoints.purchaseInvoicesAll,
+    filters: filters,
+    fromJson: PurchaseInvoiceModel.fromJson,
+  );
+
   Future<ApiResponse<PurchaseInvoiceModel>> invoice(int id) {
     return client.get<PurchaseInvoiceModel>(
       '${ApiEndpoints.purchaseInvoices}/$id',

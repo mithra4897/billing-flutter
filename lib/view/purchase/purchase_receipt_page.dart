@@ -122,7 +122,11 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
               displayDate(nullableStringValue(data, 'receipt_date')),
               purchaseStatusLabel(nullableStringValue(data, 'receipt_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: stringValue(data, 'supplier_name'),
+            detail: stringValue(
+              data,
+              'purchase_order_no',
+              stringValue(data, 'supplier_name'),
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );
@@ -227,7 +231,8 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Purchase Order',
-                        mappedItems: controller.orders
+                        mappedItems: controller
+                            .receiptOrderOptions()
                             .where(
                               (item) => intValue(item.toJson(), 'id') != null,
                             )

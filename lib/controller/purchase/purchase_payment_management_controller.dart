@@ -179,8 +179,8 @@ class PurchasePaymentManagementController extends GetxController {
 
     try {
       final responses = await Future.wait<dynamic>([
-        _purchaseService.payments(
-          filters: const {'per_page': 200, 'sort_by': 'payment_date'},
+        _purchaseService.paymentsAll(
+          filters: const {'sort_by': 'payment_date'},
         ),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
@@ -235,7 +235,7 @@ class PurchasePaymentManagementController extends GetxController {
           );
 
       items =
-          (responses[0] as PaginatedResponse<PurchasePaymentModel>).data ??
+          (responses[0] as ApiResponse<List<PurchasePaymentModel>>).data ??
           const <PurchasePaymentModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
@@ -328,6 +328,7 @@ class PurchasePaymentManagementController extends GetxController {
     isActive = boolValue(data, 'is_active', fallback: true);
     allocations = nextAllocations;
     formError = null;
+    _upsertPayment(full, notify: false);
     if (notify) update();
   }
 
@@ -718,7 +719,7 @@ class PurchasePaymentManagementController extends GetxController {
     }
   }
 
-  void _upsertPayment(PurchasePaymentModel payment) {
+  void _upsertPayment(PurchasePaymentModel payment, {bool notify = true}) {
     final id = intValue(payment.toJson(), 'id');
     if (id == null) {
       return;
@@ -733,7 +734,11 @@ class PurchasePaymentManagementController extends GetxController {
       nextItems.insert(0, payment);
     }
     items = nextItems;
-    _applyFilters();
+    if (notify) {
+      _applyFilters();
+    } else {
+      filteredItems = _filterItems(items, searchController.text, statusFilter);
+    }
   }
 
   void _disposeAllocations(List<PaymentAllocationDraft> entries) {

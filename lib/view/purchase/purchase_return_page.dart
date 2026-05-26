@@ -117,16 +117,14 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(
-            title: stringValue(data, 'return_no', 'Draft Return'),
+            title: nullableStringValue(data, 'return_no') ?? 'Draft Return',
             subtitle: [
               displayDate(nullableStringValue(data, 'return_date')),
               purchaseStatusLabel(nullableStringValue(data, 'return_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: stringValue(
-              data,
-              'purchase_invoice_no',
-              stringValue(data, 'supplier_name'),
-            ),
+            detail:
+                nullableStringValue(data, 'purchase_invoice_no') ??
+                stringValue(data, 'supplier_name'),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );

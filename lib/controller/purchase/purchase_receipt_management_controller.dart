@@ -375,6 +375,7 @@ class PurchaseReceiptManagementController extends GetxController {
         unawaited(syncSerialOptionsForLine(line));
       }
     }
+    _upsertReceipt(full, notify: false);
     if (notify) update();
   }
 
@@ -578,6 +579,21 @@ class PurchaseReceiptManagementController extends GetxController {
         })
         .toList(growable: false);
     return options.isNotEmpty ? options.first.id : null;
+  }
+
+  List<PurchaseOrderModel> receiptOrderOptions() {
+    final selectedOrderId = purchaseOrderId;
+    return orders
+        .where((item) {
+          final data = item.toJson();
+          final id = intValue(data, 'id');
+          final status = stringValue(data, 'order_status').trim().toLowerCase();
+          if (selectedOrderId != null && id == selectedOrderId) {
+            return true;
+          }
+          return !const {'draft', 'closed', 'cancelled'}.contains(status);
+        })
+        .toList(growable: false);
   }
 
   double pendingReceiptQtyForOrderLine(Map<String, dynamic> line) {
@@ -888,7 +904,7 @@ class PurchaseReceiptManagementController extends GetxController {
     }
   }
 
-  void _upsertReceipt(PurchaseReceiptModel receipt) {
+  void _upsertReceipt(PurchaseReceiptModel receipt, {bool notify = true}) {
     final id = intValue(receipt.toJson(), 'id');
     if (id == null) {
       return;
@@ -903,7 +919,11 @@ class PurchaseReceiptManagementController extends GetxController {
       nextItems.insert(0, receipt);
     }
     items = nextItems;
-    _applyFilters();
+    if (notify) {
+      _applyFilters();
+    } else {
+      filteredItems = _filterItems(items, searchController.text, statusFilter);
+    }
   }
 
   void _disposeLines(List<PurchaseReceiptLineDraft> entries) {

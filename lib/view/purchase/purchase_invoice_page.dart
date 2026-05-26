@@ -112,16 +112,22 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         statusValue: controller.statusFilter,
         statusItems: PurchaseInvoiceManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
-        itemBuilder: (item, selected) => SettingsListTile(
-          title: item.invoiceNo ?? 'Draft Invoice',
-          subtitle: [
-            displayDate(item.invoiceDate),
-            purchaseStatusLabel(item.invoiceStatus),
-          ].where((value) => value.isNotEmpty).join(' · '),
-          detail: item.toJson()['supplier_name']?.toString() ?? '',
-          selected: selected,
-          onTap: () => controller.selectDocument(item),
-        ),
+        itemBuilder: (item, selected) {
+          final data = item.toJson();
+          return SettingsListTile(
+            title: nullableStringValue(data, 'invoice_no') ?? 'Draft Invoice',
+            subtitle: [
+              displayDate(nullableStringValue(data, 'invoice_date')),
+              purchaseStatusLabel(nullableStringValue(data, 'invoice_status')),
+            ].where((value) => value.isNotEmpty).join(' · '),
+            detail:
+                nullableStringValue(data, 'purchase_receipt_no') ??
+                nullableStringValue(data, 'purchase_order_no') ??
+                stringValue(data, 'supplier_name'),
+            selected: selected,
+            onTap: () => controller.selectDocument(item),
+          );
+        },
       ),
       editor: Form(
         key: controller.formKey,
@@ -233,7 +239,8 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Purchase Order',
-                        mappedItems: controller.orders
+                        mappedItems: controller
+                            .invoiceOrderOptions()
                             .where(
                               (item) => intValue(item.toJson(), 'id') != null,
                             )
@@ -253,7 +260,8 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Purchase Receipt',
-                        mappedItems: controller.receipts
+                        mappedItems: controller
+                            .invoiceReceiptOptions()
                             .where(
                               (item) => intValue(item.toJson(), 'id') != null,
                             )

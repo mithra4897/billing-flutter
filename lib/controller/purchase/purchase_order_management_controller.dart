@@ -230,9 +230,7 @@ class PurchaseOrderManagementController extends GetxController {
     update();
     try {
       final responses = await Future.wait<dynamic>([
-        _purchaseService.ordersAll(
-          filters: const {'sort_by': 'order_date'},
-        ),
+        _purchaseService.ordersAll(filters: const {'sort_by': 'order_date'}),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
@@ -422,6 +420,7 @@ class PurchaseOrderManagementController extends GetxController {
     _replaceLines(nextLines, notify: false);
     formError = null;
     selectionInfo = null;
+    _upsertOrder(full, notify: false);
     if (notify) update();
   }
 
@@ -628,8 +627,9 @@ class PurchaseOrderManagementController extends GetxController {
   }
 
   List<ItemModel> get purchasableItemOptions {
-    final specificSupplierId =
-        hasSpecificSupplierSelection ? supplierPartyId : null;
+    final specificSupplierId = hasSpecificSupplierSelection
+        ? supplierPartyId
+        : null;
     final allowedIds = mappedPurchaseItemIds(supplierId: specificSupplierId);
     if (allowedIds.isEmpty) {
       return const <ItemModel>[];
@@ -899,14 +899,16 @@ class PurchaseOrderManagementController extends GetxController {
   }
 
   List<PurchaseRequisitionModel> get filteredRequisitionOptions {
-    final openRequisitions = requisitions.where((req) {
-      final id = intValue(req.toJson(), 'id');
-      final detail = id != null ? requisitionDetailCache[id] : null;
-      if (detail != null) {
-        return isOpenDemandRequisition(detail);
-      }
-      return isOpenDemandRequisition(req);
-    }).toList(growable: false);
+    final openRequisitions = requisitions
+        .where((req) {
+          final id = intValue(req.toJson(), 'id');
+          final detail = id != null ? requisitionDetailCache[id] : null;
+          if (detail != null) {
+            return isOpenDemandRequisition(detail);
+          }
+          return isOpenDemandRequisition(req);
+        })
+        .toList(growable: false);
 
     if (linkDriver != PurchaseOrderLinkDriver.supplier ||
         !hasSpecificSupplierSelection) {
@@ -1208,9 +1210,16 @@ class PurchaseOrderManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
+      final saved = response.data;
+      if (saved != null) {
+        _upsertOrder(saved);
+        await selectDocument(saved, notify: false);
+        update();
+      } else {
+        await loadPage(
+          selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        );
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -1231,12 +1240,41 @@ class PurchaseOrderManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
+      final updated = response.data;
+      if (updated != null) {
+        _upsertOrder(updated);
+        await selectDocument(updated, notify: false);
+        update();
+      } else {
+        await loadPage(
+          selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        );
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
+    }
+  }
+
+  void _upsertOrder(PurchaseOrderModel order, {bool notify = true}) {
+    final id = intValue(order.toJson(), 'id');
+    if (id == null) {
+      return;
+    }
+    final nextItems = List<PurchaseOrderModel>.from(items);
+    final existingIndex = nextItems.indexWhere(
+      (item) => intValue(item.toJson(), 'id') == id,
+    );
+    if (existingIndex >= 0) {
+      nextItems[existingIndex] = order;
+    } else {
+      nextItems.insert(0, order);
+    }
+    items = nextItems;
+    if (notify) {
+      _applyFilters();
+    } else {
+      filteredItems = _filterItems(items, searchController.text, statusFilter);
     }
   }
 
