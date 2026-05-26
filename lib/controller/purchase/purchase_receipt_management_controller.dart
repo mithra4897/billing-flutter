@@ -842,9 +842,16 @@ class PurchaseReceiptManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
+      final saved = response.data;
+      if (saved != null) {
+        _upsertReceipt(saved);
+        await selectDocument(saved, notify: false);
+        update();
+      } else {
+        await loadPage(
+          selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        );
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -865,13 +872,38 @@ class PurchaseReceiptManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
+      final updated = response.data;
+      if (updated != null) {
+        _upsertReceipt(updated);
+        await selectDocument(updated, notify: false);
+        update();
+      } else {
+        await loadPage(
+          selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        );
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
     }
+  }
+
+  void _upsertReceipt(PurchaseReceiptModel receipt) {
+    final id = intValue(receipt.toJson(), 'id');
+    if (id == null) {
+      return;
+    }
+    final nextItems = List<PurchaseReceiptModel>.from(items);
+    final existingIndex = nextItems.indexWhere(
+      (item) => intValue(item.toJson(), 'id') == id,
+    );
+    if (existingIndex >= 0) {
+      nextItems[existingIndex] = receipt;
+    } else {
+      nextItems.insert(0, receipt);
+    }
+    items = nextItems;
+    _applyFilters();
   }
 
   void _disposeLines(List<PurchaseReceiptLineDraft> entries) {

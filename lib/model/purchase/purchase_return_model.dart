@@ -12,6 +12,9 @@ class PurchaseReturnModel extends JsonModel {
     this.returnNo,
     this.returnDate,
     this.supplierPartyId,
+    this.supplierName,
+    this.supplier,
+    this.purchaseInvoiceNo,
     this.subtotal,
     this.discountAmount,
     this.taxableAmount,
@@ -28,6 +31,7 @@ class PurchaseReturnModel extends JsonModel {
     this.postedBy,
     this.postedAt,
     this.isActive,
+    this.lines = const <Map<String, dynamic>>[],
     this.createdBy,
     this.updatedBy,
     this.createdAt,
@@ -42,6 +46,9 @@ class PurchaseReturnModel extends JsonModel {
   final String? returnNo;
   final String? returnDate;
   final int? supplierPartyId;
+  final String? supplierName;
+  final Map<String, dynamic>? supplier;
+  final String? purchaseInvoiceNo;
   final double? subtotal;
   final double? discountAmount;
   final double? taxableAmount;
@@ -58,6 +65,7 @@ class PurchaseReturnModel extends JsonModel {
   final int? postedBy;
   final String? postedAt;
   final bool? isActive;
+  final List<Map<String, dynamic>> lines;
   final int? createdBy;
   final int? updatedBy;
   final String? createdAt;
@@ -75,6 +83,9 @@ class PurchaseReturnModel extends JsonModel {
       returnNo: json['return_no']?.toString(),
       returnDate: json['return_date']?.toString(),
       supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
+      supplierName: json['supplier_name']?.toString(),
+      supplier: JsonModel.mapOf(json['supplier']),
+      purchaseInvoiceNo: json['purchase_invoice_no']?.toString(),
       subtotal: JsonModel.nullableDouble(json['subtotal']),
       discountAmount: JsonModel.nullableDouble(json['discount_amount']),
       taxableAmount: JsonModel.nullableDouble(json['taxable_amount']),
@@ -93,6 +104,7 @@ class PurchaseReturnModel extends JsonModel {
       isActive: json['is_active'] == null
           ? null
           : JsonModel.boolOf(json['is_active']),
+      lines: _mapLines(json['lines']),
       createdBy: JsonModel.nullableInt(json['created_by']),
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
@@ -106,7 +118,6 @@ class PurchaseReturnModel extends JsonModel {
     returnStatus,
   ], defaultValue: 'Purchase Return');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -119,6 +130,9 @@ class PurchaseReturnModel extends JsonModel {
     if (returnNo != null) 'return_no': returnNo,
     if (returnDate != null) 'return_date': returnDate,
     if (supplierPartyId != null) 'supplier_party_id': supplierPartyId,
+    if (supplierName != null) 'supplier_name': supplierName,
+    if (supplier != null) 'supplier': supplier,
+    if (purchaseInvoiceNo != null) 'purchase_invoice_no': purchaseInvoiceNo,
     if (subtotal != null) 'subtotal': subtotal,
     if (discountAmount != null) 'discount_amount': discountAmount,
     if (taxableAmount != null) 'taxable_amount': taxableAmount,
@@ -135,9 +149,25 @@ class PurchaseReturnModel extends JsonModel {
     if (postedBy != null) 'posted_by': postedBy,
     if (postedAt != null) 'posted_at': postedAt,
     if (isActive != null) 'is_active': isActive,
+    if (lines.isNotEmpty) 'lines': lines,
     if (createdBy != null) 'created_by': createdBy,
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
   };
+
+  static List<Map<String, dynamic>> _mapLines(dynamic value) {
+    if (value is! List) {
+      return <Map<String, dynamic>>[];
+    }
+
+    return value
+        .whereType<Map>()
+        .map(
+          (line) => Map<String, dynamic>.from(
+            line.map((key, entryValue) => MapEntry(key.toString(), entryValue)),
+          ),
+        )
+        .toList(growable: false);
+  }
 }

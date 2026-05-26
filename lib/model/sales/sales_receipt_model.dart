@@ -11,6 +11,8 @@ class SalesReceiptModel extends JsonModel {
     this.receiptNo,
     this.receiptDate,
     this.customerPartyId,
+    this.customerName,
+    this.customer,
     this.paymentMode,
     this.paymentReferenceNo,
     this.paymentReferenceDate,
@@ -36,6 +38,8 @@ class SalesReceiptModel extends JsonModel {
   final String? receiptNo;
   final String? receiptDate;
   final int? customerPartyId;
+  final String? customerName;
+  final Map<String, dynamic>? customer;
   final String? paymentMode;
   final String? paymentReferenceNo;
   final String? paymentReferenceDate;
@@ -64,6 +68,8 @@ class SalesReceiptModel extends JsonModel {
       receiptNo: json['receipt_no']?.toString(),
       receiptDate: json['receipt_date']?.toString(),
       customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
+      customerName: json['customer_name']?.toString(),
+      customer: JsonModel.mapOf(json['customer']),
       paymentMode: json['payment_mode']?.toString(),
       paymentReferenceNo: json['payment_reference_no']?.toString(),
       paymentReferenceDate: json['payment_reference_date']?.toString(),
@@ -91,7 +97,6 @@ class SalesReceiptModel extends JsonModel {
     paymentReferenceNo,
   ], defaultValue: 'Sales Receipt');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -103,6 +108,8 @@ class SalesReceiptModel extends JsonModel {
     if (receiptNo != null) 'receipt_no': receiptNo,
     if (receiptDate != null) 'receipt_date': receiptDate,
     if (customerPartyId != null) 'customer_party_id': customerPartyId,
+    if (customerName != null) 'customer_name': customerName,
+    if (customer != null) 'customer': customer,
     if (paymentMode != null) 'payment_mode': paymentMode,
     if (paymentReferenceNo != null) 'payment_reference_no': paymentReferenceNo,
     if (paymentReferenceDate != null)

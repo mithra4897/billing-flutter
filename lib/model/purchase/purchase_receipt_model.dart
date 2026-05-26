@@ -12,6 +12,8 @@ class PurchaseReceiptModel extends JsonModel {
     this.receiptNo,
     this.receiptDate,
     this.supplierPartyId,
+    this.supplierName,
+    this.supplier,
     this.warehouseId,
     this.supplierDcNo,
     this.supplierDcDate,
@@ -31,6 +33,7 @@ class PurchaseReceiptModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.lines = const <PurchaseReceiptLineModel>[],
   });
   final int? companyId;
   final int? branchId;
@@ -41,6 +44,8 @@ class PurchaseReceiptModel extends JsonModel {
   final String? receiptNo;
   final String? receiptDate;
   final int? supplierPartyId;
+  final String? supplierName;
+  final Map<String, dynamic>? supplier;
   final int? warehouseId;
   final String? supplierDcNo;
   final String? supplierDcDate;
@@ -60,6 +65,7 @@ class PurchaseReceiptModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final List<PurchaseReceiptLineModel> lines;
 
   factory PurchaseReceiptModel.fromJson(Map<String, dynamic> json) {
     return PurchaseReceiptModel(
@@ -73,6 +79,8 @@ class PurchaseReceiptModel extends JsonModel {
       receiptNo: json['receipt_no']?.toString(),
       receiptDate: json['receipt_date']?.toString(),
       supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
+      supplierName: json['supplier_name']?.toString(),
+      supplier: JsonModel.mapOf(json['supplier']),
       warehouseId: JsonModel.nullableInt(json['warehouse_id']),
       supplierDcNo: json['supplier_dc_no']?.toString(),
       supplierDcDate: json['supplier_dc_date']?.toString(),
@@ -94,6 +102,10 @@ class PurchaseReceiptModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      lines: JsonModel.listOf<PurchaseReceiptLineModel>(
+        json['lines'],
+        PurchaseReceiptLineModel.fromJson,
+      ),
     );
   }
   @override
@@ -102,7 +114,6 @@ class PurchaseReceiptModel extends JsonModel {
     vehicleNo,
     receiptDate,
   ], defaultValue: 'Purchase Receipt');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -116,6 +127,8 @@ class PurchaseReceiptModel extends JsonModel {
     if (receiptNo != null) 'receipt_no': receiptNo,
     if (receiptDate != null) 'receipt_date': receiptDate,
     if (supplierPartyId != null) 'supplier_party_id': supplierPartyId,
+    if (supplierName != null) 'supplier_name': supplierName,
+    if (supplier != null) 'supplier': supplier,
     if (warehouseId != null) 'warehouse_id': warehouseId,
     if (supplierDcNo != null) 'supplier_dc_no': supplierDcNo,
     if (supplierDcDate != null) 'supplier_dc_date': supplierDcDate,
@@ -136,5 +149,6 @@ class PurchaseReceiptModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    'lines': lines.map((line) => line.toJson()).toList(growable: false),
   };
 }

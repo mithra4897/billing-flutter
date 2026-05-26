@@ -602,9 +602,16 @@ class PurchaseReturnManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
+      final saved = response.data;
+      if (saved != null) {
+        _upsertReturn(saved);
+        await selectDocument(saved, notify: false);
+        update();
+      } else {
+        await loadPage(
+          selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        );
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -625,13 +632,38 @@ class PurchaseReturnManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
+      final updated = response.data;
+      if (updated != null) {
+        _upsertReturn(updated);
+        await selectDocument(updated, notify: false);
+        update();
+      } else {
+        await loadPage(
+          selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        );
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
     }
+  }
+
+  void _upsertReturn(PurchaseReturnModel purchaseReturn) {
+    final id = intValue(purchaseReturn.toJson(), 'id');
+    if (id == null) {
+      return;
+    }
+    final nextItems = List<PurchaseReturnModel>.from(items);
+    final existingIndex = nextItems.indexWhere(
+      (item) => intValue(item.toJson(), 'id') == id,
+    );
+    if (existingIndex >= 0) {
+      nextItems[existingIndex] = purchaseReturn;
+    } else {
+      nextItems.insert(0, purchaseReturn);
+    }
+    items = nextItems;
+    _applyFilters();
   }
 
   void _disposeLines(List<PurchaseReturnLineDraft> entries) {

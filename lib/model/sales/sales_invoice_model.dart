@@ -13,6 +13,8 @@ class SalesInvoiceModel extends JsonModel {
     this.salesOrderId,
     this.salesDeliveryId,
     this.invoiceNo,
+    this.customerName,
+    this.customer,
     this.dueDate,
     this.billingAddressId,
     this.shippingAddressId,
@@ -46,6 +48,8 @@ class SalesInvoiceModel extends JsonModel {
   final int? salesOrderId;
   final int? salesDeliveryId;
   final String? invoiceNo;
+  final String? customerName;
+  final Map<String, dynamic>? customer;
   final String? dueDate;
   final int? billingAddressId;
   final int? shippingAddressId;
@@ -82,6 +86,8 @@ class SalesInvoiceModel extends JsonModel {
       salesOrderId: _nullableInt(json['sales_order_id']),
       salesDeliveryId: _nullableInt(json['sales_delivery_id']),
       invoiceNo: json['invoice_no']?.toString(),
+      customerName: json['customer_name']?.toString(),
+      customer: JsonModel.mapOf(json['customer']),
       dueDate: json['due_date']?.toString(),
       billingAddressId: _nullableInt(json['billing_address_id']),
       shippingAddressId: _nullableInt(json['shipping_address_id']),
@@ -123,6 +129,8 @@ class SalesInvoiceModel extends JsonModel {
       if (salesOrderId != null) 'sales_order_id': salesOrderId,
       if (salesDeliveryId != null) 'sales_delivery_id': salesDeliveryId,
       if (invoiceNo != null) 'invoice_no': invoiceNo,
+      if (customerName != null) 'customer_name': customerName,
+      if (customer != null) 'customer': customer,
       'invoice_date': invoiceDate,
       if (dueDate != null) 'due_date': dueDate,
       'customer_party_id': customerPartyId,
@@ -148,6 +156,7 @@ class SalesInvoiceModel extends JsonModel {
       'lines': lines.map((line) => line.toJson()).toList(growable: false),
     };
   }
+
   @override
   Map<String, dynamic> toJson() => {
     if (id != 0) 'id': id,

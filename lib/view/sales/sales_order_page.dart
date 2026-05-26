@@ -1,15 +1,6 @@
 import '../../controller/sales/sales_order_management_controller.dart';
 import '../../screen.dart';
 
-void _openSalesShellRoute(BuildContext context, String route) {
-  final navigate = ShellRouteScope.maybeOf(context);
-  if (navigate != null) {
-    navigate(route);
-    return;
-  }
-  Navigator.of(context).pushNamed(route);
-}
-
 class SalesOrderPage extends StatefulWidget {
   const SalesOrderPage({
     super.key,
@@ -514,12 +505,14 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
-                AppActionButton(
-                  icon: Icons.print_outlined,
-                  label: 'Print',
-                  filled: false,
-                  onPressed: () => controller.openPrintPreview(context),
-                ),
+                if (controller.selectedItem != null &&
+                    !const {'draft', 'cancelled'}.contains(controller.status))
+                  AppActionButton(
+                    icon: Icons.print_outlined,
+                    label: 'Print',
+                    filled: false,
+                    onPressed: () => controller.openPrintPreview(context),
+                  ),
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedItem == null
@@ -531,29 +524,6 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   busy: controller.saving,
                 ),
                 if (controller.selectedItem != null) ...[
-                  if (const {
-                    'confirmed',
-                    'partially_delivered',
-                    'partially_invoiced',
-                  }.contains(controller.status))
-                    AppActionButton(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Invoice',
-                      filled: false,
-                      onPressed: () {
-                        final id = intValue(
-                          controller.selectedItem!.toJson(),
-                          'id',
-                        );
-                        if (id == null) {
-                          return;
-                        }
-                        _openSalesShellRoute(
-                          context,
-                          '/sales/invoices/new?order_id=$id',
-                        );
-                      },
-                    ),
                   if (controller.status == 'draft') ...[
                     AppActionButton(
                       icon: Icons.check_circle_outline,

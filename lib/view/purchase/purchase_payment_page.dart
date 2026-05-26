@@ -166,119 +166,127 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                 children: [
                   SettingsFormWrap(
                     children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Financial Year',
-                  mappedItems: controller.financialYears
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Financial Year',
+                        mappedItems: controller.financialYears
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.financialYearId,
+                        onChanged: controller.setFinancialYearId,
+                        validator: Validators.requiredSelection(
+                          'Financial Year',
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.financialYearId,
-                  onChanged: controller.setFinancialYearId,
-                  validator: Validators.requiredSelection('Financial Year'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Document Series',
-                  mappedItems: controller
-                      .seriesOptions()
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Document Series',
+                        mappedItems: controller
+                            .seriesOptions()
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.documentSeriesId,
+                        onChanged: controller.setDocumentSeriesId,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Payment No',
+                        controller: controller.paymentNoController,
+                        hintText: 'Auto-generated on save',
+                        validator: Validators.optionalMaxLength(
+                          100,
+                          'Payment No',
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.documentSeriesId,
-                  onChanged: controller.setDocumentSeriesId,
-                ),
-                AppFormTextField(
-                  labelText: 'Payment No',
-                  controller: controller.paymentNoController,
-                  hintText: 'Auto-generated on save',
-                  validator: Validators.optionalMaxLength(100, 'Payment No'),
-                ),
-                AppFormTextField(
-                  labelText: 'Payment Date',
-                  controller: controller.paymentDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([
-                    Validators.required('Payment Date'),
-                    Validators.date('Payment Date'),
-                  ]),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Supplier',
-                  mappedItems: controller.suppliers
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Payment Date',
+                        controller: controller.paymentDateController,
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.compose([
+                          Validators.required('Payment Date'),
+                          Validators.date('Payment Date'),
+                        ]),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Supplier',
+                        mappedItems: controller.suppliers
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.supplierPartyId,
+                        onChanged: controller.setSupplierPartyId,
+                        validator: Validators.requiredSelection('Supplier'),
+                      ),
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Payment Mode',
+                        mappedItems: PurchasePaymentManagementController
+                            .paymentModeItems,
+                        initialValue: controller.paymentMode,
+                        onChanged: (value) =>
+                            controller.setPaymentMode(value ?? 'bank'),
+                        validator: Validators.requiredSelection('Payment Mode'),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Account',
+                        mappedItems: controller.accounts
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.accountId,
+                        onChanged: controller.setAccountId,
+                        validator: Validators.requiredSelection('Account'),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Reference No',
+                        controller: controller.referenceNoController,
+                        validator: Validators.optionalMaxLength(
+                          100,
+                          'Reference No',
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.supplierPartyId,
-                  onChanged: controller.setSupplierPartyId,
-                  validator: Validators.requiredSelection('Supplier'),
-                ),
-                AppDropdownField<String>.fromMapped(
-                  labelText: 'Payment Mode',
-                  mappedItems:
-                      PurchasePaymentManagementController.paymentModeItems,
-                  initialValue: controller.paymentMode,
-                  onChanged: (value) =>
-                      controller.setPaymentMode(value ?? 'bank'),
-                  validator: Validators.requiredSelection('Payment Mode'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Account',
-                  mappedItems: controller.accounts
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Reference Date',
+                        controller: controller.referenceDateController,
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.optionalDate('Reference Date'),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Paid Amount',
+                        controller: controller.paidAmountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.accountId,
-                  onChanged: controller.setAccountId,
-                  validator: Validators.requiredSelection('Account'),
-                ),
-                AppFormTextField(
-                  labelText: 'Reference No',
-                  controller: controller.referenceNoController,
-                  validator: Validators.optionalMaxLength(100, 'Reference No'),
-                ),
-                AppFormTextField(
-                  labelText: 'Reference Date',
-                  controller: controller.referenceDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.optionalDate('Reference Date'),
-                ),
-                AppFormTextField(
-                  labelText: 'Paid Amount',
-                  controller: controller.paidAmountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: Validators.compose([
-                    Validators.required('Paid Amount'),
-                    Validators.optionalNonNegativeNumber('Paid Amount'),
-                  ]),
-                ),
-                AppFormTextField(
-                  labelText: 'Notes',
-                  controller: controller.notesController,
-                  maxLines: 3,
-                ),
+                        validator: Validators.compose([
+                          Validators.required('Paid Amount'),
+                          Validators.optionalNonNegativeNumber('Paid Amount'),
+                        ]),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Notes',
+                        controller: controller.notesController,
+                        maxLines: 3,
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppUiConstants.spacingMd),
@@ -292,9 +300,8 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                     children: [
                       Text(
                         'Allocations',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const Spacer(),
                       AppActionButton(
@@ -316,140 +323,160 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                     ...List<Widget>.generate(controller.allocations.length, (
                       index,
                     ) {
-                final allocation = controller.allocations[index];
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: PurchaseCompactLineCard(
-                    index: index,
-                    total: controller.allocations.length,
-                    onRemove: () => controller.removeAllocation(index),
-                    child: PurchaseCompactFieldGrid(
-                      children: [
-                        AppSearchPickerField<int>(
-                          labelText: 'Purchase Invoice',
-                          selectedLabel: controller.invoiceOptions
-                              .cast<PurchaseInvoiceModel?>()
-                              .firstWhere(
-                                (item) =>
-                                    item?.id == allocation.purchaseInvoiceId,
-                                orElse: () => null,
-                              )
-                              ?.invoiceNo,
-                          options: controller.invoiceOptions
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppSearchPickerOption<int>(
-                                  value: item.id!,
-                                  label: item.invoiceNo ?? 'Invoice',
-                                  subtitle: controller.nestedInvoiceSubtitle(
-                                    item,
-                                  ),
+                      final allocation = controller.allocations[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: AppUiConstants.spacingSm,
+                        ),
+                        child: PurchaseCompactLineCard(
+                          index: index,
+                          total: controller.allocations.length,
+                          onRemove: () => controller.removeAllocation(index),
+                          child: PurchaseCompactFieldGrid(
+                            children: [
+                              AppSearchPickerField<int>(
+                                labelText: 'Purchase Invoice',
+                                selectedLabel: controller.invoiceOptions
+                                    .cast<PurchaseInvoiceModel?>()
+                                    .firstWhere(
+                                      (item) =>
+                                          item?.id ==
+                                          allocation.purchaseInvoiceId,
+                                      orElse: () => null,
+                                    )
+                                    ?.invoiceNo,
+                                options: controller.invoiceOptions
+                                    .where((item) => item.id != null)
+                                    .map(
+                                      (item) => AppSearchPickerOption<int>(
+                                        value: item.id!,
+                                        label: item.invoiceNo ?? 'Invoice',
+                                        subtitle: controller
+                                            .nestedInvoiceSubtitle(item),
+                                      ),
+                                    )
+                                    .toList(growable: false),
+                                onChanged: (value) async {
+                                  await controller
+                                      .handleAllocationInvoiceChanged(
+                                        index,
+                                        value,
+                                      );
+                                },
+                              ),
+                              AppFormTextField(
+                                labelText: 'Allocated Amount',
+                                controller: allocation.amountController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                validator: Validators.optionalNonNegativeNumber(
+                                  'Allocated Amount',
                                 ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) async {
-                            await controller.handleAllocationInvoiceChanged(
-                              index,
-                              value,
-                            );
-                          },
-                        ),
-                        AppFormTextField(
-                          labelText: 'Allocated Amount',
-                          controller: allocation.amountController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Allocated Amount',
-                          ),
-                          onChanged: (_) =>
-                              controller.syncPaidAmountFromAllocations(),
-                        ),
-                        AppDropdownField<String>.fromMapped(
-                          labelText: 'Allocation Type',
-                          mappedItems: const <AppDropdownItem<String>>[
-                            AppDropdownItem(
-                              value: 'against_invoice',
-                              label: 'Against Invoice',
-                            ),
-                            AppDropdownItem(value: 'advance', label: 'Advance'),
-                            AppDropdownItem(
-                              value: 'on_account',
-                              label: 'On Account',
-                            ),
-                            AppDropdownItem(
-                              value: 'adjustment',
-                              label: 'Adjustment',
-                            ),
-                          ],
-                          initialValue: allocation.allocationType,
-                          onChanged: (value) => controller.setAllocationType(
-                            allocation,
-                            value ?? 'against_invoice',
+                                onChanged: (_) =>
+                                    controller.syncPaidAmountFromAllocations(),
+                              ),
+                              AppDropdownField<String>.fromMapped(
+                                labelText: 'Allocation Type',
+                                mappedItems: const <AppDropdownItem<String>>[
+                                  AppDropdownItem(
+                                    value: 'against_invoice',
+                                    label: 'Against Invoice',
+                                  ),
+                                  AppDropdownItem(
+                                    value: 'advance',
+                                    label: 'Advance',
+                                  ),
+                                  AppDropdownItem(
+                                    value: 'on_account',
+                                    label: 'On Account',
+                                  ),
+                                  AppDropdownItem(
+                                    value: 'adjustment',
+                                    label: 'Adjustment',
+                                  ),
+                                ],
+                                initialValue: allocation.allocationType,
+                                onChanged: (value) =>
+                                    controller.setAllocationType(
+                                      allocation,
+                                      value ?? 'against_invoice',
+                                    ),
+                              ),
+                              AppFormTextField(
+                                labelText: 'Remarks',
+                                controller: allocation.remarksController,
+                              ),
+                            ],
                           ),
                         ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: allocation.remarksController,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+                      );
+                    }),
                 ],
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (!controller.isSelectedPaymentReadOnly)
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: controller.selectedItem == null
-                        ? 'Save Payment'
-                        : 'Update Payment',
-                    onPressed: controller.canEditSelectedPayment
-                        ? () => controller.save(context)
-                        : null,
-                    busy: controller.saving,
-                  ),
-                if (controller.selectedItem != null) ...[
-                  AppActionButton(
-                    icon: Icons.publish_outlined,
-                    label: 'Post',
-                    filled: false,
-                    onPressed: () => controller.docAction(
-                      context,
-                      () => PurchaseService().postPayment(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchasePaymentModel.fromJson(
-                          const <String, dynamic>{},
+            Builder(
+              builder: (_) {
+                final selectedData =
+                    controller.selectedItem?.toJson() ??
+                    const <String, dynamic>{};
+                final status = stringValue(selectedData, 'payment_status');
+                final canPost =
+                    controller.selectedItem != null && status == 'draft';
+                final canCancel =
+                    controller.selectedItem != null &&
+                    (status == 'draft' || status == 'posted');
+
+                return Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingSm,
+                  children: [
+                    if (!controller.isSelectedPaymentReadOnly)
+                      AppActionButton(
+                        icon: Icons.save_outlined,
+                        label: controller.selectedItem == null
+                            ? 'Save Payment'
+                            : 'Update Payment',
+                        onPressed: controller.canEditSelectedPayment
+                            ? () => controller.save(context)
+                            : null,
+                        busy: controller.saving,
+                      ),
+                    if (canPost)
+                      AppActionButton(
+                        icon: Icons.publish_outlined,
+                        label: 'Post',
+                        filled: false,
+                        onPressed: () => controller.docAction(
+                          context,
+                          () => PurchaseService().postPayment(
+                            intValue(controller.selectedItem!.toJson(), 'id')!,
+                            PurchasePaymentModel.fromJson(
+                              const <String, dynamic>{},
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  AppActionButton(
-                    icon: Icons.cancel_outlined,
-                    label: 'Cancel',
-                    filled: false,
-                    onPressed: () => controller.docAction(
-                      context,
-                      () => PurchaseService().cancelPayment(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchasePaymentModel.fromJson(
-                          const <String, dynamic>{},
+                    if (canCancel)
+                      AppActionButton(
+                        icon: Icons.cancel_outlined,
+                        label: 'Cancel',
+                        filled: false,
+                        onPressed: () => controller.docAction(
+                          context,
+                          () => PurchaseService().cancelPayment(
+                            intValue(controller.selectedItem!.toJson(), 'id')!,
+                            PurchasePaymentModel.fromJson(
+                              const <String, dynamic>{},
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ],
+                  ],
+                );
+              },
             ),
           ],
         ),

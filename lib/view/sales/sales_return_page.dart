@@ -83,6 +83,11 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     BuildContext context,
     SalesReturnManagementController controller,
   ) {
+    final selectedData = controller.selectedItem?.toJson() ?? const {};
+    final status = stringValue(selectedData, 'return_status', 'draft');
+    final canEdit = controller.selectedItem == null || status == 'draft';
+    final canPost = controller.selectedItem != null && status == 'draft';
+    final canCancel = controller.selectedItem != null && status == 'draft';
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading sales returns...');
     }
@@ -122,7 +127,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
               displayDate(nullableStringValue(data, 'return_date')),
               stringValue(data, 'return_status'),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: stringValue(data, 'reason'),
+            detail: quotationCustomerLabel(data),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );
@@ -380,23 +385,23 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                   label: controller.selectedItem == null
                       ? 'Save Return'
                       : 'Update Return',
-                  onPressed: () => controller.save(context),
+                  onPressed: canEdit ? () => controller.save(context) : null,
                   busy: controller.saving,
                 ),
-                if (controller.selectedItem != null) ...[
+                if (canPost)
                   AppActionButton(
                     icon: Icons.publish_outlined,
                     label: 'Post',
                     filled: false,
                     onPressed: () => controller.postSelected(context),
                   ),
+                if (canCancel)
                   AppActionButton(
                     icon: Icons.cancel_outlined,
                     label: 'Cancel',
                     filled: false,
                     onPressed: () => controller.cancelSelected(context),
                   ),
-                ],
               ],
             ),
           ],

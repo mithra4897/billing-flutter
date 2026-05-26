@@ -672,9 +672,16 @@ class PurchasePaymentManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
+      final saved = response.data;
+      if (saved != null) {
+        _upsertPayment(saved);
+        await selectDocument(saved, notify: false);
+        update();
+      } else {
+        await loadPage(
+          selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        );
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -695,13 +702,38 @@ class PurchasePaymentManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(
-        selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
-      );
+      final updated = response.data;
+      if (updated != null) {
+        _upsertPayment(updated);
+        await selectDocument(updated, notify: false);
+        update();
+      } else {
+        await loadPage(
+          selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
+        );
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
     }
+  }
+
+  void _upsertPayment(PurchasePaymentModel payment) {
+    final id = intValue(payment.toJson(), 'id');
+    if (id == null) {
+      return;
+    }
+    final nextItems = List<PurchasePaymentModel>.from(items);
+    final existingIndex = nextItems.indexWhere(
+      (item) => intValue(item.toJson(), 'id') == id,
+    );
+    if (existingIndex >= 0) {
+      nextItems[existingIndex] = payment;
+    } else {
+      nextItems.insert(0, payment);
+    }
+    items = nextItems;
+    _applyFilters();
   }
 
   void _disposeAllocations(List<PaymentAllocationDraft> entries) {

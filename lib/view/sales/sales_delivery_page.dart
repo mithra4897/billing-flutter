@@ -88,6 +88,11 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     BuildContext context,
     SalesDeliveryManagementController controller,
   ) {
+    final selectedData = controller.selectedItem?.toJson() ?? const {};
+    final status = stringValue(selectedData, 'delivery_status', 'draft');
+    final canEdit = controller.selectedItem == null || status == 'draft';
+    final canPost = controller.selectedItem != null && status == 'draft';
+    final canCancel = controller.selectedItem != null && status == 'draft';
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading sales deliveries...');
     }
@@ -482,11 +487,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
-                if (stringValue(
-                      controller.selectedItem?.toJson() ?? const {},
-                      'delivery_status',
-                    ) ==
-                    'posted')
+                if (status == 'posted')
                   AppActionButton(
                     icon: Icons.print_outlined,
                     label: 'Print',
@@ -498,23 +499,23 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                   label: controller.selectedItem == null
                       ? 'Save Delivery'
                       : 'Update Delivery',
-                  onPressed: () => controller.save(context),
+                  onPressed: canEdit ? () => controller.save(context) : null,
                   busy: controller.saving,
                 ),
-                if (controller.selectedItem != null) ...[
+                if (canPost)
                   AppActionButton(
                     icon: Icons.publish_outlined,
                     label: 'Post',
                     filled: false,
                     onPressed: () => controller.postSelected(context),
                   ),
+                if (canCancel)
                   AppActionButton(
                     icon: Icons.cancel_outlined,
                     label: 'Cancel',
                     filled: false,
                     onPressed: () => controller.cancelSelected(context),
                   ),
-                ],
               ],
             ),
           ],

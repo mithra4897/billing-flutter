@@ -12,6 +12,8 @@ class SalesReturnModel extends JsonModel {
     this.returnNo,
     this.returnDate,
     this.customerPartyId,
+    this.customerName,
+    this.customer,
     this.subtotal,
     this.discountAmount,
     this.taxableAmount,
@@ -31,6 +33,7 @@ class SalesReturnModel extends JsonModel {
     this.postedBy,
     this.postedAt,
     this.isActive,
+    this.lines = const <Map<String, dynamic>>[],
     this.createdBy,
     this.updatedBy,
     this.createdAt,
@@ -45,6 +48,8 @@ class SalesReturnModel extends JsonModel {
   final String? returnNo;
   final String? returnDate;
   final int? customerPartyId;
+  final String? customerName;
+  final Map<String, dynamic>? customer;
   final double? subtotal;
   final double? discountAmount;
   final double? taxableAmount;
@@ -64,6 +69,7 @@ class SalesReturnModel extends JsonModel {
   final int? postedBy;
   final String? postedAt;
   final bool? isActive;
+  final List<Map<String, dynamic>> lines;
   final int? createdBy;
   final int? updatedBy;
   final String? createdAt;
@@ -81,6 +87,8 @@ class SalesReturnModel extends JsonModel {
       returnNo: json['return_no']?.toString(),
       returnDate: json['return_date']?.toString(),
       customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
+      customerName: json['customer_name']?.toString(),
+      customer: JsonModel.mapOf(json['customer']),
       subtotal: JsonModel.nullableDouble(json['subtotal']),
       discountAmount: JsonModel.nullableDouble(json['discount_amount']),
       taxableAmount: JsonModel.nullableDouble(json['taxable_amount']),
@@ -90,9 +98,7 @@ class SalesReturnModel extends JsonModel {
       cessAmount: JsonModel.nullableDouble(json['cess_amount']),
       roundOffAmount: JsonModel.nullableDouble(json['round_off_amount']),
       adjustmentAmount: JsonModel.nullableDouble(json['adjustment_amount']),
-      adjustmentAccountId: JsonModel.nullableInt(
-        json['adjustment_account_id'],
-      ),
+      adjustmentAccountId: JsonModel.nullableInt(json['adjustment_account_id']),
       adjustmentRemarks: json['adjustment_remarks']?.toString(),
       totalAmount: JsonModel.nullableDouble(json['total_amount']),
       voucherId: JsonModel.nullableInt(json['voucher_id']),
@@ -104,6 +110,7 @@ class SalesReturnModel extends JsonModel {
       isActive: json['is_active'] == null
           ? null
           : JsonModel.boolOf(json['is_active']),
+      lines: _mapLines(json['lines']),
       createdBy: JsonModel.nullableInt(json['created_by']),
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
@@ -117,7 +124,6 @@ class SalesReturnModel extends JsonModel {
     returnStatus,
   ], defaultValue: 'Sales Return');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -130,6 +136,8 @@ class SalesReturnModel extends JsonModel {
     if (returnNo != null) 'return_no': returnNo,
     if (returnDate != null) 'return_date': returnDate,
     if (customerPartyId != null) 'customer_party_id': customerPartyId,
+    if (customerName != null) 'customer_name': customerName,
+    if (customer != null) 'customer': customer,
     if (subtotal != null) 'subtotal': subtotal,
     if (discountAmount != null) 'discount_amount': discountAmount,
     if (taxableAmount != null) 'taxable_amount': taxableAmount,
@@ -150,9 +158,25 @@ class SalesReturnModel extends JsonModel {
     if (postedBy != null) 'posted_by': postedBy,
     if (postedAt != null) 'posted_at': postedAt,
     if (isActive != null) 'is_active': isActive,
+    if (lines.isNotEmpty) 'lines': lines,
     if (createdBy != null) 'created_by': createdBy,
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
   };
+
+  static List<Map<String, dynamic>> _mapLines(dynamic value) {
+    if (value is! List) {
+      return <Map<String, dynamic>>[];
+    }
+
+    return value
+        .whereType<Map>()
+        .map(
+          (line) => Map<String, dynamic>.from(
+            line.map((key, entryValue) => MapEntry(key.toString(), entryValue)),
+          ),
+        )
+        .toList(growable: false);
+  }
 }

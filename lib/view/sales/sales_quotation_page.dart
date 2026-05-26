@@ -1,15 +1,6 @@
 import '../../controller/sales/sales_quotation_management_controller.dart';
 import '../../screen.dart';
 
-void _openSalesShellRoute(BuildContext context, String route) {
-  final navigate = ShellRouteScope.maybeOf(context);
-  if (navigate != null) {
-    navigate(route);
-    return;
-  }
-  Navigator.of(context).pushNamed(route);
-}
-
 class SalesQuotationPage extends StatefulWidget {
   const SalesQuotationPage({
     super.key,
@@ -453,48 +444,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       label: 'Post',
                       filled: false,
                       onPressed: () => controller.postSelected(context),
-                    ),
-                  if (const {
-                    'posted',
-                    'sent',
-                    'accepted',
-                  }.contains(controller.status))
-                    AppActionButton(
-                      icon: Icons.shopping_cart_outlined,
-                      label: 'Sales order',
-                      filled: false,
-                      onPressed: () {
-                        final id = intValue(
-                          controller.selectedItem!.toJson(),
-                          'id',
-                        );
-                        if (id == null) return;
-                        _openSalesShellRoute(
-                          context,
-                          '/sales/orders/new?quotation_id=$id',
-                        );
-                      },
-                    ),
-                  if (const {
-                    'posted',
-                    'sent',
-                    'accepted',
-                  }.contains(controller.status))
-                    AppActionButton(
-                      icon: Icons.receipt_long_outlined,
-                      label: 'Invoice',
-                      filled: false,
-                      onPressed: () {
-                        final id = intValue(
-                          controller.selectedItem!.toJson(),
-                          'id',
-                        );
-                        if (id == null) return;
-                        _openSalesShellRoute(
-                          context,
-                          '/sales/invoices/new?quotation_id=$id',
-                        );
-                      },
                     ),
                 ],
                 if (controller.selectedItem != null) ...[

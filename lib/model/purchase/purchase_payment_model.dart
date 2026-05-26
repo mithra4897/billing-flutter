@@ -11,6 +11,8 @@ class PurchasePaymentModel extends JsonModel {
     this.paymentNo,
     this.paymentDate,
     this.supplierPartyId,
+    this.supplierName,
+    this.supplier,
     this.paymentMode,
     this.accountId,
     this.referenceNo,
@@ -36,6 +38,8 @@ class PurchasePaymentModel extends JsonModel {
   final String? paymentNo;
   final String? paymentDate;
   final int? supplierPartyId;
+  final String? supplierName;
+  final Map<String, dynamic>? supplier;
   final String? paymentMode;
   final int? accountId;
   final String? referenceNo;
@@ -64,6 +68,8 @@ class PurchasePaymentModel extends JsonModel {
       paymentNo: json['payment_no']?.toString(),
       paymentDate: json['payment_date']?.toString(),
       supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
+      supplierName: json['supplier_name']?.toString(),
+      supplier: JsonModel.mapOf(json['supplier']),
       paymentMode: json['payment_mode']?.toString(),
       accountId: JsonModel.nullableInt(json['account_id']),
       referenceNo: json['reference_no']?.toString(),
@@ -91,7 +97,6 @@ class PurchasePaymentModel extends JsonModel {
     paymentDate,
   ], defaultValue: 'Purchase Payment');
 
-
   @override
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -103,6 +108,8 @@ class PurchasePaymentModel extends JsonModel {
     if (paymentNo != null) 'payment_no': paymentNo,
     if (paymentDate != null) 'payment_date': paymentDate,
     if (supplierPartyId != null) 'supplier_party_id': supplierPartyId,
+    if (supplierName != null) 'supplier_name': supplierName,
+    if (supplier != null) 'supplier': supplier,
     if (paymentMode != null) 'payment_mode': paymentMode,
     if (accountId != null) 'account_id': accountId,
     if (referenceNo != null) 'reference_no': referenceNo,

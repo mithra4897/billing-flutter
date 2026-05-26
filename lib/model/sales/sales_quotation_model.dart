@@ -12,6 +12,8 @@ class SalesQuotationModel extends JsonModel {
     this.quotationDate,
     this.validUntil,
     this.customerPartyId,
+    this.customerName,
+    this.customer,
     this.billingAddressId,
     this.shippingAddressId,
     this.contactId,
@@ -51,6 +53,8 @@ class SalesQuotationModel extends JsonModel {
   final String? quotationDate;
   final String? validUntil;
   final int? customerPartyId;
+  final String? customerName;
+  final Map<String, dynamic>? customer;
   final int? billingAddressId;
   final int? shippingAddressId;
   final int? contactId;
@@ -93,6 +97,8 @@ class SalesQuotationModel extends JsonModel {
       quotationDate: json['quotation_date']?.toString(),
       validUntil: json['valid_until']?.toString(),
       customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
+      customerName: json['customer_name']?.toString(),
+      customer: JsonModel.mapOf(json['customer']),
       billingAddressId: JsonModel.nullableInt(json['billing_address_id']),
       shippingAddressId: JsonModel.nullableInt(json['shipping_address_id']),
       contactId: JsonModel.nullableInt(json['contact_id']),
@@ -145,6 +151,8 @@ class SalesQuotationModel extends JsonModel {
     if (quotationDate != null) 'quotation_date': quotationDate,
     if (validUntil != null) 'valid_until': validUntil,
     if (customerPartyId != null) 'customer_party_id': customerPartyId,
+    if (customerName != null) 'customer_name': customerName,
+    if (customer != null) 'customer': customer,
     if (billingAddressId != null) 'billing_address_id': billingAddressId,
     if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
     if (contactId != null) 'contact_id': contactId,

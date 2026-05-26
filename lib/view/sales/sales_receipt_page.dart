@@ -92,6 +92,11 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
     BuildContext context,
     SalesReceiptManagementController controller,
   ) {
+    final selectedData = controller.selectedItem?.toJson() ?? const {};
+    final status = stringValue(selectedData, 'receipt_status', 'draft');
+    final canEdit = controller.selectedItem == null || status == 'draft';
+    final canPost = controller.selectedItem != null && status == 'draft';
+    final canCancel = controller.selectedItem != null && status == 'draft';
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading sales receipts...');
     }
@@ -394,23 +399,23 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                   label: controller.selectedItem == null
                       ? 'Save Receipt'
                       : 'Update Receipt',
-                  onPressed: () => controller.save(context),
+                  onPressed: canEdit ? () => controller.save(context) : null,
                   busy: controller.saving,
                 ),
-                if (controller.selectedItem != null) ...[
+                if (canPost)
                   AppActionButton(
                     icon: Icons.publish_outlined,
                     label: 'Post',
                     filled: false,
                     onPressed: () => controller.postSelected(context),
                   ),
+                if (canCancel)
                   AppActionButton(
                     icon: Icons.cancel_outlined,
                     label: 'Cancel',
                     filled: false,
                     onPressed: () => controller.cancelSelected(context),
                   ),
-                ],
               ],
             ),
           ],

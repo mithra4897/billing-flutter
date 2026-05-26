@@ -14,6 +14,8 @@ class SalesOrderModel extends JsonModel {
     this.orderDate,
     this.expectedDeliveryDate,
     this.customerPartyId,
+    this.customerName,
+    this.customer,
     this.billingAddressId,
     this.shippingAddressId,
     this.contactId,
@@ -36,6 +38,7 @@ class SalesOrderModel extends JsonModel {
     this.approvedBy,
     this.approvedAt,
     this.isActive,
+    this.lines = const <Map<String, dynamic>>[],
     this.createdBy,
     this.updatedBy,
     this.createdAt,
@@ -52,6 +55,8 @@ class SalesOrderModel extends JsonModel {
   final String? orderDate;
   final String? expectedDeliveryDate;
   final int? customerPartyId;
+  final String? customerName;
+  final Map<String, dynamic>? customer;
   final int? billingAddressId;
   final int? shippingAddressId;
   final int? contactId;
@@ -74,6 +79,7 @@ class SalesOrderModel extends JsonModel {
   final int? approvedBy;
   final String? approvedAt;
   final bool? isActive;
+  final List<Map<String, dynamic>> lines;
   final int? createdBy;
   final int? updatedBy;
   final String? createdAt;
@@ -93,6 +99,8 @@ class SalesOrderModel extends JsonModel {
       orderDate: json['order_date']?.toString(),
       expectedDeliveryDate: json['expected_delivery_date']?.toString(),
       customerPartyId: JsonModel.nullableInt(json['customer_party_id']),
+      customerName: json['customer_name']?.toString(),
+      customer: JsonModel.mapOf(json['customer']),
       billingAddressId: JsonModel.nullableInt(json['billing_address_id']),
       shippingAddressId: JsonModel.nullableInt(json['shipping_address_id']),
       contactId: JsonModel.nullableInt(json['contact_id']),
@@ -117,6 +125,7 @@ class SalesOrderModel extends JsonModel {
       isActive: json['is_active'] == null
           ? null
           : JsonModel.boolOf(json['is_active']),
+      lines: _mapLines(json['lines']),
       createdBy: JsonModel.nullableInt(json['created_by']),
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
@@ -129,7 +138,6 @@ class SalesOrderModel extends JsonModel {
     orderDate,
     currencyCode,
   ], defaultValue: 'Sales Order');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -146,6 +154,8 @@ class SalesOrderModel extends JsonModel {
     if (expectedDeliveryDate != null)
       'expected_delivery_date': expectedDeliveryDate,
     if (customerPartyId != null) 'customer_party_id': customerPartyId,
+    if (customerName != null) 'customer_name': customerName,
+    if (customer != null) 'customer': customer,
     if (billingAddressId != null) 'billing_address_id': billingAddressId,
     if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
     if (contactId != null) 'contact_id': contactId,
@@ -170,9 +180,25 @@ class SalesOrderModel extends JsonModel {
     if (approvedBy != null) 'approved_by': approvedBy,
     if (approvedAt != null) 'approved_at': approvedAt,
     if (isActive != null) 'is_active': isActive,
+    if (lines.isNotEmpty) 'lines': lines,
     if (createdBy != null) 'created_by': createdBy,
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
   };
+
+  static List<Map<String, dynamic>> _mapLines(dynamic value) {
+    if (value is! List) {
+      return <Map<String, dynamic>>[];
+    }
+
+    return value
+        .whereType<Map>()
+        .map(
+          (line) => Map<String, dynamic>.from(
+            line.map((key, entryValue) => MapEntry(key.toString(), entryValue)),
+          ),
+        )
+        .toList(growable: false);
+  }
 }

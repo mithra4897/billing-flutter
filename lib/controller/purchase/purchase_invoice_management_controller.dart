@@ -871,7 +871,14 @@ class PurchaseInvoiceManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(selectId: response.data?.id);
+      final saved = response.data;
+      if (saved != null) {
+        _upsertInvoice(saved);
+        await selectDocument(saved, notify: false);
+        update();
+      } else {
+        await loadPage(selectId: response.data?.id);
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -892,10 +899,33 @@ class PurchaseInvoiceManagementController extends GetxController {
           context,
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
-      await loadPage(selectId: response.data?.id);
+      final updated = response.data;
+      if (updated != null) {
+        _upsertInvoice(updated);
+        await selectDocument(updated, notify: false);
+        update();
+      } else {
+        await loadPage(selectId: response.data?.id);
+      }
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
     }
+  }
+
+  void _upsertInvoice(PurchaseInvoiceModel invoice) {
+    final id = invoice.id;
+    if (id == null) {
+      return;
+    }
+    final nextItems = List<PurchaseInvoiceModel>.from(items);
+    final existingIndex = nextItems.indexWhere((item) => item.id == id);
+    if (existingIndex >= 0) {
+      nextItems[existingIndex] = invoice;
+    } else {
+      nextItems.insert(0, invoice);
+    }
+    items = nextItems;
+    _applyFilters();
   }
 }

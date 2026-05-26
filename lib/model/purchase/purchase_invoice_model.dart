@@ -13,6 +13,10 @@ class PurchaseInvoiceModel extends JsonModel {
     this.purchaseOrderId,
     this.purchaseReceiptId,
     this.invoiceNo,
+    this.supplierName,
+    this.supplier,
+    this.purchaseOrderNo,
+    this.purchaseReceiptNo,
     this.dueDate,
     this.supplierReferenceNo,
     this.supplierReferenceDate,
@@ -46,6 +50,10 @@ class PurchaseInvoiceModel extends JsonModel {
   final int? purchaseOrderId;
   final int? purchaseReceiptId;
   final String? invoiceNo;
+  final String? supplierName;
+  final Map<String, dynamic>? supplier;
+  final String? purchaseOrderNo;
+  final String? purchaseReceiptNo;
   final String? dueDate;
   final String? supplierReferenceNo;
   final String? supplierReferenceDate;
@@ -82,6 +90,10 @@ class PurchaseInvoiceModel extends JsonModel {
       purchaseOrderId: _nullableInt(json['purchase_order_id']),
       purchaseReceiptId: _nullableInt(json['purchase_receipt_id']),
       invoiceNo: json['invoice_no']?.toString(),
+      supplierName: json['supplier_name']?.toString(),
+      supplier: JsonModel.mapOf(json['supplier']),
+      purchaseOrderNo: json['purchase_order_no']?.toString(),
+      purchaseReceiptNo: json['purchase_receipt_no']?.toString(),
       dueDate: json['due_date']?.toString(),
       supplierReferenceNo: json['supplier_reference_no']?.toString(),
       supplierReferenceDate: json['supplier_reference_date']?.toString(),
@@ -123,6 +135,10 @@ class PurchaseInvoiceModel extends JsonModel {
       if (purchaseOrderId != null) 'purchase_order_id': purchaseOrderId,
       if (purchaseReceiptId != null) 'purchase_receipt_id': purchaseReceiptId,
       if (invoiceNo != null) 'invoice_no': invoiceNo,
+      if (supplierName != null) 'supplier_name': supplierName,
+      if (supplier != null) 'supplier': supplier,
+      if (purchaseOrderNo != null) 'purchase_order_no': purchaseOrderNo,
+      if (purchaseReceiptNo != null) 'purchase_receipt_no': purchaseReceiptNo,
       'invoice_date': invoiceDate,
       if (dueDate != null) 'due_date': dueDate,
       if (supplierReferenceNo != null)
@@ -148,6 +164,7 @@ class PurchaseInvoiceModel extends JsonModel {
       'lines': lines.map((line) => line.toJson()).toList(growable: false),
     };
   }
+
   @override
   Map<String, dynamic> toJson() => {
     if (id != 0) 'id': id,

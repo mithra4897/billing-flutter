@@ -122,7 +122,11 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
               displayDate(nullableStringValue(data, 'return_date')),
               purchaseStatusLabel(nullableStringValue(data, 'return_status')),
             ].where((value) => value.isNotEmpty).join(' · '),
-            detail: stringValue(data, 'return_reason'),
+            detail: stringValue(
+              data,
+              'purchase_invoice_no',
+              stringValue(data, 'supplier_name'),
+            ),
             selected: selected,
             onTap: () => controller.selectDocument(item),
           );
@@ -159,76 +163,83 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                 children: [
                   SettingsFormWrap(
                     children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Financial Year',
-                  mappedItems: controller.financialYears
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Financial Year',
+                        mappedItems: controller.financialYears
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.financialYearId,
+                        onChanged: controller.setFinancialYearId,
+                        validator: Validators.requiredSelection(
+                          'Financial Year',
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.financialYearId,
-                  onChanged: controller.setFinancialYearId,
-                  validator: Validators.requiredSelection('Financial Year'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Document Series',
-                  mappedItems: controller
-                      .seriesOptions()
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Document Series',
+                        mappedItems: controller
+                            .seriesOptions()
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.documentSeriesId,
+                        onChanged: controller.setDocumentSeriesId,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Return No',
+                        controller: controller.returnNoController,
+                        hintText: 'Auto-generated on save',
+                        validator: Validators.optionalMaxLength(
+                          100,
+                          'Return No',
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.documentSeriesId,
-                  onChanged: controller.setDocumentSeriesId,
-                ),
-                AppFormTextField(
-                  labelText: 'Return No',
-                  controller: controller.returnNoController,
-                  hintText: 'Auto-generated on save',
-                  validator: Validators.optionalMaxLength(100, 'Return No'),
-                ),
-                AppFormTextField(
-                  labelText: 'Return Date',
-                  controller: controller.returnDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([
-                    Validators.required('Return Date'),
-                    Validators.date('Return Date'),
-                  ]),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Purchase Invoice',
-                  mappedItems: controller.invoiceOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.invoiceNo ?? 'Invoice',
+                      ),
+                      AppFormTextField(
+                        labelText: 'Return Date',
+                        controller: controller.returnDateController,
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.compose([
+                          Validators.required('Return Date'),
+                          Validators.date('Return Date'),
+                        ]),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Purchase Invoice',
+                        mappedItems: controller.invoiceOptions
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.invoiceNo ?? 'Invoice',
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.purchaseInvoiceId,
+                        onChanged: controller.handleInvoiceChanged,
+                        validator: Validators.requiredSelection(
+                          'Purchase Invoice',
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.purchaseInvoiceId,
-                  onChanged: controller.handleInvoiceChanged,
-                  validator: Validators.requiredSelection('Purchase Invoice'),
-                ),
-                AppFormTextField(
-                  labelText: 'Return Reason',
-                  controller: controller.returnReasonController,
-                ),
-                AppFormTextField(
-                  labelText: 'Notes',
-                  controller: controller.notesController,
-                  maxLines: 3,
-                ),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Return Reason',
+                        controller: controller.returnReasonController,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Notes',
+                        controller: controller.notesController,
+                        maxLines: 3,
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppUiConstants.spacingMd),
@@ -242,9 +253,8 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                     children: [
                       Text(
                         'Lines',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const Spacer(),
                       AppActionButton(
@@ -259,145 +269,171 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                   ),
                   const SizedBox(height: AppUiConstants.spacingSm),
                   ...List<Widget>.generate(controller.lines.length, (index) {
-              final line = controller.lines[index];
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
-                ),
-                child: PurchaseCompactLineCard(
-                  index: index,
-                  total: controller.lines.length,
-                  removeEnabled: controller.lines.length > 1,
-                  onRemove: () => controller.removeLine(index),
-                  child: PurchaseCompactFieldGrid(
-                    children: [
-                      AppSearchPickerField<int>(
-                        labelText: 'Purchase Invoice Line',
-                        selectedLabel: (() {
-                          final selected = controller.invoiceLines
-                              .cast<PurchaseInvoiceLineModel?>()
-                              .firstWhere(
-                                (item) =>
-                                    item?.id == line.purchaseInvoiceLineId,
-                                orElse: () => null,
-                              );
-                          if (selected == null) {
-                            return null;
-                          }
-                          return '${controller.itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
-                        })(),
-                        options: controller.invoiceLines
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label:
-                                    '${controller.itemName(item.itemId)} · Qty ${item.invoicedQty}',
-                                subtitle:
-                                    '${controller.warehouseName(item.warehouseId)} · ${controller.uomName(item.uomId)}',
+                    final line = controller.lines[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppUiConstants.spacingSm,
+                      ),
+                      child: PurchaseCompactLineCard(
+                        index: index,
+                        total: controller.lines.length,
+                        removeEnabled: controller.lines.length > 1,
+                        onRemove: () => controller.removeLine(index),
+                        child: PurchaseCompactFieldGrid(
+                          children: [
+                            AppSearchPickerField<int>(
+                              labelText: 'Purchase Invoice Line',
+                              selectedLabel: (() {
+                                final selected = controller.invoiceLines
+                                    .cast<PurchaseInvoiceLineModel?>()
+                                    .firstWhere(
+                                      (item) =>
+                                          item?.id ==
+                                          line.purchaseInvoiceLineId,
+                                      orElse: () => null,
+                                    );
+                                if (selected == null) {
+                                  return null;
+                                }
+                                return '${controller.itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
+                              })(),
+                              options: controller.invoiceLines
+                                  .where((item) => item.id != null)
+                                  .map(
+                                    (item) => AppSearchPickerOption<int>(
+                                      value: item.id!,
+                                      label:
+                                          '${controller.itemName(item.itemId)} · Qty ${item.invoicedQty}',
+                                      subtitle:
+                                          '${controller.warehouseName(item.warehouseId)} · ${controller.uomName(item.uomId)}',
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              onChanged: (value) =>
+                                  controller.selectInvoiceLine(line, value),
+                              validator: (_) =>
+                                  Validators.requiredSelectionField(
+                                    line.purchaseInvoiceLineId,
+                                    'Purchase Invoice Line',
+                                  ),
+                            ),
+                            AppFormTextField(
+                              labelText: 'Item',
+                              controller: line.itemNameController,
+                              readOnly: true,
+                            ),
+                            AppFormTextField(
+                              labelText: 'Warehouse',
+                              controller: line.warehouseNameController,
+                              readOnly: true,
+                            ),
+                            AppFormTextField(
+                              labelText: 'UOM',
+                              controller: line.uomNameController,
+                              readOnly: true,
+                            ),
+                            AppFormTextField(
+                              labelText: 'Return Qty',
+                              controller: line.returnQtyController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: Validators.compose([
+                                Validators.required('Return Qty'),
+                                Validators.optionalNonNegativeNumber(
+                                  'Return Qty',
+                                ),
+                              ]),
+                            ),
+                            AppFormTextField(
+                              labelText: 'Rate',
+                              controller: line.rateController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: Validators.optionalNonNegativeNumber(
+                                'Rate',
                               ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) =>
-                            controller.selectInvoiceLine(line, value),
-                        validator: (_) => Validators.requiredSelectionField(
-                          line.purchaseInvoiceLineId,
-                          'Purchase Invoice Line',
+                            ),
+                            AppFormTextField(
+                              labelText: 'Return Reason',
+                              controller: line.returnReasonController,
+                            ),
+                            AppFormTextField(
+                              labelText: 'Remarks',
+                              controller: line.remarksController,
+                            ),
+                          ],
                         ),
                       ),
-                      AppFormTextField(
-                        labelText: 'Item',
-                        controller: line.itemNameController,
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Warehouse',
-                        controller: line.warehouseNameController,
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'UOM',
-                        controller: line.uomNameController,
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Return Qty',
-                        controller: line.returnQtyController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.compose([
-                          Validators.required('Return Qty'),
-                          Validators.optionalNonNegativeNumber('Return Qty'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Rate',
-                        controller: line.rateController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.optionalNonNegativeNumber('Rate'),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Return Reason',
-                        controller: line.returnReasonController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Remarks',
-                        controller: line.remarksController,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+                    );
+                  }),
                 ],
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            Wrap(
-              spacing: AppUiConstants.spacingSm,
-              runSpacing: AppUiConstants.spacingSm,
-              children: [
-                if (!controller.isSelectedReturnReadOnly)
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: controller.selectedItem == null
-                        ? 'Save Return'
-                        : 'Update Return',
-                    onPressed: controller.canEditSelectedReturn
-                        ? () => controller.save(context)
-                        : null,
-                    busy: controller.saving,
-                  ),
-                if (controller.selectedItem != null) ...[
-                  AppActionButton(
-                    icon: Icons.publish_outlined,
-                    label: 'Post',
-                    filled: false,
-                    onPressed: () => controller.docAction(
-                      context,
-                      () => PurchaseService().postReturn(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchaseReturnModel.fromJson(const <String, dynamic>{}),
+            Builder(
+              builder: (_) {
+                final selectedData =
+                    controller.selectedItem?.toJson() ??
+                    const <String, dynamic>{};
+                final status = stringValue(selectedData, 'return_status');
+                final canPost =
+                    controller.selectedItem != null && status == 'draft';
+                final canCancel =
+                    controller.selectedItem != null &&
+                    (status == 'draft' || status == 'posted');
+
+                return Wrap(
+                  spacing: AppUiConstants.spacingSm,
+                  runSpacing: AppUiConstants.spacingSm,
+                  children: [
+                    if (!controller.isSelectedReturnReadOnly)
+                      AppActionButton(
+                        icon: Icons.save_outlined,
+                        label: controller.selectedItem == null
+                            ? 'Save Return'
+                            : 'Update Return',
+                        onPressed: controller.canEditSelectedReturn
+                            ? () => controller.save(context)
+                            : null,
+                        busy: controller.saving,
                       ),
-                    ),
-                  ),
-                  AppActionButton(
-                    icon: Icons.cancel_outlined,
-                    label: 'Cancel',
-                    filled: false,
-                    onPressed: () => controller.docAction(
-                      context,
-                      () => PurchaseService().cancelReturn(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchaseReturnModel.fromJson(const <String, dynamic>{}),
+                    if (canPost)
+                      AppActionButton(
+                        icon: Icons.publish_outlined,
+                        label: 'Post',
+                        filled: false,
+                        onPressed: () => controller.docAction(
+                          context,
+                          () => PurchaseService().postReturn(
+                            intValue(controller.selectedItem!.toJson(), 'id')!,
+                            PurchaseReturnModel.fromJson(
+                              const <String, dynamic>{},
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              ],
+                    if (canCancel)
+                      AppActionButton(
+                        icon: Icons.cancel_outlined,
+                        label: 'Cancel',
+                        filled: false,
+                        onPressed: () => controller.docAction(
+                          context,
+                          () => PurchaseService().cancelReturn(
+                            intValue(controller.selectedItem!.toJson(), 'id')!,
+                            PurchaseReturnModel.fromJson(
+                              const <String, dynamic>{},
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ],
         ),

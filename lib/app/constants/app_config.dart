@@ -15,8 +15,8 @@ class AppConfig {
       return configuredUrl;
     }
 
-    // return 'http://localhost:8000';
-    return 'https://bill.sakthicontroller.com/api/public';
+    return 'http://192.168.1.33:8000';
+    // return 'https://bill.sakthicontroller.com/api/public';
   }
 
   static String get apiBaseUrl => '$baseHost$apiPrefix';
