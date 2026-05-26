@@ -330,6 +330,15 @@ class OpeningStockViewModel extends GetxController {
           await select(existing);
           return;
         }
+        final currentSelectedId = intValue(
+          selected?.toJson() ?? const <String, dynamic>{},
+          'id',
+        );
+        if (currentSelectedId == selectId && selected != null) {
+          loading = false;
+          _notifyListenersSafely();
+          return;
+        }
       }
       resetDraft();
       _notifyListenersSafely();
@@ -719,11 +728,9 @@ class OpeningStockViewModel extends GetxController {
       return;
     }
 
-    final matchingBatch =
-        batchOptions(
-          itemId,
-          lines[index].warehouseId,
-        ).cast<Map<String, dynamic>?>().firstWhere(
+    final matchingBatch = batchOptions(itemId, lines[index].warehouseId)
+        .cast<Map<String, dynamic>?>()
+        .firstWhere(
           (batch) =>
               stringValue(
                 batch ?? const <String, dynamic>{},
@@ -1037,9 +1044,7 @@ class OpeningStockViewModel extends GetxController {
       final totalCost = totalCostText.isEmpty
           ? null
           : double.tryParse(totalCostText);
-      if (itemId == null ||
-          line.warehouseId == null ||
-          line.uomId == null) {
+      if (itemId == null || line.warehouseId == null || line.uomId == null) {
         return 'Item, warehouse, and UOM are required at line $lineNo.';
       }
       if (qty <= 0) {
@@ -1057,8 +1062,7 @@ class OpeningStockViewModel extends GetxController {
           .cast<Map<String, dynamic>?>()
           .firstWhere(
             (item) =>
-                intValue(item ?? const <String, dynamic>{}, 'id') ==
-                itemId,
+                intValue(item ?? const <String, dynamic>{}, 'id') == itemId,
             orElse: () => null,
           );
       if (itemData == null) {
@@ -1177,10 +1181,7 @@ class OpeningStockViewModel extends GetxController {
     for (final line in lines) {
       final itemId = _effectiveItemIdForLine(line);
       if (!isSerialManagedItem(itemId)) {
-        expanded.add(<String, dynamic>{
-          ...line.toJson(),
-          'item_id': itemId,
-        });
+        expanded.add(<String, dynamic>{...line.toJson(), 'item_id': itemId});
         continue;
       }
 
@@ -1189,10 +1190,7 @@ class OpeningStockViewModel extends GetxController {
           .where((serial) => serial.isNotEmpty)
           .toList(growable: false);
       if (serialNumbers.isEmpty) {
-        expanded.add(<String, dynamic>{
-          ...line.toJson(),
-          'item_id': itemId,
-        });
+        expanded.add(<String, dynamic>{...line.toJson(), 'item_id': itemId});
         continue;
       }
 
@@ -1250,12 +1248,18 @@ class OpeningStockViewModel extends GetxController {
               intValue(selected!.toJson(), 'id')!,
               payload,
             );
-      final id = intValue(
-        response.data?.toJson() ?? const <String, dynamic>{},
-        'id',
-      );
+      final saved = response.data;
+      final id = intValue(saved?.toJson() ?? const <String, dynamic>{}, 'id');
       if (_isDisposed) {
         return;
+      }
+      if (saved != null && id != null) {
+        rows = <OpeningStockModel>[
+          saved,
+          ...rows.where((row) => intValue(row.toJson(), 'id') != id),
+        ];
+        selected = saved;
+        selectedDetail = saved;
       }
       actionMessage = response.message;
       await load(selectId: id);

@@ -310,7 +310,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
           if (rows.isNotEmpty) const SizedBox(height: AppUiConstants.spacingSm),
         ],
         ...rows.map((row) {
-          final expanded = identical(row, _viewModel.selected);
+          final expanded = row == _viewModel.selected;
           final data = row.toJson();
           return Padding(
             padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
