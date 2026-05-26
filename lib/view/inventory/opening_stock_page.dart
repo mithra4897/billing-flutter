@@ -34,8 +34,22 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('OpeningStockViewModel');
-    _pageControllerTag = persistentControllerTag('OpeningStockPageController');
+    final scope = <String, Object?>{
+      'fixedItemId': widget.fixedItemId,
+      'initialId': widget.initialId,
+      'initialItemId': widget.initialItemId,
+      'embedded': widget.embedded,
+      'editorOnly': widget.editorOnly,
+      'identity': identityHashCode(widget),
+    };
+    _controllerTag = persistentControllerTag(
+      'OpeningStockViewModel',
+      scope: scope,
+    );
+    _pageControllerTag = persistentControllerTag(
+      'OpeningStockPageController',
+      scope: scope,
+    );
     Get.put(OpeningStockPageController(), tag: _pageControllerTag);
     _viewModel = Get.put(
       OpeningStockViewModel(
@@ -43,12 +57,20 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
         filterItemId: widget.fixedItemId,
       )..load(selectId: widget.initialId),
       tag: _controllerTag,
-      permanent: true,
     );
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<OpeningStockViewModel>(tag: _controllerTag)) {
+      Get.delete<OpeningStockViewModel>(tag: _controllerTag, force: true);
+    }
+    if (Get.isRegistered<OpeningStockPageController>(tag: _pageControllerTag)) {
+      Get.delete<OpeningStockPageController>(
+        tag: _pageControllerTag,
+        force: true,
+      );
+    }
     _workspaceController.dispose();
     _pageScrollController.dispose();
     super.dispose();
