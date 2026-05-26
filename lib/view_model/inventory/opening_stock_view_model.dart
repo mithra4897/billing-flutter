@@ -503,6 +503,14 @@ class OpeningStockViewModel extends GetxController {
     return null;
   }
 
+  int? _effectiveItemIdForLine(OpeningStockLineDraft line) {
+    if (filterItemId != null &&
+        itemOptions.any((item) => item.id == filterItemId)) {
+      return filterItemId;
+    }
+    return line.itemId ?? _defaultItemId();
+  }
+
   void addLine() {
     final itemId = _defaultItemId();
     lines = List<OpeningStockLineDraft>.from(lines)
@@ -596,7 +604,7 @@ class OpeningStockViewModel extends GetxController {
     if (batchId == null) {
       return null;
     }
-    return batchFieldOptions(line.itemId, line.warehouseId)
+    return batchFieldOptions(_effectiveItemIdForLine(line), line.warehouseId)
         .cast<ErpLinkFieldOption<int>?>()
         .firstWhere((option) => option?.value == batchId, orElse: () => null);
   }
@@ -630,12 +638,13 @@ class OpeningStockViewModel extends GetxController {
       return null;
     }
     final line = lines[index];
+    final itemId = _effectiveItemIdForLine(line);
     final batchNo = query.trim();
     if (batchNo.isEmpty) {
       return null;
     }
 
-    final existing = batchFieldOptions(line.itemId, line.warehouseId)
+    final existing = batchFieldOptions(itemId, line.warehouseId)
         .cast<ErpLinkFieldOption<int>?>()
         .firstWhere(
           (option) =>
@@ -647,7 +656,7 @@ class OpeningStockViewModel extends GetxController {
       return existing;
     }
 
-    if (line.itemId == null) {
+    if (itemId == null) {
       formError = 'Select an item before creating a batch.';
       _notifyListenersSafely();
       return null;
@@ -659,7 +668,7 @@ class OpeningStockViewModel extends GetxController {
     }
 
     final payload = StockBatchModel.fromJson(<String, dynamic>{
-      'item_id': line.itemId,
+      'item_id': itemId,
       'warehouse_id': line.warehouseId,
       'batch_no': batchNo,
       'is_active': true,
@@ -701,6 +710,7 @@ class OpeningStockViewModel extends GetxController {
     if (index < 0 || index >= lines.length) {
       return;
     }
+    final itemId = _effectiveItemIdForLine(lines[index]);
     final normalized = value.trim().toLowerCase();
     if (normalized.isEmpty) {
       lines[index].batchId = null;
@@ -711,7 +721,7 @@ class OpeningStockViewModel extends GetxController {
 
     final matchingBatch =
         batchOptions(
-          lines[index].itemId,
+          itemId,
           lines[index].warehouseId,
         ).cast<Map<String, dynamic>?>().firstWhere(
           (batch) =>
@@ -738,7 +748,7 @@ class OpeningStockViewModel extends GetxController {
 
   void _reconcileLineSerialSelection(OpeningStockLineDraft line) {
     final allowedSerialIds = serialOptions(
-      line.itemId,
+      _effectiveItemIdForLine(line),
       line.warehouseId,
       line.batchId,
     ).map((serial) => intValue(serial, 'id')).whereType<int>().toSet();
@@ -779,7 +789,7 @@ class OpeningStockViewModel extends GetxController {
   }
 
   int serialFieldCountForLine(OpeningStockLineDraft line) {
-    if (!isSerialManagedItem(line.itemId)) {
+    if (!isSerialManagedItem(_effectiveItemIdForLine(line))) {
       return 0;
     }
     final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
@@ -815,7 +825,7 @@ class OpeningStockViewModel extends GetxController {
         .map((value) => existingSerialMap[value.toLowerCase()])
         .whereType<int>()
         .toList(growable: false);
-    if (isSerialManagedItem(line.itemId)) {
+    if (isSerialManagedItem(_effectiveItemIdForLine(line))) {
       line.qtyController.text = normalizedValues.length.toString();
     }
     update();
@@ -1018,6 +1028,7 @@ class OpeningStockViewModel extends GetxController {
     }
     for (var i = 0; i < lines.length; i++) {
       final line = lines[i];
+      final itemId = _effectiveItemIdForLine(line);
       final lineNo = i + 1;
       final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
       final unitCost =
@@ -1026,7 +1037,7 @@ class OpeningStockViewModel extends GetxController {
       final totalCost = totalCostText.isEmpty
           ? null
           : double.tryParse(totalCostText);
-      if (line.itemId == null ||
+      if (itemId == null ||
           line.warehouseId == null ||
           line.uomId == null) {
         return 'Item, warehouse, and UOM are required at line $lineNo.';
@@ -1047,7 +1058,7 @@ class OpeningStockViewModel extends GetxController {
           .firstWhere(
             (item) =>
                 intValue(item ?? const <String, dynamic>{}, 'id') ==
-                line.itemId,
+                itemId,
             orElse: () => null,
           );
       if (itemData == null) {
@@ -1079,7 +1090,7 @@ class OpeningStockViewModel extends GetxController {
 
       if (line.batchId != null) {
         final validBatch = batchOptions(
-          line.itemId,
+          itemId,
           line.warehouseId,
         ).any((batch) => intValue(batch, 'id') == line.batchId);
         if (!boolValue(itemData, 'has_batch') || !validBatch) {
@@ -1095,7 +1106,7 @@ class OpeningStockViewModel extends GetxController {
       if (line.serialId != null) {
         final matchingSerial =
             serialOptions(
-              line.itemId,
+              itemId,
               line.warehouseId,
               line.batchId,
             ).cast<Map<String, dynamic>?>().firstWhere(
@@ -1164,8 +1175,12 @@ class OpeningStockViewModel extends GetxController {
   List<Map<String, dynamic>> _expandedItemsForSave() {
     final expanded = <Map<String, dynamic>>[];
     for (final line in lines) {
-      if (!isSerialManagedItem(line.itemId)) {
-        expanded.add(line.toJson());
+      final itemId = _effectiveItemIdForLine(line);
+      if (!isSerialManagedItem(itemId)) {
+        expanded.add(<String, dynamic>{
+          ...line.toJson(),
+          'item_id': itemId,
+        });
         continue;
       }
 
@@ -1174,7 +1189,10 @@ class OpeningStockViewModel extends GetxController {
           .where((serial) => serial.isNotEmpty)
           .toList(growable: false);
       if (serialNumbers.isEmpty) {
-        expanded.add(line.toJson());
+        expanded.add(<String, dynamic>{
+          ...line.toJson(),
+          'item_id': itemId,
+        });
         continue;
       }
 
@@ -1184,7 +1202,7 @@ class OpeningStockViewModel extends GetxController {
       for (var index = 0; index < serialNumbers.length; index++) {
         final serialNo = serialNumbers[index];
         expanded.add(<String, dynamic>{
-          'item_id': line.itemId,
+          'item_id': itemId,
           'warehouse_id': line.warehouseId,
           'batch_id': line.batchId,
           'batch_no': nullIfEmpty(line.batchNoController.text),
@@ -1227,12 +1245,10 @@ class OpeningStockViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createOpeningStock(
-              OpeningStockModel.fromJson(payload),
-            )
+          ? await _inventoryService.createOpeningStock(payload)
           : await _inventoryService.updateOpeningStock(
               intValue(selected!.toJson(), 'id')!,
-              OpeningStockModel.fromJson(payload),
+              payload,
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

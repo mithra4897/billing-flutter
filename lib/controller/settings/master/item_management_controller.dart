@@ -32,14 +32,12 @@ class ItemManagementController extends GetxController {
   final TextEditingController skuController = TextEditingController();
   final TextEditingController barcodeController = TextEditingController();
   final TextEditingController hsnController = TextEditingController();
-  final TextEditingController standardCostController =
-      TextEditingController();
+  final TextEditingController standardCostController = TextEditingController();
   final TextEditingController standardSellingPriceController =
       TextEditingController();
   final TextEditingController mrpController = TextEditingController();
   final TextEditingController minStockController = TextEditingController();
-  final TextEditingController reorderLevelController =
-      TextEditingController();
+  final TextEditingController reorderLevelController = TextEditingController();
   final TextEditingController reorderQtyController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
   final TextEditingController volumeController = TextEditingController();
@@ -190,8 +188,7 @@ class ItemManagementController extends GetxController {
                 ? (nextItems.isNotEmpty ? nextItems.first : null)
                 : nextItems.cast<ItemModel?>().firstWhere(
                     (item) => item?.id == selectedItem?.id,
-                    orElse: () =>
-                        nextItems.isNotEmpty ? nextItems.first : null,
+                    orElse: () => nextItems.isNotEmpty ? nextItems.first : null,
                   ));
 
       if (selected != null) {
@@ -363,6 +360,15 @@ class ItemManagementController extends GetxController {
     );
 
     try {
+      if (selectedItem?.id != null) {
+        debugPrint(
+          'PUT /api/v1/inventory/items/${selectedItem!.id} payload: ${jsonEncode(model.toJson())}',
+        );
+      } else {
+        debugPrint(
+          'POST /api/v1/inventory/items payload: ${jsonEncode(model.toJson())}',
+        );
+      }
       final response = selectedItem == null
           ? await _inventoryService.createItem(model)
           : await _inventoryService.updateItem(selectedItem!.id!, model);
@@ -601,9 +607,9 @@ class ItemManagementController extends GetxController {
                   if (!dialogContext.mounted) {
                     return;
                   }
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(content: Text(error.toString())),
-                  );
+                  ScaffoldMessenger.of(
+                    dialogContext,
+                  ).showSnackBar(SnackBar(content: Text(error.toString())));
                 }
               },
               child: const Text('Save'),
@@ -675,10 +681,7 @@ class ItemManagementController extends GetxController {
                 }
                 try {
                   final response = await _inventoryService.createBrand(
-                    BrandModel(
-                      brandCode: code.trim(),
-                      brandName: name.trim(),
-                    ),
+                    BrandModel(brandCode: code.trim(), brandName: name.trim()),
                   );
                   if (!dialogContext.mounted) {
                     return;
@@ -688,9 +691,9 @@ class ItemManagementController extends GetxController {
                   if (!dialogContext.mounted) {
                     return;
                   }
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(content: Text(error.toString())),
-                  );
+                  ScaffoldMessenger.of(
+                    dialogContext,
+                  ).showSnackBar(SnackBar(content: Text(error.toString())));
                 }
               },
               child: const Text('Save'),
@@ -808,9 +811,9 @@ class ItemManagementController extends GetxController {
                   if (!dialogContext.mounted) {
                     return;
                   }
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(content: Text(error.toString())),
-                  );
+                  ScaffoldMessenger.of(
+                    dialogContext,
+                  ).showSnackBar(SnackBar(content: Text(error.toString())));
                 }
               },
               child: const Text('Save'),

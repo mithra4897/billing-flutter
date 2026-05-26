@@ -556,17 +556,16 @@ class InventoryService extends ErpModuleService {
         fromJson: OpeningStockModel.fromJson,
       );
 
-  Future<ApiResponse<OpeningStockModel>> createOpeningStock(
-    OpeningStockModel body,
-  ) => createModel<OpeningStockModel>(
-    ApiEndpoints.openingStocks,
-    body,
-    fromJson: OpeningStockModel.fromJson,
-  );
+  Future<ApiResponse<OpeningStockModel>> createOpeningStock(dynamic body) =>
+      createModel<OpeningStockModel>(
+        ApiEndpoints.openingStocks,
+        body,
+        fromJson: OpeningStockModel.fromJson,
+      );
 
   Future<ApiResponse<OpeningStockModel>> updateOpeningStock(
     int id,
-    OpeningStockModel body,
+    dynamic body,
   ) => updateModel<OpeningStockModel>(
     '${ApiEndpoints.openingStocks}/$id',
     body,

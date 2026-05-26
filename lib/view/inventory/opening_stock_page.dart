@@ -487,6 +487,7 @@ class _OpeningStockEditor extends StatelessWidget {
             else
               ...List<Widget>.generate(vm.lines.length, (index) {
                 final line = vm.lines[index];
+                final effectiveItemId = fixedItemId ?? line.itemId;
                 return Padding(
                   padding: const EdgeInsets.only(
                     bottom: AppUiConstants.spacingSm,
@@ -537,7 +538,7 @@ class _OpeningStockEditor extends StatelessWidget {
                                       ),
                                     )
                                     .toList(growable: false),
-                          validator: (_) => (fixedItemId ?? line.itemId) == null
+                          validator: (_) => effectiveItemId == null
                               ? 'Item is required'
                               : null,
                           onChanged: (value) {
@@ -570,7 +571,7 @@ class _OpeningStockEditor extends StatelessWidget {
                         AppDropdownField<int>.fromMapped(
                           labelText: 'UOM',
                           mappedItems: vm
-                              .uomOptionsForItem(line.itemId)
+                              .uomOptionsForItem(effectiveItemId)
                               .where((u) => u.id != null)
                               .map(
                                 (u) => AppDropdownItem<int>(
@@ -588,19 +589,19 @@ class _OpeningStockEditor extends StatelessWidget {
                             vm.onLineUomChanged(index, value);
                           },
                         ),
-                        if (vm.isBatchManagedItem(line.itemId))
+                        if (vm.isBatchManagedItem(effectiveItemId))
                           ErpLinkField<int>(
                             labelText: 'Batch',
                             doctypeLabel: 'batch',
                             enabled: canEdit,
                             initialSelection: vm.selectedBatchOption(line),
                             options: vm.batchFieldOptions(
-                              line.itemId,
+                              effectiveItemId,
                               line.warehouseId,
                             ),
                             allowCreate: canEdit,
                             validator: (_) {
-                              if (!vm.isBatchManagedItem(line.itemId)) {
+                              if (!vm.isBatchManagedItem(effectiveItemId)) {
                                 return null;
                               }
                               final hasBatchNo = line.batchNoController.text
@@ -625,7 +626,7 @@ class _OpeningStockEditor extends StatelessWidget {
                             emptyMessageBuilder: (_, _) =>
                                 'No batches found for the selected item and warehouse',
                           ),
-                        if (vm.isSerialManagedItem(line.itemId))
+                        if (vm.isSerialManagedItem(effectiveItemId))
                           AppSerialNumbersField(
                             values: line.serialNumbers,
                             enabled: canEdit,

@@ -335,6 +335,13 @@ class _SettingsListCardController extends GetxController {
 class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
   late final String _controllerTag;
 
+  _SettingsListCardController _ensureController() {
+    if (Get.isRegistered<_SettingsListCardController>(tag: _controllerTag)) {
+      return Get.find<_SettingsListCardController>(tag: _controllerTag);
+    }
+    return Get.put(_SettingsListCardController(), tag: _controllerTag);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -342,21 +349,21 @@ class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
       'SettingsListCardController',
       scope: <String, Object?>{'identity': identityHashCode(widget)},
     );
-    Get.put(_SettingsListCardController(), tag: _controllerTag);
+    _ensureController();
   }
 
   @override
   void dispose() {
-    Get.delete<_SettingsListCardController>(tag: _controllerTag, force: true);
+    if (Get.isRegistered<_SettingsListCardController>(tag: _controllerTag)) {
+      Get.delete<_SettingsListCardController>(tag: _controllerTag, force: true);
+    }
     super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant SettingsListCard<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final controller = Get.find<_SettingsListCardController>(
-      tag: _controllerTag,
-    );
+    final controller = _ensureController();
     if (!identical(oldWidget.items, widget.items)) {
       controller.resetToFirstPage();
     }
@@ -381,6 +388,7 @@ class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
 
   @override
   Widget build(BuildContext context) {
+    _ensureController();
     return GetBuilder<_SettingsListCardController>(
       tag: _controllerTag,
       builder: (controller) {
