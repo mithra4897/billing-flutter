@@ -9,6 +9,7 @@ class SalesInvoiceLineModel extends JsonModel {
     super.id,
     this.warehouseId,
     this.batchId,
+    this.batchNo,
     this.description,
     this.discountPercent,
     this.taxCodeId,
@@ -28,6 +29,7 @@ class SalesInvoiceLineModel extends JsonModel {
   final int itemId;
   final int? warehouseId;
   final int? batchId;
+  final String? batchNo;
   final int? serialId;
   final String? serialNo;
   final int uomId;
@@ -44,25 +46,48 @@ class SalesInvoiceLineModel extends JsonModel {
   final double? returnedQty;
 
   factory SalesInvoiceLineModel.fromJson(Map<String, dynamic> json) {
+    final itemJson = json['item'] is Map<String, dynamic>
+        ? json['item'] as Map<String, dynamic>
+        : null;
+    final warehouseJson = json['warehouse'] is Map<String, dynamic>
+        ? json['warehouse'] as Map<String, dynamic>
+        : null;
+    final batchJson = json['batch'] is Map<String, dynamic>
+        ? json['batch'] as Map<String, dynamic>
+        : null;
+    final serialJson = json['serial'] is Map<String, dynamic>
+        ? json['serial'] as Map<String, dynamic>
+        : null;
+    final uomJson = json['uom'] is Map<String, dynamic>
+        ? json['uom'] as Map<String, dynamic>
+        : null;
+    final taxCodeJson = json['tax_code'] is Map<String, dynamic>
+        ? json['tax_code'] as Map<String, dynamic>
+        : (json['taxCode'] is Map<String, dynamic>
+              ? json['taxCode'] as Map<String, dynamic>
+              : null);
     return SalesInvoiceLineModel(
       id: _nullableInt(json['id']),
       salesOrderLineId: _nullableInt(json['sales_order_line_id']),
       salesDeliveryLineId: _nullableInt(json['sales_delivery_line_id']),
-      itemId: _parseInt(json['item_id']),
-      warehouseId: _nullableInt(json['warehouse_id']),
-      batchId: _nullableInt(json['batch_id']),
-      serialId: _nullableInt(json['serial_id']),
+      itemId: _nullableInt(json['item_id']) ?? _parseInt(itemJson?['id']),
+      warehouseId:
+          _nullableInt(json['warehouse_id']) ??
+          _nullableInt(warehouseJson?['id']),
+      batchId: _nullableInt(json['batch_id']) ?? _nullableInt(batchJson?['id']),
+      batchNo:
+          json['batch_no']?.toString() ?? batchJson?['batch_no']?.toString(),
+      serialId:
+          _nullableInt(json['serial_id']) ?? _nullableInt(serialJson?['id']),
       serialNo:
-          json['serial_no']?.toString() ??
-          (json['serial'] is Map
-              ? (json['serial']['serial_no']?.toString())
-              : null),
-      uomId: _parseInt(json['uom_id']),
+          json['serial_no']?.toString() ?? serialJson?['serial_no']?.toString(),
+      uomId: _nullableInt(json['uom_id']) ?? _parseInt(uomJson?['id']),
       invoicedQty: _parseDouble(json['invoiced_qty']),
       rate: _parseDouble(json['rate']),
       description: json['description']?.toString(),
       discountPercent: _nullableDouble(json['discount_percent']),
-      taxCodeId: _nullableInt(json['tax_code_id']),
+      taxCodeId:
+          _nullableInt(json['tax_code_id']) ?? _nullableInt(taxCodeJson?['id']),
       taxPercent: _nullableDouble(json['tax_percent']),
       taxType: json['tax_type']?.toString(),
       taxableAmount: _nullableDouble(json['taxable_amount']),

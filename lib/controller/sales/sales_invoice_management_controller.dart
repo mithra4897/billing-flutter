@@ -205,6 +205,10 @@ class SalesInvoiceManagementController extends GetxController {
         .where((serialNo) => allowedByLabel.containsKey(serialNo.toLowerCase()))
         .toList(growable: false);
 
+    if (existing.isNotEmpty && preserved.isEmpty) {
+      return;
+    }
+
     line.serialNumbers = List<String>.from(preserved);
     line.serialNoController.text = preserved.isEmpty ? '' : preserved.first;
 
@@ -558,11 +562,30 @@ class SalesInvoiceManagementController extends GetxController {
         line.warehouseId == null) {
       return const <Map<String, dynamic>>[];
     }
-    return availableBatchesByItemWarehouse[batchCacheKey(
+    final batches =
+        availableBatchesByItemWarehouse[batchCacheKey(
           line.itemId,
           line.warehouseId,
         )] ??
         const <Map<String, dynamic>>[];
+    final selectedBatchId = line.batchId;
+    if (selectedBatchId == null ||
+        batches.any(
+          (batch) =>
+              int.tryParse(batch['batch_id']?.toString() ?? '') ==
+              selectedBatchId,
+        )) {
+      return batches;
+    }
+    return <Map<String, dynamic>>[
+      ...batches,
+      <String, dynamic>{
+        'batch_id': selectedBatchId,
+        'batch_no': (line.batchNo ?? '').trim().isNotEmpty
+            ? line.batchNo!.trim()
+            : 'Saved batch',
+      },
+    ];
   }
 
   Future<void> syncBatchOptionsForLine(InvoiceLineDraft line) async {
@@ -581,17 +604,21 @@ class SalesInvoiceManagementController extends GetxController {
         (batch) =>
             int.tryParse(batch['batch_id']?.toString() ?? '') == line.batchId,
       );
-      if ((line.batchId != null && !hasSelectedBatch) ||
-          (line.batchId == null && cachedBatches.length == 1)) {
+      if (line.batchId == null && cachedBatches.length == 1) {
         State(() {
-          if (cachedBatches.length == 1) {
-            line.batchId = int.tryParse(
-              cachedBatches.first['batch_id']?.toString() ?? '',
-            );
-          } else {
-            line.batchId = null;
-          }
+          line.batchId = int.tryParse(
+            cachedBatches.first['batch_id']?.toString() ?? '',
+          );
+          line.batchNo = cachedBatches.first['batch_no']?.toString();
         });
+      } else if (line.batchId != null &&
+          hasSelectedBatch &&
+          line.batchNo == null) {
+        final selectedBatch = cachedBatches.firstWhere(
+          (batch) =>
+              int.tryParse(batch['batch_id']?.toString() ?? '') == line.batchId,
+        );
+        line.batchNo = selectedBatch['batch_no']?.toString();
       }
       return;
     }
@@ -629,18 +656,23 @@ class SalesInvoiceManagementController extends GetxController {
         );
         if (line.itemId == itemId &&
             line.warehouseId == warehouseId &&
-            line.batchId != null &&
-            !hasSelectedBatch) {
-          line.batchId = batches.length == 1
-              ? int.tryParse(batches.first['batch_id']?.toString() ?? '')
-              : null;
-        } else if (line.itemId == itemId &&
-            line.warehouseId == warehouseId &&
             line.batchId == null &&
             batches.length == 1) {
           line.batchId = int.tryParse(
             batches.first['batch_id']?.toString() ?? '',
           );
+          line.batchNo = batches.first['batch_no']?.toString();
+        } else if (line.itemId == itemId &&
+            line.warehouseId == warehouseId &&
+            line.batchId != null &&
+            hasSelectedBatch &&
+            line.batchNo == null) {
+          final selectedBatch = batches.firstWhere(
+            (batch) =>
+                int.tryParse(batch['batch_id']?.toString() ?? '') ==
+                line.batchId,
+          );
+          line.batchNo = selectedBatch['batch_no']?.toString();
         }
       });
     } catch (_) {
@@ -728,19 +760,16 @@ class SalesInvoiceManagementController extends GetxController {
             int.tryParse(serial['serial_id']?.toString() ?? '') ==
             line.serialId,
       );
-      if ((line.serialId != null && !hasSelectedSerial) ||
-          (line.serialId == null && cachedSerials.length == 1)) {
+      if (line.serialId == null &&
+          cachedSerials.length == 1 &&
+          lineSerialNumbers(line).isEmpty) {
         State(() {
-          if (cachedSerials.length == 1) {
-            line.serialId = int.tryParse(
-              cachedSerials.first['serial_id']?.toString() ?? '',
-            );
-            if (lineSerialNumbers(line).isEmpty) {
-              line.serialNoController.text =
-                  cachedSerials.first['serial_no']?.toString() ?? '';
-            }
-          } else {
-            line.serialId = null;
+          line.serialId = int.tryParse(
+            cachedSerials.first['serial_id']?.toString() ?? '',
+          );
+          if (lineSerialNumbers(line).isEmpty) {
+            line.serialNoController.text =
+                cachedSerials.first['serial_no']?.toString() ?? '';
           }
         });
       }
@@ -782,21 +811,6 @@ class SalesInvoiceManagementController extends GetxController {
         );
         if (line.itemId == itemId &&
             line.warehouseId == warehouseId &&
-            line.serialId != null &&
-            !hasSelectedSerial) {
-          if (serials.length == 1) {
-            line.serialId = int.tryParse(
-              serials.first['serial_id']?.toString() ?? '',
-            );
-            if (lineSerialNumbers(line).isEmpty) {
-              line.serialNoController.text =
-                  serials.first['serial_no']?.toString() ?? '';
-            }
-          } else {
-            line.serialId = null;
-          }
-        } else if (line.itemId == itemId &&
-            line.warehouseId == warehouseId &&
             line.serialId == null &&
             serials.length == 1 &&
             lineSerialNumbers(line).isEmpty) {
@@ -818,9 +832,6 @@ class SalesInvoiceManagementController extends GetxController {
             const <Map<String, dynamic>>[];
         availableSerialLookupByItemWarehouse[cacheKey] =
             const <String, Map<String, dynamic>>{};
-        if (line.itemId == itemId && line.warehouseId == warehouseId) {
-          line.serialId = null;
-        }
       });
     } finally {
       serialOptionsLoadingKeys.remove(cacheKey);
@@ -2450,6 +2461,7 @@ class InvoiceLineDraft {
     this.itemId,
     this.warehouseId,
     this.batchId,
+    this.batchNo,
     this.serialId,
     List<String>? serialNumbers,
     String? serialNo,
@@ -2475,6 +2487,7 @@ class InvoiceLineDraft {
       itemId: line.itemId,
       warehouseId: line.warehouseId,
       batchId: line.batchId,
+      batchNo: line.batchNo,
       serialId: line.serialId,
       serialNumbers: <String>[
         if ((line.serialNo ?? '').trim().isNotEmpty) line.serialNo!.trim(),
@@ -2577,6 +2590,7 @@ class InvoiceLineDraft {
   int? itemId;
   int? warehouseId;
   int? batchId;
+  String? batchNo;
   int? serialId;
   List<String> serialNumbers;
   int? uomId;

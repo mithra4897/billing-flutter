@@ -398,7 +398,7 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
                         const SizedBox(height: AppUiConstants.spacingXs),
                     itemBuilder: (context, index) => widget.itemBuilder(
                       visibleItems[index],
-                      identical(visibleItems[index], widget.selectedItem),
+                      visibleItems[index] == widget.selectedItem,
                     ),
                   ),
                 ),
