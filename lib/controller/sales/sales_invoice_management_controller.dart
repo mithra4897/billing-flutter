@@ -78,6 +78,7 @@ class SalesInvoiceManagementController extends GetxController {
   int? salesOrderId;
   int? salesDeliveryId;
   SalesInvoiceModel? selectedItem;
+  SalesInvoiceModel? pendingSelection;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -1742,6 +1743,20 @@ class SalesInvoiceManagementController extends GetxController {
         items =
             (responses[0] as PaginatedResponse<SalesInvoiceModel>).data ??
             const <SalesInvoiceModel>[];
+        final pending = pendingSelection;
+        if (pending != null && pending.id != null) {
+          final pendingId = pending.id!;
+          final existingIndex = items.indexWhere(
+            (item) => item.id == pendingId,
+          );
+          if (existingIndex >= 0) {
+            final nextItems = List<SalesInvoiceModel>.from(items);
+            nextItems[existingIndex] = pending;
+            items = nextItems;
+          } else {
+            items = <SalesInvoiceModel>[pending, ...items];
+          }
+        }
         companies =
             (responses[1] as PaginatedResponse<CompanyModel>).data ??
             const <CompanyModel>[];
@@ -1778,7 +1793,17 @@ class SalesInvoiceManagementController extends GetxController {
       final selected = selectId != null
           ? items.cast<SalesInvoiceModel?>().firstWhere(
               (item) => item?.id == selectId,
-              orElse: () => null,
+              orElse: () {
+                final pending = pendingSelection;
+                if (pending?.id == selectId) {
+                  return pending;
+                }
+                final current = selectedItem;
+                if (current?.id == selectId) {
+                  return current;
+                }
+                return null;
+              },
             )
           : (editorOnly
                 ? null
@@ -1787,6 +1812,7 @@ class SalesInvoiceManagementController extends GetxController {
                       : null));
 
       if (selected != null) {
+        pendingSelection = null;
         await selectDocument(selected);
       } else {
         resetForm();
@@ -2370,6 +2396,19 @@ class SalesInvoiceManagementController extends GetxController {
       final response = selectedItem == null
           ? await salesService.createInvoice(invoice)
           : await salesService.updateInvoice(selectedItem!.id!, invoice);
+      final saved = response.data;
+      if (saved != null) {
+        pendingSelection = saved;
+        final existingIndex = items.indexWhere((item) => item.id == saved.id);
+        if (existingIndex >= 0) {
+          final nextItems = List<SalesInvoiceModel>.from(items);
+          nextItems[existingIndex] = saved;
+          items = nextItems;
+        } else {
+          items = <SalesInvoiceModel>[saved, ...items];
+        }
+        applyFilters();
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -2394,6 +2433,19 @@ class SalesInvoiceManagementController extends GetxController {
   ) async {
     try {
       final response = await action();
+      final saved = response.data;
+      if (saved != null) {
+        pendingSelection = saved;
+        final existingIndex = items.indexWhere((item) => item.id == saved.id);
+        if (existingIndex >= 0) {
+          final nextItems = List<SalesInvoiceModel>.from(items);
+          nextItems[existingIndex] = saved;
+          items = nextItems;
+        } else {
+          items = <SalesInvoiceModel>[saved, ...items];
+        }
+        applyFilters();
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
