@@ -19,7 +19,13 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('ItemManagementController');
+    _controllerTag = persistentControllerTag(
+      'ItemManagementController',
+      scope: <String, Object?>{
+        'identity': identityHashCode(this),
+        'embedded': widget.embedded,
+      },
+    );
     _controller = Get.put(ItemManagementController(), tag: _controllerTag);
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
@@ -32,6 +38,9 @@ class _ItemManagementPageState extends State<ItemManagementPage>
   @override
   void dispose() {
     _tabController.dispose();
+    if (Get.isRegistered<ItemManagementController>(tag: _controllerTag)) {
+      Get.delete<ItemManagementController>(tag: _controllerTag, force: true);
+    }
     super.dispose();
   }
 
@@ -189,9 +198,8 @@ class _ItemManagementPageState extends State<ItemManagementPage>
                   labelText: 'Category',
                   suffixIcon: IconButton(
                     tooltip: 'Add Category',
-                    onPressed: () => controller.showCreateCategoryDialog(
-                      context,
-                    ),
+                    onPressed: () =>
+                        controller.showCreateCategoryDialog(context),
                     icon: const Icon(Icons.add_circle_outline),
                   ),
                 ),
@@ -288,9 +296,8 @@ class _ItemManagementPageState extends State<ItemManagementPage>
                   labelText: 'Tax Code',
                   suffixIcon: IconButton(
                     tooltip: 'Add Tax Code',
-                    onPressed: () => controller.showCreateTaxCodeDialog(
-                      context,
-                    ),
+                    onPressed: () =>
+                        controller.showCreateTaxCodeDialog(context),
                     icon: const Icon(Icons.add_circle_outline),
                   ),
                 ),
