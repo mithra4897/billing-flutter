@@ -1,4 +1,5 @@
-import '../../screen.dart';
+import '../common/json_model.dart';
+import 'opening_stock_item_model.dart';
 
 class OpeningStockModel extends JsonModel {
   const OpeningStockModel({
@@ -20,6 +21,7 @@ class OpeningStockModel extends JsonModel {
     this.postedAt,
     this.createdAt,
     this.updatedAt,
+    this.items,
   });
   final int? companyId;
   final int? branchId;
@@ -38,6 +40,7 @@ class OpeningStockModel extends JsonModel {
   final String? postedAt;
   final String? createdAt;
   final String? updatedAt;
+  final List<OpeningStockItemModel>? items;
 
   factory OpeningStockModel.fromJson(Map<String, dynamic> json) {
     return OpeningStockModel(
@@ -61,6 +64,10 @@ class OpeningStockModel extends JsonModel {
       postedAt: json['posted_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      items: (json['items'] as List<dynamic>?)
+          ?.whereType<Map<String, dynamic>>()
+          .map(OpeningStockItemModel.fromJson)
+          .toList(growable: false),
     );
   }
   @override
@@ -91,5 +98,7 @@ class OpeningStockModel extends JsonModel {
     if (postedAt != null) 'posted_at': postedAt,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (items != null)
+      'items': items!.map((item) => item.toJson()).toList(growable: false),
   };
 }
