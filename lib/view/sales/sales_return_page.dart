@@ -322,6 +322,18 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                             controller: line.uomNameController,
                             readOnly: true,
                           ),
+                          if (controller.isBatchManagedItem(line.itemId))
+                            AppFormTextField(
+                              labelText: 'Batch',
+                              controller: line.batchNoController,
+                              readOnly: true,
+                            ),
+                          if (controller.isSerialManagedItem(line.itemId))
+                            AppFormTextField(
+                              labelText: 'Serial Number',
+                              controller: line.serialNoController,
+                              readOnly: true,
+                            ),
                           AppFormTextField(
                             labelText: 'Return Qty',
                             controller: line.returnQtyController,

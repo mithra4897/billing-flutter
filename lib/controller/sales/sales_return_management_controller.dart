@@ -3,6 +3,8 @@ import '../../screen.dart';
 class SalesReturnLineDraft {
   SalesReturnLineDraft({
     this.salesInvoiceLineId,
+    this.batchId,
+    this.serialId,
     this.taxCodeId,
     this.taxPercent,
     this.taxType,
@@ -10,6 +12,8 @@ class SalesReturnLineDraft {
     String? itemName,
     String? warehouseName,
     String? uomName,
+    String? batchNo,
+    String? serialNo,
     String? returnQty,
     String? rate,
     String? remarks,
@@ -18,6 +22,8 @@ class SalesReturnLineDraft {
          text: warehouseName ?? '',
        ),
        uomNameController = TextEditingController(text: uomName ?? ''),
+       batchNoController = TextEditingController(text: batchNo ?? ''),
+       serialNoController = TextEditingController(text: serialNo ?? ''),
        returnQtyController = TextEditingController(text: returnQty ?? ''),
        rateController = TextEditingController(text: rate ?? ''),
        remarksController = TextEditingController(text: remarks ?? '');
@@ -31,6 +37,17 @@ class SalesReturnLineDraft {
   }
 
   factory SalesReturnLineDraft.fromJson(Map<String, dynamic> json) {
+    final batchJson = json['batch'] is Map<String, dynamic>
+        ? json['batch'] as Map<String, dynamic>
+        : null;
+    final serialJson = json['serial'] is Map<String, dynamic>
+        ? json['serial'] as Map<String, dynamic>
+        : null;
+    final invoiceLineJson = json['sales_invoice_line'] is Map<String, dynamic>
+        ? json['sales_invoice_line'] as Map<String, dynamic>
+        : (json['salesInvoiceLine'] is Map<String, dynamic>
+              ? json['salesInvoiceLine'] as Map<String, dynamic>
+              : null);
     final draft = SalesReturnLineDraft(
       salesInvoiceLineId: intValue(json, 'sales_invoice_line_id'),
       taxCodeId: intValue(json, 'tax_code_id'),
@@ -46,6 +63,39 @@ class SalesReturnLineDraft {
     draft.itemId = intValue(json, 'item_id');
     draft.warehouseId = intValue(json, 'warehouse_id');
     draft.uomId = intValue(json, 'uom_id');
+    draft.batchId =
+        intValue(json, 'batch_id') ??
+        intValue(batchJson ?? const <String, dynamic>{}, 'id') ??
+        intValue(invoiceLineJson ?? const <String, dynamic>{}, 'batch_id');
+    draft.serialId =
+        intValue(json, 'serial_id') ??
+        intValue(serialJson ?? const <String, dynamic>{}, 'id') ??
+        intValue(invoiceLineJson ?? const <String, dynamic>{}, 'serial_id');
+    draft.batchNoController.text = stringValue(json, 'batch_no').isNotEmpty
+        ? stringValue(json, 'batch_no')
+        : (stringValue(
+                batchJson ?? const <String, dynamic>{},
+                'batch_no',
+              ).isNotEmpty
+              ? stringValue(batchJson ?? const <String, dynamic>{}, 'batch_no')
+              : stringValue(
+                  invoiceLineJson ?? const <String, dynamic>{},
+                  'batch_no',
+                ));
+    draft.serialNoController.text = stringValue(json, 'serial_no').isNotEmpty
+        ? stringValue(json, 'serial_no')
+        : (stringValue(
+                serialJson ?? const <String, dynamic>{},
+                'serial_no',
+              ).isNotEmpty
+              ? stringValue(
+                  serialJson ?? const <String, dynamic>{},
+                  'serial_no',
+                )
+              : stringValue(
+                  invoiceLineJson ?? const <String, dynamic>{},
+                  'serial_no',
+                ));
     return draft;
   }
 
@@ -53,6 +103,8 @@ class SalesReturnLineDraft {
   int? itemId;
   int? warehouseId;
   int? uomId;
+  int? batchId;
+  int? serialId;
   int? taxCodeId;
   double? taxPercent;
   String? taxType;
@@ -60,6 +112,8 @@ class SalesReturnLineDraft {
   final TextEditingController itemNameController;
   final TextEditingController warehouseNameController;
   final TextEditingController uomNameController;
+  final TextEditingController batchNoController;
+  final TextEditingController serialNoController;
   final TextEditingController returnQtyController;
   final TextEditingController rateController;
   final TextEditingController remarksController;
@@ -69,6 +123,8 @@ class SalesReturnLineDraft {
     itemId = line?.itemId;
     warehouseId = line?.warehouseId;
     uomId = line?.uomId;
+    batchId = line?.batchId;
+    serialId = line?.serialId;
     taxCodeId = line?.taxCodeId;
     taxPercent = line?.taxPercent;
     taxType = line?.taxType;
@@ -76,6 +132,8 @@ class SalesReturnLineDraft {
     itemNameController.text = '';
     warehouseNameController.text = '';
     uomNameController.text = '';
+    batchNoController.text = line?.batchNo ?? '';
+    serialNoController.text = line?.serialNo ?? '';
     if (line != null) {
       rateController.text = line.rate.toString();
     }
@@ -87,6 +145,12 @@ class SalesReturnLineDraft {
       'item_id': itemId,
       if (warehouseId != null) 'warehouse_id': warehouseId,
       'uom_id': uomId,
+      if (batchId != null) 'batch_id': batchId,
+      if (serialId != null) 'serial_id': serialId,
+      if (batchNoController.text.trim().isNotEmpty)
+        'batch_no': batchNoController.text.trim(),
+      if (serialNoController.text.trim().isNotEmpty)
+        'serial_no': serialNoController.text.trim(),
       if (taxCodeId != null) 'tax_code_id': taxCodeId,
       if (discountPercent != null) 'discount_percent': discountPercent,
       if (taxPercent != null) 'tax_percent': taxPercent,
@@ -100,6 +164,8 @@ class SalesReturnLineDraft {
     itemNameController.dispose();
     warehouseNameController.dispose();
     uomNameController.dispose();
+    batchNoController.dispose();
+    serialNoController.dispose();
     returnQtyController.dispose();
     rateController.dispose();
     remarksController.dispose();
@@ -476,6 +542,20 @@ class SalesReturnManagementController extends GetxController {
     return line.invoicedQty > returnedQty;
   }
 
+  ItemModel? itemById(int? id) {
+    if (id == null) {
+      return null;
+    }
+    return itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == id,
+      orElse: () => null,
+    );
+  }
+
+  bool isBatchManagedItem(int? itemId) => itemById(itemId)?.hasBatch == true;
+
+  bool isSerialManagedItem(int? itemId) => itemById(itemId)?.hasSerial == true;
+
   String itemName(int? id) {
     if (id == null) {
       return '';
@@ -539,6 +619,22 @@ class SalesReturnManagementController extends GetxController {
       line.itemNameController.text = itemName(line.itemId);
       line.warehouseNameController.text = warehouseName(line.warehouseId);
       line.uomNameController.text = uomName(line.uomId);
+      final sourceLine = invoiceLines.cast<SalesInvoiceLineModel?>().firstWhere(
+        (entry) => entry?.id == line.salesInvoiceLineId,
+        orElse: () => null,
+      );
+      if (line.batchId == null) {
+        line.batchId = sourceLine?.batchId;
+      }
+      if (line.serialId == null) {
+        line.serialId = sourceLine?.serialId;
+      }
+      if (line.batchNoController.text.trim().isEmpty) {
+        line.batchNoController.text = sourceLine?.batchNo ?? '';
+      }
+      if (line.serialNoController.text.trim().isEmpty) {
+        line.serialNoController.text = sourceLine?.serialNo ?? '';
+      }
     }
   }
 
