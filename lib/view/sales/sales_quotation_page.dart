@@ -8,12 +8,14 @@ class SalesQuotationPage extends StatefulWidget {
     this.editorOnly = false,
     this.initialId,
     this.initialCrmOpportunityId,
+    this.queryParameters = const <String, String>{},
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
   final int? initialCrmOpportunityId;
+  final Map<String, String> queryParameters;
 
   @override
   State<SalesQuotationPage> createState() => _SalesQuotationPageState();
@@ -44,7 +46,30 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           editorOnly: widget.editorOnly,
         ),
       );
+      _applyDashboardFilters(_controller);
     });
+  }
+
+  void _applyDashboardFilters(SalesQuotationManagementController controller) {
+    controller.applyDashboardFilter(
+      (widget.queryParameters['dashboard_filter'] ?? '').trim(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant SalesQuotationPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !Get.isRegistered<SalesQuotationManagementController>(
+              tag: _controllerTag,
+            )) {
+          return;
+        }
+        _applyDashboardFilters(_controller);
+      });
+    }
   }
 
   @override

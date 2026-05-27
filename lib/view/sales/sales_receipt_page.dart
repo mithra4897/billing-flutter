@@ -8,6 +8,7 @@ class SalesReceiptPage extends StatefulWidget {
     this.editorOnly = false,
     this.initialId,
     this.initialSalesInvoiceId,
+    this.queryParameters = const <String, String>{},
   });
 
   final bool embedded;
@@ -15,6 +16,7 @@ class SalesReceiptPage extends StatefulWidget {
   final int? initialId;
 
   final int? initialSalesInvoiceId;
+  final Map<String, String> queryParameters;
 
   @override
   State<SalesReceiptPage> createState() => _SalesReceiptPageState();

@@ -82,7 +82,8 @@ bool _crmIsBoardFollowupDueToday(
   Map<String, dynamic> row,
   DateTime currentDate,
 ) {
-  return _crmBoardFollowupBucket(row, currentDate) == CrmFollowupTimingBucket.today;
+  return _crmBoardFollowupBucket(row, currentDate) ==
+      CrmFollowupTimingBucket.today;
 }
 
 bool _crmIsBoardFollowupOverdue(
@@ -178,13 +179,15 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
   final followupItems = followupBoardRows
       .map(CrmPendingFollowupItem.fromJson)
       .where(
-        (item) => _crmMatchesTrendFilter(item, activeFilter, today: currentDate),
+        (item) =>
+            _crmMatchesTrendFilter(item, activeFilter, today: currentDate),
       )
       .toList(growable: false);
   final completedCount = completedFollowupRows
       .map(CrmPendingFollowupItem.fromJson)
       .where(
-        (item) => _crmMatchesTrendFilter(item, activeFilter, today: currentDate),
+        (item) =>
+            _crmMatchesTrendFilter(item, activeFilter, today: currentDate),
       )
       .length;
 
@@ -193,13 +196,25 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
     today: currentDate,
   );
   final pendingTodayCount = pendingItems
-      .where((item) => crmFollowupBucket(item, today: currentDate) == CrmFollowupTimingBucket.today)
+      .where(
+        (item) =>
+            crmFollowupBucket(item, today: currentDate) ==
+            CrmFollowupTimingBucket.today,
+      )
       .length;
   final pendingOverdueCount = pendingItems
-      .where((item) => crmFollowupBucket(item, today: currentDate) == CrmFollowupTimingBucket.overdue)
+      .where(
+        (item) =>
+            crmFollowupBucket(item, today: currentDate) ==
+            CrmFollowupTimingBucket.overdue,
+      )
       .length;
   final pendingUpcomingCount = pendingItems
-      .where((item) => crmFollowupBucket(item, today: currentDate) == CrmFollowupTimingBucket.upcoming)
+      .where(
+        (item) =>
+            crmFollowupBucket(item, today: currentDate) ==
+            CrmFollowupTimingBucket.upcoming,
+      )
       .length;
 
   final todayCount = followupBoardRows
@@ -282,54 +297,51 @@ Future<ErpDashboardSnapshot> buildCrmDashboardSnapshot({
         icon: Icons.task_alt_outlined,
         items: pendingItems
             .take(6)
-            .map(
-              (item) {
-                final opportunityName = (item.opportunityName ?? '').trim();
-                final customerName = (item.customerName ?? '').trim();
-                final leadName = (item.leadName ?? '').trim();
-                final title = customerName.isNotEmpty
-                    ? customerName
-                    : opportunityName.isNotEmpty
-                    ? opportunityName
-                    : (item.subjectName.trim().isNotEmpty &&
-                          item.subjectName.trim().toLowerCase() !=
-                              'pending followup')
-                    ? item.subjectName.trim()
-                    : item.id != null
-                    ? 'Follow-up #${item.id}'
-                    : 'CRM Follow-up';
-                final subtitleParts = <String>[
-                  if ((item.enquiryNo ?? '').trim().isNotEmpty) item.enquiryNo!,
-                  item.followupDateLabel.isEmpty
-                      ? 'No follow-up date'
-                      : 'Due ${item.followupDateLabel}',
-                  'Priority ${crmPriorityLabel(item.priority)}',
-                  if ((item.assignedUserName ?? '').trim().isNotEmpty)
-                    'Assigned ${item.assignedUserName!}',
-                ];
-                final detailParts = <String>[
-                  if (opportunityName.isNotEmpty &&
-                      opportunityName.toLowerCase() !=
-                          customerName.toLowerCase())
-                    opportunityName,
-                  if (leadName.isNotEmpty) 'Lead $leadName',
-                  if (_crmHasValue(item.expectedValue))
-                    'Expected ${_crmFormatExpectedValue(item.expectedValue!)}',
-                  if ((item.summary ?? '').trim().isNotEmpty) item.summary!,
-                ];
+            .map((item) {
+              final opportunityName = (item.opportunityName ?? '').trim();
+              final customerName = (item.customerName ?? '').trim();
+              final leadName = (item.leadName ?? '').trim();
+              final title = customerName.isNotEmpty
+                  ? customerName
+                  : opportunityName.isNotEmpty
+                  ? opportunityName
+                  : (item.subjectName.trim().isNotEmpty &&
+                        item.subjectName.trim().toLowerCase() !=
+                            'pending followup')
+                  ? item.subjectName.trim()
+                  : item.id != null
+                  ? 'Follow-up #${item.id}'
+                  : 'CRM Follow-up';
+              final subtitleParts = <String>[
+                if ((item.enquiryNo ?? '').trim().isNotEmpty) item.enquiryNo!,
+                item.followupDateLabel.isEmpty
+                    ? 'No follow-up date'
+                    : 'Due ${item.followupDateLabel}',
+                'Priority ${crmPriorityLabel(item.priority)}',
+                if ((item.assignedUserName ?? '').trim().isNotEmpty)
+                  'Assigned ${item.assignedUserName!}',
+              ];
+              final detailParts = <String>[
+                if (opportunityName.isNotEmpty &&
+                    opportunityName.toLowerCase() != customerName.toLowerCase())
+                  opportunityName,
+                if (leadName.isNotEmpty) 'Lead $leadName',
+                if (_crmHasValue(item.expectedValue))
+                  'Expected ${_crmFormatExpectedValue(item.expectedValue!)}',
+                if ((item.summary ?? '').trim().isNotEmpty) item.summary!,
+              ];
 
-                return ErpDashboardListItem(
-                  title: title,
-                  subtitle: subtitleParts.join(' • '),
-                  detail: detailParts.isEmpty ? null : detailParts.join(' • '),
-                  statusLabel: item.status.toUpperCase(),
-                  statusColor: crmPriorityColor(item.priority),
-                  route: item.enquiryId == null
-                      ? '/crm/opportunities'
-                      : '/crm/opportunities/${item.enquiryId}',
-                );
-              },
-            )
+              return ErpDashboardListItem(
+                title: title,
+                subtitle: subtitleParts.join(' • '),
+                detail: detailParts.isEmpty ? null : detailParts.join(' • '),
+                statusLabel: item.status.toUpperCase(),
+                statusColor: crmPriorityColor(item.priority),
+                route: item.enquiryId == null
+                    ? '/crm/opportunities'
+                    : '/crm/opportunities/${item.enquiryId}',
+              );
+            })
             .toList(growable: false),
         emptyTitle: 'No pending CRM follow-ups',
         emptyMessage:
@@ -971,15 +983,34 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
           (item) => !_isClosedStatus(item, const ['order_status', 'status']),
         )
         .length;
-    final dueToday = orderJsonRows
-        .where((item) => _isToday(item, const ['order_date', 'delivery_date']))
-        .length;
-    final openFollowUps = quotationJsonRows
-        .where(
-          (item) =>
-              !_isClosedStatus(item, const ['quotation_status', 'status']),
-        )
-        .length;
+    final openQuotations = quotationJsonRows.where((item) {
+      final status = _statusLabel(item, const [
+        'quotation_status',
+        'status',
+      ]).trim().toLowerCase();
+      return status.isNotEmpty &&
+          !<String>{
+            'accepted',
+            'rejected',
+            'expired',
+            'cancelled',
+          }.contains(status);
+    }).length;
+    final openInvoices = invoiceJsonRows.where((item) {
+      final status = _statusLabel(item, const [
+        'invoice_status',
+        'status',
+      ]).trim().toLowerCase();
+      return status.isNotEmpty &&
+          !<String>{'paid', 'cancelled'}.contains(status);
+    }).length;
+    final postedReceipts = receiptJsonRows.where((item) {
+      final status = _statusLabel(item, const [
+        'receipt_status',
+        'status',
+      ]).trim().toLowerCase();
+      return status == 'posted';
+    }).length;
 
     return ErpDashboardSnapshot(
       title: 'Sales Dashboard',
@@ -998,31 +1029,35 @@ Future<ErpDashboardSnapshot> _loadSalesDashboard({
       ],
       stats: <ErpDashboardStat>[
         ErpDashboardStat(
-          label: 'Total Orders',
-          value: _formatInt(_totalFromPaginated(orders)),
-          helper: 'Live order volume',
-          icon: Icons.shopping_bag_outlined,
+          label: 'Open Quotations',
+          value: _formatInt(openQuotations),
+          helper: 'Active sales pipeline documents',
+          icon: Icons.request_quote_outlined,
+          route: '/sales/quotations?dashboard_filter=open',
         ),
         ErpDashboardStat(
           label: 'Pending Orders',
           value: _formatInt(pendingOrders),
-          helper: 'Status-driven live count',
+          helper: 'Orders still to be fulfilled',
           icon: Icons.pending_actions_outlined,
           color: const Color(0xFFE67E22),
+          route: '/sales/orders?dashboard_filter=pending',
         ),
         ErpDashboardStat(
-          label: 'Due Today',
-          value: _formatInt(dueToday),
-          helper: 'Document dates falling today',
-          icon: Icons.today_outlined,
+          label: 'Open Invoices',
+          value: _formatInt(openInvoices),
+          helper: 'Invoices awaiting full payment',
+          icon: Icons.receipt_long_outlined,
           color: const Color(0xFFDA4D78),
+          route: '/sales/invoices?dashboard_filter=open',
         ),
         ErpDashboardStat(
-          label: 'Open Follow-ups',
-          value: _formatInt(openFollowUps),
-          helper: 'Open quotations used as pipeline proxy',
-          icon: Icons.forum_outlined,
+          label: 'Posted Receipts',
+          value: _formatInt(postedReceipts),
+          helper: 'Customer collections recorded',
+          icon: Icons.payments_outlined,
           color: const Color(0xFF19A7B8),
+          route: '/sales/receipts?dashboard_filter=posted',
         ),
       ],
       primarySections: <ErpDashboardListSection>[
@@ -3188,7 +3223,9 @@ String _crmFormatExpectedValue(double value) {
   }
 
   final formattedWhole = buffer.toString();
-  final decimalPart = parts.length > 1 && parts[1].isNotEmpty ? '.${parts[1]}' : '';
+  final decimalPart = parts.length > 1 && parts[1].isNotEmpty
+      ? '.${parts[1]}'
+      : '';
   final prefix = value < 0 ? '-Rs ' : 'Rs ';
   return '$prefix$formattedWhole$decimalPart';
 }

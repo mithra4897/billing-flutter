@@ -7,11 +7,13 @@ class SalesDeliveryPage extends StatefulWidget {
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
+    this.queryParameters = const <String, String>{},
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+  final Map<String, String> queryParameters;
 
   @override
   State<SalesDeliveryPage> createState() => _SalesDeliveryPageState();

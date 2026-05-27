@@ -107,6 +107,7 @@ class SalesQuotationManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  String dashboardFilter = '';
   List<SalesQuotationModel> items = const <SalesQuotationModel>[];
   List<SalesQuotationModel> filteredItems = const <SalesQuotationModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
@@ -569,10 +570,37 @@ class SalesQuotationManagementController extends GetxController {
           quotationCustomerLabel(data),
         ];
       },
-    );
+    ).where(_matchesDashboardFilter).toList(growable: false);
     if (notify) {
       update();
     }
+  }
+
+  bool _matchesDashboardFilter(SalesQuotationModel item) {
+    switch (dashboardFilter.trim()) {
+      case 'open':
+        final status = stringValue(
+          item.toJson(),
+          'quotation_status',
+        ).trim().toLowerCase();
+        return !<String>{
+          'accepted',
+          'rejected',
+          'expired',
+          'cancelled',
+        }.contains(status);
+      default:
+        return true;
+    }
+  }
+
+  void applyDashboardFilter(String value) {
+    dashboardFilter = value.trim();
+    if (dashboardFilter == 'open') {
+      statusFilter = '';
+    }
+    searchController.clear();
+    _applyFilters();
   }
 
   void setStatusFilter(String value) {

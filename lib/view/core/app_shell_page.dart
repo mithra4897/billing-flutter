@@ -73,24 +73,27 @@ class _AppShellPageState extends State<AppShellPage> {
           child: ShellRouteScope(
             onNavigate: controller.handleNavigate,
             child: AdaptiveShell(
-              title: _titleForPath(controller.currentPath, controller.authContext),
+              title: _titleForPath(
+                controller.currentPath,
+                controller.authContext,
+              ),
               branding: controller.branding,
               currentPath: _buildCurrentRoute(controller),
               actionsListenable: controller.shellPageActionsController,
               onNavigate: controller.handleNavigate,
-                child: Align(
-                  alignment: AlignmentGeometry.topCenter,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 140),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeOut,
-                    layoutBuilder: (currentChild, previousChildren) {
-                      return currentChild ?? const SizedBox.shrink();
-                    },
-                    child: _buildContent(controller),
-                  ),
+              child: Align(
+                alignment: AlignmentGeometry.topCenter,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 140),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeOut,
+                  layoutBuilder: (currentChild, previousChildren) {
+                    return currentChild ?? const SizedBox.shrink();
+                  },
+                  child: _buildContent(controller),
                 ),
               ),
+            ),
           ),
         );
       },
@@ -489,15 +492,31 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/hr/payslips':
         return PayslipRegisterPage(key: routeKey, embedded: true);
       case '/sales/quotations':
-        return SalesQuotationRegisterPage(key: routeKey, embedded: true);
+        return SalesQuotationRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/sales/orders':
-        return SalesOrderRegisterPage(key: routeKey, embedded: true);
+        return SalesOrderRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/sales/invoices':
-        return SalesInvoiceRegisterPage(key: routeKey, embedded: true);
+        return SalesInvoiceRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/sales/deliveries':
         return SalesDeliveryRegisterPage(key: routeKey, embedded: true);
       case '/sales/receipts':
-        return SalesReceiptRegisterPage(key: routeKey, embedded: true);
+        return SalesReceiptRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/sales/returns':
         return SalesReturnRegisterPage(key: routeKey, embedded: true);
       case '/purchase/requisitions':
@@ -682,6 +701,7 @@ class _AppShellPageState extends State<AppShellPage> {
           initialCrmOpportunityId: int.tryParse(
             _currentQueryParameters['crm_opportunity_id'] ?? '',
           ),
+          queryParameters: _currentQueryParameters,
         );
       case 'orders':
         return SalesOrderPage(
@@ -692,6 +712,7 @@ class _AppShellPageState extends State<AppShellPage> {
           initialQuotationId: int.tryParse(
             _currentQueryParameters['quotation_id'] ?? '',
           ),
+          queryParameters: _currentQueryParameters,
         );
       case 'invoices':
         return SalesInvoicePage(
@@ -705,6 +726,7 @@ class _AppShellPageState extends State<AppShellPage> {
           initialOrderId: int.tryParse(
             _currentQueryParameters['order_id'] ?? '',
           ),
+          queryParameters: _currentQueryParameters,
         );
       case 'deliveries':
         return SalesDeliveryPage(
@@ -712,6 +734,7 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           editorOnly: true,
           initialId: id,
+          queryParameters: _currentQueryParameters,
         );
       case 'receipts':
         return SalesReceiptPage(
@@ -722,6 +745,7 @@ class _AppShellPageState extends State<AppShellPage> {
           initialSalesInvoiceId: int.tryParse(
             _currentQueryParameters['invoice_id'] ?? '',
           ),
+          queryParameters: _currentQueryParameters,
         );
       case 'returns':
         return SalesReturnPage(
@@ -729,6 +753,7 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           editorOnly: true,
           initialId: id,
+          queryParameters: _currentQueryParameters,
         );
     }
     return null;

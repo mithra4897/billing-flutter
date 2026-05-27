@@ -3,6 +3,8 @@ import '../../screen.dart';
 typedef SalesRegisterLoader<T> = Future<dynamic> Function(SalesService service);
 typedef SalesRegisterMatcher<T> =
     bool Function(T row, String query, String status);
+typedef SalesRegisterDashboardMatcher<T> =
+    bool Function(T row, String dashboardFilter);
 
 void _openSalesShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -22,22 +24,32 @@ String _salesCustomerName(Map<String, dynamic> data) {
 }
 
 class SalesRegisterController<T> extends GetxController {
-  SalesRegisterController({required this.loader, required this.matches});
+  SalesRegisterController({
+    required this.loader,
+    required this.matches,
+    required this.dashboardMatches,
+  });
 
   final SalesRegisterLoader<T> loader;
   final SalesRegisterMatcher<T> matches;
+  final SalesRegisterDashboardMatcher<T> dashboardMatches;
   final SalesService _service = SalesService();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   String status = '';
+  String dashboardFilter = '';
   List<T> rows = <T>[];
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
     return rows
-        .where((row) => matches(row, query, status))
+        .where(
+          (row) =>
+              matches(row, query, status) &&
+              dashboardMatches(row, dashboardFilter),
+        )
         .toList(growable: false);
   }
 
@@ -58,6 +70,13 @@ class SalesRegisterController<T> extends GetxController {
 
   void setStatus(String value) {
     status = value;
+    update();
+  }
+
+  void applyDashboardFilter(String value, {String statusOverride = ''}) {
+    dashboardFilter = value.trim();
+    status = statusOverride;
+    searchController.clear();
     update();
   }
 
@@ -90,6 +109,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.embedded,
     required this.loader,
     required this.matches,
+    required this.dashboardMatches,
     required this.emptyMessage,
     required this.newRoute,
     required this.newLabel,
@@ -97,6 +117,8 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.statusItems,
     required this.columns,
     required this.rowRoute,
+    this.queryParameters = const <String, String>{},
+    this.dashboardStatusForFilter,
   });
 
   final String controllerName;
@@ -104,6 +126,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   final bool embedded;
   final SalesRegisterLoader<T> loader;
   final SalesRegisterMatcher<T> matches;
+  final SalesRegisterDashboardMatcher<T> dashboardMatches;
   final String emptyMessage;
   final String newRoute;
   final String newLabel;
@@ -111,6 +134,8 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   final List<AppDropdownItem<String>> statusItems;
   final List<PurchaseRegisterColumn<T>> columns;
   final String Function(T row) rowRoute;
+  final Map<String, String> queryParameters;
+  final String Function(String dashboardFilter)? dashboardStatusForFilter;
 
   @override
   State<_SalesRegisterShell<T>> createState() => _SalesRegisterShellState<T>();
@@ -118,6 +143,19 @@ class _SalesRegisterShell<T> extends StatefulWidget {
 
 class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
   late final String _controllerTag;
+
+  String _dashboardFilterValue() =>
+      (widget.queryParameters['dashboard_filter'] ?? '').trim();
+
+  void _applyDashboardFilter(SalesRegisterController<T> controller) {
+    final dashboardFilter = _dashboardFilterValue();
+    final statusOverride =
+        widget.dashboardStatusForFilter?.call(dashboardFilter) ?? '';
+    controller.applyDashboardFilter(
+      dashboardFilter,
+      statusOverride: statusOverride,
+    );
+  }
 
   @override
   void initState() {
@@ -128,9 +166,37 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
         SalesRegisterController<T>(
           loader: widget.loader,
           matches: widget.matches,
+          dashboardMatches: widget.dashboardMatches,
         ),
         tag: _controllerTag,
       );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !Get.isRegistered<SalesRegisterController<T>>(tag: _controllerTag)) {
+        return;
+      }
+      _applyDashboardFilter(
+        Get.find<SalesRegisterController<T>>(tag: _controllerTag),
+      );
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _SalesRegisterShell<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !Get.isRegistered<SalesRegisterController<T>>(
+              tag: _controllerTag,
+            )) {
+          return;
+        }
+        _applyDashboardFilter(
+          Get.find<SalesRegisterController<T>>(tag: _controllerTag),
+        );
+      });
     }
   }
 
@@ -171,9 +237,14 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
 }
 
 class SalesQuotationRegisterPage extends StatelessWidget {
-  const SalesQuotationRegisterPage({super.key, this.embedded = false});
+  const SalesQuotationRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
@@ -192,6 +263,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
       controllerName: 'SalesQuotationRegisterController',
       title: 'Quotations',
       embedded: embedded,
+      queryParameters: queryParameters,
       loader: (service) => service.quotations(
         filters: const {'per_page': 200, 'sort_by': 'quotation_date'},
       ),
@@ -206,11 +278,36 @@ class SalesQuotationRegisterPage extends StatelessWidget {
         return (status.isEmpty || rowStatus == status) &&
             (query.isEmpty || searchText.contains(query));
       },
+      dashboardMatches: (row, dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'open':
+            final status = stringValue(
+              row.toJson(),
+              'quotation_status',
+            ).trim().toLowerCase();
+            return !<String>{
+              'accepted',
+              'rejected',
+              'expired',
+              'cancelled',
+            }.contains(status);
+          default:
+            return true;
+        }
+      },
       emptyMessage: 'No quotations yet. Create a quote for your customer.',
       newRoute: '/sales/quotations/new',
       newLabel: 'New quotation',
       searchHint: 'Search number or customer',
       statusItems: _statusItems,
+      dashboardStatusForFilter: (dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'open':
+            return '';
+          default:
+            return '';
+        }
+      },
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -246,9 +343,14 @@ class SalesQuotationRegisterPage extends StatelessWidget {
 }
 
 class SalesOrderRegisterPage extends StatelessWidget {
-  const SalesOrderRegisterPage({super.key, this.embedded = false});
+  const SalesOrderRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
@@ -268,6 +370,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
       controllerName: 'SalesOrderRegisterController',
       title: 'Orders',
       embedded: embedded,
+      queryParameters: queryParameters,
       loader: (service) => service.orders(
         filters: const {'per_page': 200, 'sort_by': 'order_date'},
       ),
@@ -282,12 +385,53 @@ class SalesOrderRegisterPage extends StatelessWidget {
         return (status.isEmpty || rowStatus == status) &&
             (query.isEmpty || searchText.contains(query));
       },
+      dashboardMatches: (row, dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'pending':
+            final status = stringValue(
+              row.toJson(),
+              'order_status',
+            ).trim().toLowerCase();
+            return status.isNotEmpty &&
+                !<String>{
+                  'fully_delivered',
+                  'fully_invoiced',
+                  'closed',
+                  'cancelled',
+                }.contains(status);
+          case 'due_today':
+            final data = row.toJson();
+            final raw =
+                nullableStringValue(data, 'expected_delivery_date') ??
+                nullableStringValue(data, 'delivery_date') ??
+                nullableStringValue(data, 'order_date');
+            final parsed = raw == null ? null : DateTime.tryParse(raw);
+            if (parsed == null) {
+              return false;
+            }
+            final now = DateTime.now();
+            return parsed.year == now.year &&
+                parsed.month == now.month &&
+                parsed.day == now.day;
+          default:
+            return true;
+        }
+      },
       emptyMessage:
           'No sales orders yet. Create an order from a quote or directly.',
       newRoute: '/sales/orders/new',
       newLabel: 'New order',
       searchHint: 'Search number or customer',
       statusItems: _statusItems,
+      dashboardStatusForFilter: (dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'pending':
+          case 'due_today':
+            return '';
+          default:
+            return '';
+        }
+      },
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -324,9 +468,14 @@ class SalesOrderRegisterPage extends StatelessWidget {
 }
 
 class SalesInvoiceRegisterPage extends StatelessWidget {
-  const SalesInvoiceRegisterPage({super.key, this.embedded = false});
+  const SalesInvoiceRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
@@ -343,6 +492,7 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
       controllerName: 'SalesInvoiceRegisterController',
       title: 'Invoices',
       embedded: embedded,
+      queryParameters: queryParameters,
       loader: (service) => service.invoices(
         filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
       ),
@@ -357,11 +507,29 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
         return (status.isEmpty || rowStatus == status) &&
             (query.isEmpty || searchText.contains(query));
       },
+      dashboardMatches: (row, dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'open':
+            final status = (row.invoiceStatus ?? '').trim().toLowerCase();
+            return status.isNotEmpty &&
+                !<String>{'paid', 'cancelled'}.contains(status);
+          default:
+            return true;
+        }
+      },
       emptyMessage: 'No invoices yet. Create an invoice for your customer.',
       newRoute: '/sales/invoices/new',
       newLabel: 'New invoice',
       searchHint: 'Search number or customer',
       statusItems: _statusItems,
+      dashboardStatusForFilter: (dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'open':
+            return '';
+          default:
+            return '';
+        }
+      },
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -429,6 +597,7 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
         return (status.isEmpty || rowStatus == status) &&
             (query.isEmpty || searchText.contains(query));
       },
+      dashboardMatches: (row, dashboardFilter) => true,
       emptyMessage: 'No deliveries yet.',
       newRoute: '/sales/deliveries/new',
       newLabel: 'New delivery',
@@ -460,9 +629,14 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
 }
 
 class SalesReceiptRegisterPage extends StatelessWidget {
-  const SalesReceiptRegisterPage({super.key, this.embedded = false});
+  const SalesReceiptRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   static const _statusItems = <AppDropdownItem<String>>[
     AppDropdownItem(value: '', label: 'All status'),
@@ -477,6 +651,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
       controllerName: 'SalesReceiptRegisterController',
       title: 'Receipts',
       embedded: embedded,
+      queryParameters: queryParameters,
       loader: (service) => service.receipts(
         filters: const {'per_page': 200, 'sort_by': 'receipt_date'},
       ),
@@ -491,11 +666,31 @@ class SalesReceiptRegisterPage extends StatelessWidget {
         return (status.isEmpty || rowStatus == status) &&
             (query.isEmpty || searchText.contains(query));
       },
+      dashboardMatches: (row, dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'posted':
+            final status = stringValue(
+              row.toJson(),
+              'receipt_status',
+            ).trim().toLowerCase();
+            return status == 'posted';
+          default:
+            return true;
+        }
+      },
       emptyMessage: 'No receipts yet.',
       newRoute: '/sales/receipts/new',
       newLabel: 'New receipt',
       searchHint: 'Search receipts',
       statusItems: _statusItems,
+      dashboardStatusForFilter: (dashboardFilter) {
+        switch (dashboardFilter.trim()) {
+          case 'posted':
+            return '';
+          default:
+            return '';
+        }
+      },
       columns: [
         PurchaseRegisterColumn(
           label: 'No',
@@ -557,6 +752,7 @@ class SalesReturnRegisterPage extends StatelessWidget {
         return (status.isEmpty || rowStatus == status) &&
             (query.isEmpty || searchText.contains(query));
       },
+      dashboardMatches: (row, dashboardFilter) => true,
       emptyMessage: 'No returns yet.',
       newRoute: '/sales/returns/new',
       newLabel: 'New return',

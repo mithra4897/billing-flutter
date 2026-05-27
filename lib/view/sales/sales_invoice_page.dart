@@ -9,6 +9,7 @@ class SalesInvoicePage extends StatefulWidget {
     this.initialId,
     this.initialQuotationId,
     this.initialOrderId,
+    this.queryParameters = const <String, String>{},
   });
 
   final bool embedded;
@@ -18,6 +19,7 @@ class SalesInvoicePage extends StatefulWidget {
   /// Prefills a **standalone** invoice from a quotation (API has no `sales_quotation_id` on invoices).
   final int? initialQuotationId;
   final int? initialOrderId;
+  final Map<String, String> queryParameters;
 
   @override
   State<SalesInvoicePage> createState() => _SalesInvoicePageState();

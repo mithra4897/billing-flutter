@@ -132,6 +132,7 @@ class SalesOrderManagementController extends GetxController {
   String? pageError;
   String? formError;
   String statusFilter = '';
+  String dashboardFilter = '';
   List<SalesOrderModel> items = const <SalesOrderModel>[];
   List<SalesOrderModel> filteredItems = const <SalesOrderModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
@@ -742,10 +743,54 @@ class SalesOrderManagementController extends GetxController {
           quotationCustomerLabel(data),
         ];
       },
-    );
+    ).where(_matchesDashboardFilter).toList(growable: false);
     if (notify) {
       update();
     }
+  }
+
+  bool _matchesDashboardFilter(SalesOrderModel item) {
+    switch (dashboardFilter.trim()) {
+      case 'pending':
+        final status = stringValue(
+          item.toJson(),
+          'order_status',
+        ).trim().toLowerCase();
+        return status.isNotEmpty &&
+            !<String>{
+              'fully_delivered',
+              'fully_invoiced',
+              'closed',
+              'cancelled',
+            }.contains(status);
+      case 'due_today':
+        final data = item.toJson();
+        final raw =
+            nullableStringValue(data, 'expected_delivery_date') ??
+            nullableStringValue(data, 'delivery_date') ??
+            nullableStringValue(data, 'order_date');
+        final parsed = raw == null ? null : DateTime.tryParse(raw);
+        if (parsed == null) {
+          return false;
+        }
+        final now = DateTime.now();
+        return parsed.year == now.year &&
+            parsed.month == now.month &&
+            parsed.day == now.day;
+      default:
+        return true;
+    }
+  }
+
+  void applyDashboardFilter(String value) {
+    dashboardFilter = value.trim();
+    if (dashboardFilter == 'pending') {
+      statusFilter = '';
+    } else if (dashboardFilter == 'due_today') {
+      statusFilter = '';
+    }
+    searchController.clear();
+    _applyFilters();
   }
 
   void setStatusFilter(String value) {

@@ -8,12 +8,14 @@ class SalesOrderPage extends StatefulWidget {
     this.editorOnly = false,
     this.initialId,
     this.initialQuotationId,
+    this.queryParameters = const <String, String>{},
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
   final int? initialQuotationId;
+  final Map<String, String> queryParameters;
 
   @override
   State<SalesOrderPage> createState() => _SalesOrderPageState();
@@ -44,7 +46,30 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           editorOnly: widget.editorOnly,
         ),
       );
+      _applyDashboardFilters(_controller);
     });
+  }
+
+  void _applyDashboardFilters(SalesOrderManagementController controller) {
+    controller.applyDashboardFilter(
+      (widget.queryParameters['dashboard_filter'] ?? '').trim(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant SalesOrderPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !Get.isRegistered<SalesOrderManagementController>(
+              tag: _controllerTag,
+            )) {
+          return;
+        }
+        _applyDashboardFilters(_controller);
+      });
+    }
   }
 
   @override
