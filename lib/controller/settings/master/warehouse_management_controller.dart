@@ -98,21 +98,25 @@ class WarehouseManagementController extends GetxController {
       companies = nextCompanies;
       branches = nextBranches;
       locations = nextLocations;
-      filteredWarehouses = filterWarehouses(nextWarehouses);
+      final visibleWarehouses = filterWarehouses(nextWarehouses);
+      filteredWarehouses = visibleWarehouses;
       initialLoading = false;
       update();
 
       final selected = selectId != null
-          ? nextWarehouses.cast<WarehouseModel?>().firstWhere(
+          ? visibleWarehouses.cast<WarehouseModel?>().firstWhere(
               (item) => item?.id == selectId,
               orElse: () => null,
             )
           : (selectedWarehouse == null
-                ? (nextWarehouses.isNotEmpty ? nextWarehouses.first : null)
-                : nextWarehouses.cast<WarehouseModel?>().firstWhere(
+                ? (visibleWarehouses.isNotEmpty
+                      ? visibleWarehouses.first
+                      : null)
+                : visibleWarehouses.cast<WarehouseModel?>().firstWhere(
                     (item) => item?.id == selectedWarehouse?.id,
-                    orElse: () =>
-                        nextWarehouses.isNotEmpty ? nextWarehouses.first : null,
+                    orElse: () => visibleWarehouses.isNotEmpty
+                        ? visibleWarehouses.first
+                        : null,
                   ));
 
       if (selected != null) {

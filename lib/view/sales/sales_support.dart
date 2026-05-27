@@ -261,22 +261,12 @@ double roundToDouble(double value, int fractionDigits) {
 }
 
 List<Widget> buildSalesDocumentContextFields({
-  required List<AppDropdownItem<int>> financialYearItems,
-  required int? financialYearId,
-  required ValueChanged<int?> onFinancialYearChanged,
   required List<AppDropdownItem<int>> documentSeriesItems,
   required int? documentSeriesId,
   required ValueChanged<int?> onDocumentSeriesChanged,
 }) {
   return <Widget>[
-    AppDropdownField<int>.fromMapped(
-      labelText: 'Financial Year',
-      mappedItems: financialYearItems,
-      initialValue: financialYearId,
-      onChanged: onFinancialYearChanged,
-      validator: Validators.requiredSelection('Financial Year'),
-    ),
-    AppDropdownField<int>.fromMapped(
+    DocumentSeriesSelector<int>(
       labelText: 'Document Series',
       mappedItems: documentSeriesItems,
       initialValue: documentSeriesId,

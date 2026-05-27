@@ -40,6 +40,7 @@ class QuotationLineDraft {
   final TextEditingController rateController;
   final TextEditingController discountController;
   final TextEditingController remarksController;
+  bool _disposed = false;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -56,6 +57,10 @@ class QuotationLineDraft {
   }
 
   void dispose() {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     descriptionController.dispose();
     qtyController.dispose();
     rateController.dispose();

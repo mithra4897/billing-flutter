@@ -105,7 +105,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int?>.fromMapped(
+                  DocumentSeriesSelector<int?>(
                     initialValue: controller.documentSeriesId,
                     labelText: 'Document Series',
                     mappedItems: <AppDropdownItem<int?>>[

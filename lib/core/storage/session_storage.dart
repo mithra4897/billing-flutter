@@ -120,6 +120,36 @@ class SessionStorage {
     }
   }
 
+  static Future<void> replaceSelectedContext({
+    required int? companyId,
+    required int? branchId,
+    required int? locationId,
+    required int? financialYearId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+
+    if (companyId != null) {
+      await preferences.setInt(currentCompanyIdKey, companyId);
+    } else {
+      await preferences.remove(currentCompanyIdKey);
+    }
+    if (branchId != null) {
+      await preferences.setInt(currentBranchIdKey, branchId);
+    } else {
+      await preferences.remove(currentBranchIdKey);
+    }
+    if (locationId != null) {
+      await preferences.setInt(currentLocationIdKey, locationId);
+    } else {
+      await preferences.remove(currentLocationIdKey);
+    }
+    if (financialYearId != null) {
+      await preferences.setInt(currentFinancialYearIdKey, financialYearId);
+    } else {
+      await preferences.remove(currentFinancialYearIdKey);
+    }
+  }
+
   static Future<int?> getCurrentCompanyId() async {
     final preferences = await SharedPreferences.getInstance();
     return preferences.getInt(currentCompanyIdKey);

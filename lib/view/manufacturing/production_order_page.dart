@@ -30,7 +30,7 @@ class _ProductionOrderPageState extends State<ProductionOrderPage> {
     _viewModel = Get.put(
       ProductionOrderViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -192,21 +192,6 @@ class _ProductionOrderEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Financial Year',
-                  mappedItems: vm.financialYearOptions
-                      .where((x) => x.id != null)
-                      .map(
-                        (x) => AppDropdownItem<int>(
-                          value: x.id!,
-                          label: x.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.financialYearId,
-                  onChanged: vm.onFinancialYearChanged,
-                  validator: Validators.requiredSelection('Financial Year'),
-                ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'BOM',
                   mappedItems: vm.bomOptions

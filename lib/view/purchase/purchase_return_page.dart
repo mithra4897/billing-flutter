@@ -161,24 +161,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                 children: [
                   SettingsFormWrap(
                     children: [
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Financial Year',
-                        mappedItems: controller.financialYears
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: controller.financialYearId,
-                        onChanged: controller.setFinancialYearId,
-                        validator: Validators.requiredSelection(
-                          'Financial Year',
-                        ),
-                      ),
-                      AppDropdownField<int>.fromMapped(
+                      DocumentSeriesSelector<int>(
                         labelText: 'Document Series',
                         mappedItems: controller
                             .seriesOptions()

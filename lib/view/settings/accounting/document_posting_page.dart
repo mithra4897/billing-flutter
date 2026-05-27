@@ -121,21 +121,6 @@ class _DocumentPostingManagementPageState
             const SizedBox(height: AppUiConstants.spacingMd),
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Financial year',
-                  mappedItems: controller.years
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.financialYearId,
-                  onChanged: controller.setFinancialYearId,
-                  validator: Validators.requiredSelection('Financial year'),
-                ),
                 AppFormTextField(
                   labelText: 'Document module',
                   controller: controller.moduleController,

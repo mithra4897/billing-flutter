@@ -108,21 +108,23 @@ class BusinessLocationManagementController extends GetxController {
       locations = nextLocations;
       companies = nextCompanies;
       branches = nextBranches;
-      filteredLocations = filterLocations(nextLocations);
+      final visibleLocations = filterLocations(nextLocations);
+      filteredLocations = visibleLocations;
       initialLoading = false;
       update();
 
       final selected = selectId != null
-          ? nextLocations.cast<BusinessLocationModel?>().firstWhere(
+          ? visibleLocations.cast<BusinessLocationModel?>().firstWhere(
               (item) => item?.id == selectId,
               orElse: () => null,
             )
           : (selectedLocation == null
-                ? (nextLocations.isNotEmpty ? nextLocations.first : null)
-                : nextLocations.cast<BusinessLocationModel?>().firstWhere(
+                ? (visibleLocations.isNotEmpty ? visibleLocations.first : null)
+                : visibleLocations.cast<BusinessLocationModel?>().firstWhere(
                     (item) => item?.id == selectedLocation?.id,
-                    orElse: () =>
-                        nextLocations.isNotEmpty ? nextLocations.first : null,
+                    orElse: () => visibleLocations.isNotEmpty
+                        ? visibleLocations.first
+                        : null,
                   ));
 
       if (selected != null) {

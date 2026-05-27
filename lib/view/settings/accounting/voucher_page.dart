@@ -259,7 +259,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                   onChanged: controller.setVoucherTypeId,
                   validator: Validators.requiredSelection('Voucher Type'),
                 ),
-                AppDropdownField<int>.fromMapped(
+                DocumentSeriesSelector<int>(
                   labelText: 'Document Series',
                   mappedItems: controller.filteredDocumentSeriesOptions
                       .where((item) => item.id != null)

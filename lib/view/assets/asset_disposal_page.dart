@@ -170,23 +170,20 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                             ? null
                             : controller.setAssetId,
                       ),
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Document series',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: controller.documentSeriesId,
-                        items: controller.seriesOptions
+                      DocumentSeriesSelector<int>(
+                        labelText: 'Document series',
+                        mappedItems: controller.seriesOptions
                             .where((item) => item.id != null)
                             .map(
-                              (item) => DropdownMenuItem<int>(
-                                value: item.id,
-                                child: Text(item.toString()),
+                              (item) => AppDropdownItem<int>(
+                                value: item.id!,
+                                label: item.toString(),
                               ),
                             )
                             .toList(growable: false),
+                        initialValue: controller.documentSeriesId,
                         onChanged: controller.saving || controller.actionBusy
-                            ? null
+                            ? (_) {}
                             : controller.setDocumentSeriesId,
                       ),
                       AppFormTextField(

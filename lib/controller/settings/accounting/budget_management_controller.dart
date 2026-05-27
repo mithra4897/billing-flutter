@@ -59,11 +59,13 @@ class BudgetManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
     loadPage();
   }
 
   @override
   void onClose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -76,6 +78,10 @@ class BudgetManagementController extends GetxController {
     notesController.dispose();
     _disposeLines(lines);
     super.onClose();
+  }
+
+  void _handleWorkingContextChanged() {
+    unawaited(loadPage(selectId: intValue(json(selectedBudget), 'id')));
   }
 
   Map<String, dynamic> json(BudgetModel? model) => model?.toJson() ?? const {};

@@ -70,7 +70,7 @@ class _JobworkOrderPageState extends State<JobworkOrderPage> {
     _viewModel = Get.put(
       JobworkOrderViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -252,24 +252,7 @@ class _JobworkOrderEditor extends StatelessWidget {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Financial year',
-                    mappedItems: vm.financialYears
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.financialYearId,
-                    onChanged: (int? v) {
-                      if (!locked) vm.setFinancialYearId(v);
-                    },
-                    validator: Validators.requiredSelection('Financial year'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
+                  DocumentSeriesSelector<int>(
                     labelText: 'Document series',
                     mappedItems: vm.seriesOptions
                         .where((x) => x.id != null)

@@ -51,6 +51,13 @@ class WarrantyClaimViewModel extends GetxController {
   int? financialYearId;
 
   int? _sessionCompanyId;
+  int? _contextFinancialYearId;
+
+  @override
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
 
   String get ticketStatus => stringValue(
     selected?.toJson() ?? const <String, dynamic>{},
@@ -198,6 +205,7 @@ class WarrantyClaimViewModel extends GetxController {
                   const <FinancialYearModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+      _contextFinancialYearId = await _resolveContextFinancialYearId();
 
       loading = false;
 
@@ -232,13 +240,13 @@ class WarrantyClaimViewModel extends GetxController {
     formError = null;
     companyId =
         _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    financialYearId = _defaultFinancialYearId(companyId);
     documentSeriesId = ticketSeriesOptions.isNotEmpty
         ? ticketSeriesOptions.first.id
         : null;
     customerPartyId = null;
     branchId = null;
     locationId = null;
-    financialYearId = null;
     ticketNoController.clear();
     ticketDateController.text = DateTime.now()
         .toIso8601String()
@@ -311,6 +319,46 @@ class WarrantyClaimViewModel extends GetxController {
     }
     financialYearId = value;
     update();
+  }
+
+  void _handleWorkingContextChanged() {
+    unawaited(load(selectId: selectedId));
+  }
+
+  Future<int?> _resolveContextFinancialYearId() async {
+    final selection = await WorkingContextService.instance.resolveSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: financialYears,
+    );
+    return selection.financialYearId;
+  }
+
+  int? _defaultFinancialYearId(int? companyId) {
+    final contextFinancialYearId = _contextFinancialYearId;
+    if (contextFinancialYearId != null &&
+        financialYears.any(
+          (item) =>
+              item.id == contextFinancialYearId &&
+              (companyId == null || item.companyId == companyId),
+        )) {
+      return contextFinancialYearId;
+    }
+
+    final current = financialYears.cast<FinancialYearModel?>().firstWhere(
+      (item) => item?.companyId == companyId && item?.isCurrent == true,
+      orElse: () => null,
+    );
+    if (current?.id != null) {
+      return current!.id;
+    }
+
+    final fallback = financialYears.cast<FinancialYearModel?>().firstWhere(
+      (item) => companyId == null || item?.companyId == companyId,
+      orElse: () => null,
+    );
+    return fallback?.id;
   }
 
   List<BranchModel> get branchOptions {
@@ -629,6 +677,7 @@ class WarrantyClaimViewModel extends GetxController {
 
   @override
   void onClose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     ticketNoController.dispose();
     ticketDateController.dispose();

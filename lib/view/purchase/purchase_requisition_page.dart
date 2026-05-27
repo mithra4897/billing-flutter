@@ -170,99 +170,85 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                 children: [
                   SettingsFormWrap(
                     children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Financial Year',
-                  mappedItems: controller.financialYears
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
+                      DocumentSeriesSelector<int>(
+                        labelText: 'Document Series',
+                        mappedItems: controller
+                            .documentSeriesForContext()
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.documentSeriesId,
+                        onChanged: controller.setDocumentSeriesId,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Requisition No',
+                        controller: controller.requisitionNoController,
+                        hintText: 'Auto-generated on save',
+                        validator: Validators.optionalMaxLength(
+                          100,
+                          'Requisition No',
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.financialYearId,
-                  onChanged: controller.setFinancialYearId,
-                  validator: Validators.requiredSelection('Financial Year'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Document Series',
-                  mappedItems: controller
-                      .documentSeriesForContext()
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.documentSeriesId,
-                  onChanged: controller.setDocumentSeriesId,
-                ),
-                AppFormTextField(
-                  labelText: 'Requisition No',
-                  controller: controller.requisitionNoController,
-                  hintText: 'Auto-generated on save',
-                  validator: Validators.optionalMaxLength(
-                    100,
-                    'Requisition No',
-                  ),
-                ),
-                AppFormTextField(
-                  labelText: 'Requisition Date',
-                  controller: controller.requisitionDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([
-                    Validators.required('Requisition Date'),
-                    Validators.date('Requisition Date'),
-                  ]),
-                ),
-                AppFormTextField(
-                  labelText: 'Required Date',
-                  controller: controller.requiredDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([
-                    Validators.optionalDate('Required Date'),
-                    Validators.optionalDateOnOrAfter(
-                      'Required Date',
-                      () => controller.requisitionDateController.text.trim(),
-                      startFieldName: 'Requisition Date',
-                    ),
-                  ]),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Requested By',
-                  mappedItems: controller.users
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.requestedById,
-                  onChanged: controller.setRequestedById,
-                ),
-                AppDropdownField<String>.fromMapped(
-                  labelText: 'Department',
-                  mappedItems: controller.departmentItems,
-                  initialValue: controller.departmentName,
-                  onChanged: controller.setDepartmentName,
-                ),
-                AppFormTextField(
-                  labelText: 'Purpose',
-                  controller: controller.purposeController,
-                  validator: Validators.optionalMaxLength(255, 'Purpose'),
-                ),
-                AppFormTextField(
-                  labelText: 'Notes',
-                  controller: controller.notesController,
-                  maxLines: 3,
-                ),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Requisition Date',
+                        controller: controller.requisitionDateController,
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.compose([
+                          Validators.required('Requisition Date'),
+                          Validators.date('Requisition Date'),
+                        ]),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Required Date',
+                        controller: controller.requiredDateController,
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.compose([
+                          Validators.optionalDate('Required Date'),
+                          Validators.optionalDateOnOrAfter(
+                            'Required Date',
+                            () => controller.requisitionDateController.text
+                                .trim(),
+                            startFieldName: 'Requisition Date',
+                          ),
+                        ]),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Requested By',
+                        mappedItems: controller.users
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.requestedById,
+                        onChanged: controller.setRequestedById,
+                      ),
+                      AppDropdownField<String>.fromMapped(
+                        labelText: 'Department',
+                        mappedItems: controller.departmentItems,
+                        initialValue: controller.departmentName,
+                        onChanged: controller.setDepartmentName,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Purpose',
+                        controller: controller.purposeController,
+                        validator: Validators.optionalMaxLength(255, 'Purpose'),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Notes',
+                        controller: controller.notesController,
+                        maxLines: 3,
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppUiConstants.spacingMd),
@@ -276,9 +262,8 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     children: [
                       Text(
                         'Lines',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const Spacer(),
                       AppActionButton(
@@ -326,10 +311,12 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     );
                     final canApprove =
                         controller.selectedItem != null && status == 'draft';
-                    final canClose = controller.selectedItem != null &&
+                    final canClose =
+                        controller.selectedItem != null &&
                         status != 'closed' &&
                         status != 'cancelled';
-                    final canCancel = controller.selectedItem != null &&
+                    final canCancel =
+                        controller.selectedItem != null &&
                         status != 'closed' &&
                         status != 'cancelled';
 
@@ -337,62 +324,71 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                       spacing: AppUiConstants.spacingSm,
                       runSpacing: AppUiConstants.spacingSm,
                       children: [
-                if (!controller.isSelectedRequisitionReadOnly)
-                  AppActionButton(
-                    icon: Icons.save_outlined,
-                    label: controller.selectedItem == null
-                        ? 'Save Requisition'
-                        : 'Update Requisition',
-                    onPressed: controller.canEditSelectedRequisition
-                        ? () => controller.save(context)
-                        : null,
-                    busy: controller.saving,
-                  ),
-                if (canApprove)
-                  AppActionButton(
-                    icon: Icons.check_circle_outline,
-                    label: 'Approve',
-                    onPressed: () => controller.executeAction(
-                      context,
-                      () => PurchaseService().approveRequisition(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchaseRequisitionModel.fromJson(
-                          const <String, dynamic>{},
-                        ),
-                      ),
-                    ),
-                    filled: false,
-                  ),
-                if (canClose)
-                  AppActionButton(
-                    icon: Icons.task_alt_outlined,
-                    label: 'Close',
-                    onPressed: () => controller.executeAction(
-                      context,
-                      () => PurchaseService().closeRequisition(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchaseRequisitionModel.fromJson(
-                          const <String, dynamic>{},
-                        ),
-                      ),
-                    ),
-                    filled: false,
-                  ),
-                if (canCancel)
-                  AppActionButton(
-                    icon: Icons.cancel_outlined,
-                    label: 'Cancel',
-                    onPressed: () => controller.executeAction(
-                      context,
-                      () => PurchaseService().cancelRequisition(
-                        intValue(controller.selectedItem!.toJson(), 'id')!,
-                        PurchaseRequisitionModel.fromJson(
-                          const <String, dynamic>{},
-                        ),
-                      ),
-                    ),
-                    filled: false,
-                  ),
+                        if (!controller.isSelectedRequisitionReadOnly)
+                          AppActionButton(
+                            icon: Icons.save_outlined,
+                            label: controller.selectedItem == null
+                                ? 'Save Requisition'
+                                : 'Update Requisition',
+                            onPressed: controller.canEditSelectedRequisition
+                                ? () => controller.save(context)
+                                : null,
+                            busy: controller.saving,
+                          ),
+                        if (canApprove)
+                          AppActionButton(
+                            icon: Icons.check_circle_outline,
+                            label: 'Approve',
+                            onPressed: () => controller.executeAction(
+                              context,
+                              () => PurchaseService().approveRequisition(
+                                intValue(
+                                  controller.selectedItem!.toJson(),
+                                  'id',
+                                )!,
+                                PurchaseRequisitionModel.fromJson(
+                                  const <String, dynamic>{},
+                                ),
+                              ),
+                            ),
+                            filled: false,
+                          ),
+                        if (canClose)
+                          AppActionButton(
+                            icon: Icons.task_alt_outlined,
+                            label: 'Close',
+                            onPressed: () => controller.executeAction(
+                              context,
+                              () => PurchaseService().closeRequisition(
+                                intValue(
+                                  controller.selectedItem!.toJson(),
+                                  'id',
+                                )!,
+                                PurchaseRequisitionModel.fromJson(
+                                  const <String, dynamic>{},
+                                ),
+                              ),
+                            ),
+                            filled: false,
+                          ),
+                        if (canCancel)
+                          AppActionButton(
+                            icon: Icons.cancel_outlined,
+                            label: 'Cancel',
+                            onPressed: () => controller.executeAction(
+                              context,
+                              () => PurchaseService().cancelRequisition(
+                                intValue(
+                                  controller.selectedItem!.toJson(),
+                                  'id',
+                                )!,
+                                PurchaseRequisitionModel.fromJson(
+                                  const <String, dynamic>{},
+                                ),
+                              ),
+                            ),
+                            filled: false,
+                          ),
                       ],
                     );
                   },

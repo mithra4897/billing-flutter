@@ -33,6 +33,7 @@ export 'components/app_text_field.dart';
 export 'components/app_toggle_chip.dart';
 export 'components/date_input_formatter.dart';
 export 'components/date_time_input_formatter.dart';
+export 'components/document_series_selector.dart';
 export 'components/erp_link_field.dart';
 export 'components/erp_module_dashboard.dart';
 export 'components/gst_summary_card.dart';

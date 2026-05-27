@@ -30,7 +30,7 @@ class _QcInspectionPageState extends State<QcInspectionPage> {
     _viewModel = Get.put(
       QcInspectionViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -186,26 +186,7 @@ class _QcInspectionEditor extends StatelessWidget {
                 ),
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Financial year',
-                    mappedItems: vm.financialYearOptions
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.financialYearId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setFinancialYearId(v);
-                      }
-                    },
-                    validator: Validators.requiredSelection('Financial year'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
+                  DocumentSeriesSelector<int>(
                     labelText: 'Document series (optional)',
                     mappedItems: vm.qcSeriesOptions
                         .where((x) => x.id != null)

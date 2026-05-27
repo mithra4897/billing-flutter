@@ -40,7 +40,7 @@ class _WarrantyClaimPageState extends State<WarrantyClaimPage> {
     _viewModel = Get.put(
       WarrantyClaimViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -307,7 +307,7 @@ class _WarrantyClaimEditor extends StatelessWidget {
                     controller: vm.ticketNoController,
                     enabled: edit,
                   ),
-                  AppDropdownField<int?>.fromMapped(
+                  DocumentSeriesSelector<int?>(
                     labelText: 'Document series',
                     mappedItems: [
                       const AppDropdownItem<int?>(value: null, label: '-'),
@@ -413,26 +413,6 @@ class _WarrantyClaimEditor extends StatelessWidget {
                     onChanged: (int? v) {
                       if (edit) {
                         vm.setLocationId(v);
-                      }
-                    },
-                  ),
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Financial year (optional)',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '-'),
-                      ...vm.financialYearOptions
-                          .where((f) => f.id != null)
-                          .map(
-                            (f) => AppDropdownItem<int?>(
-                              value: f.id!,
-                              label: f.toString(),
-                            ),
-                          ),
-                    ],
-                    initialValue: vm.financialYearId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setFinancialYearId(v);
                       }
                     },
                   ),

@@ -47,7 +47,7 @@ class _ServiceWorkOrderPageState extends State<ServiceWorkOrderPage> {
     _viewModel = Get.put(
       ServiceWorkOrderViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -302,7 +302,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                     controller: vm.workOrderNoController,
                     enabled: edit,
                   ),
-                  AppDropdownField<int?>.fromMapped(
+                  DocumentSeriesSelector<int?>(
                     labelText: 'Document series',
                     mappedItems: [
                       const AppDropdownItem<int?>(value: null, label: '-'),
@@ -383,26 +383,6 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                     onChanged: (int? v) {
                       if (edit) {
                         vm.setLocationId(v);
-                      }
-                    },
-                  ),
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Financial year (optional)',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '-'),
-                      ...vm.financialYearOptions
-                          .where((f) => f.id != null)
-                          .map(
-                            (f) => AppDropdownItem<int?>(
-                              value: f.id!,
-                              label: f.toString(),
-                            ),
-                          ),
-                    ],
-                    initialValue: vm.financialYearId,
-                    onChanged: (int? v) {
-                      if (edit) {
-                        vm.setFinancialYearId(v);
                       }
                     },
                   ),

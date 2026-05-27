@@ -364,7 +364,7 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                   controller: vm.issueNoController,
                   enabled: vm.isDraft || vm.selected == null,
                 ),
-                AppDropdownField<int>.fromMapped(
+                DocumentSeriesSelector<int>(
                   labelText: 'Document Series',
                   mappedItems: vm.seriesOptions
                       .where((x) => x.id != null)

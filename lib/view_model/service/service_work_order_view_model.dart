@@ -51,6 +51,13 @@ class ServiceWorkOrderViewModel extends GetxController {
   String executionMode = 'onsite';
 
   int? _sessionCompanyId;
+  int? _contextFinancialYearId;
+
+  @override
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
 
   String get workOrderStatus => stringValue(
     selected?.toJson() ?? const <String, dynamic>{},
@@ -225,6 +232,7 @@ class ServiceWorkOrderViewModel extends GetxController {
                   const <FinancialYearModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+      _contextFinancialYearId = await _resolveContextFinancialYearId();
 
       loading = false;
 
@@ -259,6 +267,7 @@ class ServiceWorkOrderViewModel extends GetxController {
     formError = null;
     companyId =
         _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    financialYearId = _defaultFinancialYearId(companyId);
     documentSeriesId = woSeriesOptions.isNotEmpty
         ? woSeriesOptions.first.id
         : null;
@@ -268,7 +277,6 @@ class ServiceWorkOrderViewModel extends GetxController {
     customerPartyId = null;
     branchId = null;
     locationId = null;
-    financialYearId = null;
     executionMode = 'onsite';
     workOrderNoController.clear();
     workOrderDateController.text = DateTime.now()
@@ -385,6 +393,46 @@ class ServiceWorkOrderViewModel extends GetxController {
     }
     financialYearId = value;
     update();
+  }
+
+  void _handleWorkingContextChanged() {
+    unawaited(load(selectId: selectedId));
+  }
+
+  Future<int?> _resolveContextFinancialYearId() async {
+    final selection = await WorkingContextService.instance.resolveSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: financialYears,
+    );
+    return selection.financialYearId;
+  }
+
+  int? _defaultFinancialYearId(int? companyId) {
+    final contextFinancialYearId = _contextFinancialYearId;
+    if (contextFinancialYearId != null &&
+        financialYears.any(
+          (item) =>
+              item.id == contextFinancialYearId &&
+              (companyId == null || item.companyId == companyId),
+        )) {
+      return contextFinancialYearId;
+    }
+
+    final current = financialYears.cast<FinancialYearModel?>().firstWhere(
+      (item) => item?.companyId == companyId && item?.isCurrent == true,
+      orElse: () => null,
+    );
+    if (current?.id != null) {
+      return current!.id;
+    }
+
+    final fallback = financialYears.cast<FinancialYearModel?>().firstWhere(
+      (item) => companyId == null || item?.companyId == companyId,
+      orElse: () => null,
+    );
+    return fallback?.id;
   }
 
   void setExecutionMode(String value) {
@@ -673,6 +721,7 @@ class ServiceWorkOrderViewModel extends GetxController {
 
   @override
   void onClose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     workOrderNoController.dispose();
     workOrderDateController.dispose();

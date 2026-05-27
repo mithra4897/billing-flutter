@@ -66,6 +66,13 @@ class MaintenanceWorkOrderViewModel extends GetxController {
   int? vendorPartyId;
 
   int? _sessionCompanyId;
+  int? _contextFinancialYearId;
+
+  @override
+  void onInit() {
+    super.onInit();
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
+  }
 
   int? get selectedId =>
       intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
@@ -254,6 +261,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
                   const <FinancialYearModel>[])
               .where((fy) => fy.id != null && fy.isActive)
               .toList(growable: false);
+      _contextFinancialYearId = await _resolveContextFinancialYearId();
       parties =
           ((responses[6] as PaginatedResponse<PartyModel>).data ??
                   const <PartyModel>[])
@@ -340,11 +348,11 @@ class MaintenanceWorkOrderViewModel extends GetxController {
     formError = null;
     companyId =
         _sessionCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    financialYearId = _defaultFinancialYearId(companyId);
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     assetId = null;
     branchId = null;
     locationId = null;
-    financialYearId = null;
     maintenanceRequestId = null;
     maintenancePlanId = null;
     vendorPartyId = null;
@@ -439,6 +447,46 @@ class MaintenanceWorkOrderViewModel extends GetxController {
     }
     financialYearId = value;
     update();
+  }
+
+  void _handleWorkingContextChanged() {
+    unawaited(load(selectId: selectedId));
+  }
+
+  Future<int?> _resolveContextFinancialYearId() async {
+    final selection = await WorkingContextService.instance.resolveSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: financialYears,
+    );
+    return selection.financialYearId;
+  }
+
+  int? _defaultFinancialYearId(int? companyId) {
+    final contextFinancialYearId = _contextFinancialYearId;
+    if (contextFinancialYearId != null &&
+        financialYears.any(
+          (item) =>
+              item.id == contextFinancialYearId &&
+              (companyId == null || item.companyId == companyId),
+        )) {
+      return contextFinancialYearId;
+    }
+
+    final current = financialYears.cast<FinancialYearModel?>().firstWhere(
+      (item) => item?.companyId == companyId && item?.isCurrent == true,
+      orElse: () => null,
+    );
+    if (current?.id != null) {
+      return current!.id;
+    }
+
+    final fallback = financialYears.cast<FinancialYearModel?>().firstWhere(
+      (item) => companyId == null || item?.companyId == companyId,
+      orElse: () => null,
+    );
+    return fallback?.id;
   }
 
   void setMaintenanceRequestId(int? value) {
@@ -790,6 +838,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
 
   @override
   void onClose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     searchController.dispose();
     workOrderNoController.dispose();
     workOrderDateController.dispose();

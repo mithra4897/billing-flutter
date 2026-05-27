@@ -30,7 +30,7 @@ class _JobworkChargePageState extends State<JobworkChargePage> {
     _viewModel = Get.put(
       JobworkChargeViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -211,24 +211,7 @@ class _JobworkChargeEditor extends StatelessWidget {
               ],
               SettingsFormWrap(
                 children: [
-                  AppDropdownField<int>.fromMapped(
-                    labelText: 'Financial year',
-                    mappedItems: vm.financialYears
-                        .where((x) => x.id != null)
-                        .map(
-                          (x) => AppDropdownItem<int>(
-                            value: x.id!,
-                            label: x.toString(),
-                          ),
-                        )
-                        .toList(growable: false),
-                    initialValue: vm.financialYearId,
-                    onChanged: (int? v) {
-                      if (!locked) vm.setFinancialYearId(v);
-                    },
-                    validator: Validators.requiredSelection('Financial year'),
-                  ),
-                  AppDropdownField<int>.fromMapped(
+                  DocumentSeriesSelector<int>(
                     labelText: 'Document series',
                     mappedItems: vm.seriesOptions
                         .where((x) => x.id != null)

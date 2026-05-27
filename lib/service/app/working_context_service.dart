@@ -96,6 +96,7 @@ class WorkingContextService {
     int? branchId,
     int? locationId,
     int? financialYearId,
+    bool persist = true,
   }) async {
     final storedCompanyId =
         companyId ?? await SessionStorage.getCurrentCompanyId();
@@ -120,10 +121,11 @@ class WorkingContextService {
     );
     final scopedLocations = locations
         .where(
-          (BusinessLocationModel item) =>
-              (resolvedCompanyId == null ||
-                  item.companyId == resolvedCompanyId) &&
-              (resolvedBranchId == null || item.branchId == resolvedBranchId),
+          (BusinessLocationModel item) => _locationMatchesScope(
+            item,
+            companyId: resolvedCompanyId,
+            branchId: resolvedBranchId,
+          ),
         )
         .toList(growable: false);
     final resolvedLocationId = _resolveLocationId(
@@ -142,12 +144,14 @@ class WorkingContextService {
       storedFinancialYearId,
     );
 
-    await SessionStorage.saveSelectedContext(
-      companyId: resolvedCompanyId,
-      branchId: resolvedBranchId,
-      locationId: resolvedLocationId,
-      financialYearId: resolvedFinancialYearId,
-    );
+    if (persist) {
+      await SessionStorage.replaceSelectedContext(
+        companyId: resolvedCompanyId,
+        branchId: resolvedBranchId,
+        locationId: resolvedLocationId,
+        financialYearId: resolvedFinancialYearId,
+      );
+    }
 
     return WorkingContextSelection(
       companyId: resolvedCompanyId,
@@ -158,7 +162,7 @@ class WorkingContextService {
   }
 
   Future<void> saveSelection(WorkingContextSelection selection) async {
-    await SessionStorage.saveSelectedContext(
+    await SessionStorage.replaceSelectedContext(
       companyId: selection.companyId,
       branchId: selection.branchId,
       locationId: selection.locationId,
@@ -235,5 +239,19 @@ class WorkingContextService {
       return null;
     }
     return financialYears.first.id;
+  }
+
+  bool _locationMatchesScope(
+    BusinessLocationModel item, {
+    required int? companyId,
+    required int? branchId,
+  }) {
+    if (branchId != null) {
+      return item.branchId == branchId;
+    }
+    if (companyId != null) {
+      return item.companyId == companyId;
+    }
+    return true;
   }
 }

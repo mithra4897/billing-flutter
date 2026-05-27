@@ -49,12 +49,11 @@ class _AssetDepreciationRunPageState extends State<AssetDepreciationRunPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('AssetDepreciationRunViewModel');
+    _controllerTag = persistentControllerTag('AssetDepreciationRunViewModel');
     _vm = Get.put(
       AssetDepreciationRunViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -637,22 +636,20 @@ class _CreateDepreciationRunForm extends StatelessWidget {
                 ),
               )
             else
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(
-                  labelText: 'Document series',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: vm.documentSeriesId,
-                items: vm.seriesOptions
+              DocumentSeriesSelector<int>(
+                labelText: 'Document series',
+                mappedItems: vm.seriesOptions
+                    .where((series) => series.id != null)
                     .map(
-                      (DocumentSeriesModel s) => DropdownMenuItem<int>(
-                        value: s.id,
-                        child: Text(s.toString()),
+                      (series) => AppDropdownItem<int>(
+                        value: series.id!,
+                        label: series.toString(),
                       ),
                     )
                     .toList(growable: false),
+                initialValue: vm.documentSeriesId,
                 onChanged: vm.createBusy
-                    ? null
+                    ? (_) {}
                     : (int? v) => vm.setDocumentSeriesId(v),
               ),
             const SizedBox(height: AppUiConstants.spacingLg),

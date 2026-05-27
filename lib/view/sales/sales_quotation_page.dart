@@ -196,9 +196,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             SettingsFormWrap(
               children: [
                 ...buildSalesDocumentContextFields(
-                  financialYearItems: controller.financialYearDropdownItems,
-                  financialYearId: controller.financialYearId,
-                  onFinancialYearChanged: controller.setFinancialYearId,
                   documentSeriesItems: controller.documentSeriesDropdownItems,
                   documentSeriesId: controller.documentSeriesId,
                   onDocumentSeriesChanged: controller.setDocumentSeriesId,

@@ -67,7 +67,7 @@ class _SessionContextButtonState extends State<SessionContextButton> {
     });
   }
 
-  String get _summaryLabel {
+  String get _primarySummaryLabel {
     final primary = <String>[
       if ((_companyLabel ?? '').trim().isNotEmpty) _companyLabel!,
       if ((_branchLabel ?? '').trim().isNotEmpty) _branchLabel!,
@@ -77,6 +77,14 @@ class _SessionContextButtonState extends State<SessionContextButton> {
       return 'Context';
     }
     return primary.join(' / ');
+  }
+
+  String? get _financialYearSummaryLabel {
+    final value = (_financialYearLabel ?? '').trim();
+    if (value.isEmpty) {
+      return null;
+    }
+    return 'FY: $value';
   }
 
   String get _tooltipLabel {
@@ -118,11 +126,17 @@ class _SessionContextButtonState extends State<SessionContextButton> {
           branchId: branchId.value,
           locationId: locationId.value,
           financialYearId: financialYearId.value,
+          persist: false,
         );
         companyId.value = selection.companyId;
         branchId.value = selection.branchId;
         locationId.value = selection.locationId;
         financialYearId.value = selection.financialYearId;
+      }
+
+      await syncChildren();
+      if (!mounted) {
+        return;
       }
 
       await showDialog<void>(
@@ -143,13 +157,13 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                       .toList(growable: false);
                   final scopedLocations = snapshot.locations
                       .where((BusinessLocationModel item) {
-                        final companyMatches =
-                            companyId.value == null ||
-                            item.companyId == companyId.value;
-                        final branchMatches =
-                            branchId.value == null ||
-                            item.branchId == branchId.value;
-                        return companyMatches && branchMatches;
+                        if (branchId.value != null) {
+                          return item.branchId == branchId.value;
+                        }
+                        if (companyId.value != null) {
+                          return item.companyId == companyId.value;
+                        }
+                        return true;
                       })
                       .toList(growable: false);
                   final scopedFinancialYears = snapshot.financialYears
@@ -159,11 +173,31 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                             item.companyId == companyId.value,
                       )
                       .toList(growable: false);
+                  final hasMissingOptions =
+                      snapshot.companies.isEmpty ||
+                      scopedBranches.isEmpty ||
+                      scopedLocations.isEmpty ||
+                      scopedFinancialYears.isEmpty;
+                  final hasOnlyResolvedOptions =
+                      snapshot.companies.length <= 1 &&
+                      scopedBranches.length <= 1 &&
+                      scopedLocations.length <= 1 &&
+                      scopedFinancialYears.length <= 1;
 
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (snapshot.companies.length == 1)
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Company',
+                          ),
+                          child: Text(
+                            snapshot.companies.first.legalName ??
+                                snapshot.companies.first.toString(),
+                          ),
+                        ),
                       if (snapshot.companies.length > 1)
                         AppDropdownField<int>.fromMapped(
                           labelText: 'Company',
@@ -183,6 +217,13 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                             setLocalState(() {});
                           },
                         ),
+                      if (scopedBranches.isEmpty) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        const InputDecorator(
+                          decoration: InputDecoration(labelText: 'Branch'),
+                          child: Text('No branch available'),
+                        ),
+                      ],
                       if (scopedBranches.length > 1) ...[
                         const SizedBox(height: AppUiConstants.spacingMd),
                         AppDropdownField<int>.fromMapped(
@@ -202,6 +243,25 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                             await syncChildren();
                             setLocalState(() {});
                           },
+                        ),
+                      ],
+                      if (scopedBranches.length == 1) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Branch',
+                          ),
+                          child: Text(
+                            scopedBranches.first.name ??
+                                scopedBranches.first.toString(),
+                          ),
+                        ),
+                      ],
+                      if (scopedLocations.isEmpty) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        const InputDecorator(
+                          decoration: InputDecoration(labelText: 'Location'),
+                          child: Text('No location available'),
                         ),
                       ],
                       if (scopedLocations.length > 1) ...[
@@ -240,6 +300,15 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                           ),
                         ),
                       ],
+                      if (scopedFinancialYears.isEmpty) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        const InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Financial Year',
+                          ),
+                          child: Text('No financial year available'),
+                        ),
+                      ],
                       if (scopedFinancialYears.length > 1) ...[
                         const SizedBox(height: AppUiConstants.spacingMd),
                         AppDropdownField<int>.fromMapped(
@@ -263,10 +332,19 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                           },
                         ),
                       ],
-                      if (snapshot.companies.length <= 1 &&
-                          scopedBranches.length <= 1 &&
-                          scopedLocations.isEmpty &&
-                          scopedFinancialYears.length <= 1)
+                      if (scopedFinancialYears.length == 1) ...[
+                        const SizedBox(height: AppUiConstants.spacingMd),
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Financial Year',
+                          ),
+                          child: Text(
+                            scopedFinancialYears.first.fyName ??
+                                scopedFinancialYears.first.toString(),
+                          ),
+                        ),
+                      ],
+                      if (hasOnlyResolvedOptions && !hasMissingOptions)
                         const Text(
                           'Only one active option is available for each context, so defaults are already applied.',
                         ),
@@ -339,11 +417,24 @@ class _SessionContextButtonState extends State<SessionContextButton> {
                   const Icon(Icons.tune_outlined, size: 20),
                   const SizedBox(width: 8),
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Text(
-                      _summaryLabel,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _primarySummaryLabel,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        if (_financialYearSummaryLabel != null)
+                          Text(
+                            _financialYearSummaryLabel!,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                      ],
                     ),
                   ),
                 ],

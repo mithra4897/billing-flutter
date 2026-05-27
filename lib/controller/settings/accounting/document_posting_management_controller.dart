@@ -81,11 +81,13 @@ class DocumentPostingManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    WorkingContextService.version.addListener(_handleWorkingContextChanged);
     loadPage();
   }
 
   @override
   void onClose() {
+    WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -100,6 +102,10 @@ class DocumentPostingManagementController extends GetxController {
     remarksController.dispose();
     _disposeLines(lines);
     super.onClose();
+  }
+
+  void _handleWorkingContextChanged() {
+    unawaited(loadPage(selectId: intValue(json(selectedPosting), 'id')));
   }
 
   Map<String, dynamic> json(DocumentPostingModel? model) =>

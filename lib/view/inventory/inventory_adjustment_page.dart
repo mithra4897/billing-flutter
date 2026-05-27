@@ -29,13 +29,12 @@ class _InventoryAdjustmentPageState extends State<InventoryAdjustmentPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('InventoryAdjustmentViewModel');
+    _controllerTag = persistentControllerTag('InventoryAdjustmentViewModel');
     _viewModel = Get.put(
       InventoryAdjustmentViewModel(initialItemId: widget.initialItemId)
         ..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -200,25 +199,7 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Financial Year',
-                  mappedItems: vm.financialYears
-                      .where((x) => x.id != null)
-                      .map(
-                        (x) => AppDropdownItem<int>(
-                          value: x.id!,
-                          label: x.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.financialYearId,
-                  validator: Validators.requiredSelection('Financial Year'),
-                  onChanged: (v) {
-                    if (!canEdit) return;
-                    vm.onFinancialYearChanged(v);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
+                DocumentSeriesSelector<int>(
                   labelText: 'Document Series',
                   mappedItems: vm.seriesOptions
                       .where((x) => x.id != null)

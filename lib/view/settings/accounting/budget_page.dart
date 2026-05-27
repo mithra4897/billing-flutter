@@ -203,22 +203,6 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int?>.fromMapped(
-                  labelText: 'Financial year (optional)',
-                  mappedItems: <AppDropdownItem<int?>>[
-                    const AppDropdownItem<int?>(value: null, label: 'None'),
-                    ...controller.years
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem<int?>(
-                            value: item.id,
-                            label: item.toString(),
-                          ),
-                        ),
-                  ],
-                  initialValue: controller.financialYearId,
-                  onChanged: controller.setFinancialYearId,
-                ),
                 AppFormTextField(
                   labelText: 'Budget code',
                   controller: controller.codeController,

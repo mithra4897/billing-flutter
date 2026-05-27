@@ -27,12 +27,11 @@ class _MaintenanceWorkOrderPageState extends State<MaintenanceWorkOrderPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('MaintenanceWorkOrderViewModel');
+    _controllerTag = persistentControllerTag('MaintenanceWorkOrderViewModel');
     _viewModel = Get.put(
       MaintenanceWorkOrderViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -339,26 +338,6 @@ class _MaintenanceWorkOrderEditor extends StatelessWidget {
                     validator: Validators.requiredSelection('Asset'),
                   ),
 
-                  AppDropdownField<int?>.fromMapped(
-                    labelText: 'Financial year',
-                    mappedItems: [
-                      const AppDropdownItem<int?>(value: null, label: '-'),
-                      ...vm.financialYearOptions
-                          .where((fy) => fy.id != null)
-                          .map(
-                            (fy) => AppDropdownItem<int?>(
-                              value: fy.id,
-                              label: fy.toString(),
-                            ),
-                          ),
-                    ],
-                    initialValue: vm.financialYearId,
-                    onChanged: (int? v) {
-                      if (vm.canEdit) {
-                        vm.setFinancialYearId(v);
-                      }
-                    },
-                  ),
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Maintenance request',
                     mappedItems: [

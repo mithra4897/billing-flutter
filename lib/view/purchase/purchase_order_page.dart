@@ -177,149 +177,141 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                 children: [
                   SettingsFormWrap(
                     children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Financial Year',
-                  mappedItems: controller.financialYears
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
+                      DocumentSeriesSelector<int>(
+                        labelText: 'Document Series',
+                        mappedItems: controller
+                            .seriesOptions()
+                            .where((item) => item.id != null)
+                            .map(
+                              (item) => AppDropdownItem(
+                                value: item.id!,
+                                label: item.toString(),
+                              ),
+                            )
+                            .toList(growable: false),
+                        initialValue: controller.documentSeriesId,
+                        onChanged: controller.setDocumentSeriesId,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Order No',
+                        controller: controller.orderNoController,
+                        hintText: 'Auto-generated on save',
+                        validator: Validators.optionalMaxLength(
+                          100,
+                          'Order No',
                         ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.financialYearId,
-                  onChanged: controller.setFinancialYearId,
-                  validator: Validators.requiredSelection('Financial Year'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Document Series',
-                  mappedItems: controller
-                      .seriesOptions()
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.documentSeriesId,
-                  onChanged: controller.setDocumentSeriesId,
-                ),
-                AppFormTextField(
-                  labelText: 'Order No',
-                  controller: controller.orderNoController,
-                  hintText: 'Auto-generated on save',
-                  validator: Validators.optionalMaxLength(100, 'Order No'),
-                ),
-                AppFormTextField(
-                  labelText: 'Order Date',
-                  controller: controller.orderDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([
-                    Validators.required('Order Date'),
-                    Validators.date('Order Date'),
-                  ]),
-                ),
-                AppFormTextField(
-                  labelText: 'Expected Receipt Date',
-                  controller: controller.expectedReceiptDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.compose([
-                    Validators.optionalDate('Expected Receipt Date'),
-                    Validators.optionalDateOnOrAfter(
-                      'Expected Receipt Date',
-                      () => controller.orderDateController.text.trim(),
-                      startFieldName: 'Order Date',
-                    ),
-                  ]),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Supplier',
-                  mappedItems: <AppDropdownItem<int>>[
-                    const AppDropdownItem(
-                      value: PurchaseOrderManagementController.allSelectionId,
-                      label: 'All',
-                    ),
-                    ...controller.filteredSupplierOptions
-                        .where((item) => item.id != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: item.id!,
-                            label: item.toString(),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Order Date',
+                        controller: controller.orderDateController,
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.compose([
+                          Validators.required('Order Date'),
+                          Validators.date('Order Date'),
+                        ]),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Expected Receipt Date',
+                        controller: controller.expectedReceiptDateController,
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.compose([
+                          Validators.optionalDate('Expected Receipt Date'),
+                          Validators.optionalDateOnOrAfter(
+                            'Expected Receipt Date',
+                            () => controller.orderDateController.text.trim(),
+                            startFieldName: 'Order Date',
                           ),
-                        ),
-                  ],
-                  initialValue: controller.supplierPartyId,
-                  onChanged: controller.handleSupplierChanged,
-                  validator: Validators.requiredSelection('Supplier'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Requisition',
-                  mappedItems: <AppDropdownItem<int>>[
-                    const AppDropdownItem(
-                      value: PurchaseOrderManagementController.allSelectionId,
-                      label: 'All',
-                    ),
-                    ...controller.filteredRequisitionOptions
-                        .where((item) => intValue(item.toJson(), 'id') != null)
-                        .map(
-                          (item) => AppDropdownItem(
-                            value: intValue(item.toJson(), 'id')!,
-                            label: stringValue(
-                              item.toJson(),
-                              'requisition_no',
-                              'Requisition',
-                            ),
+                        ]),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Supplier',
+                        mappedItems: <AppDropdownItem<int>>[
+                          const AppDropdownItem(
+                            value: PurchaseOrderManagementController
+                                .allSelectionId,
+                            label: 'All',
                           ),
+                          ...controller.filteredSupplierOptions
+                              .where((item) => item.id != null)
+                              .map(
+                                (item) => AppDropdownItem(
+                                  value: item.id!,
+                                  label: item.toString(),
+                                ),
+                              ),
+                        ],
+                        initialValue: controller.supplierPartyId,
+                        onChanged: controller.handleSupplierChanged,
+                        validator: Validators.requiredSelection('Supplier'),
+                      ),
+                      AppDropdownField<int>.fromMapped(
+                        labelText: 'Requisition',
+                        mappedItems: <AppDropdownItem<int>>[
+                          const AppDropdownItem(
+                            value: PurchaseOrderManagementController
+                                .allSelectionId,
+                            label: 'All',
+                          ),
+                          ...controller.filteredRequisitionOptions
+                              .where(
+                                (item) => intValue(item.toJson(), 'id') != null,
+                              )
+                              .map(
+                                (item) => AppDropdownItem(
+                                  value: intValue(item.toJson(), 'id')!,
+                                  label: stringValue(
+                                    item.toJson(),
+                                    'requisition_no',
+                                    'Requisition',
+                                  ),
+                                ),
+                              ),
+                        ],
+                        initialValue: controller.purchaseRequisitionId,
+                        onChanged: controller.handleRequisitionChanged,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Supplier Ref No',
+                        controller: controller.supplierReferenceNoController,
+                        validator: Validators.optionalMaxLength(
+                          100,
+                          'Supplier Ref No',
                         ),
-                  ],
-                  initialValue: controller.purchaseRequisitionId,
-                  onChanged: controller.handleRequisitionChanged,
-                ),
-                AppFormTextField(
-                  labelText: 'Supplier Ref No',
-                  controller: controller.supplierReferenceNoController,
-                  validator: Validators.optionalMaxLength(
-                    100,
-                    'Supplier Ref No',
-                  ),
-                ),
-                AppFormTextField(
-                  labelText: 'Supplier Ref Date',
-                  controller: controller.supplierReferenceDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  validator: Validators.optionalDate('Supplier Ref Date'),
-                ),
-                AppFormTextField(
-                  labelText: 'Currency',
-                  controller: controller.currencyCodeController,
-                  validator: Validators.optionalMaxLength(10, 'Currency'),
-                ),
-                AppFormTextField(
-                  labelText: 'Exchange Rate',
-                  controller: controller.exchangeRateController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  validator: Validators.optionalNonNegativeNumber(
-                    'Exchange Rate',
-                  ),
-                ),
-                AppFormTextField(
-                  labelText: 'Notes',
-                  controller: controller.notesController,
-                  maxLines: 3,
-                ),
-                AppFormTextField(
-                  labelText: 'Terms & Conditions',
-                  controller: controller.termsController,
-                  maxLines: 3,
-                ),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Supplier Ref Date',
+                        controller: controller.supplierReferenceDateController,
+                        keyboardType: TextInputType.datetime,
+                        inputFormatters: const [DateInputFormatter()],
+                        validator: Validators.optionalDate('Supplier Ref Date'),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Currency',
+                        controller: controller.currencyCodeController,
+                        validator: Validators.optionalMaxLength(10, 'Currency'),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Exchange Rate',
+                        controller: controller.exchangeRateController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: Validators.optionalNonNegativeNumber(
+                          'Exchange Rate',
+                        ),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Notes',
+                        controller: controller.notesController,
+                        maxLines: 3,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Terms & Conditions',
+                        controller: controller.termsController,
+                        maxLines: 3,
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppUiConstants.spacingMd),
@@ -333,9 +325,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     children: [
                       Text(
                         'Lines',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const Spacer(),
                       AppActionButton(
@@ -350,155 +341,161 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                   ),
                   const SizedBox(height: AppUiConstants.spacingSm),
                   ...List<Widget>.generate(controller.lines.length, (index) {
-              final line = controller.lines[index];
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
-                ),
-                child: PurchaseCompactLineCard(
-                  index: index,
-                  total: controller.lines.length,
-                  removeEnabled: controller.lines.length > 1,
-                  onRemove: () => controller.removeLine(index),
-                  child: PurchaseCompactFieldGrid(
-                    children: [
-                      AppSearchPickerField<int>(
-                        labelText: 'Item',
-                        selectedLabel: controller.itemsLookup
-                            .cast<ItemModel?>()
-                            .firstWhere(
-                              (item) => item?.id == line.itemId,
-                              orElse: () => null,
-                            )
-                            ?.toString(),
-                        options: controller.purchasableItemOptions
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                                subtitle: item.itemCode,
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) =>
-                            controller.setLineItemId(line, value),
-                        validator: (_) => Validators.requiredSelectionField(
-                          line.itemId,
-                          'Item',
-                        ),
+                    final line = controller.lines[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: AppUiConstants.spacingSm,
                       ),
-                      Builder(
-                        builder: (context) {
-                          final options = controller.uomOptionsForItem(
-                            line.itemId,
-                          );
-                          if (options.length == 1) {
-                            final onlyId = options.first.id;
-                            if (line.uomId != onlyId) {
-                              line.uomId = onlyId;
-                            }
-                          }
-                          return AppDropdownField<int>.fromMapped(
-                            labelText: 'UOM',
-                            mappedItems: options
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
+                      child: PurchaseCompactLineCard(
+                        index: index,
+                        total: controller.lines.length,
+                        removeEnabled: controller.lines.length > 1,
+                        onRemove: () => controller.removeLine(index),
+                        child: PurchaseCompactFieldGrid(
+                          children: [
+                            AppSearchPickerField<int>(
+                              labelText: 'Item',
+                              selectedLabel: controller.itemsLookup
+                                  .cast<ItemModel?>()
+                                  .firstWhere(
+                                    (item) => item?.id == line.itemId,
+                                    orElse: () => null,
+                                  )
+                                  ?.toString(),
+                              options: controller.purchasableItemOptions
+                                  .where((item) => item.id != null)
+                                  .map(
+                                    (item) => AppSearchPickerOption<int>(
+                                      value: item.id!,
+                                      label: item.toString(),
+                                      subtitle: item.itemCode,
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              onChanged: (value) =>
+                                  controller.setLineItemId(line, value),
+                              validator: (_) =>
+                                  Validators.requiredSelectionField(
+                                    line.itemId,
+                                    'Item',
                                   ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.uomId,
-                            onChanged: (value) =>
-                                controller.setLineUomId(line, value),
-                            validator: (_) =>
-                                Validators.dependentSelectionField(
-                                  prerequisite: line.itemId,
-                                  prerequisiteName: 'item',
-                                  value: line.uomId,
-                                  fieldName: 'UOM',
+                            ),
+                            Builder(
+                              builder: (context) {
+                                final options = controller.uomOptionsForItem(
+                                  line.itemId,
+                                );
+                                if (options.length == 1) {
+                                  final onlyId = options.first.id;
+                                  if (line.uomId != onlyId) {
+                                    line.uomId = onlyId;
+                                  }
+                                }
+                                return AppDropdownField<int>.fromMapped(
+                                  labelText: 'UOM',
+                                  mappedItems: options
+                                      .where((item) => item.id != null)
+                                      .map(
+                                        (item) => AppDropdownItem(
+                                          value: item.id!,
+                                          label: item.toString(),
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                  initialValue: line.uomId,
+                                  onChanged: (value) =>
+                                      controller.setLineUomId(line, value),
+                                  validator: (_) =>
+                                      Validators.dependentSelectionField(
+                                        prerequisite: line.itemId,
+                                        prerequisiteName: 'item',
+                                        value: line.uomId,
+                                        fieldName: 'UOM',
+                                      ),
+                                );
+                              },
+                            ),
+                            AppDropdownField<int>.fromMapped(
+                              labelText: 'Warehouse',
+                              mappedItems: controller.warehouses
+                                  .where((item) => item.id != null)
+                                  .map(
+                                    (item) => AppDropdownItem(
+                                      value: item.id!,
+                                      label: item.toString(),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              initialValue: line.warehouseId,
+                              onChanged: (value) =>
+                                  controller.setLineWarehouseId(line, value),
+                            ),
+                            AppFormTextField(
+                              labelText: 'Ordered Qty',
+                              controller: line.qtyController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: Validators.compose([
+                                Validators.required('Ordered Qty'),
+                                Validators.optionalNonNegativeNumber(
+                                  'Ordered Qty',
                                 ),
-                          );
-                        },
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Warehouse',
-                        mappedItems: controller.warehouses
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem(
-                                value: item.id!,
-                                label: item.toString(),
+                              ]),
+                            ),
+                            AppFormTextField(
+                              labelText: 'Rate',
+                              controller: line.rateController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: Validators.compose([
+                                Validators.required('Rate'),
+                                Validators.optionalNonNegativeNumber('Rate'),
+                              ]),
+                            ),
+                            AppFormTextField(
+                              labelText: 'Discount %',
+                              controller: line.discountController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: Validators.optionalNonNegativeNumber(
+                                'Discount %',
                               ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.warehouseId,
-                        onChanged: (value) =>
-                            controller.setLineWarehouseId(line, value),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Ordered Qty',
-                        controller: line.qtyController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.compose([
-                          Validators.required('Ordered Qty'),
-                          Validators.optionalNonNegativeNumber('Ordered Qty'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Rate',
-                        controller: line.rateController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.compose([
-                          Validators.required('Rate'),
-                          Validators.optionalNonNegativeNumber('Rate'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Discount %',
-                        controller: line.discountController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.optionalNonNegativeNumber(
-                          'Discount %',
+                            ),
+                            AppDropdownField<int>.fromMapped(
+                              labelText: 'Tax Code',
+                              mappedItems: controller.taxCodes
+                                  .where((item) => item.id != null)
+                                  .map(
+                                    (item) => AppDropdownItem(
+                                      value: item.id!,
+                                      label: item.toString(),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              initialValue: line.taxCodeId,
+                              onChanged: (value) =>
+                                  controller.setLineTaxCodeId(line, value),
+                            ),
+                            AppFormTextField(
+                              labelText: 'Description',
+                              controller: line.descriptionController,
+                            ),
+                            AppFormTextField(
+                              labelText: 'Remarks',
+                              controller: line.remarksController,
+                              maxLines: 2,
+                            ),
+                          ],
                         ),
                       ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Tax Code',
-                        mappedItems: controller.taxCodes
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.taxCodeId,
-                        onChanged: (value) =>
-                            controller.setLineTaxCodeId(line, value),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Description',
-                        controller: line.descriptionController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Remarks',
-                        controller: line.remarksController,
-                        maxLines: 2,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+                    );
+                  }),
                   const SizedBox(height: AppUiConstants.spacingMd),
                   GstSummaryCard(
                     taxable: taxSummary.taxable,
@@ -508,7 +505,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     cess: 0,
                     total: taxSummary.total,
                     currencyCode: currency,
-                    subtitle: 'Live totals for the current purchase order lines.',
+                    subtitle:
+                        'Live totals for the current purchase order lines.',
                   ),
                 ],
               ),
@@ -526,10 +524,12 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     final status = stringValue(selectedData, 'order_status');
                     final canPost =
                         controller.selectedItem != null && status == 'draft';
-                    final canClose = controller.selectedItem != null &&
+                    final canClose =
+                        controller.selectedItem != null &&
                         status != 'closed' &&
                         status != 'cancelled';
-                    final canCancel = controller.selectedItem != null &&
+                    final canCancel =
+                        controller.selectedItem != null &&
                         status != 'fully_received' &&
                         status != 'fully_invoiced' &&
                         status != 'closed' &&

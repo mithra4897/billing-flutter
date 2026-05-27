@@ -33,7 +33,7 @@ class _StockTransferPageState extends State<StockTransferPage> {
       StockTransferViewModel(initialItemId: widget.initialItemId)
         ..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -204,25 +204,7 @@ class _StockTransferEditor extends StatelessWidget {
             ],
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Financial Year',
-                  mappedItems: vm.financialYears
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem<int>(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: vm.financialYearId,
-                  validator: Validators.requiredSelection('Financial Year'),
-                  onChanged: (value) {
-                    if (!canEdit) return;
-                    vm.onFinancialYearChanged(value);
-                  },
-                ),
-                AppDropdownField<int>.fromMapped(
+                DocumentSeriesSelector<int>(
                   labelText: 'Document Series',
                   mappedItems: vm.seriesOptions
                       .where((item) => item.id != null)
