@@ -1188,11 +1188,33 @@ Future<ErpDashboardSnapshot> _loadPurchaseDashboard({
   ErpDashboardTrendFilter? trendFilter,
 }) async {
   final service = PurchaseService();
+  final inventoryService = InventoryService();
   final responses = await Future.wait<dynamic>([
-    service.requisitions(filters: const {'per_page': 100}),
-    service.orders(filters: const {'per_page': 100}),
-    service.receipts(filters: const {'per_page': 100}),
-    service.invoices(filters: const {'per_page': 100}),
+    _safePaginated(
+      () => service.requisitions(
+        filters: const {'per_page': 100, 'sort_by': 'requisition_date'},
+      ),
+    ),
+    _safePaginated(
+      () => service.orders(
+        filters: const {'per_page': 100, 'sort_by': 'order_date'},
+      ),
+    ),
+    _safePaginated(
+      () => service.receipts(
+        filters: const {'per_page': 100, 'sort_by': 'receipt_date'},
+      ),
+    ),
+    _safePaginated(
+      () => service.invoices(
+        filters: const {'per_page': 100, 'sort_by': 'invoice_date'},
+      ),
+    ),
+    _safePaginated(
+      () => inventoryService.stockBalances(
+        filters: const {'per_page': 100, 'sort_by': 'item_name'},
+      ),
+    ),
   ]);
 
   final requisitions =
@@ -1200,161 +1222,359 @@ Future<ErpDashboardSnapshot> _loadPurchaseDashboard({
   final orders = responses[1] as PaginatedResponse<PurchaseOrderModel>;
   final receipts = responses[2] as PaginatedResponse<PurchaseReceiptModel>;
   final invoices = responses[3] as PaginatedResponse<PurchaseInvoiceModel>;
+  final stockBalances = responses[4] as PaginatedResponse<StockBalanceModel>;
 
-  final orderRows = orders.data ?? const <PurchaseOrderModel>[];
-  final pendingOrders = orderRows
-      .where(
-        (item) =>
-            !_isClosedStatus(item.toJson(), const ['order_status', 'status']),
-      )
-      .length;
-  final dueToday = orderRows
-      .where(
-        (item) =>
-            _isToday(item.toJson(), const ['order_date', 'expected_date']),
-      )
-      .length;
   final requisitionRows =
       requisitions.data ?? const <PurchaseRequisitionModel>[];
+  final orderRows = orders.data ?? const <PurchaseOrderModel>[];
+  final receiptRows = receipts.data ?? const <PurchaseReceiptModel>[];
+  final invoiceRows = invoices.data ?? const <PurchaseInvoiceModel>[];
+  final stockRows = stockBalances.data ?? const <StockBalanceModel>[];
+
+  final requisitionJsonRows = requisitionRows
+      .map((item) => _safeMap(item.toJson))
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+  final orderJsonRows = orderRows
+      .map((item) => _safeMap(item.toJson))
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+  final receiptJsonRows = receiptRows
+      .map((item) => _safeMap(item.toJson))
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+  final invoiceJsonRows = invoiceRows
+      .map((item) => _safeMap(item.toJson))
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
+
+  final thisMonthPurchaseValue = orderRows
+      .where((item) => _isInCurrentMonth(item.toJson(), const ['order_date']))
+      .fold<double>(0, (sum, item) => sum + (item.totalAmount ?? 0));
+  final pendingOrders = orderJsonRows
+      .where((item) => !_isClosedStatus(item, const ['order_status', 'status']))
+      .length;
+  final vendorPayables = invoiceRows.fold<double>(
+    0,
+    (sum, item) => sum + ((item.balanceAmount ?? item.totalAmount) ?? 0),
+  );
+  final delayedDeliveries = orderRows.where((item) {
+    final json = item.toJson();
+    final status = _statusLabel(json, const [
+      'order_status',
+      'status',
+    ]).toLowerCase();
+    if (_statusIndicatesDelivered(status) ||
+        _statusIndicatesCancelled(status)) {
+      return false;
+    }
+    return _isOverdue(json, const ['expected_receipt_date']);
+  }).length;
+  final lowStockItems = stockRows.where(_isLowStockBalance).length;
+
+  final prPendingCount = requisitionJsonRows.where((item) {
+    final status = _statusLabel(item, const [
+      'requisition_status',
+      'status',
+    ]).toLowerCase();
+    return !_statusIndicatesClosed(status) && !status.contains('approved');
+  }).length;
+  final poOpenCount = pendingOrders;
+  final grnPendingCount = orderRows.where((item) {
+    final status = _statusLabel(item.toJson(), const [
+      'order_status',
+      'status',
+    ]).toLowerCase();
+    return !_statusIndicatesClosed(status) &&
+        !_statusIndicatesDelivered(status);
+  }).length;
+  final billsPendingCount = invoiceRows.where((item) {
+    final status = (item.invoiceStatus ?? '').trim().toLowerCase();
+    final balance = item.balanceAmount ?? item.totalAmount ?? 0;
+    return !_statusIndicatesCancelled(status) && balance > 0;
+  }).length;
+  final paymentPendingCount = billsPendingCount;
+  final lowStockRows = stockRows
+      .where(_isLowStockBalance)
+      .take(4)
+      .map(
+        (item) => ErpDashboardListItem(
+          title: item.toString(),
+          subtitle: [
+            if (item.warehouseName?.trim().isNotEmpty == true)
+              item.warehouseName!,
+            'Current ${_formatQuantity(item.qtyAvailable ?? item.qtyOnHand ?? 0)}',
+          ].join(' • '),
+          detail: _buildSuggestedReorderDetail(item),
+          statusLabel: 'LOW STOCK',
+          statusColor: const Color(0xFFDA4D78),
+          route: '/inventory/stock-balance',
+        ),
+      )
+      .toList(growable: false);
+  final overdueOrders = orderRows
+      .where(
+        (item) => _isOverdue(item.toJson(), const ['expected_receipt_date']),
+      )
+      .take(4)
+      .map(
+        (item) => ErpDashboardListItem(
+          title: item.orderNo ?? 'Purchase order',
+          subtitle: [
+            _supplierName(item.toJson()),
+            displayDate(item.expectedReceiptDate),
+          ].where((part) => part.trim().isNotEmpty).join(' • '),
+          detail: _formatCurrency(item.totalAmount),
+          statusLabel: 'DELAYED',
+          statusColor: const Color(0xFFDA4D78),
+          route: _recordRoute('/purchase/orders', item.toJson()),
+        ),
+      )
+      .toList(growable: false);
+  final recentPurchases = <ErpDashboardListItem>[
+    ...orderRows
+        .take(3)
+        .map(
+          (item) => ErpDashboardListItem(
+            title: item.orderNo ?? 'Purchase order',
+            subtitle: [
+              _supplierName(item.toJson()),
+              displayDate(item.orderDate),
+            ].where((part) => part.trim().isNotEmpty).join(' • '),
+            detail: _formatCurrency(item.totalAmount),
+            statusLabel: _statusLabel(item.toJson(), const [
+              'order_status',
+              'status',
+            ]),
+            route: _recordRoute('/purchase/orders', item.toJson()),
+          ),
+        ),
+    ...invoiceRows
+        .take(2)
+        .map(
+          (item) => ErpDashboardListItem(
+            title: item.invoiceNo ?? 'Purchase bill',
+            subtitle: [
+              _supplierName(item.toJson()),
+              displayDate(item.invoiceDate),
+            ].where((part) => part.trim().isNotEmpty).join(' • '),
+            detail: _formatCurrency(item.totalAmount),
+            statusLabel: _statusLabel(item.toJson(), const [
+              'invoice_status',
+              'status',
+            ]),
+            route: _recordRoute('/purchase/invoices', item.toJson()),
+          ),
+        ),
+  ];
+  final alerts = <ErpDashboardListItem>[
+    if (delayedDeliveries > 0)
+      ErpDashboardListItem(
+        title: 'Delayed deliveries need supplier follow-up',
+        subtitle:
+            '$delayedDeliveries purchase orders are past expected receipt date.',
+        detail: 'Escalate delayed suppliers and reschedule receipts.',
+        statusLabel: 'HIGH',
+        statusColor: const Color(0xFFDA4D78),
+        route: '/purchase/orders?dashboard_filter=delayed',
+      ),
+    if (lowStockItems > 0)
+      ErpDashboardListItem(
+        title: 'Low stock items may require urgent buying',
+        subtitle:
+            '$lowStockItems items are at or below available stock threshold.',
+        detail: 'Review inventory and raise new requisitions or orders.',
+        statusLabel: 'MEDIUM',
+        statusColor: const Color(0xFFE67E22),
+        route: '/inventory/stock-balance',
+      ),
+    if (paymentPendingCount > 0)
+      ErpDashboardListItem(
+        title: 'Vendor bills are pending payment',
+        subtitle:
+            '$paymentPendingCount supplier invoices still have open balances.',
+        detail: 'Outstanding payables: ${_formatCurrency(vendorPayables)}',
+        statusLabel: 'PAYABLE',
+        statusColor: const Color(0xFF19A7B8),
+        route: '/purchase/invoices',
+      ),
+  ];
 
   return ErpDashboardSnapshot(
     title: 'Purchase Dashboard',
-    subtitle: 'Live procurement flow with the shared ERP dashboard layout.',
+    subtitle: 'Crisp purchase view for fast daily analysis.',
     actions: const <ErpDashboardAction>[
       ErpDashboardAction(
-        label: 'Open requisitions',
-        icon: Icons.playlist_add_check_outlined,
-        route: '/purchase/requisitions',
-      ),
-      ErpDashboardAction(
-        label: 'Open orders',
+        label: 'Create Purchase Order',
         icon: Icons.shopping_bag_outlined,
         route: '/purchase/orders',
+      ),
+      ErpDashboardAction(
+        label: 'Record GRN',
+        icon: Icons.move_to_inbox_outlined,
+        route: '/purchase/receipts',
+      ),
+      ErpDashboardAction(
+        label: 'Upload Bill',
+        icon: Icons.receipt_long_outlined,
+        route: '/purchase/invoices',
       ),
     ],
     stats: <ErpDashboardStat>[
       ErpDashboardStat(
-        label: 'Total Requisitions',
-        value: _formatInt(_totalFromPaginated(requisitions)),
-        helper: 'Live purchasing demand',
-        icon: Icons.inventory_outlined,
+        label: 'This Month Purchase',
+        value: _formatCurrency(thisMonthPurchaseValue),
+        helper: 'Monthly purchase amount',
+        icon: Icons.calendar_month_outlined,
       ),
       ErpDashboardStat(
-        label: 'Pending Orders',
+        label: 'Pending PO',
         value: _formatInt(pendingOrders),
-        helper: 'Purchase orders not yet closed',
+        helper: 'Ordered but not fully received',
         icon: Icons.pending_actions_outlined,
         color: const Color(0xFFE67E22),
       ),
       ErpDashboardStat(
-        label: 'Due Today',
-        value: _formatInt(dueToday),
-        helper: 'Expected or scheduled today',
-        icon: Icons.today_outlined,
+        label: 'Pending GRN',
+        value: _formatInt(grnPendingCount),
+        helper: 'Deliveries waiting to be recorded',
+        icon: Icons.move_to_inbox_outlined,
+        color: const Color(0xFF8E5CFF),
+      ),
+      ErpDashboardStat(
+        label: 'Vendor Payables',
+        value: _formatCurrency(vendorPayables),
+        helper: 'Open amount to be paid',
+        icon: Icons.account_balance_wallet_outlined,
         color: const Color(0xFFDA4D78),
       ),
       ErpDashboardStat(
-        label: 'Open Receipts',
-        value: _formatInt(_totalFromPaginated(receipts)),
-        helper: 'Receiving workload snapshot',
-        icon: Icons.move_to_inbox_outlined,
-        color: const Color(0xFF19A7B8),
+        label: 'Low Stock Items',
+        value: _formatInt(lowStockItems),
+        helper: 'Need urgent purchase review',
+        icon: Icons.warning_amber_rounded,
+        color: const Color(0xFFE67E22),
       ),
     ],
     primarySections: <ErpDashboardListSection>[
       ErpDashboardListSection(
-        title: 'Recent Procurement Tasks',
-        subtitle: 'Latest requisitions and orders from live purchase APIs.',
-        icon: Icons.assignment_outlined,
+        title: 'Purchase Flow Status',
+        subtitle: 'Only the core operational counts that need daily attention.',
+        icon: Icons.account_tree_outlined,
         items: <ErpDashboardListItem>[
-          ...requisitionRows
+          ErpDashboardListItem(
+            title: 'Purchase Request Pending',
+            subtitle: '$prPendingCount requests still need action.',
+            statusLabel: _formatInt(prPendingCount),
+            statusColor: const Color(0xFFE67E22),
+            route: '/purchase/requisitions',
+          ),
+          ErpDashboardListItem(
+            title: 'Purchase Orders Open',
+            subtitle: '$poOpenCount orders are still active.',
+            statusLabel: _formatInt(poOpenCount),
+            statusColor: const Color(0xFF19A7B8),
+            route: '/purchase/orders',
+          ),
+          ErpDashboardListItem(
+            title: 'GRN Pending',
+            subtitle: '$grnPendingCount orders are still awaiting receipts.',
+            statusLabel: _formatInt(grnPendingCount),
+            statusColor: const Color(0xFFDA4D78),
+            route: '/purchase/receipts',
+          ),
+          ErpDashboardListItem(
+            title: 'Bills Pending',
+            subtitle:
+                '$billsPendingCount supplier invoices still have open balance.',
+            statusLabel: _formatInt(billsPendingCount),
+            statusColor: const Color(0xFFE67E22),
+            route: '/purchase/invoices',
+          ),
+          ErpDashboardListItem(
+            title: 'Payment Pending',
+            subtitle: '$paymentPendingCount supplier payments remain open.',
+            statusLabel: _formatInt(paymentPendingCount),
+            statusColor: const Color(0xFF2F6FED),
+            route: '/purchase/invoices',
+          ),
+        ],
+      ),
+      ErpDashboardListSection(
+        title: 'Pending Actions',
+        subtitle: 'What the purchase team should act on today.',
+        icon: Icons.assignment_late_outlined,
+        items: <ErpDashboardListItem>[
+          ...overdueOrders,
+          ...invoiceRows
+              .where(
+                (item) => (item.balanceAmount ?? item.totalAmount ?? 0) > 0,
+              )
               .take(3)
               .map(
-                (requisition) => ErpDashboardListItem(
-                  title: stringValue(
-                    requisition.toJson(),
-                    'requisition_no',
-                    'Purchase requisition',
-                  ),
-                  subtitle: displayDate(
-                    nullableStringValue(
-                      requisition.toJson(),
-                      'requisition_date',
-                    ),
-                  ),
-                  detail: nullableStringValue(requisition.toJson(), 'remarks'),
-                  statusLabel: _statusLabel(requisition.toJson(), const [
-                    'requisition_status',
-                    'status',
-                  ]),
-                  route: _recordRoute(
-                    '/purchase/requisitions',
-                    requisition.toJson(),
-                  ),
-                ),
-              ),
-          ...orderRows
-              .take(3)
-              .map(
-                (order) => ErpDashboardListItem(
-                  title: stringValue(
-                    order.toJson(),
-                    'order_no',
-                    'Purchase order',
-                  ),
-                  subtitle: displayDate(
-                    nullableStringValue(order.toJson(), 'order_date'),
-                  ),
-                  detail: nullableStringValue(order.toJson(), 'remarks'),
-                  statusLabel: _statusLabel(order.toJson(), const [
-                    'order_status',
-                    'status',
-                  ]),
-                  route: _recordRoute('/purchase/orders', order.toJson()),
+                (item) => ErpDashboardListItem(
+                  title: item.invoiceNo ?? 'Supplier bill pending',
+                  subtitle: [
+                    _supplierName(item.toJson()),
+                    if ((item.dueDate ?? '').trim().isNotEmpty)
+                      'Due ${displayDate(item.dueDate)}',
+                  ].join(' • '),
+                  detail:
+                      'Open ${_formatCurrency(item.balanceAmount ?? item.totalAmount)}',
+                  statusLabel: _invoicePaymentStatus(item),
+                  statusColor: _invoicePaymentStatusColor(item),
+                  route: _recordRoute('/purchase/invoices', item.toJson()),
                 ),
               ),
         ],
+        emptyTitle: 'No pending purchase actions',
+        emptyMessage: 'All current purchase tasks look under control.',
+      ),
+      ErpDashboardListSection(
+        title: 'Recent Purchases',
+        subtitle: 'Latest orders and bills raised with suppliers.',
+        icon: Icons.history_toggle_off_outlined,
+        items: recentPurchases,
+        emptyTitle: 'No recent purchases yet',
+        emptyMessage: 'Recent purchase documents will appear here.',
+      ),
+      ErpDashboardListSection(
+        title: 'Low Stock Focus',
+        subtitle: 'Urgent stock items that may need new buying.',
+        icon: Icons.inventory_2_outlined,
+        items: lowStockRows.isNotEmpty ? lowStockRows : alerts.take(2).toList(),
+        emptyTitle: 'No stock or delivery alerts right now',
+        emptyMessage: 'Purchase and inventory look under control.',
       ),
     ],
     trend: _buildMonthlyTrendCard(
       title: 'Monthly Purchase Trend',
       subtitle:
-          'Live monthly procurement activity from requisitions, orders, receipts, and invoices.',
+          'Procurement flow over time from requisitions, orders, receipts, and bills.',
       color: const Color(0xFF19A7B8),
       trendFilter: trendFilter,
       sources: <_TrendSource>[
         _TrendSource(
-          records: requisitionRows.map((item) => item.toJson()),
-          dateKeys: const ['requisition_date', 'created_at'],
+          records: requisitionJsonRows,
+          dateKeys: const ['requisition_date', 'required_date', 'created_at'],
         ),
         _TrendSource(
-          records: orderRows.map((item) => item.toJson()),
-          dateKeys: const ['order_date', 'expected_date', 'created_at'],
+          records: orderJsonRows,
+          dateKeys: const ['order_date', 'expected_receipt_date', 'created_at'],
         ),
         _TrendSource(
-          records: (receipts.data ?? const <PurchaseReceiptModel>[]).map(
-            (item) => item.toJson(),
-          ),
-          dateKeys: const ['receipt_date', 'created_at'],
+          records: receiptJsonRows,
+          dateKeys: const [
+            'receipt_date',
+            'supplier_invoice_date',
+            'created_at',
+          ],
         ),
         _TrendSource(
-          records: (invoices.data ?? const <PurchaseInvoiceModel>[]).map(
-            (item) => item.toJson(),
-          ),
+          records: invoiceJsonRows,
           dateKeys: const ['invoice_date', 'due_date', 'created_at'],
         ),
       ],
-    ),
-    distribution: ErpDashboardDistributionCardData(
-      title: 'Purchase Distribution',
-      subtitle:
-          'Live split across requisitions, orders, receipts, and invoices.',
-      segments: _segmentsFromCounts(<String, int>{
-        'Requisitions': _totalFromPaginated(requisitions),
-        'Orders': _totalFromPaginated(orders),
-        'Receipts': _totalFromPaginated(receipts),
-        'Invoices': _totalFromPaginated(invoices),
-      }),
     ),
   );
 }
@@ -3083,6 +3303,14 @@ String _statusLabel(Map<String, dynamic> data, List<String> keys) {
   return value.trim().isEmpty ? 'OPEN' : value.toUpperCase();
 }
 
+String _supplierName(Map<String, dynamic> data) {
+  final supplier = data['supplier'];
+  if (supplier is Map) {
+    return stringValue(Map<String, dynamic>.from(supplier), 'party_name');
+  }
+  return _firstString(data, const ['supplier_name', 'vendor_name']);
+}
+
 String _customerName(Map<String, dynamic> data) {
   final customer = data['customer'];
   if (customer is Map) {
@@ -3154,6 +3382,103 @@ bool _isClosedStatus(Map<String, dynamic> data, List<String> keys) {
     'reconciled',
     'inactive',
   }.contains(value);
+}
+
+bool _statusIndicatesClosed(String status) {
+  return const <String>{
+    'closed',
+    'cancelled',
+    'completed',
+    'fully_invoiced',
+    'fully_delivered',
+    'posted',
+    'reconciled',
+    'inactive',
+  }.contains(status);
+}
+
+bool _statusIndicatesDelivered(String status) {
+  return status.contains('delivered') ||
+      status.contains('received') ||
+      status.contains('completed') ||
+      status.contains('posted');
+}
+
+bool _statusIndicatesCancelled(String status) {
+  return status.contains('cancelled') || status.contains('void');
+}
+
+bool _isOverdue(Map<String, dynamic> data, List<String> keys) {
+  final parsed = _firstMatchingDate(data, keys);
+  if (parsed == null) {
+    return false;
+  }
+  final today = DateTime.now();
+  final normalizedToday = DateTime(today.year, today.month, today.day);
+  final normalizedParsed = DateTime(parsed.year, parsed.month, parsed.day);
+  return normalizedParsed.isBefore(normalizedToday);
+}
+
+bool _isInCurrentMonth(Map<String, dynamic> data, List<String> keys) {
+  final parsed = _firstMatchingDate(data, keys);
+  if (parsed == null) {
+    return false;
+  }
+  final now = DateTime.now();
+  return parsed.year == now.year && parsed.month == now.month;
+}
+
+String _formatCurrency(double? value) {
+  if (value == null) {
+    return 'Rs 0';
+  }
+  return _crmFormatExpectedValue(value);
+}
+
+String _formatQuantity(double value) {
+  if (value == value.roundToDouble()) {
+    return value.round().toString();
+  }
+  return value.toStringAsFixed(2);
+}
+
+String _buildSuggestedReorderDetail(StockBalanceModel item) {
+  final current = item.qtyAvailable ?? item.qtyOnHand ?? 0.0;
+  final reorder =
+      double.tryParse(stringValue(item.toJson(), 'reorder_level', '0')) ?? 0.0;
+  final suggested = reorder > current ? reorder - current : 0.0;
+  if (suggested > 0) {
+    return 'Suggested qty ${_formatQuantity(suggested)}';
+  }
+  return 'Review replenishment immediately';
+}
+
+String _invoicePaymentStatus(PurchaseInvoiceModel item) {
+  final dueDate = DateTime.tryParse(item.dueDate ?? '');
+  if (dueDate == null) {
+    return 'OPEN';
+  }
+  final today = DateTime.now();
+  final normalizedToday = DateTime(today.year, today.month, today.day);
+  final normalizedDue = DateTime(dueDate.year, dueDate.month, dueDate.day);
+  if (normalizedDue.isBefore(normalizedToday)) {
+    return 'OVERDUE';
+  }
+  if (normalizedDue.difference(normalizedToday).inDays <= 3) {
+    return 'DUE SOON';
+  }
+  return 'OPEN';
+}
+
+Color _invoicePaymentStatusColor(PurchaseInvoiceModel item) {
+  switch (_invoicePaymentStatus(item)) {
+    case 'OVERDUE':
+      return const Color(0xFFDA4D78);
+    case 'DUE SOON':
+      return const Color(0xFFE67E22);
+    default:
+      return const Color(0xFF19A7B8);
+  }
 }
 
 bool _statusContains(
