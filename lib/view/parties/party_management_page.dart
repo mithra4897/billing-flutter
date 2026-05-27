@@ -74,6 +74,8 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   final TextEditingController _searchController = TextEditingController();
   late final TabController _tabController;
   late final String _controllerTag;
+  Timer? _searchDebounce;
+  int _listLoadRequestToken = 0;
 
   final GlobalKey<FormState> _partyFormKey = GlobalKey<FormState>();
   final TextEditingController _partyCodeController = TextEditingController();
@@ -173,6 +175,13 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _partyCodeController.addListener(_handlePartyCodeChanged);
     _searchController.addListener(() {
       _controller.setSearchQuery(_searchController.text);
+      _searchDebounce?.cancel();
+      _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+        if (!mounted) {
+          return;
+        }
+        unawaited(_loadPage(resetPage: true));
+      });
     });
     _controller.activeTabIndex = _tabController.index;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -234,6 +243,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _pageScrollController.dispose();
     _workspaceController.dispose();
     _searchController.dispose();
@@ -309,7 +319,12 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _partyCodeManuallyEdited = true;
   }
 
-  Future<void> _loadPage({int? selectId}) async {
+  Future<void> _loadPage({int? selectId, bool resetPage = false}) async {
+    if (resetPage) {
+      _controller.setPartiesPage(1);
+    }
+
+    final requestToken = ++_listLoadRequestToken;
     _controller.beginPageLoad(showFullLoading: _parties.isEmpty);
 
     try {
@@ -323,11 +338,21 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           'is_active': 1,
         },
       );
+      final sortConfig = _partySortRequest();
       final partiesResponse = await _partiesService.parties(
-        filters: const {'per_page': 100, 'sort_by': 'party_name'},
+        filters: <String, dynamic>{
+          'page': _controller.partiesPage,
+          'per_page': PartyManagementController.partiesPerPage,
+          'sort_by': sortConfig['sort_by'],
+          'sort_order': sortConfig['sort_order'],
+          if (_controller.partyTypeFilterId != 0)
+            'party_type_id': _controller.partyTypeFilterId,
+          if (_controller.searchQuery.trim().isNotEmpty)
+            'search': _controller.searchQuery.trim(),
+        },
       );
 
-      if (!mounted) {
+      if (!mounted || requestToken != _listLoadRequestToken) {
         return;
       }
 
@@ -340,6 +365,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         partyTypes: partyTypes,
         documentSeries: documentSeries,
         parties: parties,
+        partiesMeta: partiesResponse.meta,
       );
 
       final selected = selectId != null
@@ -370,55 +396,46 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         }
       }
     } catch (error) {
-      if (!mounted) {
+      if (!mounted || requestToken != _listLoadRequestToken) {
         return;
       }
       _controller.failPageLoad(error.toString());
     }
   }
 
-  List<PartyModel> _computeFilteredParties(List<PartyModel> source) {
-    final filteredByType = _controller.partyTypeFilterId == 0
-        ? source
-        : source
-              .where(
-                (party) => party.partyTypeId == _controller.partyTypeFilterId,
-              )
-              .toList(growable: false);
+  Map<String, String> _partySortRequest() {
+    switch (_controller.partySort) {
+      case 'name_desc':
+        return const <String, String>{
+          'sort_by': 'party_name',
+          'sort_order': 'desc',
+        };
+      case 'code_asc':
+        return const <String, String>{
+          'sort_by': 'party_code',
+          'sort_order': 'asc',
+        };
+      case 'code_desc':
+        return const <String, String>{
+          'sort_by': 'party_code',
+          'sort_order': 'desc',
+        };
+      case 'name_asc':
+      default:
+        return const <String, String>{
+          'sort_by': 'party_name',
+          'sort_order': 'asc',
+        };
+    }
+  }
 
-    final searched = filterMasterList(filteredByType, _controller.searchQuery, (
-      party,
-    ) {
-      return [
-        party.partyCode ?? '',
-        party.partyName ?? '',
-        party.displayName ?? '',
-        party.partyType ?? '',
-        party.website ?? '',
-      ];
-    });
+  void _changePartiesPage(int page) {
+    if (page == _controller.partiesPage) {
+      return;
+    }
 
-    final sorted = searched.toList(growable: false);
-    sorted.sort((left, right) {
-      final leftName = (left.partyName ?? '').toLowerCase();
-      final rightName = (right.partyName ?? '').toLowerCase();
-      final leftCode = (left.partyCode ?? '').toLowerCase();
-      final rightCode = (right.partyCode ?? '').toLowerCase();
-
-      switch (_controller.partySort) {
-        case 'name_desc':
-          return rightName.compareTo(leftName);
-        case 'code_asc':
-          return leftCode.compareTo(rightCode);
-        case 'code_desc':
-          return rightCode.compareTo(leftCode);
-        case 'name_asc':
-        default:
-          return leftName.compareTo(rightName);
-      }
-    });
-
-    return sorted;
+    _controller.setPartiesPage(page);
+    unawaited(_loadPage());
   }
 
   List<AppDropdownItem<int>> _partyTypeFilterItems() {
@@ -1127,8 +1144,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     }
 
     final partyTypeFilterItems = _partyTypeFilterItems();
-    final filteredParties = _computeFilteredParties(_parties);
-
     return SettingsWorkspace(
       controller: _workspaceController,
       title: 'Parties',
@@ -1148,19 +1163,23 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               labelText: 'Party Type',
               mappedItems: partyTypeFilterItems,
               initialValue: _controller.partyTypeFilterId,
-              onChanged: (value) =>
-                  _controller.setPartyTypeFilterId(value ?? 0),
+              onChanged: (value) {
+                _controller.setPartyTypeFilterId(value ?? 0);
+                unawaited(_loadPage(resetPage: true));
+              },
             ),
             const SizedBox(height: 12),
             AppDropdownField<String>.fromMapped(
               labelText: 'Sort',
               mappedItems: _sortItems,
               initialValue: _controller.partySort,
-              onChanged: (value) =>
-                  _controller.setPartySort(value ?? 'name_asc'),
+              onChanged: (value) {
+                _controller.setPartySort(value ?? 'name_asc');
+                unawaited(_loadPage(resetPage: true));
+              },
             ),
             const SizedBox(height: 16),
-            if (filteredParties.isEmpty)
+            if (_parties.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
                 child: Text('No parties found.'),
@@ -1169,10 +1188,10 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: filteredParties.length,
+                itemCount: _parties.length,
                 separatorBuilder: (_, index) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
-                  final party = filteredParties[index];
+                  final party = _parties[index];
                   final selected = identical(party, _selectedParty);
                   return SettingsListTile(
                     title: party.partyName ?? '-',
@@ -1190,6 +1209,18 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                   );
                 },
               ),
+            if (_controller.effectivePartiesMeta.total > 0) ...[
+              const SizedBox(height: 16),
+              ReportPaginationBar(
+                meta: _controller.effectivePartiesMeta,
+                minimalIconOnly: true,
+                perPageOptions: const <int>[
+                  PartyManagementController.partiesPerPage,
+                ],
+                onPerPageChanged: (_) {},
+                onPageChanged: _changePartiesPage,
+              ),
+            ],
           ],
         ),
       ),

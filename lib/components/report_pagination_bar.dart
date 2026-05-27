@@ -7,12 +7,14 @@ class ReportPaginationBar extends StatefulWidget {
     required this.onPerPageChanged,
     required this.onPageChanged,
     this.perPageOptions = const <int>[10, 20, 50],
+    this.minimalIconOnly = false,
   });
 
   final PaginationMeta meta;
   final ValueChanged<int> onPerPageChanged;
   final ValueChanged<int> onPageChanged;
   final List<int> perPageOptions;
+  final bool minimalIconOnly;
 
   @override
   State<ReportPaginationBar> createState() => _ReportPaginationBarState();
@@ -70,35 +72,66 @@ class _ReportPaginationBarState extends State<ReportPaginationBar> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final controls = _buildControlsRow(context, isMobile: isMobile);
-            final summary = Text(
-              'Showing $start-$end of ${widget.meta.total}',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: appTheme.mutedText),
-            );
+        padding: EdgeInsets.all(widget.minimalIconOnly ? 8 : 16),
+        child: widget.minimalIconOnly
+            ? Align(
+                alignment: Alignment.centerRight,
+                child: _buildMinimalControlsRow(context),
+              )
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final controls = _buildControlsRow(
+                    context,
+                    isMobile: isMobile,
+                  );
+                  final summary = Text(
+                    'Showing $start-$end of ${widget.meta.total}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: appTheme.mutedText),
+                  );
 
-            if (preferSingleRow && constraints.maxWidth >= 840) {
-              return Row(children: [summary, const Spacer(), controls]);
-            }
+                  if (preferSingleRow && constraints.maxWidth >= 840) {
+                    return Row(children: [summary, const Spacer(), controls]);
+                  }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                summary,
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: controls,
-                ),
-              ],
-            );
-          },
-        ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      summary,
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: controls,
+                      ),
+                    ],
+                  );
+                },
+              ),
       ),
+    );
+  }
+
+  Widget _buildMinimalControlsRow(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton.outlined(
+          onPressed: widget.meta.currentPage > 1
+              ? () => widget.onPageChanged(widget.meta.currentPage - 1)
+              : null,
+          icon: const Icon(Icons.chevron_left),
+          tooltip: 'Previous page',
+        ),
+        const SizedBox(width: 8),
+        IconButton.outlined(
+          onPressed: widget.meta.currentPage < widget.meta.lastPage
+              ? () => widget.onPageChanged(widget.meta.currentPage + 1)
+              : null,
+          icon: const Icon(Icons.chevron_right),
+          tooltip: 'Next page',
+        ),
+      ],
     );
   }
 

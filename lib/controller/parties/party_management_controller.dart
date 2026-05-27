@@ -3,10 +3,14 @@ import '../../screen.dart';
 class PartyManagementController extends GetxController {
   PartyManagementController();
 
+  static const int partiesPerPage = 20;
+
   int activeTabIndex = 0;
   int partyTypeFilterId = 0;
   String partySort = 'name_asc';
   String searchQuery = '';
+  int partiesPage = 1;
+  PaginationMeta? partiesMeta;
   final Set<String> openDetailDrafts = <String>{};
   bool isCompany = false;
   String openingBalanceType = 'debit';
@@ -70,6 +74,20 @@ class PartyManagementController extends GetxController {
     searchQuery = value;
     update();
   }
+
+  void setPartiesPage(int value) {
+    partiesPage = value;
+    update();
+  }
+
+  PaginationMeta get effectivePartiesMeta =>
+      partiesMeta ??
+      PaginationMeta(
+        currentPage: partiesPage,
+        lastPage: 1,
+        perPage: partiesPerPage,
+        total: parties.length,
+      );
 
   bool isDetailDraftOpen(String sectionKey) {
     return openDetailDrafts.contains(sectionKey);
@@ -197,6 +215,7 @@ class PartyManagementController extends GetxController {
     required List<PartyTypeModel> partyTypes,
     required List<DocumentSeriesModel> documentSeries,
     required List<PartyModel> parties,
+    required PaginationMeta? partiesMeta,
   }) {
     syncPageState(
       initialLoading: false,
@@ -204,6 +223,7 @@ class PartyManagementController extends GetxController {
       partyTypes: partyTypes,
       documentSeries: documentSeries,
       parties: parties,
+      partiesMeta: partiesMeta,
     );
   }
 
@@ -430,6 +450,7 @@ class PartyManagementController extends GetxController {
     List<PartyTypeModel>? partyTypes,
     List<DocumentSeriesModel>? documentSeries,
     List<PartyModel>? parties,
+    PaginationMeta? partiesMeta,
     PartyModel? selectedParty,
     bool clearSelectedParty = false,
     int? partyTypeId,
@@ -485,6 +506,10 @@ class PartyManagementController extends GetxController {
     }
     if (parties != null) {
       this.parties = parties;
+    }
+    if (partiesMeta != null) {
+      this.partiesMeta = partiesMeta;
+      partiesPage = partiesMeta.currentPage;
     }
     if (clearSelectedParty) {
       this.selectedParty = null;
