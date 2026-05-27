@@ -793,6 +793,7 @@ class DocumentDesignerColorField extends StatelessWidget {
     'Slate': 0xFF475569,
     'Black': 0xFF111827,
     'Blue': 0xFF2563EB,
+    'Sky Blue': 0xFFADD0F0,
     'Green': 0xFF059669,
     'Red': 0xFFDC2626,
     'Amber': 0xFFF59E0B,

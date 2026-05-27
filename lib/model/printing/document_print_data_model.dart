@@ -20,6 +20,7 @@ class DocumentPrintDataModel extends JsonModel {
     this.amountInWords = '',
     this.lines = const <DocumentPrintLineModel>[],
     this.gstBreakup = const <DocumentPrintTaxBreakupRowModel>[],
+    this.extraData = const <String, dynamic>{},
   }) : super(id: null);
 
   final String companyName;
@@ -40,8 +41,29 @@ class DocumentPrintDataModel extends JsonModel {
   final String amountInWords;
   final List<DocumentPrintLineModel> lines;
   final List<DocumentPrintTaxBreakupRowModel> gstBreakup;
+  final Map<String, dynamic> extraData;
 
   factory DocumentPrintDataModel.fromJson(Map<String, dynamic> json) {
+    const knownKeys = <String>{
+      'company_name',
+      'company_logo_url',
+      'company_gstin',
+      'document_number',
+      'document_date',
+      'reference_number',
+      'party_name',
+      'party_address',
+      'party_contact',
+      'party_gstin',
+      'notes',
+      'terms_conditions',
+      'subtotal',
+      'tax_amount',
+      'total_amount',
+      'amount_in_words',
+      'lines',
+      'gst_breakup',
+    };
     return DocumentPrintDataModel(
       companyName: json['company_name']?.toString() ?? '',
       companyLogoUrl: json['company_logo_url']?.toString() ?? '',
@@ -67,6 +89,9 @@ class DocumentPrintDataModel extends JsonModel {
           .whereType<Map<String, dynamic>>()
           .map(DocumentPrintTaxBreakupRowModel.fromJson)
           .toList(growable: false),
+      extraData: Map<String, dynamic>.fromEntries(
+        json.entries.where((entry) => !knownKeys.contains(entry.key)),
+      ),
     );
   }
 
@@ -97,6 +122,7 @@ class DocumentPrintDataModel extends JsonModel {
       'gst_breakup': gstBreakup
           .map((row) => row.toJson())
           .toList(growable: false),
+      ...extraData,
     };
   }
 

@@ -220,44 +220,7 @@ Future<void> showPayslipDetailDialog(
   required HrService hr,
   required int id,
 }) async {
-  try {
-    final response = await hr.payslip(id);
-    if (!context.mounted) {
-      return;
-    }
-    if (response.success != true || response.data == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(response.message)));
-      return;
-    }
-    final text = const JsonEncoder.withIndent(
-      '  ',
-    ).convert(response.data!.toJson());
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Payslip #$id'),
-        content: SizedBox(
-          width: 560,
-          height: 420,
-          child: SingleChildScrollView(child: SelectableText(text)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  }
+  await openPayslipPrintPreview(context, hr: hr, payslipId: id);
 }
 
 Future<void> openAttendanceRecordEditor(
@@ -1650,10 +1613,21 @@ Future<void> showPayrollRunDetailDialog(
       ).showSnackBar(SnackBar(content: Text(response.message)));
       return;
     }
-    final snap = response.data!;
-    final data = snap.toJson();
-    final text = const JsonEncoder.withIndent('  ').convert(data);
-    final st = stringValue(data, 'status');
+    final run = response.data!;
+    final st = run.status ?? '';
+    final lineRows = run.lines;
+    final totalGross = lineRows.fold<double>(
+      0,
+      (sum, item) => sum + (item.grossSalary ?? 0),
+    );
+    final totalDeductions = lineRows.fold<double>(
+      0,
+      (sum, item) => sum + (item.totalDeductions ?? 0),
+    );
+    final totalNet = lineRows.fold<double>(
+      0,
+      (sum, item) => sum + (item.netSalary ?? 0),
+    );
 
     await showDialog<void>(
       context: context,
@@ -1661,18 +1635,137 @@ Future<void> showPayrollRunDetailDialog(
         title: Text('Payroll run #$id'),
         content: SizedBox(
           width: 600,
-          height: 440,
+          height: 520,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: SingleChildScrollView(child: SelectableText(text)),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: AppUiConstants.spacingSm,
+                        runSpacing: AppUiConstants.spacingSm,
+                        children: [
+                          _HrInfoChip(label: 'Period', value: run.periodLabel),
+                          _HrInfoChip(
+                            label: 'Run date',
+                            value: displayDate(run.runDate),
+                          ),
+                          _HrInfoChip(label: 'Status', value: st.toUpperCase()),
+                          _HrInfoChip(
+                            label: 'Lines',
+                            value: (run.linesCount ?? lineRows.length)
+                                .toString(),
+                          ),
+                          if (run.voucherId != null)
+                            _HrInfoChip(
+                              label: 'Voucher',
+                              value: (run.voucherNo?.trim().isNotEmpty ?? false)
+                                  ? run.voucherNo!.trim()
+                                  : 'ID ${run.voucherId}',
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingMd),
+                      Text(
+                        'Payroll Totals',
+                        style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingSm),
+                      Wrap(
+                        spacing: AppUiConstants.spacingSm,
+                        runSpacing: AppUiConstants.spacingSm,
+                        children: [
+                          _HrInfoChip(
+                            label: 'Gross',
+                            value: totalGross.toStringAsFixed(2),
+                          ),
+                          _HrInfoChip(
+                            label: 'Deductions',
+                            value: totalDeductions.toStringAsFixed(2),
+                          ),
+                          _HrInfoChip(
+                            label: 'Net',
+                            value: totalNet.toStringAsFixed(2),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingMd),
+                      Text(
+                        'Employee Lines',
+                        style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppUiConstants.spacingSm),
+                      if (lineRows.isEmpty)
+                        const Text('No payroll lines generated yet.')
+                      else
+                        ...lineRows.map(
+                          (line) => Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppUiConstants.spacingSm,
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppUiConstants.buttonRadius,
+                                ),
+                                side: BorderSide(
+                                  color: Theme.of(
+                                    ctx,
+                                  ).dividerColor.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              title: Text(
+                                <String?>[line.employeeName, line.employeeCode]
+                                    .whereType<String>()
+                                    .map((value) => value.trim())
+                                    .where((v) => v.isNotEmpty)
+                                    .join(' • '),
+                              ),
+                              subtitle: Text(
+                                'Gross ${(line.grossSalary ?? 0).toStringAsFixed(2)}  '
+                                'Ded ${(line.totalDeductions ?? 0).toStringAsFixed(2)}  '
+                                'Net ${(line.netSalary ?? 0).toStringAsFixed(2)}',
+                              ),
+                              trailing: Text(
+                                'LOP ${(line.lopDays ?? 0).toStringAsFixed(2)}',
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
               const Divider(),
               Wrap(
                 spacing: AppUiConstants.spacingSm,
                 runSpacing: AppUiConstants.spacingSm,
                 children: [
+                  if (lineRows.isNotEmpty)
+                    FilledButton.tonal(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        final route = '/hr/payslips?payroll_run_id=$id';
+                        final navigate = ShellRouteScope.maybeOf(context);
+                        if (navigate != null) {
+                          navigate(route);
+                          return;
+                        }
+                        Navigator.of(context).pushNamed(route);
+                      },
+                      child: const Text('View payslips'),
+                    ),
                   if (st == 'draft') ...[
                     FilledButton.tonal(
                       onPressed: () async {
@@ -1788,5 +1881,34 @@ Future<void> showPayrollRunDetailDialog(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
+  }
+}
+
+class _HrInfoChip extends StatelessWidget {
+  const _HrInfoChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (value.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(AppUiConstants.buttonRadius),
+      ),
+      child: Text(
+        '$label: $value',
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    );
   }
 }

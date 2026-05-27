@@ -46,6 +46,10 @@ class DocumentPrintTemplate {
     final resolvedTitle = (title ?? _documentTitleForType(documentType))
         .toUpperCase();
 
+    if (documentType == 'hr_payslip') {
+      return _defaultPayslipPrintTemplate(resolvedTitle);
+    }
+
     return DocumentPrintTemplate(
       pageWidth: 595,
       pageHeight: 842,
@@ -602,6 +606,355 @@ class DocumentPrintTemplate {
   }
 }
 
+DocumentPrintTemplate _defaultPayslipPrintTemplate(String resolvedTitle) {
+  return DocumentPrintTemplate(
+    pageWidth: 595,
+    pageHeight: 842,
+    mediaPreset: 'A4',
+    orientation: 'portrait',
+    shapes: [
+      const DocumentPrintShape(
+        id: 'payslip-border',
+        type: 'rectangle',
+        x: 24,
+        y: 24,
+        width: 547,
+        height: 794,
+        strokeColor: 0xFF2563EB,
+        strokeWidth: 1,
+      ),
+      const DocumentPrintShape(
+        id: 'company-logo',
+        type: 'image',
+        x: 38,
+        y: 36,
+        width: 42,
+        height: 42,
+        strokeWidth: 0,
+        assetPath: '{{company_logo_url}}',
+      ),
+      const DocumentPrintShape(
+        id: 'company-name',
+        type: 'text',
+        x: 90,
+        y: 38,
+        width: 240,
+        height: 18,
+        text: '{{company_name}}',
+        fontSize: 16,
+        bold: true,
+      ),
+      const DocumentPrintShape(
+        id: 'company-address',
+        type: 'text',
+        x: 90,
+        y: 58,
+        width: 250,
+        height: 54,
+        text: '{{party_address}}\n{{party_contact}}\nGSTIN: {{company_gstin}}',
+        fontSize: 8.5,
+        multiline: true,
+      ),
+      const DocumentPrintShape(
+        id: 'meta-box',
+        type: 'rectangle',
+        x: 360,
+        y: 34,
+        width: 195,
+        height: 94,
+        strokeColor: 0xFF93C5FD,
+        fillColor: 0xFFEFF6FF,
+        fillAlpha: 1,
+        borderRadius: 8,
+      ),
+      DocumentPrintShape(
+        id: 'doc-title',
+        type: 'text',
+        x: 376,
+        y: 44,
+        width: 160,
+        height: 18,
+        text: resolvedTitle,
+        fontSize: 16,
+        bold: true,
+        align: 'center',
+        strokeColor: 0xFF1D4ED8,
+      ),
+      const DocumentPrintShape(
+        id: 'doc-no',
+        type: 'text',
+        x: 374,
+        y: 70,
+        width: 170,
+        height: 14,
+        text: 'Payslip No: {{document_number}}',
+        fontSize: 9,
+      ),
+      const DocumentPrintShape(
+        id: 'doc-period',
+        type: 'text',
+        x: 374,
+        y: 86,
+        width: 170,
+        height: 14,
+        text: 'Payroll Period: {{reference_number}}',
+        fontSize: 9,
+      ),
+      const DocumentPrintShape(
+        id: 'doc-date',
+        type: 'text',
+        x: 374,
+        y: 102,
+        width: 170,
+        height: 14,
+        text: 'Payslip Date: {{document_date}}',
+        fontSize: 9,
+      ),
+      const DocumentPrintShape(
+        id: 'employee-box',
+        type: 'rectangle',
+        x: 34,
+        y: 144,
+        width: 256,
+        height: 128,
+        strokeColor: 0xFFBFDBFE,
+        borderRadius: 8,
+      ),
+      const DocumentPrintShape(
+        id: 'employee-box-title',
+        type: 'text',
+        x: 46,
+        y: 154,
+        width: 160,
+        height: 16,
+        text: 'Employee Details',
+        fontSize: 11,
+        bold: true,
+      ),
+      const DocumentPrintShape(
+        id: 'employee-box-text',
+        type: 'text',
+        x: 46,
+        y: 176,
+        width: 228,
+        height: 88,
+        text:
+            'Employee: {{employee_profile.employee_name}}\n'
+            'Code: {{employee_profile.employee_code}}\n'
+            'Department: {{employee_profile.department_name}}\n'
+            'Designation: {{employee_profile.designation_name}}\n'
+            'Joining Date: {{employee_profile.joining_date}}',
+        fontSize: 9,
+        multiline: true,
+      ),
+      const DocumentPrintShape(
+        id: 'payment-box',
+        type: 'rectangle',
+        x: 304,
+        y: 144,
+        width: 252,
+        height: 128,
+        strokeColor: 0xFFBFDBFE,
+        borderRadius: 8,
+      ),
+      const DocumentPrintShape(
+        id: 'payment-box-title',
+        type: 'text',
+        x: 316,
+        y: 154,
+        width: 160,
+        height: 16,
+        text: 'Payment Details',
+        fontSize: 11,
+        bold: true,
+      ),
+      const DocumentPrintShape(
+        id: 'payment-box-text',
+        type: 'text',
+        x: 316,
+        y: 176,
+        width: 228,
+        height: 88,
+        text:
+            'Mode: {{employee_profile.salary_mode}}\n'
+            'Bank A/C: {{employee_profile.bank_account_no}}\n'
+            'IFSC: {{employee_profile.ifsc_code}}\n'
+            'PF UAN: {{employee_profile.pf_uan_no}}\n'
+            'ESI No: {{employee_profile.esi_no}}',
+        fontSize: 9,
+        multiline: true,
+      ),
+      const DocumentPrintShape(
+        id: 'attendance-box',
+        type: 'rectangle',
+        x: 34,
+        y: 286,
+        width: 522,
+        height: 64,
+        strokeColor: 0xFFBFDBFE,
+        borderRadius: 8,
+      ),
+      const DocumentPrintShape(
+        id: 'attendance-title',
+        type: 'text',
+        x: 46,
+        y: 296,
+        width: 160,
+        height: 16,
+        text: 'Attendance Summary',
+        fontSize: 11,
+        bold: true,
+      ),
+      const DocumentPrintShape(
+        id: 'attendance-text',
+        type: 'text',
+        x: 46,
+        y: 318,
+        width: 494,
+        height: 20,
+        text:
+            'Working Days: {{attendance.working_days}}    '
+            'Present Days: {{attendance.present_days}}    '
+            'Leave Days: {{attendance.leave_days}}    '
+            'Paid Days: {{attendance.paid_days}}    '
+            'LOP Days: {{attendance.lop_days}}',
+        fontSize: 9,
+      ),
+      DocumentPrintShape(
+        id: 'earnings-table',
+        type: 'table',
+        x: 34,
+        y: 366,
+        width: 248,
+        height: 220,
+        dataPath: 'earnings',
+        rowHeight: 20,
+        titleHeight: 22,
+        cellGap: 4,
+        strokeColor: 0xFF2563EB,
+        headerColor: 0xFFADD0F0,
+        printHeader: true,
+        printTotal: false,
+        columns: const [
+          DocumentPrintColumn(
+            key: 'label',
+            label: 'Earnings',
+            widthFactor: 3.2,
+          ),
+          DocumentPrintColumn(
+            key: 'amount',
+            label: 'Amount',
+            widthFactor: 1.5,
+            align: 'right',
+            titleAlign: 'center',
+          ),
+        ],
+      ),
+      DocumentPrintShape(
+        id: 'deductions-table',
+        type: 'table',
+        x: 308,
+        y: 366,
+        width: 248,
+        height: 220,
+        dataPath: 'deductions',
+        rowHeight: 20,
+        titleHeight: 22,
+        cellGap: 4,
+        strokeColor: 0xFF2563EB,
+        headerColor: 0xFFADD0F0,
+        printHeader: true,
+        printTotal: false,
+        columns: const [
+          DocumentPrintColumn(
+            key: 'label',
+            label: 'Deductions',
+            widthFactor: 3.2,
+          ),
+          DocumentPrintColumn(
+            key: 'amount',
+            label: 'Amount',
+            widthFactor: 1.5,
+            align: 'right',
+            titleAlign: 'center',
+          ),
+        ],
+      ),
+      const DocumentPrintShape(
+        id: 'summary-box',
+        type: 'rectangle',
+        x: 308,
+        y: 598,
+        width: 248,
+        height: 90,
+        strokeColor: 0xFF93C5FD,
+        fillColor: 0xFFEFF6FF,
+        fillAlpha: 1,
+        borderRadius: 8,
+      ),
+      const DocumentPrintShape(
+        id: 'summary-text',
+        type: 'text',
+        x: 322,
+        y: 612,
+        width: 220,
+        height: 62,
+        text:
+            'Gross Salary: {{salary_summary.gross_salary}}\n'
+            'Total Deductions: {{salary_summary.total_deductions}}\n'
+            'Net Salary: {{salary_summary.net_salary}}',
+        fontSize: 10,
+        multiline: true,
+      ),
+      const DocumentPrintShape(
+        id: 'amount-words-title',
+        type: 'text',
+        x: 34,
+        y: 598,
+        width: 120,
+        height: 14,
+        text: 'Net Salary in Words',
+        fontSize: 10,
+        bold: true,
+      ),
+      const DocumentPrintShape(
+        id: 'amount-words-text',
+        type: 'text',
+        x: 34,
+        y: 618,
+        width: 252,
+        height: 52,
+        text: '{{amount_in_words}}',
+        fontSize: 9,
+        multiline: true,
+        italic: true,
+      ),
+      const DocumentPrintShape(
+        id: 'notes-text',
+        type: 'text',
+        x: 34,
+        y: 690,
+        width: 522,
+        height: 42,
+        text: '{{notes}}',
+        fontSize: 9,
+        multiline: true,
+      ),
+      const DocumentPrintShape(
+        id: 'terms-text',
+        type: 'text',
+        x: 34,
+        y: 742,
+        width: 522,
+        height: 24,
+        text: '{{terms_conditions}}',
+        fontSize: 8.5,
+        multiline: true,
+      ),
+    ],
+  );
+}
+
 class DocumentPrintShape {
   const DocumentPrintShape({
     required this.id,
@@ -1083,6 +1436,8 @@ String _documentTitleForType(String documentType) {
       return 'Delivery';
     case 'purchase_invoice':
       return 'Purchase Invoice';
+    case 'hr_payslip':
+      return 'Payslip';
     default:
       return documentType
           .split('_')

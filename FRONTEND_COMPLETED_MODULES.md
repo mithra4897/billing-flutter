@@ -330,7 +330,7 @@ Important service note:
 
 - [communication_service.dart](/lib/service/communication/communication_service.dart) was corrected so `emailSettings()` and `emailModuleSettings()` use collection responses instead of paginated responses, matching the backend
 
-### 9. HR Foundation
+### 11. HR Foundation
 
 Completed:
 
@@ -362,7 +362,64 @@ Model note:
 
 - the HR models used by these screens were converted from raw map wrappers to typed models so future HR work can build on a stable contract
 
-### 9. Parties
+Recent HR completion notes:
+
+- the HR top dashboard stat cards now support route navigation for:
+  - `Employees`
+  - `Attendance`
+  - `Departments`
+  - `Designations`
+- `Departments` now reloads on open so employee department changes made in `Employees` are reflected immediately instead of showing stale cached membership
+- `Payroll Runs` and `Payslips` now work as real typed register flows instead of placeholder/raw-detail flows
+- payroll runs support:
+  - draft create and update
+  - process
+  - post
+  - status filtering
+  - typed detail summary with totals and employee lines
+  - route handoff to filtered payslips
+- payslips support:
+  - route filter by `payroll_run_id`
+  - typed employee / period / net salary display in list and detail views
+  - editable print-designer based payslip format, using a structured company + employee + attendance + earnings + deductions payload instead of raw JSON detail
+
+Main files for this HR extension:
+
+- [hr_registers.dart](/lib/view/hr/hr_registers.dart)
+- [hr_workflow_dialogs.dart](/lib/view/hr/hr_workflow_dialogs.dart)
+- [department_page.dart](/lib/view/hr/department_page.dart)
+- [payroll_run_model.dart](/lib/model/hr/payroll_run_model.dart)
+- [payroll_line_model.dart](/lib/model/hr/payroll_line_model.dart)
+- [payslip_model.dart](/lib/model/hr/payslip_model.dart)
+
+### 12. Sales Dashboard / Registers
+
+Completed:
+
+- sales dashboard top cards now use sales-only concepts
+- top cards navigate with dashboard filters
+- quotations, orders, invoices, and receipts registers consume `dashboard_filter` from the route
+
+Current sales dashboard card meanings:
+
+- `Open Quotations` -> `/sales/quotations?dashboard_filter=open`
+- `Pending Orders` -> `/sales/orders?dashboard_filter=pending`
+- `Open Invoices` -> `/sales/invoices?dashboard_filter=open`
+- `Posted Receipts` -> `/sales/receipts?dashboard_filter=posted`
+
+Implementation notes:
+
+- route-first dashboard navigation is preserved inside the shell
+- filter behavior lives in the shared sales register flow instead of one-off page logic
+- this keeps dashboard cards and register screens aligned to the same typed register state
+
+Main files:
+
+- [erp_module_dashboard_support.dart](/lib/view/dashboard/erp_module_dashboard_support.dart)
+- [sales_register_screens.dart](/lib/view/sales/sales_register_screens.dart)
+- [app_shell_page.dart](/lib/view/core/app_shell_page.dart)
+
+### 13. Parties
 
 Completed:
 

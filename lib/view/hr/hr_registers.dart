@@ -21,50 +21,11 @@ Map<String, dynamic>? _asJsonMap(dynamic value) {
 }
 
 String _nestedEmployeeName(Map<String, dynamic> data) {
-  final emp = _asJsonMap(data['employee']);
-  if (emp == null) {
+  final employee = _asJsonMap(data['employee']);
+  if (employee == null) {
     return '';
   }
-  return stringValue(emp, 'employee_name');
-}
-
-String _payslipLineEmployeeName(Map<String, dynamic> payslipData) {
-  final line =
-      _asJsonMap(payslipData['payroll_line']) ??
-      _asJsonMap(payslipData['payrollLine']);
-  if (line == null) {
-    return '';
-  }
-  return _nestedEmployeeName(line);
-}
-
-String _payslipPayrollPeriod(Map<String, dynamic> payslipData) {
-  final line =
-      _asJsonMap(payslipData['payroll_line']) ??
-      _asJsonMap(payslipData['payrollLine']);
-  if (line == null) {
-    return '';
-  }
-  final run = _asJsonMap(line['payroll_run']) ?? _asJsonMap(line['payrollRun']);
-  if (run == null) {
-    return '';
-  }
-  final y = stringValue(run, 'payroll_year');
-  final m = stringValue(run, 'payroll_month');
-  if (y.isEmpty || m.isEmpty) {
-    return '';
-  }
-  return '$y-${m.padLeft(2, '0')}';
-}
-
-String _payslipNetSalary(Map<String, dynamic> payslipData) {
-  final line =
-      _asJsonMap(payslipData['payroll_line']) ??
-      _asJsonMap(payslipData['payrollLine']);
-  if (line == null) {
-    return '';
-  }
-  return stringValue(line, 'net_salary');
+  return stringValue(employee, 'employee_name');
 }
 
 class _HrCompanyContextFilters extends StatelessWidget {
@@ -151,15 +112,6 @@ const List<AppDropdownItem<String?>> _hrAttendanceStatusFilterItems =
       AppDropdownItem<String?>(value: 'half_day', label: 'Half day'),
       AppDropdownItem<String?>(value: 'holiday', label: 'Holiday'),
     ];
-
-String _payrollPeriodLabel(Map<String, dynamic> data) {
-  final y = stringValue(data, 'payroll_year');
-  final m = stringValue(data, 'payroll_month');
-  if (y.isEmpty || m.isEmpty) {
-    return '';
-  }
-  return '$y-${m.padLeft(2, '0')}';
-}
 
 class AttendanceRegisterController extends GetxController {
   final HrService _service = HrService();
@@ -362,6 +314,16 @@ class AttendanceRegisterController extends GetxController {
 class PayrollRunRegisterController extends GetxController {
   final HrService _service = HrService();
   final TextEditingController searchController = TextEditingController();
+  String statusFilter = '';
+
+  static const List<AppDropdownItem<String>> statusItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All statuses'),
+        AppDropdownItem(value: 'draft', label: 'Draft'),
+        AppDropdownItem(value: 'processed', label: 'Processed'),
+        AppDropdownItem(value: 'posted', label: 'Posted'),
+        AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
+      ];
 
   bool loading = true;
   String? error;
@@ -415,19 +377,28 @@ class PayrollRunRegisterController extends GetxController {
     final q = searchController.text.trim().toLowerCase();
     return rows
         .where((PayrollRunModel row) {
-          final data = row.toJson();
+          final status = row.status?.trim().toLowerCase() ?? '';
+          final statusMatches = statusFilter.isEmpty || status == statusFilter;
+          if (!statusMatches) {
+            return false;
+          }
           if (q.isEmpty) {
             return true;
           }
           return [
-            _payrollPeriodLabel(data),
-            stringValue(data, 'run_date'),
-            stringValue(data, 'status'),
-            stringValue(data, 'lines_count'),
-            stringValue(data, 'company_id'),
+            row.periodLabel,
+            row.runDate ?? '',
+            row.status ?? '',
+            row.linesCount?.toString() ?? '',
+            row.companyId?.toString() ?? '',
           ].join(' ').toLowerCase().contains(q);
         })
         .toList(growable: false);
+  }
+
+  void setStatusFilter(String value) {
+    statusFilter = value;
+    update();
   }
 }
 
@@ -443,6 +414,7 @@ class PayslipRegisterController extends GetxController {
   int? sessionCompanyId;
   bool canViewAllHr = false;
   int? filterEmployeeId;
+  int? filterPayrollRunId;
   List<EmployeeModel> employees = const <EmployeeModel>[];
   List<PayslipModel> rows = const <PayslipModel>[];
 
@@ -527,6 +499,9 @@ class PayslipRegisterController extends GetxController {
       if (viewAll && filterEmployeeId != null) {
         filters['employee_id'] = filterEmployeeId;
       }
+      if (filterPayrollRunId != null) {
+        filters['payroll_run_id'] = filterPayrollRunId;
+      }
       final dateFrom = dateFromController.text.trim();
       final dateTo = dateToController.text.trim();
       if (dateFrom.isNotEmpty) {
@@ -556,16 +531,15 @@ class PayslipRegisterController extends GetxController {
     final q = searchController.text.trim().toLowerCase();
     return rows
         .where((PayslipModel row) {
-          final data = row.toJson();
           if (q.isEmpty) {
             return true;
           }
           return [
-            stringValue(data, 'id'),
-            displayDate(nullableStringValue(data, 'payslip_date')),
-            _payslipLineEmployeeName(data),
-            _payslipPayrollPeriod(data),
-            _payslipNetSalary(data),
+            row.id?.toString() ?? '',
+            displayDate(row.payslipDate),
+            row.employeeDisplayLabel,
+            row.payrollPeriodLabel,
+            row.netSalary?.toStringAsFixed(2) ?? '',
           ].join(' ').toLowerCase().contains(q);
         })
         .toList(growable: false);
@@ -594,12 +568,14 @@ class PayslipRegisterController extends GetxController {
         'From: ${dateFromController.text.trim()}',
       if (dateToController.text.trim().isNotEmpty)
         'To: ${dateToController.text.trim()}',
+      if (filterPayrollRunId != null) 'Payroll run: #$filterPayrollRunId',
     ];
   }
 
   void clearFilters() {
     searchController.clear();
     filterEmployeeId = null;
+    filterPayrollRunId = null;
     dateFromController.clear();
     dateToController.clear();
     update();
@@ -607,6 +583,11 @@ class PayslipRegisterController extends GetxController {
 
   void setEmployeeFilter(int? value) {
     filterEmployeeId = value;
+    update();
+  }
+
+  void applyRouteFilters({int? payrollRunId}) {
+    filterPayrollRunId = payrollRunId;
     update();
   }
 }
@@ -862,33 +843,44 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
               },
             ),
           ],
-          filters: _HrCompanyContextFilters(
-            companyBanner: controller.companyBanner,
-            searchController: controller.searchController,
-            searchHint: 'Period, status, run date…',
+          filters: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _HrCompanyContextFilters(
+                companyBanner: controller.companyBanner,
+                searchController: controller.searchController,
+                searchHint: 'Period, status, run date…',
+              ),
+              const SizedBox(height: AppUiConstants.spacingSm),
+              AppDropdownField<String>.fromMapped(
+                labelText: 'Status',
+                mappedItems: PayrollRunRegisterController.statusItems,
+                initialValue: controller.statusFilter,
+                onChanged: (value) => controller.setStatusFilter(value ?? ''),
+              ),
+            ],
           ),
           rows: controller.filteredRows,
           columns: [
             PurchaseRegisterColumn<PayrollRunModel>(
               label: 'Period',
-              valueBuilder: (row) => _payrollPeriodLabel(row.toJson()),
+              valueBuilder: (row) => row.periodLabel,
             ),
             PurchaseRegisterColumn<PayrollRunModel>(
               label: 'Run date',
-              valueBuilder: (row) =>
-                  displayDate(nullableStringValue(row.toJson(), 'run_date')),
+              valueBuilder: (row) => displayDate(row.runDate),
             ),
             PurchaseRegisterColumn<PayrollRunModel>(
               label: 'Status',
-              valueBuilder: (row) => stringValue(row.toJson(), 'status'),
+              valueBuilder: (row) => row.status ?? '',
             ),
             PurchaseRegisterColumn<PayrollRunModel>(
               label: 'Lines',
-              valueBuilder: (row) => stringValue(row.toJson(), 'lines_count'),
+              valueBuilder: (row) => row.linesCount?.toString() ?? '',
             ),
           ],
           onRowTap: (row) async {
-            final id = intValue(row.toJson(), 'id');
+            final id = row.id;
             if (id == null) {
               return;
             }
@@ -915,9 +907,14 @@ class _PayrollRunRegisterPageState extends State<PayrollRunRegisterPage> {
 }
 
 class PayslipRegisterPage extends StatefulWidget {
-  const PayslipRegisterPage({super.key, this.embedded = false});
+  const PayslipRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.queryParameters = const <String, String>{},
+  });
 
   final bool embedded;
+  final Map<String, String> queryParameters;
 
   @override
   State<PayslipRegisterPage> createState() => _PayslipRegisterPageState();
@@ -932,6 +929,43 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
     _controllerTag = persistentControllerTag('PayslipRegisterController');
     if (!Get.isRegistered<PayslipRegisterController>(tag: _controllerTag)) {
       Get.put(PayslipRegisterController(), tag: _controllerTag);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !Get.isRegistered<PayslipRegisterController>(tag: _controllerTag)) {
+        return;
+      }
+      final controller = Get.find<PayslipRegisterController>(
+        tag: _controllerTag,
+      );
+      controller.applyRouteFilters(
+        payrollRunId: int.tryParse(
+          widget.queryParameters['payroll_run_id'] ?? '',
+        ),
+      );
+      unawaited(controller.load());
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant PayslipRegisterPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!mapEquals(oldWidget.queryParameters, widget.queryParameters)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !Get.isRegistered<PayslipRegisterController>(tag: _controllerTag)) {
+          return;
+        }
+        final controller = Get.find<PayslipRegisterController>(
+          tag: _controllerTag,
+        );
+        controller.applyRouteFilters(
+          payrollRunId: int.tryParse(
+            widget.queryParameters['payroll_run_id'] ?? '',
+          ),
+        );
+        unawaited(controller.load());
+      });
     }
   }
 
@@ -1040,25 +1074,23 @@ class _PayslipRegisterPageState extends State<PayslipRegisterPage> {
           columns: [
             PurchaseRegisterColumn<PayslipModel>(
               label: 'Date',
-              valueBuilder: (row) => displayDate(
-                nullableStringValue(row.toJson(), 'payslip_date'),
-              ),
+              valueBuilder: (row) => displayDate(row.payslipDate),
             ),
             PurchaseRegisterColumn<PayslipModel>(
               label: 'Employee',
-              valueBuilder: (row) => _payslipLineEmployeeName(row.toJson()),
+              valueBuilder: (row) => row.employeeDisplayLabel,
             ),
             PurchaseRegisterColumn<PayslipModel>(
               label: 'Period',
-              valueBuilder: (row) => _payslipPayrollPeriod(row.toJson()),
+              valueBuilder: (row) => row.payrollPeriodLabel,
             ),
             PurchaseRegisterColumn<PayslipModel>(
               label: 'Net',
-              valueBuilder: (row) => _payslipNetSalary(row.toJson()),
+              valueBuilder: (row) => row.netSalary?.toStringAsFixed(2) ?? '',
             ),
           ],
           onRowTap: (row) {
-            final id = intValue(row.toJson(), 'id');
+            final id = row.id;
             if (id == null) {
               return;
             }

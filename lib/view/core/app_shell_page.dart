@@ -490,7 +490,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/hr/payroll-runs':
         return PayrollRunRegisterPage(key: routeKey, embedded: true);
       case '/hr/payslips':
-        return PayslipRegisterPage(key: routeKey, embedded: true);
+        return PayslipRegisterPage(
+          key: routeKey,
+          embedded: true,
+          queryParameters: _currentQueryParameters,
+        );
       case '/sales/quotations':
         return SalesQuotationRegisterPage(
           key: routeKey,

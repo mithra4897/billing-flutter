@@ -2078,9 +2078,16 @@ class DocumentCanvasPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..color = Color(shape.strokeColor)
       ..strokeWidth = 1;
+    final bodyFill = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Color(shape.fillColor).withValues(alpha: shape.fillAlpha);
     final headerFill = Paint()
       ..style = PaintingStyle.fill
       ..color = Color(shape.headerColor);
+
+    if (shape.fillAlpha > 0) {
+      canvas.drawRect(rect, bodyFill);
+    }
 
     var currentY = rect.top;
     if (shape.printHeader) {
