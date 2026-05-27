@@ -17,13 +17,24 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('DepartmentManagementController');
-    Get.put(DepartmentManagementController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag('DepartmentManagementController');
+    if (Get.isRegistered<DepartmentManagementController>(tag: _controllerTag)) {
+      Get.find<DepartmentManagementController>(
+        tag: _controllerTag,
+      ).loadDepartments();
+    } else {
+      Get.put(DepartmentManagementController(), tag: _controllerTag);
+    }
   }
 
   @override
   void dispose() {
+    if (Get.isRegistered<DepartmentManagementController>(tag: _controllerTag)) {
+      Get.delete<DepartmentManagementController>(
+        tag: _controllerTag,
+        force: true,
+      );
+    }
     super.dispose();
   }
 
