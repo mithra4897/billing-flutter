@@ -91,7 +91,12 @@ class PayslipModel extends JsonModel {
       payrollLine['payroll_run'] ?? payrollLine['payrollRun'],
     );
     final company = _asMap(json['company']);
-    final employeeProfile = _asMap(json['employee_profile']);
+    final employeeProfile = _mergeMaps(<Map<String, dynamic>>[
+      _asMap(json['employee_profile']),
+      _asMap(json['employeeProfile']),
+      _asMap(payrollLine['employee_profile'] ?? payrollLine['employeeProfile']),
+      employee,
+    ]);
     return PayslipModel(
       id: JsonModel.nullableInt(json['id']),
       payslipNo: json['payslip_no']?.toString(),
@@ -105,14 +110,19 @@ class PayslipModel extends JsonModel {
       generatorDisplayName: generator['display_name']?.toString(),
       generatorUsername: generator['username']?.toString(),
       employeeId: JsonModel.nullableInt(
-        payrollLine['employee_id'] ?? employee['id'],
+        payrollLine['employee_id'] ??
+            employeeProfile['id'] ??
+            employee['id'] ??
+            json['employee_id'],
       ),
       employeeName:
           employeeProfile['employee_name']?.toString() ??
-          employee['employee_name']?.toString(),
+          employee['employee_name']?.toString() ??
+          json['employee_name']?.toString(),
       employeeCode:
           employeeProfile['employee_code']?.toString() ??
-          employee['employee_code']?.toString(),
+          employee['employee_code']?.toString() ??
+          json['employee_code']?.toString(),
       payrollRunId: JsonModel.nullableInt(
         payrollLine['payroll_run_id'] ?? payrollRun['id'],
       ),
@@ -371,6 +381,26 @@ Map<String, dynamic> _asMap(dynamic value) {
     return Map<String, dynamic>.from(value);
   }
   return const <String, dynamic>{};
+}
+
+Map<String, dynamic> _mergeMaps(List<Map<String, dynamic>> maps) {
+  final merged = <String, dynamic>{};
+  for (final map in maps) {
+    if (map.isEmpty) {
+      continue;
+    }
+    merged.addAll(
+      map.map(
+        (key, value) => MapEntry(
+          key,
+          value is String && value.trim().isEmpty
+              ? (merged[key] ?? value)
+              : value,
+        ),
+      ),
+    );
+  }
+  return merged;
 }
 
 List<Map<String, dynamic>> _asList(dynamic value) {

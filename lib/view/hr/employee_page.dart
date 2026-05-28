@@ -327,18 +327,25 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
       permanent: true,
     );
     _tabController = TabController(length: 7, vsync: this);
-    _employeeController.setActiveEditorTabIndex(_tabController.index);
+    _employeeController.setActiveEditorTabIndex(
+      _tabController.index,
+      notify: false,
+    );
     _tabController.addListener(() {
       if (!mounted || _tabController.indexIsChanging) {
         return;
       }
-      _updateController(() {});
       _employeeController.setActiveEditorTabIndex(_tabController.index);
       _bumpEmployeeEditorRoute();
     });
     _searchController.addListener(_applySearch);
     _employeeCodeController.addListener(_handleEmployeeCodeChanged);
-    _loadData(selectId: widget.initialEmployeeId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _loadData(selectId: widget.initialEmployeeId);
+    });
   }
 
   @override

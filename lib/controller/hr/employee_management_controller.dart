@@ -127,14 +127,21 @@ class EmployeeManagementController extends GetxController {
   String componentCalculationBasis = 'fixed';
   String componentContributionRole = 'employee';
 
-  void setActiveEditorTabIndex(int index) {
+  void setActiveEditorTabIndex(int index, {bool notify = true}) {
+    if (activeEditorTabIndex == index) {
+      return;
+    }
     activeEditorTabIndex = index;
-    update();
+    if (notify) {
+      update();
+    }
   }
 
-  void bumpEditorTabBody() {
+  void bumpEditorTabBody({bool notify = true}) {
     editorTabRevision++;
-    update();
+    if (notify) {
+      update();
+    }
   }
 
   @override
