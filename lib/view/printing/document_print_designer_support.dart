@@ -53,12 +53,13 @@ Future<void> openManagedDocumentPrintPreview(
   Future<void> Function()? prepare,
   required String documentType,
   required String title,
-  required DocumentPrintDataModel documentData,
+  required DocumentPrintDataModel Function() documentDataBuilder,
 }) async {
   await prepare?.call();
   if (!context.mounted) {
     return;
   }
+  final documentData = documentDataBuilder();
   await openDocumentPrintDesigner(
     context,
     documentType: documentType,

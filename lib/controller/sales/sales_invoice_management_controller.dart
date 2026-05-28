@@ -2141,10 +2141,7 @@ class SalesInvoiceManagementController extends GetxController {
       (item) => item?.id == companyId,
       orElse: () => null,
     );
-    final customer = customers.cast<PartyModel?>().firstWhere(
-      (item) => item?.id == customerPartyId,
-      orElse: () => null,
-    );
+    final customer = customerForTaxContext(customerPartyId);
     final customerData = selected['customer'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(
             selected['customer'] as Map<String, dynamic>,
@@ -2232,11 +2229,12 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   Future<void> openPrintPreview(BuildContext context) {
-    return openDocumentPrintDesigner(
+    return openManagedDocumentPrintPreview(
       context,
+      prepare: () => ensureCustomerTaxContext(customerPartyId),
       documentType: 'sales_invoice',
       title: 'Sales Invoice',
-      documentData: salesInvoicePrintData(),
+      documentDataBuilder: salesInvoicePrintData,
     );
   }
 

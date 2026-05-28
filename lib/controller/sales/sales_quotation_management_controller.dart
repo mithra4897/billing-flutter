@@ -797,7 +797,7 @@ class SalesQuotationManagementController extends GetxController {
       prepare: () => ensureCustomerPrintContext(customerPartyId),
       documentType: 'sales_quotation',
       title: 'Quotation',
-      documentData: quotationPrintData(),
+      documentDataBuilder: quotationPrintData,
     );
   }
 

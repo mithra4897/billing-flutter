@@ -964,7 +964,7 @@ class SalesDeliveryManagementController extends GetxController {
       prepare: () => ensureCustomerPrintContext(customerPartyId),
       documentType: 'sales_delivery',
       title: 'Delivery Challan',
-      documentData: salesDeliveryPrintData(),
+      documentDataBuilder: salesDeliveryPrintData,
     );
   }
 

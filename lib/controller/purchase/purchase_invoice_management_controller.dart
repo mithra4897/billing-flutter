@@ -496,7 +496,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       context,
       documentType: 'purchase_invoice',
       title: 'Purchase Invoice',
-      documentData: purchaseInvoicePrintData(),
+      documentDataBuilder: purchaseInvoicePrintData,
     );
   }
 

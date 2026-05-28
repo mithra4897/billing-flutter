@@ -979,7 +979,7 @@ class SalesOrderManagementController extends GetxController {
       prepare: () => ensureCustomerPrintContext(customerPartyId),
       documentType: 'sales_order',
       title: 'Sales Order',
-      documentData: salesOrderPrintData(),
+      documentDataBuilder: salesOrderPrintData,
     );
   }
 
