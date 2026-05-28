@@ -141,6 +141,16 @@ class StockSerialViewModel extends GetxController {
           await select(existing);
           return;
         }
+        final recoveredRows = preserveSelectedRowAfterReload<StockSerialModel>(
+          rows: rows,
+          selected: selected,
+          selectId: selectId,
+        );
+        if (recoveredRows != null) {
+          rows = recoveredRows;
+          update();
+          return;
+        }
       }
       resetDraft();
       update();

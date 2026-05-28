@@ -330,11 +330,13 @@ class OpeningStockViewModel extends GetxController {
           await select(existing);
           return;
         }
-        final currentSelectedId = intValue(
-          selected?.toJson() ?? const <String, dynamic>{},
-          'id',
+        final recoveredRows = preserveSelectedRowAfterReload<OpeningStockModel>(
+          rows: rows,
+          selected: selected,
+          selectId: selectId,
         );
-        if (currentSelectedId == selectId && selected != null) {
+        if (recoveredRows != null) {
+          rows = recoveredRows;
           loading = false;
           _notifyListenersSafely();
           return;
@@ -557,8 +559,7 @@ class OpeningStockViewModel extends GetxController {
     );
     _applyStandardCostToLine(line, itemId: itemId);
     _recalculateLineTotal(line);
-    lines = List<OpeningStockLineDraft>.from(lines)
-      ..add(line);
+    lines = List<OpeningStockLineDraft>.from(lines)..add(line);
     update();
   }
 

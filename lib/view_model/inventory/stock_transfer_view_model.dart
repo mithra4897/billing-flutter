@@ -303,6 +303,17 @@ class StockTransferViewModel extends GetxController {
           await select(existing);
           return;
         }
+        final recoveredRows =
+            preserveSelectedRowAfterReload<StockTransferModel>(
+              rows: rows,
+              selected: selected,
+              selectId: selectId,
+            );
+        if (recoveredRows != null) {
+          rows = recoveredRows;
+          update();
+          return;
+        }
       }
       resetDraft();
       update();

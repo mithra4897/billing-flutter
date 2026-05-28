@@ -318,6 +318,16 @@ class StockIssueViewModel extends GetxController {
           await select(existing);
           return;
         }
+        final recoveredRows = preserveSelectedRowAfterReload<StockIssueModel>(
+          rows: rows,
+          selected: selected,
+          selectId: selectId,
+        );
+        if (recoveredRows != null) {
+          rows = recoveredRows;
+          update();
+          return;
+        }
       }
       resetDraft();
       update();
