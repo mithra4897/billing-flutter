@@ -1,3 +1,4 @@
+import '../../model/inventory/inventory_inquiry_model.dart';
 import '../../screen.dart';
 
 class InventoryInquiryManagementController extends GetxController {
@@ -29,7 +30,16 @@ class InventoryInquiryManagementController extends GetxController {
   int? itemId;
   int? warehouseId;
   String mode = 'summary';
-  String? resultText;
+
+  InventoryInquirySummaryModel? summaryResult;
+  List<InventoryInquiryWarehouseRowModel> warehouseRows =
+      const <InventoryInquiryWarehouseRowModel>[];
+  List<InventoryInquiryBatchRowModel> batchRows =
+      const <InventoryInquiryBatchRowModel>[];
+  List<InventoryInquirySerialRowModel> serialRows =
+      const <InventoryInquirySerialRowModel>[];
+  InventoryInquiryStockCardModel? stockCardResult;
+  InventoryInquiryReorderStatusModel? reorderResult;
 
   @override
   void onInit() {
@@ -102,7 +112,7 @@ class InventoryInquiryManagementController extends GetxController {
 
     running = true;
     error = null;
-    resultText = null;
+    _clearResults();
     update();
 
     try {
@@ -141,10 +151,7 @@ class InventoryInquiryManagementController extends GetxController {
         return;
       }
 
-      final encoded = const JsonEncoder.withIndent(
-        '  ',
-      ).convert(toEncodable(response.data));
-      resultText = encoded;
+      _applyResult(response.data);
       running = false;
     } catch (errorValue) {
       running = false;
@@ -153,36 +160,83 @@ class InventoryInquiryManagementController extends GetxController {
     update();
   }
 
-  dynamic toEncodable(dynamic value) {
-    if (value is Map) {
-      return value.map(
-        (dynamic key, dynamic item) =>
-            MapEntry<String, dynamic>(key.toString(), toEncodable(item)),
-      );
-    }
-    if (value is List) {
-      return value.map(toEncodable).toList();
-    }
-    return value;
-  }
-
   void setMode(String? value) {
     mode = value ?? 'summary';
+    if (mode != 'batch' && mode != 'serials') {
+      warehouseId = null;
+    }
+    _clearResults();
     update();
   }
 
   void setCompanyId(int? value) {
     companyId = value;
+    _clearResults();
     update();
   }
 
   void setItemId(int? value) {
     itemId = value;
+    _clearResults();
     update();
   }
 
   void setWarehouseId(int? value) {
     warehouseId = value;
+    _clearResults();
     update();
+  }
+
+  ItemModel? get selectedItem => items.cast<ItemModel?>().firstWhere(
+    (item) => item?.id == itemId,
+    orElse: () => null,
+  );
+
+  CompanyModel? get selectedCompany => companies
+      .cast<CompanyModel?>()
+      .firstWhere((company) => company?.id == companyId, orElse: () => null);
+
+  void _clearResults() {
+    summaryResult = null;
+    warehouseRows = const <InventoryInquiryWarehouseRowModel>[];
+    batchRows = const <InventoryInquiryBatchRowModel>[];
+    serialRows = const <InventoryInquirySerialRowModel>[];
+    stockCardResult = null;
+    reorderResult = null;
+  }
+
+  void _applyResult(dynamic value) {
+    switch (mode) {
+      case 'summary':
+        summaryResult = InventoryInquirySummaryModel.fromJson(
+          JsonModel.mapOf(value) ?? const <String, dynamic>{},
+        );
+        break;
+      case 'warehouse':
+        warehouseRows = JsonModel.mapListOf(value)
+            .map(InventoryInquiryWarehouseRowModel.fromJson)
+            .toList(growable: false);
+        break;
+      case 'batch':
+        batchRows = JsonModel.mapListOf(
+          value,
+        ).map(InventoryInquiryBatchRowModel.fromJson).toList(growable: false);
+        break;
+      case 'serials':
+        serialRows = JsonModel.mapListOf(
+          value,
+        ).map(InventoryInquirySerialRowModel.fromJson).toList(growable: false);
+        break;
+      case 'card':
+        stockCardResult = InventoryInquiryStockCardModel.fromJson(
+          JsonModel.mapOf(value) ?? const <String, dynamic>{},
+        );
+        break;
+      case 'reorder':
+        reorderResult = InventoryInquiryReorderStatusModel.fromJson(
+          JsonModel.mapOf(value) ?? const <String, dynamic>{},
+        );
+        break;
+    }
   }
 }
