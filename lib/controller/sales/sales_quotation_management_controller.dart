@@ -122,6 +122,7 @@ class SalesQuotationManagementController extends GetxController {
   final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
   List<ItemModel> itemsLookup = const <ItemModel>[];
   final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
+  List<ItemPriceModel> itemPrices = const <ItemPriceModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
@@ -305,6 +306,13 @@ class SalesQuotationManagementController extends GetxController {
         _inventoryService.items(
           filters: const {'per_page': 400, 'sort_by': 'item_name'},
         ),
+        _inventoryService.itemPrices(
+          filters: const {
+            'per_page': 1000,
+            'sort_by': 'valid_from',
+            'sort_order': 'desc',
+          },
+        ),
         _inventoryService.uoms(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
@@ -373,6 +381,11 @@ class SalesQuotationManagementController extends GetxController {
                   const <ItemModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      itemPrices =
+          ((responses[9] as PaginatedResponse<ItemPriceModel>).data ??
+                  const <ItemPriceModel>[])
+              .where((price) => price.isActive)
+              .toList(growable: false);
       itemLookupById
         ..clear()
         ..addEntries(
@@ -381,17 +394,17 @@ class SalesQuotationManagementController extends GetxController {
               .map((item) => MapEntry(item.id!, item)),
         );
       uoms =
-          ((responses[9] as PaginatedResponse<UomModel>).data ??
+          ((responses[10] as PaginatedResponse<UomModel>).data ??
                   const <UomModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       uomConversions =
-          ((responses[10] as PaginatedResponse<UomConversionModel>).data ??
+          ((responses[11] as PaginatedResponse<UomConversionModel>).data ??
                   const <UomConversionModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       taxCodes =
-          ((responses[11] as PaginatedResponse<TaxCodeModel>).data ??
+          ((responses[12] as PaginatedResponse<TaxCodeModel>).data ??
                   const <TaxCodeModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
@@ -857,6 +870,7 @@ class SalesQuotationManagementController extends GetxController {
     final item = itemById(value);
     applySalesLineDefaultsFromItemMaster(
       item: item,
+      itemPrices: itemPrices,
       uoms: uoms,
       conversions: uomConversions,
       rateController: line.rateController,

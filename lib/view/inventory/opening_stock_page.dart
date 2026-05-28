@@ -644,6 +644,9 @@ class _OpeningStockEditor extends StatelessWidget {
                             decimal: true,
                           ),
                           enabled: canEdit,
+                          onChanged: (_) {
+                            vm.onLineQtyChanged(index, line.qtyController.text);
+                          },
                           validator: Validators.requiredPositiveNumber(
                             'Quantity',
                           ),
@@ -655,6 +658,12 @@ class _OpeningStockEditor extends StatelessWidget {
                             decimal: true,
                           ),
                           enabled: canEdit,
+                          onChanged: (_) {
+                            vm.onLineUnitCostChanged(
+                              index,
+                              line.unitCostController.text,
+                            );
+                          },
                           validator: Validators.optionalNonNegativeNumber(
                             'Unit Cost',
                           ),
@@ -665,6 +674,7 @@ class _OpeningStockEditor extends StatelessWidget {
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
+                          readOnly: true,
                           enabled: canEdit,
                           validator: Validators.optionalNonNegativeNumber(
                             'Total Cost',

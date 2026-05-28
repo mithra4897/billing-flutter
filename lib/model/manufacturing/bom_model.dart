@@ -29,6 +29,10 @@ class BomModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.outputItem,
+    this.outputUom,
+    this.lines = const <Map<String, dynamic>>[],
+    this.operations = const <Map<String, dynamic>>[],
   });
   final int? companyId;
   final int? branchId;
@@ -56,6 +60,10 @@ class BomModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final Map<String, dynamic>? outputItem;
+  final Map<String, dynamic>? outputUom;
+  final List<Map<String, dynamic>> lines;
+  final List<Map<String, dynamic>> operations;
 
   factory BomModel.fromJson(Map<String, dynamic> json) {
     return BomModel(
@@ -90,6 +98,14 @@ class BomModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      outputItem:
+          JsonModel.mapOf(json['outputItem']) ??
+          JsonModel.mapOf(json['output_item']),
+      outputUom:
+          JsonModel.mapOf(json['outputUom']) ??
+          JsonModel.mapOf(json['output_uom']),
+      lines: JsonModel.mapListOf(json['lines']),
+      operations: JsonModel.mapListOf(json['operations']),
     );
   }
   @override
@@ -129,5 +145,9 @@ class BomModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (outputItem != null) 'outputItem': outputItem,
+    if (outputUom != null) 'outputUom': outputUom,
+    if (lines.isNotEmpty) 'lines': lines,
+    if (operations.isNotEmpty) 'operations': operations,
   };
 }

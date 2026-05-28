@@ -126,6 +126,7 @@ class SalesDeliveryManagementController extends GetxController {
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
   final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
+  List<ItemPriceModel> itemPrices = const <ItemPriceModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   final Map<String, List<Map<String, dynamic>>>
@@ -595,6 +596,13 @@ class SalesDeliveryManagementController extends GetxController {
         _inventoryService.items(
           filters: const {'per_page': 300, 'sort_by': 'item_name'},
         ),
+        _inventoryService.itemPrices(
+          filters: const {
+            'per_page': 1000,
+            'sort_by': 'valid_from',
+            'sort_order': 'desc',
+          },
+        ),
         _inventoryService.uoms(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
@@ -669,6 +677,11 @@ class SalesDeliveryManagementController extends GetxController {
                   const <ItemModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      itemPrices =
+          ((responses[11] as PaginatedResponse<ItemPriceModel>).data ??
+                  const <ItemPriceModel>[])
+              .where((price) => price.isActive)
+              .toList(growable: false);
       itemLookupById
         ..clear()
         ..addEntries(
@@ -677,12 +690,12 @@ class SalesDeliveryManagementController extends GetxController {
               .map((item) => MapEntry(item.id!, item)),
         );
       uoms =
-          ((responses[11] as PaginatedResponse<UomModel>).data ??
+          ((responses[12] as PaginatedResponse<UomModel>).data ??
                   const <UomModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       uomConversions =
-          ((responses[12] as ApiResponse<List<UomConversionModel>>).data ??
+          ((responses[13] as ApiResponse<List<UomConversionModel>>).data ??
                   const <UomConversionModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
@@ -1039,6 +1052,7 @@ class SalesDeliveryManagementController extends GetxController {
     final item = itemById(value);
     applySalesLineDefaultsFromItemMaster(
       item: item,
+      itemPrices: itemPrices,
       uoms: uoms,
       conversions: uomConversions,
       rateController: line.rateController,

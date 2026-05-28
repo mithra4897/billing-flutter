@@ -371,18 +371,15 @@ class OpeningStockViewModel extends GetxController {
             : null,
       ),
     ];
-    final item = (() {
-      for (final x in items) {
-        if (x.id == itemId) return x;
-      }
-      return null;
-    })();
+    final item = _itemById(itemId);
     lines.first.uomId = defaultUomIdForItem(
       item,
       uoms,
       uomConversions,
       current: lines.first.uomId,
     );
+    _applyStandardCostToLine(lines.first, itemId: itemId);
+    _recalculateLineTotal(lines.first);
     _notifyListenersSafely();
   }
 
@@ -520,17 +517,48 @@ class OpeningStockViewModel extends GetxController {
     return line.itemId ?? _defaultItemId();
   }
 
+  ItemModel? _itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    for (final item in items) {
+      if (item.id == itemId) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  void _applyStandardCostToLine(
+    OpeningStockLineDraft line, {
+    required int? itemId,
+  }) {
+    final standardCost = _itemById(itemId)?.standardCost;
+    if (standardCost == null) {
+      line.unitCostController.clear();
+      return;
+    }
+    line.unitCostController.text = _formatDraftNumber(standardCost);
+  }
+
+  void _recalculateLineTotal(OpeningStockLineDraft line) {
+    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+    final unitCost = double.tryParse(line.unitCostController.text.trim()) ?? 0;
+    line.totalCostController.text = _formatDraftNumber(qty * unitCost);
+  }
+
   void addLine() {
     final itemId = _defaultItemId();
+    final line = OpeningStockLineDraft(
+      itemId: itemId,
+      warehouseId: warehouseOptions.isNotEmpty
+          ? warehouseOptions.first.id
+          : null,
+    );
+    _applyStandardCostToLine(line, itemId: itemId);
+    _recalculateLineTotal(line);
     lines = List<OpeningStockLineDraft>.from(lines)
-      ..add(
-        OpeningStockLineDraft(
-          itemId: itemId,
-          warehouseId: warehouseOptions.isNotEmpty
-              ? warehouseOptions.first.id
-              : null,
-        ),
-      );
+      ..add(line);
     update();
   }
 
@@ -557,18 +585,15 @@ class OpeningStockViewModel extends GetxController {
     lines[index].serialIds = <int>[];
     lines[index].serialNumbers = <String>[];
     // Keep UOM consistent with the selected Item (uses UOM conversions graph).
-    final item = (() {
-      for (final x in items) {
-        if (x.id == value) return x;
-      }
-      return null;
-    })();
+    final item = _itemById(value);
     lines[index].uomId = defaultUomIdForItem(
       item,
       uoms,
       uomConversions,
       current: lines[index].uomId,
     );
+    _applyStandardCostToLine(lines[index], itemId: value);
+    _recalculateLineTotal(lines[index]);
     update();
   }
 
@@ -582,6 +607,22 @@ class OpeningStockViewModel extends GetxController {
 
   void onLineUomChanged(int index, int? value) {
     lines[index].uomId = value;
+    update();
+  }
+
+  void onLineQtyChanged(int index, String value) {
+    if (index < 0 || index >= lines.length) {
+      return;
+    }
+    _recalculateLineTotal(lines[index]);
+    update();
+  }
+
+  void onLineUnitCostChanged(int index, String value) {
+    if (index < 0 || index >= lines.length) {
+      return;
+    }
+    _recalculateLineTotal(lines[index]);
     update();
   }
 
@@ -835,6 +876,7 @@ class OpeningStockViewModel extends GetxController {
     if (isSerialManagedItem(_effectiveItemIdForLine(line))) {
       line.qtyController.text = normalizedValues.length.toString();
     }
+    _recalculateLineTotal(line);
     update();
   }
 

@@ -56,6 +56,7 @@ class SalesInvoiceManagementController extends GetxController {
       <int, List<PartyGstDetailModel>>{};
   List<AccountModel> accounts = const <AccountModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
+  List<ItemPriceModel> itemPrices = const <ItemPriceModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
@@ -1591,6 +1592,13 @@ class SalesInvoiceManagementController extends GetxController {
         inventoryService.items(
           filters: const {'per_page': 400, 'sort_by': 'item_name'},
         ),
+        inventoryService.itemPrices(
+          filters: const {
+            'per_page': 1000,
+            'sort_by': 'valid_from',
+            'sort_order': 'desc',
+          },
+        ),
         inventoryService.uoms(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
@@ -1620,23 +1628,28 @@ class SalesInvoiceManagementController extends GetxController {
                     const <ItemModel>[])
                 .where((item) => item.isActive)
                 .toList();
+        itemPrices =
+            ((responses[2] as PaginatedResponse<ItemPriceModel>).data ??
+                    const <ItemPriceModel>[])
+                .where((price) => price.isActive)
+                .toList();
         uoms =
-            ((responses[2] as PaginatedResponse<UomModel>).data ??
+            ((responses[3] as PaginatedResponse<UomModel>).data ??
                     const <UomModel>[])
                 .where((item) => item.isActive)
                 .toList();
         uomConversions =
-            ((responses[3] as PaginatedResponse<UomConversionModel>).data ??
+            ((responses[4] as PaginatedResponse<UomConversionModel>).data ??
                     const <UomConversionModel>[])
                 .where((item) => item.isActive)
                 .toList();
         warehouses =
-            ((responses[4] as PaginatedResponse<WarehouseModel>).data ??
+            ((responses[5] as PaginatedResponse<WarehouseModel>).data ??
                     const <WarehouseModel>[])
                 .where((item) => item.isActive)
                 .toList();
         taxCodes =
-            ((responses[5] as PaginatedResponse<TaxCodeModel>).data ??
+            ((responses[6] as PaginatedResponse<TaxCodeModel>).data ??
                     const <TaxCodeModel>[])
                 .where((item) => item.isActive)
                 .toList();

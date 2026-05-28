@@ -634,6 +634,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                                 );
                             applySalesLineDefaultsFromItemMaster(
                               item: item,
+                              itemPrices: controller.itemPrices,
                               uoms: controller.uoms,
                               conversions: controller.uomConversions,
                               rateController: line.rateController,

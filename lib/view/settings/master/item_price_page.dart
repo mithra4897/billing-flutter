@@ -255,13 +255,13 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
                   Validators.optionalNonNegativeNumber('Price'),
                 ]),
               ),
-              AppFormTextField(
+              AppDateField(
                 labelText: 'Valid From',
                 controller: controller.validFromController,
                 hintText: 'YYYY-MM-DD',
                 validator: Validators.optionalDate('Valid From'),
               ),
-              AppFormTextField(
+              AppDateField(
                 labelText: 'Valid To',
                 controller: controller.validToController,
                 hintText: 'YYYY-MM-DD',

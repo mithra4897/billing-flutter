@@ -285,8 +285,8 @@ class ItemPriceManagementController extends GetxController {
     uomId = item.uomId;
     priceType = item.priceType ?? 'sales';
     priceController.text = item.price?.toString() ?? '';
-    validFromController.text = item.validFrom ?? '';
-    validToController.text = item.validTo ?? '';
+    validFromController.text = displayDate(item.validFrom);
+    validToController.text = displayDate(item.validTo);
     isDefault = item.isDefault;
     isActive = item.isActive;
     formError = null;

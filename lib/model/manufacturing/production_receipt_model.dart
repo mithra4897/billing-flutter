@@ -23,6 +23,9 @@ class ProductionReceiptModel extends JsonModel {
     this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.productionOrder,
+    this.warehouse,
+    this.lines = const <Map<String, dynamic>>[],
   });
   final int? companyId;
   final int? branchId;
@@ -44,6 +47,9 @@ class ProductionReceiptModel extends JsonModel {
   final bool? isActive;
   final String? createdAt;
   final String? updatedAt;
+  final Map<String, dynamic>? productionOrder;
+  final Map<String, dynamic>? warehouse;
+  final List<Map<String, dynamic>> lines;
 
   factory ProductionReceiptModel.fromJson(Map<String, dynamic> json) {
     return ProductionReceiptModel(
@@ -70,6 +76,11 @@ class ProductionReceiptModel extends JsonModel {
           : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      productionOrder:
+          JsonModel.mapOf(json['productionOrder']) ??
+          JsonModel.mapOf(json['production_order']),
+      warehouse: JsonModel.mapOf(json['warehouse']),
+      lines: JsonModel.mapListOf(json['lines']),
     );
   }
   @override
@@ -103,5 +114,8 @@ class ProductionReceiptModel extends JsonModel {
     if (isActive != null) 'is_active': isActive,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (productionOrder != null) 'productionOrder': productionOrder,
+    if (warehouse != null) 'warehouse': warehouse,
+    if (lines.isNotEmpty) 'lines': lines,
   };
 }

@@ -167,9 +167,8 @@ String resolvePartyContact(PartyModel? party, {String fallback = ''}) {
       : fallback;
 }
 
-/// Selling price from item master for defaulting document lines (standard rate, else MRP).
-String? formattedStandardSellingRate(ItemModel item) {
-  final p = item.standardSellingPrice ?? item.mrp;
+String? _formatSalesRate(double? rate) {
+  final p = rate;
   if (p == null) {
     return null;
   }
@@ -182,9 +181,103 @@ String? formattedStandardSellingRate(ItemModel item) {
   return p.toString();
 }
 
+/// Selling price from item master for defaulting document lines (standard rate, else MRP).
+String? formattedStandardSellingRate(ItemModel item) =>
+    _formatSalesRate(item.standardSellingPrice ?? item.mrp);
+
+DateTime? _tryParseSalesPriceDate(String? raw) {
+  final parsed = DateTime.tryParse((raw ?? '').trim());
+  if (parsed == null) {
+    return null;
+  }
+  return DateTime(parsed.year, parsed.month, parsed.day);
+}
+
+bool _isActiveSalesItemPriceForToday(ItemPriceModel price, DateTime today) {
+  if (!price.isActive) {
+    return false;
+  }
+  final type = (price.priceType ?? '').trim().toLowerCase();
+  if (type.isNotEmpty && type != 'sales') {
+    return false;
+  }
+  final validFrom = _tryParseSalesPriceDate(price.validFrom);
+  final validTo = _tryParseSalesPriceDate(price.validTo);
+  if (validFrom != null && validFrom.isAfter(today)) {
+    return false;
+  }
+  if (validTo != null && validTo.isBefore(today)) {
+    return false;
+  }
+  return true;
+}
+
+ItemPriceModel? preferredActiveSalesItemPrice({
+  required ItemModel item,
+  required List<ItemPriceModel> itemPrices,
+  int? preferredUomId,
+}) {
+  final itemId = item.id;
+  if (itemId == null) {
+    return null;
+  }
+  final todayNow = DateTime.now();
+  final today = DateTime(todayNow.year, todayNow.month, todayNow.day);
+  final active = itemPrices
+      .where((price) => price.itemId == itemId)
+      .where((price) => price.price != null)
+      .where((price) => _isActiveSalesItemPriceForToday(price, today))
+      .toList(growable: false);
+  if (active.isEmpty) {
+    return null;
+  }
+
+  final ranked = List<ItemPriceModel>.from(active)
+    ..sort((a, b) {
+      final defaultCompare = (b.isDefault ? 1 : 0).compareTo(
+        a.isDefault ? 1 : 0,
+      );
+      if (defaultCompare != 0) {
+        return defaultCompare;
+      }
+      final preferredUomCompare = ((b.uomId == preferredUomId) ? 1 : 0)
+          .compareTo((a.uomId == preferredUomId) ? 1 : 0);
+      if (preferredUomCompare != 0) {
+        return preferredUomCompare;
+      }
+      final bValidFrom = _tryParseSalesPriceDate(b.validFrom);
+      final aValidFrom = _tryParseSalesPriceDate(a.validFrom);
+      if (aValidFrom == null && bValidFrom == null) {
+        return 0;
+      }
+      if (aValidFrom == null) {
+        return 1;
+      }
+      if (bValidFrom == null) {
+        return -1;
+      }
+      return bValidFrom.compareTo(aValidFrom);
+    });
+  return ranked.first;
+}
+
+String? formattedSalesRateFromItemPricing(
+  ItemModel item,
+  List<ItemPriceModel> itemPrices, {
+  int? preferredUomId,
+}) {
+  final activePrice = preferredActiveSalesItemPrice(
+    item: item,
+    itemPrices: itemPrices,
+    preferredUomId: preferredUomId ?? item.salesUomId ?? item.baseUomId,
+  );
+  return _formatSalesRate(activePrice?.price) ?? formattedStandardSellingRate(item);
+}
+
 /// When the user picks an item, fill rate / UOM / tax (and optionally single-warehouse) from master.
 void applySalesLineDefaultsFromItemMaster({
   required ItemModel? item,
+  required List<ItemPriceModel> itemPrices,
   required List<UomModel> uoms,
   required List<UomConversionModel> conversions,
   required TextEditingController rateController,
@@ -204,7 +297,11 @@ void applySalesLineDefaultsFromItemMaster({
     defaultSalesUomIdForItem(item, uoms, conversions, current: currentUomId),
   );
   setTaxCodeId?.call(item.taxCodeId);
-  final rate = formattedStandardSellingRate(item);
+  final rate = formattedSalesRateFromItemPricing(
+    item,
+    itemPrices,
+    preferredUomId: currentUomId,
+  );
   if (rate != null) {
     rateController.text = rate;
   }

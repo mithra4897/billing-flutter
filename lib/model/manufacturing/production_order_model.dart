@@ -36,6 +36,14 @@ class ProductionOrderModel extends JsonModel {
     this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.bom,
+    this.outputItem,
+    this.outputUom,
+    this.warehouse,
+    this.wipWarehouse,
+    this.materials = const <Map<String, dynamic>>[],
+    this.operations = const <Map<String, dynamic>>[],
+    this.outputs = const <Map<String, dynamic>>[],
   });
   final int? companyId;
   final int? branchId;
@@ -70,6 +78,14 @@ class ProductionOrderModel extends JsonModel {
   final bool? isActive;
   final String? createdAt;
   final String? updatedAt;
+  final Map<String, dynamic>? bom;
+  final Map<String, dynamic>? outputItem;
+  final Map<String, dynamic>? outputUom;
+  final Map<String, dynamic>? warehouse;
+  final Map<String, dynamic>? wipWarehouse;
+  final List<Map<String, dynamic>> materials;
+  final List<Map<String, dynamic>> operations;
+  final List<Map<String, dynamic>> outputs;
 
   factory ProductionOrderModel.fromJson(Map<String, dynamic> json) {
     return ProductionOrderModel(
@@ -109,6 +125,20 @@ class ProductionOrderModel extends JsonModel {
           : JsonModel.boolOf(json['is_active']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      bom: JsonModel.mapOf(json['bom']),
+      outputItem:
+          JsonModel.mapOf(json['outputItem']) ??
+          JsonModel.mapOf(json['output_item']),
+      outputUom:
+          JsonModel.mapOf(json['outputUom']) ??
+          JsonModel.mapOf(json['output_uom']),
+      warehouse: JsonModel.mapOf(json['warehouse']),
+      wipWarehouse:
+          JsonModel.mapOf(json['wipWarehouse']) ??
+          JsonModel.mapOf(json['wip_warehouse']),
+      materials: JsonModel.mapListOf(json['materials']),
+      operations: JsonModel.mapListOf(json['operations']),
+      outputs: JsonModel.mapListOf(json['outputs']),
     );
   }
   @override
@@ -155,5 +185,13 @@ class ProductionOrderModel extends JsonModel {
     if (isActive != null) 'is_active': isActive,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (bom != null) 'bom': bom,
+    if (outputItem != null) 'outputItem': outputItem,
+    if (outputUom != null) 'outputUom': outputUom,
+    if (warehouse != null) 'warehouse': warehouse,
+    if (wipWarehouse != null) 'wipWarehouse': wipWarehouse,
+    if (materials.isNotEmpty) 'materials': materials,
+    if (operations.isNotEmpty) 'operations': operations,
+    if (outputs.isNotEmpty) 'outputs': outputs,
   };
 }
