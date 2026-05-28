@@ -19,6 +19,7 @@ class PartyModel extends JsonModel {
     this.isActive = true,
     this.addresses = const [],
     this.contacts = const [],
+    this.gstDetails = const [],
   });
   final String? partyCode;
   final String? partyName;
@@ -36,6 +37,7 @@ class PartyModel extends JsonModel {
   final bool isActive;
   final List<PartyAddressModel> addresses;
   final List<PartyContactModel> contacts;
+  final List<PartyGstDetailModel> gstDetails;
 
   @override
   String toString() => displayName ?? partyName ?? partyCode ?? 'New Party';
@@ -57,6 +59,7 @@ class PartyModel extends JsonModel {
     bool? isActive,
     List<PartyAddressModel>? addresses,
     List<PartyContactModel>? contacts,
+    List<PartyGstDetailModel>? gstDetails,
   }) {
     return PartyModel(
       id: id,
@@ -76,6 +79,7 @@ class PartyModel extends JsonModel {
       isActive: isActive ?? this.isActive,
       addresses: addresses ?? this.addresses,
       contacts: contacts ?? this.contacts,
+      gstDetails: gstDetails ?? this.gstDetails,
     );
   }
 
@@ -103,6 +107,10 @@ class PartyModel extends JsonModel {
       contacts: _mapList(
         json['contacts'],
         (item) => PartyContactModel.fromJson(item),
+      ),
+      gstDetails: _mapList(
+        json['gst_details'],
+        (item) => PartyGstDetailModel.fromJson(item),
       ),
     );
   }
@@ -132,6 +140,10 @@ class PartyModel extends JsonModel {
       if (contacts.isNotEmpty)
         'contacts': contacts
             .map((contact) => contact.toJson())
+            .toList(growable: false),
+      if (gstDetails.isNotEmpty)
+        'gst_details': gstDetails
+            .map((detail) => detail.toJson())
             .toList(growable: false),
     };
   }

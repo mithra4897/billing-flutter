@@ -141,6 +141,8 @@ class SalesOrderManagementController extends GetxController {
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<PartyModel> customers = const <PartyModel>[];
   final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
+  final Map<int, List<PartyGstDetailModel>> customerGstDetailsById =
+      <int, List<PartyGstDetailModel>>{};
   List<ItemModel> itemsLookup = const <ItemModel>[];
   final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
   List<ItemPriceModel> itemPrices = const <ItemPriceModel>[];
@@ -812,7 +814,13 @@ class SalesOrderManagementController extends GetxController {
   }
 
   PartyModel? customerListEntryById(int? partyId) {
-    return partyId == null ? null : customerDetailsById[partyId];
+    if (partyId == null) {
+      return null;
+    }
+    return customers.cast<PartyModel?>().firstWhere(
+      (party) => party?.id == partyId,
+      orElse: () => null,
+    );
   }
 
   PartyModel? customerForPrintContext(int? partyId) {
@@ -823,7 +831,7 @@ class SalesOrderManagementController extends GetxController {
   }
 
   Future<void> ensureCustomerPrintContext(int? partyId) async {
-    if (partyId == null || customerDetailsById.containsKey(partyId)) {
+    if (partyId == null) {
       return;
     }
     try {
@@ -834,6 +842,10 @@ class SalesOrderManagementController extends GetxController {
           filters: const <String, dynamic>{'per_page': 100},
         ),
         _partiesService.partyContacts(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyGstDetails(
           partyId,
           filters: const <String, dynamic>{'per_page': 100},
         ),
@@ -848,6 +860,9 @@ class SalesOrderManagementController extends GetxController {
               (responses[2] as PaginatedResponse<PartyContactModel>).data ??
               party.contacts,
         );
+        customerGstDetailsById[partyId] =
+            (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+            const <PartyGstDetailModel>[];
       }
     } catch (_) {}
   }
@@ -959,7 +974,12 @@ class SalesOrderManagementController extends GetxController {
         customer,
         fallback: stringValue(customerData, 'mobile_no'),
       ),
-      partyGstin: stringValue(customerData, 'gstin'),
+      partyGstin: resolvePreferredPartyGstin(
+        customerGstDetailsById[customerPartyId] ??
+            const <PartyGstDetailModel>[],
+        sourceData: customerData,
+        fallback: stringValue(customerData, 'gstin'),
+      ),
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
       subtotal: roundToDouble(summary.taxable, 2),

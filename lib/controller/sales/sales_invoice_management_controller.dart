@@ -398,28 +398,12 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   String resolveCustomerPrintGstin(Map<String, dynamic> customerData) {
-    final partyId = customerPartyId;
-    if (partyId != null) {
-      final gstDetails =
-          customerGstDetailsById[partyId] ?? const <PartyGstDetailModel>[];
-      final activeDetails = gstDetails
-          .where((detail) {
-            final data = detail.toJson();
-            return data['is_active'] != false && data['is_active'] != 0;
-          })
-          .toList(growable: false);
-      if (activeDetails.isNotEmpty) {
-        final preferred = activeDetails.firstWhere((detail) {
-          final data = detail.toJson();
-          return data['is_default'] == true || data['is_default'] == 1;
-        }, orElse: () => activeDetails.first);
-        final gstin = (preferred.gstin ?? '').trim();
-        if (gstin.isNotEmpty) {
-          return gstin;
-        }
-      }
-    }
-    return stringValue(customerData, 'gstin');
+    return resolvePreferredPartyGstin(
+      customerGstDetailsById[customerPartyId] ??
+          const <PartyGstDetailModel>[],
+      sourceData: customerData,
+      fallback: stringValue(customerData, 'gstin'),
+    );
   }
 
   bool? isInterStateForSummary() {

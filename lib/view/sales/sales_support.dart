@@ -137,6 +137,82 @@ String formatPartyAddress(PartyAddressModel? address, {String fallback = ''}) {
   return values.join(', ');
 }
 
+String resolvePreferredPartyGstin(
+  List<PartyGstDetailModel> gstDetails, {
+  Map<String, dynamic> sourceData = const <String, dynamic>{},
+  String fallback = '',
+}) {
+  final activeDetails = gstDetails
+      .where((detail) => detail.isActive != false)
+      .toList(growable: false);
+  if (activeDetails.isNotEmpty) {
+    final preferred = activeDetails.firstWhere(
+      (detail) => detail.isDefault == true,
+      orElse: () => activeDetails.first,
+    );
+    final gstin = (preferred.gstin ?? '').trim();
+    if (gstin.isNotEmpty) {
+      return gstin;
+    }
+  }
+
+  String firstNonEmpty(List<String?> values) {
+    for (final value in values) {
+      final normalized = (value ?? '').trim();
+      if (normalized.isNotEmpty) {
+        return normalized;
+      }
+    }
+    return '';
+  }
+
+  final direct = firstNonEmpty(<String?>[
+    sourceData['gstin']?.toString(),
+    sourceData['party_gstin']?.toString(),
+    sourceData['customer_gstin']?.toString(),
+    sourceData['gst_no']?.toString(),
+  ]);
+  if (direct.isNotEmpty) {
+    return direct;
+  }
+
+  for (final key in <String>['gst_details', 'gstDetails', 'party_gst_details']) {
+    final raw = sourceData[key];
+    if (raw is List) {
+      for (final item in raw.whereType<Map>()) {
+        final data = Map<String, dynamic>.from(
+          item.map((k, v) => MapEntry(k.toString(), v)),
+        );
+        final nested = firstNonEmpty(<String?>[
+          data['gstin']?.toString(),
+          data['party_gstin']?.toString(),
+          data['customer_gstin']?.toString(),
+          data['gst_no']?.toString(),
+        ]);
+        if (nested.isNotEmpty) {
+          return nested;
+        }
+      }
+    }
+    if (raw is Map) {
+      final data = Map<String, dynamic>.from(
+        raw.map((k, v) => MapEntry(k.toString(), v)),
+      );
+      final nested = firstNonEmpty(<String?>[
+        data['gstin']?.toString(),
+        data['party_gstin']?.toString(),
+        data['customer_gstin']?.toString(),
+        data['gst_no']?.toString(),
+      ]);
+      if (nested.isNotEmpty) {
+        return nested;
+      }
+    }
+  }
+
+  return fallback;
+}
+
 PartyContactModel? preferredPartyContact(PartyModel? party) {
   if (party == null) {
     return null;

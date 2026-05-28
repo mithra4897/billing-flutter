@@ -122,6 +122,8 @@ class SalesDeliveryManagementController extends GetxController {
   List<SalesOrderModel> orders = const <SalesOrderModel>[];
   List<PartyModel> customers = const <PartyModel>[];
   final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
+  final Map<int, List<PartyGstDetailModel>> customerGstDetailsById =
+      <int, List<PartyGstDetailModel>>{};
   List<PartyModel> allParties = const <PartyModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
@@ -248,7 +250,13 @@ class SalesDeliveryManagementController extends GetxController {
   void refreshLineItemsSection() => update(<Object>[lineItemsSectionId]);
 
   PartyModel? customerListEntryById(int? partyId) {
-    return partyId == null ? null : customerDetailsById[partyId];
+    if (partyId == null) {
+      return null;
+    }
+    return customers.cast<PartyModel?>().firstWhere(
+      (party) => party?.id == partyId,
+      orElse: () => null,
+    );
   }
 
   PartyModel? customerForPrintContext(int? partyId) {
@@ -259,7 +267,7 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   Future<void> ensureCustomerPrintContext(int? partyId) async {
-    if (partyId == null || customerDetailsById.containsKey(partyId)) {
+    if (partyId == null) {
       return;
     }
     try {
@@ -270,6 +278,10 @@ class SalesDeliveryManagementController extends GetxController {
           filters: const <String, dynamic>{'per_page': 100},
         ),
         _partiesService.partyContacts(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyGstDetails(
           partyId,
           filters: const <String, dynamic>{'per_page': 100},
         ),
@@ -287,6 +299,9 @@ class SalesDeliveryManagementController extends GetxController {
               (responses[2] as PaginatedResponse<PartyContactModel>).data ??
               party.contacts,
         );
+        customerGstDetailsById[partyId] =
+            (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+            const <PartyGstDetailModel>[];
       }
     } catch (_) {}
   }
@@ -949,6 +964,15 @@ class SalesDeliveryManagementController extends GetxController {
       partyName: customer?.partyName ?? '',
       partyAddress: formatPartyAddress(preferredAddress),
       partyContact: resolvePartyContact(customer),
+      partyGstin: resolvePreferredPartyGstin(
+        customerGstDetailsById[customerPartyId] ??
+            const <PartyGstDetailModel>[],
+        sourceData: selected['customer'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(
+                selected['customer'] as Map<String, dynamic>,
+              )
+            : const <String, dynamic>{},
+      ),
       notes: notesController.text.trim(),
       subtotal: roundToDouble(subtotal, 2),
       taxAmount: 0,
