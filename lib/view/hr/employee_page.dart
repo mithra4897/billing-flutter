@@ -17,6 +17,7 @@ class EmployeeManagementPage extends StatefulWidget {
 
 class _EmployeeManagementPageState extends State<EmployeeManagementPage>
     with SingleTickerProviderStateMixin {
+  final GlobalKey<FormState> _primaryEmployeeFormKey = GlobalKey<FormState>();
   static const List<AppDropdownItem<String>> _employmentTypeItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'permanent', label: 'Permanent'),
@@ -80,8 +81,6 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
   MediaService get _mediaService => _employeeController.mediaService;
   ScrollController get _pageScrollController =>
       _employeeController.pageScrollController;
-  GlobalKey<FormState> get _primaryEmployeeFormKey =>
-      _employeeController.primaryEmployeeFormKey;
   SettingsWorkspaceController get _workspaceController =>
       _employeeController.workspaceController;
   TextEditingController get _searchController =>

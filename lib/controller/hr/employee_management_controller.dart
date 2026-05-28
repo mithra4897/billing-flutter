@@ -9,7 +9,6 @@ class EmployeeManagementController extends GetxController {
   final AssetsService assetsService = AssetsService();
   final MediaService mediaService = MediaService();
   final ScrollController pageScrollController = ScrollController();
-  final GlobalKey<FormState> primaryEmployeeFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();

@@ -6,7 +6,6 @@ class DepartmentManagementController extends GetxController {
   final HrService _hrService = HrService();
 
   final ScrollController pageScrollController = ScrollController();
-  final GlobalKey<FormState> departmentFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
@@ -151,8 +150,8 @@ class DepartmentManagementController extends GetxController {
         .toList(growable: false);
   }
 
-  Future<void> save() async {
-    final form = departmentFormKey.currentState;
+  Future<void> save({FormState? formState}) async {
+    final form = formState;
     if (form == null || !form.validate()) {
       return;
     }

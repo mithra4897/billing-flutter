@@ -13,12 +13,12 @@ class DesignationManagementPage extends StatefulWidget {
 
 class _DesignationManagementPageState extends State<DesignationManagementPage> {
   late final String _controllerTag;
+  final GlobalKey<FormState> _designationFormKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('DesignationManagementController');
+    _controllerTag = persistentControllerTag('DesignationManagementController');
     Get.put(DesignationManagementController(), tag: _controllerTag);
   }
 
@@ -98,7 +98,7 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
         children: [
           AppSectionCard(
             child: Form(
-              key: controller.designationFormKey,
+              key: _designationFormKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -134,7 +134,11 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
                         label: controller.selectedDesignation == null
                             ? 'Save Designation'
                             : 'Update Designation',
-                        onPressed: controller.saving ? null : controller.save,
+                        onPressed: controller.saving
+                            ? null
+                            : () => controller.save(
+                                formState: _designationFormKey.currentState,
+                              ),
                         busy: controller.saving,
                       ),
                       if (controller.selectedDesignation?.id != null)

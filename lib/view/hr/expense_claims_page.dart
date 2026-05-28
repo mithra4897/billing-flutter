@@ -24,6 +24,7 @@ class ExpenseClaimsManagementPage extends StatefulWidget {
 class _ExpenseClaimsManagementPageState
     extends State<ExpenseClaimsManagementPage> {
   late final String _controllerTag;
+  final GlobalKey<FormState> _expenseClaimFormKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -115,7 +116,10 @@ class _ExpenseClaimsManagementPageState
     required ExpenseClaimsManagementController controller,
     required bool applyNow,
   }) async {
-    final message = await controller.submitClaim(applyNow: applyNow);
+    final message = await controller.submitClaim(
+      applyNow: applyNow,
+      formState: _expenseClaimFormKey.currentState,
+    );
     if (!mounted || message == null) {
       return;
     }
@@ -396,7 +400,7 @@ class _ExpenseClaimsManagementPageState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Form(
-          key: controller.expenseClaimFormKey,
+          key: _expenseClaimFormKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

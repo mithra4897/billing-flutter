@@ -13,6 +13,7 @@ class DepartmentManagementPage extends StatefulWidget {
 
 class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
   late final String _controllerTag;
+  final GlobalKey<FormState> _departmentFormKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -109,7 +110,7 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
         children: [
           AppSectionCard(
             child: Form(
-              key: controller.departmentFormKey,
+              key: _departmentFormKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -145,7 +146,11 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
                         label: controller.selectedDepartment == null
                             ? 'Save Department'
                             : 'Update Department',
-                        onPressed: controller.saving ? null : controller.save,
+                        onPressed: controller.saving
+                            ? null
+                            : () => controller.save(
+                                formState: _departmentFormKey.currentState,
+                              ),
                         busy: controller.saving,
                       ),
                       if (controller.selectedDepartment?.id != null)

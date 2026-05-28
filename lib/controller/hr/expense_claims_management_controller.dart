@@ -200,7 +200,6 @@ class ExpenseClaimsManagementController extends GetxController {
   final HrService hrService = HrService();
   final AccountsService accountsService = AccountsService();
   final ScrollController pageScrollController = ScrollController();
-  final GlobalKey<FormState> expenseClaimFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
@@ -545,11 +544,14 @@ class ExpenseClaimsManagementController extends GetxController {
     update();
   }
 
-  Future<String?> submitClaim({required bool applyNow}) async {
+  Future<String?> submitClaim({
+    required bool applyNow,
+    FormState? formState,
+  }) async {
     if (companyId == null) {
       return null;
     }
-    final form = expenseClaimFormKey.currentState;
+    final form = formState;
     if (form == null || !form.validate()) {
       return null;
     }

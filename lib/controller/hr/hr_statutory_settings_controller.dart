@@ -34,7 +34,6 @@ class HrStatutorySettingsController extends GetxController {
         AppDropdownItem(value: 'ctc', label: 'CTC'),
       ];
 
-  final GlobalKey<FormState> profileFormKey = GlobalKey<FormState>();
   final HrService hr = HrService();
   final MasterService master = MasterService();
   final ScrollController scroll = ScrollController();
@@ -287,11 +286,11 @@ class HrStatutorySettingsController extends GetxController {
     };
   }
 
-  Future<void> save() async {
+  Future<void> save({FormState? formState}) async {
     if (companyId == null) {
       return;
     }
-    if (profileFormKey.currentState?.validate() != true) {
+    if (formState?.validate() != true) {
       return;
     }
     saving = true;

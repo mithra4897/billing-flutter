@@ -14,6 +14,7 @@ class LeaveRequestManagementPage extends StatefulWidget {
 class _LeaveRequestManagementPageState
     extends State<LeaveRequestManagementPage> {
   late final String _controllerTag;
+  final GlobalKey<FormState> _leaveRequestFormKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -288,7 +289,7 @@ class _LeaveRequestManagementPageState
         ],
       ),
       editor: Form(
-        key: controller.leaveRequestFormKey,
+        key: _leaveRequestFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -406,7 +407,11 @@ class _LeaveRequestManagementPageState
                   label: controller.selectedLeaveRequest == null
                       ? 'Save Leave Request'
                       : 'Update Leave Request',
-                  onPressed: controller.saving ? null : controller.save,
+                  onPressed: controller.saving
+                      ? null
+                      : () => controller.save(
+                          formState: _leaveRequestFormKey.currentState,
+                        ),
                   busy: controller.saving,
                 ),
                 if (controller.selectedLeaveRequest?.id != null)

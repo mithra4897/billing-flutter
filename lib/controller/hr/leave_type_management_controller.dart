@@ -6,7 +6,6 @@ class LeaveTypeManagementController extends GetxController {
   final HrService _hrService = HrService();
 
   final ScrollController pageScrollController = ScrollController();
-  final GlobalKey<FormState> leaveTypeFormKey = GlobalKey<FormState>();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
@@ -133,8 +132,8 @@ class LeaveTypeManagementController extends GetxController {
     update();
   }
 
-  Future<void> save() async {
-    final form = leaveTypeFormKey.currentState;
+  Future<void> save({FormState? formState}) async {
+    final form = formState;
     if (form == null || !form.validate()) {
       return;
     }

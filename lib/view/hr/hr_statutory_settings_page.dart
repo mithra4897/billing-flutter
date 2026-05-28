@@ -61,6 +61,7 @@ class HrStatutorySettingsPage extends StatefulWidget {
 
 class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
   late final String _controllerTag;
+  final GlobalKey<FormState> _profileFormKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -142,7 +143,7 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                 controller: controller.scroll,
                 padding: const EdgeInsets.all(AppUiConstants.pagePadding),
                 child: Form(
-                  key: controller.profileFormKey,
+                  key: _profileFormKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -490,7 +491,9 @@ class _HrStatutorySettingsPageState extends State<HrStatutorySettingsPage> {
                           FilledButton(
                             onPressed: controller.saving
                                 ? null
-                                : controller.save,
+                                : () => controller.save(
+                                    formState: _profileFormKey.currentState,
+                                  ),
                             child: controller.saving
                                 ? const SizedBox(
                                     width: 22,

@@ -13,6 +13,7 @@ class LeaveTypeManagementPage extends StatefulWidget {
 
 class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
   late final String _controllerTag;
+  final GlobalKey<FormState> _leaveTypeFormKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -90,7 +91,7 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
         ),
       ),
       editor: Form(
-        key: controller.leaveTypeFormKey,
+        key: _leaveTypeFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -136,7 +137,11 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
                   label: controller.selectedLeaveType == null
                       ? 'Save Leave Type'
                       : 'Update Leave Type',
-                  onPressed: controller.saving ? null : controller.save,
+                  onPressed: controller.saving
+                      ? null
+                      : () => controller.save(
+                          formState: _leaveTypeFormKey.currentState,
+                        ),
                   busy: controller.saving,
                 ),
                 if (controller.selectedLeaveType?.id != null)
