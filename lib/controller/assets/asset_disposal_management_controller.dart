@@ -263,16 +263,17 @@ class AssetDisposalManagementController extends GetxController {
       loading = false;
 
       if (selectId != null) {
-        final existing = rows.cast<AssetDisposalModel?>().firstWhere(
-          (row) => intValue(row?.toJson() ?? const {}, 'id') == selectId,
-          orElse: () => null,
-        );
-        if (existing != null) {
-          await select(existing);
+        if (await restoreSelectionAfterReload<AssetDisposalModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          onMissingId: loadDetailById,
+        )) {
           return;
         }
-        await loadDetailById(selectId);
-        return;
       }
 
       resetDraft();

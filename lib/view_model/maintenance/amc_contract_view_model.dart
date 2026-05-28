@@ -201,10 +201,18 @@ class AmcContractViewModel extends GetxController {
           await select(match);
           return;
         }
-        await select(
-          AmcContractModel.fromJson(<String, dynamic>{'id': selectId}),
-        );
-        return;
+        if (await restoreSelectionAfterReload<AmcContractModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          placeholderBuilder: (id) =>
+              AmcContractModel.fromJson(<String, dynamic>{'id': id}),
+        )) {
+          return;
+        }
       }
       resetDraft();
       update();

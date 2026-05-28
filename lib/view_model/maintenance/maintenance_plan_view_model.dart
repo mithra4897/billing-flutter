@@ -120,10 +120,18 @@ class MaintenancePlanViewModel extends GetxController {
           await select(match);
           return;
         }
-        await select(
-          MaintenancePlanModel.fromJson(<String, dynamic>{'id': selectId}),
-        );
-        return;
+        if (await restoreSelectionAfterReload<MaintenancePlanModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          placeholderBuilder: (id) =>
+              MaintenancePlanModel.fromJson(<String, dynamic>{'id': id}),
+        )) {
+          return;
+        }
       }
       resetDraft();
       update();

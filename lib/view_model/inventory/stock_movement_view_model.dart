@@ -151,15 +151,14 @@ class StockMovementViewModel extends GetxController {
           await select(existing);
           return;
         }
-        final recoveredRows =
-            preserveSelectedRowAfterReload<StockMovementModel>(
-              rows: rows,
-              selected: selected,
-              selectId: selectId,
-            );
-        if (recoveredRows != null) {
-          rows = recoveredRows;
-          update();
+        if (await restoreSelectionAfterReload<StockMovementModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
           return;
         }
       }

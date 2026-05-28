@@ -185,16 +185,17 @@ class AssetCostCenterManagementController extends GetxController {
       loading = false;
 
       if (selectId != null) {
-        final existing = rows.cast<CostCenterModel?>().firstWhere(
-          (row) => row?.id == selectId,
-          orElse: () => null,
-        );
-        if (existing != null) {
-          await select(existing);
+        if (await restoreSelectionAfterReload<CostCenterModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          onMissingId: loadDetailById,
+        )) {
           return;
         }
-        await loadDetailById(selectId);
-        return;
       }
 
       resetDraft();

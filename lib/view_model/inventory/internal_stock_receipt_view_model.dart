@@ -309,28 +309,15 @@ class InternalStockReceiptViewModel extends GetxController {
       locationId = contextSelection.locationId;
       financialYearId = contextSelection.financialYearId;
       loading = false;
-      if (selectId != null) {
-        final existing = rows.cast<InternalStockReceiptModel?>().firstWhere(
-          (x) =>
-              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
-              selectId,
-          orElse: () => null,
-        );
-        if (existing != null) {
-          await select(existing);
-          return;
-        }
-        final recoveredRows =
-            preserveSelectedRowAfterReload<InternalStockReceiptModel>(
-              rows: rows,
-              selected: selected,
-              selectId: selectId,
-            );
-        if (recoveredRows != null) {
-          rows = recoveredRows;
-          update();
-          return;
-        }
+      if (await restoreSelectionAfterReload<InternalStockReceiptModel>(
+        selectId: selectId,
+        rows: rows,
+        selected: selected,
+        onSelect: select,
+        replaceRows: (nextRows) => rows = nextRows,
+        notify: update,
+      )) {
+        return;
       }
       resetDraft();
       update();

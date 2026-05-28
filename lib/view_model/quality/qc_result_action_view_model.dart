@@ -133,6 +133,16 @@ class QcResultActionViewModel extends GetxController {
           await select(match);
           return;
         }
+        if (await restoreSelectionAfterReload<QcResultActionModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
+          return;
+        }
       }
       resetDraft();
       update();

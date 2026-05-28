@@ -402,6 +402,16 @@ class JobworkOrderViewModel extends GetxController {
           await select(existing);
           return;
         }
+        if (await restoreSelectionAfterReload<JobworkOrderModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
+          return;
+        }
       }
       resetDraft();
       update();

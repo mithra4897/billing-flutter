@@ -285,10 +285,18 @@ class MaintenanceWorkOrderViewModel extends GetxController {
           await select(match);
           return;
         }
-        await select(
-          MaintenanceWorkOrderModel.fromJson(<String, dynamic>{'id': selectId}),
-        );
-        return;
+        if (await restoreSelectionAfterReload<MaintenanceWorkOrderModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          placeholderBuilder: (id) =>
+              MaintenanceWorkOrderModel.fromJson(<String, dynamic>{'id': id}),
+        )) {
+          return;
+        }
       }
       resetDraft();
       update();

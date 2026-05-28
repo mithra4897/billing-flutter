@@ -113,14 +113,14 @@ class StockBatchViewModel extends GetxController {
           await select(existing);
           return;
         }
-        final recoveredRows = preserveSelectedRowAfterReload<StockBatchModel>(
+        if (await restoreSelectionAfterReload<StockBatchModel>(
+          selectId: selectId,
           rows: rows,
           selected: selected,
-          selectId: selectId,
-        );
-        if (recoveredRows != null) {
-          rows = recoveredRows;
-          update();
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
           return;
         }
       }

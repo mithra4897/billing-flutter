@@ -211,6 +211,16 @@ class ProductionReceiptViewModel extends GetxController {
           await select(existing);
           return;
         }
+        if (await restoreSelectionAfterReload<ProductionReceiptModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
+          return;
+        }
       }
       resetDraft();
       update();
@@ -305,7 +315,9 @@ class ProductionReceiptViewModel extends GetxController {
         ? <ProductionReceiptLineDraft>[ProductionReceiptLineDraft()]
         : next;
     update();
-    disposeDraftEntriesNextFrame<ProductionReceiptLineDraft>([removed], (entry) => entry.dispose());
+    disposeDraftEntriesNextFrame<ProductionReceiptLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void setLineItemId(int index, int? value) {

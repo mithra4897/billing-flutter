@@ -126,19 +126,17 @@ class AssetDepreciationRunViewModel extends GetxController {
       loading = false;
 
       if (selectId != null) {
-        AssetDepreciationRunModel? inList;
-        for (final AssetDepreciationRunModel r in rows) {
-          if (intValue(r.toJson(), 'id') == selectId) {
-            inList = r;
-            break;
-          }
-        }
-        if (inList != null) {
-          await select(inList);
+        if (await restoreSelectionAfterReload<AssetDepreciationRunModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          onMissingId: _loadDetailById,
+        )) {
           return;
         }
-        await _loadDetailById(selectId);
-        return;
       }
       resetDraft();
       update();

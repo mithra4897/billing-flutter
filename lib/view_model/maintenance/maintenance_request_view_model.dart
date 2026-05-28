@@ -196,10 +196,18 @@ class MaintenanceRequestViewModel extends GetxController {
           await select(match);
           return;
         }
-        await select(
-          MaintenanceRequestModel.fromJson(<String, dynamic>{'id': selectId}),
-        );
-        return;
+        if (await restoreSelectionAfterReload<MaintenanceRequestModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          placeholderBuilder: (id) =>
+              MaintenanceRequestModel.fromJson(<String, dynamic>{'id': id}),
+        )) {
+          return;
+        }
       }
       resetDraft();
       update();

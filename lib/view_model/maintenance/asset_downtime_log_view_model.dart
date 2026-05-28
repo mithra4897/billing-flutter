@@ -132,10 +132,18 @@ class AssetDowntimeLogViewModel extends GetxController {
           await select(match);
           return;
         }
-        await select(
-          AssetDowntimeLogModel.fromJson(<String, dynamic>{'id': selectId}),
-        );
-        return;
+        if (await restoreSelectionAfterReload<AssetDowntimeLogModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          placeholderBuilder: (id) =>
+              AssetDowntimeLogModel.fromJson(<String, dynamic>{'id': id}),
+        )) {
+          return;
+        }
       }
       resetDraft();
       update();

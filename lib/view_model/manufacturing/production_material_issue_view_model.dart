@@ -456,6 +456,16 @@ class ProductionMaterialIssueViewModel extends GetxController {
             await select(existing);
             return;
           }
+          if (await restoreSelectionAfterReload<ProductionMaterialIssueModel>(
+            selectId: selectId,
+            rows: rows,
+            selected: selected,
+            onSelect: select,
+            replaceRows: (nextRows) => rows = nextRows,
+            notify: _notifySafely,
+          )) {
+            return;
+          }
         } else {
           final response = await _service.productionMaterialIssue(selectId);
           if (response.data != null) {
@@ -553,7 +563,9 @@ class ProductionMaterialIssueViewModel extends GetxController {
         ? <ProductionMaterialIssueLineDraft>[ProductionMaterialIssueLineDraft()]
         : next;
     _notifySafely();
-    disposeDraftEntriesNextFrame<ProductionMaterialIssueLineDraft>([removed], (entry) => entry.dispose());
+    disposeDraftEntriesNextFrame<ProductionMaterialIssueLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void setLineItemId(int index, int? value) {

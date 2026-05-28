@@ -319,28 +319,15 @@ class OpeningStockViewModel extends GetxController {
       locationId = contextSelection.locationId;
       financialYearId = contextSelection.financialYearId;
       loading = false;
-      if (selectId != null) {
-        final existing = rows.cast<OpeningStockModel?>().firstWhere(
-          (x) =>
-              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
-              selectId,
-          orElse: () => null,
-        );
-        if (existing != null) {
-          await select(existing);
-          return;
-        }
-        final recoveredRows = preserveSelectedRowAfterReload<OpeningStockModel>(
-          rows: rows,
-          selected: selected,
-          selectId: selectId,
-        );
-        if (recoveredRows != null) {
-          rows = recoveredRows;
-          loading = false;
-          _notifyListenersSafely();
-          return;
-        }
+      if (await restoreSelectionAfterReload<OpeningStockModel>(
+        selectId: selectId,
+        rows: rows,
+        selected: selected,
+        onSelect: select,
+        replaceRows: (nextRows) => rows = nextRows,
+        notify: _notifyListenersSafely,
+      )) {
+        return;
       }
       resetDraft();
       _notifyListenersSafely();

@@ -224,14 +224,17 @@ class AssetCategoryViewModel extends GetxController {
       loading = false;
 
       if (selectId != null) {
-        for (final AssetCategoryModel r in rows) {
-          if (intValue(r.toJson(), 'id') == selectId) {
-            await select(r);
-            return;
-          }
+        if (await restoreSelectionAfterReload<AssetCategoryModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          onMissingId: _loadDetailByIdOnly,
+        )) {
+          return;
         }
-        await _loadDetailByIdOnly(selectId);
-        return;
       }
       resetDraft();
       update();

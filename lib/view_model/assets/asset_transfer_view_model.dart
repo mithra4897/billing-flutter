@@ -97,19 +97,17 @@ class AssetTransferViewModel extends GetxController {
       loading = false;
 
       if (selectId != null) {
-        AssetTransferModel? inList;
-        for (final AssetTransferModel r in rows) {
-          if (intValue(r.toJson(), 'id') == selectId) {
-            inList = r;
-            break;
-          }
-        }
-        if (inList != null) {
-          await select(inList);
+        if (await restoreSelectionAfterReload<AssetTransferModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+          onMissingId: _loadDetailById,
+        )) {
           return;
         }
-        await _loadDetailById(selectId);
-        return;
       }
       resetDraft();
       update();

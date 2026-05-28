@@ -73,6 +73,16 @@ class MrpRecommendationViewModel extends GetxController {
           await select(existing);
           return;
         }
+        if (await restoreSelectionAfterReload<MrpRecommendationModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
+          return;
+        }
       }
       selected = null;
       update();

@@ -170,6 +170,16 @@ class QcNonConformanceLogViewModel extends GetxController {
           await select(match);
           return;
         }
+        if (await restoreSelectionAfterReload<QcNonConformanceLogModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
+          return;
+        }
       }
       await resetDraft();
       update();

@@ -326,15 +326,14 @@ class InventoryAdjustmentViewModel extends GetxController {
           await selectRow(row);
           return;
         }
-        final recoveredRows =
-            preserveSelectedRowAfterReload<InventoryAdjustmentModel>(
-              rows: rows,
-              selected: selected,
-              selectId: selectId,
-            );
-        if (recoveredRows != null) {
-          rows = recoveredRows;
-          update();
+        if (await restoreSelectionAfterReload<InventoryAdjustmentModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: selectRow,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
           return;
         }
       }

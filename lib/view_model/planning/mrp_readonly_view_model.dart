@@ -64,14 +64,14 @@ class MrpReadonlyViewModel extends GetxController {
       }
       loading = false;
       if (selectId != null) {
-        final existing = rows.cast<JsonModel?>().firstWhere(
-          (x) =>
-              intValue(x?.toJson() ?? const <String, dynamic>{}, 'id') ==
-              selectId,
-          orElse: () => null,
-        );
-        if (existing != null) {
-          await select(existing);
+        if (await restoreSelectionAfterReload<JsonModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
           return;
         }
       }

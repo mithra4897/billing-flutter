@@ -325,6 +325,16 @@ class BomViewModel extends GetxController {
           await select(existing);
           return;
         }
+        if (await restoreSelectionAfterReload<BomModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: _notifySafely,
+        )) {
+          return;
+        }
       }
       resetDraft();
       _notifySafely();
@@ -538,7 +548,9 @@ class BomViewModel extends GetxController {
     final removed = next.removeAt(index);
     lines = next.isEmpty ? <BomLineDraft>[BomLineDraft()] : next;
     _notifySafely();
-    disposeDraftEntriesNextFrame<BomLineDraft>([removed], (entry) => entry.dispose());
+    disposeDraftEntriesNextFrame<BomLineDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   void addOperation() {
@@ -554,7 +566,9 @@ class BomViewModel extends GetxController {
     final removed = next.removeAt(index);
     operations = next.isEmpty ? <BomOperationDraft>[BomOperationDraft()] : next;
     _notifySafely();
-    disposeDraftEntriesNextFrame<BomOperationDraft>([removed], (entry) => entry.dispose());
+    disposeDraftEntriesNextFrame<BomOperationDraft>([
+      removed,
+    ], (entry) => entry.dispose());
   }
 
   String? validateForm() {

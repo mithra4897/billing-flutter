@@ -303,15 +303,14 @@ class StockTransferViewModel extends GetxController {
           await select(existing);
           return;
         }
-        final recoveredRows =
-            preserveSelectedRowAfterReload<StockTransferModel>(
-              rows: rows,
-              selected: selected,
-              selectId: selectId,
-            );
-        if (recoveredRows != null) {
-          rows = recoveredRows;
-          update();
+        if (await restoreSelectionAfterReload<StockTransferModel>(
+          selectId: selectId,
+          rows: rows,
+          selected: selected,
+          onSelect: select,
+          replaceRows: (nextRows) => rows = nextRows,
+          notify: update,
+        )) {
           return;
         }
       }
