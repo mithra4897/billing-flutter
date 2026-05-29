@@ -88,6 +88,7 @@ class _StockBalancePageState extends State<StockBalancePage> {
                 message: 'Choose a stock balance row from the left to inspect.',
               )
             : Column(
+                key: ValueKey<int?>(controller.selectedItem!.id),
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
