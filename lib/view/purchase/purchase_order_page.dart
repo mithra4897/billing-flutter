@@ -521,7 +521,20 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     final selectedData =
                         controller.selectedItem?.toJson() ??
                         const <String, dynamic>{};
-                    final status = stringValue(selectedData, 'order_status');
+                    final status = stringValue(
+                      selectedData,
+                      'order_status',
+                    ).toLowerCase();
+                    final canPrint =
+                        controller.selectedItem != null &&
+                        const {
+                          'confirmed',
+                          'partially_received',
+                          'fully_received',
+                          'partially_invoiced',
+                          'fully_invoiced',
+                          'closed',
+                        }.contains(status);
                     final canPost =
                         controller.selectedItem != null && status == 'draft';
                     final canClose =
@@ -539,6 +552,14 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       spacing: AppUiConstants.spacingSm,
                       runSpacing: AppUiConstants.spacingSm,
                       children: [
+                        if (canPrint)
+                          AppActionButton(
+                            icon: Icons.print_outlined,
+                            label: 'Print',
+                            filled: false,
+                            onPressed: () =>
+                                controller.openPrintPreview(context),
+                          ),
                         if (!controller.isSelectedOrderReadOnly)
                           AppActionButton(
                             icon: Icons.save_outlined,

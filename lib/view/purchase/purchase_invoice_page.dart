@@ -579,12 +579,17 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                AppActionButton(
-                  icon: Icons.print_outlined,
-                  label: 'Print',
-                  filled: false,
-                  onPressed: () => controller.openPrintPreview(context),
-                ),
+                if (controller.selectedItem != null &&
+                    !const {'draft', 'cancelled'}.contains(
+                      (controller.selectedItem?.invoiceStatus ?? '')
+                          .toLowerCase(),
+                    ))
+                  AppActionButton(
+                    icon: Icons.print_outlined,
+                    label: 'Print',
+                    filled: false,
+                    onPressed: () => controller.openPrintPreview(context),
+                  ),
                 if (!controller.isSelectedInvoiceReadOnly)
                   AppActionButton(
                     icon: Icons.save_outlined,

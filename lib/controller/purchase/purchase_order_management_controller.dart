@@ -137,6 +137,7 @@ class PurchaseOrderManagementController extends GetxController {
   String statusFilter = '';
   List<PurchaseOrderModel> items = const <PurchaseOrderModel>[];
   List<PurchaseOrderModel> filteredItems = const <PurchaseOrderModel>[];
+  List<CompanyModel> companies = const <CompanyModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<PurchaseRequisitionModel> requisitions =
@@ -148,6 +149,9 @@ class PurchaseOrderManagementController extends GetxController {
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
   List<ItemSupplierMapModel> itemSupplierMaps = const <ItemSupplierMapModel>[];
+  final Map<int, PartyModel> supplierDetailsById = <int, PartyModel>{};
+  final Map<int, List<PartyGstDetailModel>> supplierGstDetailsById =
+      <int, List<PartyGstDetailModel>>{};
   PurchaseOrderModel? selectedItem;
   int? contextCompanyId;
   int? contextBranchId;
@@ -301,6 +305,9 @@ class PurchaseOrderManagementController extends GetxController {
       items =
           (responses[0] as ApiResponse<List<PurchaseOrderModel>>).data ??
           const <PurchaseOrderModel>[];
+      companies =
+          (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          const <CompanyModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
@@ -521,6 +528,149 @@ class PurchaseOrderManagementController extends GetxController {
 
   PurchaseDocumentTaxSummary orderTaxSummary() {
     return summarizePurchaseLineTaxes(lines.map(taxBreakdownForLine));
+  }
+
+  PartyModel? supplierById(int? supplierId) {
+    return suppliers.cast<PartyModel?>().firstWhere(
+      (entry) => entry?.id == supplierId,
+      orElse: () => null,
+    );
+  }
+
+  PartyModel? supplierForPrintContext(int? supplierId) {
+    if (supplierId == null) {
+      return null;
+    }
+    return supplierDetailsById[supplierId] ?? supplierById(supplierId);
+  }
+
+  Future<void> ensureSupplierPrintContext(int? supplierId) async {
+    if (supplierId == null) {
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _partiesService.party(supplierId),
+        _partiesService.partyAddresses(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyContacts(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyGstDetails(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+      ]);
+      final party = (responses[0] as ApiResponse<PartyModel>).data;
+      if (party != null) {
+        supplierDetailsById[supplierId] = party.copyWith(
+          addresses:
+              (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+              party.addresses,
+          contacts:
+              (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+              party.contacts,
+        );
+        supplierGstDetailsById[supplierId] =
+            (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+            party.gstDetails;
+      }
+    } catch (_) {}
+  }
+
+  DocumentPrintDataModel purchaseOrderPrintData() {
+    final company = companies.cast<CompanyModel?>().firstWhere(
+      (item) => item?.id == companyId,
+      orElse: () => null,
+    );
+    final selected = selectedItem;
+    final selectedData = selected?.toJson() ?? const <String, dynamic>{};
+    final supplier = supplierForPrintContext(supplierPartyId);
+    final supplierData = supplier?.toJson() ?? const <String, dynamic>{};
+    final preferredAddress = preferredPartyAddress(
+      supplier,
+      shippingAddressId: intValue(selectedData, 'shipping_address_id'),
+      billingAddressId: intValue(selectedData, 'billing_address_id'),
+    );
+    final summary = orderTaxSummary();
+    final gstBreakupGroups = <String, dynamic>{};
+    final printLines = lines
+        .where((line) => line.itemId != null && line.itemId! > 0)
+        .map((line) {
+          final item = itemById(line.itemId);
+          final breakdown = taxBreakdownForLine(line);
+          final taxCode = purchaseTaxCodeById(taxCodes, line.taxCodeId);
+          accumulatePrintTemplateGstBreakup(
+            gstBreakupGroups,
+            taxCode: taxCode,
+            taxPercent: (taxCode?.taxRate ?? 0).toDouble(),
+            taxable: breakdown.taxable,
+            cgst: breakdown.cgst,
+            sgst: breakdown.sgst,
+            igst: breakdown.igst,
+          );
+          return DocumentPrintLineModel(
+            itemName:
+                item?.itemName ??
+                item?.itemCode ??
+                line.descriptionController.text.trim(),
+            description: line.descriptionController.text.trim(),
+            qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
+            rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+            taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
+            lineTotal: roundToDouble(breakdown.taxable, 2),
+          );
+        })
+        .toList(growable: false);
+    final totalTax = summary.cgst + summary.sgst + summary.igst;
+
+    return buildManagedDocumentPrintData(
+      companies: companies,
+      companyId: companyId,
+      company: company,
+      documentNumber: nullIfEmpty(orderNoController.text) ?? 'Draft',
+      documentDate: orderDateController.text.trim(),
+      referenceNumber: supplierReferenceNoController.text.trim(),
+      partyName: supplier?.partyName ?? '',
+      partyAddress: formatPartyAddress(
+        preferredAddress,
+        fallback: stringValue(supplierData, 'address_line1'),
+      ),
+      partyContact: resolvePartyContact(
+        supplier,
+        fallback: stringValue(supplierData, 'mobile_no'),
+      ),
+      partyGstin: resolvePreferredPartyGstin(
+        supplierGstDetailsById[supplierPartyId] ??
+            supplier?.gstDetails ??
+            const <PartyGstDetailModel>[],
+        sourceData: supplierData,
+        fallback: stringValue(supplierData, 'gstin'),
+      ),
+      notes: notesController.text.trim(),
+      termsConditions: termsController.text.trim(),
+      subtotal: roundToDouble(summary.taxable, 2),
+      taxAmount: roundToDouble(totalTax, 2),
+      totalAmount: roundToDouble(summary.total, 2),
+      currencyCode: currencyCodeController.text.trim().isEmpty
+          ? 'INR'
+          : currencyCodeController.text.trim(),
+      lines: printLines,
+      gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+    );
+  }
+
+  Future<void> openPrintPreview(BuildContext context) {
+    return openManagedDocumentPrintPreview(
+      context,
+      prepare: () => ensureSupplierPrintContext(supplierPartyId),
+      documentType: 'purchase_order',
+      title: 'Purchase Order',
+      documentDataBuilder: purchaseOrderPrintData,
+    );
   }
 
   List<DocumentSeriesModel> seriesOptions() {

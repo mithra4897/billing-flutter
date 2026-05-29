@@ -54,6 +54,9 @@ class PurchaseInvoiceManagementController extends GetxController {
   List<PurchaseReceiptModel> receipts = const <PurchaseReceiptModel>[];
   List<PartyModel> suppliers = const <PartyModel>[];
   final Map<int, PartyModel> supplierLookupById = <int, PartyModel>{};
+  final Map<int, PartyModel> supplierDetailsById = <int, PartyModel>{};
+  final Map<int, List<PartyGstDetailModel>> supplierGstDetailsById =
+      <int, List<PartyGstDetailModel>>{};
   List<AccountModel> accounts = const <AccountModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
   final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
@@ -413,12 +416,67 @@ class PurchaseInvoiceManagementController extends GetxController {
   PartyModel? supplierById(int? supplierId) =>
       supplierId == null ? null : supplierLookupById[supplierId];
 
+  PartyModel? supplierForPrintContext(int? supplierId) {
+    if (supplierId == null) {
+      return null;
+    }
+    return supplierDetailsById[supplierId] ?? supplierById(supplierId);
+  }
+
+  Future<void> ensureSupplierPrintContext(int? supplierId) async {
+    if (supplierId == null) {
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _partiesService.party(supplierId),
+        _partiesService.partyAddresses(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyContacts(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyGstDetails(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+      ]);
+      final party = (responses[0] as ApiResponse<PartyModel>).data;
+      if (party != null) {
+        supplierDetailsById[supplierId] = party.copyWith(
+          addresses:
+              (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+              party.addresses,
+          contacts:
+              (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+              party.contacts,
+        );
+        supplierGstDetailsById[supplierId] =
+            (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+            party.gstDetails;
+      }
+    } catch (_) {}
+  }
+
   DocumentPrintDataModel purchaseInvoicePrintData() {
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
     );
-    final supplier = supplierById(supplierPartyId);
+    final supplier = supplierForPrintContext(supplierPartyId);
+    final supplierData = selected['supplier'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(
+            selected['supplier'] as Map<String, dynamic>,
+          )
+        : supplier?.toJson() ?? const <String, dynamic>{};
+    final preferredAddress = preferredPartyAddress(
+      supplier,
+      shippingAddressId: intValue(selected, 'shipping_address_id'),
+      billingAddressId: intValue(selected, 'billing_address_id'),
+    );
     var subtotal = 0.0;
     var taxAmount = 0.0;
     final gstBreakupGroups = <String, dynamic>{};
@@ -478,6 +536,21 @@ class PurchaseInvoiceManagementController extends GetxController {
       documentDate: invoiceDateController.text.trim(),
       referenceNumber: supplierReferenceNoController.text.trim(),
       partyName: supplier?.partyName ?? '',
+      partyAddress: formatPartyAddress(
+        preferredAddress,
+        fallback: stringValue(supplierData, 'address_line1'),
+      ),
+      partyContact: resolvePartyContact(
+        supplier,
+        fallback: stringValue(supplierData, 'mobile_no'),
+      ),
+      partyGstin: resolvePreferredPartyGstin(
+        supplierGstDetailsById[supplierPartyId] ??
+            supplier?.gstDetails ??
+            const <PartyGstDetailModel>[],
+        sourceData: supplierData,
+        fallback: stringValue(supplierData, 'gstin'),
+      ),
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
       subtotal: roundedSubtotal,
@@ -494,6 +567,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   Future<void> openPrintPreview(BuildContext context) {
     return openManagedDocumentPrintPreview(
       context,
+      prepare: () => ensureSupplierPrintContext(supplierPartyId),
       documentType: 'purchase_invoice',
       title: 'Purchase Invoice',
       documentDataBuilder: purchaseInvoicePrintData,
@@ -596,7 +670,9 @@ class PurchaseInvoiceManagementController extends GetxController {
           }
           final receiptOrderId = intValue(data, 'purchase_order_id');
           if (receiptOrderId != null &&
-              items.any((invoice) => invoice.purchaseOrderId == receiptOrderId)) {
+              items.any(
+                (invoice) => invoice.purchaseOrderId == receiptOrderId,
+              )) {
             return false;
           }
           return !const {'draft', 'closed', 'cancelled'}.contains(status);
