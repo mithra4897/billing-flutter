@@ -345,16 +345,14 @@ class SalesOrderManagementController extends GetxController {
     if (!canEdit) {
       return;
     }
-    salesQuotationId = value;
-    quotationLinesCache = value == null ? null : const <Map<String, dynamic>>[];
-    for (final line in lines) {
-      line.salesQuotationLineId = null;
-    }
-    update();
     if (value != null) {
-      await fetchQuotationLines(value);
+      await prefillNewOrderFromQuotation(value);
     } else {
+      salesQuotationId = null;
       quotationLinesCache = null;
+      for (final line in lines) {
+        line.salesQuotationLineId = null;
+      }
       update();
     }
     await refreshSalesChain();
@@ -394,7 +392,17 @@ class SalesOrderManagementController extends GetxController {
         line.itemId = intValue(quotationLine, 'item_id');
         line.uomId = intValue(quotationLine, 'uom_id');
         line.warehouseId = intValue(quotationLine, 'warehouse_id');
+        line.taxCodeId = intValue(quotationLine, 'tax_code_id');
+        line.descriptionController.text = stringValue(
+          quotationLine,
+          'description',
+        );
         line.rateController.text = stringValue(quotationLine, 'rate');
+        line.discountController.text = stringValue(
+          quotationLine,
+          'discount_percent',
+        );
+        line.remarksController.text = stringValue(quotationLine, 'remarks');
         final quoteQty =
             double.tryParse(quotationLine['qty']?.toString() ?? '') ?? 0;
         if (quoteQty > 0) {

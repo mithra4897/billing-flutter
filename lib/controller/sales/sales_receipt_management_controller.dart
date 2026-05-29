@@ -55,6 +55,7 @@ class SalesReceiptManagementController extends GetxController {
       ];
 
   final SalesService _salesService = SalesService();
+  final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final AccountsService _accountsService = AccountsService();
@@ -99,6 +100,7 @@ class SalesReceiptManagementController extends GetxController {
   int? customerPartyId;
   int? accountId;
   bool isActive = true;
+  Map<String, dynamic>? salesChain;
   List<SalesReceiptAllocationDraft> allocations =
       <SalesReceiptAllocationDraft>[];
 
@@ -370,7 +372,6 @@ class SalesReceiptManagementController extends GetxController {
             .whereType<Map<String, dynamic>>()
             .map(SalesReceiptAllocationDraft.fromJson)
             .toList(growable: true);
-    _disposeAllocations(allocations);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -394,8 +395,9 @@ class SalesReceiptManagementController extends GetxController {
     paidAmountController.text = stringValue(data, 'paid_amount', '0');
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
-    allocations = nextAllocations;
+    _replaceAllocations(nextAllocations, notify: false);
     formError = null;
+    await refreshSalesChain();
     if (notify) {
       update();
     }
@@ -403,7 +405,6 @@ class SalesReceiptManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     final series = seriesOptions();
-    _disposeAllocations(allocations);
     selectedItem = null;
     companyId = contextCompanyId;
     branchId = contextBranchId;
@@ -423,8 +424,9 @@ class SalesReceiptManagementController extends GetxController {
     paidAmountController.clear();
     notesController.clear();
     isActive = true;
-    allocations = <SalesReceiptAllocationDraft>[];
+    _replaceAllocations(const <SalesReceiptAllocationDraft>[], notify: false);
     formError = null;
+    salesChain = null;
     if (notify) {
       update();
     }
@@ -461,16 +463,16 @@ class SalesReceiptManagementController extends GetxController {
       if (!invoices.any((entry) => entry.id == invoice.id)) {
         invoices = <SalesInvoiceModel>[invoice, ...invoices];
       }
-      _disposeAllocations(allocations);
-      allocations = <SalesReceiptAllocationDraft>[
+      _replaceAllocations(<SalesReceiptAllocationDraft>[
         SalesReceiptAllocationDraft(
           salesInvoiceId: invoice.id,
           allocationType: 'against_invoice',
           allocatedAmount: allocationAmount,
           remarks: 'Against ${invoice.invoiceNo ?? 'invoice #${invoice.id}'}',
         ),
-      ];
+      ], notify: false);
       formError = null;
+      await refreshSalesChain(invoiceId: invoice.id);
       update();
     } catch (error) {
       formError = error.toString();
@@ -583,6 +585,7 @@ class SalesReceiptManagementController extends GetxController {
 
   void setAllocationSalesInvoiceId(int index, int? value) {
     allocations[index].salesInvoiceId = value;
+    unawaited(refreshSalesChain(invoiceId: value));
     update();
   }
 
@@ -748,5 +751,44 @@ class SalesReceiptManagementController extends GetxController {
     for (final allocation in values) {
       allocation.dispose();
     }
+  }
+
+  void _replaceAllocations(
+    List<SalesReceiptAllocationDraft> nextAllocations, {
+    bool notify = true,
+  }) {
+    final previous = allocations;
+    allocations = List<SalesReceiptAllocationDraft>.from(nextAllocations);
+    if (notify) {
+      update();
+    }
+    disposeDraftEntriesNextFrame<SalesReceiptAllocationDraft>(
+      previous,
+      (allocation) => allocation.dispose(),
+    );
+  }
+
+  Future<void> refreshSalesChain({int? invoiceId}) async {
+    final receiptId = intValue(selectedItem?.toJson() ?? const {}, 'id');
+    final sourceInvoiceId =
+        invoiceId ??
+        allocations.cast<SalesReceiptAllocationDraft?>().firstWhere(
+              (allocation) => allocation?.salesInvoiceId != null,
+              orElse: () => null,
+            )?.salesInvoiceId;
+    try {
+      if (receiptId != null) {
+        final response = await _crmService.salesChain(receiptId: receiptId);
+        salesChain = response.data;
+      } else if (sourceInvoiceId != null) {
+        final response = await _crmService.salesChain(invoiceId: sourceInvoiceId);
+        salesChain = response.data;
+      } else {
+        salesChain = null;
+      }
+    } catch (_) {
+      salesChain = null;
+    }
+    update();
   }
 }

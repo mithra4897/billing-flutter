@@ -61,6 +61,7 @@ class SalesInvoiceManagementController extends GetxController {
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
+  List<SalesQuotationModel> quotationsAll = const <SalesQuotationModel>[];
   List<SalesOrderModel> ordersAll = const <SalesOrderModel>[];
   List<SalesDeliveryModel> deliveriesAll = const <SalesDeliveryModel>[];
   List<Map<String, dynamic>>? orderLinesCache;
@@ -78,6 +79,7 @@ class SalesInvoiceManagementController extends GetxController {
   final Set<String> serialOptionsLoadingKeys = <String>{};
   int? salesOrderId;
   int? salesDeliveryId;
+  int? salesQuotationId;
   SalesInvoiceModel? selectedItem;
   SalesInvoiceModel? pendingSelection;
   int? contextCompanyId;
@@ -874,6 +876,25 @@ class SalesInvoiceManagementController extends GetxController {
     await Future.wait(serialManagedLines.map(syncSerialOptionsForLine));
   }
 
+  List<SalesQuotationModel> get quotationChoices {
+    final selectedCompanyId = companyId;
+    final cust = customerPartyId;
+    return quotationsAll
+        .where((q) {
+          final j = q.toJson();
+          if (selectedCompanyId != null &&
+              intValue(j, 'company_id') != selectedCompanyId) {
+            return false;
+          }
+          if (cust != null && intValue(j, 'customer_party_id') != cust) {
+            return false;
+          }
+          final st = stringValue(j, 'quotation_status');
+          return const {'posted', 'sent', 'accepted'}.contains(st);
+        })
+        .toList(growable: false);
+  }
+
   List<SalesOrderModel> get orderChoices {
     final selectedCompanyId = companyId;
     final cust = customerPartyId;
@@ -978,6 +999,7 @@ class SalesInvoiceManagementController extends GetxController {
         return;
       }
       State(() {
+        quotationsAll = const <SalesQuotationModel>[];
         ordersAll = const <SalesOrderModel>[];
         deliveriesAll = const <SalesDeliveryModel>[];
       });
@@ -986,6 +1008,13 @@ class SalesInvoiceManagementController extends GetxController {
     }
     try {
       final src = await Future.wait<dynamic>([
+        salesService.quotationsAll(
+          filters: <String, dynamic>{
+            'company_id': companyId,
+            'is_active': 1,
+            'sort_by': 'quotation_date',
+          },
+        ),
         salesService.ordersAll(
           filters: <String, dynamic>{
             'company_id': companyId,
@@ -1005,11 +1034,14 @@ class SalesInvoiceManagementController extends GetxController {
         return;
       }
       State(() {
+        quotationsAll =
+            (src[0] as ApiResponse<List<SalesQuotationModel>>).data ??
+            const <SalesQuotationModel>[];
         ordersAll =
-            (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
+            (src[1] as ApiResponse<List<SalesOrderModel>>).data ??
             const <SalesOrderModel>[];
         deliveriesAll =
-            (src[1] as ApiResponse<List<SalesDeliveryModel>>).data ??
+            (src[2] as ApiResponse<List<SalesDeliveryModel>>).data ??
             const <SalesDeliveryModel>[];
       });
       await refreshSalesChain();
@@ -1111,6 +1143,18 @@ class SalesInvoiceManagementController extends GetxController {
     notesController.text = stringValue(j, 'notes');
   }
 
+  Future<void> onHeaderSalesQuotationChanged(int? value) async {
+    if (!canEdit) {
+      return;
+    }
+    if (value != null) {
+      await prefillNewInvoiceFromQuotation(value);
+      return;
+    }
+    resetForm();
+    await refreshSalesChain();
+  }
+
   Future<Map<String, dynamic>?> fetchOrderDetail(int orderId) async {
     try {
       final r = await salesService.order(orderId);
@@ -1176,6 +1220,7 @@ class SalesInvoiceManagementController extends GetxController {
   Future<void> refreshSalesChain({int? quotationId}) async {
     final iid = selectedItem?.id;
     final oid = orderIdForSalesChain();
+    final qid = quotationId ?? salesQuotationId;
     try {
       if (iid != null && iid != 0) {
         final r = await crmService.salesChain(invoiceId: iid);
@@ -1193,8 +1238,8 @@ class SalesInvoiceManagementController extends GetxController {
         State(() => salesChain = r.data);
         return;
       }
-      if (quotationId != null) {
-        final r = await crmService.salesChain(quotationId: quotationId);
+      if (qid != null) {
+        final r = await crmService.salesChain(quotationId: qid);
         if (!mounted) {
           return;
         }
@@ -1263,6 +1308,7 @@ class SalesInvoiceManagementController extends GetxController {
       return;
     }
     State(() {
+      salesQuotationId = null;
       salesOrderId = value;
       orderLinesCache = value == null ? null : const <Map<String, dynamic>>[];
       if (salesDeliveryId != null && value != null) {
@@ -1308,6 +1354,7 @@ class SalesInvoiceManagementController extends GetxController {
       return;
     }
     State(() {
+      salesQuotationId = null;
       salesDeliveryId = value;
       deliveryLinesCache = value == null
           ? null
@@ -1395,7 +1442,11 @@ class SalesInvoiceManagementController extends GetxController {
       line.warehouseId = intValue(ol, 'warehouse_id');
       line.batchId = InvoiceLineDraft.nullableIntKey(ol, 'batch_id');
       line.serialId = InvoiceLineDraft.nullableIntKey(ol, 'serial_id');
+      line.taxCodeId = InvoiceLineDraft.nullableIntKey(ol, 'tax_code_id');
+      line.descriptionController.text = stringValue(ol, 'description');
       line.rateController.text = stringValue(ol, 'rate');
+      line.discountController.text = stringValue(ol, 'discount_percent');
+      line.remarksController.text = stringValue(ol, 'remarks');
       final ordered = double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
       final invoiced =
           double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
@@ -1437,7 +1488,11 @@ class SalesInvoiceManagementController extends GetxController {
       line.warehouseId = intValue(dl, 'warehouse_id');
       line.batchId = InvoiceLineDraft.nullableIntKey(dl, 'batch_id');
       line.serialId = InvoiceLineDraft.nullableIntKey(dl, 'serial_id');
+      line.taxCodeId = InvoiceLineDraft.nullableIntKey(dl, 'tax_code_id');
+      line.descriptionController.text = stringValue(dl, 'description');
       line.rateController.text = stringValue(dl, 'rate');
+      line.discountController.text = stringValue(dl, 'discount_percent');
+      line.remarksController.text = stringValue(dl, 'remarks');
       final pend =
           double.tryParse(dl['pending_invoice_qty']?.toString() ?? '') ?? 0;
       final serialNo = stringValue(dl, 'serial_no').trim();
@@ -1533,6 +1588,7 @@ class SalesInvoiceManagementController extends GetxController {
   int? initialId;
   int? initialQuotationId;
   int? initialOrderId;
+  int? initialDeliveryId;
 
   bool get mounted => !isClosed;
 
@@ -1555,11 +1611,13 @@ class SalesInvoiceManagementController extends GetxController {
     int? initialId,
     int? initialQuotationId,
     int? initialOrderId,
+    int? initialDeliveryId,
     bool editorOnly = false,
   }) async {
     this.initialId = initialId;
     this.initialQuotationId = initialQuotationId;
     this.initialOrderId = initialOrderId;
+    this.initialDeliveryId = initialDeliveryId;
     this.editorOnly = editorOnly;
     hasInitialized = true;
     await loadPage(selectId: initialId);
@@ -1727,12 +1785,20 @@ class SalesInvoiceManagementController extends GetxController {
         return;
       }
 
+      List<SalesQuotationModel> quotationsAll = const <SalesQuotationModel>[];
       List<SalesOrderModel> ordersAll = const <SalesOrderModel>[];
       List<SalesDeliveryModel> deliveriesAll = const <SalesDeliveryModel>[];
       final sourceCompanyId = contextSelection.companyId;
       if (sourceCompanyId != null) {
         try {
           final src = await Future.wait<dynamic>([
+            salesService.quotationsAll(
+              filters: <String, dynamic>{
+                'company_id': sourceCompanyId,
+                'is_active': 1,
+                'sort_by': 'quotation_date',
+              },
+            ),
             salesService.ordersAll(
               filters: <String, dynamic>{
                 'company_id': sourceCompanyId,
@@ -1748,11 +1814,14 @@ class SalesInvoiceManagementController extends GetxController {
               },
             ),
           ]);
+          quotationsAll =
+              (src[0] as ApiResponse<List<SalesQuotationModel>>).data ??
+              const <SalesQuotationModel>[];
           ordersAll =
-              (src[0] as ApiResponse<List<SalesOrderModel>>).data ??
+              (src[1] as ApiResponse<List<SalesOrderModel>>).data ??
               const <SalesOrderModel>[];
           deliveriesAll =
-              (src[1] as ApiResponse<List<SalesDeliveryModel>>).data ??
+              (src[2] as ApiResponse<List<SalesDeliveryModel>>).data ??
               const <SalesDeliveryModel>[];
         } catch (_) {}
       }
@@ -1805,8 +1874,9 @@ class SalesInvoiceManagementController extends GetxController {
         contextBranchId = contextSelection.branchId;
         contextLocationId = contextSelection.locationId;
         contextFinancialYearId = contextSelection.financialYearId;
-        ordersAll = ordersAll;
-        deliveriesAll = deliveriesAll;
+        this.quotationsAll = quotationsAll;
+        this.ordersAll = ordersAll;
+        this.deliveriesAll = deliveriesAll;
         initialLoading = false;
       });
       await loadReferenceDataInBackground();
@@ -1838,13 +1908,18 @@ class SalesInvoiceManagementController extends GetxController {
         await selectDocument(selected);
       } else {
         resetForm();
-        final orderPref = initialOrderId;
-        if (orderPref != null && editorOnly) {
-          await prefillNewInvoiceFromOrder(orderPref);
+        final deliveryPref = initialDeliveryId;
+        if (deliveryPref != null && editorOnly) {
+          await prefillNewInvoiceFromDelivery(deliveryPref);
         } else {
-          final qPref = initialQuotationId;
-          if (qPref != null && editorOnly) {
-            await prefillNewInvoiceFromQuotation(qPref);
+          final orderPref = initialOrderId;
+          if (orderPref != null && editorOnly) {
+            await prefillNewInvoiceFromOrder(orderPref);
+          } else {
+            final qPref = initialQuotationId;
+            if (qPref != null && editorOnly) {
+              await prefillNewInvoiceFromQuotation(qPref);
+            }
           }
         }
       }
@@ -1880,6 +1955,7 @@ class SalesInvoiceManagementController extends GetxController {
       }
       State(() {
         applyInvoiceHeaderFromQuotationJson(data);
+        salesQuotationId = quotationId;
         salesOrderId = null;
         salesDeliveryId = null;
         orderLinesCache = null;
@@ -1937,6 +2013,34 @@ class SalesInvoiceManagementController extends GetxController {
     }
   }
 
+  Future<void> prefillNewInvoiceFromDelivery(int deliveryId) async {
+    try {
+      State(() {
+        salesOrderId = null;
+        salesDeliveryId = deliveryId;
+        orderLinesCache = null;
+        deliveryLinesCache = const <Map<String, dynamic>>[];
+      });
+      await onHeaderSalesDeliveryChanged(deliveryId);
+      if (!mounted) {
+        return;
+      }
+      State(() {
+        invoiceNoController.clear();
+        invoiceDateController.text = DateTime.now()
+            .toIso8601String()
+            .split('T')
+            .first;
+        isActive = true;
+        formError = null;
+      });
+    } catch (e) {
+      if (mounted) {
+        State(() => formError = e.toString());
+      }
+    }
+  }
+
   Future<void> selectDocument(SalesInvoiceModel item) async {
     final id = item.id;
     if (id == 0) {
@@ -1950,6 +2054,7 @@ class SalesInvoiceManagementController extends GetxController {
     }
     State(() {
       selectedItem = full;
+      salesQuotationId = null;
       companyId = full.companyId;
       branchId = full.branchId;
       locationId = full.locationId;
@@ -2010,6 +2115,7 @@ class SalesInvoiceManagementController extends GetxController {
       customerPartyId = null;
       billingAddressId = null;
       shippingAddressId = null;
+      salesQuotationId = null;
       salesOrderId = null;
       salesDeliveryId = null;
       orderLinesCache = null;

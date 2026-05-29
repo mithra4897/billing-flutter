@@ -20,6 +20,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
     this.hideOpportunityChip = false,
     this.hideQuotationChip = false,
     this.hideOrderChip = false,
+    this.hideDeliveryChip = false,
     this.hideInvoiceChip = false,
     this.hideReceiptChip = false,
   });
@@ -31,6 +32,7 @@ class CrmSalesPipelineBar extends StatelessWidget {
   final bool hideOpportunityChip;
   final bool hideQuotationChip;
   final bool hideOrderChip;
+  final bool hideDeliveryChip;
   final bool hideInvoiceChip;
   final bool hideReceiptChip;
 
@@ -52,6 +54,22 @@ class CrmSalesPipelineBar extends StatelessWidget {
         .map((e) => _asMap(e))
         .whereType<Map<String, dynamic>>()
         .toList(growable: false);
+  }
+
+  static List<Map<String, dynamic>> _uniqueDocsById(List<Map<String, dynamic>> v) {
+    final seen = <int>{};
+    final unique = <Map<String, dynamic>>[];
+    for (final row in v) {
+      final id = intValue(row, 'id');
+      if (id == null) {
+        unique.add(row);
+        continue;
+      }
+      if (seen.add(id)) {
+        unique.add(row);
+      }
+    }
+    return unique;
   }
 
   static String _docLabel(
@@ -91,10 +109,11 @@ class CrmSalesPipelineBar extends StatelessWidget {
     final lead = _asMap(data!['lead']);
     final enquiry = _asMap(data!['enquiry']);
     final opportunity = _asMap(data!['opportunity']);
-    final quotations = _asMapList(data!['quotations']);
-    final orders = _asMapList(data!['orders']);
-    final invoices = _asMapList(data!['invoices']);
-    final receipts = _asMapList(data!['receipts']);
+    final quotations = _uniqueDocsById(_asMapList(data!['quotations']));
+    final orders = _uniqueDocsById(_asMapList(data!['orders']));
+    final deliveries = _uniqueDocsById(_asMapList(data!['deliveries']));
+    final invoices = _uniqueDocsById(_asMapList(data!['invoices']));
+    final receipts = _uniqueDocsById(_asMapList(data!['receipts']));
 
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
@@ -166,6 +185,16 @@ class CrmSalesPipelineBar extends StatelessWidget {
             onTap: () => openModuleShellRoute(
               context,
               '/sales/orders/${intValue(o, 'id')}',
+            ),
+          ),
+      for (final d in deliveries)
+        if (!hideDeliveryChip && intValue(d, 'id') != null)
+          _PipelineChip(
+            label: _docLabel('Delivery', d, 'delivery_no'),
+            subtitle: stringValue(d, 'delivery_status'),
+            onTap: () => openModuleShellRoute(
+              context,
+              '/sales/deliveries/${intValue(d, 'id')}',
             ),
           ),
       for (final inv in invoices)

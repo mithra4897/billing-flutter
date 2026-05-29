@@ -9,6 +9,7 @@ class SalesInvoicePage extends StatefulWidget {
     this.initialId,
     this.initialQuotationId,
     this.initialOrderId,
+    this.initialDeliveryId,
     this.queryParameters = const <String, String>{},
   });
 
@@ -19,6 +20,7 @@ class SalesInvoicePage extends StatefulWidget {
   /// Prefills a **standalone** invoice from a quotation (API has no `sales_quotation_id` on invoices).
   final int? initialQuotationId;
   final int? initialOrderId;
+  final int? initialDeliveryId;
   final Map<String, String> queryParameters;
 
   @override
@@ -48,6 +50,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           initialId: widget.initialId,
           initialQuotationId: widget.initialQuotationId,
           initialOrderId: widget.initialOrderId,
+          initialDeliveryId: widget.initialDeliveryId,
           editorOnly: widget.editorOnly,
         ),
       );
@@ -361,6 +364,29 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                     unawaited(controller.ensureCustomerTaxContext(value));
                   },
                   validator: Validators.requiredSelection('Customer'),
+                ),
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Sales quotation (optional)',
+                  mappedItems: [
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
+                    ...controller.quotationChoices
+                        .map((q) => q.toJson())
+                        .where((j) => intValue(j, 'id') != null)
+                        .map(
+                          (j) => AppDropdownItem<int?>(
+                            value: intValue(j, 'id'),
+                            label: stringValue(
+                              j,
+                              'quotation_no',
+                              'Quotation',
+                            ),
+                          ),
+                        ),
+                  ],
+                  initialValue: controller.salesQuotationId,
+                  onChanged: (value) => unawaited(
+                    controller.onHeaderSalesQuotationChanged(value),
+                  ),
                 ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'Sales order (optional)',

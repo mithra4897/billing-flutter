@@ -572,6 +572,10 @@ class PurchaseInvoiceManagementController extends GetxController {
           if (selectedOrderId != null && id == selectedOrderId) {
             return true;
           }
+          if (id != null &&
+              items.any((invoice) => invoice.purchaseOrderId == id)) {
+            return false;
+          }
           return !const {'draft', 'closed', 'cancelled'}.contains(status);
         })
         .toList(growable: false);
@@ -589,6 +593,11 @@ class PurchaseInvoiceManagementController extends GetxController {
           ).trim().toLowerCase();
           if (selectedReceiptId != null && id == selectedReceiptId) {
             return true;
+          }
+          final receiptOrderId = intValue(data, 'purchase_order_id');
+          if (receiptOrderId != null &&
+              items.any((invoice) => invoice.purchaseOrderId == receiptOrderId)) {
+            return false;
           }
           return !const {'draft', 'closed', 'cancelled'}.contains(status);
         })

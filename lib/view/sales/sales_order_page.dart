@@ -148,6 +148,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
 
     final selected = controller.selectedItem?.toJson() ?? const {};
     final totalStr = stringValue(selected, 'total_amount');
+    final hasExistingDelivery =
+        ((controller.salesChain?['deliveries'] as List?) ?? const [])
+            .isNotEmpty;
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -527,6 +530,31 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
+                if (controller.selectedItem != null &&
+                    !hasExistingDelivery &&
+                    const {
+                      'confirmed',
+                      'partially_delivered',
+                      'partially_invoiced',
+                    }.contains(controller.status))
+                  AppActionButton(
+                    icon: Icons.local_shipping_outlined,
+                    label: 'Create delivery',
+                    filled: false,
+                    onPressed: () {
+                      final orderId = intValue(
+                        controller.selectedItem?.toJson() ?? const {},
+                        'id',
+                      );
+                      if (orderId == null) {
+                        return;
+                      }
+                      openModuleShellRoute(
+                        context,
+                        '/sales/deliveries/new?order_id=$orderId',
+                      );
+                    },
+                  ),
                 if (controller.selectedItem != null &&
                     !const {'draft', 'cancelled'}.contains(controller.status))
                   AppActionButton(

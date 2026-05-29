@@ -730,6 +730,9 @@ class _AppShellPageState extends State<AppShellPage> {
           initialOrderId: int.tryParse(
             _currentQueryParameters['order_id'] ?? '',
           ),
+          initialDeliveryId: int.tryParse(
+            _currentQueryParameters['delivery_id'] ?? '',
+          ),
           queryParameters: _currentQueryParameters,
         );
       case 'deliveries':
@@ -738,6 +741,9 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           editorOnly: true,
           initialId: id,
+          initialOrderId: int.tryParse(
+            _currentQueryParameters['order_id'] ?? '',
+          ),
           queryParameters: _currentQueryParameters,
         );
       case 'receipts':

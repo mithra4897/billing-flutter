@@ -153,8 +153,14 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            SettingsFormWrap(
-              children: [
+            CrmSalesPipelineBar(
+              data: controller.salesChain,
+              hideReceiptChip: true,
+            ),
+            IgnorePointer(
+              ignoring: !canEdit,
+              child: SettingsFormWrap(
+                children: [
                 DocumentSeriesSelector<int>(
                   labelText: 'Document Series',
                   mappedItems: controller
@@ -165,20 +171,24 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                           value: item.id!,
                           label: item.toString(),
                         ),
-                      )
+                  )
                       .toList(growable: false),
                   initialValue: controller.documentSeriesId,
-                  onChanged: controller.setDocumentSeriesId,
+                  onChanged: canEdit
+                      ? controller.setDocumentSeriesId
+                      : (_) {},
                 ),
                 AppFormTextField(
                   labelText: 'Receipt No',
                   controller: controller.receiptNoController,
                   hintText: 'Auto-generated on save',
+                  enabled: canEdit,
                   validator: Validators.optionalMaxLength(100, 'Receipt No'),
                 ),
                 AppDateField(
                   labelText: 'Receipt Date',
                   controller: controller.receiptDateController,
+                  enabled: canEdit,
                   validator: Validators.compose([
                     Validators.required('Receipt Date'),
                     Validators.date('Receipt Date'),
@@ -213,14 +223,16 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                       )
                       .toList(growable: false),
                   initialValue: controller.customerPartyId,
-                  onChanged: controller.setCustomerPartyId,
+                  onChanged: canEdit
+                      ? controller.setCustomerPartyId
+                      : (_) {},
                   validator: Validators.requiredSelection('Customer'),
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Payment Mode',
                   mappedItems: controller.paymentModeDropdownItems(),
                   initialValue: controller.paymentMode,
-                  onChanged: controller.setPaymentMode,
+                  onChanged: canEdit ? controller.setPaymentMode : (_) {},
                   validator: Validators.requiredSelection('Payment Mode'),
                 ),
                 AppDropdownField<int>.fromMapped(
@@ -235,12 +247,13 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                       )
                       .toList(growable: false),
                   initialValue: controller.accountId,
-                  onChanged: controller.setAccountId,
+                  onChanged: canEdit ? controller.setAccountId : (_) {},
                   validator: Validators.requiredSelection('Cash / bank ledger'),
                 ),
                 AppFormTextField(
                   labelText: 'Payment Reference No',
                   controller: controller.paymentReferenceNoController,
+                  enabled: canEdit,
                   validator: Validators.optionalMaxLength(
                     100,
                     'Payment Reference No',
@@ -249,11 +262,13 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                 AppDateField(
                   labelText: 'Payment Reference Date',
                   controller: controller.paymentReferenceDateController,
+                  enabled: canEdit,
                   validator: Validators.optionalDate('Payment Reference Date'),
                 ),
                 AppFormTextField(
                   labelText: 'Paid Amount',
                   controller: controller.paidAmountController,
+                  enabled: canEdit,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -265,9 +280,11 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                 AppFormTextField(
                   labelText: 'Notes',
                   controller: controller.notesController,
+                  enabled: canEdit,
                   maxLines: 3,
                 ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
             AppSwitchTile(
@@ -275,7 +292,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
               subtitle:
                   'Turn off to mark this receipt inactive. Inactive records are kept for audit but excluded from normal lists and day-to-day use.',
               value: controller.isActive,
-              onChanged: controller.setIsActive,
+              onChanged: canEdit ? controller.setIsActive : null,
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
             Row(
@@ -290,7 +307,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                 AppActionButton(
                   icon: Icons.add_outlined,
                   label: 'Add Allocation',
-                  onPressed: controller.addAllocation,
+                  onPressed: canEdit ? controller.addAllocation : null,
                   filled: false,
                 ),
               ],
@@ -304,74 +321,88 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
               ...List<Widget>.generate(controller.allocations.length, (index) {
                 final allocation = controller.allocations[index];
                 return Padding(
+                  key: ObjectKey(allocation),
                   padding: const EdgeInsets.only(
                     bottom: AppUiConstants.spacingSm,
                   ),
-                  child: PurchaseCompactLineCard(
-                    index: index,
-                    total: controller.allocations.length,
-                    onRemove: () => controller.removeAllocation(index),
-                    child: PurchaseCompactFieldGrid(
-                      children: [
-                        AppSearchPickerField<int>(
-                          labelText: 'Sales Invoice',
-                          selectedLabel: controller.invoiceOptions
-                              .cast<SalesInvoiceModel?>()
-                              .firstWhere(
-                                (item) => item?.id == allocation.salesInvoiceId,
-                                orElse: () => null,
-                              )
-                              ?.invoiceNo,
-                          options: controller.invoiceOptions
-                              .map(
-                                (item) => AppSearchPickerOption<int>(
-                                  value: item.id!,
-                                  label: item.invoiceNo ?? 'Invoice',
-                                  subtitle: quotationCustomerLabel(
-                                    item.toJson(),
+                  child: IgnorePointer(
+                    ignoring: !canEdit,
+                    child: PurchaseCompactLineCard(
+                      index: index,
+                      total: controller.allocations.length,
+                      onRemove: canEdit
+                          ? () => controller.removeAllocation(index)
+                          : null,
+                      child: PurchaseCompactFieldGrid(
+                        children: [
+                          AppSearchPickerField<int>(
+                            labelText: 'Sales Invoice',
+                            selectedLabel: controller.invoiceOptions
+                                .cast<SalesInvoiceModel?>()
+                                .firstWhere(
+                                  (item) =>
+                                      item?.id == allocation.salesInvoiceId,
+                                  orElse: () => null,
+                                )
+                                ?.invoiceNo,
+                            options: controller.invoiceOptions
+                                .map(
+                                  (item) => AppSearchPickerOption<int>(
+                                    value: item.id!,
+                                    label: item.invoiceNo ?? 'Invoice',
+                                    subtitle: quotationCustomerLabel(
+                                      item.toJson(),
+                                    ),
                                   ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) => controller
-                              .setAllocationSalesInvoiceId(index, value),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Allocated Amount',
-                          controller: allocation.amountController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) => controller
+                                .setAllocationSalesInvoiceId(index, value),
                           ),
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Allocated Amount',
+                          AppFormTextField(
+                            labelText: 'Allocated Amount',
+                            controller: allocation.amountController,
+                            enabled: canEdit,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: Validators.optionalNonNegativeNumber(
+                              'Allocated Amount',
+                            ),
                           ),
-                        ),
-                        AppDropdownField<String>.fromMapped(
-                          labelText: 'Allocation Type',
-                          mappedItems: const <AppDropdownItem<String>>[
-                            AppDropdownItem(
-                              value: 'against_invoice',
-                              label: 'Against Invoice',
-                            ),
-                            AppDropdownItem(value: 'advance', label: 'Advance'),
-                            AppDropdownItem(
-                              value: 'on_account',
-                              label: 'On Account',
-                            ),
-                            AppDropdownItem(
-                              value: 'adjustment',
-                              label: 'Adjustment',
-                            ),
-                          ],
-                          initialValue: allocation.allocationType,
-                          onChanged: (value) =>
-                              controller.setAllocationType(index, value),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: allocation.remarksController,
-                        ),
-                      ],
+                          AppDropdownField<String>.fromMapped(
+                            labelText: 'Allocation Type',
+                            mappedItems: const <AppDropdownItem<String>>[
+                              AppDropdownItem(
+                                value: 'against_invoice',
+                                label: 'Against Invoice',
+                              ),
+                              AppDropdownItem(
+                                value: 'advance',
+                                label: 'Advance',
+                              ),
+                              AppDropdownItem(
+                                value: 'on_account',
+                                label: 'On Account',
+                              ),
+                              AppDropdownItem(
+                                value: 'adjustment',
+                                label: 'Adjustment',
+                              ),
+                            ],
+                            initialValue: allocation.allocationType,
+                            onChanged: canEdit
+                                ? (value) =>
+                                      controller.setAllocationType(index, value)
+                                : (_) {},
+                          ),
+                          AppFormTextField(
+                            labelText: 'Remarks',
+                            controller: allocation.remarksController,
+                            enabled: canEdit,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );

@@ -184,11 +184,19 @@ class SalesDeliveryManagementController extends GetxController {
     super.onClose();
   }
 
-  Future<void> initialize({int? initialId}) async {
+  Future<void> initialize({
+    int? initialId,
+    int? initialOrderId,
+    bool editorOnly = false,
+  }) async {
     if (!_initialized) {
       _initialized = true;
     }
-    await loadPage(selectId: initialId);
+    await loadPage(
+      selectId: initialId,
+      initialOrderId: initialOrderId,
+      editorOnly: editorOnly,
+    );
   }
 
   Future<void> _handleWorkingContextChanged() async {
@@ -576,7 +584,11 @@ class SalesDeliveryManagementController extends GetxController {
     return result;
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({
+    int? selectId,
+    int? initialOrderId,
+    bool editorOnly = false,
+  }) async {
     initialLoading = items.isEmpty;
     pageError = null;
     update();
@@ -725,11 +737,18 @@ class SalesDeliveryManagementController extends GetxController {
               (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
               orElse: () => null,
             )
-          : null;
+          : (editorOnly
+                ? null
+                : (selectedItem == null
+                      ? (items.isNotEmpty ? items.first : null)
+                      : null));
       if (selected != null) {
         await selectDocument(selected, notify: false);
       } else {
         resetForm(notify: false);
+        if (initialOrderId != null && editorOnly) {
+          await applySalesOrderSelection(initialOrderId);
+        }
       }
       update();
     } catch (error) {

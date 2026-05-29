@@ -591,6 +591,10 @@ class PurchaseReceiptManagementController extends GetxController {
           if (selectedOrderId != null && id == selectedOrderId) {
             return true;
           }
+          if (id != null &&
+              items.any((receipt) => receipt.purchaseOrderId == id)) {
+            return false;
+          }
           return !const {'draft', 'closed', 'cancelled'}.contains(status);
         })
         .toList(growable: false);

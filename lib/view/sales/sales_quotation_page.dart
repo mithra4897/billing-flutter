@@ -136,6 +136,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
     final selected = controller.selectedItem?.toJson() ?? const {};
     final totalStr = stringValue(selected, 'total_amount');
+    final hasExistingOrder =
+        ((controller.salesChain?['orders'] as List?) ?? const []).isNotEmpty;
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -437,6 +439,29 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
+                if (controller.selectedItem != null &&
+                    !hasExistingOrder &&
+                    const {'posted', 'sent', 'accepted'}.contains(
+                      controller.status,
+                    ))
+                  AppActionButton(
+                    icon: Icons.shopping_cart_checkout_outlined,
+                    label: 'Create order',
+                    filled: false,
+                    onPressed: () {
+                      final quotationId = intValue(
+                        controller.selectedItem?.toJson() ?? const {},
+                        'id',
+                      );
+                      if (quotationId == null) {
+                        return;
+                      }
+                      openModuleShellRoute(
+                        context,
+                        '/sales/orders/new?quotation_id=$quotationId',
+                      );
+                    },
+                  ),
                 if (controller.status == 'posted')
                   AppActionButton(
                     icon: Icons.print_outlined,

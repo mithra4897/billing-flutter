@@ -7,12 +7,14 @@ class SalesDeliveryPage extends StatefulWidget {
     this.embedded = false,
     this.editorOnly = false,
     this.initialId,
+    this.initialOrderId,
     this.queryParameters = const <String, String>{},
   });
 
   final bool embedded;
   final bool editorOnly;
   final int? initialId;
+  final int? initialOrderId;
   final Map<String, String> queryParameters;
 
   @override
@@ -35,7 +37,13 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     Get.put(SalesDeliveryManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(_controller.initialize(initialId: widget.initialId));
+      unawaited(
+        _controller.initialize(
+          initialId: widget.initialId,
+          initialOrderId: widget.initialOrderId,
+          editorOnly: widget.editorOnly,
+        ),
+      );
     });
   }
 
@@ -95,6 +103,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     final canEdit = controller.selectedItem == null || status == 'draft';
     final canPost = controller.selectedItem != null && status == 'draft';
     final canCancel = controller.selectedItem != null && status == 'draft';
+    final hasExistingInvoice =
+        ((controller.salesChain?['invoices'] as List?) ?? const []).isNotEmpty;
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading sales deliveries...');
     }
@@ -149,7 +159,10 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
               AppErrorStateView.inline(message: controller.formError!),
               const SizedBox(height: AppUiConstants.spacingSm),
             ],
-            CrmSalesPipelineBar(data: controller.salesChain),
+            CrmSalesPipelineBar(
+              data: controller.salesChain,
+              hideDeliveryChip: true,
+            ),
             SettingsFormWrap(
               children: [
                 ...buildSalesDocumentContextFields(
@@ -486,6 +499,24 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             const SizedBox(height: AppUiConstants.spacingMd),
             SalesDocumentActionRow(
               actions: [
+                if (controller.selectedItem != null &&
+                    !hasExistingInvoice &&
+                    const {'posted', 'partially_invoiced'}.contains(status))
+                  AppActionButton(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Create invoice',
+                    filled: false,
+                    onPressed: () {
+                      final deliveryId = intValue(selectedData, 'id');
+                      if (deliveryId == null) {
+                        return;
+                      }
+                      openModuleShellRoute(
+                        context,
+                        '/sales/invoices/new?delivery_id=$deliveryId',
+                      );
+                    },
+                  ),
                 if (status == 'posted')
                   AppActionButton(
                     icon: Icons.print_outlined,
