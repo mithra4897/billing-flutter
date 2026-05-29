@@ -74,6 +74,45 @@ class SalesDeliveryLineDraft {
   }
 }
 
+class SalesDeliveryReturnableDcDraft {
+  SalesDeliveryReturnableDcDraft({
+    this.itemId,
+    this.uomId,
+    String? itemName,
+    String? description,
+    String? qty,
+    String? remarks,
+  }) : itemNameController = TextEditingController(text: itemName ?? ''),
+       descriptionController = TextEditingController(text: description ?? ''),
+       qtyController = TextEditingController(text: qty ?? ''),
+       remarksController = TextEditingController(text: remarks ?? '');
+
+  factory SalesDeliveryReturnableDcDraft.fromJson(Map<String, dynamic> json) {
+    return SalesDeliveryReturnableDcDraft(
+      itemId: intValue(json, 'item_id'),
+      uomId: intValue(json, 'uom_id'),
+      itemName: stringValue(json, 'item_name'),
+      description: stringValue(json, 'description'),
+      qty: stringValue(json, 'qty'),
+      remarks: stringValue(json, 'remarks'),
+    );
+  }
+
+  int? itemId;
+  int? uomId;
+  final TextEditingController itemNameController;
+  final TextEditingController descriptionController;
+  final TextEditingController qtyController;
+  final TextEditingController remarksController;
+
+  void dispose() {
+    itemNameController.dispose();
+    descriptionController.dispose();
+    qtyController.dispose();
+    remarksController.dispose();
+  }
+}
+
 class SalesDeliveryManagementController extends GetxController {
   SalesDeliveryManagementController();
 
@@ -153,11 +192,22 @@ class SalesDeliveryManagementController extends GetxController {
   int? salesOrderId;
   int? customerPartyId;
   int? transporterPartyId;
+  String deliveryKind = 'dc';
   bool isActive = true;
   Map<String, dynamic>? salesChain;
   List<SalesDeliveryLineDraft> lines = <SalesDeliveryLineDraft>[];
+  List<SalesDeliveryReturnableDcDraft> returnableDcs =
+      <SalesDeliveryReturnableDcDraft>[];
 
   bool _initialized = false;
+
+  String get deliveryKindLabel =>
+      deliveryKind == 'rdc' ? 'Returnable DC' : 'DC';
+
+  bool get isReturnableDc => deliveryKind == 'rdc';
+
+  String get printDocumentType =>
+      isReturnableDc ? 'sales_returnable_delivery' : 'sales_delivery';
 
   @override
   void onInit() {
@@ -181,6 +231,7 @@ class SalesDeliveryManagementController extends GetxController {
     lrDateController.dispose();
     notesController.dispose();
     _disposeLines(lines);
+    _disposeReturnableDcs(returnableDcs);
     super.onClose();
   }
 
@@ -584,6 +635,21 @@ class SalesDeliveryManagementController extends GetxController {
     return result;
   }
 
+  List<Map<String, dynamic>> returnableDcsForSave() {
+    return returnableDcs
+        .map(
+          (row) => <String, dynamic>{
+            'item_id': row.itemId,
+            'item_name': nullIfEmpty(row.itemNameController.text),
+            'uom_id': row.uomId,
+            'description': nullIfEmpty(row.descriptionController.text),
+            'qty': double.tryParse(row.qtyController.text.trim()) ?? 0,
+            'remarks': nullIfEmpty(row.remarksController.text),
+          },
+        )
+        .toList(growable: false);
+  }
+
   Future<void> loadPage({
     int? selectId,
     int? initialOrderId,
@@ -771,6 +837,11 @@ class SalesDeliveryManagementController extends GetxController {
         .whereType<Map<String, dynamic>>()
         .map(SalesDeliveryLineDraft.fromJson)
         .toList(growable: true);
+    final nextReturnableDcs =
+        (data['returnable_dcs'] as List<dynamic>? ?? const <dynamic>[])
+            .whereType<Map<String, dynamic>>()
+            .map(SalesDeliveryReturnableDcDraft.fromJson)
+            .toList(growable: true);
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -780,6 +851,9 @@ class SalesDeliveryManagementController extends GetxController {
     salesOrderId = intValue(data, 'sales_order_id');
     customerPartyId = intValue(data, 'customer_party_id');
     transporterPartyId = intValue(data, 'transporter_party_id');
+    deliveryKind = nextReturnableDcs.isNotEmpty && nextLines.isEmpty
+        ? 'rdc'
+        : 'dc';
     deliveryNoController.text = stringValue(data, 'delivery_no');
     deliveryDateController.text = displayDate(
       nullableStringValue(data, 'delivery_date'),
@@ -790,6 +864,7 @@ class SalesDeliveryManagementController extends GetxController {
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceLines(nextLines, notify: false);
+    _replaceReturnableDcs(nextReturnableDcs, notify: false);
     formError = null;
     syncInventoryOptionsForLines(lines);
     await refreshSalesChain();
@@ -822,6 +897,7 @@ class SalesDeliveryManagementController extends GetxController {
     salesOrderId = null;
     customerPartyId = null;
     transporterPartyId = null;
+    deliveryKind = 'dc';
     deliveryNoController.clear();
     deliveryDateController.text = DateTime.now()
         .toIso8601String()
@@ -833,6 +909,10 @@ class SalesDeliveryManagementController extends GetxController {
     notesController.clear();
     isActive = true;
     _replaceLines(const <SalesDeliveryLineDraft>[], notify: false);
+    _replaceReturnableDcs(
+      const <SalesDeliveryReturnableDcDraft>[],
+      notify: false,
+    );
     formError = null;
     salesChain = null;
     if (notify) update();
@@ -869,14 +949,24 @@ class SalesDeliveryManagementController extends GetxController {
     return allowedUomsForItem(item, uoms, uomConversions);
   }
 
+  int? defaultUomIdForItemId(int? itemId, {int? current}) {
+    return defaultUomIdForItem(
+      itemById(itemId),
+      uoms,
+      uomConversions,
+      current: current,
+    );
+  }
+
   List<DocumentSeriesModel> seriesOptions() {
     return documentSeries
         .where((item) {
           final documentType = (item.documentType ?? '').trim().toUpperCase();
           final typeOk =
               documentType.isEmpty ||
-              documentType == 'SALES_DELIVERY' ||
-              documentType == 'DELIVERY_CHALLAN';
+              (deliveryKind == 'rdc'
+                  ? _isReturnableDeliverySeriesType(documentType)
+                  : _isDeliverySeriesType(documentType));
           final companyOk = companyId == null || item.companyId == companyId;
           final fyOk =
               financialYearId == null ||
@@ -884,6 +974,20 @@ class SalesDeliveryManagementController extends GetxController {
           return typeOk && companyOk && fyOk;
         })
         .toList(growable: false);
+  }
+
+  bool _isReturnableDeliverySeriesType(String documentType) {
+    return documentType.contains('DELIVERY_CHALLAN');
+  }
+
+  bool _isDeliverySeriesType(String documentType) {
+    if (documentType == 'SALES_DELIVERY') {
+      return true;
+    }
+    if (!documentType.contains('DELIVERY_CHALLAN')) {
+      return false;
+    }
+    return !documentType.contains('RETURNABLE');
   }
 
   int? deliveryDocumentSeriesIdFrom(Map<String, dynamic> data) {
@@ -954,27 +1058,51 @@ class SalesDeliveryManagementController extends GetxController {
       billingAddressId: intValue(selected, 'billing_address_id'),
     );
     var subtotal = 0.0;
-    final printLines = lines
-        .where((line) => line.itemId != null && line.itemId! > 0)
-        .map((line) {
-          final qty =
-              double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
-          final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
-          final total = qty * rate;
-          subtotal += total;
-          final item = itemById(line.itemId);
-          return DocumentPrintLineModel(
-            itemName:
-                item?.itemName ??
-                item?.itemCode ??
-                line.descriptionController.text.trim(),
-            description: line.descriptionController.text.trim(),
-            qty: qty,
-            rate: rate,
-            lineTotal: roundToDouble(total, 2),
-          );
-        })
-        .toList(growable: false);
+    final printLines = isReturnableDc
+        ? returnableDcs
+              .where(
+                (row) =>
+                    row.itemId != null ||
+                    row.itemNameController.text.trim().isNotEmpty,
+              )
+              .map((row) {
+                final qty = double.tryParse(row.qtyController.text.trim()) ?? 0;
+                final item = itemById(row.itemId);
+                return DocumentPrintLineModel(
+                  itemName:
+                      item?.itemName ??
+                      item?.itemCode ??
+                      row.itemNameController.text.trim(),
+                  description: row.descriptionController.text.trim(),
+                  qty: qty,
+                  rate: 0,
+                  lineTotal: 0,
+                );
+              })
+              .toList(growable: false)
+        : lines
+              .where((line) => line.itemId != null && line.itemId! > 0)
+              .map((line) {
+                final qty =
+                    double.tryParse(line.deliveredQtyController.text.trim()) ??
+                    0;
+                final rate =
+                    double.tryParse(line.rateController.text.trim()) ?? 0;
+                final total = qty * rate;
+                subtotal += total;
+                final item = itemById(line.itemId);
+                return DocumentPrintLineModel(
+                  itemName:
+                      item?.itemName ??
+                      item?.itemCode ??
+                      line.descriptionController.text.trim(),
+                  description: line.descriptionController.text.trim(),
+                  qty: qty,
+                  rate: rate,
+                  lineTotal: roundToDouble(total, 2),
+                );
+              })
+              .toList(growable: false);
 
     return buildManagedDocumentPrintData(
       companies: companies,
@@ -1007,8 +1135,10 @@ class SalesDeliveryManagementController extends GetxController {
     await openManagedDocumentPrintPreview(
       context,
       prepare: () => ensureCustomerPrintContext(customerPartyId),
-      documentType: 'sales_delivery',
-      title: 'Delivery Challan',
+      documentType: printDocumentType,
+      title: isReturnableDc
+          ? 'Returnable Delivery Challan'
+          : 'Delivery Challan',
       documentDataBuilder: salesDeliveryPrintData,
     );
   }
@@ -1061,6 +1191,32 @@ class SalesDeliveryManagementController extends GetxController {
     );
   }
 
+  void addReturnableDc() {
+    returnableDcs = List<SalesDeliveryReturnableDcDraft>.from(returnableDcs)
+      ..add(SalesDeliveryReturnableDcDraft());
+    refreshLineItemsSection();
+  }
+
+  void removeReturnableDc(int index) {
+    final next = List<SalesDeliveryReturnableDcDraft>.from(returnableDcs);
+    next.removeAt(index);
+    _replaceReturnableDcs(next);
+  }
+
+  void _replaceReturnableDcs(
+    List<SalesDeliveryReturnableDcDraft> nextValues, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<SalesDeliveryReturnableDcDraft>(
+      previous: returnableDcs,
+      next: nextValues,
+      createEmpty: () => SalesDeliveryReturnableDcDraft(),
+      assign: (entries) => returnableDcs = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? refreshLineItemsSection : null,
+    );
+  }
+
   void setFinancialYearId(int? value) {
     financialYearId = value;
     final series = seriesOptions();
@@ -1070,6 +1226,16 @@ class SalesDeliveryManagementController extends GetxController {
 
   void setDocumentSeriesId(int? value) {
     documentSeriesId = value;
+    update();
+  }
+
+  void setDeliveryKind(String? value) {
+    final next = (value ?? 'dc').trim().toLowerCase();
+    deliveryKind = next == 'rdc' ? 'rdc' : 'dc';
+    final series = seriesOptions();
+    documentSeriesId = series.any((item) => item.id == documentSeriesId)
+        ? documentSeriesId
+        : (series.isNotEmpty ? series.first.id : null);
     update();
   }
 
@@ -1138,6 +1304,21 @@ class SalesDeliveryManagementController extends GetxController {
     refreshLineItemsSection();
   }
 
+  void setReturnableDcItemId(int index, int? value) {
+    final row = returnableDcs[index];
+    row.itemId = value;
+    if (value != null) {
+      row.itemNameController.clear();
+    }
+    row.uomId = defaultUomIdForItemId(value, current: row.uomId);
+    refreshLineItemsSection();
+  }
+
+  void setReturnableDcUomId(int index, int? value) {
+    returnableDcs[index].uomId = value;
+    refreshLineItemsSection();
+  }
+
   void refreshState() {
     refreshLineItemsSection();
   }
@@ -1145,17 +1326,33 @@ class SalesDeliveryManagementController extends GetxController {
   Future<void> save(BuildContext context) async {
     if (!formKey.currentState!.validate()) return;
     syncInventoryOptionsForLines(lines);
-    if (lines.any(
-      (line) =>
-          line.itemId == null ||
-          line.uomId == null ||
-          line.warehouseId == null ||
-          (double.tryParse(line.deliveredQtyController.text.trim()) ?? 0) <= 0,
-    )) {
-      formError =
-          'Each line needs item, warehouse, UOM, and delivered quantity.';
-      update();
-      return;
+    if (deliveryKind == 'dc') {
+      if (lines.any(
+        (line) =>
+            line.itemId == null ||
+            line.uomId == null ||
+            line.warehouseId == null ||
+            (double.tryParse(line.deliveredQtyController.text.trim()) ?? 0) <=
+                0,
+      )) {
+        formError =
+            'Each line needs item, warehouse, UOM, and delivered quantity.';
+        update();
+        return;
+      }
+    } else {
+      if (returnableDcs.any(
+        (row) =>
+            (row.itemId == null &&
+                row.itemNameController.text.trim().isEmpty) ||
+            row.uomId == null ||
+            (double.tryParse(row.qtyController.text.trim()) ?? 0) <= 0,
+      )) {
+        formError =
+            'Each returnable DC row needs an item or new item name, UOM, and quantity.';
+        update();
+        return;
+      }
     }
     saving = true;
     formError = null;
@@ -1174,9 +1371,15 @@ class SalesDeliveryManagementController extends GetxController {
       'vehicle_no': nullIfEmpty(vehicleNoController.text),
       'lr_no': nullIfEmpty(lrNoController.text),
       'lr_date': nullIfEmpty(lrDateController.text),
+      'delivery_kind': deliveryKind,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
-      'lines': linesForSave(),
+      'lines': deliveryKind == 'rdc'
+          ? const <Map<String, dynamic>>[]
+          : linesForSave(),
+      'returnable_dcs': deliveryKind == 'rdc'
+          ? returnableDcsForSave()
+          : const <Map<String, dynamic>>[],
     };
     try {
       final response = selectedItem == null
@@ -1251,6 +1454,12 @@ class SalesDeliveryManagementController extends GetxController {
   void _disposeLines(List<SalesDeliveryLineDraft> values) {
     for (final line in values) {
       line.dispose();
+    }
+  }
+
+  void _disposeReturnableDcs(List<SalesDeliveryReturnableDcDraft> values) {
+    for (final row in values) {
+      row.dispose();
     }
   }
 }

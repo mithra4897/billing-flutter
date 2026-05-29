@@ -100,6 +100,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
   ) {
     final selectedData = controller.selectedItem?.toJson() ?? const {};
     final status = stringValue(selectedData, 'delivery_status', 'draft');
+    final deliveryKind = controller.deliveryKind;
     final canEdit = controller.selectedItem == null || status == 'draft';
     final canPost = controller.selectedItem != null && status == 'draft';
     final canCancel = controller.selectedItem != null && status == 'draft';
@@ -117,20 +118,20 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     }
     return SettingsWorkspace(
       controller: controller.workspaceController,
-      title: 'Sales Deliveries',
+      title: 'Delivery Challans',
       editorTitle: controller.selectedItem == null
-          ? 'New Sales Delivery'
+          ? 'New ${controller.deliveryKindLabel}'
           : stringValue(
               controller.selectedItem!.toJson(),
               'delivery_no',
-              'Sales Delivery',
+              controller.deliveryKindLabel,
             ),
       editorOnly: widget.editorOnly,
       scrollController: controller.pageScrollController,
       list: PurchaseListCard<SalesDeliveryModel>(
         items: controller.filteredItems,
         selectedItem: controller.selectedItem,
-        emptyMessage: 'No sales deliveries found.',
+        emptyMessage: 'No delivery challans found.',
         searchController: controller.searchController,
         searchHint: 'Search deliveries',
         statusValue: controller.statusFilter,
@@ -185,6 +186,15 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                     Validators.required('Delivery Date'),
                     Validators.date('Delivery Date'),
                   ]),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Challan Type',
+                  mappedItems: const <AppDropdownItem<String>>[
+                    AppDropdownItem(value: 'dc', label: 'DC'),
+                    AppDropdownItem(value: 'rdc', label: 'Returnable DC'),
+                  ],
+                  initialValue: controller.deliveryKind,
+                  onChanged: controller.setDeliveryKind,
                 ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Customer',
@@ -253,246 +263,352 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
               builder: (controller) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SalesDocumentLineSection(
-                    title: 'Lines',
-                    addLabel: 'Add Line',
-                    onAdd: controller.addLine,
-                    children: List<Widget>.generate(controller.lines.length, (
-                      index,
-                    ) {
-                      final line = controller.lines[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: AppUiConstants.spacingSm,
-                        ),
-                        child: PurchaseCompactLineCard(
-                          index: index,
-                          total: controller.lines.length,
-                          removeEnabled: controller.lines.length > 1,
-                          onRemove: () => controller.removeLine(index),
-                          child: PurchaseCompactFieldGrid(
-                            children: [
-                              AppSearchPickerField<int>(
-                                labelText: 'Item',
-                                selectedLabel: controller.itemLabelById(
-                                  line.itemId,
-                                ),
-                                options: controller.itemPickerOptions,
-                                onChanged: (value) =>
-                                    controller.setLineItemId(index, value),
-                                validator: (_) =>
-                                    Validators.requiredSelectionField(
-                                      line.itemId,
-                                      'Item',
-                                    ),
-                              ),
-                              AppDropdownField<int>.fromMapped(
-                                labelText: 'Warehouse',
-                                mappedItems: controller.warehouseDropdownItems,
-                                initialValue: line.warehouseId,
-                                onChanged: (value) => unawaited(
-                                  controller.setLineWarehouseId(index, value),
-                                ),
-                                validator: Validators.requiredSelection(
-                                  'Warehouse',
-                                ),
-                              ),
-                              if (controller.isBatchManagedItem(line.itemId))
-                                AppDropdownField<int>.fromMapped(
-                                  labelText: 'Batch',
-                                  mappedItems: controller
-                                      .batchOptionsForLine(line)
-                                      .map(
-                                        (batch) => AppDropdownItem<int>(
-                                          value:
-                                              int.tryParse(
-                                                batch['batch_id']?.toString() ??
-                                                    '',
-                                              ) ??
-                                              0,
-                                          label: stringValue(
-                                            batch,
-                                            'batch_no',
-                                            'Batch',
-                                          ),
-                                        ),
-                                      )
-                                      .where((item) => item.value != 0)
-                                      .toList(growable: false),
-                                  initialValue: line.batchId,
-                                  onChanged: (value) => unawaited(
-                                    controller.setLineBatchId(index, value),
-                                  ),
-                                  validator: (_) {
-                                    if (!controller.isBatchManagedItem(
-                                      line.itemId,
-                                    )) {
-                                      return null;
-                                    }
-                                    final dependencyError =
-                                        Validators.dependentSelectionField(
-                                          prerequisite: line.warehouseId,
-                                          prerequisiteName: 'warehouse',
-                                          value: line.batchId,
-                                          fieldName: 'Batch',
-                                        );
-                                    if (dependencyError != null &&
-                                        line.warehouseId == null) {
-                                      return dependencyError;
-                                    }
-                                    final batches = controller
-                                        .batchOptionsForLine(line);
-                                    if (batches.isEmpty) {
-                                      return 'No batches found for the selected warehouse';
-                                    }
-                                    return dependencyError;
-                                  },
-                                ),
-                              Builder(
-                                builder: (context) {
-                                  final options = controller.uomOptionsForItem(
+                  if (controller.deliveryKind == 'dc')
+                    SalesDocumentLineSection(
+                      title: 'Delivery Items',
+                      addLabel: 'Add Line',
+                      onAdd: controller.addLine,
+                      children: List<Widget>.generate(controller.lines.length, (
+                        index,
+                      ) {
+                        final line = controller.lines[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: AppUiConstants.spacingSm,
+                          ),
+                          child: PurchaseCompactLineCard(
+                            index: index,
+                            total: controller.lines.length,
+                            removeEnabled: controller.lines.length > 1,
+                            onRemove: () => controller.removeLine(index),
+                            child: PurchaseCompactFieldGrid(
+                              children: [
+                                AppSearchPickerField<int>(
+                                  labelText: 'Item',
+                                  selectedLabel: controller.itemLabelById(
                                     line.itemId,
-                                  );
-                                  if (options.length == 1) {
-                                    final onlyId = options.first.id;
-                                    if (line.uomId != onlyId) {
-                                      line.uomId = onlyId;
-                                    }
-                                  }
-                                  return AppDropdownField<int>.fromMapped(
-                                    labelText: 'UOM',
-                                    mappedItems: options
-                                        .where((item) => item.id != null)
+                                  ),
+                                  options: controller.itemPickerOptions,
+                                  onChanged: (value) =>
+                                      controller.setLineItemId(index, value),
+                                  validator: (_) =>
+                                      Validators.requiredSelectionField(
+                                        line.itemId,
+                                        'Item',
+                                      ),
+                                ),
+                                AppDropdownField<int>.fromMapped(
+                                  labelText: 'Warehouse',
+                                  mappedItems:
+                                      controller.warehouseDropdownItems,
+                                  initialValue: line.warehouseId,
+                                  onChanged: (value) => unawaited(
+                                    controller.setLineWarehouseId(index, value),
+                                  ),
+                                  validator: Validators.requiredSelection(
+                                    'Warehouse',
+                                  ),
+                                ),
+                                if (controller.isBatchManagedItem(line.itemId))
+                                  AppDropdownField<int>.fromMapped(
+                                    labelText: 'Batch',
+                                    mappedItems: controller
+                                        .batchOptionsForLine(line)
                                         .map(
-                                          (item) => AppDropdownItem(
-                                            value: item.id!,
-                                            label: item.toString(),
+                                          (batch) => AppDropdownItem<int>(
+                                            value:
+                                                int.tryParse(
+                                                  batch['batch_id']
+                                                          ?.toString() ??
+                                                      '',
+                                                ) ??
+                                                0,
+                                            label: stringValue(
+                                              batch,
+                                              'batch_no',
+                                              'Batch',
+                                            ),
                                           ),
                                         )
+                                        .where((item) => item.value != 0)
                                         .toList(growable: false),
-                                    initialValue: line.uomId,
-                                    onChanged: (value) =>
-                                        controller.setLineUomId(index, value),
-                                    validator: (_) =>
-                                        Validators.dependentSelectionField(
-                                          prerequisite: line.itemId,
-                                          prerequisiteName: 'item',
-                                          value: line.uomId,
-                                          fieldName: 'UOM',
-                                        ),
-                                  );
-                                },
-                              ),
-                              if (controller.isSerialManagedItem(line.itemId))
-                                AppSerialNumbersField(
-                                  values: line.serialNumbers,
-                                  canOpen:
-                                      ((controller.isBatchManagedItem(
-                                            line.itemId,
-                                          )
-                                          ? line.batchId != null
-                                          : line.warehouseId != null) ||
-                                      line.serialNumbers.isNotEmpty),
-                                  beforeOpen: () =>
-                                      controller.syncSerialOptionsForLine(line),
-                                  validator: (values) {
-                                    if (line.warehouseId == null) {
-                                      return 'Select warehouse first';
-                                    }
-                                    if (controller.isBatchManagedItem(
-                                          line.itemId,
-                                        ) &&
-                                        line.batchId == null) {
-                                      return 'Select batch first';
-                                    }
-                                    final serialOptions = controller
-                                        .serialOptionsForLine(line);
-                                    if (serialOptions.isEmpty) {
-                                      return 'No serials found in backend for the selected warehouse.';
-                                    }
-                                    final serialLabelSet = controller
-                                        .serialLabelSetForLine(line);
-                                    for (final value in values) {
-                                      if (!serialLabelSet.contains(
-                                        value.trim().toLowerCase(),
+                                    initialValue: line.batchId,
+                                    onChanged: (value) => unawaited(
+                                      controller.setLineBatchId(index, value),
+                                    ),
+                                    validator: (_) {
+                                      if (!controller.isBatchManagedItem(
+                                        line.itemId,
                                       )) {
-                                        return 'Serial "$value" is not available for the selected warehouse/batch.';
+                                        return null;
+                                      }
+                                      final dependencyError =
+                                          Validators.dependentSelectionField(
+                                            prerequisite: line.warehouseId,
+                                            prerequisiteName: 'warehouse',
+                                            value: line.batchId,
+                                            fieldName: 'Batch',
+                                          );
+                                      if (dependencyError != null &&
+                                          line.warehouseId == null) {
+                                        return dependencyError;
+                                      }
+                                      final batches = controller
+                                          .batchOptionsForLine(line);
+                                      if (batches.isEmpty) {
+                                        return 'No batches found for the selected warehouse';
+                                      }
+                                      return dependencyError;
+                                    },
+                                  ),
+                                Builder(
+                                  builder: (context) {
+                                    final options = controller
+                                        .uomOptionsForItem(line.itemId);
+                                    if (options.length == 1) {
+                                      final onlyId = options.first.id;
+                                      if (line.uomId != onlyId) {
+                                        line.uomId = onlyId;
+                                      }
+                                    }
+                                    return AppDropdownField<int>.fromMapped(
+                                      labelText: 'UOM',
+                                      mappedItems: options
+                                          .where((item) => item.id != null)
+                                          .map(
+                                            (item) => AppDropdownItem(
+                                              value: item.id!,
+                                              label: item.toString(),
+                                            ),
+                                          )
+                                          .toList(growable: false),
+                                      initialValue: line.uomId,
+                                      onChanged: (value) =>
+                                          controller.setLineUomId(index, value),
+                                      validator: (_) =>
+                                          Validators.dependentSelectionField(
+                                            prerequisite: line.itemId,
+                                            prerequisiteName: 'item',
+                                            value: line.uomId,
+                                            fieldName: 'UOM',
+                                          ),
+                                    );
+                                  },
+                                ),
+                                if (controller.isSerialManagedItem(line.itemId))
+                                  AppSerialNumbersField(
+                                    values: line.serialNumbers,
+                                    canOpen:
+                                        ((controller.isBatchManagedItem(
+                                              line.itemId,
+                                            )
+                                            ? line.batchId != null
+                                            : line.warehouseId != null) ||
+                                        line.serialNumbers.isNotEmpty),
+                                    beforeOpen: () => controller
+                                        .syncSerialOptionsForLine(line),
+                                    validator: (values) {
+                                      if (line.warehouseId == null) {
+                                        return 'Select warehouse first';
+                                      }
+                                      if (controller.isBatchManagedItem(
+                                            line.itemId,
+                                          ) &&
+                                          line.batchId == null) {
+                                        return 'Select batch first';
+                                      }
+                                      final serialOptions = controller
+                                          .serialOptionsForLine(line);
+                                      if (serialOptions.isEmpty) {
+                                        return 'No serials found in backend for the selected warehouse.';
+                                      }
+                                      final serialLabelSet = controller
+                                          .serialLabelSetForLine(line);
+                                      for (final value in values) {
+                                        if (!serialLabelSet.contains(
+                                          value.trim().toLowerCase(),
+                                        )) {
+                                          return 'Serial "$value" is not available for the selected warehouse/batch.';
+                                        }
+                                      }
+                                      return null;
+                                    },
+                                    onChanged: (values) {
+                                      controller.setLineSerialNumbers(
+                                        line,
+                                        values,
+                                      );
+                                      controller.refreshState();
+                                    },
+                                  ),
+                                AppFormTextField(
+                                  labelText: 'Delivered Qty',
+                                  controller: line.deliveredQtyController,
+                                  enabled: !controller.isSerialManagedItem(
+                                    line.itemId,
+                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  validator: (_) {
+                                    final quantityError =
+                                        Validators.requiredPositiveNumberField(
+                                          line.deliveredQtyController.text,
+                                          'Delivered Qty',
+                                        );
+                                    if (quantityError != null) {
+                                      return quantityError;
+                                    }
+                                    final qty = double.tryParse(
+                                      line.deliveredQtyController.text.trim(),
+                                    );
+                                    if (controller.isSerialManagedItem(
+                                      line.itemId,
+                                    )) {
+                                      final serialCount = controller
+                                          .lineSerialNumbers(line)
+                                          .length;
+                                      if (serialCount == 0) {
+                                        return 'Add at least one serial number';
+                                      }
+                                      if (qty != serialCount) {
+                                        return 'Qty must match serial count';
                                       }
                                     }
                                     return null;
                                   },
-                                  onChanged: (values) {
-                                    controller.setLineSerialNumbers(
-                                      line,
-                                      values,
-                                    );
-                                    controller.refreshState();
-                                  },
                                 ),
-                              AppFormTextField(
-                                labelText: 'Delivered Qty',
-                                controller: line.deliveredQtyController,
-                                enabled: !controller.isSerialManagedItem(
-                                  line.itemId,
+                                AppFormTextField(
+                                  labelText: 'Rate',
+                                  controller: line.rateController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                  validator:
+                                      Validators.optionalNonNegativeNumber(
+                                        'Rate',
+                                      ),
                                 ),
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                validator: (_) {
-                                  final quantityError =
-                                      Validators.requiredPositiveNumberField(
-                                        line.deliveredQtyController.text,
-                                        'Delivered Qty',
-                                      );
-                                  if (quantityError != null) {
-                                    return quantityError;
-                                  }
-                                  final qty = double.tryParse(
-                                    line.deliveredQtyController.text.trim(),
-                                  );
-                                  if (controller.isSerialManagedItem(
-                                    line.itemId,
-                                  )) {
-                                    final serialCount = controller
-                                        .lineSerialNumbers(line)
-                                        .length;
-                                    if (serialCount == 0) {
-                                      return 'Add at least one serial number';
-                                    }
-                                    if (qty != serialCount) {
-                                      return 'Qty must match serial count';
-                                    }
-                                  }
-                                  return null;
-                                },
-                              ),
-                              AppFormTextField(
-                                labelText: 'Rate',
-                                controller: line.rateController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                validator: Validators.optionalNonNegativeNumber(
-                                  'Rate',
+                                AppFormTextField(
+                                  labelText: 'Description',
+                                  controller: line.descriptionController,
                                 ),
-                              ),
-                              AppFormTextField(
-                                labelText: 'Description',
-                                controller: line.descriptionController,
-                              ),
-                              AppFormTextField(
-                                labelText: 'Remarks',
-                                controller: line.remarksController,
-                                maxLines: 2,
-                              ),
-                            ],
+                                AppFormTextField(
+                                  labelText: 'Remarks',
+                                  controller: line.remarksController,
+                                  maxLines: 2,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }),
-                  ),
+                        );
+                      }),
+                    ),
+                  if (controller.deliveryKind == 'rdc') ...[
+                    const SizedBox(height: AppUiConstants.spacingLg),
+                    SalesDocumentLineSection(
+                      title: 'Returnable Items',
+                      addLabel: 'Add Returnable Item',
+                      onAdd: controller.addReturnableDc,
+                      children: List<Widget>.generate(
+                        controller.returnableDcs.length,
+                        (index) {
+                          final row = controller.returnableDcs[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppUiConstants.spacingSm,
+                            ),
+                            child: PurchaseCompactLineCard(
+                              index: index,
+                              total: controller.returnableDcs.length,
+                              removeEnabled:
+                                  controller.returnableDcs.length > 1,
+                              onRemove: () =>
+                                  controller.removeReturnableDc(index),
+                              child: PurchaseCompactFieldGrid(
+                                children: [
+                                  AppSearchPickerField<int>(
+                                    labelText: 'Item',
+                                    selectedLabel:
+                                        controller.itemLabelById(row.itemId) ??
+                                        nullIfEmpty(
+                                          row.itemNameController.text.trim(),
+                                        ),
+                                    options: controller.itemPickerOptions,
+                                    onChanged: (value) => controller
+                                        .setReturnableDcItemId(index, value),
+                                  ),
+                                  AppFormTextField(
+                                    labelText: 'New Item Name',
+                                    controller: row.itemNameController,
+                                    hintText:
+                                        'Use when the item is not in item master',
+                                  ),
+                                  Builder(
+                                    builder: (context) {
+                                      final options = controller
+                                          .uomOptionsForItem(row.itemId);
+                                      if (options.length == 1) {
+                                        final onlyId = options.first.id;
+                                        if (row.uomId != onlyId) {
+                                          row.uomId = onlyId;
+                                        }
+                                      }
+                                      return AppDropdownField<int>.fromMapped(
+                                        labelText: 'UOM',
+                                        mappedItems: options
+                                            .where((item) => item.id != null)
+                                            .map(
+                                              (item) => AppDropdownItem(
+                                                value: item.id!,
+                                                label: item.toString(),
+                                              ),
+                                            )
+                                            .toList(growable: false),
+                                        initialValue: row.uomId,
+                                        onChanged: (value) => controller
+                                            .setReturnableDcUomId(index, value),
+                                        validator: (_) {
+                                          if (row.uomId == null) {
+                                            return 'UOM is required';
+                                          }
+                                          return null;
+                                        },
+                                      );
+                                    },
+                                  ),
+                                  AppFormTextField(
+                                    labelText: 'Qty',
+                                    controller: row.qtyController,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    validator: (_) =>
+                                        Validators.requiredPositiveNumberField(
+                                          row.qtyController.text,
+                                          'Qty',
+                                        ),
+                                  ),
+                                  AppFormTextField(
+                                    labelText: 'Description',
+                                    controller: row.descriptionController,
+                                  ),
+                                  AppFormTextField(
+                                    labelText: 'Remarks',
+                                    controller: row.remarksController,
+                                    maxLines: 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -500,6 +616,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             SalesDocumentActionRow(
               actions: [
                 if (controller.selectedItem != null &&
+                    deliveryKind == 'dc' &&
                     !hasExistingInvoice &&
                     const {'posted', 'partially_invoiced'}.contains(status))
                   AppActionButton(
@@ -527,8 +644,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                 AppActionButton(
                   icon: Icons.save_outlined,
                   label: controller.selectedItem == null
-                      ? 'Save Delivery'
-                      : 'Update Delivery',
+                      ? 'Save ${controller.deliveryKindLabel}'
+                      : 'Update ${controller.deliveryKindLabel}',
                   onPressed: canEdit ? () => controller.save(context) : null,
                   busy: controller.saving,
                 ),

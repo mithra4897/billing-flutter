@@ -21,6 +21,7 @@ class SalesDeliveryModel extends JsonModel {
     this.transporterPartyId,
     this.lrNo,
     this.lrDate,
+    this.deliveryKind,
     this.voucherId,
     this.deliveryStatus,
     this.notes,
@@ -28,6 +29,7 @@ class SalesDeliveryModel extends JsonModel {
     this.postedAt,
     this.isActive,
     this.lines = const <Map<String, dynamic>>[],
+    this.returnableDcs = const <Map<String, dynamic>>[],
     this.createdBy,
     this.updatedBy,
     this.createdAt,
@@ -51,6 +53,7 @@ class SalesDeliveryModel extends JsonModel {
   final int? transporterPartyId;
   final String? lrNo;
   final String? lrDate;
+  final String? deliveryKind;
   final int? voucherId;
   final String? deliveryStatus;
   final String? notes;
@@ -58,6 +61,7 @@ class SalesDeliveryModel extends JsonModel {
   final String? postedAt;
   final bool? isActive;
   final List<Map<String, dynamic>> lines;
+  final List<Map<String, dynamic>> returnableDcs;
   final int? createdBy;
   final int? updatedBy;
   final String? createdAt;
@@ -84,6 +88,7 @@ class SalesDeliveryModel extends JsonModel {
       transporterPartyId: JsonModel.nullableInt(json['transporter_party_id']),
       lrNo: json['lr_no']?.toString(),
       lrDate: json['lr_date']?.toString(),
+      deliveryKind: json['delivery_kind']?.toString(),
       voucherId: JsonModel.nullableInt(json['voucher_id']),
       deliveryStatus: json['delivery_status']?.toString(),
       notes: json['notes']?.toString(),
@@ -93,6 +98,7 @@ class SalesDeliveryModel extends JsonModel {
           ? null
           : JsonModel.boolOf(json['is_active']),
       lines: _mapLines(json['lines']),
+      returnableDcs: _mapLines(json['returnable_dcs']),
       createdBy: JsonModel.nullableInt(json['created_by']),
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
@@ -127,6 +133,7 @@ class SalesDeliveryModel extends JsonModel {
     if (transporterPartyId != null) 'transporter_party_id': transporterPartyId,
     if (lrNo != null) 'lr_no': lrNo,
     if (lrDate != null) 'lr_date': lrDate,
+    if (deliveryKind != null) 'delivery_kind': deliveryKind,
     if (voucherId != null) 'voucher_id': voucherId,
     if (deliveryStatus != null) 'delivery_status': deliveryStatus,
     if (notes != null) 'notes': notes,
@@ -134,6 +141,7 @@ class SalesDeliveryModel extends JsonModel {
     if (postedAt != null) 'posted_at': postedAt,
     if (isActive != null) 'is_active': isActive,
     if (lines.isNotEmpty) 'lines': lines,
+    'returnable_dcs': returnableDcs,
     if (createdBy != null) 'created_by': createdBy,
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,

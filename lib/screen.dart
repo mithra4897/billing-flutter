@@ -245,6 +245,7 @@ export 'model/quality/qc_plan_line_model.dart';
 export 'model/quality/qc_plan_model.dart';
 export 'model/quality/qc_result_action_model.dart';
 export 'model/sales/sales_delivery_model.dart';
+export 'model/sales/sales_delivery_returnable_dc_model.dart';
 export 'model/sales/sales_invoice_line_model.dart';
 export 'model/sales/sales_invoice_model.dart';
 export 'model/sales/sales_order_model.dart';
