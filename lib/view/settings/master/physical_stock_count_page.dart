@@ -93,7 +93,7 @@ class _PhysicalStockCountPageState extends State<PhysicalStockCountPage> {
           onTap: () => controller.selectCount(item),
         ),
       ),
-      editor: AppSectionCard(
+      editorBuilder: (_) => AppSectionCard(
         child: Form(
           key: controller.formKey,
           child: Column(

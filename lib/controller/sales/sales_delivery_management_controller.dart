@@ -853,9 +853,11 @@ class SalesDeliveryManagementController extends GetxController {
   List<DocumentSeriesModel> seriesOptions() {
     return documentSeries
         .where((item) {
+          final documentType = (item.documentType ?? '').trim().toUpperCase();
           final typeOk =
-              item.documentType == null ||
-              item.documentType == 'SALES_DELIVERY';
+              documentType.isEmpty ||
+              documentType == 'SALES_DELIVERY' ||
+              documentType == 'DELIVERY_CHALLAN';
           final companyOk = companyId == null || item.companyId == companyId;
           final fyOk =
               financialYearId == null ||
