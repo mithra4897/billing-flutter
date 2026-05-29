@@ -318,7 +318,6 @@ class AppNavigation {
       ],
     ),
 
-
     const AppNavigationItem(
       key: 'parties',
       title: 'Parties',
@@ -560,6 +559,13 @@ class AppNavigation {
           title: 'Employees',
           icon: Icons.groups_2_outlined,
           path: '/hr/employees',
+          requiredPermissions: ['hr.view'],
+        ),
+        AppNavigationItem(
+          key: 'hr-employee-ledgers',
+          title: 'Employee Ledger',
+          icon: Icons.account_balance_wallet_outlined,
+          path: '/hr/employee-ledgers',
           requiredPermissions: ['hr.view'],
         ),
       ],
@@ -1008,6 +1014,13 @@ class AppNavigation {
           title: 'Returns',
           icon: Icons.assignment_return_outlined,
           path: '/purchase/returns',
+          requiredPermissions: ['purchase.view'],
+        ),
+        AppNavigationItem(
+          key: 'purchase-ledgers',
+          title: 'Purchase Ledger',
+          icon: Icons.account_balance_wallet_outlined,
+          path: '/purchase/ledgers',
           requiredPermissions: ['purchase.view'],
         ),
       ],

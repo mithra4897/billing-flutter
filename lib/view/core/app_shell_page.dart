@@ -477,6 +477,8 @@ class _AppShellPageState extends State<AppShellPage> {
             _currentQueryParameters['employee_id'] ?? '',
           ),
         );
+      case '/hr/employee-ledgers':
+        return EmployeeLedgerRegisterPage(key: routeKey, embedded: true);
       case '/hr/leave-types':
         return LeaveTypeManagementPage(key: routeKey, embedded: true);
       case '/hr/statutory-settings':
@@ -535,6 +537,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return PurchasePaymentRegisterPage(key: routeKey, embedded: true);
       case '/purchase/returns':
         return PurchaseReturnRegisterPage(key: routeKey, embedded: true);
+      case '/purchase/ledgers':
+        return PurchaseLedgerRegisterPage(key: routeKey, embedded: true);
       case '/planning/stock-reservations':
         return StockReservationPage(key: routeKey, embedded: true);
       case '/planning/item-policies':
@@ -1433,6 +1437,18 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           initialEmployeeId: id,
         );
+      case 'hr/employee-ledgers':
+        return EmployeeLedgerDetailPage(
+          key: routeKey,
+          embedded: true,
+          employeeId: id,
+        );
+      case 'purchase/ledgers':
+        return PurchaseLedgerDetailPage(
+          key: routeKey,
+          embedded: true,
+          ledgerId: id,
+        );
     }
 
     return null;
@@ -1503,8 +1519,14 @@ class _AppShellPageState extends State<AppShellPage> {
     if (path.startsWith('/purchase/payments/')) {
       return 'Purchase Payment';
     }
+    if (path.startsWith('/purchase/ledgers/')) {
+      return 'Purchase Ledger';
+    }
     if (path.startsWith('/purchase/returns/')) {
       return 'Purchase Return';
+    }
+    if (path.startsWith('/hr/employee-ledgers/')) {
+      return 'Employee Ledger';
     }
     if (path.startsWith('/sales/quotations/')) {
       return 'Sales Quotation';
