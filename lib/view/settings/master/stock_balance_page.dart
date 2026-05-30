@@ -80,100 +80,96 @@ class _StockBalancePageState extends State<StockBalancePage> {
           onTap: () => controller.selectItem(item),
         ),
       ),
-      editor: AppSectionCard(
-        child: controller.selectedItem == null
-            ? const SettingsEmptyState(
-                icon: Icons.pie_chart_outline,
-                title: 'Select Stock Balance',
-                message: 'Choose a stock balance row from the left to inspect.',
-              )
-            : Column(
-                key: ValueKey<int?>(controller.selectedItem!.id),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    controller.selectedItem.toString(),
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 16),
-                  SettingsFormWrap(
-                    children: [
-                      AppFormTextField(
-                        labelText: 'Item Code',
-                        initialValue: controller.selectedItem!.itemCode,
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Warehouse',
-                        initialValue:
-                            controller.selectedItem!.warehouseName ??
-                            controller.selectedItem!.warehouseCode,
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Batch',
-                        initialValue: controller.selectedItem!.batchNo ?? '',
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Serial',
-                        initialValue: controller.selectedItem!.serialNo ?? '',
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Qty On Hand',
-                        initialValue:
-                            controller.selectedItem!.qtyOnHand?.toString() ??
-                            '0',
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Qty Reserved',
-                        initialValue:
-                            controller.selectedItem!.qtyReserved?.toString() ??
-                            '0',
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Qty Available',
-                        initialValue:
-                            controller.selectedItem!.qtyAvailable?.toString() ??
-                            '0',
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Average Cost',
-                        initialValue:
-                            controller.selectedItem!.avgCost?.toString() ?? '',
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Last Purchase Rate',
-                        initialValue:
-                            controller.selectedItem!.lastPurchaseRate
-                                ?.toString() ??
-                            '',
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Last Sales Rate',
-                        initialValue:
-                            controller.selectedItem!.lastSalesRate
-                                ?.toString() ??
-                            '',
-                        readOnly: true,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Last Movement At',
-                        initialValue:
-                            controller.selectedItem!.lastMovementAt ?? '',
-                        readOnly: true,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-      ),
+      editor: controller.selectedItem == null
+          ? const SettingsEmptyState(
+              icon: Icons.pie_chart_outline,
+              title: 'Select Stock Balance',
+              message: 'Choose a stock balance row from the left to inspect.',
+            )
+          : Column(
+              key: ValueKey<int?>(controller.selectedItem!.id),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  controller.selectedItem.toString(),
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 16),
+                SettingsFormWrap(
+                  children: [
+                    AppFormTextField(
+                      labelText: 'Item Code',
+                      initialValue: controller.selectedItem!.itemCode,
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Warehouse',
+                      initialValue:
+                          controller.selectedItem!.warehouseName ??
+                          controller.selectedItem!.warehouseCode,
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Batch',
+                      initialValue: controller.selectedItem!.batchNo ?? '',
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Serial',
+                      initialValue: controller.selectedItem!.serialNo ?? '',
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Qty On Hand',
+                      initialValue:
+                          controller.selectedItem!.qtyOnHand?.toString() ?? '0',
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Qty Reserved',
+                      initialValue:
+                          controller.selectedItem!.qtyReserved?.toString() ??
+                          '0',
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Qty Available',
+                      initialValue:
+                          controller.selectedItem!.qtyAvailable?.toString() ??
+                          '0',
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Average Cost',
+                      initialValue:
+                          controller.selectedItem!.avgCost?.toString() ?? '',
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Last Purchase Rate',
+                      initialValue:
+                          controller.selectedItem!.lastPurchaseRate
+                              ?.toString() ??
+                          '',
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Last Sales Rate',
+                      initialValue:
+                          controller.selectedItem!.lastSalesRate?.toString() ??
+                          '',
+                      readOnly: true,
+                    ),
+                    AppFormTextField(
+                      labelText: 'Last Movement At',
+                      initialValue:
+                          controller.selectedItem!.lastMovementAt ?? '',
+                      readOnly: true,
+                    ),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 }
