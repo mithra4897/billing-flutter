@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/sales_register_reload_helper.dart';
 
 class SalesDeliveryLineDraft {
   SalesDeliveryLineDraft({
@@ -1398,6 +1399,7 @@ class SalesDeliveryManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadSalesDeliveryRegister();
     } catch (error) {
       formError = error.toString();
       update();
@@ -1421,6 +1423,7 @@ class SalesDeliveryManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadSalesDeliveryRegister();
     } catch (error) {
       formError = error.toString();
       update();

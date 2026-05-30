@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/sales_register_reload_helper.dart';
 
 class QuotationLineDraft {
   QuotationLineDraft({
@@ -985,6 +986,7 @@ class SalesQuotationManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadSalesQuotationRegister();
     } catch (error) {
       formError = errorMessage(error);
       update();
@@ -1008,6 +1010,7 @@ class SalesQuotationManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadSalesQuotationRegister();
     } catch (error) {
       formError = errorMessage(error);
       update();
@@ -1027,6 +1030,7 @@ class SalesQuotationManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage();
+      reloadSalesQuotationRegister();
     } catch (error) {
       formError = errorMessage(error);
       update();

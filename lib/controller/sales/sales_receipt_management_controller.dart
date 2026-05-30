@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/sales_register_reload_helper.dart';
 
 class SalesReceiptAllocationDraft {
   SalesReceiptAllocationDraft({
@@ -668,6 +669,7 @@ class SalesReceiptManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadSalesReceiptRegister();
     } catch (error) {
       formError = error.toString();
       update();
@@ -713,6 +715,7 @@ class SalesReceiptManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadSalesReceiptRegister();
     } catch (error) {
       formError = error.toString();
       update();

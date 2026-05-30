@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/sales_register_reload_helper.dart';
 
 class OrderLineDraft {
   OrderLineDraft({
@@ -1169,6 +1170,7 @@ class SalesOrderManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadSalesOrderRegister();
     } catch (error) {
       formError = errorMessage(error);
       update();
@@ -1192,6 +1194,7 @@ class SalesOrderManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadSalesOrderRegister();
     } catch (error) {
       formError = errorMessage(error);
       update();
@@ -1209,6 +1212,7 @@ class SalesOrderManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage();
+      reloadSalesOrderRegister();
     } catch (error) {
       formError = errorMessage(error);
       update();

@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/sales_register_reload_helper.dart';
 
 class SalesInvoiceManagementController extends GetxController {
   SalesInvoiceManagementController();
@@ -2541,6 +2542,7 @@ class SalesInvoiceManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage(selectId: response.data?.id);
+      reloadSalesInvoiceRegister();
     } catch (error) {
       if (!mounted) {
         return;
@@ -2578,6 +2580,7 @@ class SalesInvoiceManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage(selectId: response.data?.id);
+      reloadSalesInvoiceRegister();
     } catch (error) {
       if (!mounted) {
         return;
@@ -2599,6 +2602,7 @@ class SalesInvoiceManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage();
+      reloadSalesInvoiceRegister();
     } catch (error) {
       if (!mounted) {
         return;
