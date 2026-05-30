@@ -282,7 +282,7 @@ class PurchasePaymentManagementController extends GetxController {
         await selectDocument(selected, notify: false);
       } else {
         resetForm(notify: false);
-        if (initialPurchaseInvoiceId != null && editorOnly) {
+        if (initialPurchaseInvoiceId != null) {
           await bootstrapNewPaymentFromInvoice(initialPurchaseInvoiceId);
         }
       }

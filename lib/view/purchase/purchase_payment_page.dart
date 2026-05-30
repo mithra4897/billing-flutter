@@ -56,6 +56,26 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
   }
 
   @override
+  void didUpdateWidget(covariant PurchasePaymentPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialId != widget.initialId ||
+        oldWidget.initialPurchaseInvoiceId != widget.initialPurchaseInvoiceId ||
+        oldWidget.editorOnly != widget.editorOnly) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        unawaited(
+          _controller.initialize(
+            initialId: widget.initialId,
+            initialPurchaseInvoiceId: widget.initialPurchaseInvoiceId,
+          ),
+        );
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GetBuilder<PurchasePaymentManagementController>(
       tag: _controllerTag,
