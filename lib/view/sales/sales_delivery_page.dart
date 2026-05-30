@@ -634,7 +634,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                       );
                     },
                   ),
-                if (status == 'posted')
+                if (controller.selectedItem != null &&
+                    !const {'draft', 'cancelled'}.contains(status))
                   AppActionButton(
                     icon: Icons.print_outlined,
                     label: 'Print',

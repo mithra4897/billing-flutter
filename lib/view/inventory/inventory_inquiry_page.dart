@@ -127,19 +127,6 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
                       width: 240,
                       onChanged: controller.setMode,
                     ),
-                    AppDropdownField<int?>.fromMapped(
-                      labelText: 'Company',
-                      mappedItems: <AppDropdownItem<int?>>[
-                        const AppDropdownItem<int?>(
-                          value: null,
-                          label: 'Any / default',
-                        ),
-                        ...companyItems,
-                      ],
-                      initialValue: controller.companyId,
-                      width: 260,
-                      onChanged: controller.setCompanyId,
-                    ),
                     AppSearchPickerField<int>(
                       labelText: 'Item',
                       selectedLabel: controller.selectedItem?.toString(),
