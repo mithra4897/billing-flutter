@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 const List<AppDropdownItem<String>> stockSerialStatusItems =
     <AppDropdownItem<String>>[
@@ -372,6 +373,7 @@ class StockSerialViewModel extends GetxController {
         'id',
       );
       await load(selectId: id);
+      reloadStockSerialRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -387,6 +389,7 @@ class StockSerialViewModel extends GetxController {
     try {
       await _inventoryService.deleteStockSerial(id);
       await load();
+      reloadStockSerialRegister();
     } catch (e) {
       formError = e.toString();
       update();

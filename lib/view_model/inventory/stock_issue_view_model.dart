@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 /// Backend `issue_purpose` enum values; labels are UI-facing.
 const List<AppDropdownItem<String>> stockIssuePurposeItems =
@@ -861,6 +862,7 @@ class StockIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockIssueRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -883,6 +885,7 @@ class StockIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockIssueRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -902,6 +905,7 @@ class StockIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockIssueRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -918,6 +922,7 @@ class StockIssueViewModel extends GetxController {
       final response = await _inventoryService.deleteStockIssue(id);
       actionMessage = response.message;
       await load();
+      reloadStockIssueRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 const List<AppDropdownItem<String>> inventoryAdjustmentTypeItems =
     <AppDropdownItem<String>>[
@@ -735,6 +736,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadInventoryAdjustmentRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -755,6 +757,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadInventoryAdjustmentRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -772,6 +775,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadInventoryAdjustmentRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -786,6 +790,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       final response = await _inventoryService.deleteInventoryAdjustment(id);
       actionMessage = response.message;
       await load();
+      reloadInventoryAdjustmentRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

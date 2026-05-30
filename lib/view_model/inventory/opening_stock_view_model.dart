@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 /// Mutable line state for the opening stock editor (View binds controllers).
 class OpeningStockLineDraft {
@@ -1293,6 +1294,7 @@ class OpeningStockViewModel extends GetxController {
       }
       actionMessage = response.message;
       await load(selectId: id);
+      reloadOpeningStockRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1318,6 +1320,7 @@ class OpeningStockViewModel extends GetxController {
       }
       actionMessage = response.message;
       await load(selectId: id);
+      reloadOpeningStockRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1340,6 +1343,7 @@ class OpeningStockViewModel extends GetxController {
       }
       actionMessage = response.message;
       await load(selectId: id);
+      reloadOpeningStockRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1359,6 +1363,7 @@ class OpeningStockViewModel extends GetxController {
       }
       actionMessage = response.message;
       await load();
+      reloadOpeningStockRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

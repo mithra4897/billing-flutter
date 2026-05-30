@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 const List<AppDropdownItem<String>> stockDamageTypeItems =
     <AppDropdownItem<String>>[
@@ -826,6 +827,7 @@ class StockDamageViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockDamageRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -846,6 +848,7 @@ class StockDamageViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockDamageRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -863,6 +866,7 @@ class StockDamageViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockDamageRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -877,6 +881,7 @@ class StockDamageViewModel extends GetxController {
       final response = await _inventoryService.deleteStockDamageEntry(id);
       actionMessage = response.message;
       await load();
+      reloadStockDamageRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

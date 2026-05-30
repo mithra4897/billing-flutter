@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/purchase_register_reload_helper.dart';
 
 class PurchaseReceiptLineDraft {
   PurchaseReceiptLineDraft({
@@ -188,12 +189,14 @@ class PurchaseReceiptManagementController extends GetxController {
       _initialized = true;
     }
     await loadPage(selectId: initialId);
+    reloadPurchaseReceiptRegister();
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
+    reloadPurchaseReceiptRegister();
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -866,11 +869,13 @@ class PurchaseReceiptManagementController extends GetxController {
       if (saved != null) {
         _upsertReceipt(saved);
         await selectDocument(saved, notify: false);
+        reloadPurchaseReceiptRegister();
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        reloadPurchaseReceiptRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -896,11 +901,13 @@ class PurchaseReceiptManagementController extends GetxController {
       if (updated != null) {
         _upsertReceipt(updated);
         await selectDocument(updated, notify: false);
+        reloadPurchaseReceiptRegister();
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        reloadPurchaseReceiptRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();

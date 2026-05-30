@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 class StockTransferLineDraft {
   StockTransferLineDraft({
@@ -850,6 +851,7 @@ class StockTransferViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockTransferRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -872,6 +874,7 @@ class StockTransferViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockTransferRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -891,6 +894,7 @@ class StockTransferViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadStockTransferRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -907,6 +911,7 @@ class StockTransferViewModel extends GetxController {
       final response = await _inventoryService.deleteStockTransfer(id);
       actionMessage = response.message;
       await load();
+      reloadStockTransferRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

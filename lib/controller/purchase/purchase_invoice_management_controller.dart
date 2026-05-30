@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/purchase_register_reload_helper.dart';
 
 class PurchaseInvoiceManagementController extends GetxController {
   PurchaseInvoiceManagementController();
@@ -122,10 +123,12 @@ class PurchaseInvoiceManagementController extends GetxController {
   Future<void> initialize({int? initialId}) async {
     if (!_initialized) _initialized = true;
     await loadPage(selectId: initialId);
+    reloadPurchaseInvoiceRegister();
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(selectId: selectedItem?.id);
+    reloadPurchaseInvoiceRegister();
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -1067,9 +1070,11 @@ class PurchaseInvoiceManagementController extends GetxController {
       if (saved != null) {
         _upsertInvoice(saved);
         await selectDocument(saved, notify: false);
+        reloadPurchaseInvoiceRegister();
         update();
       } else {
         await loadPage(selectId: response.data?.id);
+        reloadPurchaseInvoiceRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -1095,9 +1100,11 @@ class PurchaseInvoiceManagementController extends GetxController {
       if (updated != null) {
         _upsertInvoice(updated);
         await selectDocument(updated, notify: false);
+        reloadPurchaseInvoiceRegister();
         update();
       } else {
         await loadPage(selectId: response.data?.id);
+        reloadPurchaseInvoiceRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();

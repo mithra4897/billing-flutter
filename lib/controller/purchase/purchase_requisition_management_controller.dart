@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/purchase_register_reload_helper.dart';
 
 class PurchaseRequisitionLineDraft {
   PurchaseRequisitionLineDraft({
@@ -165,12 +166,14 @@ class PurchaseRequisitionManagementController extends GetxController {
       _initialized = true;
     }
     await loadPage(selectId: initialId);
+    reloadPurchaseRequisitionRegister();
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
+    reloadPurchaseRequisitionRegister();
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -644,6 +647,7 @@ class PurchaseRequisitionManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadPurchaseRequisitionRegister();
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -668,6 +672,7 @@ class PurchaseRequisitionManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      reloadPurchaseRequisitionRegister();
     } catch (errorValue) {
       formError = errorValue.toString();
       update();

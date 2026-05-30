@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/purchase_register_reload_helper.dart';
 
 enum PurchaseOrderLinkDriver { none, supplier, requisition }
 
@@ -220,12 +221,14 @@ class PurchaseOrderManagementController extends GetxController {
   Future<void> initialize({int? initialId}) async {
     if (!_initialized) _initialized = true;
     await loadPage(selectId: initialId);
+    reloadPurchaseOrderRegister();
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
+    reloadPurchaseOrderRegister();
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -1364,11 +1367,13 @@ class PurchaseOrderManagementController extends GetxController {
       if (saved != null) {
         _upsertOrder(saved);
         await selectDocument(saved, notify: false);
+        reloadPurchaseOrderRegister();
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        reloadPurchaseOrderRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -1394,11 +1399,13 @@ class PurchaseOrderManagementController extends GetxController {
       if (updated != null) {
         _upsertOrder(updated);
         await selectDocument(updated, notify: false);
+        reloadPurchaseOrderRegister();
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        reloadPurchaseOrderRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();

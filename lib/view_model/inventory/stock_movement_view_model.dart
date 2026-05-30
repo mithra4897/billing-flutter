@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 const List<AppDropdownItem<String>> stockMovementTypeItems =
     <AppDropdownItem<String>>[
@@ -406,6 +407,7 @@ class StockMovementViewModel extends GetxController {
         'id',
       );
       await load(selectId: id);
+      reloadStockMovementRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -421,6 +423,7 @@ class StockMovementViewModel extends GetxController {
     try {
       await _inventoryService.deleteStockMovement(id);
       await load();
+      reloadStockMovementRegister();
     } catch (e) {
       formError = e.toString();
       update();

@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/purchase_register_reload_helper.dart';
 
 class PaymentAllocationDraft {
   PaymentAllocationDraft({
@@ -160,12 +161,14 @@ class PurchasePaymentManagementController extends GetxController {
       selectId: initialId,
       initialPurchaseInvoiceId: initialPurchaseInvoiceId,
     );
+    reloadPurchasePaymentRegister();
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
+    reloadPurchasePaymentRegister();
   }
 
   Future<void> loadPage({
@@ -677,11 +680,13 @@ class PurchasePaymentManagementController extends GetxController {
       if (saved != null) {
         _upsertPayment(saved);
         await selectDocument(saved, notify: false);
+        reloadPurchasePaymentRegister();
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        reloadPurchasePaymentRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -707,11 +712,13 @@ class PurchasePaymentManagementController extends GetxController {
       if (updated != null) {
         _upsertPayment(updated);
         await selectDocument(updated, notify: false);
+        reloadPurchasePaymentRegister();
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        reloadPurchasePaymentRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();

@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 class StockBatchViewModel extends GetxController {
   StockBatchViewModel({this.initialItemId}) {
@@ -288,6 +289,7 @@ class StockBatchViewModel extends GetxController {
         'id',
       );
       await load(selectId: id);
+      reloadStockBatchRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -303,6 +305,7 @@ class StockBatchViewModel extends GetxController {
     try {
       await _inventoryService.deleteStockBatch(id);
       await load();
+      reloadStockBatchRegister();
     } catch (e) {
       formError = e.toString();
       update();

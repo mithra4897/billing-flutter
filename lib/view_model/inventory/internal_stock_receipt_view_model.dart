@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/inventory_register_reload_helper.dart';
 
 /// Backend `receipt_source` enum values; labels are UI-facing.
 const List<AppDropdownItem<String>> internalStockReceiptSourceItems =
@@ -975,6 +976,7 @@ class InternalStockReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadInternalStockReceiptRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -997,6 +999,7 @@ class InternalStockReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadInternalStockReceiptRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1016,6 +1019,7 @@ class InternalStockReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadInternalStockReceiptRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1032,6 +1036,7 @@ class InternalStockReceiptViewModel extends GetxController {
       final response = await _inventoryService.deleteInternalStockReceipt(id);
       actionMessage = response.message;
       await load();
+      reloadInternalStockReceiptRegister();
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

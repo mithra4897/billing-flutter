@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/purchase_register_reload_helper.dart';
 
 class PurchaseReturnLineDraft {
   PurchaseReturnLineDraft({
@@ -190,12 +191,14 @@ class PurchaseReturnManagementController extends GetxController {
       _initialized = true;
     }
     await loadPage(selectId: initialId);
+    reloadPurchaseReturnRegister();
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
+    reloadPurchaseReturnRegister();
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -611,11 +614,13 @@ class PurchaseReturnManagementController extends GetxController {
       if (saved != null) {
         _upsertReturn(saved);
         await selectDocument(saved, notify: false);
+        reloadPurchaseReturnRegister();
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        reloadPurchaseReturnRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -641,11 +646,13 @@ class PurchaseReturnManagementController extends GetxController {
       if (updated != null) {
         _upsertReturn(updated);
         await selectDocument(updated, notify: false);
+        reloadPurchaseReturnRegister();
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        reloadPurchaseReturnRegister();
       }
     } catch (errorValue) {
       formError = errorValue.toString();
