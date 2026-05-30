@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/manufacturing_register_reload_helper.dart';
 
 class ProductionMaterialIssueLineDraft {
   ProductionMaterialIssueLineDraft({
@@ -1105,6 +1106,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
           'id',
         ),
       );
+      reloadProductionMaterialIssueRegister();
     } catch (e) {
       formError = e.toString();
       _notifySafely();
@@ -1130,6 +1132,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadProductionMaterialIssueRegister();
     } catch (e) {
       formError = e.toString();
       _notifySafely();
@@ -1146,6 +1149,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadProductionMaterialIssueRegister();
     } catch (e) {
       formError = e.toString();
       _notifySafely();
@@ -1159,6 +1163,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
       await _service.deleteProductionMaterialIssue(id);
       actionMessage = 'Production material issue deleted successfully.';
       await load();
+      reloadProductionMaterialIssueRegister();
     } catch (e) {
       formError = e.toString();
       _notifySafely();

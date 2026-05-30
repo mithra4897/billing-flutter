@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/service_register_reload_helper.dart';
 
 class WarrantyClaimViewModel extends GetxController {
   WarrantyClaimViewModel() {
@@ -555,6 +556,7 @@ class WarrantyClaimViewModel extends GetxController {
           ServiceTicketModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
+        reloadWarrantyClaimRegister();
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -568,6 +570,7 @@ class WarrantyClaimViewModel extends GetxController {
           ServiceTicketModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
+        reloadWarrantyClaimRegister();
         await load(selectId: id);
       }
     } catch (e) {
@@ -590,6 +593,7 @@ class WarrantyClaimViewModel extends GetxController {
         assignedToUserId: assignedToUserId,
       );
       actionMessage = response.message;
+      reloadWarrantyClaimRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -605,6 +609,7 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       final response = await _service.resolveWarrantyClaim(id);
       actionMessage = response.message;
+      reloadWarrantyClaimRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -620,6 +625,7 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       final response = await _service.closeWarrantyClaim(id);
       actionMessage = response.message;
+      reloadWarrantyClaimRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -635,6 +641,7 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       final response = await _service.cancelWarrantyClaim(id);
       actionMessage = response.message;
+      reloadWarrantyClaimRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -650,6 +657,7 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       await _service.deleteWarrantyClaim(id);
       actionMessage = 'Warranty claim deleted.';
+      reloadWarrantyClaimRegister();
       await load();
     } catch (e) {
       formError = e.toString();

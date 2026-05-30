@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/manufacturing_register_reload_helper.dart';
 
 class ProductionReceiptLineDraft {
   ProductionReceiptLineDraft({
@@ -417,6 +418,7 @@ class ProductionReceiptViewModel extends GetxController {
           'id',
         ),
       );
+      reloadProductionReceiptRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -436,6 +438,7 @@ class ProductionReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadProductionReceiptRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -452,6 +455,7 @@ class ProductionReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadProductionReceiptRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -465,6 +469,7 @@ class ProductionReceiptViewModel extends GetxController {
       await _service.deleteProductionReceipt(id);
       actionMessage = 'Production receipt deleted successfully.';
       await load();
+      reloadProductionReceiptRegister();
     } catch (e) {
       formError = e.toString();
       update();

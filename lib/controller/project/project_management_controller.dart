@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/project_register_reload_helper.dart';
 
 class ProjectManagementController extends GetxController {
   ProjectManagementController();
@@ -286,6 +287,7 @@ class ProjectManagementController extends GetxController {
         return null;
       }
       await loadData(selectId: saved.id);
+      reloadProjectRegister();
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();

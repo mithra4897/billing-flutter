@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class PartyAccountRegisterController extends GetxController {
   PartyAccountRegisterController({this.initialPartyId});
@@ -159,6 +160,10 @@ class PartyAccountRegisterController extends GetxController {
     }
 
     update();
+  }
+
+  Future<void> load() async {
+    await fetch(resetPage: true);
   }
 
   Future<void> fetch({bool resetPage = false}) async {
@@ -331,6 +336,7 @@ class PartyAccountRegisterController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadPartyAccountRegister();
       await fetch(resetPage: true);
       startNewMapping(preferredPartyId: initialPartyId ?? formPartyId);
     } catch (errorValue) {
@@ -356,6 +362,7 @@ class PartyAccountRegisterController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadPartyAccountRegister();
       await fetch(resetPage: true);
       startNewMapping(preferredPartyId: initialPartyId ?? formPartyId);
     } catch (errorValue) {

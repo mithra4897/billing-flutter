@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/asset_register_reload_helper.dart';
 
 class AssetCategoryViewModel extends GetxController {
   AssetCategoryViewModel() {
@@ -347,6 +348,7 @@ class AssetCategoryViewModel extends GetxController {
         }
         selected ??= detail;
         actionMessage = 'Category saved.';
+        reloadAssetCategoryRegister();
         return true;
       }
       final response = await _assets.createCategory(
@@ -370,6 +372,7 @@ class AssetCategoryViewModel extends GetxController {
       }
       selected ??= detail;
       actionMessage = 'Category created.';
+      reloadAssetCategoryRegister();
       return true;
     } catch (e) {
       formError = e.toString();
@@ -393,6 +396,7 @@ class AssetCategoryViewModel extends GetxController {
         formError = response.message;
         return false;
       }
+      reloadAssetCategoryRegister();
       return true;
     } catch (e) {
       formError = e.toString();

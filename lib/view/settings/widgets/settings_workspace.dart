@@ -368,6 +368,7 @@ class _SettingsListCardState<T> extends State<SettingsListCard<T>> {
       controller.resetToFirstPage();
     }
     controller.syncItemCountChange(widget.items.length);
+    controller.update();
   }
 
   List<T> _pagedItems(int currentPage) {

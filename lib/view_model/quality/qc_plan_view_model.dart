@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/quality_register_reload_helper.dart';
 
 class QcPlanLineDraft {
   QcPlanLineDraft({
@@ -588,10 +589,12 @@ class QcPlanViewModel extends GetxController {
         final response = await _service.createQcPlan(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
+        reloadQcPlanRegister();
       } else {
         final response = await _service.updateQcPlan(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
+        reloadQcPlanRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -611,6 +614,7 @@ class QcPlanViewModel extends GetxController {
       final response = await _service.approveQcPlan(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadQcPlanRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -626,6 +630,7 @@ class QcPlanViewModel extends GetxController {
       final response = await _service.deactivateQcPlan(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadQcPlanRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -641,6 +646,7 @@ class QcPlanViewModel extends GetxController {
       final response = await _service.obsoleteQcPlan(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadQcPlanRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -656,6 +662,7 @@ class QcPlanViewModel extends GetxController {
       await _service.deleteQcPlan(id);
       actionMessage = 'QC plan deleted.';
       await load();
+      reloadQcPlanRegister();
     } catch (e) {
       formError = e.toString();
       update();

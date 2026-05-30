@@ -90,11 +90,6 @@ class _StockBalancePageState extends State<StockBalancePage> {
               key: ValueKey<int?>(controller.selectedItem!.id),
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  controller.selectedItem.toString(),
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 16),
                 SettingsFormWrap(
                   children: [
                     AppFormTextField(

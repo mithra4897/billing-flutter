@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class AccountGroupManagementController extends GetxController {
   AccountGroupManagementController();
@@ -210,6 +211,7 @@ class AccountGroupManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadAccountGroupRegister();
       await loadGroups(selectId: saved?.id);
     } catch (error) {
       formError = error.toString();
@@ -235,6 +237,7 @@ class AccountGroupManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadAccountGroupRegister();
       await loadGroups();
     } catch (error) {
       formError = error.toString();

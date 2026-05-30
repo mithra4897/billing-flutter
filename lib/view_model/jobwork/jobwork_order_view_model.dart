@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/jobwork_register_reload_helper.dart';
 
 class JobworkMaterialDraft {
   JobworkMaterialDraft({
@@ -866,11 +867,13 @@ class JobworkOrderViewModel extends GetxController {
         final response = await _service.createOrder(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
+        reloadJobworkOrderRegister();
       } else if (canEditLines) {
         final doc = _buildFullDocument();
         final response = await _service.updateOrder(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
+        reloadJobworkOrderRegister();
       } else {
         final response = await _service.updateOrder(
           selected!.id!,
@@ -878,6 +881,7 @@ class JobworkOrderViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: selected!.id);
+        reloadJobworkOrderRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -897,6 +901,7 @@ class JobworkOrderViewModel extends GetxController {
       final response = await _service.releaseOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -912,6 +917,7 @@ class JobworkOrderViewModel extends GetxController {
       final response = await _service.closeOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -927,6 +933,7 @@ class JobworkOrderViewModel extends GetxController {
       final response = await _service.cancelOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -942,6 +949,7 @@ class JobworkOrderViewModel extends GetxController {
       await _service.deleteOrder(id);
       actionMessage = 'Jobwork order deleted.';
       await load();
+      reloadJobworkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();

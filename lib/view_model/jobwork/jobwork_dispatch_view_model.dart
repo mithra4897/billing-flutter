@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/jobwork_register_reload_helper.dart';
 
 class JobworkDispatchLineDraft {
   JobworkDispatchLineDraft({
@@ -719,10 +720,12 @@ class JobworkDispatchViewModel extends GetxController {
         final response = await _service.createDispatch(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
+        reloadJobworkDispatchRegister();
       } else {
         final response = await _service.updateDispatch(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
+        reloadJobworkDispatchRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -742,6 +745,7 @@ class JobworkDispatchViewModel extends GetxController {
       final response = await _service.postDispatch(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkDispatchRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -757,6 +761,7 @@ class JobworkDispatchViewModel extends GetxController {
       final response = await _service.cancelDispatch(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkDispatchRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -772,6 +777,7 @@ class JobworkDispatchViewModel extends GetxController {
       await _service.deleteDispatch(id);
       actionMessage = 'Dispatch deleted.';
       await load();
+      reloadJobworkDispatchRegister();
     } catch (e) {
       formError = e.toString();
       update();

@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class CashSessionManagementController extends GetxController {
   CashSessionManagementController();
@@ -282,6 +283,7 @@ class CashSessionManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCashSessionRegister();
       await loadPage(selectId: response.data?.id);
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -319,6 +321,7 @@ class CashSessionManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCashSessionRegister();
       await loadPage(selectId: response.data?.id);
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -347,6 +350,7 @@ class CashSessionManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCashSessionRegister();
       await loadPage(selectId: response.data?.id);
     } catch (errorValue) {
       formError = errorValue.toString();

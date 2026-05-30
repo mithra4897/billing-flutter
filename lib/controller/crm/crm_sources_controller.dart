@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/crm_register_reload_helper.dart';
 
 class CrmSourcesController extends GetxController {
   CrmSourcesController({required this.startInNewMode});
@@ -157,6 +158,7 @@ class CrmSourcesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmSourceRegister();
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
@@ -180,6 +182,7 @@ class CrmSourcesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmSourceRegister();
       await loadPage();
     } catch (error) {
       formError = error.toString();

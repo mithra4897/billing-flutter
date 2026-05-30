@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class BankReconciliationManagementController extends GetxController {
   static const List<AppDropdownItem<String>> statusItems =
@@ -20,8 +21,7 @@ class BankReconciliationManagementController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController bankDateController = TextEditingController();
   final TextEditingController clearedDateController = TextEditingController();
-  final TextEditingController bankReferenceController =
-      TextEditingController();
+  final TextEditingController bankReferenceController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
 
   bool initialLoading = true;
@@ -165,7 +165,8 @@ class BankReconciliationManagementController extends GetxController {
 
     voucherLineOptions = (voucher?.lines ?? const <VoucherLineModel>[])
         .where(
-          (item) => item.accountId == accountId && !usedLineIds.contains(item.id),
+          (item) =>
+              item.accountId == accountId && !usedLineIds.contains(item.id),
         )
         .toList(growable: false);
 
@@ -280,6 +281,7 @@ class BankReconciliationManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadBankReconciliationRegister();
       await loadPage(selectId: response.data?.id);
     } catch (error) {
       formError = error.toString();

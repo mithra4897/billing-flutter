@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/jobwork_register_reload_helper.dart';
 
 class JobworkChargeLineDraft {
   JobworkChargeLineDraft({
@@ -570,10 +571,12 @@ class JobworkChargeViewModel extends GetxController {
         final response = await _service.createCharge(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
+        reloadJobworkChargeRegister();
       } else {
         final response = await _service.updateCharge(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
+        reloadJobworkChargeRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -593,6 +596,7 @@ class JobworkChargeViewModel extends GetxController {
       final response = await _service.postCharge(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkChargeRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -608,6 +612,7 @@ class JobworkChargeViewModel extends GetxController {
       final response = await _service.cancelCharge(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkChargeRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -623,6 +628,7 @@ class JobworkChargeViewModel extends GetxController {
       await _service.deleteCharge(id);
       actionMessage = 'Charge deleted.';
       await load();
+      reloadJobworkChargeRegister();
     } catch (e) {
       formError = e.toString();
       update();

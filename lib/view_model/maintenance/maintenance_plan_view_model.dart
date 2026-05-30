@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/maintenance_register_reload_helper.dart';
 
 class MaintenancePlanViewModel extends GetxController {
   MaintenancePlanViewModel() {
@@ -254,6 +255,7 @@ class MaintenancePlanViewModel extends GetxController {
           MaintenancePlanModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
+        reloadMaintenancePlanRegister();
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -267,6 +269,7 @@ class MaintenancePlanViewModel extends GetxController {
           MaintenancePlanModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
+        reloadMaintenancePlanRegister();
         await load(selectId: id);
       }
     } catch (e) {
@@ -286,6 +289,7 @@ class MaintenancePlanViewModel extends GetxController {
     try {
       await _service.deletePlan(id);
       actionMessage = 'Maintenance plan deleted.';
+      reloadMaintenancePlanRegister();
       await load();
     } catch (e) {
       formError = e.toString();

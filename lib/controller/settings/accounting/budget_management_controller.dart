@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class BudgetLineDraft {
   BudgetLineDraft({this.accountId, String? amount, String? remarks})
@@ -345,6 +346,7 @@ class BudgetManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadBudgetRegister();
       await loadPage(
         selectId: intValue(json(response.data), 'id') ?? selectedId,
       );
@@ -371,6 +373,7 @@ class BudgetManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadBudgetRegister();
       await loadPage();
     } catch (errorValue) {
       formError = errorValue.toString();

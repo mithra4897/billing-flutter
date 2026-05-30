@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/maintenance_register_reload_helper.dart';
 
 class AmcContractViewModel extends GetxController {
   AmcContractViewModel() {
@@ -446,6 +447,7 @@ class AmcContractViewModel extends GetxController {
           AmcContractModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
+        reloadAmcContractRegister();
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -459,6 +461,7 @@ class AmcContractViewModel extends GetxController {
           AmcContractModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
+        reloadAmcContractRegister();
         await load(selectId: id);
       }
     } catch (e) {
@@ -479,6 +482,7 @@ class AmcContractViewModel extends GetxController {
     try {
       final response = await _maintenance.approveAmcContract(id, empty);
       actionMessage = response.message;
+      reloadAmcContractRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -495,6 +499,7 @@ class AmcContractViewModel extends GetxController {
     try {
       final response = await _maintenance.terminateAmcContract(id, empty);
       actionMessage = response.message;
+      reloadAmcContractRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -511,6 +516,7 @@ class AmcContractViewModel extends GetxController {
     try {
       final response = await _maintenance.cancelAmcContract(id, empty);
       actionMessage = response.message;
+      reloadAmcContractRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -526,6 +532,7 @@ class AmcContractViewModel extends GetxController {
     try {
       await _maintenance.deleteAmcContract(id);
       actionMessage = 'AMC contract deleted.';
+      reloadAmcContractRegister();
       await load();
     } catch (e) {
       formError = e.toString();

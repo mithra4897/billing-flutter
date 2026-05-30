@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/hr_register_reload_helper.dart';
 
 class DepartmentManagementController extends GetxController {
   DepartmentManagementController();
@@ -181,6 +182,9 @@ class DepartmentManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadDepartments(selectId: saved.id);
+      reloadAttendanceRegister();
+      reloadPayrollRunRegister();
+      reloadPayslipRegister();
     } catch (error) {
       formError = error.toString();
       update();
@@ -206,6 +210,9 @@ class DepartmentManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadDepartments();
+      reloadAttendanceRegister();
+      reloadPayrollRunRegister();
+      reloadPayslipRegister();
     } catch (error) {
       formError = error.toString();
       update();

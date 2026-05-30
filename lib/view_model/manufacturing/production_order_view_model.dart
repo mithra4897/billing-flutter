@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/manufacturing_register_reload_helper.dart';
 
 class ProductionOrderViewModel extends GetxController {
   final ManufacturingService _service = ManufacturingService();
@@ -474,6 +475,7 @@ class ProductionOrderViewModel extends GetxController {
           'id',
         ),
       );
+      reloadProductionOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -493,6 +495,7 @@ class ProductionOrderViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadProductionOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -509,6 +512,7 @@ class ProductionOrderViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadProductionOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -525,6 +529,7 @@ class ProductionOrderViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadProductionOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -538,6 +543,7 @@ class ProductionOrderViewModel extends GetxController {
       await _service.deleteProductionOrder(id);
       actionMessage = 'Production order deleted successfully.';
       await load();
+      reloadProductionOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();

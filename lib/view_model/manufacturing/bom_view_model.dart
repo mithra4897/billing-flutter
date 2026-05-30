@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/manufacturing_register_reload_helper.dart';
 
 class BomLineDraft {
   BomLineDraft({
@@ -664,6 +665,7 @@ class BomViewModel extends GetxController {
           'id',
         ),
       );
+      reloadBomRegister();
     } catch (e) {
       formError = e.toString();
       _notifySafely();
@@ -683,6 +685,7 @@ class BomViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadBomRegister();
     } catch (e) {
       formError = e.toString();
       _notifySafely();
@@ -696,6 +699,7 @@ class BomViewModel extends GetxController {
       final response = await _service.deleteBom(id);
       actionMessage = response.message;
       await load();
+      reloadBomRegister();
     } catch (e) {
       formError = e.toString();
       _notifySafely();

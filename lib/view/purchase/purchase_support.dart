@@ -334,6 +334,7 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
       controller.resetToFirstPage();
     }
     controller.syncItemCountChange(widget.items.length);
+    controller.update();
   }
 
   List<T> _pagedItems(int currentPage) {

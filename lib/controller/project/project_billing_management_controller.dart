@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/project_register_reload_helper.dart';
 
 class ProjectBillingManagementController extends GetxController {
   ProjectBillingManagementController();
@@ -332,6 +333,7 @@ class ProjectBillingManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.billing.id);
+      reloadProjectBillingRegister();
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -348,6 +350,7 @@ class ProjectBillingManagementController extends GetxController {
     if (row?.billing.id == null) return null;
     final response = await _projectService.deleteBilling(row!.billing.id!);
     await loadData();
+    reloadProjectBillingRegister();
     return response.message;
   }
 

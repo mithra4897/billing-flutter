@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/asset_register_reload_helper.dart';
 
 Map<String, dynamic>? assetDisposalJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -433,6 +434,7 @@ class AssetDisposalManagementController extends GetxController {
       actionMessage = existingId == null
           ? 'Disposal created.'
           : 'Disposal updated.';
+      reloadAssetDisposalRegister();
       return savedId;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -461,6 +463,7 @@ class AssetDisposalManagementController extends GetxController {
       applyFromModel(response.data!);
       await reloadList();
       actionMessage = message;
+      reloadAssetDisposalRegister();
     } catch (errorValue) {
       formError = errorValue.toString();
     } finally {
@@ -486,6 +489,7 @@ class AssetDisposalManagementController extends GetxController {
       await reloadList();
       resetDraft();
       actionMessage = 'Disposal deleted.';
+      reloadAssetDisposalRegister();
       return true;
     } catch (errorValue) {
       formError = errorValue.toString();

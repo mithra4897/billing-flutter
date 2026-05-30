@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/asset_register_reload_helper.dart';
 
 Map<String, dynamic>? fixedAssetJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -534,6 +535,7 @@ class FixedAssetManagementController extends GetxController {
             response.data;
       }
       actionMessage = existingId == null ? 'Asset created.' : 'Asset updated.';
+      reloadFixedAssetRegister();
       return savedId;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -562,6 +564,7 @@ class FixedAssetManagementController extends GetxController {
       applyFromModel(response.data!);
       await reloadList();
       actionMessage = message;
+      reloadFixedAssetRegister();
     } catch (errorValue) {
       formError = errorValue.toString();
     } finally {
@@ -587,6 +590,7 @@ class FixedAssetManagementController extends GetxController {
       await reloadList();
       resetDraft();
       actionMessage = 'Asset deleted.';
+      reloadFixedAssetRegister();
       return true;
     } catch (errorValue) {
       formError = errorValue.toString();

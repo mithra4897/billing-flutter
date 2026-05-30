@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/hr_register_reload_helper.dart';
 
 class HrPtSlabControllers {
   HrPtSlabControllers({
@@ -310,6 +311,10 @@ class HrStatutorySettingsController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(res.message)),
       );
+      reloadHrStatutorySettingsRegister();
+      reloadAttendanceRegister();
+      reloadPayrollRunRegister();
+      reloadPayslipRegister();
       await reloadProfiles(selectId: res.data!.id);
     } catch (errorValue) {
       error = errorValue.toString();
@@ -331,6 +336,10 @@ class HrStatutorySettingsController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(res.message)),
       );
+      reloadHrStatutorySettingsRegister();
+      reloadAttendanceRegister();
+      reloadPayrollRunRegister();
+      reloadPayslipRegister();
       selectedProfileId = null;
       await reloadProfiles();
     } catch (errorValue) {

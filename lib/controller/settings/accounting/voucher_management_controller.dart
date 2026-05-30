@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class VoucherLineDraft {
   VoucherLineDraft({
@@ -991,6 +992,7 @@ class VoucherManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(okMessage)),
       );
+      reloadVoucherRegister();
       if (wasCreate) {
         await loadPage();
         resetForm();
@@ -1037,6 +1039,7 @@ class VoucherManagementController extends GetxController {
           ),
         ),
       );
+      reloadVoucherRegister();
       await loadPage();
       resetForm();
     } catch (errorValue) {

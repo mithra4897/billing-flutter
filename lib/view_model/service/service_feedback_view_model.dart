@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/service_register_reload_helper.dart';
 
 class ServiceFeedbackViewModel extends GetxController {
   ServiceFeedbackViewModel() {
@@ -293,6 +294,7 @@ class ServiceFeedbackViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
+        reloadServiceFeedbackRegister();
       } else {
         final id = selectedId;
         if (id == null) {
@@ -306,6 +308,7 @@ class ServiceFeedbackViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: id);
+        reloadServiceFeedbackRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -325,6 +328,7 @@ class ServiceFeedbackViewModel extends GetxController {
       await _service.deleteFeedback(id);
       actionMessage = 'Feedback deleted.';
       await load();
+      reloadServiceFeedbackRegister();
     } catch (e) {
       formError = e.toString();
       update();

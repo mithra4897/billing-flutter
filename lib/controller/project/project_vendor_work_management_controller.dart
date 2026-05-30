@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/project_register_reload_helper.dart';
 
 class ProjectVendorWorkManagementController extends GetxController {
   ProjectVendorWorkManagementController();
@@ -433,6 +434,7 @@ class ProjectVendorWorkManagementController extends GetxController {
               selectedRow!.work.id!,
               model,
             );
+      reloadProjectVendorWorkRegister();
       await loadData(selectId: response.data?.id ?? selectedRow?.work.id);
       return response.message;
     } catch (errorValue) {
@@ -451,6 +453,7 @@ class ProjectVendorWorkManagementController extends GetxController {
       return null;
     }
     final response = await _projectService.deleteVendorWork(row!.work.id!);
+    reloadProjectVendorWorkRegister();
     await loadData();
     return response.message;
   }

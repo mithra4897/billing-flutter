@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/asset_register_reload_helper.dart';
 
 Map<String, dynamic>? assetCostCenterJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -326,6 +327,7 @@ class AssetCostCenterManagementController extends GetxController {
             response.data;
         _apply(detail);
         actionMessage = 'Cost center saved.';
+        reloadAssetCostCenterRegister();
         return existingId;
       }
 
@@ -354,6 +356,7 @@ class AssetCostCenterManagementController extends GetxController {
           response.data;
       _apply(detail);
       actionMessage = 'Cost center created.';
+      reloadAssetCostCenterRegister();
       return newId;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -381,6 +384,7 @@ class AssetCostCenterManagementController extends GetxController {
       await reloadList();
       actionMessage = 'Cost center deleted.';
       resetDraft();
+      reloadAssetCostCenterRegister();
       return true;
     } catch (errorValue) {
       formError = errorValue.toString();

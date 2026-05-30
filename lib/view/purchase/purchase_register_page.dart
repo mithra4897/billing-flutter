@@ -88,6 +88,7 @@ class _PurchaseRegisterPageState<T> extends State<PurchaseRegisterPage<T>> {
 
     final totalPages = _totalPages(widget.rows.length);
     _controller.clampToTotalPages(totalPages);
+    _controller.update();
   }
 
   int _totalPages(int itemCount) {

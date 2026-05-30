@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/project_register_reload_helper.dart';
 
 class ProjectResourceUsageManagementController extends GetxController {
   ProjectResourceUsageManagementController();
@@ -303,6 +304,7 @@ class ProjectResourceUsageManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.usage.id);
+      reloadProjectResourceUsageRegister();
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -321,6 +323,7 @@ class ProjectResourceUsageManagementController extends GetxController {
     }
     final response = await _projectService.deleteResourceUsage(row!.usage.id!);
     await loadData();
+    reloadProjectResourceUsageRegister();
     return response.message;
   }
 

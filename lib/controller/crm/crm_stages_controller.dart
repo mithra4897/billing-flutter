@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/crm_register_reload_helper.dart';
 
 class CrmStagesController extends GetxController {
   CrmStagesController({required this.startInNewMode});
@@ -190,6 +191,7 @@ class CrmStagesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmStageRegister();
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
@@ -213,6 +215,7 @@ class CrmStagesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmStageRegister();
       await loadPage();
     } catch (error) {
       formError = error.toString();

@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class PostingRuleGroupManagementController extends GetxController {
   PostingRuleGroupManagementController();
@@ -182,6 +183,7 @@ class PostingRuleGroupManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadPostingRuleGroupRegister();
       await load(selectId: intValue(json(response.data), 'id') ?? selectedId);
     } catch (error) {
       formError = error.toString();
@@ -205,6 +207,7 @@ class PostingRuleGroupManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadPostingRuleGroupRegister();
       await load();
     } catch (error) {
       formError = error.toString();

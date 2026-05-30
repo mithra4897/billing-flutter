@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/project_register_reload_helper.dart';
 
 class ProjectExpenseManagementController extends GetxController {
   ProjectExpenseManagementController();
@@ -296,6 +297,7 @@ class ProjectExpenseManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.expense.id);
+      reloadProjectExpenseRegister();
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -314,6 +316,7 @@ class ProjectExpenseManagementController extends GetxController {
     }
     final response = await _projectService.deleteExpense(row!.expense.id!);
     await loadData();
+    reloadProjectExpenseRegister();
     return response.message;
   }
 

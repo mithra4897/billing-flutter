@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class DocumentPostingLineDraft {
   DocumentPostingLineDraft({
@@ -443,6 +444,7 @@ class DocumentPostingManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadDocumentPostingRegister();
       await loadPage(
         selectId: intValue(json(response.data), 'id') ?? selectedId,
       );
@@ -469,6 +471,7 @@ class DocumentPostingManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadDocumentPostingRegister();
       await loadPage();
     } catch (errorValue) {
       formError = errorValue.toString();

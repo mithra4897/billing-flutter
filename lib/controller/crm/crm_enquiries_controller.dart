@@ -1,6 +1,8 @@
 import '../../screen.dart';
+import '../../helper/crm_register_reload_helper.dart';
 
 class CrmEnquiriesController extends GetxController {
+  static final Set<String> _activeTags = <String>{};
   static const int allFilterIntValue = 0;
   static const String allFilterStringValue = '__all__';
   static const List<AppDropdownItem<String>> filterStatusItems =
@@ -18,10 +20,12 @@ class CrmEnquiriesController extends GetxController {
       ];
 
   CrmEnquiriesController({
+    required this.instanceTag,
     required this.startInNewMode,
     required this.initialSelectId,
   });
 
+  final String instanceTag;
   final bool startInNewMode;
   final int? initialSelectId;
 
@@ -79,12 +83,14 @@ class CrmEnquiriesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _activeTags.add(instanceTag);
     searchController.addListener(applySearch);
     loadPage(selectId: initialSelectId);
   }
 
   @override
   void onClose() {
+    _activeTags.remove(instanceTag);
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -98,6 +104,16 @@ class CrmEnquiriesController extends GetxController {
     disposeLines(lines);
     disposeFollowups(followups);
     super.onClose();
+  }
+
+  static Future<void> refreshIfRegistered() async {
+    for (final tag in _activeTags.toList(growable: false)) {
+      if (!Get.isRegistered<CrmEnquiriesController>(tag: tag)) {
+        _activeTags.remove(tag);
+        continue;
+      }
+      await Get.find<CrmEnquiriesController>(tag: tag).loadPage();
+    }
   }
 
   static bool isHiddenByDefaultEnquiry(CrmEnquiryModel item) {
@@ -158,7 +174,9 @@ class CrmEnquiriesController extends GetxController {
     if (nextEnquiryStatus == 'in_progress') {
       return nextEnquiryStatus;
     }
-    return nextOpportunityStatus == 'open' ? nextEnquiryStatus : nextOpportunityStatus;
+    return nextOpportunityStatus == 'open'
+        ? nextEnquiryStatus
+        : nextOpportunityStatus;
   }
 
   String lifecycleStatusLabel([String? status]) {
@@ -220,9 +238,10 @@ class CrmEnquiriesController extends GetxController {
 
       items =
           (responses[0] as PaginatedResponse<CrmEnquiryModel>).data ??
-              const <CrmEnquiryModel>[];
+          const <CrmEnquiryModel>[];
       companies = nextCompanies.where((item) => item.isActive).toList();
-      leads = (responses[2] as PaginatedResponse<CrmLeadModel>).data ??
+      leads =
+          (responses[2] as PaginatedResponse<CrmLeadModel>).data ??
           const <CrmLeadModel>[];
       customers =
           ((responses[3] as PaginatedResponse<PartyModel>).data ??
@@ -233,20 +252,26 @@ class CrmEnquiriesController extends GetxController {
         final allStages =
             ((responses[4] as PaginatedResponse<CrmStageModel>).data ??
                     const <CrmStageModel>[])
-                .where((item) => boolValue(item.toJson(), 'is_active', fallback: true))
+                .where(
+                  (item) =>
+                      boolValue(item.toJson(), 'is_active', fallback: true),
+                )
                 .toList(growable: false);
-        final filtered =
-            allStages.where(isAllowedEnquiryStage).toList(growable: false);
+        final filtered = allStages
+            .where(isAllowedEnquiryStage)
+            .toList(growable: false);
         return filtered.isNotEmpty ? filtered : allStages;
       }();
-      users = ((responses[5] as PaginatedResponse<UserModel>).data ??
-              const <UserModel>[])
-          .where((item) => (item.status ?? 'active') == 'active')
-          .toList();
-      itemsLookup = ((responses[6] as PaginatedResponse<ItemModel>).data ??
-              const <ItemModel>[])
-          .where((item) => item.isActive)
-          .toList();
+      users =
+          ((responses[5] as PaginatedResponse<UserModel>).data ??
+                  const <UserModel>[])
+              .where((item) => (item.status ?? 'active') == 'active')
+              .toList();
+      itemsLookup =
+          ((responses[6] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((item) => item.isActive)
+              .toList();
       contextCompanyId = contextSelection.companyId;
       initialLoading = false;
       applySearch(notify: false);
@@ -286,66 +311,72 @@ class CrmEnquiriesController extends GetxController {
   }
 
   void applySearch({bool notify = true}) {
-    filteredItems = filterMasterList(items, searchController.text, (item) {
-          final data = item.toJson();
-          return [
-            stringValue(data, 'enquiry_no'),
-            displayDate(nullableStringValue(data, 'enquiry_date')),
-            lifecycleStatusLabel(
-              stringValue(data, 'status') == 'won'
-                  ? 'won'
-                  : stringValue(data, 'enquiry_status'),
-            ),
-            stringValue(data, 'remarks'),
-          ];
-        })
-        .where((item) {
-          final data = item.toJson();
-          final hidden = isHiddenByDefaultEnquiry(item);
-          final rowStatus = stringValue(data, 'status') == 'won'
-              ? 'converted'
-              : stringValue(data, 'enquiry_status');
-          final requestedStatus =
-              (filtersApplied ? (filterEnquiryStatus ?? allFilterStringValue) : (filterEnquiryStatus ?? ''))
-                  .trim();
-          final showAllStatuses =
-              filtersApplied && requestedStatus == allFilterStringValue;
-          if (hidden && !showAllStatuses && requestedStatus != rowStatus) {
-            return false;
-          }
-          final enquiryDate = displayDate(
-            nullableStringValue(data, 'enquiry_date'),
-          );
-          final filterFrom = filterDateFromController.text.trim();
-          final filterTo = filterDateToController.text.trim();
-          if (filterCustomerPartyId != null &&
-              intValue(data, 'customer_party_id') != filterCustomerPartyId) {
-            return false;
-          }
-          if (filterStageId != null &&
-              intValue(data, 'stage_id') != filterStageId) {
-            return false;
-          }
-          if (filterAssignedTo != null &&
-              intValue(data, 'assigned_to') != filterAssignedTo) {
-            return false;
-          }
-          if ((filterEnquiryStatus ?? '').isNotEmpty &&
-              filterEnquiryStatus != allFilterStringValue &&
-              rowStatus != filterEnquiryStatus) {
-            return false;
-          }
-          if (filterFrom.isNotEmpty &&
-              (enquiryDate.isEmpty || enquiryDate.compareTo(filterFrom) < 0)) {
-            return false;
-          }
-          if (filterTo.isNotEmpty &&
-              (enquiryDate.isEmpty || enquiryDate.compareTo(filterTo) > 0)) {
-            return false;
-          }
-          return true;
-        })
-        .toList(growable: false);
+    filteredItems =
+        filterMasterList(items, searchController.text, (item) {
+              final data = item.toJson();
+              return [
+                stringValue(data, 'enquiry_no'),
+                displayDate(nullableStringValue(data, 'enquiry_date')),
+                lifecycleStatusLabel(
+                  stringValue(data, 'status') == 'won'
+                      ? 'won'
+                      : stringValue(data, 'enquiry_status'),
+                ),
+                stringValue(data, 'remarks'),
+              ];
+            })
+            .where((item) {
+              final data = item.toJson();
+              final hidden = isHiddenByDefaultEnquiry(item);
+              final rowStatus = stringValue(data, 'status') == 'won'
+                  ? 'converted'
+                  : stringValue(data, 'enquiry_status');
+              final requestedStatus =
+                  (filtersApplied
+                          ? (filterEnquiryStatus ?? allFilterStringValue)
+                          : (filterEnquiryStatus ?? ''))
+                      .trim();
+              final showAllStatuses =
+                  filtersApplied && requestedStatus == allFilterStringValue;
+              if (hidden && !showAllStatuses && requestedStatus != rowStatus) {
+                return false;
+              }
+              final enquiryDate = displayDate(
+                nullableStringValue(data, 'enquiry_date'),
+              );
+              final filterFrom = filterDateFromController.text.trim();
+              final filterTo = filterDateToController.text.trim();
+              if (filterCustomerPartyId != null &&
+                  intValue(data, 'customer_party_id') !=
+                      filterCustomerPartyId) {
+                return false;
+              }
+              if (filterStageId != null &&
+                  intValue(data, 'stage_id') != filterStageId) {
+                return false;
+              }
+              if (filterAssignedTo != null &&
+                  intValue(data, 'assigned_to') != filterAssignedTo) {
+                return false;
+              }
+              if ((filterEnquiryStatus ?? '').isNotEmpty &&
+                  filterEnquiryStatus != allFilterStringValue &&
+                  rowStatus != filterEnquiryStatus) {
+                return false;
+              }
+              if (filterFrom.isNotEmpty &&
+                  (enquiryDate.isEmpty ||
+                      enquiryDate.compareTo(filterFrom) < 0)) {
+                return false;
+              }
+              if (filterTo.isNotEmpty &&
+                  (enquiryDate.isEmpty ||
+                      enquiryDate.compareTo(filterTo) > 0)) {
+                return false;
+              }
+              return true;
+            })
+            .toList(growable: false);
     if (notify) update();
   }
 
@@ -365,9 +396,11 @@ class CrmEnquiriesController extends GetxController {
     final companyName = stringValue(data, 'company_name');
     final mobile = stringValue(data, 'mobile');
     final email = stringValue(data, 'email');
-    final subtitle = [companyName, mobile, email]
-        .where((value) => value.trim().isNotEmpty)
-        .join(' • ');
+    final subtitle = [
+      companyName,
+      mobile,
+      email,
+    ].where((value) => value.trim().isNotEmpty).join(' • ');
     return ErpLinkFieldOption<int>(
       value: intValue(data, 'id')!,
       label: label,
@@ -405,10 +438,7 @@ class CrmEnquiriesController extends GetxController {
         .toList(growable: false);
   }
 
-  Future<void> selectItem(
-    CrmEnquiryModel item, {
-    bool notify = true,
-  }) async {
+  Future<void> selectItem(CrmEnquiryModel item, {bool notify = true}) async {
     final id = intValue(item.toJson(), 'id');
     if (id == null) return;
     final response = await _crmService.enquiry(id);
@@ -494,7 +524,10 @@ class CrmEnquiriesController extends GetxController {
     enquiryStatus = 'open';
     opportunityStatus = 'open';
     enquiryNoController.clear();
-    enquiryDateController.text = DateTime.now().toIso8601String().split('T').first;
+    enquiryDateController.text = DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first;
     remarksController.clear();
     lines = <EnquiryLineDraft>[];
     followups = <FollowupDraft>[];
@@ -570,8 +603,9 @@ class CrmEnquiriesController extends GetxController {
       'assigned_to': assignedTo,
       'remarks': nullIfEmpty(remarksController.text),
       'lines': lines.map((item) => item.toJson()).toList(growable: false),
-      'followups':
-          followups.map((item) => item.toJson()).toList(growable: false),
+      'followups': followups
+          .map((item) => item.toJson())
+          .toList(growable: false),
     });
 
     try {
@@ -584,6 +618,7 @@ class CrmEnquiriesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmEnquiryRegister();
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
@@ -604,6 +639,7 @@ class CrmEnquiriesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmEnquiryRegister();
       await loadPage();
     } catch (error) {
       formError = error.toString();
@@ -622,6 +658,7 @@ class CrmEnquiriesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmEnquiryRegister();
       await loadPage(selectId: id);
     } catch (error) {
       formError = error.toString();
@@ -640,6 +677,7 @@ class CrmEnquiriesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmEnquiryRegister();
       await loadPage(selectId: id);
     } catch (error) {
       formError = error.toString();

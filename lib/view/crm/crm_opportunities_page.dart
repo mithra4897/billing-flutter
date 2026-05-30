@@ -500,6 +500,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     );
     _controller = Get.put(
       CrmOpportunitiesController(
+        instanceTag: _controllerTag,
         startInNewMode: widget.startInNewMode,
         initialSelectId: widget.initialSelectId,
       ),
@@ -570,10 +571,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                 controller.resetForm();
                 return;
               }
-              _openCrmOpportunityShellRoute(
-                context,
-                '/crm/opportunities/new',
-              );
+              _openCrmOpportunityShellRoute(context, '/crm/opportunities/new');
             },
             icon: Icons.add_outlined,
             label: 'New Opportunity',

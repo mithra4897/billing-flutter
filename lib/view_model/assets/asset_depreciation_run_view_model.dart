@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/asset_register_reload_helper.dart';
 
 class AssetDepreciationRunViewModel extends GetxController {
   AssetDepreciationRunViewModel() {
@@ -234,6 +235,7 @@ class AssetDepreciationRunViewModel extends GetxController {
         actionMessage = 'Created but missing id in response.';
         return null;
       }
+      reloadAssetDepreciationRunRegister();
       return newId;
     } catch (e) {
       actionMessage = e.toString();
@@ -306,6 +308,7 @@ class AssetDepreciationRunViewModel extends GetxController {
         actionMessage = response.message;
         return false;
       }
+      reloadAssetDepreciationRunRegister();
       return true;
     } catch (e) {
       actionMessage = e.toString();
@@ -329,6 +332,7 @@ class AssetDepreciationRunViewModel extends GetxController {
       }
       actionMessage = 'Run updated.';
       await refreshDetail();
+      reloadAssetDepreciationRunRegister();
     } catch (e) {
       actionMessage = e.toString();
     } finally {

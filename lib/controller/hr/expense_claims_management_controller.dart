@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/hr_register_reload_helper.dart';
 
 Map<String, dynamic>? expenseClaimAsJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -618,6 +619,7 @@ class ExpenseClaimsManagementController extends GetxController {
         }
       }
       saving = false;
+      reloadExpenseClaimRegister();
       await loadPage(selectClaimId: newId);
       return applyNow
           ? 'Expense claim applied successfully.'

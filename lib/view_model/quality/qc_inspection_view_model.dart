@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/quality_register_reload_helper.dart';
 
 const List<AppDropdownItem<String>> kQcInspectionScopeItems =
     <AppDropdownItem<String>>[
@@ -643,12 +644,14 @@ class QcInspectionViewModel extends GetxController {
           final newId = intValue(response.data!.toJson(), 'id');
           if (newId != null) {
             await _loadDetail(newId);
+            reloadQcInspectionRegister();
             saving = false;
             update();
             return;
           }
         }
         await load();
+        reloadQcInspectionRegister();
       } else {
         final response = await _service.updateQcInspection(
           selectedId!,
@@ -656,6 +659,7 @@ class QcInspectionViewModel extends GetxController {
         );
         actionMessage = response.message;
         await _loadDetail(selectedId!);
+        reloadQcInspectionRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -675,6 +679,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.startQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
+      reloadQcInspectionRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -690,6 +695,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.completeQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
+      reloadQcInspectionRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -705,6 +711,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.approveQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
+      reloadQcInspectionRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -720,6 +727,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.rejectQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
+      reloadQcInspectionRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -735,6 +743,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.cancelQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
+      reloadQcInspectionRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -752,6 +761,7 @@ class QcInspectionViewModel extends GetxController {
       selectedId = null;
       _detail = null;
       await load();
+      reloadQcInspectionRegister();
     } catch (e) {
       formError = e.toString();
       update();

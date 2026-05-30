@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/service_register_reload_helper.dart';
 
 class ServiceTicketViewModel extends GetxController {
   ServiceTicketViewModel() {
@@ -551,6 +552,7 @@ class ServiceTicketViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
+        reloadServiceTicketRegister();
       } else {
         final id = selectedId;
         if (id == null) {
@@ -564,6 +566,7 @@ class ServiceTicketViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: id);
+        reloadServiceTicketRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -586,6 +589,7 @@ class ServiceTicketViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
+      reloadServiceTicketRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -601,6 +605,7 @@ class ServiceTicketViewModel extends GetxController {
       final response = await _service.resolveTicket(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadServiceTicketRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -616,6 +621,7 @@ class ServiceTicketViewModel extends GetxController {
       final response = await _service.closeTicket(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadServiceTicketRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -631,6 +637,7 @@ class ServiceTicketViewModel extends GetxController {
       final response = await _service.cancelTicket(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadServiceTicketRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -646,6 +653,7 @@ class ServiceTicketViewModel extends GetxController {
       await _service.deleteTicket(id);
       actionMessage = 'Ticket deleted.';
       await load();
+      reloadServiceTicketRegister();
     } catch (e) {
       formError = e.toString();
       update();

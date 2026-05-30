@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/settings_register_reload_helper.dart';
 
 class AccountManagementController extends GetxController {
   static const List<AppDropdownItem<String>> accountTypeItems =
@@ -300,6 +301,7 @@ class AccountManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadPage(selectId: response.data?.id);
+      reloadPartyAccountRegister();
     } catch (error) {
       formError = error.toString();
       update();
@@ -325,6 +327,7 @@ class AccountManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadPage();
+      reloadPartyAccountRegister();
     } catch (error) {
       formError = error.toString();
       update();

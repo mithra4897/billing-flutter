@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/project_register_reload_helper.dart';
 
 class ProjectMilestoneManagementController extends GetxController {
   ProjectMilestoneManagementController();
@@ -198,6 +199,7 @@ class ProjectMilestoneManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.milestone.id);
+      reloadProjectMilestoneRegister();
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -216,6 +218,7 @@ class ProjectMilestoneManagementController extends GetxController {
     }
     final response = await _projectService.deleteMilestone(row!.milestone.id!);
     await loadData();
+    reloadProjectMilestoneRegister();
     return response.message;
   }
 

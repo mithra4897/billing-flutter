@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../../helper/jobwork_register_reload_helper.dart';
 
 class JobworkReceiptLineDraft {
   JobworkReceiptLineDraft({
@@ -756,10 +757,12 @@ class JobworkReceiptViewModel extends GetxController {
         final response = await _service.createReceipt(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
+        reloadJobworkReceiptRegister();
       } else {
         final response = await _service.updateReceipt(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
+        reloadJobworkReceiptRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -779,6 +782,7 @@ class JobworkReceiptViewModel extends GetxController {
       final response = await _service.postReceipt(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkReceiptRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -794,6 +798,7 @@ class JobworkReceiptViewModel extends GetxController {
       final response = await _service.cancelReceipt(id);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadJobworkReceiptRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -809,6 +814,7 @@ class JobworkReceiptViewModel extends GetxController {
       await _service.deleteReceipt(id);
       actionMessage = 'Receipt deleted.';
       await load();
+      reloadJobworkReceiptRegister();
     } catch (e) {
       formError = e.toString();
       update();

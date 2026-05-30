@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/maintenance_register_reload_helper.dart';
 
 class MaintenanceRequestViewModel extends GetxController {
   MaintenanceRequestViewModel() {
@@ -479,6 +480,7 @@ class MaintenanceRequestViewModel extends GetxController {
           MaintenanceRequestModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
+        reloadMaintenanceRequestRegister();
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -492,6 +494,7 @@ class MaintenanceRequestViewModel extends GetxController {
           MaintenanceRequestModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
+        reloadMaintenanceRequestRegister();
         await load(selectId: id);
       }
     } catch (e) {
@@ -512,6 +515,7 @@ class MaintenanceRequestViewModel extends GetxController {
     try {
       final response = await _maintenance.approveRequest(id, empty);
       actionMessage = response.message;
+      reloadMaintenanceRequestRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -528,6 +532,7 @@ class MaintenanceRequestViewModel extends GetxController {
     try {
       final response = await _maintenance.cancelRequest(id, empty);
       actionMessage = response.message;
+      reloadMaintenanceRequestRegister();
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -543,6 +548,7 @@ class MaintenanceRequestViewModel extends GetxController {
     try {
       await _maintenance.deleteRequest(id);
       actionMessage = 'Maintenance request deleted.';
+      reloadMaintenanceRequestRegister();
       await load();
     } catch (e) {
       formError = e.toString();

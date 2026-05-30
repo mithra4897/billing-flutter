@@ -1,6 +1,8 @@
 import '../../screen.dart';
+import '../../helper/crm_register_reload_helper.dart';
 
 class CrmOpportunitiesController extends GetxController {
+  static final Set<String> _activeTags = <String>{};
   static const int allFilterIntValue = 0;
   static const String allFilterStringValue = '__all__';
   static const List<AppDropdownItem<String>> filterStatusItems =
@@ -17,10 +19,12 @@ class CrmOpportunitiesController extends GetxController {
       ];
 
   CrmOpportunitiesController({
+    required this.instanceTag,
     required this.startInNewMode,
     required this.initialSelectId,
   });
 
+  final String instanceTag;
   final bool startInNewMode;
   final int? initialSelectId;
 
@@ -92,12 +96,14 @@ class CrmOpportunitiesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _activeTags.add(instanceTag);
     searchController.addListener(applySearch);
     loadPage(selectId: initialSelectId);
   }
 
   @override
   void onClose() {
+    _activeTags.remove(instanceTag);
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -114,6 +120,16 @@ class CrmOpportunitiesController extends GetxController {
     disposeFollowups(followups);
     disposeProducts(products);
     super.onClose();
+  }
+
+  static Future<void> refreshIfRegistered() async {
+    for (final tag in _activeTags.toList(growable: false)) {
+      if (!Get.isRegistered<CrmOpportunitiesController>(tag: tag)) {
+        _activeTags.remove(tag);
+        continue;
+      }
+      await Get.find<CrmOpportunitiesController>(tag: tag).loadPage();
+    }
   }
 
   String normalizedStageType(CrmStageModel stage) =>
@@ -458,7 +474,10 @@ class CrmOpportunitiesController extends GetxController {
     update();
   }
 
-  void _replaceLines(List<OpportunityLineDraft> nextLines, {bool notify = true}) {
+  void _replaceLines(
+    List<OpportunityLineDraft> nextLines, {
+    bool notify = true,
+  }) {
     replaceDisposableDraftEntries<OpportunityLineDraft>(
       previous: lines,
       next: nextLines,
@@ -537,6 +556,7 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmOpportunityRegister();
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
@@ -560,6 +580,7 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmOpportunityRegister();
       await loadPage();
     } catch (error) {
       formError = error.toString();
@@ -578,6 +599,7 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmOpportunityRegister();
       await loadPage(selectId: _filterAllowsStatus('won') ? id : null);
     } catch (error) {
       formError = error.toString();
@@ -596,6 +618,7 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      reloadCrmOpportunityRegister();
       await loadPage(selectId: _filterAllowsStatus('lost') ? id : null);
     } catch (error) {
       formError = error.toString();

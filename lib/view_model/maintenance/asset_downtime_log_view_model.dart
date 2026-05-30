@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/maintenance_register_reload_helper.dart';
 
 class AssetDowntimeLogViewModel extends GetxController {
   AssetDowntimeLogViewModel() {
@@ -274,6 +275,7 @@ class AssetDowntimeLogViewModel extends GetxController {
           AssetDowntimeLogModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
+        reloadAssetDowntimeLogRegister();
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -287,6 +289,7 @@ class AssetDowntimeLogViewModel extends GetxController {
           AssetDowntimeLogModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
+        reloadAssetDowntimeLogRegister();
         await load(selectId: id);
       }
     } catch (e) {
@@ -306,6 +309,7 @@ class AssetDowntimeLogViewModel extends GetxController {
     try {
       await _maintenance.deleteDowntimeLog(id);
       actionMessage = 'Downtime log deleted.';
+      reloadAssetDowntimeLogRegister();
       await load();
     } catch (e) {
       formError = e.toString();

@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/project_register_reload_helper.dart';
 
 class ProjectTaskManagementController extends GetxController {
   ProjectTaskManagementController();
@@ -333,6 +334,7 @@ class ProjectTaskManagementController extends GetxController {
           ? await _projectService.createTask(resolvedProjectId, model)
           : await _projectService.updateTask(selectedRow!.task.id!, model);
       await loadData(selectTaskId: response.data?.id ?? selectedRow?.task.id);
+      reloadProjectTaskRegister();
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -351,6 +353,7 @@ class ProjectTaskManagementController extends GetxController {
     }
     final response = await _projectService.deleteTask(row!.task.id!);
     await loadData();
+    reloadProjectTaskRegister();
     return response.message;
   }
 

@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/hr_register_reload_helper.dart';
 
 class LeaveRequestManagementController extends GetxController {
   LeaveRequestManagementController();
@@ -371,6 +372,9 @@ class LeaveRequestManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadData(selectId: saved.id);
+      reloadAttendanceRegister();
+      reloadPayrollRunRegister();
+      reloadPayslipRegister();
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -396,6 +400,9 @@ class LeaveRequestManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadData();
+      reloadAttendanceRegister();
+      reloadPayrollRunRegister();
+      reloadPayslipRegister();
     } catch (errorValue) {
       formError = errorValue.toString();
       update();

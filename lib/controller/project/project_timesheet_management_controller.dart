@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../helper/project_register_reload_helper.dart';
 
 class ProjectTimesheetManagementController extends GetxController {
   ProjectTimesheetManagementController();
@@ -298,6 +299,7 @@ class ProjectTimesheetManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.timesheet.id);
+      reloadProjectTimesheetRegister();
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -314,6 +316,7 @@ class ProjectTimesheetManagementController extends GetxController {
     if (row?.timesheet.id == null) return null;
     final response = await _projectService.deleteTimesheet(row!.timesheet.id!);
     await loadData();
+    reloadProjectTimesheetRegister();
     return response.message;
   }
 

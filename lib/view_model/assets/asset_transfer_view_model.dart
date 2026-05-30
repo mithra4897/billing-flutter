@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/asset_register_reload_helper.dart';
 
 class AssetTransferViewModel extends GetxController {
   AssetTransferViewModel() {
@@ -228,6 +229,7 @@ class AssetTransferViewModel extends GetxController {
         actionMessage = response.message;
         return false;
       }
+      reloadAssetTransferRegister();
       return true;
     } catch (e) {
       actionMessage = e.toString();
@@ -251,6 +253,7 @@ class AssetTransferViewModel extends GetxController {
       }
       actionMessage = 'Transfer updated.';
       await refreshDetail();
+      reloadAssetTransferRegister();
     } catch (e) {
       actionMessage = e.toString();
     } finally {

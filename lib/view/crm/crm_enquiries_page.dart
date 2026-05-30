@@ -47,6 +47,7 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     );
     _controller = Get.put(
       CrmEnquiriesController(
+        instanceTag: _controllerTag,
         startInNewMode: widget.startInNewMode,
         initialSelectId: widget.initialSelectId,
       ),
@@ -596,167 +597,167 @@ class _CrmEnquiriesPageState extends State<CrmEnquiriesPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-          if (controller.formError != null) ...[
-            AppErrorStateView.inline(message: controller.formError!),
+        if (controller.formError != null) ...[
+          AppErrorStateView.inline(message: controller.formError!),
+          const SizedBox(height: AppUiConstants.spacingSm),
+        ],
+        if (intValue(controller.selectedItem?.toJson() ?? const {}, 'id') !=
+            null) ...[
+          CrmSalesPipelineBar(
+            data: controller.salesChain,
+            hideEnquiryChip: true,
+            hideOpportunityChip: true,
+          ),
+          if (!isLocked && controller.pipelineOpportunityId() != null) ...[
+            AppActionButton(
+              icon: Icons.request_quote_outlined,
+              label: 'New quotation (this deal)',
+              filled: false,
+              onPressed: () => openModuleShellRoute(
+                context,
+                '/sales/quotations/new?crm_opportunity_id=${controller.pipelineOpportunityId()}',
+              ),
+            ),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
-          if (intValue(controller.selectedItem?.toJson() ?? const {}, 'id') !=
-              null) ...[
-            CrmSalesPipelineBar(
-              data: controller.salesChain,
-              hideEnquiryChip: true,
-              hideOpportunityChip: true,
-            ),
-            if (!isLocked && controller.pipelineOpportunityId() != null) ...[
-              AppActionButton(
-                icon: Icons.request_quote_outlined,
-                label: 'New quotation (this deal)',
-                filled: false,
-                onPressed: () => openModuleShellRoute(
-                  context,
-                  '/sales/quotations/new?crm_opportunity_id=${controller.pipelineOpportunityId()}',
+        ],
+        AbsorbPointer(
+          absorbing: isLocked,
+          child: SettingsFormWrap(
+            children: [
+              AppFormTextField(
+                controller: controller.enquiryNoController,
+                labelText: 'Opportunity No',
+                hintText: 'Leave blank - we assign a number for you',
+              ),
+              AppDateSelectorField(
+                controller: controller.enquiryDateController,
+                labelText: 'Opportunity Date',
+                onTap: () => _pickEnquiryDate(context, controller),
+              ),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 300),
+                child: ErpLinkField<int>(
+                  labelText: 'Lead',
+                  doctypeLabel: 'Lead',
+                  allowCreate: true,
+                  hintText: 'Search or create lead',
+                  initialSelection: controller.selectedLeadOption(),
+                  search: controller.searchLeadOptions,
+                  onNavigateToCreateNew: (query) =>
+                      _openNewLeadForm(context, controller, query),
+                  onChanged: controller.setLeadId,
                 ),
               ),
-              const SizedBox(height: AppUiConstants.spacingSm),
+              AppDropdownField<int>.fromMapped(
+                labelText: 'Customer',
+                doctypeLabel: 'Customer',
+                allowCreate: true,
+                onNavigateToCreateNew: (name) {
+                  final uri = Uri(
+                    path: '/parties',
+                    queryParameters: {
+                      'new': '1',
+                      if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                    },
+                  );
+                  openModuleShellRoute(context, uri.toString());
+                },
+                mappedItems: controller.customers
+                    .where((item) => item.id != null)
+                    .map(
+                      (item) => AppDropdownItem(
+                        value: item.id!,
+                        label: item.toString(),
+                      ),
+                    )
+                    .toList(growable: false),
+                initialValue: controller.customerPartyId,
+                onChanged: controller.setCustomerPartyId,
+              ),
+              AppDropdownField<int>.fromMapped(
+                labelText: 'Stage',
+                mappedItems: controller.stages
+                    .where((item) => intValue(item.toJson(), 'id') != null)
+                    .map(
+                      (item) => AppDropdownItem(
+                        value: intValue(item.toJson(), 'id')!,
+                        label: item.toString(),
+                      ),
+                    )
+                    .toList(growable: false),
+                initialValue: controller.stageId,
+                onChanged: controller.setStageId,
+              ),
+              AppDropdownField<int>.fromMapped(
+                labelText: 'Assigned To',
+                mappedItems: controller.users
+                    .where((item) => item.id != null)
+                    .map(
+                      (item) => AppDropdownItem(
+                        value: item.id!,
+                        label: item.displayName ?? item.username ?? '',
+                      ),
+                    )
+                    .toList(growable: false),
+                initialValue: controller.assignedTo,
+                onChanged: controller.setAssignedTo,
+              ),
+              AppFormTextField(
+                key: ValueKey<String>(
+                  'opportunity-status-${controller.effectiveLifecycleStatus()}',
+                ),
+                labelText: 'Status',
+                initialValue: controller.lifecycleStatusLabel(),
+                readOnly: true,
+                enabled: false,
+              ),
+              AppFormTextField(
+                controller: controller.remarksController,
+                labelText: 'Remarks',
+                maxLines: 3,
+              ),
             ],
-          ],
-          AbsorbPointer(
-            absorbing: isLocked,
-            child: SettingsFormWrap(
-              children: [
-                AppFormTextField(
-                  controller: controller.enquiryNoController,
-                  labelText: 'Opportunity No',
-                  hintText: 'Leave blank - we assign a number for you',
-                ),
-                AppDateSelectorField(
-                  controller: controller.enquiryDateController,
-                  labelText: 'Opportunity Date',
-                  onTap: () => _pickEnquiryDate(context, controller),
-                ),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 300),
-                  child: ErpLinkField<int>(
-                    labelText: 'Lead',
-                    doctypeLabel: 'Lead',
-                    allowCreate: true,
-                    hintText: 'Search or create lead',
-                    initialSelection: controller.selectedLeadOption(),
-                    search: controller.searchLeadOptions,
-                    onNavigateToCreateNew: (query) =>
-                        _openNewLeadForm(context, controller, query),
-                    onChanged: controller.setLeadId,
-                  ),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Customer',
-                  doctypeLabel: 'Customer',
-                  allowCreate: true,
-                  onNavigateToCreateNew: (name) {
-                    final uri = Uri(
-                      path: '/parties',
-                      queryParameters: {
-                        'new': '1',
-                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                      },
-                    );
-                    openModuleShellRoute(context, uri.toString());
-                  },
-                  mappedItems: controller.customers
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.customerPartyId,
-                  onChanged: controller.setCustomerPartyId,
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Stage',
-                  mappedItems: controller.stages
-                      .where((item) => intValue(item.toJson(), 'id') != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: intValue(item.toJson(), 'id')!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.stageId,
-                  onChanged: controller.setStageId,
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Assigned To',
-                  mappedItems: controller.users
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.displayName ?? item.username ?? '',
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.assignedTo,
-                  onChanged: controller.setAssignedTo,
-                ),
-                AppFormTextField(
-                  key: ValueKey<String>(
-                    'opportunity-status-${controller.effectiveLifecycleStatus()}',
-                  ),
-                  labelText: 'Status',
-                  initialValue: controller.lifecycleStatusLabel(),
-                  readOnly: true,
-                  enabled: false,
-                ),
-                AppFormTextField(
-                  controller: controller.remarksController,
-                  labelText: 'Remarks',
-                  maxLines: 3,
-                ),
-              ],
-            ),
           ),
-          const SizedBox(height: AppUiConstants.spacingMd),
-          Wrap(
-            spacing: AppUiConstants.spacingSm,
-            runSpacing: AppUiConstants.spacingSm,
-            children: [
+        ),
+        const SizedBox(height: AppUiConstants.spacingMd),
+        Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: [
+            if (!isLocked)
+              AppActionButton(
+                icon: Icons.save_outlined,
+                label: controller.selectedItem == null
+                    ? 'Save Opportunity'
+                    : 'Update Opportunity',
+                onPressed: controller.save,
+                busy: controller.saving,
+              ),
+            if (controller.selectedItem != null) ...[
               if (!isLocked)
                 AppActionButton(
-                  icon: Icons.save_outlined,
-                  label: controller.selectedItem == null
-                      ? 'Save Opportunity'
-                      : 'Update Opportunity',
-                  onPressed: controller.save,
-                  busy: controller.saving,
-                ),
-              if (controller.selectedItem != null) ...[
-                if (!isLocked)
-                  AppActionButton(
-                    icon: Icons.trending_up_outlined,
-                    label: 'Won',
-                    filled: false,
-                    onPressed: canWin ? controller.win : null,
-                  ),
-                if (!isLocked)
-                  AppActionButton(
-                    icon: Icons.cancel_outlined,
-                    label: 'Lost',
-                    filled: false,
-                    onPressed: canLose ? controller.lose : null,
-                  ),
-                AppActionButton(
-                  icon: Icons.delete_outline,
-                  label: 'Delete',
+                  icon: Icons.trending_up_outlined,
+                  label: 'Won',
                   filled: false,
-                  onPressed: controller.delete,
+                  onPressed: canWin ? controller.win : null,
                 ),
-              ],
+              if (!isLocked)
+                AppActionButton(
+                  icon: Icons.cancel_outlined,
+                  label: 'Lost',
+                  filled: false,
+                  onPressed: canLose ? controller.lose : null,
+                ),
+              AppActionButton(
+                icon: Icons.delete_outline,
+                label: 'Delete',
+                filled: false,
+                onPressed: controller.delete,
+              ),
             ],
-          ),
+          ],
+        ),
       ],
     );
   }

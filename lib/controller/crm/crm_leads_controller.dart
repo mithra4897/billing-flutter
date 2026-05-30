@@ -1,5 +1,6 @@
 import '../../screen.dart';
 import 'crm_lead_register_controller.dart';
+import '../../helper/crm_register_reload_helper.dart';
 
 class CrmLeadsController extends GetxController {
   static const int allFilterIntValue = 0;
@@ -485,7 +486,7 @@ class CrmLeadsController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      await CrmLeadRegisterController.refreshIfRegistered();
+      reloadCrmLeadRegister();
     } catch (error) {
       formError = error.toString();
       update();
@@ -503,7 +504,7 @@ class CrmLeadsController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      await CrmLeadRegisterController.refreshIfRegistered();
+      reloadCrmLeadRegister();
       resetForm();
       return true;
     } catch (error) {
@@ -542,7 +543,7 @@ class CrmLeadsController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadPage(selectId: id);
-      await CrmLeadRegisterController.refreshIfRegistered();
+      reloadCrmLeadRegister();
     } catch (error) {
       formError = error.toString();
       update();
@@ -568,7 +569,7 @@ class CrmLeadsController extends GetxController {
       }
       final enquiryId = enquiryMap != null ? intValue(enquiryMap, 'id') : null;
       await loadPage(selectId: id);
-      await CrmLeadRegisterController.refreshIfRegistered();
+      reloadCrmLeadRegister();
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );

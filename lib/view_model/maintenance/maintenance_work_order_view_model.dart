@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../helper/maintenance_register_reload_helper.dart';
 
 class MaintenanceWorkOrderViewModel extends GetxController {
   MaintenanceWorkOrderViewModel() {
@@ -718,6 +719,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
+        reloadMaintenanceWorkOrderRegister();
       } else {
         final id = selectedId;
         if (id == null) {
@@ -731,6 +733,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: id);
+        reloadMaintenanceWorkOrderRegister();
       }
     } catch (e) {
       formError = e.toString();
@@ -753,6 +756,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
       final response = await _maintenance.approveWorkOrder(id, _emptyBody);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadMaintenanceWorkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -768,6 +772,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
       final response = await _maintenance.startWorkOrder(id, _emptyBody);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadMaintenanceWorkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -783,6 +788,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
       final response = await _maintenance.completeWorkOrder(id, _emptyBody);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadMaintenanceWorkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -798,6 +804,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
       final response = await _maintenance.closeWorkOrder(id, _emptyBody);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadMaintenanceWorkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -813,6 +820,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
       final response = await _maintenance.cancelWorkOrder(id, _emptyBody);
       actionMessage = response.message;
       await load(selectId: id);
+      reloadMaintenanceWorkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
@@ -828,6 +836,7 @@ class MaintenanceWorkOrderViewModel extends GetxController {
       await _maintenance.deleteWorkOrder(id);
       actionMessage = 'Work order deleted.';
       await load();
+      reloadMaintenanceWorkOrderRegister();
     } catch (e) {
       formError = e.toString();
       update();
