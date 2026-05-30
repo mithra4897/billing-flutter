@@ -1121,6 +1121,13 @@ class AppNavigation {
           path: '/sales/returns',
           requiredPermissions: ['sales.view'],
         ),
+        AppNavigationItem(
+          key: 'sales-ledgers',
+          title: 'Sales Ledger',
+          icon: Icons.account_balance_wallet_outlined,
+          path: '/sales/ledgers',
+          requiredPermissions: ['sales.view'],
+        ),
       ],
     ),
     const AppNavigationItem(

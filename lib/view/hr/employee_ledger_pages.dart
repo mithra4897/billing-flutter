@@ -274,8 +274,14 @@ class _EmployeeLedgerRegisterPageState
           valueBuilder: (row) => row.departmentName,
         ),
         PurchaseRegisterColumn(
-          label: 'Outstanding',
-          valueBuilder: (row) => _formatLedgerAmount(row.outstanding),
+          label: 'Payable',
+          valueBuilder: (row) =>
+              _formatEmployeeRegisterAmount(row.payableAmount),
+        ),
+        PurchaseRegisterColumn(
+          label: 'Excess Paid',
+          valueBuilder: (row) =>
+              _formatEmployeeRegisterAmount(row.excessPaidAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Last Salary Posting',
@@ -408,7 +414,7 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
                   'Employee Payable',
               cashBankLedger: 'Salary Payable',
               credit: _formatLedgerAmount(payslip.netSalary ?? 0),
-              debit: '-',
+              debit: '',
             ),
           ),
         for (final claim in reimbursedClaims)
@@ -424,7 +430,7 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
                   preferredAccount?.accountCode ??
                   'Employee Payable',
               cashBankLedger: 'Reimbursement Payment',
-              credit: '-',
+              credit: '',
               debit: _formatLedgerAmount(claim.totalAmount ?? 0),
             ),
           ),
@@ -563,8 +569,8 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
                   value: _formatLedgerAmount(_reimbursementTotal),
                 ),
                 _EmployeeSummaryTile(
-                  label: 'Outstanding',
-                  value: _formatLedgerAmount(_outstanding),
+                  label: _employeeBalanceLabel(_outstanding),
+                  value: _formatLedgerAmount(_outstanding.abs()),
                 ),
                 _EmployeeSummaryTile(
                   label: 'Last Salary Posting',
@@ -698,6 +704,8 @@ class _EmployeeLedgerRegisterRow {
   final String lastReimbursementDate;
 
   double get outstanding => salaryTotal - reimbursementTotal;
+  double get payableAmount => outstanding > 0 ? outstanding : 0;
+  double get excessPaidAmount => outstanding < 0 ? outstanding.abs() : 0;
 }
 
 class _StatementRowSortWrapper {
@@ -735,3 +743,20 @@ EmployeeAccountModel? _preferredEmployeeAccount(
 }
 
 String _formatLedgerAmount(double value) => value.toStringAsFixed(2);
+
+String _formatEmployeeRegisterAmount(double value) {
+  if (value == 0) {
+    return '';
+  }
+  return value.toStringAsFixed(2);
+}
+
+String _employeeBalanceLabel(double value) {
+  if (value > 0) {
+    return 'Amount Payable';
+  }
+  if (value < 0) {
+    return 'Excess Paid';
+  }
+  return 'Settled Balance';
+}

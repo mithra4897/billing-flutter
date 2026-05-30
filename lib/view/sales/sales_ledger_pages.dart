@@ -1,6 +1,6 @@
 import '../../screen.dart';
 
-void _openPurchaseLedgerRoute(BuildContext context, String route) {
+void _openSalesLedgerRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
   if (navigate != null) {
     navigate(route);
@@ -9,18 +9,17 @@ void _openPurchaseLedgerRoute(BuildContext context, String route) {
   Navigator.of(context).pushNamed(route);
 }
 
-class PurchaseLedgerRegisterPage extends StatefulWidget {
-  const PurchaseLedgerRegisterPage({super.key, this.embedded = false});
+class SalesLedgerRegisterPage extends StatefulWidget {
+  const SalesLedgerRegisterPage({super.key, this.embedded = false});
 
   final bool embedded;
 
   @override
-  State<PurchaseLedgerRegisterPage> createState() =>
-      _PurchaseLedgerRegisterPageState();
+  State<SalesLedgerRegisterPage> createState() =>
+      _SalesLedgerRegisterPageState();
 }
 
-class _PurchaseLedgerRegisterPageState
-    extends State<PurchaseLedgerRegisterPage> {
+class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
   static const List<AppDropdownItem<String>> _statusItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All status'),
@@ -29,15 +28,15 @@ class _PurchaseLedgerRegisterPageState
       ];
 
   final AccountsService _accountsService = AccountsService();
-  final PurchaseService _purchaseService = PurchaseService();
+  final SalesService _salesService = SalesService();
   final TextEditingController _searchController = TextEditingController();
 
   bool _loading = true;
   String? _errorMessage;
   String _status = '';
-  List<_PurchaseLedgerRegisterRow> _rows = const <_PurchaseLedgerRegisterRow>[];
+  List<_SalesLedgerRegisterRow> _rows = const <_SalesLedgerRegisterRow>[];
 
-  List<_PurchaseLedgerRegisterRow> get _filteredRows {
+  List<_SalesLedgerRegisterRow> get _filteredRows {
     final query = _searchController.text.trim().toLowerCase();
     return _rows
         .where((row) {
@@ -47,10 +46,10 @@ class _PurchaseLedgerRegisterPageState
           final searchOk =
               query.isEmpty ||
               [
-                row.supplierCode,
+                row.customerCode,
+                row.customerName,
                 row.ledgerCode,
                 row.ledgerName,
-                row.partyName,
               ].join(' ').toLowerCase().contains(query);
           return statusOk && searchOk;
         })
@@ -88,23 +87,23 @@ class _PurchaseLedgerRegisterPageState
       final responses = await Future.wait<dynamic>([
         _accountsService.partyAccountsRegister(
           filters: const <String, dynamic>{
-            'account_purpose': 'payable',
+            'account_purpose': 'receivable',
             'per_page': 200,
             'sort_by': 'id',
             'sort_order': 'desc',
           },
         ),
-        _purchaseService.invoicesAll(
+        _salesService.invoices(
           filters: const <String, dynamic>{
             'per_page': 200,
             'sort_by': 'invoice_date',
             'sort_order': 'desc',
           },
         ),
-        _purchaseService.paymentsAll(
+        _salesService.receipts(
           filters: const <String, dynamic>{
             'per_page': 200,
-            'sort_by': 'payment_date',
+            'sort_by': 'receipt_date',
             'sort_order': 'desc',
           },
         ),
@@ -114,61 +113,56 @@ class _PurchaseLedgerRegisterPageState
           (responses[0] as PaginatedResponse<PartyAccountModel>).data ??
           const <PartyAccountModel>[];
       final invoices =
-          (responses[1] as ApiResponse<List<PurchaseInvoiceModel>>).data ??
-          const <PurchaseInvoiceModel>[];
-      final payments =
-          (responses[2] as ApiResponse<List<PurchasePaymentModel>>).data ??
-          const <PurchasePaymentModel>[];
+          (responses[1] as PaginatedResponse<SalesInvoiceModel>).data ??
+          const <SalesInvoiceModel>[];
+      final receipts =
+          (responses[2] as PaginatedResponse<SalesReceiptModel>).data ??
+          const <SalesReceiptModel>[];
 
       final invoiceTotals = <int, double>{};
-      final paymentTotals = <int, double>{};
-      final transactionCounts = <int, int>{};
+      final receiptTotals = <int, double>{};
       final lastInvoiceDates = <int, String>{};
-      final lastPaymentDates = <int, String>{};
+      final lastReceiptDates = <int, String>{};
 
       for (final invoice in invoices) {
-        final partyId = invoice.supplierPartyId;
-        invoiceTotals[partyId] =
-            (invoiceTotals[partyId] ?? 0) + (invoice.totalAmount ?? 0);
-        transactionCounts[partyId] = (transactionCounts[partyId] ?? 0) + 1;
+        final customerId = invoice.customerPartyId;
+        invoiceTotals[customerId] =
+            (invoiceTotals[customerId] ?? 0) + (invoice.totalAmount ?? 0);
         final invoiceDate = invoice.invoiceDate;
-        final currentLastDate = lastInvoiceDates[partyId] ?? '';
+        final currentLastDate = lastInvoiceDates[customerId] ?? '';
         if (invoiceDate.compareTo(currentLastDate) > 0) {
-          lastInvoiceDates[partyId] = invoiceDate;
+          lastInvoiceDates[customerId] = invoiceDate;
         }
       }
 
-      for (final payment in payments) {
-        final partyId = payment.supplierPartyId;
-        if (partyId == null) {
+      for (final receipt in receipts) {
+        final customerId = receipt.customerPartyId;
+        if (customerId == null) {
           continue;
         }
-        paymentTotals[partyId] =
-            (paymentTotals[partyId] ?? 0) + (payment.paidAmount ?? 0);
-        transactionCounts[partyId] = (transactionCounts[partyId] ?? 0) + 1;
-        final paymentDate = payment.paymentDate ?? '';
-        final currentLastDate = lastPaymentDates[partyId] ?? '';
-        if (paymentDate.compareTo(currentLastDate) > 0) {
-          lastPaymentDates[partyId] = paymentDate;
+        receiptTotals[customerId] =
+            (receiptTotals[customerId] ?? 0) + (receipt.paidAmount ?? 0);
+        final receiptDate = receipt.receiptDate ?? '';
+        final currentLastDate = lastReceiptDates[customerId] ?? '';
+        if (receiptDate.compareTo(currentLastDate) > 0) {
+          lastReceiptDates[customerId] = receiptDate;
         }
       }
 
       final nextRows = mappings
           .where((item) => item.id != null)
           .map(
-            (item) => _PurchaseLedgerRegisterRow(
+            (item) => _SalesLedgerRegisterRow(
               id: item.id!,
-              partyId: item.partyId,
-              supplierCode: item.partyCode ?? '',
+              customerCode: item.partyCode ?? '',
+              customerName: item.partyName ?? '',
               ledgerCode: item.accountCode ?? '',
               ledgerName: item.accountName ?? '',
-              partyName: item.partyName ?? '',
               isActive: item.isActive,
               invoiceTotal: invoiceTotals[item.partyId ?? -1] ?? 0,
-              paymentTotal: paymentTotals[item.partyId ?? -1] ?? 0,
-              transactionCount: transactionCounts[item.partyId ?? -1] ?? 0,
+              receiptTotal: receiptTotals[item.partyId ?? -1] ?? 0,
               lastInvoiceDate: lastInvoiceDates[item.partyId ?? -1] ?? '',
-              lastPaymentDate: lastPaymentDates[item.partyId ?? -1] ?? '',
+              lastReceiptDate: lastReceiptDates[item.partyId ?? -1] ?? '',
             ),
           )
           .toList(growable: false);
@@ -200,13 +194,13 @@ class _PurchaseLedgerRegisterPageState
 
   @override
   Widget build(BuildContext context) {
-    return PurchaseRegisterPage<_PurchaseLedgerRegisterRow>(
-      title: 'Purchase Ledger',
+    return PurchaseRegisterPage<_SalesLedgerRegisterRow>(
+      title: 'Sales Ledger',
       embedded: widget.embedded,
       loading: _loading,
       errorMessage: _errorMessage,
       onRetry: _loadRows,
-      emptyMessage: 'No payable ledgers found for purchase.',
+      emptyMessage: 'No sales ledgers found.',
       actions: [
         AdaptiveShellActionButton(
           onPressed: _loadRows,
@@ -215,7 +209,7 @@ class _PurchaseLedgerRegisterPageState
           filled: false,
         ),
       ],
-      filters: _PurchaseLedgerFilters(
+      filters: _SalesLedgerFilters(
         searchController: _searchController,
         status: _status,
         statusItems: _statusItems,
@@ -224,13 +218,13 @@ class _PurchaseLedgerRegisterPageState
       rows: _filteredRows,
       columns: [
         PurchaseRegisterColumn(
-          label: 'Supplier Code',
-          valueBuilder: (row) => row.supplierCode,
+          label: 'Customer Code',
+          valueBuilder: (row) => row.customerCode,
         ),
         PurchaseRegisterColumn(
-          label: 'Supplier Name',
+          label: 'Customer Name',
           flex: 3,
-          valueBuilder: (row) => row.partyName,
+          valueBuilder: (row) => row.customerName,
         ),
         PurchaseRegisterColumn(
           label: 'Ledger Code',
@@ -242,22 +236,21 @@ class _PurchaseLedgerRegisterPageState
           valueBuilder: (row) => row.ledgerName,
         ),
         PurchaseRegisterColumn(
-          label: 'Payable',
+          label: 'Receivable',
           valueBuilder: (row) =>
-              _formatPurchaseRegisterAmount(row.payableAmount),
+              _formatSalesRegisterAmount(row.receivableAmount),
         ),
         PurchaseRegisterColumn(
           label: 'Advance',
-          valueBuilder: (row) =>
-              _formatPurchaseRegisterAmount(row.advanceAmount),
+          valueBuilder: (row) => _formatSalesRegisterAmount(row.advanceAmount),
         ),
         PurchaseRegisterColumn(
-          label: 'Last Bill',
+          label: 'Last Invoice',
           valueBuilder: (row) => displayDate(row.lastInvoiceDate),
         ),
         PurchaseRegisterColumn(
-          label: 'Last Payment',
-          valueBuilder: (row) => displayDate(row.lastPaymentDate),
+          label: 'Last Receipt',
+          valueBuilder: (row) => displayDate(row.lastReceiptDate),
         ),
         PurchaseRegisterColumn(
           label: 'Status',
@@ -265,13 +258,13 @@ class _PurchaseLedgerRegisterPageState
         ),
       ],
       onRowTap: (row) =>
-          _openPurchaseLedgerRoute(context, '/purchase/ledgers/${row.id}'),
+          _openSalesLedgerRoute(context, '/sales/ledgers/${row.id}'),
     );
   }
 }
 
-class PurchaseLedgerDetailPage extends StatefulWidget {
-  const PurchaseLedgerDetailPage({
+class SalesLedgerDetailPage extends StatefulWidget {
+  const SalesLedgerDetailPage({
     super.key,
     required this.ledgerId,
     this.embedded = false,
@@ -281,13 +274,12 @@ class PurchaseLedgerDetailPage extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<PurchaseLedgerDetailPage> createState() =>
-      _PurchaseLedgerDetailPageState();
+  State<SalesLedgerDetailPage> createState() => _SalesLedgerDetailPageState();
 }
 
-class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
+class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
   final AccountsService _accountsService = AccountsService();
-  final PurchaseService _purchaseService = PurchaseService();
+  final SalesService _salesService = SalesService();
   final ScrollController _scrollController = ScrollController();
 
   bool _loading = true;
@@ -296,11 +288,11 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
   List<LedgerStatementRowData> _statementRows =
       const <LedgerStatementRowData>[];
   double _invoiceTotal = 0;
-  double _paymentTotal = 0;
-  String _lastPaymentDate = '';
+  double _receiptTotal = 0;
+  String _lastReceiptDate = '';
   String _recentCashBankLedger = '-';
 
-  double get _balance => _invoiceTotal - _paymentTotal;
+  double get _outstanding => _invoiceTotal - _receiptTotal;
 
   @override
   void initState() {
@@ -326,7 +318,7 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
       );
       final mapping = mappingResponse.data;
       if (mapping == null) {
-        throw Exception('Purchase ledger mapping not found.');
+        throw Exception('Sales ledger mapping not found.');
       }
 
       final responses = await Future.wait<dynamic>([
@@ -336,19 +328,19 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
             'sort_by': 'account_name',
           },
         ),
-        _purchaseService.invoicesAll(
+        _salesService.invoices(
           filters: <String, dynamic>{
-            'supplier_party_id': mapping.partyId,
+            'customer_party_id': mapping.partyId,
             'per_page': 200,
             'sort_by': 'invoice_date',
             'sort_order': 'desc',
           },
         ),
-        _purchaseService.paymentsAll(
+        _salesService.receipts(
           filters: <String, dynamic>{
-            'supplier_party_id': mapping.partyId,
+            'customer_party_id': mapping.partyId,
             'per_page': 200,
-            'sort_by': 'payment_date',
+            'sort_by': 'receipt_date',
             'sort_order': 'desc',
           },
         ),
@@ -358,50 +350,50 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
           (responses[0] as ApiResponse<List<AccountModel>>).data ??
           const <AccountModel>[];
       final invoices =
-          (responses[1] as ApiResponse<List<PurchaseInvoiceModel>>).data ??
-          const <PurchaseInvoiceModel>[];
-      final payments =
-          (responses[2] as ApiResponse<List<PurchasePaymentModel>>).data ??
-          const <PurchasePaymentModel>[];
+          (responses[1] as PaginatedResponse<SalesInvoiceModel>).data ??
+          const <SalesInvoiceModel>[];
+      final receipts =
+          (responses[2] as PaginatedResponse<SalesReceiptModel>).data ??
+          const <SalesReceiptModel>[];
 
       final accountNames = <int, String>{
         for (final account in accounts)
           if (account.id != null)
-            account.id!: _accountLabel(
+            account.id!: _salesAccountLabel(
               account.accountCode,
               account.accountName,
             ),
       };
 
-      final statementRows = <_StatementRowSortWrapper>[
+      final statementRows = <_SalesStatementRowSortWrapper>[
         for (final invoice in invoices)
-          _StatementRowSortWrapper(
+          _SalesStatementRowSortWrapper(
             sortDate: invoice.invoiceDate,
             row: LedgerStatementRowData(
               date: displayDate(invoice.invoiceDate),
               code: (invoice.invoiceNo?.trim().isNotEmpty ?? false)
                   ? invoice.invoiceNo!.trim()
-                  : 'PI-${invoice.id}',
+                  : 'SI-${invoice.id}',
               ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
-              cashBankLedger: '-',
-              credit: _formatAmount(invoice.totalAmount ?? 0),
+              cashBankLedger: 'Customer Receivable',
+              credit: _formatSalesLedgerAmount(invoice.totalAmount ?? 0),
               debit: '',
             ),
           ),
-        for (final payment in payments)
-          _StatementRowSortWrapper(
-            sortDate: payment.paymentDate ?? '',
+        for (final receipt in receipts)
+          _SalesStatementRowSortWrapper(
+            sortDate: receipt.receiptDate ?? '',
             row: LedgerStatementRowData(
-              date: displayDate(payment.paymentDate),
-              code: (payment.paymentNo?.trim().isNotEmpty ?? false)
-                  ? payment.paymentNo!.trim()
-                  : 'PP-${payment.id ?? ''}',
+              date: displayDate(receipt.receiptDate),
+              code: (receipt.receiptNo?.trim().isNotEmpty ?? false)
+                  ? receipt.receiptNo!.trim()
+                  : 'SR-${receipt.id ?? ''}',
               ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
               cashBankLedger:
-                  accountNames[payment.accountId] ??
-                  (payment.paymentMode?.titleCase ?? '-'),
+                  accountNames[receipt.accountId] ??
+                  (receipt.paymentMode?.titleCase ?? '-'),
               credit: '',
-              debit: _formatAmount(payment.paidAmount ?? 0),
+              debit: _formatSalesLedgerAmount(receipt.paidAmount ?? 0),
             ),
           ),
       ];
@@ -423,18 +415,18 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
           0,
           (sum, item) => sum + (item.totalAmount ?? 0),
         );
-        _paymentTotal = payments.fold<double>(
+        _receiptTotal = receipts.fold<double>(
           0,
           (sum, item) => sum + (item.paidAmount ?? 0),
         );
-        _lastPaymentDate = payments.fold<String>('', (latest, item) {
-          final value = item.paymentDate ?? '';
+        _lastReceiptDate = receipts.fold<String>('', (latest, item) {
+          final value = item.receiptDate ?? '';
           return value.compareTo(latest) > 0 ? value : latest;
         });
-        _recentCashBankLedger = payments.isEmpty
+        _recentCashBankLedger = receipts.isEmpty
             ? '-'
-            : accountNames[payments.first.accountId] ??
-                  (payments.first.paymentMode?.titleCase ?? '-');
+            : accountNames[receipts.first.accountId] ??
+                  (receipts.first.paymentMode?.titleCase ?? '-');
         _loading = false;
       });
     } catch (errorValue) {
@@ -464,7 +456,7 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
       return ShellPageActions(actions: actions, child: content);
     }
     return AppStandaloneShell(
-      title: 'Purchase Ledger',
+      title: 'Sales Ledger',
       scrollController: _scrollController,
       actions: actions,
       child: content,
@@ -473,12 +465,12 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
 
   Widget _buildContent(BuildContext context) {
     if (_loading) {
-      return const AppLoadingView(message: 'Loading purchase ledger...');
+      return const AppLoadingView(message: 'Loading sales ledger...');
     }
 
     if (_errorMessage != null) {
       return AppErrorStateView(
-        title: 'Unable to load purchase ledger',
+        title: 'Unable to load sales ledger',
         message: _errorMessage!,
         onRetry: _loadDetail,
       );
@@ -487,8 +479,8 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
     final mapping = _mapping;
     if (mapping == null) {
       return AppErrorStateView(
-        title: 'Purchase ledger unavailable',
-        message: 'No purchase ledger mapping was found for this record.',
+        title: 'Sales ledger unavailable',
+        message: 'No sales ledger mapping was found for this record.',
         onRetry: _loadDetail,
       );
     }
@@ -504,40 +496,40 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
               spacing: AppUiConstants.spacingLg,
               runSpacing: AppUiConstants.spacingMd,
               children: [
-                _SummaryTile(
-                  label: 'Supplier',
+                _SalesSummaryTile(
+                  label: 'Customer',
                   value: mapping.partyName ?? '-',
                   width: 280,
                 ),
-                _SummaryTile(
+                _SalesSummaryTile(
                   label: 'Ledger Code',
                   value: mapping.accountCode ?? '-',
                 ),
-                _SummaryTile(
+                _SalesSummaryTile(
                   label: 'Ledger Name',
                   value: mapping.accountName ?? '-',
                   width: 280,
                 ),
-                _SummaryTile(
-                  label: 'Last Payment Ledger',
+                _SalesSummaryTile(
+                  label: 'Last Receipt Ledger',
                   value: _recentCashBankLedger,
                   width: 240,
                 ),
-                _SummaryTile(
+                _SalesSummaryTile(
                   label: 'Invoice Total',
-                  value: _formatAmount(_invoiceTotal),
+                  value: _formatSalesLedgerAmount(_invoiceTotal),
                 ),
-                _SummaryTile(
-                  label: 'Paid Amount',
-                  value: _formatAmount(_paymentTotal),
+                _SalesSummaryTile(
+                  label: 'Receipts',
+                  value: _formatSalesLedgerAmount(_receiptTotal),
                 ),
-                _SummaryTile(
-                  label: _purchaseBalanceLabel(_balance),
-                  value: _formatAmount(_balance.abs()),
+                _SalesSummaryTile(
+                  label: _salesBalanceLabel(_outstanding),
+                  value: _formatSalesLedgerAmount(_outstanding.abs()),
                 ),
-                _SummaryTile(
-                  label: 'Last Payment',
-                  value: displayDate(_lastPaymentDate),
+                _SalesSummaryTile(
+                  label: 'Last Receipt',
+                  value: displayDate(_lastReceiptDate),
                 ),
               ],
             ),
@@ -547,7 +539,7 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
             title: 'Ledger Statement',
             rows: _statementRows,
             emptyMessage:
-                'No invoices or payments were found for this purchase ledger.',
+                'No invoices or receipts were found for this sales ledger.',
           ),
         ],
       ),
@@ -555,8 +547,8 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
   }
 }
 
-class _PurchaseLedgerFilters extends StatelessWidget {
-  const _PurchaseLedgerFilters({
+class _SalesLedgerFilters extends StatelessWidget {
+  const _SalesLedgerFilters({
     required this.searchController,
     required this.status,
     required this.statusItems,
@@ -579,7 +571,7 @@ class _PurchaseLedgerFilters extends StatelessWidget {
           child: AppFormTextField(
             controller: searchController,
             labelText: 'Search',
-            hintText: 'Supplier, code, or ledger',
+            hintText: 'Customer, code, or ledger',
           ),
         ),
         SizedBox(
@@ -596,8 +588,8 @@ class _PurchaseLedgerFilters extends StatelessWidget {
   }
 }
 
-class _SummaryTile extends StatelessWidget {
-  const _SummaryTile({
+class _SalesSummaryTile extends StatelessWidget {
+  const _SalesSummaryTile({
     required this.label,
     required this.value,
     this.width = 220,
@@ -635,67 +627,66 @@ class _SummaryTile extends StatelessWidget {
   }
 }
 
-class _PurchaseLedgerRegisterRow {
-  const _PurchaseLedgerRegisterRow({
+class _SalesLedgerRegisterRow {
+  const _SalesLedgerRegisterRow({
     required this.id,
-    required this.partyId,
-    required this.supplierCode,
+    required this.customerCode,
+    required this.customerName,
     required this.ledgerCode,
     required this.ledgerName,
-    required this.partyName,
     required this.isActive,
     required this.invoiceTotal,
-    required this.paymentTotal,
-    required this.transactionCount,
+    required this.receiptTotal,
     required this.lastInvoiceDate,
-    required this.lastPaymentDate,
+    required this.lastReceiptDate,
   });
 
   final int id;
-  final int? partyId;
-  final String supplierCode;
+  final String customerCode;
+  final String customerName;
   final String ledgerCode;
   final String ledgerName;
-  final String partyName;
   final bool isActive;
   final double invoiceTotal;
-  final double paymentTotal;
-  final int transactionCount;
+  final double receiptTotal;
   final String lastInvoiceDate;
-  final String lastPaymentDate;
+  final String lastReceiptDate;
 
-  double get balance => invoiceTotal - paymentTotal;
-  double get payableAmount => balance > 0 ? balance : 0;
-  double get advanceAmount => balance < 0 ? balance.abs() : 0;
+  double get outstanding => invoiceTotal - receiptTotal;
+  double get receivableAmount => outstanding > 0 ? outstanding : 0;
+  double get advanceAmount => outstanding < 0 ? outstanding.abs() : 0;
 }
 
-class _StatementRowSortWrapper {
-  const _StatementRowSortWrapper({required this.sortDate, required this.row});
+class _SalesStatementRowSortWrapper {
+  const _SalesStatementRowSortWrapper({
+    required this.sortDate,
+    required this.row,
+  });
 
   final String sortDate;
   final LedgerStatementRowData row;
 }
 
-String _formatAmount(double value) => value.toStringAsFixed(2);
+String _formatSalesLedgerAmount(double value) => value.toStringAsFixed(2);
 
-String _formatPurchaseRegisterAmount(double value) {
+String _formatSalesRegisterAmount(double value) {
   if (value == 0) {
     return '';
   }
   return value.toStringAsFixed(2);
 }
 
-String _purchaseBalanceLabel(double value) {
+String _salesBalanceLabel(double value) {
   if (value > 0) {
-    return 'Amount Payable';
+    return 'Amount Receivable';
   }
   if (value < 0) {
-    return 'Advance Paid';
+    return 'Advance Received';
   }
   return 'Settled Balance';
 }
 
-String _accountLabel(String? code, String? name) {
+String _salesAccountLabel(String? code, String? name) {
   final normalizedCode = (code ?? '').trim();
   final normalizedName = (name ?? '').trim();
   if (normalizedCode.isEmpty) {

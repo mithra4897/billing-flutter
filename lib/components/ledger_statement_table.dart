@@ -144,7 +144,7 @@ class _LedgerAmountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final inactive = value.trim() == '-';
+    final inactive = value.trim().isEmpty;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(

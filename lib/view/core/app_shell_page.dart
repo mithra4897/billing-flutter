@@ -523,6 +523,8 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           queryParameters: _currentQueryParameters,
         );
+      case '/sales/ledgers':
+        return SalesLedgerRegisterPage(key: routeKey, embedded: true);
       case '/sales/returns':
         return SalesReturnRegisterPage(key: routeKey, embedded: true);
       case '/purchase/requisitions':
@@ -1449,6 +1451,12 @@ class _AppShellPageState extends State<AppShellPage> {
           embedded: true,
           ledgerId: id,
         );
+      case 'sales/ledgers':
+        return SalesLedgerDetailPage(
+          key: routeKey,
+          embedded: true,
+          ledgerId: id,
+        );
     }
 
     return null;
@@ -1542,6 +1550,9 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/sales/receipts/')) {
       return 'Sales Receipt';
+    }
+    if (path.startsWith('/sales/ledgers/')) {
+      return 'Sales Ledger';
     }
     if (path.startsWith('/sales/returns/')) {
       return 'Sales Return';

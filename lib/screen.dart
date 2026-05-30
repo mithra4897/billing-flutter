@@ -382,6 +382,7 @@ export 'view/quality/qc_result_action_page.dart';
 export 'view/quality/quality_registers.dart';
 export 'view/sales/sales_delivery_page.dart';
 export 'view/sales/sales_invoice_page.dart';
+export 'view/sales/sales_ledger_pages.dart';
 export 'view/sales/sales_order_page.dart';
 export 'view/sales/sales_quotation_page.dart';
 export 'view/sales/sales_receipt_page.dart';
