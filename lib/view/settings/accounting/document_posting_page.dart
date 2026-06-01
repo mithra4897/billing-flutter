@@ -121,21 +121,19 @@ class _DocumentPostingManagementPageState
             const SizedBox(height: AppUiConstants.spacingMd),
             SettingsFormWrap(
               children: [
-                AppFormTextField(
+                AppDropdownField<String>.fromMapped(
                   labelText: 'Document module',
-                  controller: controller.moduleController,
-                  validator: Validators.compose([
-                    Validators.required('Module'),
-                    Validators.optionalMaxLength(50, 'Module'),
-                  ]),
+                  mappedItems: controller.documentModuleItems,
+                  initialValue: nullIfEmpty(controller.moduleController.text),
+                  onChanged: controller.setDocumentModule,
+                  validator: Validators.requiredSelection('Module'),
                 ),
-                AppFormTextField(
+                AppDropdownField<String>.fromMapped(
                   labelText: 'Document table',
-                  controller: controller.tableController,
-                  validator: Validators.compose([
-                    Validators.required('Table'),
-                    Validators.optionalMaxLength(100, 'Table'),
-                  ]),
+                  mappedItems: controller.documentTableItems,
+                  initialValue: nullIfEmpty(controller.tableController.text),
+                  onChanged: controller.setDocumentTable,
+                  validator: Validators.requiredSelection('Table'),
                 ),
                 AppFormTextField(
                   labelText: 'Document ID',

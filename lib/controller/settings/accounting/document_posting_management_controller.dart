@@ -62,6 +62,10 @@ class DocumentPostingManagementController extends GetxController {
   String? formError;
   List<DocumentPostingModel> rows = const <DocumentPostingModel>[];
   List<DocumentPostingModel> filteredRows = const <DocumentPostingModel>[];
+  List<AppDropdownItem<String>> documentModuleItems =
+      const <AppDropdownItem<String>>[];
+  List<AppDropdownItem<String>> documentTableItems =
+      const <AppDropdownItem<String>>[];
   DocumentPostingModel? selectedPosting;
 
   List<FinancialYearModel> years = const <FinancialYearModel>[];
@@ -197,6 +201,10 @@ class DocumentPostingManagementController extends GetxController {
       accounts = nextAccounts.where((item) => item.isActive).toList();
       rows = postings.data ?? const <DocumentPostingModel>[];
       filteredRows = _filter(rows, searchController.text);
+      documentModuleItems = _buildDropdownItems(
+        rows.map((item) => item.documentModule),
+      );
+      documentTableItems = _documentTableItemsForModule(moduleController.text);
       initialLoading = false;
 
       final selected = selectId != null
@@ -269,8 +277,8 @@ class DocumentPostingManagementController extends GetxController {
       branchId = intValue(data, 'branch_id');
       locationId = intValue(data, 'location_id');
       financialYearId = intValue(data, 'financial_year_id');
-      moduleController.text = stringValue(data, 'document_module');
-      tableController.text = stringValue(data, 'document_table');
+      setDocumentModule(stringValue(data, 'document_module'), notify: false);
+      setDocumentTable(stringValue(data, 'document_table'), notify: false);
       documentIdController.text = stringValue(data, 'document_id');
       documentNoController.text = stringValue(data, 'document_no');
       documentDateController.text = (data['document_date'] ?? '')
@@ -310,6 +318,7 @@ class DocumentPostingManagementController extends GetxController {
   void resetForm({bool notify = true}) {
     selectedPosting = null;
     moduleController.clear();
+    documentTableItems = _documentTableItemsForModule(null);
     tableController.clear();
     documentIdController.clear();
     documentNoController.clear();
@@ -342,6 +351,44 @@ class DocumentPostingManagementController extends GetxController {
   void setFinancialYearId(int? value) {
     financialYearId = value;
     update();
+  }
+
+  void setDocumentModule(String? value, {bool notify = true}) {
+    final normalized = nullIfEmpty(value ?? '') ?? '';
+    if (moduleController.text != normalized) {
+      moduleController.text = normalized;
+    }
+
+    documentModuleItems = _ensureDropdownValue(documentModuleItems, normalized);
+    documentTableItems = _documentTableItemsForModule(normalized);
+
+    final currentTable = tableController.text.trim();
+    final tableStillValid =
+        currentTable.isNotEmpty &&
+        documentTableItems.any((item) => item.value == currentTable);
+    if (!tableStillValid) {
+      tableController.clear();
+    } else {
+      documentTableItems = _ensureDropdownValue(
+        documentTableItems,
+        currentTable,
+      );
+    }
+
+    if (notify) {
+      update();
+    }
+  }
+
+  void setDocumentTable(String? value, {bool notify = true}) {
+    final normalized = nullIfEmpty(value ?? '') ?? '';
+    if (tableController.text != normalized) {
+      tableController.text = normalized;
+    }
+    documentTableItems = _ensureDropdownValue(documentTableItems, normalized);
+    if (notify) {
+      update();
+    }
   }
 
   void setPostingRuleGroupId(int? value) {
@@ -506,5 +553,45 @@ class DocumentPostingManagementController extends GetxController {
     for (final line in values) {
       line.dispose();
     }
+  }
+
+  List<AppDropdownItem<String>> _buildDropdownItems(Iterable<String?> values) {
+    final normalized =
+        values
+            .map((value) => (value ?? '').trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+
+    return normalized
+        .map((value) => AppDropdownItem<String>(value: value, label: value))
+        .toList(growable: false);
+  }
+
+  List<AppDropdownItem<String>> _documentTableItemsForModule(String? module) {
+    final normalizedModule = nullIfEmpty(module ?? '');
+    return _buildDropdownItems(
+      rows
+          .where(
+            (item) =>
+                normalizedModule == null ||
+                (item.documentModule ?? '').trim() == normalizedModule,
+          )
+          .map((item) => item.documentTable),
+    );
+  }
+
+  List<AppDropdownItem<String>> _ensureDropdownValue(
+    List<AppDropdownItem<String>> items,
+    String value,
+  ) {
+    if (value.isEmpty || items.any((item) => item.value == value)) {
+      return items;
+    }
+    return <AppDropdownItem<String>>[
+      ...items,
+      AppDropdownItem<String>(value: value, label: value),
+    ];
   }
 }
