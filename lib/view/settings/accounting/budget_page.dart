@@ -40,10 +40,11 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
         context: navigator.context,
         builder: (dialogContext) {
           final theme = Theme.of(dialogContext);
+          final extension = theme.extension<AppThemeExtension>()!;
           return AlertDialog(
             title: const Text('Budget vs actual'),
             content: SizedBox(
-              width: 640,
+              width: AppUiConstants.pagePaddingLarge * 12,
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,45 +54,83 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
                       'Budget: ${summary['budget_amount']} · Actual: ${summary['actual_amount']} · Variance: ${summary['variance_amount']}',
                       style: theme.textTheme.bodyMedium,
                     ),
-                    const SizedBox(height: 12),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Table(
-                        border: TableBorder.all(
-                          color: theme.dividerColor.withValues(alpha: 0.5),
+                    const SizedBox(height: AppUiConstants.spacingSm),
+                    if (lineList.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppUiConstants.spacingLg,
                         ),
-                        children: [
-                          TableRow(
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.35),
-                            ),
-                            children: const [
-                              _BudgetVsTh('Account'),
-                              _BudgetVsTh('Budget'),
-                              _BudgetVsTh('Actual'),
-                              _BudgetVsTh('Var.'),
-                              _BudgetVsTh('%'),
-                            ],
+                        child: Text(
+                          'No budget lines available for comparison.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: extension.mutedText,
                           ),
-                          ...lineList.map(
-                            (row) => TableRow(
-                              children: [
-                                _BudgetVsTd(
-                                  '${row['account_code'] ?? ''} ${row['account_name'] ?? ''}',
-                                ),
-                                _BudgetVsTd('${row['budget_amount'] ?? ''}'),
-                                _BudgetVsTd('${row['actual_amount'] ?? ''}'),
-                                _BudgetVsTd('${row['variance_amount'] ?? ''}'),
-                                _BudgetVsTd(
-                                  '${row['utilization_percent'] ?? ''}',
-                                ),
-                              ],
+                        ),
+                      )
+                    else
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          headingRowHeight: 52,
+                          dataRowMinHeight: 56,
+                          dataRowMaxHeight: 64,
+                          columns: const [
+                            DataColumn(label: Text('Account')),
+                            DataColumn(numeric: true, label: Text('Budget')),
+                            DataColumn(numeric: true, label: Text('Actual')),
+                            DataColumn(numeric: true, label: Text('Variance')),
+                            DataColumn(
+                              numeric: true,
+                              label: Text('Utilization %'),
                             ),
-                          ),
-                        ],
+                          ],
+                          rows: lineList
+                              .map(
+                                (row) => DataRow(
+                                  cells: [
+                                    DataCell(
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          minWidth: 240,
+                                          maxWidth: 320,
+                                        ),
+                                        child: Text(
+                                          '${row['account_code'] ?? ''} ${row['account_name'] ?? ''}'
+                                              .trim(),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      _BudgetVsAmountCell(
+                                        value: '${row['budget_amount'] ?? ''}',
+                                      ),
+                                    ),
+                                    DataCell(
+                                      _BudgetVsAmountCell(
+                                        value: '${row['actual_amount'] ?? ''}',
+                                      ),
+                                    ),
+                                    DataCell(
+                                      _BudgetVsAmountCell(
+                                        value:
+                                            '${row['variance_amount'] ?? ''}',
+                                        emphasizeNegative: true,
+                                      ),
+                                    ),
+                                    DataCell(
+                                      _BudgetVsAmountCell(
+                                        value:
+                                            '${row['utilization_percent'] ?? ''}',
+                                        suffix: '%',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -388,35 +427,36 @@ class _BudgetManagementPageState extends State<BudgetManagementPage> {
   }
 }
 
-class _BudgetVsTh extends StatelessWidget {
-  const _BudgetVsTh(this.text);
+class _BudgetVsAmountCell extends StatelessWidget {
+  const _BudgetVsAmountCell({
+    required this.value,
+    this.suffix = '',
+    this.emphasizeNegative = false,
+  });
 
-  final String text;
+  final String value;
+  final String suffix;
+  final bool emphasizeNegative;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Text(
-        text,
-        style: Theme.of(
-          context,
-        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+    final theme = Theme.of(context);
+    final parsed = double.tryParse(value.trim());
+    final isNegative = emphasizeNegative && (parsed ?? 0) < 0;
+    final displayValue = value.trim().isEmpty
+        ? '-'
+        : suffix.isEmpty
+        ? value
+        : '$value$suffix';
+
+    return Text(
+      displayValue,
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: isNegative
+            ? theme.colorScheme.error
+            : theme.colorScheme.onSurface,
+        fontWeight: isNegative ? FontWeight.w700 : FontWeight.w500,
       ),
-    );
-  }
-}
-
-class _BudgetVsTd extends StatelessWidget {
-  const _BudgetVsTd(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
     );
   }
 }
