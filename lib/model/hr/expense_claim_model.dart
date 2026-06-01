@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import 'expense_claim_line_model.dart';
 
 class ExpenseClaimModel extends JsonModel {
   const ExpenseClaimModel({
@@ -20,6 +21,7 @@ class ExpenseClaimModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.lines,
   });
   final int? companyId;
   final int? employeeId;
@@ -38,6 +40,7 @@ class ExpenseClaimModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final List<ExpenseClaimLineModel>? lines;
 
   factory ExpenseClaimModel.fromJson(Map<String, dynamic> json) {
     return ExpenseClaimModel(
@@ -61,6 +64,13 @@ class ExpenseClaimModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      lines: (json['lines'] as List<dynamic>?)
+          ?.whereType<Map>()
+          .map(
+            (line) =>
+                ExpenseClaimLineModel.fromJson(Map<String, dynamic>.from(line)),
+          )
+          .toList(growable: false),
     );
   }
   @override
@@ -69,7 +79,6 @@ class ExpenseClaimModel extends JsonModel {
     claimDate,
     claimStatus,
   ], defaultValue: 'Expense Claim');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -92,5 +101,10 @@ class ExpenseClaimModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (lines != null)
+      'lines': lines!
+          .whereType<ExpenseClaimLineModel>()
+          .map((line) => line.toJson())
+          .toList(growable: false),
   };
 }

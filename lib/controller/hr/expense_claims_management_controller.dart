@@ -224,6 +224,7 @@ class ExpenseClaimsManagementController extends GetxController {
 
   int? linkedEmployeeId;
   bool canViewAllClaims = false;
+  bool canSelfServiceClaims = false;
 
   List<EmployeeModel> employees = const <EmployeeModel>[];
   int? employeeId;
@@ -236,7 +237,7 @@ class ExpenseClaimsManagementController extends GetxController {
 
   bool get employeeFieldReadOnly => true;
 
-  bool get isSelfServiceUser => !canViewAllClaims;
+  bool get isSelfServiceUser => canSelfServiceClaims;
 
   String get editorTitle => isNewClaim
       ? 'New expense claim'
@@ -281,7 +282,8 @@ class ExpenseClaimsManagementController extends GetxController {
 
   List<ExpenseClaimModel> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
-    final visibleRows = canViewAllClaims
+    final showApprovalQueueOnly = canViewAllClaims && !canSelfServiceClaims;
+    final visibleRows = showApprovalQueueOnly
         ? rows
               .where((ExpenseClaimModel row) {
                 return isHrApprovalQueueRow(row.toJson());
@@ -335,6 +337,9 @@ class ExpenseClaimsManagementController extends GetxController {
       if (sessionCompanyId == null) {
         companyBanner = info.banner;
         companyId = null;
+        canSelfServiceClaims = false;
+        canViewAllClaims = false;
+        linkedEmployeeId = null;
         rows = const <ExpenseClaimModel>[];
         initialLoading = false;
         pageError = 'Select a session company to load expense claims.';
@@ -352,6 +357,9 @@ class ExpenseClaimsManagementController extends GetxController {
           contextData['can_view_all_claims'] == 1 ||
           contextData['can_view_all_hr_records'] == true ||
           contextData['can_view_all_hr_records'] == 1;
+      final allowSelfService =
+          contextData['can_self_service_expense_claims'] == true ||
+          contextData['can_self_service_expense_claims'] == 1;
       final linkedId = intValue(contextData, 'employee_id');
 
       final employeeResponse = await hrService.employees(
@@ -384,6 +392,7 @@ class ExpenseClaimsManagementController extends GetxController {
       companyId = sessionCompanyId;
       linkedEmployeeId = linkedId;
       canViewAllClaims = allowViewAll;
+      canSelfServiceClaims = allowSelfService;
       rows = nextRows;
       initialLoading = false;
 

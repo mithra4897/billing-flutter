@@ -574,39 +574,65 @@ class FinancialReportViews {
       );
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowHeight: 52,
-        dataRowMinHeight: 56,
-        dataRowMaxHeight: 64,
-        columns: headers
-            .map(
-              (header) => DataColumn(
-                numeric: _isNumericHeader(header),
-                label: Text(header),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final estimatedWidth = headers.fold<double>(
+          0,
+          (sum, header) => sum + (_isNumericHeader(header) ? 140.0 : 220.0),
+        );
+
+        return Scrollbar(
+          thumbVisibility: true,
+          notificationPredicate: (notification) =>
+              notification.metrics.axis == Axis.horizontal,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                maxWidth: estimatedWidth > constraints.maxWidth
+                    ? estimatedWidth
+                    : constraints.maxWidth,
               ),
-            )
-            .toList(growable: false),
-        rows: rows
-            .map(
-              (cells) => DataRow(
-                cells: cells
-                    .asMap()
-                    .entries
+              child: DataTable(
+                headingRowHeight: 52,
+                dataRowMinHeight: 56,
+                dataRowMaxHeight: 64,
+                columnSpacing: AppUiConstants.spacingLg,
+                horizontalMargin: AppUiConstants.spacingSm,
+                columns: headers
                     .map(
-                      (entry) => DataCell(
-                        _ReportTableCell(
-                          text: entry.value,
-                          alignEnd: _isNumericHeader(headers[entry.key]),
-                        ),
+                      (header) => DataColumn(
+                        numeric: _isNumericHeader(header),
+                        label: Text(header),
+                      ),
+                    )
+                    .toList(growable: false),
+                rows: rows
+                    .map(
+                      (cells) => DataRow(
+                        cells: cells
+                            .asMap()
+                            .entries
+                            .map(
+                              (entry) => DataCell(
+                                _ReportTableCell(
+                                  text: entry.value,
+                                  alignEnd: _isNumericHeader(
+                                    headers[entry.key],
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
                       ),
                     )
                     .toList(growable: false),
               ),
-            )
-            .toList(growable: false),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
