@@ -27,8 +27,9 @@ class _PostingRuleGroupManagementPageState
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('PostingRuleGroupManagementController');
+    _controllerTag = persistentControllerTag(
+      'PostingRuleGroupManagementController',
+    );
     Get.put(PostingRuleGroupManagementController(), tag: _controllerTag);
   }
 
@@ -135,13 +136,12 @@ class _PostingRuleGroupManagementPageState
                     Validators.optionalMaxLength(150, 'Group name'),
                   ]),
                 ),
-                AppFormTextField(
+                AppDropdownField<String>.fromMapped(
                   labelText: 'Document type',
-                  controller: controller.documentTypeController,
-                  validator: Validators.compose([
-                    Validators.required('Document type'),
-                    Validators.optionalMaxLength(50, 'Document type'),
-                  ]),
+                  mappedItems: controller.documentTypeItems,
+                  initialValue: controller.documentType,
+                  onChanged: controller.setDocumentType,
+                  validator: Validators.requiredSelection('Document type'),
                 ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Trigger event',

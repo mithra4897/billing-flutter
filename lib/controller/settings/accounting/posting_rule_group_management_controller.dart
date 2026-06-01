@@ -5,6 +5,7 @@ class PostingRuleGroupManagementController extends GetxController {
   PostingRuleGroupManagementController();
 
   final AccountsService _accountsService = AccountsService();
+  final MasterService _masterService = MasterService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -13,7 +14,6 @@ class PostingRuleGroupManagementController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController codeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController documentTypeController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
   bool initialLoading = true;
@@ -22,7 +22,10 @@ class PostingRuleGroupManagementController extends GetxController {
   String? formError;
   List<PostingRuleGroupModel> rows = const <PostingRuleGroupModel>[];
   List<PostingRuleGroupModel> filtered = const <PostingRuleGroupModel>[];
+  List<AppDropdownItem<String>> documentTypeItems =
+      const <AppDropdownItem<String>>[];
   PostingRuleGroupModel? selected;
+  String? documentType;
   String triggerEvent = 'on_post';
   bool isActive = true;
 
@@ -42,7 +45,6 @@ class PostingRuleGroupManagementController extends GetxController {
       ..dispose();
     codeController.dispose();
     nameController.dispose();
-    documentTypeController.dispose();
     descriptionController.dispose();
     super.onClose();
   }
@@ -55,12 +57,22 @@ class PostingRuleGroupManagementController extends GetxController {
     pageError = null;
     update();
     try {
-      final response = await _accountsService.postingRuleGroups(
-        filters: const {'per_page': 300, 'sort_by': 'group_name'},
-      );
-      final items = response.data ?? const <PostingRuleGroupModel>[];
+      final responses = await Future.wait([
+        _accountsService.postingRuleGroups(
+          filters: const {'per_page': 300, 'sort_by': 'group_name'},
+        ),
+        _masterService.documentSeries(filters: const {'per_page': 500}),
+      ]);
+      final groupsResponse =
+          responses[0] as PaginatedResponse<PostingRuleGroupModel>;
+      final documentSeriesResponse =
+          responses[1] as PaginatedResponse<DocumentSeriesModel>;
+      final items = groupsResponse.data ?? const <PostingRuleGroupModel>[];
       rows = items;
       filtered = _filter(items, searchController.text);
+      documentTypeItems = buildDocumentTypeDropdownItems(
+        documentSeriesResponse.data ?? const <DocumentSeriesModel>[],
+      );
 
       final nextSelected = selectId != null
           ? items.cast<PostingRuleGroupModel?>().firstWhere(
@@ -113,7 +125,7 @@ class PostingRuleGroupManagementController extends GetxController {
     selected = item;
     codeController.text = stringValue(data, 'group_code');
     nameController.text = stringValue(data, 'group_name');
-    documentTypeController.text = stringValue(data, 'document_type');
+    _setDocumentType(stringValue(data, 'document_type'));
     descriptionController.text = stringValue(data, 'description');
     triggerEvent = stringValue(data, 'trigger_event', 'on_post');
     isActive = boolValue(data, 'is_active', fallback: true);
@@ -127,7 +139,7 @@ class PostingRuleGroupManagementController extends GetxController {
     selected = null;
     codeController.clear();
     nameController.clear();
-    documentTypeController.clear();
+    documentType = null;
     descriptionController.clear();
     triggerEvent = 'on_post';
     isActive = true;
@@ -139,6 +151,11 @@ class PostingRuleGroupManagementController extends GetxController {
 
   void setTriggerEvent(String? value) {
     triggerEvent = value ?? 'on_post';
+    update();
+  }
+
+  void setDocumentType(String? value) {
+    _setDocumentType(value);
     update();
   }
 
@@ -164,7 +181,7 @@ class PostingRuleGroupManagementController extends GetxController {
     final body = PostingRuleGroupModel.fromJson(<String, dynamic>{
       'group_code': codeController.text.trim(),
       'group_name': nameController.text.trim(),
-      'document_type': documentTypeController.text.trim(),
+      'document_type': documentType,
       'trigger_event': triggerEvent,
       'description': nullIfEmpty(descriptionController.text),
       'is_active': isActive,
@@ -216,5 +233,14 @@ class PostingRuleGroupManagementController extends GetxController {
       saving = false;
       update();
     }
+  }
+
+  void _setDocumentType(String? value) {
+    final resolved = resolveDocumentTypeSelection(
+      items: documentTypeItems,
+      value: value,
+    );
+    documentType = resolved.selectedValue;
+    documentTypeItems = resolved.items;
   }
 }

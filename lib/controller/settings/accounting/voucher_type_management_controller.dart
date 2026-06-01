@@ -5,6 +5,7 @@ class VoucherTypeManagementController extends GetxController {
   VoucherTypeManagementController();
 
   final AccountsService _accountsService = AccountsService();
+  final MasterService _masterService = MasterService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -13,7 +14,6 @@ class VoucherTypeManagementController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController codeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController documentTypeController = TextEditingController();
 
   bool initialLoading = true;
   bool saving = false;
@@ -21,7 +21,10 @@ class VoucherTypeManagementController extends GetxController {
   String? formError;
   List<VoucherTypeModel> types = const <VoucherTypeModel>[];
   List<VoucherTypeModel> filteredTypes = const <VoucherTypeModel>[];
+  List<AppDropdownItem<String>> documentTypeItems =
+      const <AppDropdownItem<String>>[];
   VoucherTypeModel? selectedType;
+  String? documentType;
   String voucherCategory = 'journal';
   bool autoPost = true;
   bool requiresApproval = false;
@@ -44,7 +47,6 @@ class VoucherTypeManagementController extends GetxController {
       ..dispose();
     codeController.dispose();
     nameController.dispose();
-    documentTypeController.dispose();
     super.onClose();
   }
 
@@ -54,13 +56,23 @@ class VoucherTypeManagementController extends GetxController {
     update();
 
     try {
-      final response = await _accountsService.voucherTypes(
-        filters: const {'per_page': 300, 'sort_by': 'name'},
-      );
-      final items = response.data ?? const <VoucherTypeModel>[];
+      final responses = await Future.wait([
+        _accountsService.voucherTypes(
+          filters: const {'per_page': 300, 'sort_by': 'name'},
+        ),
+        _masterService.documentSeries(filters: const {'per_page': 500}),
+      ]);
+      final voucherTypesResponse =
+          responses[0] as PaginatedResponse<VoucherTypeModel>;
+      final documentSeriesResponse =
+          responses[1] as PaginatedResponse<DocumentSeriesModel>;
+      final items = voucherTypesResponse.data ?? const <VoucherTypeModel>[];
 
       types = items;
       filteredTypes = _filterTypes(items, searchController.text);
+      documentTypeItems = buildDocumentTypeDropdownItems(
+        documentSeriesResponse.data ?? const <DocumentSeriesModel>[],
+      );
       initialLoading = false;
 
       final selected = selectId != null
@@ -111,7 +123,7 @@ class VoucherTypeManagementController extends GetxController {
     selectedType = item;
     codeController.text = item.code ?? '';
     nameController.text = item.name ?? '';
-    documentTypeController.text = item.documentType ?? '';
+    _setDocumentType(item.documentType);
     voucherCategory = item.voucherCategory ?? 'journal';
     autoPost = item.autoPost;
     requiresApproval = item.requiresApproval;
@@ -127,7 +139,7 @@ class VoucherTypeManagementController extends GetxController {
     selectedType = null;
     codeController.clear();
     nameController.clear();
-    documentTypeController.clear();
+    documentType = null;
     voucherCategory = 'journal';
     autoPost = true;
     requiresApproval = false;
@@ -141,6 +153,11 @@ class VoucherTypeManagementController extends GetxController {
 
   void setVoucherCategory(String? value) {
     voucherCategory = value ?? 'journal';
+    update();
+  }
+
+  void setDocumentType(String? value) {
+    _setDocumentType(value);
     update();
   }
 
@@ -185,7 +202,7 @@ class VoucherTypeManagementController extends GetxController {
       code: codeController.text.trim(),
       name: nameController.text.trim(),
       voucherCategory: voucherCategory,
-      documentType: nullIfEmpty(documentTypeController.text),
+      documentType: documentType,
       autoPost: autoPost,
       requiresApproval: requiresApproval,
       allowsReferenceAllocation: allowsReferenceAllocation,
@@ -236,5 +253,14 @@ class VoucherTypeManagementController extends GetxController {
       saving = false;
       update();
     }
+  }
+
+  void _setDocumentType(String? value) {
+    final resolved = resolveDocumentTypeSelection(
+      items: documentTypeItems,
+      value: value,
+    );
+    documentType = resolved.selectedValue;
+    documentTypeItems = resolved.items;
   }
 }

@@ -31,8 +31,7 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('VoucherTypeManagementController');
+    _controllerTag = persistentControllerTag('VoucherTypeManagementController');
     Get.put(VoucherTypeManagementController(), tag: _controllerTag);
   }
 
@@ -140,10 +139,11 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
                   onChanged: controller.setVoucherCategory,
                   validator: Validators.requiredSelection('Voucher Category'),
                 ),
-                AppFormTextField(
+                AppDropdownField<String>.fromMapped(
                   labelText: 'Document Type',
-                  controller: controller.documentTypeController,
-                  validator: Validators.optionalMaxLength(50, 'Document Type'),
+                  mappedItems: controller.documentTypeItems,
+                  initialValue: controller.documentType,
+                  onChanged: controller.setDocumentType,
                 ),
               ],
             ),
