@@ -173,11 +173,15 @@ class _BankReconciliationManagementPageState
                 AppFormTextField(
                   labelText: 'Bank Date',
                   controller: controller.bankDateController,
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
                   validator: Validators.optionalDate('Bank Date'),
                 ),
                 AppFormTextField(
                   labelText: 'Cleared Date',
                   controller: controller.clearedDateController,
+                  keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateInputFormatter()],
                   validator: Validators.optionalDate('Cleared Date'),
                 ),
                 AppFormTextField(
