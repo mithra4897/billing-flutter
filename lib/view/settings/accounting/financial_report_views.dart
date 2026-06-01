@@ -562,54 +562,72 @@ class FinancialReportViews {
     List<String> headers,
     List<List<String>> rows,
   ) {
-    final borderColor = theme.dividerColor.withValues(alpha: 0.5);
-    final headerStyle = theme.textTheme.labelMedium?.copyWith(
-      fontWeight: FontWeight.w700,
-    );
-    final cellStyle = theme.textTheme.bodySmall;
+    if (rows.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppUiConstants.spacingLg),
+        child: Text(
+          'No rows available.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.extension<AppThemeExtension>()!.mutedText,
+          ),
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Table(
-        border: TableBorder.all(color: borderColor, width: 0.5),
-        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-        children: [
-          TableRow(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.4,
+      child: DataTable(
+        headingRowHeight: 52,
+        dataRowMinHeight: 56,
+        dataRowMaxHeight: 64,
+        columns: headers
+            .map(
+              (header) => DataColumn(
+                numeric: _isNumericHeader(header),
+                label: Text(header),
               ),
-            ),
-            children: headers
-                .map(
-                  (h) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    child: Text(h, style: headerStyle),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-          ...rows.map(
-            (cells) => TableRow(
-              children: cells
-                  .map(
-                    (c) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+            )
+            .toList(growable: false),
+        rows: rows
+            .map(
+              (cells) => DataRow(
+                cells: cells
+                    .asMap()
+                    .entries
+                    .map(
+                      (entry) => DataCell(
+                        _ReportTableCell(
+                          text: entry.value,
+                          alignEnd: _isNumericHeader(headers[entry.key]),
+                        ),
                       ),
-                      child: Text(c, style: cellStyle),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-          ),
-        ],
+                    )
+                    .toList(growable: false),
+              ),
+            )
+            .toList(growable: false),
       ),
     );
+  }
+
+  static bool _isNumericHeader(String header) {
+    const numericHeaders = <String>{
+      'Debit',
+      'Credit',
+      'Balance',
+      'Amount',
+      'Outstanding',
+      'Inflows',
+      'Outflows',
+      'Net',
+      'Days',
+      'Ln',
+      'Utilization %',
+      'Budget',
+      'Actual',
+      'Variance',
+    };
+    return numericHeaders.contains(header);
   }
 
   static String _money(dynamic v) {
@@ -641,5 +659,32 @@ class FinancialReportViews {
       return const <dynamic>[];
     }
     return v;
+  }
+}
+
+class _ReportTableCell extends StatelessWidget {
+  const _ReportTableCell({required this.text, required this.alignEnd});
+
+  final String text;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Text(
+      text.trim().isEmpty ? '-' : text,
+      overflow: TextOverflow.ellipsis,
+      textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+      style: Theme.of(context).textTheme.bodySmall,
+    );
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minWidth: alignEnd ? 96 : 120,
+        maxWidth: alignEnd ? 140 : 260,
+      ),
+      child: alignEnd
+          ? Align(alignment: Alignment.centerRight, child: child)
+          : child,
+    );
   }
 }
