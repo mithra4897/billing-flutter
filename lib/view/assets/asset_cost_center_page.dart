@@ -137,13 +137,6 @@ class _AssetCostCenterPageState extends State<AssetCostCenterPage> {
                     AppErrorStateView.inline(message: controller.formError!),
                     const SizedBox(height: AppUiConstants.spacingSm),
                   ],
-                  Text(
-                    controller.selected == null
-                        ? 'New cost center'
-                        : 'Edit cost center',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingMd),
                   if (controller.saving) const LinearProgressIndicator(),
                   SettingsFormWrap(
                     children: [

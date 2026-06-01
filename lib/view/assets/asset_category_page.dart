@@ -30,7 +30,7 @@ class _AssetCategoryPageState extends State<AssetCategoryPage> {
     _vm = Get.put(
       AssetCategoryViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -210,7 +210,6 @@ class _AssetCategoryEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isExisting = intValue(vm.detail?.toJson() ?? {}, 'id') != null;
     final parents = vm.parentOptions();
 
@@ -222,11 +221,6 @@ class _AssetCategoryEditor extends StatelessWidget {
             AppErrorStateView.inline(message: vm.formError!),
             const SizedBox(height: AppUiConstants.spacingSm),
           ],
-          Text(
-            isExisting ? 'Edit category' : 'New category',
-            style: theme.textTheme.headlineSmall,
-          ),
-          const SizedBox(height: AppUiConstants.spacingMd),
           if (vm.saving) const LinearProgressIndicator(),
           SettingsFormWrap(
             children: [

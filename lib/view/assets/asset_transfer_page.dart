@@ -64,7 +64,7 @@ class _AssetTransferPageState extends State<AssetTransferPage> {
     _vm = Get.put(
       AssetTransferViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -266,11 +266,6 @@ class _AssetTransferEditor extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'New asset transfer',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: AppUiConstants.spacingMd),
               Text(
                 'Creating a transfer requires at least one asset line and '
                 'branch details. Use the ERP web app or API until a mobile '

@@ -145,11 +145,6 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
                     AppErrorStateView.inline(message: controller.formError!),
                     const SizedBox(height: AppUiConstants.spacingSm),
                   ],
-                  Text(
-                    controller.selected == null ? 'New asset' : 'Edit asset',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingMd),
                   if (controller.saving || controller.actionBusy)
                     const LinearProgressIndicator(),
                   SettingsFormWrap(

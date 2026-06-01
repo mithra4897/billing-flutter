@@ -130,13 +130,6 @@ class _AssetDisposalPageState extends State<AssetDisposalPage> {
                     AppErrorStateView.inline(message: controller.formError!),
                     const SizedBox(height: AppUiConstants.spacingSm),
                   ],
-                  Text(
-                    controller.selected == null
-                        ? 'New asset disposal'
-                        : 'Edit disposal',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingMd),
                   if (controller.saving || controller.actionBusy)
                     const LinearProgressIndicator(),
                   if (controller.companyBanner != null &&

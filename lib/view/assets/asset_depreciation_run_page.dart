@@ -574,8 +574,6 @@ class _CreateDepreciationRunForm extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('New depreciation run', style: theme.textTheme.headlineSmall),
-            const SizedBox(height: AppUiConstants.spacingMd),
             if (vm.sessionCompanyId == null)
               Padding(
                 padding: const EdgeInsets.only(
