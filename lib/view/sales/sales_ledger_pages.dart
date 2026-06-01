@@ -26,6 +26,13 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
         AppDropdownItem(value: 'active', label: 'Active'),
         AppDropdownItem(value: 'inactive', label: 'Inactive'),
       ];
+  static const List<AppDropdownItem<String>> _balanceItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All balances'),
+        AppDropdownItem(value: 'receivable', label: 'Receivable'),
+        AppDropdownItem(value: 'advance', label: 'Advance'),
+        AppDropdownItem(value: 'settled', label: 'Settled'),
+      ];
 
   final AccountsService _accountsService = AccountsService();
   final SalesService _salesService = SalesService();
@@ -34,6 +41,7 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
   bool _loading = true;
   String? _errorMessage;
   String _status = '';
+  String _balanceFilter = '';
   List<_SalesLedgerRegisterRow> _rows = const <_SalesLedgerRegisterRow>[];
 
   List<_SalesLedgerRegisterRow> get _filteredRows {
@@ -43,6 +51,11 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
           final statusOk =
               _status.isEmpty ||
               (_status == 'active' ? row.isActive : !row.isActive);
+          final balanceOk =
+              _balanceFilter.isEmpty ||
+              (_balanceFilter == 'receivable' && row.receivableAmount > 0) ||
+              (_balanceFilter == 'advance' && row.advanceAmount > 0) ||
+              (_balanceFilter == 'settled' && row.outstanding == 0);
           final searchOk =
               query.isEmpty ||
               [
@@ -51,7 +64,7 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
                 row.ledgerCode,
                 row.ledgerName,
               ].join(' ').toLowerCase().contains(query);
-          return statusOk && searchOk;
+          return statusOk && balanceOk && searchOk;
         })
         .toList(growable: false);
   }
@@ -192,6 +205,12 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
     });
   }
 
+  void _setBalanceFilter(String? value) {
+    setState(() {
+      _balanceFilter = value ?? '';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return PurchaseRegisterPage<_SalesLedgerRegisterRow>(
@@ -214,6 +233,9 @@ class _SalesLedgerRegisterPageState extends State<SalesLedgerRegisterPage> {
         status: _status,
         statusItems: _statusItems,
         onStatusChanged: _setStatus,
+        balanceFilter: _balanceFilter,
+        balanceItems: _balanceItems,
+        onBalanceChanged: _setBalanceFilter,
       ),
       rows: _filteredRows,
       columns: [
@@ -553,12 +575,18 @@ class _SalesLedgerFilters extends StatelessWidget {
     required this.status,
     required this.statusItems,
     required this.onStatusChanged,
+    required this.balanceFilter,
+    required this.balanceItems,
+    required this.onBalanceChanged,
   });
 
   final TextEditingController searchController;
   final String status;
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<String?> onStatusChanged;
+  final String balanceFilter;
+  final List<AppDropdownItem<String>> balanceItems;
+  final ValueChanged<String?> onBalanceChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -581,6 +609,15 @@ class _SalesLedgerFilters extends StatelessWidget {
             mappedItems: statusItems,
             initialValue: status,
             onChanged: onStatusChanged,
+          ),
+        ),
+        SizedBox(
+          width: 220,
+          child: AppDropdownField<String>.fromMapped(
+            labelText: 'Ledger Balance',
+            mappedItems: balanceItems,
+            initialValue: balanceFilter,
+            onChanged: onBalanceChanged,
           ),
         ),
       ],
