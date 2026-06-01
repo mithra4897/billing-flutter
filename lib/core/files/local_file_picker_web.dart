@@ -8,41 +8,26 @@ import 'local_file_picker.dart';
 
 Future<LocalPickedFile?> pickSingleFile({String accept = '*/*'}) async {
   final input = html.FileUploadInputElement()..accept = accept;
-  final completer = Completer<LocalPickedFile?>();
+  input.click();
+  await input.onChange.first;
 
-  void completeOnce(LocalPickedFile? value) {
-    if (!completer.isCompleted) {
-      completer.complete(value);
-    }
+  final file = input.files?.isNotEmpty == true ? input.files!.first : null;
+  if (file == null) {
+    return null;
   }
 
-  input.onChange.first.then((_) {
-    final file = input.files?.isNotEmpty == true ? input.files!.first : null;
-    if (file == null) {
-      completeOnce(null);
-      return;
+  final reader = html.FileReader();
+  final errorFuture = reader.onError.first.then((_) => null);
+  final loadFuture = reader.onLoad.first.then((_) {
+    final result = reader.result;
+    if (result is! ByteBuffer) {
+      return null;
     }
-
-    final reader = html.FileReader();
-    reader.onError.first.then((_) {
-      completeOnce(null);
-    });
-    reader.onLoad.first.then((_) {
-      final result = reader.result;
-      if (result is! ByteBuffer) {
-        completeOnce(null);
-        return;
-      }
-
-      completeOnce(
-        LocalPickedFile(name: file.name, bytes: Uint8List.view(result)),
-      );
-    });
-    reader.readAsArrayBuffer(file);
+    return LocalPickedFile(name: file.name, bytes: Uint8List.view(result));
   });
 
-  input.click();
-  return completer.future;
+  reader.readAsArrayBuffer(file);
+  return await Future.any<LocalPickedFile?>([loadFuture, errorFuture]);
 }
 
 Future<bool> saveTextFile({

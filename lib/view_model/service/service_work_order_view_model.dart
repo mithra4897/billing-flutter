@@ -316,7 +316,7 @@ class ServiceWorkOrderViewModel extends GetxController {
     }
   }
 
-  void setServiceTicketId(int? value) {
+  Future<void> setServiceTicketId(int? value) async {
     if (!canEdit) {
       return;
     }
@@ -325,27 +325,21 @@ class ServiceWorkOrderViewModel extends GetxController {
       update();
       return;
     }
-    _service
-        .ticket(value)
-        .then((response) {
-          final doc = response.data;
-          if (doc != null) {
-            final data = doc.toJson();
-            companyId = intValue(data, 'company_id');
-            customerPartyId = intValue(data, 'customer_party_id');
-            branchId = intValue(data, 'branch_id');
-            locationId = intValue(data, 'location_id');
-            financialYearId = intValue(data, 'financial_year_id');
-            diagnosisNotesController.text = stringValue(
-              data,
-              'issue_description',
-            );
-          }
-          update();
-        })
-        .catchError((_) {
-          update();
-        });
+    try {
+      final response = await _service.ticket(value);
+      final doc = response.data;
+      if (doc != null) {
+        final data = doc.toJson();
+        companyId = intValue(data, 'company_id');
+        customerPartyId = intValue(data, 'customer_party_id');
+        branchId = intValue(data, 'branch_id');
+        locationId = intValue(data, 'location_id');
+        financialYearId = intValue(data, 'financial_year_id');
+        diagnosisNotesController.text = stringValue(data, 'issue_description');
+      }
+    } finally {
+      update();
+    }
   }
 
   void setCompanyId(int? value) {
