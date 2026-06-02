@@ -374,6 +374,16 @@ class PurchaseOrderManagementController extends GetxController {
               orElse: () => null,
             )
           : null;
+      if (selected == null && selectId != null) {
+        try {
+          final detail = (await _purchaseService.order(selectId)).data;
+          if (detail != null) {
+            await selectDocument(detail, notify: false);
+            update();
+            return;
+          }
+        } catch (_) {}
+      }
       if (selected != null) {
         await selectDocument(selected, notify: false);
       } else {

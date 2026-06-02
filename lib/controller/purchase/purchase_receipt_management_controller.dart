@@ -322,6 +322,16 @@ class PurchaseReceiptManagementController extends GetxController {
               orElse: () => null,
             )
           : null;
+      if (selected == null && selectId != null) {
+        try {
+          final detail = (await _purchaseService.receipt(selectId)).data;
+          if (detail != null) {
+            await selectDocument(detail, notify: false);
+            update();
+            return;
+          }
+        } catch (_) {}
+      }
       if (selected != null) {
         await selectDocument(selected, notify: false);
       } else {

@@ -381,6 +381,17 @@ class SalesReturnManagementController extends GetxController {
           ? (items.isNotEmpty ? items.first : null)
           : null;
 
+      if (selected == null && selectId != null) {
+        try {
+          final detail = (await _salesService.returnDoc(selectId)).data;
+          if (detail != null) {
+            await selectDocument(detail, notify: false);
+            update();
+            return;
+          }
+        } catch (_) {}
+      }
+
       if (selected != null) {
         await selectDocument(selected, notify: false);
       } else {

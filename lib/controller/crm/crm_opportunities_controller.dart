@@ -247,6 +247,17 @@ class CrmOpportunitiesController extends GetxController {
                     orElse: () => items.isNotEmpty ? items.first : null,
                   ));
 
+      if (selected == null && selectId != null) {
+        try {
+          final detail = (await _crmService.opportunity(selectId)).data;
+          if (detail != null) {
+            await selectItem(detail, notify: false);
+            update();
+            return;
+          }
+        } catch (_) {}
+      }
+
       if (selected != null) {
         await selectItem(selected, notify: false);
       } else {

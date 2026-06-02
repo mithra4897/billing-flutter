@@ -306,6 +306,16 @@ class PurchaseReturnManagementController extends GetxController {
               orElse: () => null,
             )
           : null;
+      if (selected == null && selectId != null) {
+        try {
+          final detail = (await _purchaseService.returnDoc(selectId)).data;
+          if (detail != null) {
+            await selectDocument(detail, notify: false);
+            update();
+            return;
+          }
+        } catch (_) {}
+      }
       if (selected != null) {
         await selectDocument(selected, notify: false);
       } else {

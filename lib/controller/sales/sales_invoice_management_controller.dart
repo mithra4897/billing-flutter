@@ -1904,6 +1904,18 @@ class SalesInvoiceManagementController extends GetxController {
                       ? (items.isNotEmpty ? items.first : null)
                       : null));
 
+      if (selected == null && selectId != null) {
+        try {
+          final detail = (await salesService.invoice(selectId)).data;
+          if (detail != null) {
+            pendingSelection = null;
+            await selectDocument(detail);
+            update();
+            return;
+          }
+        } catch (_) {}
+      }
+
       if (selected != null) {
         pendingSelection = null;
         await selectDocument(selected);
