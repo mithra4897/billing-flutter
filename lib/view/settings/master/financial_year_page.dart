@@ -92,7 +92,7 @@ class _FinancialYearManagementPageState
             editorTitle: controller.selectedFinancialYear?.toString(),
             scrollController: controller.pageScrollController,
             list: _buildListCard(controller),
-            editor: _buildEditor(context, controller),
+            editorBuilder: (_) => _buildEditor(context, controller),
           ),
         );
       },

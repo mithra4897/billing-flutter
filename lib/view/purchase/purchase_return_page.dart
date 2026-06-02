@@ -130,7 +130,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

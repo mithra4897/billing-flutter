@@ -83,6 +83,7 @@ class AppBootstrapController extends GetxController {
 
   void _scheduleNavigation(VoidCallback action) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusManager.instance.primaryFocus?.unfocus();
       action();
     });
   }

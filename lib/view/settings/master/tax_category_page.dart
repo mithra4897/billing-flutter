@@ -99,7 +99,7 @@ class _TaxCategoryManagementPageState extends State<TaxCategoryManagementPage> {
           ),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

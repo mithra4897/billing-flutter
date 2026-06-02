@@ -105,7 +105,7 @@ class _VoucherTypeManagementPageState extends State<VoucherTypeManagementPage> {
           onTap: () => controller.selectType(item),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -141,7 +141,7 @@ class _PostingRuleManagementPageState extends State<PostingRuleManagementPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

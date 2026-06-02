@@ -446,7 +446,7 @@ class _EmailMessagesPageState extends State<EmailMessagesPage> {
           );
         },
       ),
-      editor: controller.selectedMessage == null
+      editorBuilder: (_) => controller.selectedMessage == null
           ? const SettingsEmptyState(
               icon: Icons.mark_email_read_outlined,
               title: 'No email selected',

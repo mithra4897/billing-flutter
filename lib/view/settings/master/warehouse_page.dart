@@ -121,7 +121,7 @@ class _WarehouseManagementPageState extends State<WarehouseManagementPage> {
           onTap: () => controller.selectWarehouse(warehouse),
         ),
       ),
-      editor: _buildEditor(context, controller),
+      editorBuilder: (_) => _buildEditor(context, controller),
     );
   }
 

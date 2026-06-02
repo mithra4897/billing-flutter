@@ -88,7 +88,7 @@ class _CashSessionManagementPageState extends State<CashSessionManagementPage> {
           onTap: () => controller.selectSession(item),
         ),
       ),
-      editor: Column(
+      editorBuilder: (_) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (controller.formError != null) ...[

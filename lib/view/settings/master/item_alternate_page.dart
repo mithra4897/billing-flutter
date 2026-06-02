@@ -157,7 +157,7 @@ class _ItemAlternateManagementPageState
           onTap: () => controller.selectMaster(item.id!),
         ),
       ),
-      editor: AppSectionCard(
+      editorBuilder: (_) => AppSectionCard(
         child: controller.selectedMasterId == null
             ? const SettingsEmptyState(
                 icon: Icons.compare_arrows_outlined,

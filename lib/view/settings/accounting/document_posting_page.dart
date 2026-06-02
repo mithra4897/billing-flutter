@@ -103,7 +103,7 @@ class _DocumentPostingManagementPageState
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

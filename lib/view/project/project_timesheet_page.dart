@@ -101,7 +101,7 @@ class _ProjectTimesheetManagementPageState
           onTap: () => controller.selectRow(row),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

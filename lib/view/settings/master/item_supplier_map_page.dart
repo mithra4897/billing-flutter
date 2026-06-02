@@ -194,7 +194,7 @@ class _ItemSupplierMapManagementPageState
           );
         },
       ),
-      editor: AppSectionCard(
+      editorBuilder: (_) => AppSectionCard(
         child: controller.selectedMasterId == null
             ? SettingsEmptyState(
                 icon: controller.isItemWise

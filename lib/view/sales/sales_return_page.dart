@@ -135,7 +135,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

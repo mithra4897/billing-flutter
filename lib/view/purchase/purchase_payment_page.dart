@@ -157,7 +157,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

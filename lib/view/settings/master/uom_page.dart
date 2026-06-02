@@ -116,7 +116,7 @@ class _UomManagementPageState extends State<UomManagementPage>
             ),
           ),
         ),
-        editor: Column(
+        editorBuilder: (_) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TabBar(

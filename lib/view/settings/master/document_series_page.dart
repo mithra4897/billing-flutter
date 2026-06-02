@@ -96,7 +96,7 @@ class _DocumentSeriesManagementPageState
           onTap: () => controller.selectSeries(item),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -355,7 +355,7 @@ class _ExpenseClaimsManagementPageState
           ),
         ],
       ),
-      editor: controller.editorLoading
+      editorBuilder: (_) => controller.editorLoading
           ? const AppLoadingView(message: 'Loading claim…')
           : _buildEditor(controller),
     );

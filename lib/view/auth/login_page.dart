@@ -215,6 +215,8 @@ class _LoginPageState extends State<LoginPage> {
                                             if (!context.mounted || !success) {
                                               return;
                                             }
+                                            FocusManager.instance.primaryFocus
+                                                ?.unfocus();
                                             Navigator.of(
                                               context,
                                             ).pushNamedAndRemoveUntil(

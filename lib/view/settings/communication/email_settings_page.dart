@@ -95,7 +95,7 @@ class _EmailSettingsPageState extends State<EmailSettingsPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

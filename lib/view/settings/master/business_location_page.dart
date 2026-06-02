@@ -125,7 +125,7 @@ class _BusinessLocationManagementPageState
           onTap: () => controller.selectLocation(location),
         ),
       ),
-      editor: _buildEditor(context, controller),
+      editorBuilder: (_) => _buildEditor(context, controller),
     );
   }
 

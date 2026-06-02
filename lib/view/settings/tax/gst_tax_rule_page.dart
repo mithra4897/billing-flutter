@@ -94,7 +94,7 @@ class _GstTaxRuleManagementPageState extends State<GstTaxRuleManagementPage> {
           onTap: () => controller.selectItem(item),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: SettingsFormWrap(
           children: [

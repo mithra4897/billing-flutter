@@ -92,7 +92,7 @@ class _UomConversionManagementPageState
           onTap: () => controller.selectItem(item),
         ),
       ),
-      editor: AppSectionCard(
+      editorBuilder: (_) => AppSectionCard(
         child: Form(
           key: controller.formKey,
           child: Column(

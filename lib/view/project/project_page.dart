@@ -125,7 +125,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
           onTap: () => controller.selectProject(project),
         ),
       ),
-      editor: _buildEditor(context, controller),
+      editorBuilder: (_) => _buildEditor(context, controller),
     );
   }
 

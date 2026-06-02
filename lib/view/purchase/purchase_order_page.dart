@@ -130,7 +130,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

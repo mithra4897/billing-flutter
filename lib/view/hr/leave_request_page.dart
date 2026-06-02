@@ -288,7 +288,7 @@ class _LeaveRequestManagementPageState
           ),
         ],
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: _leaveRequestFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

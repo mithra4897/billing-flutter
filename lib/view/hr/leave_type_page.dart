@@ -90,7 +90,7 @@ class _LeaveTypeManagementPageState extends State<LeaveTypeManagementPage> {
           onTap: () => controller.selectLeaveType(item),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: _leaveTypeFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

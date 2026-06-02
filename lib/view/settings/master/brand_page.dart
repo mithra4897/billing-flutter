@@ -90,7 +90,7 @@ class _BrandManagementPageState extends State<BrandManagementPage> {
           ),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

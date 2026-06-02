@@ -120,7 +120,7 @@ class _BranchManagementPageState extends State<BranchManagementPage>
             onTap: () => controller.selectBranch(branch),
           ),
         ),
-        editor: Column(
+        editorBuilder: (_) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TabBar(

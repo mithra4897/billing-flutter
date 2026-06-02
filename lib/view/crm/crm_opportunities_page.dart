@@ -833,7 +833,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
           _buildOpportunityTable(context, controller),
         ],
       ),
-      editor: Column(
+      editorBuilder: (_) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (controller.formError != null) ...[

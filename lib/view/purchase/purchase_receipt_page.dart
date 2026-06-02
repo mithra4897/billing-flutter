@@ -132,7 +132,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

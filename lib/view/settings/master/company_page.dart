@@ -121,7 +121,7 @@ class _CompanyManagementPageState extends State<CompanyManagementPage>
             onTap: () => controller.selectCompany(company),
           ),
         ),
-        editor: Column(
+        editorBuilder: (_) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TabBar(

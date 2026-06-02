@@ -93,7 +93,7 @@ class _EmailTemplatesPageState extends State<EmailTemplatesPage> {
           ),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

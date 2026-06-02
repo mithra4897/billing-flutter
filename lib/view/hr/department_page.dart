@@ -105,7 +105,7 @@ class _DepartmentManagementPageState extends State<DepartmentManagementPage> {
           ),
         ),
       ),
-      editor: Column(
+      editorBuilder: (_) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppSectionCard(

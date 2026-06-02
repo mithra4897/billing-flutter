@@ -115,6 +115,7 @@ class AppShellController extends GetxController {
 
   void handleNavigate(String route) {
     final uri = Uri.parse(route);
+    FocusManager.instance.primaryFocus?.unfocus();
     shellPageActionsController.clearActions();
     currentPath = uri.path;
     currentQueryParameters = Map<String, String>.from(uri.queryParameters);
@@ -134,6 +135,7 @@ class AppShellController extends GetxController {
 
   void _scheduleNavigation(VoidCallback action) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusManager.instance.primaryFocus?.unfocus();
       action();
     });
   }

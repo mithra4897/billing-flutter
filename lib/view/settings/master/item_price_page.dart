@@ -119,7 +119,7 @@ class _ItemPriceManagementPageState extends State<ItemPriceManagementPage> {
           onTap: () => controller.selectMasterItem(item),
         ),
       ),
-      editor: AppSectionCard(
+      editorBuilder: (_) => AppSectionCard(
         child: controller.selectedItemMaster == null
             ? const SettingsEmptyState(
                 icon: Icons.price_change_outlined,

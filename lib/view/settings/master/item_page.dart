@@ -119,7 +119,7 @@ class _ItemManagementPageState extends State<ItemManagementPage>
           ),
         ),
       ),
-      editor: Column(
+      editorBuilder: (_) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TabBar(

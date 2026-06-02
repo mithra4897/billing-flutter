@@ -90,7 +90,7 @@ class _StateManagementPageState extends State<StateManagementPage> {
           onTap: () => controller.selectState(item),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: SettingsFormWrap(
           children: [

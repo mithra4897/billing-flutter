@@ -93,7 +93,7 @@ class _DesignationManagementPageState extends State<DesignationManagementPage> {
           ),
         ),
       ),
-      editor: Column(
+      editorBuilder: (_) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppSectionCard(

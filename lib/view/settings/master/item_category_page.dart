@@ -92,7 +92,7 @@ class _ItemCategoryManagementPageState
           onTap: () => controller.selectItem(item),
         ),
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

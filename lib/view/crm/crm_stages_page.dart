@@ -115,7 +115,7 @@ class _CrmStagesPageState extends State<CrmStagesPage> {
           );
         },
       ),
-      editor: Form(
+      editorBuilder: (_) => Form(
         key: controller.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

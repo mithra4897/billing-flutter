@@ -95,7 +95,7 @@ class _AccountManagementPageState extends State<AccountManagementPage> {
           onTap: () => controller.selectAccount(item),
         ),
       ),
-      editor: Column(
+      editorBuilder: (_) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(

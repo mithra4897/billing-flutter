@@ -1863,7 +1863,7 @@ class _EmployeeManagementPageState extends State<EmployeeManagementPage>
           onTap: () => _selectEmployee(item),
         ),
       ),
-      editor: _buildEmployeeWorkspaceEditor(),
+      editorBuilder: (_) => _buildEmployeeWorkspaceEditor(),
     );
   }
 

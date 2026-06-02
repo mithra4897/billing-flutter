@@ -1224,7 +1224,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           ],
         ),
       ),
-      editor: GetBuilder<PartyManagementController>(
+      editorBuilder: (_) => GetBuilder<PartyManagementController>(
         tag: _controllerTag,
         builder: (controller) {
           return Column(
