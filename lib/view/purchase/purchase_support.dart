@@ -76,6 +76,7 @@ class PurchaseLineTaxBreakdown {
     required this.cgst,
     required this.sgst,
     required this.igst,
+    required this.cess,
     required this.total,
   });
 
@@ -83,6 +84,7 @@ class PurchaseLineTaxBreakdown {
   final double cgst;
   final double sgst;
   final double igst;
+  final double cess;
   final double total;
 }
 
@@ -92,6 +94,7 @@ class PurchaseDocumentTaxSummary {
     required this.cgst,
     required this.sgst,
     required this.igst,
+    required this.cess,
     required this.total,
   });
 
@@ -99,6 +102,7 @@ class PurchaseDocumentTaxSummary {
   final double cgst;
   final double sgst;
   final double igst;
+  final double cess;
   final double total;
 }
 
@@ -112,8 +116,8 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
 }) {
   final gross = qty > 0 && rate >= 0 ? qty * rate : 0.0;
   final clampedDiscount = discountPercent.clamp(0, 100).toDouble();
-  final taxable = gross * (1 - (clampedDiscount / 100));
-  final resolvedTaxPercent = (taxPercent ?? taxCode?.taxRate ?? 0).toDouble();
+  final taxable = roundToDouble(gross * (1 - (clampedDiscount / 100)), 2);
+  var resolvedTaxPercent = (taxPercent ?? taxCode?.taxRate ?? 0).toDouble();
   final resolvedTaxType =
       (taxType ??
               taxCode?.taxType ??
@@ -121,16 +125,37 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
               '')
           .trim()
           .toLowerCase();
-  final useIgst = resolvedTaxType.contains('igst');
-  final igst = useIgst ? taxable * resolvedTaxPercent / 100 : 0.0;
-  final halfTax = useIgst ? 0.0 : taxable * resolvedTaxPercent / 200;
+  final cessRate = (taxCode?.cessRate ?? 0).toDouble();
+
+  var cgst = 0.0;
+  var sgst = 0.0;
+  var igst = 0.0;
+
+  switch (resolvedTaxType) {
+    case 'igst':
+      igst = roundToDouble((taxable * resolvedTaxPercent) / 100, 2);
+      break;
+    case 'cess_only':
+    case 'exempt':
+    case 'nil_rated':
+    case 'non_gst':
+      resolvedTaxPercent = 0.0;
+      break;
+    default:
+      cgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
+      sgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
+      break;
+  }
+
+  final cess = roundToDouble((taxable * cessRate) / 100, 2);
 
   return PurchaseLineTaxBreakdown(
     taxable: taxable,
-    cgst: halfTax,
-    sgst: halfTax,
+    cgst: cgst,
+    sgst: sgst,
     igst: igst,
-    total: taxable + halfTax + halfTax + igst,
+    cess: cess,
+    total: roundToDouble(taxable + cgst + sgst + igst + cess, 2),
   );
 }
 
@@ -141,12 +166,14 @@ PurchaseDocumentTaxSummary summarizePurchaseLineTaxes(
   double cgst = 0;
   double sgst = 0;
   double igst = 0;
+  double cess = 0;
 
   for (final line in lines) {
     taxable += line.taxable;
     cgst += line.cgst;
     sgst += line.sgst;
     igst += line.igst;
+    cess += line.cess;
   }
 
   return PurchaseDocumentTaxSummary(
@@ -154,7 +181,8 @@ PurchaseDocumentTaxSummary summarizePurchaseLineTaxes(
     cgst: cgst,
     sgst: sgst,
     igst: igst,
-    total: taxable + cgst + sgst + igst,
+    cess: cess,
+    total: taxable + cgst + sgst + igst + cess,
   );
 }
 

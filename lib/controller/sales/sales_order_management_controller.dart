@@ -14,10 +14,10 @@ class OrderLineDraft {
     String? discountPercent,
     String? remarks,
   }) : descriptionController = TextEditingController(text: description ?? ''),
-       qtyController = TextEditingController(text: qty ?? ''),
-       rateController = TextEditingController(text: rate ?? ''),
-       discountController = TextEditingController(text: discountPercent ?? ''),
-       remarksController = TextEditingController(text: remarks ?? '');
+        qtyController = TextEditingController(text: qty ?? ''),
+        rateController = TextEditingController(text: rate ?? ''),
+        discountController = TextEditingController(text: discountPercent ?? ''),
+        remarksController = TextEditingController(text: remarks ?? '');
 
   factory OrderLineDraft.fromJson(Map<String, dynamic> json) {
     final qty = json['ordered_qty'] ?? json['qty'];
@@ -112,22 +112,21 @@ class SalesOrderManagementController extends GetxController {
   final InventoryService _inventoryService = InventoryService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
-      SettingsWorkspaceController();
+  SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController orderNoController = TextEditingController();
   final TextEditingController orderDateController = TextEditingController();
   final TextEditingController expectedDeliveryController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController customerRefNoController = TextEditingController();
   final TextEditingController customerRefDateController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController currencyCodeController = TextEditingController();
   final TextEditingController exchangeRateController = TextEditingController();
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
-  bool disableRoundOffTotal = false;
 
   bool initialLoading = true;
   bool saving = false;
@@ -144,7 +143,7 @@ class SalesOrderManagementController extends GetxController {
   List<PartyModel> customers = const <PartyModel>[];
   final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
   final Map<int, List<PartyGstDetailModel>> customerGstDetailsById =
-      <int, List<PartyGstDetailModel>>{};
+  <int, List<PartyGstDetailModel>>{};
   List<ItemModel> itemsLookup = const <ItemModel>[];
   final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
   List<ItemPriceModel> itemPrices = const <ItemPriceModel>[];
@@ -257,21 +256,21 @@ class SalesOrderManagementController extends GetxController {
         .where((json) => intValue(json, 'id') != null)
         .map(
           (json) => AppDropdownItem<int?>(
-            value: intValue(json, 'id'),
-            label: stringValue(json, 'quotation_no', 'Quote'),
-          ),
-        ),
+        value: intValue(json, 'id'),
+        label: stringValue(json, 'quotation_no', 'Quote'),
+      ),
+    ),
   ];
 
   List<AppSearchPickerOption<int>> get itemPickerOptions => itemsLookup
       .where((item) => item.id != null)
       .map(
         (item) => AppSearchPickerOption<int>(
-          value: item.id!,
-          label: item.toString(),
-          subtitle: item.itemCode,
-        ),
-      )
+      value: item.id!,
+      label: item.toString(),
+      subtitle: item.itemCode,
+    ),
+  )
       .toList(growable: false);
 
   List<AppDropdownItem<int>> get warehouseDropdownItems => warehouses
@@ -296,18 +295,18 @@ class SalesOrderManagementController extends GetxController {
     final customerId = customerPartyId;
     return quotationsAll
         .where((quotation) {
-          final json = quotation.toJson();
-          if (currentCompanyId != null &&
-              intValue(json, 'company_id') != currentCompanyId) {
-            return false;
-          }
-          if (customerId != null &&
-              intValue(json, 'customer_party_id') != customerId) {
-            return false;
-          }
-          final quotationStatus = stringValue(json, 'quotation_status');
-          return const {'posted', 'sent', 'accepted'}.contains(quotationStatus);
-        })
+      final json = quotation.toJson();
+      if (currentCompanyId != null &&
+          intValue(json, 'company_id') != currentCompanyId) {
+        return false;
+      }
+      if (customerId != null &&
+          intValue(json, 'customer_party_id') != customerId) {
+        return false;
+      }
+      final quotationStatus = stringValue(json, 'quotation_status');
+      return const {'posted', 'sent', 'accepted'}.contains(quotationStatus);
+    })
         .toList(growable: false);
   }
 
@@ -384,7 +383,7 @@ class SalesOrderManagementController extends GetxController {
     if (quotationLineId != null) {
       Map<String, dynamic>? quotationLine;
       for (final entry
-          in quotationLinesCache ?? const <Map<String, dynamic>>[]) {
+      in quotationLinesCache ?? const <Map<String, dynamic>>[]) {
         if (intValue(entry, 'id') == quotationLineId) {
           quotationLine = entry;
           break;
@@ -418,14 +417,14 @@ class SalesOrderManagementController extends GetxController {
   List<DocumentSeriesModel> seriesOptions() {
     return documentSeries
         .where((item) {
-          final typeOk =
-              item.documentType == null || item.documentType == 'SALES_ORDER';
-          final companyOk = companyId == null || item.companyId == companyId;
-          final fyOk =
-              financialYearId == null ||
+      final typeOk =
+          item.documentType == null || item.documentType == 'SALES_ORDER';
+      final companyOk = companyId == null || item.companyId == companyId;
+      final fyOk =
+          financialYearId == null ||
               item.financialYearId == financialYearId;
-          return typeOk && companyOk && fyOk;
-        })
+      return typeOk && companyOk && fyOk;
+    })
         .toList(growable: false);
   }
 
@@ -489,48 +488,48 @@ class SalesOrderManagementController extends GetxController {
       ]);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
-            companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
-                        const <CompanyModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
-                        const <BranchModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
-                            .data ??
-                        const <BusinessLocationModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-            financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-                        const <FinancialYearModel>[])
-                    .where((item) => item.isActive)
-                    .toList(growable: false),
-          );
+        companies:
+        ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+            const <CompanyModel>[])
+            .where((item) => item.isActive)
+            .toList(growable: false),
+        branches:
+        ((responses[2] as PaginatedResponse<BranchModel>).data ??
+            const <BranchModel>[])
+            .where((item) => item.isActive)
+            .toList(growable: false),
+        locations:
+        ((responses[3] as PaginatedResponse<BusinessLocationModel>)
+            .data ??
+            const <BusinessLocationModel>[])
+            .where((item) => item.isActive)
+            .toList(growable: false),
+        financialYears:
+        ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+            const <FinancialYearModel>[])
+            .where((item) => item.isActive)
+            .toList(growable: false),
+      );
       items =
           (responses[0] as PaginatedResponse<SalesOrderModel>).data ??
-          const <SalesOrderModel>[];
+              const <SalesOrderModel>[];
       companies =
           (responses[1] as PaginatedResponse<CompanyModel>).data ??
-          const <CompanyModel>[];
+              const <CompanyModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
-          const <FinancialYearModel>[];
+              const <FinancialYearModel>[];
       documentSeries =
           ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
-                  const <DocumentSeriesModel>[])
+              const <DocumentSeriesModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       customers = salesCustomersOrFallback(
         parties:
-            ((responses[7] as PaginatedResponse<PartyModel>).data ??
+        ((responses[7] as PaginatedResponse<PartyModel>).data ??
             const <PartyModel>[]),
         partyTypes:
-            (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
+        (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
             const <PartyTypeModel>[],
       );
       customerDetailsById
@@ -542,12 +541,12 @@ class SalesOrderManagementController extends GetxController {
         );
       itemsLookup =
           ((responses[8] as PaginatedResponse<ItemModel>).data ??
-                  const <ItemModel>[])
+              const <ItemModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       itemPrices =
           ((responses[9] as PaginatedResponse<ItemPriceModel>).data ??
-                  const <ItemPriceModel>[])
+              const <ItemPriceModel>[])
               .where((price) => price.isActive)
               .toList(growable: false);
       itemLookupById
@@ -559,27 +558,27 @@ class SalesOrderManagementController extends GetxController {
         );
       uoms =
           ((responses[10] as PaginatedResponse<UomModel>).data ??
-                  const <UomModel>[])
+              const <UomModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       uomConversions =
           ((responses[11] as PaginatedResponse<UomConversionModel>).data ??
-                  const <UomConversionModel>[])
+              const <UomConversionModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       warehouses =
           ((responses[12] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
+              const <WarehouseModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       taxCodes =
           ((responses[13] as PaginatedResponse<TaxCodeModel>).data ??
-                  const <TaxCodeModel>[])
+              const <TaxCodeModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       quotationsAll =
           (responses[14] as ApiResponse<List<SalesQuotationModel>>).data ??
-          const <SalesQuotationModel>[];
+              const <SalesQuotationModel>[];
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -589,14 +588,14 @@ class SalesOrderManagementController extends GetxController {
 
       final selected = selectId != null
           ? items.cast<SalesOrderModel?>().firstWhere(
-              (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
-              orElse: () => null,
-            )
+            (item) => intValue(item?.toJson() ?? const {}, 'id') == selectId,
+        orElse: () => null,
+      )
           : (editorOnly
-                ? null
-                : (selectedItem == null
-                      ? (items.isNotEmpty ? items.first : null)
-                      : null));
+          ? null
+          : (selectedItem == null
+          ? (items.isNotEmpty ? items.first : null)
+          : null));
 
       if (selected != null) {
         await selectDocument(selected, notify: false);
@@ -651,7 +650,6 @@ class SalesOrderManagementController extends GetxController {
       currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
       exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
       roundOffController.clear();
-      disableRoundOffTotal = false;
       notesController.text = stringValue(data, 'notes');
       termsController.text = stringValue(data, 'terms_conditions');
       isActive = true;
@@ -667,9 +665,9 @@ class SalesOrderManagementController extends GetxController {
   }
 
   Future<void> selectDocument(
-    SalesOrderModel item, {
-    bool notify = true,
-  }) async {
+      SalesOrderModel item, {
+        bool notify = true,
+      }) async {
     final id = intValue(item.toJson(), 'id');
     if (id == null) {
       return;
@@ -705,10 +703,9 @@ class SalesOrderManagementController extends GetxController {
     currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
     exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
     roundOffController.text =
-        stringValue(data, 'round_off_amount').trim().isEmpty
+    stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
         : stringValue(data, 'round_off_amount');
-    disableRoundOffTotal = false;
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
@@ -745,7 +742,6 @@ class SalesOrderManagementController extends GetxController {
     currencyCodeController.text = 'INR';
     exchangeRateController.text = '1';
     roundOffController.clear();
-    disableRoundOffTotal = false;
     notesController.clear();
     termsController.clear();
     isActive = true;
@@ -795,8 +791,8 @@ class SalesOrderManagementController extends GetxController {
         final data = item.toJson();
         final raw =
             nullableStringValue(data, 'expected_delivery_date') ??
-            nullableStringValue(data, 'delivery_date') ??
-            nullableStringValue(data, 'order_date');
+                nullableStringValue(data, 'delivery_date') ??
+                nullableStringValue(data, 'order_date');
         final parsed = raw == null ? null : DateTime.tryParse(raw);
         if (parsed == null) {
           return false;
@@ -831,7 +827,7 @@ class SalesOrderManagementController extends GetxController {
       return null;
     }
     return customers.cast<PartyModel?>().firstWhere(
-      (party) => party?.id == partyId,
+          (party) => party?.id == partyId,
       orElse: () => null,
     );
   }
@@ -867,15 +863,15 @@ class SalesOrderManagementController extends GetxController {
       if (party != null) {
         customerDetailsById[partyId] = party.copyWith(
           addresses:
-              (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+          (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
               party.addresses,
           contacts:
-              (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+          (responses[2] as PaginatedResponse<PartyContactModel>).data ??
               party.contacts,
         );
         customerGstDetailsById[partyId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
-            const <PartyGstDetailModel>[];
+                const <PartyGstDetailModel>[];
       }
     } catch (_) {}
   }
@@ -894,24 +890,18 @@ class SalesOrderManagementController extends GetxController {
       qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
       rate: double.tryParse(line.rateController.text.trim()) ?? 0,
       discountPercent:
-          double.tryParse(line.discountController.text.trim()) ?? 0,
+      double.tryParse(line.discountController.text.trim()) ?? 0,
       taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
     );
   }
 
   SalesDocumentTaxSummary taxSummary() {
-    final roundOff = effectiveRoundOffAmount;
+    final roundOff = double.tryParse(roundOffController.text.trim()) ?? 0;
     return summarizeSalesLineTaxes(
       lines.map(taxBreakdownForLine),
       adjustment: roundOff,
     );
   }
-
-  double get enteredRoundOffAmount =>
-      double.tryParse(roundOffController.text.trim()) ?? 0;
-
-  double get effectiveRoundOffAmount =>
-      disableRoundOffTotal ? 0 : enteredRoundOffAmount;
 
   Map<String, dynamic> linePayload(OrderLineDraft line) {
     final payload = line.toJson();
@@ -934,44 +924,44 @@ class SalesOrderManagementController extends GetxController {
     final summary = taxSummary();
     final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
     final company = companies.cast<CompanyModel?>().firstWhere(
-      (item) => item?.id == companyId,
+          (item) => item?.id == companyId,
       orElse: () => null,
     );
     final customer = customerForPrintContext(customerPartyId);
     final customerData = selected['customer'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(
-            selected['customer'] as Map<String, dynamic>,
-          )
+      selected['customer'] as Map<String, dynamic>,
+    )
         : customer?.toJson() ?? const <String, dynamic>{};
     final preferredAddress = preferredPartyAddress(customer);
     final gstBreakupGroups = <String, dynamic>{};
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
         .map((line) {
-          final item = itemById(line.itemId);
-          final breakdown = taxBreakdownForLine(line);
-          accumulatePrintTemplateGstBreakup(
-            gstBreakupGroups,
-            taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
-            taxPercent: breakdown.taxPercent,
-            taxable: breakdown.taxable,
-            cgst: breakdown.cgst,
-            sgst: breakdown.sgst,
-            igst: breakdown.igst,
-            cess: breakdown.cess,
-          );
-          return DocumentPrintLineModel(
-            itemName:
-                item?.itemName ??
-                item?.itemCode ??
-                line.descriptionController.text.trim(),
-            description: line.descriptionController.text.trim(),
-            qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
-            rate: double.tryParse(line.rateController.text.trim()) ?? 0,
-            taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
-            lineTotal: roundToDouble(breakdown.taxable, 2),
-          );
-        })
+      final item = itemById(line.itemId);
+      final breakdown = taxBreakdownForLine(line);
+      accumulatePrintTemplateGstBreakup(
+        gstBreakupGroups,
+        taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
+        taxPercent: breakdown.taxPercent,
+        taxable: breakdown.taxable,
+        cgst: breakdown.cgst,
+        sgst: breakdown.sgst,
+        igst: breakdown.igst,
+        cess: breakdown.cess,
+      );
+      return DocumentPrintLineModel(
+        itemName:
+        item?.itemName ??
+            item?.itemCode ??
+            line.descriptionController.text.trim(),
+        description: line.descriptionController.text.trim(),
+        qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
+        rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+        taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
+        lineTotal: roundToDouble(breakdown.taxable, 2),
+      );
+    })
         .toList(growable: false);
     final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
 
@@ -1052,7 +1042,7 @@ class SalesOrderManagementController extends GetxController {
     customerPartyId = value;
     if (salesQuotationId != null) {
       final stillOk = quotationChoices.any(
-        (quotation) => intValue(quotation.toJson(), 'id') == salesQuotationId,
+            (quotation) => intValue(quotation.toJson(), 'id') == salesQuotationId,
       );
       if (!stillOk) {
         salesQuotationId = null;
@@ -1073,14 +1063,6 @@ class SalesOrderManagementController extends GetxController {
 
   void refreshComputedState() {
     refreshLineItemsSection();
-  }
-
-  void setDisableRoundOffTotal(bool value) {
-    if (!canEdit || disableRoundOffTotal == value) {
-      return;
-    }
-    disableRoundOffTotal = value;
-    refreshComputedState();
   }
 
   void setLineItemId(int index, int? value) {
@@ -1133,8 +1115,8 @@ class SalesOrderManagementController extends GetxController {
       return;
     }
     if (lines.any(
-      (line) =>
-          line.itemId == null ||
+          (line) =>
+      line.itemId == null ||
           line.uomId == null ||
           (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
     )) {
@@ -1161,7 +1143,7 @@ class SalesOrderManagementController extends GetxController {
       'customer_reference_date': nullIfEmpty(customerRefDateController.text),
       'currency_code': nullIfEmpty(currencyCodeController.text) ?? 'INR',
       'exchange_rate': double.tryParse(exchangeRateController.text.trim()) ?? 1,
-      'round_off_amount': effectiveRoundOffAmount,
+      'round_off_amount': double.tryParse(roundOffController.text.trim()) ?? 0,
       'taxable_amount': roundToDouble(summary.taxable, 2),
       'cgst_amount': roundToDouble(summary.cgst, 2),
       'sgst_amount': roundToDouble(summary.sgst, 2),
@@ -1177,9 +1159,9 @@ class SalesOrderManagementController extends GetxController {
       final response = selectedItem == null
           ? await _salesService.createOrder(SalesOrderModel.fromJson(payload))
           : await _salesService.updateOrder(
-              intValue(selectedItem!.toJson(), 'id')!,
-              SalesOrderModel.fromJson(payload),
-            );
+        intValue(selectedItem!.toJson(), 'id')!,
+        SalesOrderModel.fromJson(payload),
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -1199,9 +1181,9 @@ class SalesOrderManagementController extends GetxController {
   }
 
   Future<void> docAction(
-    BuildContext context,
-    Future<ApiResponse<SalesOrderModel>> Function() action,
-  ) async {
+      BuildContext context,
+      Future<ApiResponse<SalesOrderModel>> Function() action,
+      ) async {
     try {
       final response = await action();
       if (context.mounted) {
@@ -1242,7 +1224,7 @@ class SalesOrderManagementController extends GetxController {
     if (id == null) return;
     await docAction(
       context,
-      () => _salesService.confirmOrder(
+          () => _salesService.confirmOrder(
         id,
         SalesOrderModel.fromJson(const <String, dynamic>{}),
       ),
@@ -1254,7 +1236,7 @@ class SalesOrderManagementController extends GetxController {
     if (id == null) return;
     await docAction(
       context,
-      () => _salesService.cancelOrder(
+          () => _salesService.cancelOrder(
         id,
         SalesOrderModel.fromJson(const <String, dynamic>{}),
       ),
@@ -1266,7 +1248,7 @@ class SalesOrderManagementController extends GetxController {
     if (id == null) return;
     await docAction(
       context,
-      () => _salesService.closeOrder(
+          () => _salesService.closeOrder(
         id,
         SalesOrderModel.fromJson(const <String, dynamic>{}),
       ),
@@ -1286,8 +1268,8 @@ class SalesOrderManagementController extends GetxController {
         .where(
           (previousLine) => !normalizedLines.any(
             (nextLine) => identical(previousLine, nextLine),
-          ),
-        )
+      ),
+    )
         .toList(growable: false);
     _disposeLinesDeferred(removedLines);
   }

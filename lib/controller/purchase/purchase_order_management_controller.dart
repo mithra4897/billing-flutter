@@ -628,7 +628,7 @@ class PurchaseOrderManagementController extends GetxController {
           );
         })
         .toList(growable: false);
-    final totalTax = summary.cgst + summary.sgst + summary.igst;
+    final totalTax = summary.cgst + summary.sgst + summary.igst + summary.cess;
 
     return buildManagedDocumentPrintData(
       companies: companies,

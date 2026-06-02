@@ -113,13 +113,11 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   }
 
   Widget _buildTaxSummaryCard(SalesOrderManagementController controller) {
-    final enteredRoundOff = controller.enteredRoundOffAmount;
-    final effectiveRoundOff = controller.effectiveRoundOffAmount;
-    final subtitle = enteredRoundOff == 0
+    final roundOff =
+        double.tryParse(controller.roundOffController.text.trim()) ?? 0;
+    final subtitle = roundOff == 0
         ? null
-        : controller.disableRoundOffTotal
-        ? 'Live GST totals for the current lines in ${controller.currencyCodeForTaxSummary} · round off ${enteredRoundOff.toStringAsFixed(2)} is currently excluded'
-        : 'Live GST totals for the current lines in ${controller.currencyCodeForTaxSummary} · includes round off ${effectiveRoundOff.toStringAsFixed(2)}';
+        : 'Live GST totals for the current lines in ${controller.currencyCodeForTaxSummary} · includes round off ${roundOff.toStringAsFixed(2)}';
     final summary = controller.taxSummary();
     return GstSummaryCard(
       taxable: summary.taxable,
@@ -127,8 +125,6 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       sgst: summary.sgst,
       igst: summary.igst,
       cess: summary.cess,
-      roundOff: enteredRoundOff,
-      roundOffDisabled: controller.disableRoundOffTotal,
       total: summary.total,
       currencyCode: controller.currencyCodeForTaxSummary,
       subtitle: subtitle,
@@ -136,9 +132,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   }
 
   Widget _buildContent(
-    BuildContext context,
-    SalesOrderManagementController controller,
-  ) {
+      BuildContext context,
+      SalesOrderManagementController controller,
+      ) {
     if (controller.initialLoading) {
       return const AppLoadingView(message: 'Loading orders...');
     }
@@ -247,7 +243,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     Validators.optionalDate('Expected delivery'),
                     Validators.optionalDateOnOrAfter(
                       'Expected delivery',
-                      () => controller.orderDateController.text.trim(),
+                          () => controller.orderDateController.text.trim(),
                       startFieldName: 'Order Date',
                     ),
                   ]),
@@ -260,7 +256,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                   onCustomerChanged: controller.setCustomerPartyId,
                   customerRefNoController: controller.customerRefNoController,
                   customerRefDateController:
-                      controller.customerRefDateController,
+                  controller.customerRefDateController,
                   currencyCodeController: controller.currencyCodeController,
                   exchangeRateController: controller.exchangeRateController,
                   notesController: controller.notesController,
@@ -281,8 +277,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     decimal: true,
                     signed: true,
                   ),
-                  enabled:
-                      controller.canEdit && !controller.disableRoundOffTotal,
+                  enabled: controller.canEdit,
                   onChanged: (_) => controller.refreshComputedState(),
                   validator: (value) {
                     final trimmed = value?.trim() ?? '';
@@ -294,15 +289,6 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     }
                     return null;
                   },
-                ),
-                AppSwitchTile(
-                  label: 'Disable round off total',
-                  subtitle:
-                      'Keep the entered round off value, but exclude it from the grand total.',
-                  value: controller.disableRoundOffTotal,
-                  onChanged: controller.canEdit
-                      ? controller.setDisableRoundOffTotal
-                      : null,
                 ),
               ],
             ),
@@ -325,8 +311,8 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     onAdd: controller.canEdit ? controller.addLine : null,
                     footer: _buildTaxSummaryCard(controller),
                     children: List<Widget>.generate(controller.lines.length, (
-                      index,
-                    ) {
+                        index,
+                        ) {
                       final line = controller.lines[index];
                       final breakdown = controller.taxBreakdownForLine(line);
                       return Padding(
@@ -338,7 +324,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                           index: index,
                           total: controller.lines.length,
                           removeEnabled:
-                              controller.canEdit && controller.lines.length > 1,
+                          controller.canEdit && controller.lines.length > 1,
                           onRemove: controller.canEdit
                               ? () => controller.removeLine(index)
                               : null,
@@ -362,21 +348,21 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                                         ...controller.quotationLinesCache!
                                             .map(
                                               (
-                                                quotationLine,
+                                              quotationLine,
                                               ) => AppDropdownItem<int?>(
-                                                value: intValue(
-                                                  quotationLine,
-                                                  'id',
-                                                ),
-                                                label: controller
-                                                    .quotationLinePickerLabel(
-                                                      quotationLine,
-                                                    ),
-                                              ),
-                                            )
+                                            value: intValue(
+                                              quotationLine,
+                                              'id',
+                                            ),
+                                            label: controller
+                                                .quotationLinePickerLabel(
+                                              quotationLine,
+                                            ),
+                                          ),
+                                        )
                                             .where(
                                               (item) => item.value != null,
-                                            ),
+                                        ),
                                       ],
                                       initialValue: line.salesQuotationLineId,
                                       onChanged: (value) {
@@ -420,10 +406,10 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                                             .where((item) => item.id != null)
                                             .map(
                                               (item) => AppDropdownItem(
-                                                value: item.id!,
-                                                label: item.toString(),
-                                              ),
-                                            )
+                                            value: item.id!,
+                                            label: item.toString(),
+                                          ),
+                                        )
                                             .toList(growable: false),
                                         initialValue: line.uomId,
                                         onChanged: (value) => controller
@@ -441,7 +427,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                                   AppDropdownField<int>.fromMapped(
                                     labelText: 'Warehouse',
                                     mappedItems:
-                                        controller.warehouseDropdownItems,
+                                    controller.warehouseDropdownItems,
                                     initialValue: line.warehouseId,
                                     onChanged: (value) => controller
                                         .setLineWarehouseId(index, value),
@@ -453,9 +439,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                                     onChanged: (_) =>
                                         controller.refreshComputedState(),
                                     keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                     validator: Validators.compose([
                                       Validators.required('Order qty'),
                                       Validators.optionalNonNegativeNumber(
@@ -470,9 +456,9 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                                     onChanged: (_) =>
                                         controller.refreshComputedState(),
                                     keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                     validator: Validators.compose([
                                       Validators.required('Rate'),
                                       Validators.optionalNonNegativeNumber(
@@ -487,18 +473,18 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                                     onChanged: (_) =>
                                         controller.refreshComputedState(),
                                     keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
                                     validator:
-                                        Validators.optionalNonNegativeNumber(
-                                          'Discount %',
-                                        ),
+                                    Validators.optionalNonNegativeNumber(
+                                      'Discount %',
+                                    ),
                                   ),
                                   AppDropdownField<int>.fromMapped(
                                     labelText: 'Tax code',
                                     mappedItems:
-                                        controller.taxCodeDropdownItems,
+                                    controller.taxCodeDropdownItems,
                                     initialValue: line.taxCodeId,
                                     onChanged: (value) => controller
                                         .setLineTaxCodeId(index, value),
@@ -526,7 +512,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                                 cess: breakdown.cess,
                                 total: breakdown.total,
                                 currencyCode:
-                                    controller.currencyCodeForTaxSummary,
+                                controller.currencyCodeForTaxSummary,
                                 taxCodeLabel: salesTaxCodeById(
                                   controller.taxCodes,
                                   line.taxCodeId,

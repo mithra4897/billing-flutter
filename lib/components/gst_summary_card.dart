@@ -8,8 +8,6 @@ class GstSummaryCard extends StatelessWidget {
     required this.sgst,
     required this.igst,
     required this.cess,
-    this.roundOff = 0,
-    this.roundOffDisabled = false,
     required this.total,
     required this.currencyCode,
     this.subtitle,
@@ -20,8 +18,6 @@ class GstSummaryCard extends StatelessWidget {
   final double sgst;
   final double igst;
   final double cess;
-  final double roundOff;
-  final bool roundOffDisabled;
   final double total;
   final String currencyCode;
   final String? subtitle;
@@ -132,15 +128,7 @@ class GstSummaryCard extends StatelessWidget {
     final appTheme = theme.extension<AppThemeExtension>()!;
     final colorScheme = theme.colorScheme;
 
-    Widget metric(
-      String label,
-      double value, {
-      bool emphasize = false,
-      bool showSign = false,
-    }) {
-      final displayValue = showSign && value > 0
-          ? '+${value.toStringAsFixed(2)}'
-          : value.toStringAsFixed(2);
+    Widget metric(String label, double value, {bool emphasize = false}) {
       return DecoratedBox(
         decoration: BoxDecoration(
           color: emphasize
@@ -172,7 +160,7 @@ class GstSummaryCard extends StatelessWidget {
               ),
               const SizedBox(height: AppUiConstants.spacingXs),
               Text(
-                displayValue,
+                value.toStringAsFixed(2),
                 textAlign: TextAlign.right,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: emphasize ? FontWeight.w800 : FontWeight.w700,
@@ -218,27 +206,11 @@ class GstSummaryCard extends StatelessWidget {
                     metric('SGST', sgst),
                     metric('IGST', igst),
                     metric('CESS', cess),
-                    metric(
-                      roundOffDisabled ? 'Round Off (Off)' : 'Round Off +/-',
-                      roundOff,
-                      showSign: true,
-                    ),
                     metric('Grand Total', total, emphasize: true),
                   ],
                 );
               },
             ),
-            if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
-              const SizedBox(height: AppUiConstants.spacingSm),
-              Text(
-                subtitle!,
-                textAlign: TextAlign.right,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: appTheme.mutedText,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
             const SizedBox(height: AppUiConstants.spacingSm),
             Text(
               _amountInWords(total),
