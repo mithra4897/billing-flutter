@@ -37,6 +37,10 @@ class ErpLinkField<T> extends StatefulWidget {
     this.loadingMessageBuilder,
     this.emptyMessageBuilder,
     this.createNewLabelBuilder,
+    this.onRemoveOption,
+    this.onNavigateToOption,
+    this.canRemoveOption,
+    this.canNavigateToOption,
   });
 
   final String labelText;
@@ -58,6 +62,11 @@ class ErpLinkField<T> extends StatefulWidget {
   final String Function(String query, String doctypeLabel)? emptyMessageBuilder;
   final String Function(String query, String doctypeLabel)?
   createNewLabelBuilder;
+  final FutureOr<void> Function(ErpLinkFieldOption<T> option)? onRemoveOption;
+  final FutureOr<void> Function(ErpLinkFieldOption<T> option)?
+  onNavigateToOption;
+  final bool Function(ErpLinkFieldOption<T> option)? canRemoveOption;
+  final bool Function(ErpLinkFieldOption<T> option)? canNavigateToOption;
 
   @override
   State<ErpLinkField<T>> createState() => _ErpLinkFieldState<T>();
@@ -82,6 +91,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   ErpLinkFieldOption<T>? _selected;
   bool _loading = false;
   bool _creating = false;
+  bool _holdBlurClose = false;
   int _requestToken = 0;
   int _highlightedIndex = -1;
 
@@ -137,6 +147,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   void _handleFocusChange() {
     if (_focusNode.hasFocus) {
       _blurTimer?.cancel();
+      _holdBlurClose = false;
       _openDropdown();
       _scheduleSearch(
         _selected == null ? _controller.text : '',
@@ -147,7 +158,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
 
     _blurTimer?.cancel();
     _blurTimer = Timer(const Duration(milliseconds: 120), () {
-      if (!_focusNode.hasFocus) {
+      if (!_focusNode.hasFocus && !_holdBlurClose) {
         _closeDropdown();
       }
     });
@@ -191,6 +202,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     _debounceTimer?.cancel();
     _loading = false;
     _creating = false;
+    _holdBlurClose = false;
     _highlightedIndex = -1;
     _removeOverlay();
     if (_selected != null && !_focusNode.hasFocus) {
@@ -346,7 +358,41 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     setState(() {
       _highlightedIndex = selectableIndexes[nextPosition];
     });
+    _ensureHighlightedVisible();
     _markOverlayNeedsBuild();
+  }
+
+  void _ensureHighlightedVisible() {
+    if (!_scrollController.hasClients || _highlightedIndex < 0) {
+      return;
+    }
+    const rowExtent = 40.0;
+    final targetTop = _highlightedIndex * rowExtent;
+    final targetBottom = targetTop + rowExtent;
+    final currentTop = _scrollController.offset;
+    final currentBottom =
+        currentTop + _scrollController.position.viewportDimension;
+
+    if (targetTop < currentTop) {
+      _scrollController.animateTo(
+        targetTop,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+    if (targetBottom > currentBottom) {
+      _scrollController.animateTo(
+        targetBottom - _scrollController.position.viewportDimension,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _beginDropdownInteraction() {
+    _holdBlurClose = true;
+    _blurTimer?.cancel();
   }
 
   Future<void> _submitHighlighted(FormFieldState<T?> field) async {
@@ -377,6 +423,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
         _setControllerText(option.label);
         field.didChange(option.value);
         widget.onChanged(option.value);
+        _holdBlurClose = false;
         _focusNode.unfocus();
         _closeDropdown();
         return;
@@ -515,6 +562,19 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                           return _ErpDropdownRow<T>(
                             entry: entry,
                             highlighted: index == _highlightedIndex,
+                            onPointerDown: _beginDropdownInteraction,
+                            onHoverChanged: (hovered) {
+                              if (!hovered) {
+                                return;
+                              }
+                              if (_highlightedIndex != index) {
+                                setState(() {
+                                  _highlightedIndex = index;
+                                });
+                                _ensureHighlightedVisible();
+                                _markOverlayNeedsBuild();
+                              }
+                            },
                             onTap: entry.selectable && _fieldState != null
                                 ? () => _selectEntry(entry, _fieldState!)
                                 : null,
@@ -627,11 +687,15 @@ class _ErpDropdownRow<T> extends StatelessWidget {
   const _ErpDropdownRow({
     required this.entry,
     required this.highlighted,
+    this.onPointerDown,
+    this.onHoverChanged,
     this.onTap,
   });
 
   final _ErpMenuEntry<T> entry;
   final bool highlighted;
+  final VoidCallback? onPointerDown;
+  final ValueChanged<bool>? onHoverChanged;
   final VoidCallback? onTap;
 
   @override
@@ -647,30 +711,37 @@ class _ErpDropdownRow<T> extends StatelessWidget {
         ? FontWeight.w600
         : FontWeight.w400;
 
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        color: background,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          children: [
-            if (entry.kind == _ErpMenuEntryKind.create) ...[
-              Icon(Icons.add, size: 14, color: theme.colorScheme.primary),
-              const SizedBox(width: 6),
-            ],
-            Expanded(
-              child: Text(
-                entry.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: weight,
-                  height: 1.2,
+    return MouseRegion(
+      onEnter: (_) => onHoverChanged?.call(true),
+      onExit: (_) => onHoverChanged?.call(false),
+      child: Listener(
+        onPointerDown: (_) => onPointerDown?.call(),
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            color: background,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                if (entry.kind == _ErpMenuEntryKind.create) ...[
+                  Icon(Icons.add, size: 14, color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
+                ],
+                Expanded(
+                  child: Text(
+                    entry.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: textColor,
+                      fontWeight: weight,
+                      height: 1.2,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
