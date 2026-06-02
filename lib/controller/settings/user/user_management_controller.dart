@@ -30,6 +30,8 @@ class UserManagementController extends GetxController {
   String? pageError;
   String? formError;
   String? gender;
+  String? selectedEmployeeFallbackLabel;
+  String? selectedEmployeeFallbackName;
   int? selectedRoleId;
   bool mustChangePassword = true;
   bool isSystemUser = true;
@@ -161,6 +163,11 @@ class UserManagementController extends GetxController {
 
     selectedUserId = user.id;
     selectedEmployeeId = user.employeeId;
+    selectedEmployeeFallbackName = _fallbackEmployeeNameForUser(user);
+    selectedEmployeeFallbackLabel = _composeEmployeeLabel(
+      user.employeeCode,
+      selectedEmployeeFallbackName,
+    );
     setEmployeeCode(user.employeeCode ?? '');
     usernameController.text = user.username ?? '';
     passwordController.clear();
@@ -187,6 +194,8 @@ class UserManagementController extends GetxController {
         ? user.userRoles.first.roleId
         : firstOrNull(user.roleIds);
 
+    await ensureSelectedEmployeeLoaded(user);
+    resolveSelectedEmployeeFromFallback();
     await loadTabs(userId);
     update();
   }
@@ -218,6 +227,8 @@ class UserManagementController extends GetxController {
   void resetForm({bool notify = true}) {
     selectedUserId = null;
     selectedEmployeeId = null;
+    selectedEmployeeFallbackLabel = null;
+    selectedEmployeeFallbackName = null;
     setEmployeeCode('');
     usernameController.clear();
     passwordController.clear();
@@ -264,10 +275,13 @@ class UserManagementController extends GetxController {
   String? get selectedEmployeeLabel {
     final employee = selectedEmployee;
     if (employee == null) {
-      return null;
+      final fallback = (selectedEmployeeFallbackLabel ?? '').trim();
+      return fallback.isEmpty ? null : fallback;
     }
     final code = employee.employeeCode?.trim() ?? '';
-    final name = employee.employeeName?.trim() ?? '';
+    final name = (employee.employeeName?.trim().isNotEmpty ?? false)
+        ? employee.employeeName!.trim()
+        : (selectedEmployeeFallbackName ?? '').trim();
     if (code.isEmpty) {
       return name.isEmpty ? null : name;
     }
@@ -281,6 +295,10 @@ class UserManagementController extends GetxController {
     );
 
     selectedEmployeeId = employee?.id;
+    selectedEmployeeFallbackName = employee?.employeeName?.trim();
+    selectedEmployeeFallbackLabel = employee == null
+        ? null
+        : _composeEmployeeLabel(employee.employeeCode, employee.employeeName);
     setEmployeeCode(employee?.employeeCode ?? '');
 
     if (isNewUser && employee != null) {
@@ -304,10 +322,140 @@ class UserManagementController extends GetxController {
     );
   }
 
+  Future<void> ensureSelectedEmployeeLoaded(UserModel user) async {
+    final employeeId = user.employeeId;
+    if (employeeId == null) {
+      return;
+    }
+
+    final exists = employees.any((employee) => employee.id == employeeId);
+    if (exists) {
+      return;
+    }
+
+    try {
+      final response = await _hrService.employee(employeeId);
+      final employee = response.data;
+      if (employee == null) {
+        return;
+      }
+
+      employees = <EmployeeModel>[
+        employee,
+        ...employees.where((item) => item.id != employee.id),
+      ];
+    } catch (_) {
+      final fallbackHasValue =
+          (user.employeeCode ?? '').trim().isNotEmpty ||
+          (user.employeeName ?? '').trim().isNotEmpty;
+      if (!fallbackHasValue) {
+        return;
+      }
+
+      employees = <EmployeeModel>[
+        EmployeeModel(
+          id: employeeId,
+          employeeCode: user.employeeCode,
+          employeeName: _fallbackEmployeeNameForUser(user),
+          userId: user.id,
+        ),
+        ...employees.where((item) => item.id != employeeId),
+      ];
+    }
+  }
+
+  String? _fallbackEmployeeNameForUser(UserModel user) {
+    final displayName = user.employeeName?.trim();
+    if (displayName != null && displayName.isNotEmpty) {
+      return displayName;
+    }
+
+    final userDisplayName = user.displayName?.trim();
+    if (userDisplayName != null && userDisplayName.isNotEmpty) {
+      return userDisplayName;
+    }
+
+    final fullName = [
+      user.firstName?.trim(),
+      user.lastName?.trim(),
+    ].whereType<String>().where((value) => value.isNotEmpty).join(' ');
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+
+    final username = user.username?.trim();
+    if (username != null && username.isNotEmpty) {
+      return username;
+    }
+
+    return null;
+  }
+
+  String? _composeEmployeeLabel(String? code, String? name) {
+    final normalizedCode = (code ?? '').trim();
+    final normalizedName = (name ?? '').trim();
+    if (normalizedCode.isEmpty) {
+      return normalizedName.isEmpty ? null : normalizedName;
+    }
+    return normalizedName.isEmpty
+        ? normalizedCode
+        : '$normalizedCode - $normalizedName';
+  }
+
+  void resolveSelectedEmployeeFromFallback() {
+    if (selectedEmployeeId != null) {
+      return;
+    }
+
+    final employeeCode = employeeCodeController.text.trim().toLowerCase();
+    final fallbackName = (selectedEmployeeFallbackName ?? '')
+        .trim()
+        .toLowerCase();
+
+    final matchedEmployee = employees.cast<EmployeeModel?>().firstWhere((
+      employee,
+    ) {
+      if (employee == null) {
+        return false;
+      }
+
+      final codeMatches =
+          employeeCode.isNotEmpty &&
+          (employee.employeeCode?.trim().toLowerCase() ?? '') == employeeCode;
+      if (codeMatches) {
+        return true;
+      }
+
+      final nameMatches =
+          fallbackName.isNotEmpty &&
+          (employee.employeeName?.trim().toLowerCase() ?? '') == fallbackName;
+      return nameMatches;
+    }, orElse: () => null);
+
+    if (matchedEmployee == null) {
+      return;
+    }
+
+    selectedEmployeeId = matchedEmployee.id;
+    selectedEmployeeFallbackName =
+        matchedEmployee.employeeName?.trim().isNotEmpty == true
+        ? matchedEmployee.employeeName!.trim()
+        : selectedEmployeeFallbackName;
+    selectedEmployeeFallbackLabel = _composeEmployeeLabel(
+      matchedEmployee.employeeCode,
+      selectedEmployeeFallbackName,
+    );
+    setEmployeeCode(
+      matchedEmployee.employeeCode ?? employeeCodeController.text,
+    );
+  }
+
   Future<void> saveProfile() async {
     if (!formKey.currentState!.validate()) {
       return;
     }
+
+    resolveSelectedEmployeeFromFallback();
 
     if (selectedRoleId == null) {
       formError = 'Please select a role before saving the user.';

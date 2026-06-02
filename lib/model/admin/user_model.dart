@@ -50,13 +50,21 @@ class UserModel extends JsonModel {
   final List<UserPermissionModel> extraPermissions;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final employeeJson = json['employee'] is Map<String, dynamic>
+        ? json['employee'] as Map<String, dynamic>
+        : null;
+
     return UserModel(
       id: JsonModel.nullableInt(json['id']),
-      employeeId: JsonModel.nullableInt(json['employee_id']),
-      employeeCode: json['employee_code']?.toString(),
-      employeeName: (json['employee'] is Map<String, dynamic>)
-          ? (json['employee']['employee_name']?.toString())
-          : json['employee_name']?.toString(),
+      employeeId:
+          JsonModel.nullableInt(json['employee_id']) ??
+          JsonModel.nullableInt(employeeJson?['id']),
+      employeeCode:
+          employeeJson?['employee_code']?.toString() ??
+          json['employee_code']?.toString(),
+      employeeName:
+          employeeJson?['employee_name']?.toString() ??
+          json['employee_name']?.toString(),
       username: json['username']?.toString(),
       firstName: json['first_name']?.toString(),
       lastName: json['last_name']?.toString(),
@@ -89,7 +97,6 @@ class UserModel extends JsonModel {
     employeeName,
     email,
   ], defaultValue: 'User');
-
 
   @override
   Map<String, dynamic> toJson() {
