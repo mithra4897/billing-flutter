@@ -28,7 +28,7 @@ class _RoleManagementPageState extends State<RoleManagementPage>
     _controller = Get.put(
       RoleManagementController(initialRoleId: widget.initialRoleId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
@@ -177,7 +177,8 @@ class _RoleManagementPageState extends State<RoleManagementPage>
     BuildContext context,
     RoleManagementController controller,
   ) {
-    final showDetailTabs = !controller.isNewRole && controller.selectedRoleId != null;
+    final showDetailTabs =
+        !controller.isNewRole && controller.selectedRoleId != null;
     if (showDetailTabs) {
       _syncTabController(controller.activeTabIndex);
     }
@@ -195,7 +196,10 @@ class _RoleManagementPageState extends State<RoleManagementPage>
                   controller: _tabController,
                   onTap: controller.setActiveTabIndex,
                   isScrollable: true,
-                  tabs: const [Tab(text: 'Profile'), Tab(text: 'Permissions')],
+                  tabs: const [
+                    Tab(text: 'Profile'),
+                    Tab(text: 'Permissions'),
+                  ],
                 ),
               Padding(
                 padding: const EdgeInsets.only(
@@ -220,7 +224,8 @@ class _RoleManagementPageState extends State<RoleManagementPage>
       return;
     }
     final clampedIndex = nextIndex.clamp(0, _tabController.length - 1);
-    if (_tabController.index == clampedIndex || _tabController.indexIsChanging) {
+    if (_tabController.index == clampedIndex ||
+        _tabController.indexIsChanging) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -392,125 +397,139 @@ class _RoleManagementPageState extends State<RoleManagementPage>
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-          children: controller.rolePermissions.map((permission) {
-            final permissionKey =
-                '${permission.permissionId ?? permission.code ?? permission.name ?? 'permission'}';
-            final index = controller.rolePermissions.indexOf(permission);
-            return Card(
-              elevation: 0,
-              margin: const EdgeInsets.only(bottom: 16),
-              color: appTheme.subtleFill,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  AppUiConstants.buttonRadius,
-                ),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: ExpansionTile(
-                initiallyExpanded: false,
-                onExpansionChanged: (expanded) =>
-                    controller.togglePermissionModule(permissionKey, expanded),
-                title: Text(permission.name ?? permission.code ?? 'Permission'),
-                trailing: _permissionGroupTrailing(
-                  context,
-                  controller,
-                  permissionKey,
-                  permission,
-                ),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 8, 16, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if ((permission.description ?? '').isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(permission.description!),
-                          ),
-                        if ((permission.module ?? '').isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              permission.module!,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: appTheme.mutedText),
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 8,
+          children: controller.rolePermissions
+              .map((permission) {
+                final permissionKey =
+                    '${permission.permissionId ?? permission.code ?? permission.name ?? 'permission'}';
+                return Card(
+                  key: ValueKey('role_permission_$permissionKey'),
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  color: appTheme.subtleFill,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.buttonRadius,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    initiallyExpanded: false,
+                    onExpansionChanged: (expanded) => controller
+                        .togglePermissionModule(permissionKey, expanded),
+                    title: Text(
+                      permission.name ?? permission.code ?? 'Permission',
+                    ),
+                    trailing: _permissionGroupTrailing(
+                      context,
+                      controller,
+                      permissionKey,
+                      permission,
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 8, 16, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _permCheck(
-                              'View',
-                              permission.allowView ?? false,
-                              (value) =>
-                                  controller.togglePermission(index, 'view', value),
-                            ),
-                            _permCheck(
-                              'Create',
-                              permission.allowCreate ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'create',
-                                value,
+                            if ((permission.description ?? '').isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(permission.description!),
                               ),
-                            ),
-                            _permCheck(
-                              'Update',
-                              permission.allowUpdate ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'update',
-                                value,
+                            if ((permission.module ?? '').isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  permission.module!,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: appTheme.mutedText),
+                                ),
                               ),
-                            ),
-                            _permCheck(
-                              'Delete',
-                              permission.allowDelete ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'delete',
-                                value,
-                              ),
-                            ),
-                            _permCheck(
-                              'Approve',
-                              permission.allowApprove ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'approve',
-                                value,
-                              ),
-                            ),
-                            _permCheck(
-                              'Print',
-                              permission.allowPrint ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'print',
-                                value,
-                              ),
-                            ),
-                            _permCheck(
-                              'Export',
-                              permission.allowExport ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'export',
-                                value,
-                              ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 8,
+                              children: [
+                                _permCheck(
+                                  'View',
+                                  permission.allowView ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        permission,
+                                        'view',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Create',
+                                  permission.allowCreate ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        permission,
+                                        'create',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Update',
+                                  permission.allowUpdate ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        permission,
+                                        'update',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Delete',
+                                  permission.allowDelete ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        permission,
+                                        'delete',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Approve',
+                                  permission.allowApprove ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        permission,
+                                        'approve',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Print',
+                                  permission.allowPrint ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        permission,
+                                        'print',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Export',
+                                  permission.allowExport ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        permission,
+                                        'export',
+                                        value,
+                                      ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }).toList(growable: false),
+                );
+              })
+              .toList(growable: false),
         ),
       ],
     );

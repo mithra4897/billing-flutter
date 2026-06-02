@@ -28,7 +28,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     _controller = Get.put(
       UserManagementController(initialUserId: widget.initialUserId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
@@ -61,53 +61,49 @@ class _UserManagementPageState extends State<UserManagementPage>
         final content = controller.initialLoading
             ? const AppLoadingView(message: 'Loading users...')
             : controller.pageError != null
-                ? AppErrorStateView(
-                    title: 'Unable to load users',
-                    message: controller.pageError!,
-                    onRetry: controller.loadInitial,
-                  )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      final showSideList = constraints.maxWidth >= 1100;
+            ? AppErrorStateView(
+                title: 'Unable to load users',
+                message: controller.pageError!,
+                onRetry: controller.loadInitial,
+              )
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final showSideList = constraints.maxWidth >= 1100;
 
-                      return SingleChildScrollView(
-                        controller: controller.pageScrollController,
-                        padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (showSideList)
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: AppUiConstants.settingsSidebarWidth,
-                                    child: _buildUserList(context, controller),
-                                  ),
-                                  const SizedBox(
-                                    width: AppUiConstants.spacingXl,
-                                  ),
-                                  Expanded(
-                                    child: _buildEditor(context, controller),
-                                  ),
-                                ],
-                              )
-                            else
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  _buildUserList(context, controller),
-                                  const SizedBox(
-                                    height: AppUiConstants.spacingLg,
-                                  ),
-                                  _buildEditor(context, controller),
-                                ],
+                  return SingleChildScrollView(
+                    controller: controller.pageScrollController,
+                    padding: const EdgeInsets.all(AppUiConstants.pagePadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (showSideList)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: AppUiConstants.settingsSidebarWidth,
+                                child: _buildUserList(context, controller),
                               ),
-                          ],
-                        ),
-                      );
-                    },
+                              const SizedBox(width: AppUiConstants.spacingXl),
+                              Expanded(
+                                child: _buildEditor(context, controller),
+                              ),
+                            ],
+                          )
+                        else
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildUserList(context, controller),
+                              const SizedBox(height: AppUiConstants.spacingLg),
+                              _buildEditor(context, controller),
+                            ],
+                          ),
+                      ],
+                    ),
                   );
+                },
+              );
 
         if (widget.embedded) {
           return ShellPageActions(
@@ -162,10 +158,11 @@ class _UserManagementPageState extends State<UserManagementPage>
       ),
       emptyMessage: 'No users found.',
       itemBuilder: (user, selected) => SettingsListTile(
-        title: user.displayName ??
-            '${user.firstName ?? ''} ${user.lastName ?? ''}'
-                .trim()
-                .ifEmpty(user.username ?? 'User'),
+        title:
+            user.displayName ??
+            '${user.firstName ?? ''} ${user.lastName ?? ''}'.trim().ifEmpty(
+              user.username ?? 'User',
+            ),
         subtitle: user.username ?? '',
         detail: user.status ?? 'active',
         selected: selected,
@@ -182,7 +179,8 @@ class _UserManagementPageState extends State<UserManagementPage>
     BuildContext context,
     UserManagementController controller,
   ) {
-    final showDetailTabs = !controller.isNewUser && controller.selectedUserId != null;
+    final showDetailTabs =
+        !controller.isNewUser && controller.selectedUserId != null;
     if (showDetailTabs) {
       _syncTabController(controller.activeTabIndex);
     }
@@ -260,7 +258,8 @@ class _UserManagementPageState extends State<UserManagementPage>
       return;
     }
     final clampedIndex = nextIndex.clamp(0, _tabController.length - 1);
-    if (_tabController.index == clampedIndex || _tabController.indexIsChanging) {
+    if (_tabController.index == clampedIndex ||
+        _tabController.indexIsChanging) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -298,17 +297,19 @@ class _UserManagementPageState extends State<UserManagementPage>
                       .map(
                         (employee) => AppSearchPickerOption<int>(
                           value: employee.id!,
-                          label: employee.employeeName ??
+                          label:
+                              employee.employeeName ??
                               employee.employeeCode ??
                               'Employee',
-                          subtitle: [
-                            employee.employeeCode,
-                            employee.email,
-                            employee.mobile,
-                          ]
-                              .whereType<String>()
-                              .where((value) => value.trim().isNotEmpty)
-                              .join(' | '),
+                          subtitle:
+                              [
+                                    employee.employeeCode,
+                                    employee.email,
+                                    employee.mobile,
+                                  ]
+                                  .whereType<String>()
+                                  .where((value) => value.trim().isNotEmpty)
+                                  .join(' | '),
                           searchText: [
                             employee.employeeCode,
                             employee.employeeName,
@@ -567,120 +568,151 @@ class _UserManagementPageState extends State<UserManagementPage>
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(AppUiConstants.cardPadding),
-          children: controller.effectivePermissions.map((permission) {
-            final permissionKey =
-                '${permission.permissionId ?? permission.code ?? permission.name ?? 'permission'}';
-            final index = controller.effectivePermissions.indexOf(permission);
-            final effective = controller.effectivePermissions.firstWhere(
-              (item) => item.permissionId == permission.permissionId,
-              orElse: () => permission,
-            );
+          children: controller.effectivePermissions
+              .map((permission) {
+                final permissionKey =
+                    '${permission.permissionId ?? permission.code ?? permission.name ?? 'permission'}';
+                final effective = controller.effectivePermissions.firstWhere(
+                  (item) => item.permissionId == permission.permissionId,
+                  orElse: () => permission,
+                );
 
-            return Card(
-              elevation: 0,
-              margin: const EdgeInsets.only(bottom: 16),
-              color: Theme.of(context).extension<AppThemeExtension>()!.subtleFill,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  AppUiConstants.buttonRadius,
-                ),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: ExpansionTile(
-                initiallyExpanded: false,
-                onExpansionChanged: (expanded) =>
-                    controller.togglePermissionModule(permissionKey, expanded),
-                title: Text(permission.name ?? permission.code ?? 'Permission'),
-                trailing: _permissionGroupTrailing(
-                  context,
-                  controller,
-                  permissionKey,
-                  effective,
-                ),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 16, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if ((permission.description ?? '').isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Text(permission.description!),
-                          ),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 8,
+                return Card(
+                  key: ValueKey('user_permission_$permissionKey'),
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  color: Theme.of(
+                    context,
+                  ).extension<AppThemeExtension>()!.subtleFill,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.buttonRadius,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    initiallyExpanded: false,
+                    onExpansionChanged: (expanded) => controller
+                        .togglePermissionModule(permissionKey, expanded),
+                    title: Text(
+                      permission.name ?? permission.code ?? 'Permission',
+                    ),
+                    trailing: _permissionGroupTrailing(
+                      context,
+                      controller,
+                      permissionKey,
+                      effective,
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 16, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _permCheck(
-                              'View',
-                              effective.allowView ?? false,
-                              (value) =>
-                                  controller.togglePermission(index, 'view', value),
-                            ),
-                            _permCheck(
-                              'Create',
-                              effective.allowCreate ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'create',
-                                value,
+                            if ((permission.description ?? '').isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: Text(permission.description!),
                               ),
-                            ),
-                            _permCheck(
-                              'Update',
-                              effective.allowUpdate ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'update',
-                                value,
+                            if ((permission.module ?? '').isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  permission.module!,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .extension<AppThemeExtension>()!
+                                            .mutedText,
+                                      ),
+                                ),
                               ),
-                            ),
-                            _permCheck(
-                              'Delete',
-                              effective.allowDelete ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'delete',
-                                value,
-                              ),
-                            ),
-                            _permCheck(
-                              'Approve',
-                              effective.allowApprove ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'approve',
-                                value,
-                              ),
-                            ),
-                            _permCheck(
-                              'Print',
-                              effective.allowPrint ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'print',
-                                value,
-                              ),
-                            ),
-                            _permCheck(
-                              'Export',
-                              effective.allowExport ?? false,
-                              (value) => controller.togglePermission(
-                                index,
-                                'export',
-                                value,
-                              ),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 8,
+                              children: [
+                                _permCheck(
+                                  'View',
+                                  effective.allowView ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        effective,
+                                        'view',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Create',
+                                  effective.allowCreate ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        effective,
+                                        'create',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Update',
+                                  effective.allowUpdate ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        effective,
+                                        'update',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Delete',
+                                  effective.allowDelete ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        effective,
+                                        'delete',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Approve',
+                                  effective.allowApprove ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        effective,
+                                        'approve',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Print',
+                                  effective.allowPrint ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        effective,
+                                        'print',
+                                        value,
+                                      ),
+                                ),
+                                _permCheck(
+                                  'Export',
+                                  effective.allowExport ?? false,
+                                  (value) =>
+                                      controller.togglePermissionByIdentity(
+                                        effective,
+                                        'export',
+                                        value,
+                                      ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }).toList(growable: false),
+                );
+              })
+              .toList(growable: false),
         ),
       ],
     );

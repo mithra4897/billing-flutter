@@ -136,17 +136,19 @@ class UserManagementController extends GetxController {
       return;
     }
 
-    filteredUsers = users.where((user) {
-      final label = [
-        user.username,
-        user.firstName,
-        user.lastName,
-        user.displayName,
-        user.email,
-        user.mobile,
-      ].whereType<String>().join(' ').toLowerCase();
-      return label.contains(query);
-    }).toList(growable: false);
+    filteredUsers = users
+        .where((user) {
+          final label = [
+            user.username,
+            user.firstName,
+            user.lastName,
+            user.displayName,
+            user.email,
+            user.mobile,
+          ].whereType<String>().join(' ').toLowerCase();
+          return label.contains(query);
+        })
+        .toList(growable: false);
     update();
   }
 
@@ -176,12 +178,14 @@ class UserManagementController extends GetxController {
     isSuperAdmin = user.isSuperAdmin ?? false;
     status = user.status ?? 'active';
     displayNameTouched = (user.displayName ?? '').trim().isNotEmpty;
-    final primaryRole = user.userRoles.where((item) => item.isPrimaryRole == true);
+    final primaryRole = user.userRoles.where(
+      (item) => item.isPrimaryRole == true,
+    );
     selectedRoleId = primaryRole.isNotEmpty
         ? primaryRole.first.roleId
         : user.userRoles.isNotEmpty
-            ? user.userRoles.first.roleId
-            : firstOrNull(user.roleIds);
+        ? user.userRoles.first.roleId
+        : firstOrNull(user.roleIds);
 
     await loadTabs(userId);
     update();
@@ -244,13 +248,17 @@ class UserManagementController extends GetxController {
     }
   }
 
-  EmployeeModel? get selectedEmployee => employees.cast<EmployeeModel?>().firstWhere(
+  EmployeeModel? get selectedEmployee =>
+      employees.cast<EmployeeModel?>().firstWhere(
         (employee) => employee?.id == selectedEmployeeId,
         orElse: () => null,
       );
 
   List<EmployeeModel> get availableEmployees => employees
-      .where((employee) => employee.id == selectedEmployeeId || employee.userId == null)
+      .where(
+        (employee) =>
+            employee.id == selectedEmployeeId || employee.userId == null,
+      )
       .toList(growable: false);
 
   String? get selectedEmployeeLabel {
@@ -268,9 +276,9 @@ class UserManagementController extends GetxController {
 
   void selectEmployee(int? employeeId) {
     final employee = employees.cast<EmployeeModel?>().firstWhere(
-          (item) => item?.id == employeeId,
-          orElse: () => null,
-        );
+      (item) => item?.id == employeeId,
+      orElse: () => null,
+    );
 
     selectedEmployeeId = employee?.id;
     setEmployeeCode(employee?.employeeCode ?? '');
@@ -457,6 +465,23 @@ class UserManagementController extends GetxController {
     update();
   }
 
+  void togglePermissionByIdentity(
+    UserPermissionModel permission,
+    String field,
+    bool enabled,
+  ) {
+    final index = effectivePermissions.indexWhere(
+      (item) =>
+          item.permissionId == permission.permissionId &&
+          item.code == permission.code &&
+          item.name == permission.name,
+    );
+    if (index == -1) {
+      return;
+    }
+    togglePermission(index, field, enabled);
+  }
+
   void handleDisplayNameEdited() {
     final generated = generatedDisplayName;
     final current = displayNameController.text.trim();
@@ -481,9 +506,9 @@ class UserManagementController extends GetxController {
   }
 
   String get generatedDisplayName => [
-        firstNameController.text.trim(),
-        lastNameController.text.trim(),
-      ].where((value) => value.isNotEmpty).join(' ');
+    firstNameController.text.trim(),
+    lastNameController.text.trim(),
+  ].where((value) => value.isNotEmpty).join(' ');
 
   String normalizeDate(String? value) {
     final text = (value ?? '').trim();
@@ -499,37 +524,42 @@ class UserManagementController extends GetxController {
     return tokens.contains('superadmin') || tokens.contains('super admin');
   }
 
-  List<UserPermissionModel> mergePermissionSet(List<UserPermissionModel> source) {
+  List<UserPermissionModel> mergePermissionSet(
+    List<UserPermissionModel> source,
+  ) {
     final sourceMap = {for (final item in source) item.permissionId ?? 0: item};
 
-    return permissions.map((permission) {
-      final item = sourceMap[permission.id] ??
-          UserPermissionModel(
+    return permissions
+        .map((permission) {
+          final item =
+              sourceMap[permission.id] ??
+              UserPermissionModel(
+                permissionId: permission.id,
+                module: permission.module,
+                code: permission.code,
+                name: permission.name,
+                description: permission.description,
+                allowView: false,
+                allowCreate: false,
+                allowUpdate: false,
+                allowDelete: false,
+                allowApprove: false,
+                allowPrint: false,
+                allowExport: false,
+                isActive: true,
+                permission: permission,
+              );
+
+          return item.copyWith(
             permissionId: permission.id,
             module: permission.module,
             code: permission.code,
             name: permission.name,
             description: permission.description,
-            allowView: false,
-            allowCreate: false,
-            allowUpdate: false,
-            allowDelete: false,
-            allowApprove: false,
-            allowPrint: false,
-            allowExport: false,
-            isActive: true,
             permission: permission,
           );
-
-      return item.copyWith(
-        permissionId: permission.id,
-        module: permission.module,
-        code: permission.code,
-        name: permission.name,
-        description: permission.description,
-        permission: permission,
-      );
-    }).toList(growable: false);
+        })
+        .toList(growable: false);
   }
 
   bool differsFromRole(UserPermissionModel permission) {

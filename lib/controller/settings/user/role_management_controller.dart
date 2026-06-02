@@ -11,8 +11,7 @@ class RoleManagementController extends GetxController {
   final TextEditingController searchController = TextEditingController();
   final TextEditingController codeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController descriptionController =
-      TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
   bool initialLoading = true;
   bool loadingRoleDetails = false;
@@ -95,14 +94,16 @@ class RoleManagementController extends GetxController {
       return;
     }
 
-    filteredRoles = roles.where((role) {
-      final label = [
-        role.code,
-        role.name,
-        role.description,
-      ].whereType<String>().join(' ').toLowerCase();
-      return label.contains(query);
-    }).toList(growable: false);
+    filteredRoles = roles
+        .where((role) {
+          final label = [
+            role.code,
+            role.name,
+            role.description,
+          ].whereType<String>().join(' ').toLowerCase();
+          return label.contains(query);
+        })
+        .toList(growable: false);
     update();
   }
 
@@ -299,6 +300,23 @@ class RoleManagementController extends GetxController {
         allowExport: field == 'export' ? enabled : current.allowExport,
       );
     update();
+  }
+
+  void togglePermissionByIdentity(
+    RolePermissionModel permission,
+    String field,
+    bool enabled,
+  ) {
+    final index = rolePermissions.indexWhere(
+      (item) =>
+          item.permissionId == permission.permissionId &&
+          item.code == permission.code &&
+          item.name == permission.name,
+    );
+    if (index == -1) {
+      return;
+    }
+    togglePermission(index, field, enabled);
   }
 
   void setActiveTabIndex(int index) {
