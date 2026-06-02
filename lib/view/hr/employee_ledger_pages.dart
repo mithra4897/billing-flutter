@@ -30,9 +30,9 @@ class _EmployeeLedgerRegisterPageState
   static const List<AppDropdownItem<String>> _balanceItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: '', label: 'All balances'),
-        AppDropdownItem(value: 'payable', label: 'Payable'),
-        AppDropdownItem(value: 'excess_paid', label: 'Excess Paid'),
-        AppDropdownItem(value: 'settled', label: 'Settled'),
+        AppDropdownItem(value: 'salary_posted', label: 'Salary Posted'),
+        AppDropdownItem(value: 'reimbursed', label: 'Reimbursed'),
+        AppDropdownItem(value: 'no_activity', label: 'No Activity'),
       ];
 
   final HrService _hrService = HrService();
@@ -55,9 +55,10 @@ class _EmployeeLedgerRegisterPageState
                   : row.status.toLowerCase() != 'active');
           final balanceOk =
               _balanceFilter.isEmpty ||
-              (_balanceFilter == 'payable' && row.payableAmount > 0) ||
-              (_balanceFilter == 'excess_paid' && row.excessPaidAmount > 0) ||
-              (_balanceFilter == 'settled' && row.outstanding == 0);
+              (_balanceFilter == 'salary_posted' && row.hasSalaryActivity) ||
+              (_balanceFilter == 'reimbursed' &&
+                  row.hasReimbursementActivity) ||
+              (_balanceFilter == 'no_activity' && !row.hasAnyActivity);
           final searchOk =
               query.isEmpty ||
               [
@@ -195,16 +196,19 @@ class _EmployeeLedgerRegisterPageState
       final nextRows = employees
           .where((item) => item.id != null)
           .map((item) {
-            final account = _preferredEmployeeAccount(
-              employeeAccounts[item.id!] ?? const <EmployeeAccountModel>[],
+            final accounts =
+                employeeAccounts[item.id!] ?? const <EmployeeAccountModel>[];
+            final salaryAccount = _preferredEmployeeAccount(
+              accounts,
+              preferredPurposes: const <String>['payable'],
             );
             return _EmployeeLedgerRegisterRow(
               employeeId: item.id!,
               employeeCode: item.employeeCode ?? '',
               employeeName: item.employeeName ?? '',
               departmentName: item.departmentName ?? '',
-              ledgerCode: account?.accountCode ?? '',
-              ledgerName: account?.accountName ?? '',
+              ledgerCode: salaryAccount?.accountCode ?? '',
+              ledgerName: salaryAccount?.accountName ?? '',
               status: (item.status ?? 'active').titleCase,
               salaryTotal: salaryTotals[item.id!] ?? 0,
               reimbursementTotal: reimbursementTotals[item.id!] ?? 0,
@@ -283,11 +287,11 @@ class _EmployeeLedgerRegisterPageState
           valueBuilder: (row) => row.employeeName,
         ),
         PurchaseRegisterColumn(
-          label: 'Ledger Code',
+          label: 'Salary Ledger Code',
           valueBuilder: (row) => row.ledgerCode,
         ),
         PurchaseRegisterColumn(
-          label: 'Ledger Name',
+          label: 'Salary Ledger Name',
           flex: 3,
           valueBuilder: (row) => row.ledgerName,
         ),
@@ -296,14 +300,14 @@ class _EmployeeLedgerRegisterPageState
           valueBuilder: (row) => row.departmentName,
         ),
         PurchaseRegisterColumn(
-          label: 'Payable',
+          label: 'Salary Posted',
           valueBuilder: (row) =>
-              _formatEmployeeRegisterAmount(row.payableAmount),
+              _formatEmployeeRegisterAmount(row.salaryTotal),
         ),
         PurchaseRegisterColumn(
-          label: 'Excess Paid',
+          label: 'Reimbursed',
           valueBuilder: (row) =>
-              _formatEmployeeRegisterAmount(row.excessPaidAmount),
+              _formatEmployeeRegisterAmount(row.reimbursementTotal),
         ),
         PurchaseRegisterColumn(
           label: 'Last Salary Posting',
@@ -342,21 +346,23 @@ class EmployeeLedgerDetailPage extends StatefulWidget {
 }
 
 class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
+  final AccountsService _accountsService = AccountsService();
   final HrService _hrService = HrService();
   final ScrollController _scrollController = ScrollController();
 
   bool _loading = true;
   String? _errorMessage;
   EmployeeModel? _employee;
-  EmployeeAccountModel? _account;
+  EmployeeAccountModel? _payableAccount;
+  EmployeeAccountModel? _reimbursementAccount;
   List<LedgerStatementRowData> _statementRows =
       const <LedgerStatementRowData>[];
-  double _salaryTotal = 0;
-  double _reimbursementTotal = 0;
+  double _openingBalance = 0;
+  double _totalDebit = 0;
+  double _totalCredit = 0;
+  double _closingBalance = 0;
   String _lastSalaryPostingDate = '';
   String _lastReimbursementDate = '';
-
-  double get _outstanding => _salaryTotal - _reimbursementTotal;
 
   @override
   void initState() {
@@ -380,87 +386,63 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
       final responses = await Future.wait<dynamic>([
         _hrService.employee(widget.employeeId),
         _hrService.employeeAccounts(widget.employeeId),
-        _hrService.payslips(
-          filters: <String, dynamic>{
-            'employee_id': widget.employeeId,
-            'per_page': 200,
-            'sort_by': 'payslip_date',
-            'sort_order': 'desc',
-          },
-        ),
-        _hrService.expenseClaims(
-          filters: <String, dynamic>{
-            'employee_id': widget.employeeId,
-            'per_page': 200,
-            'sort_by': 'claim_date',
-            'sort_order': 'desc',
-          },
-        ),
       ]);
 
       final employee = (responses[0] as ApiResponse<EmployeeModel>).data;
       final accounts =
           (responses[1] as ApiResponse<List<EmployeeAccountModel>>).data ??
           const <EmployeeAccountModel>[];
-      final payslips =
-          (responses[2] as PaginatedResponse<PayslipModel>).data ??
-          const <PayslipModel>[];
-      final claims =
-          (responses[3] as PaginatedResponse<ExpenseClaimModel>).data ??
-          const <ExpenseClaimModel>[];
 
       if (employee == null) {
         throw Exception('Employee ledger record not found.');
       }
+      if (employee.companyId == null) {
+        throw Exception('Employee company is not configured.');
+      }
 
-      final preferredAccount = _preferredEmployeeAccount(accounts);
-      final reimbursedClaims = claims
-          .where((claim) {
-            return claim.reimbursementVoucherId != null ||
-                (claim.reimbursedAt?.trim().isNotEmpty ?? false);
-          })
-          .toList(growable: false);
-
-      final statementRows = <_StatementRowSortWrapper>[
-        for (final payslip in payslips)
-          _StatementRowSortWrapper(
-            sortDate: payslip.payslipDate ?? payslip.runDate ?? '',
-            row: LedgerStatementRowData(
-              date: displayDate(payslip.payslipDate ?? payslip.runDate),
-              code: (payslip.payslipNo?.trim().isNotEmpty ?? false)
-                  ? payslip.payslipNo!.trim()
-                  : 'PS-${payslip.id ?? ''}',
-              ledgerName:
-                  preferredAccount?.accountName ??
-                  preferredAccount?.accountCode ??
-                  'Employee Payable',
-              cashBankLedger: 'Salary Payable',
-              credit: _formatLedgerAmount(payslip.netSalary ?? 0),
-              debit: '',
-            ),
-          ),
-        for (final claim in reimbursedClaims)
-          _StatementRowSortWrapper(
-            sortDate: claim.reimbursedAt ?? claim.claimDate ?? '',
-            row: LedgerStatementRowData(
-              date: displayDate(claim.reimbursedAt ?? claim.claimDate),
-              code: (claim.claimNo?.trim().isNotEmpty ?? false)
-                  ? claim.claimNo!.trim()
-                  : 'EC-${claim.id ?? ''}',
-              ledgerName:
-                  preferredAccount?.accountName ??
-                  preferredAccount?.accountCode ??
-                  'Employee Payable',
-              cashBankLedger: 'Reimbursement Payment',
-              credit: '',
-              debit: _formatLedgerAmount(claim.totalAmount ?? 0),
-            ),
-          ),
-      ];
-
-      statementRows.sort(
-        (left, right) => right.sortDate.compareTo(left.sortDate),
+      final payableAccount = _preferredEmployeeAccount(
+        accounts,
+        preferredPurposes: const <String>['payable'],
       );
+      final reimbursementAccount = _preferredEmployeeAccount(
+        accounts,
+        preferredPurposes: const <String>['reimbursement'],
+      );
+      final salaryReport = payableAccount?.accountId == null
+          ? const <String, dynamic>{}
+          : await _loadGeneralLedgerReport(
+              companyId: employee.companyId!,
+              accountId: payableAccount!.accountId!,
+            );
+      final reimbursementReport = reimbursementAccount?.accountId == null
+          ? const <String, dynamic>{}
+          : await _loadGeneralLedgerReport(
+              companyId: employee.companyId!,
+              accountId: reimbursementAccount!.accountId!,
+            );
+
+      final salarySummary = _employeeLedgerMap(salaryReport['summary']);
+      final reimbursementSummary = _employeeLedgerMap(
+        reimbursementReport['summary'],
+      );
+      final salaryLines = _employeeLedgerList(salaryReport['lines']);
+      final reimbursementLines = _employeeLedgerList(reimbursementReport['lines']);
+      final statementRows = <_StatementRowSortWrapper>[
+        ..._employeeStatementRows(
+          salaryLines,
+          ledgerName:
+              payableAccount?.accountName ??
+              payableAccount?.accountCode ??
+              'Employee Payable',
+        ),
+        ..._employeeStatementRows(
+          reimbursementLines,
+          ledgerName:
+              reimbursementAccount?.accountName ??
+              reimbursementAccount?.accountCode ??
+              'Employee Reimbursement Payable',
+        ),
+      ]..sort((left, right) => right.sortDate.compareTo(left.sortDate));
 
       if (!mounted) {
         return;
@@ -468,29 +450,29 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
 
       setState(() {
         _employee = employee;
-        _account = preferredAccount;
+        _payableAccount = payableAccount;
+        _reimbursementAccount = reimbursementAccount;
         _statementRows = statementRows
             .map((item) => item.row)
             .toList(growable: false);
-        _salaryTotal = payslips.fold<double>(
-          0,
-          (sum, item) => sum + (item.netSalary ?? 0),
-        );
-        _lastSalaryPostingDate = payslips.fold<String>('', (latest, item) {
-          final value = item.payslipDate ?? item.runDate ?? '';
-          return value.compareTo(latest) > 0 ? value : latest;
-        });
-        _reimbursementTotal = reimbursedClaims.fold<double>(
-          0,
-          (sum, item) => sum + (item.totalAmount ?? 0),
-        );
-        _lastReimbursementDate = reimbursedClaims.fold<String>('', (
-          latest,
-          item,
-        ) {
-          final value = item.reimbursedAt ?? item.claimDate ?? '';
-          return value.compareTo(latest) > 0 ? value : latest;
-        });
+        _openingBalance =
+            _employeeLedgerDouble(salarySummary['opening_balance']) +
+            _employeeLedgerDouble(reimbursementSummary['opening_balance']);
+        _totalDebit =
+            _employeeLedgerDouble(salarySummary['total_debit']) +
+            _employeeLedgerDouble(reimbursementSummary['total_debit']);
+        _totalCredit =
+            _employeeLedgerDouble(salarySummary['total_credit']) +
+            _employeeLedgerDouble(reimbursementSummary['total_credit']);
+        _closingBalance =
+            _employeeLedgerDouble(salarySummary['closing_balance']) +
+            _employeeLedgerDouble(reimbursementSummary['closing_balance']);
+        _lastSalaryPostingDate = salaryLines.isEmpty
+            ? ''
+            : salaryLines.last['voucher_date']?.toString() ?? '';
+        _lastReimbursementDate = reimbursementLines.isEmpty
+            ? ''
+            : reimbursementLines.last['voucher_date']?.toString() ?? '';
         _loading = false;
       });
     } catch (errorValue) {
@@ -574,25 +556,45 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
                   value: employee.departmentName ?? '-',
                 ),
                 _EmployeeSummaryTile(
-                  label: 'Ledger Code',
-                  value: _account?.accountCode ?? '-',
+                  label: 'Salary Ledger Code',
+                  value: _payableAccount?.accountCode ?? '-',
                 ),
                 _EmployeeSummaryTile(
-                  label: 'Ledger Name',
-                  value: _account?.accountName ?? '-',
+                  label: 'Salary Ledger Name',
+                  value: _payableAccount?.accountName ?? '-',
                   width: 260,
                 ),
                 _EmployeeSummaryTile(
-                  label: 'Net Salary Total',
-                  value: _formatLedgerAmount(_salaryTotal),
+                  label: 'Reimbursement Ledger Code',
+                  value: _reimbursementAccount?.accountCode ?? '-',
                 ),
                 _EmployeeSummaryTile(
-                  label: 'Reimbursements',
-                  value: _formatLedgerAmount(_reimbursementTotal),
+                  label: 'Reimbursement Ledger Name',
+                  value: _reimbursementAccount?.accountName ?? '-',
+                  width: 260,
                 ),
                 _EmployeeSummaryTile(
-                  label: _employeeBalanceLabel(_outstanding),
-                  value: _formatLedgerAmount(_outstanding.abs()),
+                  label: 'Opening Balance',
+                  value: _formatLedgerAmount(_openingBalance),
+                ),
+                _EmployeeSummaryTile(
+                  label: 'Total Debit',
+                  value: _formatLedgerAmount(_totalDebit),
+                ),
+                _EmployeeSummaryTile(
+                  label: 'Total Credit',
+                  value: _formatLedgerAmount(_totalCredit),
+                ),
+                _EmployeeSummaryTile(
+                  label: 'Closing Balance',
+                  value: _formatLedgerAmount(_closingBalance),
+                ),
+                _EmployeeSummaryTile(
+                  label: 'Ledger Coverage',
+                  value: _employeeLedgerCoverageLabel(
+                    _payableAccount,
+                    _reimbursementAccount,
+                  ),
                 ),
                 _EmployeeSummaryTile(
                   label: 'Last Salary Posting',
@@ -610,11 +612,26 @@ class _EmployeeLedgerDetailPageState extends State<EmployeeLedgerDetailPage> {
             title: 'Ledger Statement',
             rows: _statementRows,
             emptyMessage:
-                'No payslips or reimbursed claims were found for this employee ledger.',
+                'No posted accounting transactions were found for this employee ledger.',
           ),
         ],
       ),
     );
+  }
+
+  Future<Map<String, dynamic>> _loadGeneralLedgerReport({
+    required int companyId,
+    required int accountId,
+  }) async {
+    final response = await _accountsService.reportGeneralLedger(
+      filters: <String, dynamic>{
+        'company_id': companyId,
+        'account_id': accountId,
+        'date_from': _employeeLedgerHistoryDateFrom,
+        'date_to': _employeeLedgerHistoryDateTo(),
+      },
+    );
+    return response.data?.data ?? const <String, dynamic>{};
   }
 }
 
@@ -740,9 +757,9 @@ class _EmployeeLedgerRegisterRow {
   final String lastPayslipDate;
   final String lastReimbursementDate;
 
-  double get outstanding => salaryTotal - reimbursementTotal;
-  double get payableAmount => outstanding > 0 ? outstanding : 0;
-  double get excessPaidAmount => outstanding < 0 ? outstanding.abs() : 0;
+  bool get hasSalaryActivity => salaryTotal > 0;
+  bool get hasReimbursementActivity => reimbursementTotal > 0;
+  bool get hasAnyActivity => hasSalaryActivity || hasReimbursementActivity;
 }
 
 class _StatementRowSortWrapper {
@@ -752,16 +769,23 @@ class _StatementRowSortWrapper {
   final LedgerStatementRowData row;
 }
 
+const String _employeeLedgerHistoryDateFrom = '2000-01-01';
+
 EmployeeAccountModel? _preferredEmployeeAccount(
   List<EmployeeAccountModel> accounts,
+  {List<String> preferredPurposes = const <String>[]}
 ) {
   if (accounts.isEmpty) {
     return null;
   }
 
   EmployeeAccountModel? firstActive;
-  EmployeeAccountModel? salaryPurpose;
   EmployeeAccountModel? defaultAccount;
+  final normalizedPreferredPurposes = preferredPurposes
+      .map((item) => item.trim().toLowerCase())
+      .where((item) => item.isNotEmpty)
+      .toSet();
+  final preferredMatches = <EmployeeAccountModel>[];
 
   for (final account in accounts) {
     if (!account.isActive) {
@@ -771,12 +795,92 @@ EmployeeAccountModel? _preferredEmployeeAccount(
     if (account.isDefault) {
       defaultAccount ??= account;
     }
-    if ((account.accountPurpose ?? '').toLowerCase() == 'salary') {
-      salaryPurpose ??= account;
+    final purpose = (account.accountPurpose ?? '').trim().toLowerCase();
+    if (normalizedPreferredPurposes.contains(purpose)) {
+      preferredMatches.add(account);
     }
   }
 
-  return salaryPurpose ?? defaultAccount ?? firstActive ?? accounts.first;
+  if (preferredMatches.isNotEmpty) {
+    return preferredMatches.firstWhere(
+      (account) => account.isDefault,
+      orElse: () => preferredMatches.first,
+    );
+  }
+
+  return defaultAccount ?? firstActive ?? accounts.first;
+}
+
+String _employeeLedgerHistoryDateTo() =>
+    DateTime.now().toIso8601String().split('T').first;
+
+Map<String, dynamic> _employeeLedgerMap(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return value.map(
+      (key, entry) => MapEntry(key.toString(), entry),
+    );
+  }
+  return const <String, dynamic>{};
+}
+
+List<Map<String, dynamic>> _employeeLedgerList(dynamic value) {
+  if (value is! List) {
+    return const <Map<String, dynamic>>[];
+  }
+  return value.map(_employeeLedgerMap).toList(growable: false);
+}
+
+double _employeeLedgerDouble(dynamic value) =>
+    double.tryParse(value?.toString() ?? '') ?? 0;
+
+List<_StatementRowSortWrapper> _employeeStatementRows(
+  List<Map<String, dynamic>> lines, {
+  required String ledgerName,
+}) {
+  return lines
+      .map(
+        (line) => _StatementRowSortWrapper(
+          sortDate: line['voucher_date']?.toString() ?? '',
+          row: LedgerStatementRowData(
+            date: displayDate(line['voucher_date']?.toString()),
+            code: _employeeLedgerCode(line),
+            ledgerName: ledgerName,
+            cashBankLedger: _employeeLedgerDescriptor(line),
+            credit: _employeeLedgerAmountText(line['credit']),
+            debit: _employeeLedgerAmountText(line['debit']),
+          ),
+        ),
+      )
+      .toList(growable: false);
+}
+
+String _employeeLedgerCode(Map<String, dynamic> line) {
+  final voucherNo = line['voucher_no']?.toString().trim() ?? '';
+  if (voucherNo.isNotEmpty) {
+    return voucherNo;
+  }
+  final voucherId = line['voucher_id']?.toString().trim() ?? '';
+  return voucherId.isEmpty ? '-' : 'V-$voucherId';
+}
+
+String _employeeLedgerDescriptor(Map<String, dynamic> line) {
+  final parts = <String>[
+    line['voucher_type']?.toString().trim() ?? '',
+    line['reference_no']?.toString().trim() ?? '',
+    line['narration']?.toString().trim() ?? '',
+  ].where((item) => item.isNotEmpty).toList(growable: false);
+  return parts.isEmpty ? '-' : parts.join(' · ');
+}
+
+String _employeeLedgerAmountText(dynamic value) {
+  final amount = _employeeLedgerDouble(value);
+  if (amount == 0) {
+    return '';
+  }
+  return amount.toStringAsFixed(2);
 }
 
 String _formatLedgerAmount(double value) => value.toStringAsFixed(2);
@@ -788,12 +892,20 @@ String _formatEmployeeRegisterAmount(double value) {
   return value.toStringAsFixed(2);
 }
 
-String _employeeBalanceLabel(double value) {
-  if (value > 0) {
-    return 'Amount Payable';
+String _employeeLedgerCoverageLabel(
+  EmployeeAccountModel? payableAccount,
+  EmployeeAccountModel? reimbursementAccount,
+) {
+  final hasPayable = payableAccount != null;
+  final hasReimbursement = reimbursementAccount != null;
+  if (hasPayable && hasReimbursement) {
+    return 'Salary + Reimbursement';
   }
-  if (value < 0) {
-    return 'Excess Paid';
+  if (hasPayable) {
+    return 'Salary only';
   }
-  return 'Settled Balance';
+  if (hasReimbursement) {
+    return 'Reimbursement only';
+  }
+  return 'No active mapping';
 }

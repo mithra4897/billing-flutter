@@ -301,7 +301,6 @@ class SalesLedgerDetailPage extends StatefulWidget {
 
 class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
   final AccountsService _accountsService = AccountsService();
-  final SalesService _salesService = SalesService();
   final ScrollController _scrollController = ScrollController();
 
   bool _loading = true;
@@ -309,12 +308,11 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
   PartyAccountModel? _mapping;
   List<LedgerStatementRowData> _statementRows =
       const <LedgerStatementRowData>[];
-  double _invoiceTotal = 0;
-  double _receiptTotal = 0;
-  String _lastReceiptDate = '';
-  String _recentCashBankLedger = '-';
-
-  double get _outstanding => _invoiceTotal - _receiptTotal;
+  double _openingBalance = 0;
+  double _totalDebit = 0;
+  double _totalCredit = 0;
+  double _closingBalance = 0;
+  String _lastVoucherDate = '';
 
   @override
   void initState() {
@@ -342,87 +340,44 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
       if (mapping == null) {
         throw Exception('Sales ledger mapping not found.');
       }
+      if (mapping.accountId == null) {
+        throw Exception('Sales ledger account is not configured.');
+      }
 
-      final responses = await Future.wait<dynamic>([
-        _accountsService.accountsAll(
-          filters: const <String, dynamic>{
-            'is_active': 1,
-            'sort_by': 'account_name',
-          },
-        ),
-        _salesService.invoices(
-          filters: <String, dynamic>{
-            'customer_party_id': mapping.partyId,
-            'per_page': 200,
-            'sort_by': 'invoice_date',
-            'sort_order': 'desc',
-          },
-        ),
-        _salesService.receipts(
-          filters: <String, dynamic>{
-            'customer_party_id': mapping.partyId,
-            'per_page': 200,
-            'sort_by': 'receipt_date',
-            'sort_order': 'desc',
-          },
-        ),
-      ]);
+      final accountResponse = await _accountsService.account(mapping.accountId!);
+      final account = accountResponse.data;
+      if (account?.id == null || account?.companyId == null) {
+        throw Exception('Sales ledger account details are incomplete.');
+      }
 
-      final accounts =
-          (responses[0] as ApiResponse<List<AccountModel>>).data ??
-          const <AccountModel>[];
-      final invoices =
-          (responses[1] as PaginatedResponse<SalesInvoiceModel>).data ??
-          const <SalesInvoiceModel>[];
-      final receipts =
-          (responses[2] as PaginatedResponse<SalesReceiptModel>).data ??
-          const <SalesReceiptModel>[];
-
-      final accountNames = <int, String>{
-        for (final account in accounts)
-          if (account.id != null)
-            account.id!: _salesAccountLabel(
-              account.accountCode,
-              account.accountName,
-            ),
-      };
-
-      final statementRows = <_SalesStatementRowSortWrapper>[
-        for (final invoice in invoices)
-          _SalesStatementRowSortWrapper(
-            sortDate: invoice.invoiceDate,
-            row: LedgerStatementRowData(
-              date: displayDate(invoice.invoiceDate),
-              code: (invoice.invoiceNo?.trim().isNotEmpty ?? false)
-                  ? invoice.invoiceNo!.trim()
-                  : 'SI-${invoice.id}',
-              ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
-              cashBankLedger: 'Customer Receivable',
-              credit: _formatSalesLedgerAmount(invoice.totalAmount ?? 0),
-              debit: '',
-            ),
-          ),
-        for (final receipt in receipts)
-          _SalesStatementRowSortWrapper(
-            sortDate: receipt.receiptDate ?? '',
-            row: LedgerStatementRowData(
-              date: displayDate(receipt.receiptDate),
-              code: (receipt.receiptNo?.trim().isNotEmpty ?? false)
-                  ? receipt.receiptNo!.trim()
-                  : 'SR-${receipt.id ?? ''}',
-              ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
-              cashBankLedger:
-                  accountNames[receipt.accountId] ??
-                  (receipt.paymentMode?.titleCase ?? '-'),
-              credit: '',
-              debit: _formatSalesLedgerAmount(receipt.paidAmount ?? 0),
-            ),
-          ),
-      ];
-
-      statementRows.sort(
-        (left, right) => right.sortDate.compareTo(left.sortDate),
+      final reportResponse = await _accountsService.reportGeneralLedger(
+        filters: <String, dynamic>{
+          'company_id': account!.companyId,
+          'account_id': account.id,
+          if (mapping.partyId != null) 'party_id': mapping.partyId,
+          'date_from': _ledgerHistoryDateFrom,
+          'date_to': _ledgerHistoryDateTo(),
+        },
       );
+      final reportData = reportResponse.data?.data ?? const <String, dynamic>{};
+      final summary = _ledgerMap(reportData['summary']);
+      final lines = _ledgerList(reportData['lines']);
+      final statementRows = lines
+          .map(
+            (line) => _SalesStatementRowSortWrapper(
+              sortDate: line['voucher_date']?.toString() ?? '',
+              row: LedgerStatementRowData(
+                date: displayDate(line['voucher_date']?.toString()),
+                code: _ledgerCode(line),
+                ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
+                cashBankLedger: _ledgerDescriptor(line),
+                credit: _ledgerAmountText(line['credit']),
+                debit: _ledgerAmountText(line['debit']),
+              ),
+            ),
+          )
+          .toList(growable: false)
+        ..sort((left, right) => right.sortDate.compareTo(left.sortDate));
 
       if (!mounted) {
         return;
@@ -433,22 +388,13 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
         _statementRows = statementRows
             .map((item) => item.row)
             .toList(growable: false);
-        _invoiceTotal = invoices.fold<double>(
-          0,
-          (sum, item) => sum + (item.totalAmount ?? 0),
-        );
-        _receiptTotal = receipts.fold<double>(
-          0,
-          (sum, item) => sum + (item.paidAmount ?? 0),
-        );
-        _lastReceiptDate = receipts.fold<String>('', (latest, item) {
-          final value = item.receiptDate ?? '';
-          return value.compareTo(latest) > 0 ? value : latest;
-        });
-        _recentCashBankLedger = receipts.isEmpty
-            ? '-'
-            : accountNames[receipts.first.accountId] ??
-                  (receipts.first.paymentMode?.titleCase ?? '-');
+        _openingBalance = _ledgerDouble(summary['opening_balance']);
+        _totalDebit = _ledgerDouble(summary['total_debit']);
+        _totalCredit = _ledgerDouble(summary['total_credit']);
+        _closingBalance = _ledgerDouble(summary['closing_balance']);
+        _lastVoucherDate = lines.isEmpty
+            ? ''
+            : lines.last['voucher_date']?.toString() ?? '';
         _loading = false;
       });
     } catch (errorValue) {
@@ -533,25 +479,24 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
                   width: 280,
                 ),
                 _SalesSummaryTile(
-                  label: 'Last Receipt Ledger',
-                  value: _recentCashBankLedger,
-                  width: 240,
+                  label: 'Opening Balance',
+                  value: _formatSalesLedgerAmount(_openingBalance),
                 ),
                 _SalesSummaryTile(
-                  label: 'Invoice Total',
-                  value: _formatSalesLedgerAmount(_invoiceTotal),
+                  label: 'Total Debit',
+                  value: _formatSalesLedgerAmount(_totalDebit),
                 ),
                 _SalesSummaryTile(
-                  label: 'Receipts',
-                  value: _formatSalesLedgerAmount(_receiptTotal),
+                  label: 'Total Credit',
+                  value: _formatSalesLedgerAmount(_totalCredit),
                 ),
                 _SalesSummaryTile(
-                  label: _salesBalanceLabel(_outstanding),
-                  value: _formatSalesLedgerAmount(_outstanding.abs()),
+                  label: 'Closing Balance',
+                  value: _formatSalesLedgerAmount(_closingBalance),
                 ),
                 _SalesSummaryTile(
-                  label: 'Last Receipt',
-                  value: displayDate(_lastReceiptDate),
+                  label: 'Last Voucher',
+                  value: displayDate(_lastVoucherDate),
                 ),
               ],
             ),
@@ -561,7 +506,7 @@ class _SalesLedgerDetailPageState extends State<SalesLedgerDetailPage> {
             title: 'Ledger Statement',
             rows: _statementRows,
             emptyMessage:
-                'No invoices or receipts were found for this sales ledger.',
+                'No posted accounting transactions were found for this sales ledger.',
           ),
         ],
       ),
@@ -706,6 +651,8 @@ class _SalesStatementRowSortWrapper {
 
 String _formatSalesLedgerAmount(double value) => value.toStringAsFixed(2);
 
+const String _ledgerHistoryDateFrom = '2000-01-01';
+
 String _formatSalesRegisterAmount(double value) {
   if (value == 0) {
     return '';
@@ -713,24 +660,53 @@ String _formatSalesRegisterAmount(double value) {
   return value.toStringAsFixed(2);
 }
 
-String _salesBalanceLabel(double value) {
-  if (value > 0) {
-    return 'Amount Receivable';
+String _ledgerHistoryDateTo() =>
+    DateTime.now().toIso8601String().split('T').first;
+
+Map<String, dynamic> _ledgerMap(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
   }
-  if (value < 0) {
-    return 'Advance Received';
+  if (value is Map) {
+    return value.map(
+      (key, entry) => MapEntry(key.toString(), entry),
+    );
   }
-  return 'Settled Balance';
+  return const <String, dynamic>{};
 }
 
-String _salesAccountLabel(String? code, String? name) {
-  final normalizedCode = (code ?? '').trim();
-  final normalizedName = (name ?? '').trim();
-  if (normalizedCode.isEmpty) {
-    return normalizedName.isEmpty ? '-' : normalizedName;
+List<Map<String, dynamic>> _ledgerList(dynamic value) {
+  if (value is! List) {
+    return const <Map<String, dynamic>>[];
   }
-  if (normalizedName.isEmpty) {
-    return normalizedCode;
+  return value.map(_ledgerMap).toList(growable: false);
+}
+
+double _ledgerDouble(dynamic value) =>
+    double.tryParse(value?.toString() ?? '') ?? 0;
+
+String _ledgerAmountText(dynamic value) {
+  final amount = _ledgerDouble(value);
+  if (amount == 0) {
+    return '';
   }
-  return '$normalizedCode · $normalizedName';
+  return amount.toStringAsFixed(2);
+}
+
+String _ledgerCode(Map<String, dynamic> line) {
+  final voucherNo = line['voucher_no']?.toString().trim() ?? '';
+  if (voucherNo.isNotEmpty) {
+    return voucherNo;
+  }
+  final voucherId = line['voucher_id']?.toString().trim() ?? '';
+  return voucherId.isEmpty ? '-' : 'V-$voucherId';
+}
+
+String _ledgerDescriptor(Map<String, dynamic> line) {
+  final parts = <String>[
+    line['voucher_type']?.toString().trim() ?? '',
+    line['reference_no']?.toString().trim() ?? '',
+    line['narration']?.toString().trim() ?? '',
+  ].where((item) => item.isNotEmpty).toList(growable: false);
+  return parts.isEmpty ? '-' : parts.join(' · ');
 }

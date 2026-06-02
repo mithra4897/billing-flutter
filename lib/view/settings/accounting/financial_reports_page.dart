@@ -55,58 +55,62 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
               ),
               child: Form(
                 key: controller.reportFilterFormKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Filter Financial Reports',
-                            style: Theme.of(dialogContext).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                child: GetBuilder<FinancialReportsController>(
+                  tag: _controllerTag,
+                  builder: (dialogController) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Filter Financial Reports',
+                              style: Theme.of(dialogContext).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          onPressed: () =>
-                              Navigator.of(dialogContext).pop(false),
-                          tooltip: 'Close',
-                          icon: const Icon(Icons.close),
-                          color: appTheme.mutedText,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildFilterFields(dialogContext, controller),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: () {
-                            if (controller.reportFilterFormKey.currentState
-                                    ?.validate() !=
-                                true) {
-                              return;
-                            }
-                            Navigator.of(dialogContext).pop(true);
-                          },
-                          icon: const Icon(Icons.play_arrow_outlined),
-                          label: const Text('Run Report'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            controller.clearFilters();
-                            Navigator.of(dialogContext).pop(true);
-                          },
-                          icon: const Icon(Icons.clear),
-                          label: const Text('Clear'),
-                        ),
-                      ],
-                    ),
-                  ],
+                          IconButton(
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close),
+                            color: appTheme.mutedText,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildFilterFields(dialogContext, dialogController),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () {
+                              if (dialogController.reportFilterFormKey
+                                      .currentState
+                                      ?.validate() !=
+                                  true) {
+                                return;
+                              }
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.play_arrow_outlined),
+                            label: const Text('Run Report'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              dialogController.clearFilters();
+                              Navigator.of(dialogContext).pop(true);
+                            },
+                            icon: const Icon(Icons.clear),
+                            label: const Text('Clear'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -265,7 +269,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
         if (controller.needsAccount)
           AppDropdownField<int>.fromMapped(
             labelText: 'Account',
-            mappedItems: controller.accounts
+            mappedItems: controller.accountOptions
                 .where((item) => item.id != null)
                 .map(
                   (item) =>
@@ -278,7 +282,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
         if (controller.needsParty)
           AppDropdownField<int>.fromMapped(
             labelText: 'Party',
-            mappedItems: controller.parties
+            mappedItems: controller.partyOptions
                 .where((item) => item.id != null)
                 .map(
                   (item) =>

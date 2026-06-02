@@ -309,7 +309,6 @@ class PurchaseLedgerDetailPage extends StatefulWidget {
 
 class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
   final AccountsService _accountsService = AccountsService();
-  final PurchaseService _purchaseService = PurchaseService();
   final ScrollController _scrollController = ScrollController();
 
   bool _loading = true;
@@ -317,12 +316,11 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
   PartyAccountModel? _mapping;
   List<LedgerStatementRowData> _statementRows =
       const <LedgerStatementRowData>[];
-  double _invoiceTotal = 0;
-  double _paymentTotal = 0;
-  String _lastPaymentDate = '';
-  String _recentCashBankLedger = '-';
-
-  double get _balance => _invoiceTotal - _paymentTotal;
+  double _openingBalance = 0;
+  double _totalDebit = 0;
+  double _totalCredit = 0;
+  double _closingBalance = 0;
+  String _lastVoucherDate = '';
 
   @override
   void initState() {
@@ -350,87 +348,44 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
       if (mapping == null) {
         throw Exception('Purchase ledger mapping not found.');
       }
+      if (mapping.accountId == null) {
+        throw Exception('Purchase ledger account is not configured.');
+      }
 
-      final responses = await Future.wait<dynamic>([
-        _accountsService.accountsAll(
-          filters: const <String, dynamic>{
-            'is_active': 1,
-            'sort_by': 'account_name',
-          },
-        ),
-        _purchaseService.invoicesAll(
-          filters: <String, dynamic>{
-            'supplier_party_id': mapping.partyId,
-            'per_page': 200,
-            'sort_by': 'invoice_date',
-            'sort_order': 'desc',
-          },
-        ),
-        _purchaseService.paymentsAll(
-          filters: <String, dynamic>{
-            'supplier_party_id': mapping.partyId,
-            'per_page': 200,
-            'sort_by': 'payment_date',
-            'sort_order': 'desc',
-          },
-        ),
-      ]);
+      final accountResponse = await _accountsService.account(mapping.accountId!);
+      final account = accountResponse.data;
+      if (account?.id == null || account?.companyId == null) {
+        throw Exception('Purchase ledger account details are incomplete.');
+      }
 
-      final accounts =
-          (responses[0] as ApiResponse<List<AccountModel>>).data ??
-          const <AccountModel>[];
-      final invoices =
-          (responses[1] as ApiResponse<List<PurchaseInvoiceModel>>).data ??
-          const <PurchaseInvoiceModel>[];
-      final payments =
-          (responses[2] as ApiResponse<List<PurchasePaymentModel>>).data ??
-          const <PurchasePaymentModel>[];
-
-      final accountNames = <int, String>{
-        for (final account in accounts)
-          if (account.id != null)
-            account.id!: _accountLabel(
-              account.accountCode,
-              account.accountName,
-            ),
-      };
-
-      final statementRows = <_StatementRowSortWrapper>[
-        for (final invoice in invoices)
-          _StatementRowSortWrapper(
-            sortDate: invoice.invoiceDate,
-            row: LedgerStatementRowData(
-              date: displayDate(invoice.invoiceDate),
-              code: (invoice.invoiceNo?.trim().isNotEmpty ?? false)
-                  ? invoice.invoiceNo!.trim()
-                  : 'PI-${invoice.id}',
-              ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
-              cashBankLedger: '-',
-              credit: _formatAmount(invoice.totalAmount ?? 0),
-              debit: '',
-            ),
-          ),
-        for (final payment in payments)
-          _StatementRowSortWrapper(
-            sortDate: payment.paymentDate ?? '',
-            row: LedgerStatementRowData(
-              date: displayDate(payment.paymentDate),
-              code: (payment.paymentNo?.trim().isNotEmpty ?? false)
-                  ? payment.paymentNo!.trim()
-                  : 'PP-${payment.id ?? ''}',
-              ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
-              cashBankLedger:
-                  accountNames[payment.accountId] ??
-                  (payment.paymentMode?.titleCase ?? '-'),
-              credit: '',
-              debit: _formatAmount(payment.paidAmount ?? 0),
-            ),
-          ),
-      ];
-
-      statementRows.sort(
-        (left, right) => right.sortDate.compareTo(left.sortDate),
+      final reportResponse = await _accountsService.reportGeneralLedger(
+        filters: <String, dynamic>{
+          'company_id': account!.companyId,
+          'account_id': account.id,
+          if (mapping.partyId != null) 'party_id': mapping.partyId,
+          'date_from': _ledgerHistoryDateFrom,
+          'date_to': _ledgerHistoryDateTo(),
+        },
       );
+      final reportData = reportResponse.data?.data ?? const <String, dynamic>{};
+      final summary = _ledgerMap(reportData['summary']);
+      final lines = _ledgerList(reportData['lines']);
+      final statementRows = lines
+          .map(
+            (line) => _StatementRowSortWrapper(
+              sortDate: line['voucher_date']?.toString() ?? '',
+              row: LedgerStatementRowData(
+                date: displayDate(line['voucher_date']?.toString()),
+                code: _ledgerCode(line),
+                ledgerName: mapping.accountName ?? mapping.accountCode ?? '-',
+                cashBankLedger: _ledgerDescriptor(line),
+                credit: _ledgerAmountText(line['credit']),
+                debit: _ledgerAmountText(line['debit']),
+              ),
+            ),
+          )
+          .toList(growable: false)
+        ..sort((left, right) => right.sortDate.compareTo(left.sortDate));
 
       if (!mounted) {
         return;
@@ -441,22 +396,13 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
         _statementRows = statementRows
             .map((item) => item.row)
             .toList(growable: false);
-        _invoiceTotal = invoices.fold<double>(
-          0,
-          (sum, item) => sum + (item.totalAmount ?? 0),
-        );
-        _paymentTotal = payments.fold<double>(
-          0,
-          (sum, item) => sum + (item.paidAmount ?? 0),
-        );
-        _lastPaymentDate = payments.fold<String>('', (latest, item) {
-          final value = item.paymentDate ?? '';
-          return value.compareTo(latest) > 0 ? value : latest;
-        });
-        _recentCashBankLedger = payments.isEmpty
-            ? '-'
-            : accountNames[payments.first.accountId] ??
-                  (payments.first.paymentMode?.titleCase ?? '-');
+        _openingBalance = _ledgerDouble(summary['opening_balance']);
+        _totalDebit = _ledgerDouble(summary['total_debit']);
+        _totalCredit = _ledgerDouble(summary['total_credit']);
+        _closingBalance = _ledgerDouble(summary['closing_balance']);
+        _lastVoucherDate = lines.isEmpty
+            ? ''
+            : lines.last['voucher_date']?.toString() ?? '';
         _loading = false;
       });
     } catch (errorValue) {
@@ -541,25 +487,24 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
                   width: 280,
                 ),
                 _SummaryTile(
-                  label: 'Last Payment Ledger',
-                  value: _recentCashBankLedger,
-                  width: 240,
+                  label: 'Opening Balance',
+                  value: _formatAmount(_openingBalance),
                 ),
                 _SummaryTile(
-                  label: 'Invoice Total',
-                  value: _formatAmount(_invoiceTotal),
+                  label: 'Total Debit',
+                  value: _formatAmount(_totalDebit),
                 ),
                 _SummaryTile(
-                  label: 'Paid Amount',
-                  value: _formatAmount(_paymentTotal),
+                  label: 'Total Credit',
+                  value: _formatAmount(_totalCredit),
                 ),
                 _SummaryTile(
-                  label: _purchaseBalanceLabel(_balance),
-                  value: _formatAmount(_balance.abs()),
+                  label: 'Closing Balance',
+                  value: _formatAmount(_closingBalance),
                 ),
                 _SummaryTile(
-                  label: 'Last Payment',
-                  value: displayDate(_lastPaymentDate),
+                  label: 'Last Voucher',
+                  value: displayDate(_lastVoucherDate),
                 ),
               ],
             ),
@@ -569,7 +514,7 @@ class _PurchaseLedgerDetailPageState extends State<PurchaseLedgerDetailPage> {
             title: 'Ledger Statement',
             rows: _statementRows,
             emptyMessage:
-                'No invoices or payments were found for this purchase ledger.',
+                'No posted accounting transactions were found for this purchase ledger.',
           ),
         ],
       ),
@@ -715,6 +660,8 @@ class _StatementRowSortWrapper {
 
 String _formatAmount(double value) => value.toStringAsFixed(2);
 
+const String _ledgerHistoryDateFrom = '2000-01-01';
+
 String _formatPurchaseRegisterAmount(double value) {
   if (value == 0) {
     return '';
@@ -722,24 +669,53 @@ String _formatPurchaseRegisterAmount(double value) {
   return value.toStringAsFixed(2);
 }
 
-String _purchaseBalanceLabel(double value) {
-  if (value > 0) {
-    return 'Amount Payable';
+String _ledgerHistoryDateTo() =>
+    DateTime.now().toIso8601String().split('T').first;
+
+Map<String, dynamic> _ledgerMap(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
   }
-  if (value < 0) {
-    return 'Advance Paid';
+  if (value is Map) {
+    return value.map(
+      (key, entry) => MapEntry(key.toString(), entry),
+    );
   }
-  return 'Settled Balance';
+  return const <String, dynamic>{};
 }
 
-String _accountLabel(String? code, String? name) {
-  final normalizedCode = (code ?? '').trim();
-  final normalizedName = (name ?? '').trim();
-  if (normalizedCode.isEmpty) {
-    return normalizedName.isEmpty ? '-' : normalizedName;
+List<Map<String, dynamic>> _ledgerList(dynamic value) {
+  if (value is! List) {
+    return const <Map<String, dynamic>>[];
   }
-  if (normalizedName.isEmpty) {
-    return normalizedCode;
+  return value.map(_ledgerMap).toList(growable: false);
+}
+
+double _ledgerDouble(dynamic value) =>
+    double.tryParse(value?.toString() ?? '') ?? 0;
+
+String _ledgerAmountText(dynamic value) {
+  final amount = _ledgerDouble(value);
+  if (amount == 0) {
+    return '';
   }
-  return '$normalizedCode · $normalizedName';
+  return amount.toStringAsFixed(2);
+}
+
+String _ledgerCode(Map<String, dynamic> line) {
+  final voucherNo = line['voucher_no']?.toString().trim() ?? '';
+  if (voucherNo.isNotEmpty) {
+    return voucherNo;
+  }
+  final voucherId = line['voucher_id']?.toString().trim() ?? '';
+  return voucherId.isEmpty ? '-' : 'V-$voucherId';
+}
+
+String _ledgerDescriptor(Map<String, dynamic> line) {
+  final parts = <String>[
+    line['voucher_type']?.toString().trim() ?? '',
+    line['reference_no']?.toString().trim() ?? '',
+    line['narration']?.toString().trim() ?? '',
+  ].where((item) => item.isNotEmpty).toList(growable: false);
+  return parts.isEmpty ? '-' : parts.join(' · ');
 }

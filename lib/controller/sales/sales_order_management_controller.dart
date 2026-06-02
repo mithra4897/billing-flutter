@@ -127,6 +127,7 @@ class SalesOrderManagementController extends GetxController {
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
+  bool disableRoundOffTotal = false;
 
   bool initialLoading = true;
   bool saving = false;
@@ -650,6 +651,7 @@ class SalesOrderManagementController extends GetxController {
       currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
       exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
       roundOffController.clear();
+      disableRoundOffTotal = false;
       notesController.text = stringValue(data, 'notes');
       termsController.text = stringValue(data, 'terms_conditions');
       isActive = true;
@@ -706,6 +708,7 @@ class SalesOrderManagementController extends GetxController {
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
         : stringValue(data, 'round_off_amount');
+    disableRoundOffTotal = false;
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
@@ -742,6 +745,7 @@ class SalesOrderManagementController extends GetxController {
     currencyCodeController.text = 'INR';
     exchangeRateController.text = '1';
     roundOffController.clear();
+    disableRoundOffTotal = false;
     notesController.clear();
     termsController.clear();
     isActive = true;
@@ -896,12 +900,18 @@ class SalesOrderManagementController extends GetxController {
   }
 
   SalesDocumentTaxSummary taxSummary() {
-    final roundOff = double.tryParse(roundOffController.text.trim()) ?? 0;
+    final roundOff = effectiveRoundOffAmount;
     return summarizeSalesLineTaxes(
       lines.map(taxBreakdownForLine),
       adjustment: roundOff,
     );
   }
+
+  double get enteredRoundOffAmount =>
+      double.tryParse(roundOffController.text.trim()) ?? 0;
+
+  double get effectiveRoundOffAmount =>
+      disableRoundOffTotal ? 0 : enteredRoundOffAmount;
 
   Map<String, dynamic> linePayload(OrderLineDraft line) {
     final payload = line.toJson();
@@ -1065,6 +1075,14 @@ class SalesOrderManagementController extends GetxController {
     refreshLineItemsSection();
   }
 
+  void setDisableRoundOffTotal(bool value) {
+    if (!canEdit || disableRoundOffTotal == value) {
+      return;
+    }
+    disableRoundOffTotal = value;
+    refreshComputedState();
+  }
+
   void setLineItemId(int index, int? value) {
     if (!canEdit) return;
     final line = lines[index];
@@ -1143,7 +1161,7 @@ class SalesOrderManagementController extends GetxController {
       'customer_reference_date': nullIfEmpty(customerRefDateController.text),
       'currency_code': nullIfEmpty(currencyCodeController.text) ?? 'INR',
       'exchange_rate': double.tryParse(exchangeRateController.text.trim()) ?? 1,
-      'round_off_amount': double.tryParse(roundOffController.text.trim()) ?? 0,
+      'round_off_amount': effectiveRoundOffAmount,
       'taxable_amount': roundToDouble(summary.taxable, 2),
       'cgst_amount': roundToDouble(summary.cgst, 2),
       'sgst_amount': roundToDouble(summary.sgst, 2),

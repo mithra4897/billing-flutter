@@ -113,11 +113,13 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
   }
 
   Widget _buildTaxSummaryCard(SalesOrderManagementController controller) {
-    final roundOff =
-        double.tryParse(controller.roundOffController.text.trim()) ?? 0;
-    final subtitle = roundOff == 0
+    final enteredRoundOff = controller.enteredRoundOffAmount;
+    final effectiveRoundOff = controller.effectiveRoundOffAmount;
+    final subtitle = enteredRoundOff == 0
         ? null
-        : 'Live GST totals for the current lines in ${controller.currencyCodeForTaxSummary} · includes round off ${roundOff.toStringAsFixed(2)}';
+        : controller.disableRoundOffTotal
+        ? 'Live GST totals for the current lines in ${controller.currencyCodeForTaxSummary} · round off ${enteredRoundOff.toStringAsFixed(2)} is currently excluded'
+        : 'Live GST totals for the current lines in ${controller.currencyCodeForTaxSummary} · includes round off ${effectiveRoundOff.toStringAsFixed(2)}';
     final summary = controller.taxSummary();
     return GstSummaryCard(
       taxable: summary.taxable,
@@ -125,6 +127,8 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       sgst: summary.sgst,
       igst: summary.igst,
       cess: summary.cess,
+      roundOff: enteredRoundOff,
+      roundOffDisabled: controller.disableRoundOffTotal,
       total: summary.total,
       currencyCode: controller.currencyCodeForTaxSummary,
       subtitle: subtitle,
@@ -277,7 +281,8 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     decimal: true,
                     signed: true,
                   ),
-                  enabled: controller.canEdit,
+                  enabled:
+                      controller.canEdit && !controller.disableRoundOffTotal,
                   onChanged: (_) => controller.refreshComputedState(),
                   validator: (value) {
                     final trimmed = value?.trim() ?? '';
@@ -289,6 +294,15 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     }
                     return null;
                   },
+                ),
+                AppSwitchTile(
+                  label: 'Disable round off total',
+                  subtitle:
+                      'Keep the entered round off value, but exclude it from the grand total.',
+                  value: controller.disableRoundOffTotal,
+                  onChanged: controller.canEdit
+                      ? controller.setDisableRoundOffTotal
+                      : null,
                 ),
               ],
             ),
