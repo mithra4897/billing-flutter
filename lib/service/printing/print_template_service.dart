@@ -3,10 +3,13 @@ import '../../screen.dart';
 class PrintTemplateService extends ErpModuleService {
   PrintTemplateService({super.apiClient});
 
-  Future<ApiResponse<DocumentPrintTemplate>> getTemplate(String documentType) {
-    return object<DocumentPrintTemplate>(
+  Future<ApiResponse<DocumentPrintTemplate>> getTemplate(
+    String documentType,
+  ) {
+    return client.get<DocumentPrintTemplate>(
       '${ApiEndpoints.printTemplates}/$documentType',
-      fromJson: DocumentPrintTemplate.fromJson,
+      fromData: (json) =>
+          DocumentPrintTemplate.fromJson(json as Map<String, dynamic>),
     );
   }
 

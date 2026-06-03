@@ -1301,6 +1301,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (template == null) {
       return null;
     }
+
+    final vector = await _buildTemplateVectorPdfBytes(template);
+    if (vector != null) {
+      return vector;
+    }
+
     final png = await _capturePreviewPng();
     if (png == null) {
       return null;
@@ -1317,6 +1323,458 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       ),
     );
     return document.save();
+  }
+
+  Future<Uint8List?> _buildTemplateVectorPdfBytes(
+    DocumentPrintTemplate template,
+  ) async {
+    final data = _documentDataJson;
+    final pdf = pw.Document();
+    final imageCache = <String, pw.ImageProvider?>{};
+    final pageFormat = _pageFormatForTemplate(template);
+
+    pw.ImageProvider? backgroundImage;
+    final backgroundPath = resolvePrintTemplateText(
+      template.backgroundImagePath ?? '',
+      data,
+    );
+    if (backgroundPath.trim().isNotEmpty) {
+      backgroundImage = await _pdfImageProviderForSource(
+        backgroundPath,
+        imageCache,
+      );
+    }
+
+    final children = <pw.Widget>[];
+    if (backgroundImage != null) {
+      children.add(
+        pw.Positioned.fill(
+          child: pw.Opacity(
+            opacity: template.backgroundOpacity.clamp(0.0, 1.0),
+            child: pw.Image(backgroundImage, fit: pw.BoxFit.cover),
+          ),
+        ),
+      );
+    }
+
+    for (final shape in template.shapes) {
+      final shapeWidget = await _buildPdfShapeWidget(shape, data, imageCache);
+      if (shapeWidget == null) {
+        continue;
+      }
+      children.add(
+        pw.Positioned(
+          left: shape.x,
+          top: shape.y,
+          child: pw.SizedBox(
+            width: math.max(1, shape.width),
+            height: math.max(1, shape.height),
+            child: shapeWidget,
+          ),
+        ),
+      );
+    }
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: pageFormat,
+        margin: pw.EdgeInsets.zero,
+        build: (_) => pw.Stack(children: children),
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  Future<pw.Widget?> _buildPdfShapeWidget(
+    DocumentPrintShape shape,
+    Map<String, dynamic> data,
+    Map<String, pw.ImageProvider?> imageCache,
+  ) async {
+    switch (shape.type) {
+      case 'rectangle':
+        return pw.Container(
+          decoration: pw.BoxDecoration(
+            color: _pdfFillColor(shape),
+            border: pw.Border.all(
+              color: _pdfColor(shape.strokeColor),
+              width: math.max(0.4, shape.strokeWidth),
+            ),
+            borderRadius: pw.BorderRadius.circular(shape.borderRadius),
+          ),
+        );
+      case 'ellipse':
+        return pw.Container(
+          child: pw.CustomPaint(
+            size: PdfPoint(shape.width, shape.height),
+            painter: (canvas, size) {
+              canvas
+                ..saveContext()
+                ..setLineWidth(math.max(0.4, shape.strokeWidth))
+                ..setStrokeColor(_pdfColor(shape.strokeColor));
+              final fill = _pdfFillColor(shape);
+              if (fill != null) {
+                canvas.setFillColor(fill);
+              }
+              canvas.drawEllipse(
+                size.x / 2,
+                size.y / 2,
+                size.x / 2,
+                size.y / 2,
+              );
+              if (fill != null) {
+                canvas.fillAndStrokePath();
+              } else {
+                canvas.strokePath();
+              }
+              canvas.restoreContext();
+            },
+          ),
+        );
+      case 'polygon':
+        return pw.CustomPaint(
+          size: PdfPoint(shape.width, shape.height),
+          painter: (canvas, size) {
+            final points = _pdfPolygonPoints(size, shape.sides);
+            canvas
+              ..saveContext()
+              ..setLineWidth(math.max(0.4, shape.strokeWidth))
+              ..setStrokeColor(_pdfColor(shape.strokeColor));
+            final fill = _pdfFillColor(shape);
+            if (fill != null) {
+              canvas.setFillColor(fill);
+            }
+            canvas.moveTo(points.first.x, size.y - points.first.y);
+            for (final point in points.skip(1)) {
+              canvas.lineTo(point.x, size.y - point.y);
+            }
+            canvas.closePath();
+            if (fill != null) {
+              canvas.fillAndStrokePath();
+            } else {
+              canvas.strokePath();
+            }
+            canvas.restoreContext();
+          },
+        );
+      case 'line':
+        return pw.CustomPaint(
+          size: PdfPoint(shape.width, shape.height == 0 ? 1 : shape.height),
+          painter: (canvas, size) {
+            canvas
+              ..saveContext()
+              ..setLineWidth(math.max(0.4, shape.strokeWidth))
+              ..setStrokeColor(_pdfColor(shape.strokeColor))
+              ..drawLine(0, size.y, size.x, 0)
+              ..strokePath()
+              ..restoreContext();
+          },
+        );
+      case 'table':
+        return _buildPdfTableWidget(shape, data);
+      case 'image':
+        final source = resolvePrintTemplateText(shape.assetPath, data);
+        final image = await _pdfImageProviderForSource(source, imageCache);
+        if (image == null) {
+          return pw.Container(
+            decoration: pw.BoxDecoration(
+              color: PdfColor.fromHex('#F8FAFC'),
+              border: pw.Border.all(color: PdfColor.fromHex('#E2E8F0')),
+            ),
+            child: pw.Center(
+              child: pw.Text(
+                'Image',
+                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+              ),
+            ),
+          );
+        }
+        return pw.Container(
+          decoration: shape.strokeWidth > 0
+              ? pw.BoxDecoration(
+                  border: pw.Border.all(
+                    color: _pdfColor(shape.strokeColor),
+                    width: math.max(0.4, shape.strokeWidth),
+                  ),
+                )
+              : null,
+          child: pw.Image(image, fit: pw.BoxFit.contain),
+        );
+      case 'barcode':
+        final value = resolvePrintTemplateText(shape.text, data).trim();
+        if (value.isEmpty) {
+          return null;
+        }
+        return pw.BarcodeWidget(
+          data: value,
+          barcode: shape.barcodeType == 'qr'
+              ? pw.Barcode.qrCode()
+              : pw.Barcode.code128(),
+          color: _pdfColor(shape.strokeColor),
+          backgroundColor: _pdfFillColor(shape),
+          width: shape.width,
+          height: shape.height,
+          drawText: shape.barcodeType != 'qr',
+          textStyle: pw.TextStyle(
+            fontSize: math.max(7, shape.fontSize),
+            color: _pdfColor(shape.strokeColor),
+          ),
+        );
+      case 'text':
+      default:
+        final text = resolvePrintTemplateText(shape.text, data);
+        return pw.Container(
+          padding: pw.EdgeInsets.zero,
+          decoration: shape.fillAlpha > 0
+              ? pw.BoxDecoration(
+                  color: _pdfFillColor(shape),
+                  borderRadius: pw.BorderRadius.circular(shape.borderRadius),
+                )
+              : null,
+          alignment: _pdfAlignment(shape.align),
+          child: pw.Text(
+            text,
+            textAlign: _pdfTextAlign(shape.align),
+            maxLines: shape.multiline ? null : 1,
+            style: pw.TextStyle(
+              color: _pdfColor(shape.strokeColor),
+              fontSize: math.max(6, shape.fontSize),
+              fontWeight: shape.bold
+                  ? pw.FontWeight.bold
+                  : pw.FontWeight.normal,
+              fontStyle: shape.italic
+                  ? pw.FontStyle.italic
+                  : pw.FontStyle.normal,
+              decoration: shape.underline
+                  ? pw.TextDecoration.underline
+                  : pw.TextDecoration.none,
+            ),
+          ),
+        );
+    }
+  }
+
+  pw.Widget _buildPdfTableWidget(
+    DocumentPrintShape shape,
+    Map<String, dynamic> data,
+  ) {
+    final rawRows =
+        resolvePrintPath(data, shape.dataPath) as List<dynamic>? ??
+        const <dynamic>[];
+    final columns = shape.columns.isEmpty
+        ? DocumentPrintShape.defaultTableColumns()
+        : shape.columns;
+    final visibleRows = <Map<String, dynamic>>[];
+    final headerHeight = shape.printHeader
+        ? math.max(8.0, shape.titleHeight)
+        : 0;
+    final bool useFullHeight = isPrintLinesTableShape(shape);
+    final availableBottomLimit = shape.printTotal && useFullHeight
+        ? shape.height - headerHeight
+        : shape.height;
+    var usedHeight = headerHeight;
+
+    for (final row in rawRows) {
+      if (row is! Map<String, dynamic>) {
+        continue;
+      }
+      if (!printTableRowHasVisibleValues(row, columns)) {
+        continue;
+      }
+      final rowHeight = measurePrintTableRowHeight(
+        row,
+        columns,
+        shape.width,
+        shape,
+      );
+      if (usedHeight + rowHeight > availableBottomLimit + 1.0) {
+        break;
+      }
+      visibleRows.add(row);
+      usedHeight += rowHeight;
+    }
+
+    final dataRows = visibleRows
+        .map(
+          (row) => columns
+              .map((column) => resolvePrintCellValue(row, column.key))
+              .toList(growable: false),
+        )
+        .toList(growable: false);
+
+    if (shape.printTotal) {
+      final totals = _calculatePdfColumnTotals(visibleRows, columns);
+      if (totals.isNotEmpty) {
+        dataRows.add([
+          for (var i = 0; i < columns.length; i++)
+            i == 0
+                ? 'Total'
+                : (totals[columns[i].key] == null
+                      ? ''
+                      : formatPrintAmount(totals[columns[i].key]!)),
+        ]);
+      }
+    }
+
+    final table = pw.TableHelper.fromTextArray(
+      headers: shape.printHeader
+          ? columns.map((column) => column.label).toList(growable: false)
+          : null,
+      data: dataRows,
+      border: pw.TableBorder.all(
+        color: _pdfColor(shape.strokeColor),
+        width: 0.7,
+      ),
+      headerDecoration: pw.BoxDecoration(color: _pdfColor(shape.headerColor)),
+      headerStyle: pw.TextStyle(
+        fontWeight: pw.FontWeight.bold,
+        fontSize: 9,
+        color: _pdfColor(shape.headerTextColor),
+      ),
+      cellStyle: pw.TextStyle(
+        fontSize: 8.5,
+        color: _pdfColor(shape.bodyTextColor),
+      ),
+      cellPadding: pw.EdgeInsets.symmetric(
+        horizontal: math.max(2, shape.cellGap / 2),
+        vertical: 4,
+      ),
+      cellAlignments: {
+        for (var i = 0; i < columns.length; i++)
+          i: _pdfTableCellAlignment(columns[i].align),
+      },
+      headerAlignments: {
+        for (var i = 0; i < columns.length; i++)
+          i: _pdfTableCellAlignment(columns[i].titleAlign),
+      },
+      columnWidths: {
+        for (var i = 0; i < columns.length; i++)
+          i: pw.FlexColumnWidth(columns[i].widthFactor),
+      },
+    );
+
+    return pw.Container(
+      color: _pdfFillColor(shape),
+      child: pw.ClipRect(
+        child: pw.SizedBox(
+          width: shape.width,
+          height: shape.height,
+          child: table,
+        ),
+      ),
+    );
+  }
+
+  Future<pw.ImageProvider?> _pdfImageProviderForSource(
+    String source,
+    Map<String, pw.ImageProvider?> cache,
+  ) async {
+    final resolved = resolvePrintImageSource(source);
+    if (resolved == null || resolved.trim().isEmpty) {
+      return null;
+    }
+    if (cache.containsKey(resolved)) {
+      return cache[resolved];
+    }
+
+    pw.ImageProvider? image;
+    try {
+      if (resolved.startsWith('assets/')) {
+        final bytes = await rootBundle.load(resolved);
+        image = pw.MemoryImage(bytes.buffer.asUint8List());
+      } else {
+        image = await networkImage(resolved);
+      }
+    } catch (_) {
+      image = null;
+    }
+
+    cache[resolved] = image;
+    return image;
+  }
+
+  PdfColor _pdfColor(int color) {
+    final a = ((color >> 24) & 0xFF) / 255.0;
+    final r = ((color >> 16) & 0xFF) / 255.0;
+    final g = ((color >> 8) & 0xFF) / 255.0;
+    final b = (color & 0xFF) / 255.0;
+    return PdfColor(r, g, b, a);
+  }
+
+  PdfColor? _pdfFillColor(DocumentPrintShape shape) {
+    if (shape.fillAlpha <= 0) {
+      return null;
+    }
+    final base = _pdfColor(shape.fillColor);
+    return PdfColor(base.red, base.green, base.blue, shape.fillAlpha);
+  }
+
+  List<PdfPoint> _pdfPolygonPoints(PdfPoint size, int sides) {
+    final safeSides = sides.clamp(3, 12);
+    final center = PdfPoint(size.x / 2, size.y / 2);
+    final radius = math.min(size.x, size.y) / 2;
+    return List<PdfPoint>.generate(safeSides, (index) {
+      final angle = (-math.pi / 2) + ((math.pi * 2 * index) / safeSides);
+      return PdfPoint(
+        center.x + (radius * math.cos(angle)),
+        center.y + (radius * math.sin(angle)),
+      );
+    }, growable: false);
+  }
+
+  pw.Alignment _pdfAlignment(String align) {
+    switch (align) {
+      case 'center':
+        return pw.Alignment.topCenter;
+      case 'right':
+        return pw.Alignment.topRight;
+      default:
+        return pw.Alignment.topLeft;
+    }
+  }
+
+  pw.TextAlign _pdfTextAlign(String align) {
+    switch (align) {
+      case 'center':
+        return pw.TextAlign.center;
+      case 'right':
+        return pw.TextAlign.right;
+      default:
+        return pw.TextAlign.left;
+    }
+  }
+
+  pw.Alignment _pdfTableCellAlignment(String align) {
+    switch (align) {
+      case 'right':
+        return pw.Alignment.centerRight;
+      case 'center':
+        return pw.Alignment.center;
+      default:
+        return pw.Alignment.centerLeft;
+    }
+  }
+
+  Map<String, double> _calculatePdfColumnTotals(
+    List<Map<String, dynamic>> rows,
+    List<DocumentPrintColumn> columns,
+  ) {
+    final totals = <String, double>{};
+    final totalColumns = columns.where((column) => column.totalColumn);
+    for (final row in rows) {
+      for (final column in totalColumns) {
+        final value = resolvePrintPath(row, column.key);
+        if (value is num) {
+          totals[column.key] = (totals[column.key] ?? 0) + value.toDouble();
+        } else {
+          final parsed = double.tryParse(value?.toString() ?? '');
+          if (parsed != null) {
+            totals[column.key] = (totals[column.key] ?? 0) + parsed;
+          }
+        }
+      }
+    }
+    return totals;
   }
 
   Future<void> _printPdf() async {
