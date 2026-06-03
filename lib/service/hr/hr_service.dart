@@ -329,6 +329,25 @@ class HrService extends ErpModuleService {
   Future<ApiResponse<PayslipModel>> payslip(int id) =>
       object<PayslipModel>('/hr/payslips/$id', fromJson: PayslipModel.fromJson);
 
+  Future<ApiResponse<EmailMessageModel>> sendPayslipEmail(int id) =>
+      actionModel<EmailMessageModel>(
+        '/hr/payslips/$id/send-email',
+        fromJson: EmailMessageModel.fromJson,
+      );
+
+  Future<ApiResponse<EmailMessageModel>> sendPayslipEmailPdf(
+    int id, {
+    required Uint8List pdfBytes,
+    required String fileName,
+  }) => actionModel<EmailMessageModel>(
+    '/hr/payslips/$id/send-email',
+    body: <String, dynamic>{
+      'pdf_base64': base64Encode(pdfBytes),
+      'pdf_filename': fileName,
+    },
+    fromJson: EmailMessageModel.fromJson,
+  );
+
   Future<PaginatedResponse<ExpenseClaimModel>> expenseClaims({
     Map<String, dynamic>? filters,
   }) => paginated<ExpenseClaimModel>(

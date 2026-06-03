@@ -13,6 +13,8 @@ Future<void> openDocumentPrintDesigner(
   required String documentType,
   required String title,
   required DocumentPrintDataModel documentData,
+  String? pdfActionLabel,
+  Future<void> Function(Uint8List pdfBytes)? onPdfReady,
 }) {
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -21,6 +23,8 @@ Future<void> openDocumentPrintDesigner(
         documentType: documentType,
         title: title,
         documentData: documentData,
+        pdfActionLabel: pdfActionLabel,
+        onPdfReady: onPdfReady,
       ),
     ),
   );
@@ -38,6 +42,7 @@ class _DocumentPrintDesignerController extends GetxController {
   bool saving = false;
   bool printingPdf = false;
   bool downloadingPdf = false;
+  bool emailingPdf = false;
   _DesignerOperation operation = _DesignerOperation.select;
   Offset? drawStart;
   Offset? drawCurrent;
@@ -54,11 +59,15 @@ class DocumentPrintDesignerPage extends StatefulWidget {
     required this.documentType,
     required this.title,
     required this.documentData,
+    this.pdfActionLabel,
+    this.onPdfReady,
   });
 
   final String documentType;
   final String title;
   final DocumentPrintDataModel documentData;
+  final String? pdfActionLabel;
+  final Future<void> Function(Uint8List pdfBytes)? onPdfReady;
 
   @override
   State<DocumentPrintDesignerPage> createState() =>
@@ -100,6 +109,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   set _printingPdf(bool value) => _controller.printingPdf = value;
   bool get _downloadingPdf => _controller.downloadingPdf;
   set _downloadingPdf(bool value) => _controller.downloadingPdf = value;
+  bool get _sendingPdf => _controller.emailingPdf;
+  set _sendingPdf(bool value) => _controller.emailingPdf = value;
   _DesignerOperation get _operation => _controller.operation;
   set _operation(_DesignerOperation value) => _controller.operation = value;
   Offset? get _drawStart => _controller.drawStart;
@@ -397,6 +408,19 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         filled: false,
       ),
     );
+
+    if (widget.onPdfReady != null) {
+      actions.add(
+        AdaptiveShellActionButton(
+          onPressed: _sendingPdf ? null : _sendPdf,
+          icon: Icons.attach_email_outlined,
+          label: _sendingPdf
+              ? 'Sending PDF...'
+              : (widget.pdfActionLabel ?? 'Email PDF'),
+          filled: false,
+        ),
+      );
+    }
 
     actions.add(
       AdaptiveShellActionButton(
@@ -1341,6 +1365,35 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     } finally {
       if (mounted) {
         _controller.updateState(() => _downloadingPdf = false);
+      }
+    }
+  }
+
+  Future<void> _sendPdf() async {
+    if (widget.onPdfReady == null) {
+      return;
+    }
+    _controller.updateState(() => _sendingPdf = true);
+    try {
+      final bytes = await _buildPdfBytes();
+      if (bytes == null) {
+        throw Exception('Unable to generate PDF from preview.');
+      }
+      await widget.onPdfReady!(bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF email request completed.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('PDF email failed: $error')));
+      }
+    } finally {
+      if (mounted) {
+        _controller.updateState(() => _sendingPdf = false);
       }
     }
   }

@@ -21,6 +21,22 @@ Future<void> openPayslipPrintPreview(
       documentType: 'hr_payslip',
       title: 'Payslip',
       documentData: _payslipPrintData(response.data!),
+      pdfActionLabel: 'Email PDF',
+      onPdfReady: (pdfBytes) async {
+        final fileName =
+            '${response.data!.payslipNo ?? 'payslip_${response.data!.id ?? payslipId}'}.pdf';
+        final emailResponse = await hr.sendPayslipEmailPdf(
+          payslipId,
+          pdfBytes: pdfBytes,
+          fileName: fileName,
+        );
+        if (!context.mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(emailResponse.message)));
+      },
     );
   } catch (e) {
     if (!context.mounted) {
