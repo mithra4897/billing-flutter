@@ -314,10 +314,21 @@ class ProjectExpenseManagementController extends GetxController {
     if (row?.expense.id == null) {
       return null;
     }
-    final response = await _projectService.deleteExpense(row!.expense.id!);
-    await loadData();
-    reloadProjectExpenseRegister();
-    return response.message;
+    try {
+      final response = await _projectService.deleteExpense(row!.expense.id!);
+      formError = null;
+      await loadData();
+      reloadProjectExpenseRegister();
+      return response.message;
+    } on ApiException catch (errorValue) {
+      formError = errorValue.displayMessage;
+      update();
+      return errorValue.displayMessage;
+    } catch (errorValue) {
+      formError = errorValue.toString();
+      update();
+      return formError;
+    }
   }
 
   void setProjectId(int? value) {
@@ -333,6 +344,14 @@ class ProjectExpenseManagementController extends GetxController {
 
   void setSupplierPartyId(int? value) {
     supplierPartyId = value;
+    update();
+  }
+
+  void clearFormError() {
+    if ((formError ?? '').isEmpty) {
+      return;
+    }
+    formError = null;
     update();
   }
 

@@ -40,6 +40,9 @@ class ProjectResourceUsageManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    usageHoursController.addListener(_syncCalculatedTotalCost);
+    usageQtyController.addListener(_syncCalculatedTotalCost);
+    unitCostController.addListener(_syncCalculatedTotalCost);
     loadData();
   }
 
@@ -50,6 +53,9 @@ class ProjectResourceUsageManagementController extends GetxController {
     searchController
       ..removeListener(_applySearch)
       ..dispose();
+    usageHoursController.removeListener(_syncCalculatedTotalCost);
+    usageQtyController.removeListener(_syncCalculatedTotalCost);
+    unitCostController.removeListener(_syncCalculatedTotalCost);
     resourceNameController.dispose();
     usageDateController.dispose();
     usageHoursController.dispose();
@@ -259,6 +265,28 @@ class ProjectResourceUsageManagementController extends GetxController {
     update();
   }
 
+  void clearFormError() {
+    if ((formError ?? '').isEmpty) {
+      return;
+    }
+    formError = null;
+    update();
+  }
+
+  void _syncCalculatedTotalCost() {
+    final usageHours = doubleValue(usageHoursController.text) ?? 0;
+    final usageQty = doubleValue(usageQtyController.text) ?? 0;
+    final unitCost = doubleValue(unitCostController.text) ?? 0;
+    final baseQty = usageHours > 0 ? usageHours : usageQty;
+    final nextTotalCost = decimalText(baseQty * unitCost);
+
+    if (totalCostController.text != nextTotalCost) {
+      totalCostController.text = nextTotalCost;
+    }
+
+    update();
+  }
+
   int? intValue(String text) => int.tryParse(text.trim());
 
   double? doubleValue(String text) => double.tryParse(text.trim());
@@ -267,7 +295,7 @@ class ProjectResourceUsageManagementController extends GetxController {
       ? ''
       : (value == value.roundToDouble()
             ? value.toInt().toString()
-            : value.toString());
+            : value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''));
 
   Future<String?> saveUsage() async {
     if (!formKey.currentState!.validate()) {
@@ -321,10 +349,23 @@ class ProjectResourceUsageManagementController extends GetxController {
     if (row?.usage.id == null) {
       return null;
     }
-    final response = await _projectService.deleteResourceUsage(row!.usage.id!);
-    await loadData();
-    reloadProjectResourceUsageRegister();
-    return response.message;
+    try {
+      final response = await _projectService.deleteResourceUsage(
+        row!.usage.id!,
+      );
+      formError = null;
+      await loadData();
+      reloadProjectResourceUsageRegister();
+      return response.message;
+    } on ApiException catch (errorValue) {
+      formError = errorValue.displayMessage;
+      update();
+      return errorValue.displayMessage;
+    } catch (errorValue) {
+      formError = errorValue.toString();
+      update();
+      return formError;
+    }
   }
 
   void startNewUsage({required bool isDesktop}) {

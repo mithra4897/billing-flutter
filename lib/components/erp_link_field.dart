@@ -571,7 +571,6 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                                 setState(() {
                                   _highlightedIndex = index;
                                 });
-                                _ensureHighlightedVisible();
                                 _markOverlayNeedsBuild();
                               }
                             },

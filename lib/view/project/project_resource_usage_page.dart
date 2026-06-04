@@ -170,6 +170,7 @@ class _ProjectResourceUsageManagementPageState
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  readOnly: true,
                   validator: Validators.optionalNonNegativeNumber('Total Cost'),
                 ),
                 AppFormTextField(
@@ -188,10 +189,7 @@ class _ProjectResourceUsageManagementPageState
             ),
             if ((controller.formError ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(
-                controller.formError!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+              AppErrorStateView.inline(message: controller.formError!),
             ],
             const SizedBox(height: 16),
             Wrap(

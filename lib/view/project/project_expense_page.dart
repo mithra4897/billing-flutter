@@ -196,7 +196,7 @@ class _ProjectExpenseManagementPageState
                 AppFormTextField(
                   controller: controller.voucherIdController,
                   labelText: 'Voucher ID',
-                  keyboardType: TextInputType.number,
+                  readOnly: true,
                 ),
                 AppFormTextField(
                   controller: controller.descriptionController,
@@ -218,10 +218,7 @@ class _ProjectExpenseManagementPageState
             ),
             if ((controller.formError ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(
-                controller.formError!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+              AppErrorStateView.inline(message: controller.formError!),
             ],
             const SizedBox(height: 16),
             Wrap(
