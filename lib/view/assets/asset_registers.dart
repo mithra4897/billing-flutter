@@ -1066,6 +1066,7 @@ class AssetReportsHubPage extends StatefulWidget {
 
 class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
   late final String _controllerTag;
+  final ScrollController _horizontalScrollController = ScrollController();
 
   @override
   void initState() {
@@ -1074,6 +1075,12 @@ class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
     if (!Get.isRegistered<_AssetReportsHubController>(tag: _controllerTag)) {
       Get.put(_AssetReportsHubController(), tag: _controllerTag);
     }
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -1089,106 +1096,108 @@ class _AssetReportsHubPageState extends State<AssetReportsHubPage> {
                 .toList(growable: false) ??
             const <MapEntry<String, dynamic>>[];
 
-        final body = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (controller.companyBanner != null)
-              Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
+        final body = SingleChildScrollView(
+          padding: const EdgeInsets.all(AppUiConstants.spacingMd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (controller.companyBanner != null)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: AppUiConstants.spacingSm,
+                  ),
+                  child: Text(
+                    'Session company: ${controller.companyBanner}. '
+                    'Reports use company_id when set.',
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
-                child: Text(
-                  'Session company: ${controller.companyBanner}. '
-                  'Reports use company_id when set.',
-                  style: theme.textTheme.bodySmall,
-                ),
+              SegmentedButton<_AssetReportTab>(
+                segments: const <ButtonSegment<_AssetReportTab>>[
+                  ButtonSegment(
+                    value: _AssetReportTab.register,
+                    label: Text('Register'),
+                    icon: Icon(Icons.list_alt_outlined),
+                  ),
+                  ButtonSegment(
+                    value: _AssetReportTab.depreciation,
+                    label: Text('Depreciation'),
+                    icon: Icon(Icons.trending_down_outlined),
+                  ),
+                  ButtonSegment(
+                    value: _AssetReportTab.disposal,
+                    label: Text('Disposals'),
+                    icon: Icon(Icons.delete_sweep_outlined),
+                  ),
+                ],
+                selected: <_AssetReportTab>{controller.tab},
+                onSelectionChanged: (Set<_AssetReportTab> s) =>
+                    controller.setTab(s.first),
               ),
-            SegmentedButton<_AssetReportTab>(
-              segments: const <ButtonSegment<_AssetReportTab>>[
-                ButtonSegment(
-                  value: _AssetReportTab.register,
-                  label: Text('Register'),
-                  icon: Icon(Icons.list_alt_outlined),
-                ),
-                ButtonSegment(
-                  value: _AssetReportTab.depreciation,
-                  label: Text('Depreciation'),
-                  icon: Icon(Icons.trending_down_outlined),
-                ),
-                ButtonSegment(
-                  value: _AssetReportTab.disposal,
-                  label: Text('Disposals'),
-                  icon: Icon(Icons.delete_sweep_outlined),
+              const SizedBox(height: AppUiConstants.spacingSm),
+              FilledButton.icon(
+                onPressed: controller.loading ? null : controller.fetch,
+                icon: controller.loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download_outlined),
+                label: const Text('Load report'),
+              ),
+              if (controller.error != null) ...[
+                const SizedBox(height: AppUiConstants.spacingSm),
+                Text(
+                  controller.error!,
+                  style: TextStyle(color: theme.colorScheme.error),
                 ),
               ],
-              selected: <_AssetReportTab>{controller.tab},
-              onSelectionChanged: (Set<_AssetReportTab> s) =>
-                  controller.setTab(s.first),
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            FilledButton.icon(
-              onPressed: controller.loading ? null : controller.fetch,
-              icon: controller.loading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.download_outlined),
-              label: const Text('Load report'),
-            ),
-            if (controller.error != null) ...[
-              const SizedBox(height: AppUiConstants.spacingSm),
-              Text(
-                controller.error!,
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-            ],
-            if (controller.payload != null && controller.error == null) ...[
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Wrap(
-                spacing: AppUiConstants.spacingMd,
-                runSpacing: AppUiConstants.spacingSm,
-                children: summaryEntries
-                    .map((e) => Chip(label: Text('${e.key}: ${e.value}')))
-                    .toList(growable: false),
-              ),
-              const SizedBox(height: AppUiConstants.spacingSm),
-              Expanded(
-                child: lines.isEmpty
-                    ? const Center(child: Text('No lines in report.'))
-                    : Scrollbar(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: SingleChildScrollView(
-                            child: DataTable(
-                              columns: _buildReportColumns(lines),
-                              rows: _buildReportRows(lines),
-                            ),
-                          ),
-                        ),
+              if (controller.payload != null && controller.error == null) ...[
+                const SizedBox(height: AppUiConstants.spacingMd),
+                Wrap(
+                  spacing: AppUiConstants.spacingMd,
+                  runSpacing: AppUiConstants.spacingSm,
+                  children: summaryEntries
+                      .map((e) => Chip(label: Text('${e.key}: ${e.value}')))
+                      .toList(growable: false),
+                ),
+                const SizedBox(height: AppUiConstants.spacingSm),
+                if (lines.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(child: Text('No lines in report.')),
+                  )
+                else
+                  Scrollbar(
+                    thumbVisibility: true,
+                    controller: _horizontalScrollController,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      controller: _horizontalScrollController,
+                      child: DataTable(
+                        columnSpacing: 20,
+                        columns: _buildReportColumns(lines),
+                        rows: _buildReportRows(lines),
                       ),
-              ),
+                    ),
+                  ),
+              ],
             ],
-          ],
+          ),
         );
 
         if (widget.embedded) {
-          return Padding(
-            padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-            child: body,
-          );
+          return body;
         }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Asset reports')),
-          body: Padding(
-            padding: const EdgeInsets.all(AppUiConstants.spacingMd),
-            child: body,
-          ),
+          appBar: AppBar(title: const Text('Asset Reports')),
+          body: body,
         );
       },
     );
+
   }
 }
 
