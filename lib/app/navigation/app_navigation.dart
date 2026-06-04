@@ -7,6 +7,7 @@ class AppNavigationItem {
     required this.icon,
     this.path,
     this.requiredPermissions = const <String>[],
+    this.adminOnly = false,
     this.children = const <AppNavigationItem>[],
   });
 
@@ -15,6 +16,7 @@ class AppNavigationItem {
   final IconData icon;
   final String? path;
   final List<String> requiredPermissions;
+  final bool adminOnly;
   final List<AppNavigationItem> children;
 
   bool get hasChildren => children.isNotEmpty;
@@ -58,10 +60,16 @@ class AppNavigation {
       icon: Icons.settings_outlined,
       children: [
         AppNavigationItem(
+          key: 'settings-profile',
+          title: 'Profile',
+          icon: Icons.person_outline,
+          path: '/settings/profile',
+        ),
+        AppNavigationItem(
           key: 'settings-communication',
           title: 'Communication',
           icon: Icons.mail_outline,
-          requiredPermissions: ['permission.view'],
+          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'email-settings',
@@ -111,7 +119,7 @@ class AppNavigation {
           key: 'tax',
           title: 'Tax',
           icon: Icons.receipt_long_outlined,
-          requiredPermissions: ['permission.view'],
+          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'inventory-tax-codes',
@@ -155,15 +163,8 @@ class AppNavigation {
           key: 'settings-access-control',
           title: 'Access Control',
           icon: Icons.admin_panel_settings_outlined,
-          requiredPermissions: ['permission.view'],
+          adminOnly: true,
           children: [
-            AppNavigationItem(
-              key: 'settings-profile',
-              title: 'Profile',
-              icon: Icons.person_outline,
-              path: '/settings/profile',
-              requiredPermissions: ['user.view'],
-            ),
             AppNavigationItem(
               key: 'settings-users',
               title: 'Users',
@@ -191,6 +192,7 @@ class AppNavigation {
           key: 'settings-accounts',
           title: "Accounts",
           icon: Icons.account_balance_wallet_outlined,
+          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'settings-account-groups',
@@ -226,7 +228,7 @@ class AppNavigation {
           key: 'settings-hr',
           title: 'HR',
           icon: Icons.badge_outlined,
-          requiredPermissions: ['permission.view'],
+          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'hr-departments',
@@ -262,7 +264,7 @@ class AppNavigation {
           key: 'settings-crm',
           title: 'CRM',
           icon: Icons.support_agent_outlined,
-          requiredPermissions: ['permission.view'],
+          adminOnly: true,
           children: [
             AppNavigationItem(
               key: 'crm-sources',
@@ -285,12 +287,14 @@ class AppNavigation {
           title: 'UOMs',
           icon: Icons.straighten_outlined,
           path: '/inventory/uoms',
+          adminOnly: true,
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
           key: 'settings-media',
           title: 'Media Files',
           path: '/media/files',
+          adminOnly: true,
           requiredPermissions: ['media.view'],
           icon: Icons.perm_media_outlined,
         ),
@@ -299,13 +303,15 @@ class AppNavigation {
           title: 'Companies',
           icon: Icons.apartment_outlined,
           path: '/settings/companies',
-          requiredPermissions: ['permission.view'],
+          adminOnly: true,
+          requiredPermissions: ['company.view'],
         ),
         AppNavigationItem(
           key: 'settings-branches',
           title: 'Branches',
           icon: Icons.account_tree_outlined,
           path: '/settings/branches',
+          adminOnly: true,
           requiredPermissions: ['branch.view'],
         ),
         AppNavigationItem(
@@ -313,6 +319,7 @@ class AppNavigation {
           title: 'Document Series',
           icon: Icons.confirmation_number_outlined,
           path: '/settings/document-series',
+          adminOnly: true,
           requiredPermissions: ['document_series.view'],
         ),
       ],
@@ -1323,6 +1330,10 @@ class AppNavigation {
     required bool isSuperAdmin,
   }) {
     final visible = <AppNavigationItem>[];
+    final canViewAdminSettings = _canViewAdminSettings(
+      permissionCodes: permissionCodes,
+      isSuperAdmin: isSuperAdmin,
+    );
 
     for (final item in items) {
       final visibleChildren = _visibleItems(
@@ -1330,6 +1341,10 @@ class AppNavigation {
         permissionCodes: permissionCodes,
         isSuperAdmin: isSuperAdmin,
       );
+
+      if (item.adminOnly && !canViewAdminSettings) {
+        continue;
+      }
 
       final allowed =
           isSuperAdmin ||
@@ -1346,6 +1361,7 @@ class AppNavigation {
               icon: item.icon,
               path: item.path,
               requiredPermissions: item.requiredPermissions,
+              adminOnly: item.adminOnly,
               children: visibleChildren,
             ),
           );
@@ -1359,6 +1375,29 @@ class AppNavigation {
     }
 
     return visible;
+  }
+
+  static bool _canViewAdminSettings({
+    required Set<String> permissionCodes,
+    required bool isSuperAdmin,
+  }) {
+    if (isSuperAdmin) {
+      return true;
+    }
+
+    const adminCodes = <String>{
+      'user.view',
+      'user.create',
+      'user.update',
+      'role.view',
+      'role.create',
+      'role.update',
+      'permission.view',
+      'permission.create',
+      'permission.update',
+    };
+
+    return permissionCodes.any(adminCodes.contains);
   }
 
   static List<AppNavigationItem> _sortTopLevelItems(
