@@ -287,6 +287,14 @@ class ErpModuleDashboard extends StatelessWidget {
   }
 }
 
+Color _dashboardItemStatusColor(
+  ErpDashboardListItem item,
+  Color fallbackColor,
+) {
+  final resolvedColor = item.statusColor ?? appStatusColor(item.statusLabel);
+  return resolvedColor == appStatusColorNeutral ? fallbackColor : resolvedColor;
+}
+
 class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({required this.snapshot});
 
@@ -737,13 +745,19 @@ class _DashboardListCard extends StatelessWidget {
                               ),
                               if ((item.statusLabel ?? '').trim().isNotEmpty)
                                 Container(
+                                  // Default to the shared status palette when
+                                  // a dashboard item exposes a business status.
+                                  // Explicit colors still win for alerts,
+                                  // priorities, and count badges.
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: (item.statusColor ?? itemColor)
-                                        .withValues(alpha: 0.12),
+                                    color: _dashboardItemStatusColor(
+                                      item,
+                                      itemColor,
+                                    ).withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(
                                       AppUiConstants.pillRadius,
                                     ),
@@ -754,7 +768,10 @@ class _DashboardListCard extends StatelessWidget {
                                         .textTheme
                                         .labelMedium
                                         ?.copyWith(
-                                          color: item.statusColor ?? itemColor,
+                                          color: _dashboardItemStatusColor(
+                                            item,
+                                            itemColor,
+                                          ),
                                           fontWeight: FontWeight.w700,
                                         ),
                                   ),

@@ -2461,6 +2461,7 @@ Future<ErpDashboardSnapshot> _loadProjectsDashboard({
                 ].where((part) => part.trim().isNotEmpty).join(' • '),
                 detail: task.plannedEndDate ?? task.plannedStartDate,
                 statusLabel: (task.taskStatus ?? 'open').toUpperCase(),
+                statusColor: appStatusColor(task.taskStatus),
                 route: '/projects/tasks',
               );
             })
@@ -2864,10 +2865,11 @@ Future<ErpDashboardSnapshot> _loadPartiesDashboard({
                     _looksActive(item.toJson(), const ['is_active', 'status'])
                     ? 'ACTIVE'
                     : 'INACTIVE',
-                statusColor:
-                    _looksActive(item.toJson(), const ['is_active', 'status'])
-                    ? const Color(0xFF1FA971)
-                    : const Color(0xFFE67E22),
+                statusColor: appStatusColor(
+                  _looksActive(item.toJson(), const ['is_active', 'status'])
+                      ? 'active'
+                      : 'inactive',
+                ),
                 route: '/parties',
               ),
             )
