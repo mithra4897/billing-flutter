@@ -57,6 +57,37 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
     });
   }
 
+  ErpLinkFieldOption<T>? _selectedOption<T>(
+    T? value,
+    List<ErpLinkFieldOption<T>> options,
+  ) {
+    if (value == null) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value == value) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  ErpLinkFieldOption<String>? _selectedTextOption(
+    String value,
+    List<ErpLinkFieldOption<String>> options,
+  ) {
+    final text = value.trim();
+    if (text.isEmpty) {
+      return null;
+    }
+    for (final option in options) {
+      if (option.value.trim().toLowerCase() == text.toLowerCase()) {
+        return option;
+      }
+    }
+    return ErpLinkFieldOption<String>(value: text, label: text);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GetBuilder<FixedAssetManagementController>(
@@ -147,196 +178,259 @@ class _FixedAssetPageState extends State<FixedAssetPage> {
                   ],
                   if (controller.saving || controller.actionBusy)
                     const LinearProgressIndicator(),
-                  SettingsFormWrap(
-                    children: [
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Asset category',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: controller.categoryId,
-                        items: controller.categoryOptions
-                            .where(
-                              (category) =>
-                                  intValue(category.toJson(), 'id') != null,
-                            )
-                            .map(
-                              (category) => DropdownMenuItem<int>(
-                                value: intValue(category.toJson(), 'id'),
-                                child: Text(
-                                  stringValue(
-                                        category.toJson(),
-                                        'category_name',
-                                      ).isNotEmpty
-                                      ? stringValue(
-                                          category.toJson(),
-                                          'category_name',
-                                        )
-                                      : stringValue(
-                                          category.toJson(),
-                                          'category_code',
-                                        ),
-                                ),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: controller.saving || controller.actionBusy
-                            ? null
-                            : controller.setCategoryId,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Asset code',
-                        controller: controller.assetCodeController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Asset name',
-                        controller: controller.assetNameController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Asset tag no',
-                        controller: controller.assetTagController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Serial no',
-                        controller: controller.serialNoController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Manufacturer',
-                        controller: controller.manufacturerController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Model no',
-                        controller: controller.modelNoController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Purchase date',
-                        controller: controller.purchaseDateController,
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                      AppFormTextField(
-                        labelText: 'Capitalization date',
-                        controller: controller.capitalizationDateController,
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                      AppFormTextField(
-                        labelText: 'Put to use date',
-                        controller: controller.putToUseDateController,
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Supplier',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: controller.supplierPartyId,
-                        items: controller.parties
-                            .where((party) => party.id != null)
-                            .map(
-                              (party) => DropdownMenuItem<int>(
-                                value: party.id,
-                                child: Text(party.toString()),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: controller.saving || controller.actionBusy
-                            ? null
-                            : controller.setSupplierPartyId,
-                      ),
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Cost center',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: controller.costCenterId,
-                        items: controller.costCenterOptions
-                            .where((costCenter) => costCenter.id != null)
-                            .map(
-                              (costCenter) => DropdownMenuItem<int>(
-                                value: costCenter.id,
-                                child: Text(costCenter.toString()),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: controller.saving || controller.actionBusy
-                            ? null
-                            : controller.setCostCenterId,
-                      ),
-                      DropdownButtonFormField<int>(
-                        decoration: const InputDecoration(
-                          labelText: 'Warehouse',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: controller.warehouseId,
-                        items: controller.warehouseOptions
-                            .where((warehouse) => warehouse.id != null)
-                            .map(
-                              (warehouse) => DropdownMenuItem<int>(
-                                value: warehouse.id,
-                                child: Text(warehouse.toString()),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: controller.saving || controller.actionBusy
-                            ? null
-                            : controller.setWarehouseId,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Department',
-                        controller: controller.departmentController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Employee',
-                        controller: controller.employeeController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Acquisition cost',
-                        controller: controller.acquisitionCostController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Additional cost',
-                        controller: controller.additionalCostController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Capitalization value',
-                        controller: controller.capitalizationValueController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Salvage value',
-                        controller: controller.salvageValueController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Condition status',
-                        controller: controller.conditionStatusController,
-                        hintText: 'good, fair, damaged',
-                      ),
-                      AppFormTextField(
-                        labelText: 'Warranty start',
-                        controller: controller.warrantyStartController,
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                      AppFormTextField(
-                        labelText: 'Warranty end',
-                        controller: controller.warrantyEndController,
-                        hintText: 'YYYY-MM-DD',
-                      ),
-                      AppFormTextField(
-                        labelText: 'Notes',
-                        controller: controller.notesController,
-                        maxLines: 3,
-                      ),
-                    ],
+                  Builder(
+                    builder: (context) {
+                      final categoryOptions = controller.categoryOptions
+                          .where(
+                            (category) =>
+                                intValue(category.toJson(), 'id') != null,
+                          )
+                          .map((category) {
+                            final data = category.toJson();
+                            final id = intValue(data, 'id')!;
+                            final code = stringValue(data, 'category_code');
+                            final name = stringValue(data, 'category_name');
+                            return ErpLinkFieldOption<int>(
+                              value: id,
+                              label: name.isNotEmpty ? name : code,
+                              subtitle: code.isNotEmpty && name.isNotEmpty
+                                  ? code
+                                  : null,
+                              searchText: '$code $name',
+                            );
+                          })
+                          .toList(growable: false);
+                      final supplierOptions = controller.parties
+                          .where((party) => party.id != null)
+                          .map(
+                            (party) => ErpLinkFieldOption<int>(
+                              value: party.id!,
+                              label: party.toString(),
+                            ),
+                          )
+                          .toList(growable: false);
+                      final costCenterOptions = controller.costCenterOptions
+                          .where((costCenter) => costCenter.id != null)
+                          .map(
+                            (costCenter) => ErpLinkFieldOption<int>(
+                              value: costCenter.id!,
+                              label: costCenter.toString(),
+                            ),
+                          )
+                          .toList(growable: false);
+                      final warehouseOptions = controller.warehouseOptions
+                          .where((warehouse) => warehouse.id != null)
+                          .map(
+                            (warehouse) => ErpLinkFieldOption<int>(
+                              value: warehouse.id!,
+                              label: warehouse.toString(),
+                            ),
+                          )
+                          .toList(growable: false);
+                      final departmentOptions = controller.departmentOptions
+                          .map(
+                            (department) => ErpLinkFieldOption<String>(
+                              value: department.departmentName ?? '',
+                              label: department.departmentName ?? '',
+                            ),
+                          )
+                          .where((option) => option.value.trim().isNotEmpty)
+                          .toList(growable: false);
+                      final employeeOptions = controller.employeeOptions
+                          .map(
+                            (employee) => ErpLinkFieldOption<String>(
+                              value: employee.employeeName ?? '',
+                              label:
+                                  employee.employeeName ??
+                                  employee.employeeCode ??
+                                  '',
+                              subtitle:
+                                  [
+                                        employee.employeeCode ?? '',
+                                        employee.departmentName ?? '',
+                                      ]
+                                      .where((value) => value.trim().isNotEmpty)
+                                      .join(' · '),
+                              searchText: [
+                                employee.employeeName ?? '',
+                                employee.employeeCode ?? '',
+                                employee.departmentName ?? '',
+                              ].join(' '),
+                            ),
+                          )
+                          .where((option) => option.value.trim().isNotEmpty)
+                          .toList(growable: false);
+
+                      return SettingsFormWrap(
+                        children: [
+                          ErpLinkField<int>(
+                            labelText: 'Asset category',
+                            doctypeLabel: 'Asset category',
+                            enabled:
+                                !controller.saving && !controller.actionBusy,
+                            initialSelection: _selectedOption(
+                              controller.categoryId,
+                              categoryOptions,
+                            ),
+                            options: categoryOptions,
+                            onChanged: controller.setCategoryId,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Asset code',
+                            controller: controller.assetCodeController,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Asset name',
+                            controller: controller.assetNameController,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Asset tag no',
+                            controller: controller.assetTagController,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Serial no',
+                            controller: controller.serialNoController,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Manufacturer',
+                            controller: controller.manufacturerController,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Model no',
+                            controller: controller.modelNoController,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Purchase date',
+                            controller: controller.purchaseDateController,
+                            hintText: 'YYYY-MM-DD',
+                            inputFormatters: const [DateInputFormatter()],
+                          ),
+                          AppFormTextField(
+                            labelText: 'Capitalization date',
+                            controller: controller.capitalizationDateController,
+                            hintText: 'YYYY-MM-DD',
+                            inputFormatters: const [DateInputFormatter()],
+                          ),
+                          AppFormTextField(
+                            labelText: 'Put to use date',
+                            controller: controller.putToUseDateController,
+                            hintText: 'YYYY-MM-DD',
+                            inputFormatters: const [DateInputFormatter()],
+                          ),
+                          ErpLinkField<int>(
+                            labelText: 'Supplier',
+                            doctypeLabel: 'Supplier',
+                            enabled:
+                                !controller.saving && !controller.actionBusy,
+                            initialSelection: _selectedOption(
+                              controller.supplierPartyId,
+                              supplierOptions,
+                            ),
+                            options: supplierOptions,
+                            onChanged: controller.setSupplierPartyId,
+                          ),
+                          ErpLinkField<int>(
+                            labelText: 'Cost center',
+                            doctypeLabel: 'Cost center',
+                            enabled:
+                                !controller.saving && !controller.actionBusy,
+                            initialSelection: _selectedOption(
+                              controller.costCenterId,
+                              costCenterOptions,
+                            ),
+                            options: costCenterOptions,
+                            onChanged: controller.setCostCenterId,
+                          ),
+                          ErpLinkField<int>(
+                            labelText: 'Warehouse',
+                            doctypeLabel: 'Warehouse',
+                            enabled:
+                                !controller.saving && !controller.actionBusy,
+                            initialSelection: _selectedOption(
+                              controller.warehouseId,
+                              warehouseOptions,
+                            ),
+                            options: warehouseOptions,
+                            onChanged: controller.setWarehouseId,
+                          ),
+                          ErpLinkField<String>(
+                            labelText: 'Department',
+                            doctypeLabel: 'Department',
+                            enabled:
+                                !controller.saving && !controller.actionBusy,
+                            initialSelection: _selectedTextOption(
+                              controller.departmentController.text,
+                              departmentOptions,
+                            ),
+                            options: departmentOptions,
+                            onChanged: controller.setDepartmentName,
+                          ),
+                          ErpLinkField<String>(
+                            labelText: 'Employee',
+                            doctypeLabel: 'Employee',
+                            enabled:
+                                !controller.saving && !controller.actionBusy,
+                            initialSelection: _selectedTextOption(
+                              controller.employeeController.text,
+                              employeeOptions,
+                            ),
+                            options: employeeOptions,
+                            onChanged: controller.setEmployeeName,
+                          ),
+                          AppFormTextField(
+                            labelText: 'Acquisition cost',
+                            controller: controller.acquisitionCostController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Additional cost',
+                            controller: controller.additionalCostController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Capitalization value',
+                            controller:
+                                controller.capitalizationValueController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Salvage value',
+                            controller: controller.salvageValueController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                          ),
+                          AppFormTextField(
+                            labelText: 'Condition status',
+                            controller: controller.conditionStatusController,
+                            hintText: 'good, fair, damaged',
+                          ),
+                          AppFormTextField(
+                            labelText: 'Warranty start',
+                            controller: controller.warrantyStartController,
+                            hintText: 'YYYY-MM-DD',
+                            inputFormatters: const [DateInputFormatter()],
+                          ),
+                          AppFormTextField(
+                            labelText: 'Warranty end',
+                            controller: controller.warrantyEndController,
+                            hintText: 'YYYY-MM-DD',
+                            inputFormatters: const [DateInputFormatter()],
+                          ),
+                          AppFormTextField(
+                            labelText: 'Notes',
+                            controller: controller.notesController,
+                            maxLines: 3,
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   SwitchListTile(
                     title: const Text('Depreciable'),

@@ -34,6 +34,7 @@ class FixedAssetManagementController extends GetxController {
       AssetModuleRefreshController.ensureRegistered();
   final MasterService _master = MasterService();
   final PartiesService _partiesService = PartiesService();
+  final HrService _hrService = HrService();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -78,6 +79,8 @@ class FixedAssetManagementController extends GetxController {
   List<CostCenterModel> costCenters = const <CostCenterModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<PartyModel> parties = const <PartyModel>[];
+  List<DepartmentModel> departments = const <DepartmentModel>[];
+  List<EmployeeModel> employees = const <EmployeeModel>[];
 
   AssetModel? selected;
   AssetModel? detail;
@@ -191,6 +194,24 @@ class FixedAssetManagementController extends GetxController {
         .toList(growable: false);
   }
 
+  List<DepartmentModel> get departmentOptions {
+    return departments
+        .where((department) => department.isActive)
+        .toList(growable: false);
+  }
+
+  List<EmployeeModel> get employeeOptions {
+    return employees
+        .where((employee) {
+          if (companyId != null && employee.companyId != companyId) {
+            return false;
+          }
+          final status = (employee.status ?? '').trim().toLowerCase();
+          return status.isEmpty || status == 'active';
+        })
+        .toList(growable: false);
+  }
+
   String listTitle(AssetModel row) {
     final data = row.toJson();
     final code = stringValue(data, 'asset_code');
@@ -262,12 +283,15 @@ class FixedAssetManagementController extends GetxController {
     serialNoController.text = stringValue(data, 'serial_no');
     manufacturerController.text = stringValue(data, 'manufacturer');
     modelNoController.text = stringValue(data, 'model_no');
-    purchaseDateController.text = stringValue(data, 'purchase_date');
-    capitalizationDateController.text = stringValue(
-      data,
-      'capitalization_date',
+    purchaseDateController.text = normalizeDateValue(
+      stringValue(data, 'purchase_date'),
     );
-    putToUseDateController.text = stringValue(data, 'put_to_use_date');
+    capitalizationDateController.text = normalizeDateValue(
+      stringValue(data, 'capitalization_date'),
+    );
+    putToUseDateController.text = normalizeDateValue(
+      stringValue(data, 'put_to_use_date'),
+    );
     departmentController.text = stringValue(data, 'department_name');
     employeeController.text = stringValue(data, 'employee_name');
     acquisitionCostController.text = data['acquisition_cost']?.toString() ?? '';
@@ -276,8 +300,12 @@ class FixedAssetManagementController extends GetxController {
         data['capitalization_value']?.toString() ?? '';
     salvageValueController.text = data['salvage_value']?.toString() ?? '';
     conditionStatusController.text = stringValue(data, 'condition_status');
-    warrantyStartController.text = stringValue(data, 'warranty_start_date');
-    warrantyEndController.text = stringValue(data, 'warranty_end_date');
+    warrantyStartController.text = normalizeDateValue(
+      stringValue(data, 'warranty_start_date'),
+    );
+    warrantyEndController.text = normalizeDateValue(
+      stringValue(data, 'warranty_end_date'),
+    );
     notesController.text = stringValue(data, 'notes');
   }
 
@@ -304,6 +332,8 @@ class FixedAssetManagementController extends GetxController {
         _master.businessLocations(filters: const {'per_page': 500}),
         _master.warehouses(filters: const {'per_page': 500}),
         _partiesService.parties(filters: const {'per_page': 500}),
+        _hrService.departments(filters: const {'per_page': 500}),
+        _hrService.employees(filters: optionFilters),
       ]);
 
       rows =
@@ -324,6 +354,19 @@ class FixedAssetManagementController extends GetxController {
           ((responses[7] as PaginatedResponse<PartyModel>).data ??
                   const <PartyModel>[])
               .where((party) => party.isActive)
+              .toList(growable: false);
+      departments =
+          ((responses[8] as PaginatedResponse<DepartmentModel>).data ??
+                  const <DepartmentModel>[])
+              .where((department) => department.isActive)
+              .toList(growable: false);
+      employees =
+          ((responses[9] as PaginatedResponse<EmployeeModel>).data ??
+                  const <EmployeeModel>[])
+              .where((employee) {
+                final status = (employee.status ?? '').trim().toLowerCase();
+                return status.isEmpty || status == 'active';
+              })
               .toList(growable: false);
 
       loading = false;
@@ -424,6 +467,16 @@ class FixedAssetManagementController extends GetxController {
 
   void setWarehouseId(int? value) {
     warehouseId = value;
+    update();
+  }
+
+  void setDepartmentName(String? value) {
+    departmentController.text = (value ?? '').trim();
+    update();
+  }
+
+  void setEmployeeName(String? value) {
+    employeeController.text = (value ?? '').trim();
     update();
   }
 
