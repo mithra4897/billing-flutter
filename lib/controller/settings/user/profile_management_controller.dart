@@ -80,7 +80,7 @@ class ProfileManagementController extends GetxController {
       displayNameController.text = loadedProfile.displayName ?? '';
       emailController.text = loadedProfile.email ?? '';
       mobileController.text = loadedProfile.mobile ?? '';
-      dobController.text = normalizeDate(loadedProfile.dateOfBirth);
+      dobController.text = normalizeDateValue(loadedProfile.dateOfBirth);
       profilePhotoController.text = loadedProfile.profilePhotoPath ?? '';
       remarksController.text = loadedProfile.remarks ?? '';
       gender = loadedProfile.gender;
@@ -117,7 +117,7 @@ class ProfileManagementController extends GetxController {
           gender: gender,
           dateOfBirth: dobController.text.trim().isEmpty
               ? null
-              : normalizeDate(dobController.text.trim()),
+              : normalizeDateValue(dobController.text.trim()),
           profilePhotoPath: nullIfEmpty(profilePhotoController.text),
           remarks: nullIfEmpty(remarksController.text),
         ),
@@ -236,14 +236,5 @@ class ProfileManagementController extends GetxController {
       firstNameController.text.trim(),
       lastNameController.text.trim(),
     ].where((value) => value.isNotEmpty).join(' ');
-  }
-
-  String normalizeDate(String? value) {
-    final text = (value ?? '').trim();
-    if (text.isEmpty) {
-      return '';
-    }
-
-    return text.length >= 10 ? text.substring(0, 10) : text;
   }
 }

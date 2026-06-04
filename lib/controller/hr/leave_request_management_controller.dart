@@ -275,8 +275,8 @@ class LeaveRequestManagementController extends GetxController {
     selectedLeaveRequest = item;
     employeeId = item.employeeId;
     leaveTypeId = item.leaveTypeId;
-    fromDateController.text = item.fromDate ?? '';
-    toDateController.text = item.toDate ?? '';
+    fromDateController.text = normalizeDateValue(item.fromDate);
+    toDateController.text = normalizeDateValue(item.toDate);
     reasonController.text = item.reason ?? '';
     status = item.status ?? 'pending';
     formError = null;

@@ -141,8 +141,10 @@ class ProjectMilestoneManagementController extends GetxController {
     selectedRow = row;
     projectId = row.project.id;
     nameController.text = row.milestone.milestoneName ?? '';
-    targetDateController.text = row.milestone.targetDate ?? '';
-    completionDateController.text = row.milestone.completionDate ?? '';
+    targetDateController.text = normalizeDateValue(row.milestone.targetDate);
+    completionDateController.text = normalizeDateValue(
+      row.milestone.completionDate,
+    );
     amountController.text = _decimalText(row.milestone.milestoneAmount);
     remarksController.text = row.milestone.remarks ?? '';
     status = row.milestone.milestoneStatus ?? 'open';

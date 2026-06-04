@@ -236,7 +236,7 @@ class QcNonConformanceLogViewModel extends GetxController {
       correctiveActionController.text = doc.correctiveAction ?? '';
       preventiveActionController.text = doc.preventiveAction ?? '';
       assignedToController.text = doc.assignedTo?.toString() ?? '';
-      dueDateController.text = doc.dueDate ?? '';
+      dueDateController.text = normalizeDateValue(doc.dueDate);
       remarksController.text = doc.remarks ?? '';
       await _loadInspectionLines(qcInspectionId, clearSelectedLine: false);
       if (qcInspectionLineId != null) {

@@ -296,7 +296,8 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
                   label: 'New',
                   filled: false,
                 ),
-                if (controller.selectedRow?.task.id != null)
+                if (controller.selectedRow?.task.id != null &&
+                    controller.canDeleteTasks)
                   AppActionButton(
                     onPressed: controller.saving
                         ? null

@@ -201,9 +201,9 @@ class FinancialYearManagementController extends GetxController {
     companyId = fixedCompanyId ?? item.companyId;
     fyCodeController.text = item.fyCode ?? '';
     fyNameController.text = item.fyName ?? '';
-    startDateController.text = item.startDate ?? '';
-    endDateController.text = item.endDate ?? '';
-    lockDateController.text = item.lockDate ?? '';
+    startDateController.text = normalizeDateValue(item.startDate);
+    endDateController.text = normalizeDateValue(item.endDate);
+    lockDateController.text = normalizeDateValue(item.lockDate);
     remarksController.text = item.remarks ?? '';
     isCurrent = item.isCurrent;
     isLocked = item.isLocked;
@@ -216,7 +216,8 @@ class FinancialYearManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedFinancialYear = null;
-    companyId = fixedCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
+    companyId =
+        fixedCompanyId ?? (companies.isNotEmpty ? companies.first.id : null);
     fyCodeController.clear();
     fyNameController.clear();
     startDateController.clear();

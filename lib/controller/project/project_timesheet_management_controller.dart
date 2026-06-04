@@ -162,7 +162,7 @@ class ProjectTimesheetManagementController extends GetxController {
     projectId = row.project.id;
     taskId = row.timesheet.projectTaskId;
     employeeId = row.timesheet.employeeId;
-    workDateController.text = row.timesheet.workDate ?? '';
+    workDateController.text = normalizeDateValue(row.timesheet.workDate);
     hoursWorkedController.text = decimalText(row.timesheet.hoursWorked);
     hourlyCostController.text = decimalText(row.timesheet.hourlyCost);
     billableRateController.text = decimalText(row.timesheet.billableRate);

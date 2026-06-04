@@ -160,7 +160,7 @@ class ProjectResourceUsageManagementController extends GetxController {
     taskId = row.usage.projectTaskId;
     assetId = row.usage.assetId;
     resourceNameController.text = row.usage.resourceName ?? '';
-    usageDateController.text = row.usage.usageDate ?? '';
+    usageDateController.text = normalizeDateValue(row.usage.usageDate);
     usageHoursController.text = decimalText(row.usage.usageHours);
     usageQtyController.text = decimalText(row.usage.usageQty);
     unitCostController.text = decimalText(row.usage.unitCost);

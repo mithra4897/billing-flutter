@@ -168,7 +168,7 @@ class ProjectExpenseManagementController extends GetxController {
     taskId = row.expense.projectTaskId;
     supplierPartyId = row.expense.supplierPartyId;
     purchaseInvoiceId = row.expense.purchaseInvoiceId;
-    expenseDateController.text = row.expense.expenseDate ?? '';
+    expenseDateController.text = normalizeDateValue(row.expense.expenseDate);
     categoryController.text = row.expense.expenseCategory ?? '';
     descriptionController.text = row.expense.description ?? '';
     amountController.text = _decimalText(row.expense.amount);

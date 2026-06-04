@@ -136,11 +136,15 @@ class MrpRunViewModel extends GetxController {
       final data = (response.data ?? row).toJson();
       companyId = intValue(data, 'company_id');
       runNoController.text = stringValue(data, 'run_no');
-      runDateController.text = nullableStringValue(data, 'run_date') ?? '';
-      startDateController.text =
-          nullableStringValue(data, 'planning_start_date') ?? '';
-      endDateController.text =
-          nullableStringValue(data, 'planning_end_date') ?? '';
+      runDateController.text = normalizeDateValue(
+        nullableStringValue(data, 'run_date'),
+      );
+      startDateController.text = normalizeDateValue(
+        nullableStringValue(data, 'planning_start_date'),
+      );
+      endDateController.text = normalizeDateValue(
+        nullableStringValue(data, 'planning_end_date'),
+      );
       notesController.text = stringValue(data, 'notes');
     } catch (e) {
       formError = e.toString();

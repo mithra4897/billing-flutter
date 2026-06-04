@@ -93,7 +93,8 @@ class ProjectBillingManagementController extends GetxController {
       final nextRows = scopedProjects
           .expand(
             (project) => project.billings.map(
-              (billing) => ProjectBillingRow(project: project, billing: billing),
+              (billing) =>
+                  ProjectBillingRow(project: project, billing: billing),
             ),
           )
           .toList(growable: false);
@@ -149,7 +150,7 @@ class ProjectBillingManagementController extends GetxController {
     projectId = row.project.id;
     milestoneId = row.billing.projectMilestoneId;
     salesInvoiceId = row.billing.salesInvoiceId;
-    billingDateController.text = row.billing.billingDate ?? '';
+    billingDateController.text = normalizeDateValue(row.billing.billingDate);
     amountController.text = decimalText(row.billing.billingAmount);
     remarksController.text = row.billing.remarks ?? '';
     basis = row.billing.billingBasis ?? 'fixed';

@@ -176,7 +176,7 @@ class UserManagementController extends GetxController {
     displayNameController.text = user.displayName ?? '';
     emailController.text = user.email ?? '';
     mobileController.text = user.mobile ?? '';
-    dobController.text = normalizeDate(user.dateOfBirth);
+    dobController.text = normalizeDateValue(user.dateOfBirth);
     profilePhotoController.text = user.profilePhotoPath ?? '';
     remarksController.text = user.remarks ?? '';
     gender = user.gender;
@@ -500,7 +500,7 @@ class UserManagementController extends GetxController {
         gender: gender,
         dateOfBirth: dobController.text.trim().isEmpty
             ? null
-            : normalizeDate(dobController.text.trim()),
+            : normalizeDateValue(dobController.text.trim()),
         profilePhotoPath: profilePhotoController.text.trim().isEmpty
             ? null
             : profilePhotoController.text.trim(),
@@ -657,14 +657,6 @@ class UserManagementController extends GetxController {
     firstNameController.text.trim(),
     lastNameController.text.trim(),
   ].where((value) => value.isNotEmpty).join(' ');
-
-  String normalizeDate(String? value) {
-    final text = (value ?? '').trim();
-    if (text.isEmpty) {
-      return '';
-    }
-    return text.length >= 10 ? text.substring(0, 10) : text;
-  }
 
   bool selectedRoleImpliesSuperAdmin() {
     final role = roles.where((item) => item.id == selectedRoleId).firstOrNull;

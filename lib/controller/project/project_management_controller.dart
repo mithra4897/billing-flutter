@@ -178,10 +178,16 @@ class ProjectManagementController extends GetxController {
     projectCodeController.text = project.projectCode ?? '';
     projectNameController.text = project.projectName ?? '';
     projectTypeController.text = project.projectType ?? '';
-    expectedStartDateController.text = project.expectedStartDate ?? '';
-    expectedEndDateController.text = project.expectedEndDate ?? '';
-    actualStartDateController.text = project.actualStartDate ?? '';
-    actualEndDateController.text = project.actualEndDate ?? '';
+    expectedStartDateController.text = normalizeDateValue(
+      project.expectedStartDate,
+    );
+    expectedEndDateController.text = normalizeDateValue(
+      project.expectedEndDate,
+    );
+    actualStartDateController.text = normalizeDateValue(
+      project.actualStartDate,
+    );
+    actualEndDateController.text = normalizeDateValue(project.actualEndDate);
     budgetAmountController.text = _decimalText(project.budgetAmount);
     percentCompletionController.text = _decimalText(project.percentCompletion);
     imagePathController.text = project.imagePath ?? '';
