@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/project_register_reload_helper.dart';
+import 'project_module_refresh_controller.dart';
 
 class ProjectTimesheetManagementController extends GetxController {
   ProjectTimesheetManagementController();
@@ -7,6 +7,8 @@ class ProjectTimesheetManagementController extends GetxController {
   final ProjectService _projectService = ProjectService();
   final HrService _hrService = HrService();
   final MasterService _masterService = MasterService();
+  final ProjectModuleRefreshController _refreshController =
+      ProjectModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -30,6 +32,7 @@ class ProjectTimesheetManagementController extends GetxController {
   int? taskId;
   int? employeeId;
   String status = 'draft';
+  Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<EmployeeModel> employees = const <EmployeeModel>[];
@@ -44,11 +47,21 @@ class ProjectTimesheetManagementController extends GetxController {
     hoursWorkedController.addListener(_syncCalculatedAmounts);
     hourlyCostController.addListener(_syncCalculatedAmounts);
     billableRateController.addListener(_syncCalculatedAmounts);
+    _refreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'project_timesheet') {
+          return;
+        }
+        unawaited(loadData(selectId: selectedRow?.timesheet.id));
+      },
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -323,7 +336,7 @@ class ProjectTimesheetManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.timesheet.id);
-      reloadProjectTimesheetRegister();
+      _refreshController.notifyChanged(source: 'project_timesheet');
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -340,7 +353,7 @@ class ProjectTimesheetManagementController extends GetxController {
     if (row?.timesheet.id == null) return null;
     final response = await _projectService.deleteTimesheet(row!.timesheet.id!);
     await loadData();
-    reloadProjectTimesheetRegister();
+    _refreshController.notifyChanged(source: 'project_timesheet');
     return response.message;
   }
 

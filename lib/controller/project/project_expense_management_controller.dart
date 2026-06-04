@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/project_register_reload_helper.dart';
+import 'project_module_refresh_controller.dart';
 
 class ProjectExpenseManagementController extends GetxController {
   ProjectExpenseManagementController();
@@ -8,6 +8,8 @@ class ProjectExpenseManagementController extends GetxController {
   final PartiesService _partiesService = PartiesService();
   final PurchaseService _purchaseService = PurchaseService();
   final MasterService _masterService = MasterService();
+  final ProjectModuleRefreshController _refreshController =
+      ProjectModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -29,6 +31,7 @@ class ProjectExpenseManagementController extends GetxController {
   int? supplierPartyId;
   int? purchaseInvoiceId;
   String status = 'draft';
+  Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<PartyModel> parties = const <PartyModel>[];
@@ -41,11 +44,21 @@ class ProjectExpenseManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    _refreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'project_expense') {
+          return;
+        }
+        unawaited(loadData(selectId: selectedRow?.expense.id));
+      },
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -297,7 +310,7 @@ class ProjectExpenseManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.expense.id);
-      reloadProjectExpenseRegister();
+      _refreshController.notifyChanged(source: 'project_expense');
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -318,7 +331,7 @@ class ProjectExpenseManagementController extends GetxController {
       final response = await _projectService.deleteExpense(row!.expense.id!);
       formError = null;
       await loadData();
-      reloadProjectExpenseRegister();
+      _refreshController.notifyChanged(source: 'project_expense');
       return response.message;
     } on ApiException catch (errorValue) {
       formError = errorValue.displayMessage;

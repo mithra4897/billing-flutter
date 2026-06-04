@@ -1,6 +1,6 @@
 import '../../screen.dart';
 import 'crm_lead_register_controller.dart';
-import '../../helper/crm_register_reload_helper.dart';
+import 'crm_module_refresh_controller.dart';
 
 class CrmLeadsController extends GetxController {
   static const int allFilterIntValue = 0;
@@ -36,6 +36,8 @@ class CrmLeadsController extends GetxController {
   final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
   final AuthService _authService = AuthService();
+  final CrmModuleRefreshController _refreshController =
+      CrmModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -71,6 +73,7 @@ class CrmLeadsController extends GetxController {
   Map<String, dynamic>? salesChain;
   bool appliedInitialNewMode = false;
   bool filtersApplied = false;
+  Worker? _refreshWorker;
 
   bool get isSelectedLeadReadOnly =>
       selectedItem != null && isLockedLeadStatus(leadStatus);
@@ -91,11 +94,25 @@ class CrmLeadsController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(applySearch);
+    _refreshWorker = ever<CrmModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'crm_leads') {
+          return;
+        }
+        unawaited(
+          loadPage(
+            selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
+          ),
+        );
+      },
+    );
     loadPage(selectId: initialSelectId);
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -453,7 +470,10 @@ class CrmLeadsController extends GetxController {
     update();
   }
 
-  void _replaceActivities(List<LeadActivityDraft> nextActivities, {bool notify = true}) {
+  void _replaceActivities(
+    List<LeadActivityDraft> nextActivities, {
+    bool notify = true,
+  }) {
     replaceDisposableDraftEntries<LeadActivityDraft>(
       previous: activities,
       next: nextActivities,
@@ -497,7 +517,7 @@ class CrmLeadsController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadCrmLeadRegister();
+      _refreshController.notifyChanged(source: 'crm_leads');
     } catch (error) {
       formError = error.toString();
       update();
@@ -515,8 +535,8 @@ class CrmLeadsController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCrmLeadRegister();
       resetForm();
+      _refreshController.notifyChanged(source: 'crm_leads');
       return true;
     } catch (error) {
       formError = error.toString();
@@ -554,7 +574,7 @@ class CrmLeadsController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadPage(selectId: id);
-      reloadCrmLeadRegister();
+      _refreshController.notifyChanged(source: 'crm_leads');
     } catch (error) {
       formError = error.toString();
       update();
@@ -580,7 +600,7 @@ class CrmLeadsController extends GetxController {
       }
       final enquiryId = enquiryMap != null ? intValue(enquiryMap, 'id') : null;
       await loadPage(selectId: id);
-      reloadCrmLeadRegister();
+      _refreshController.notifyChanged(source: 'crm_leads');
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );

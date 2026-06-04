@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/project_register_reload_helper.dart';
+import 'project_module_refresh_controller.dart';
 
 class ProjectVendorWorkManagementController extends GetxController {
   ProjectVendorWorkManagementController();
@@ -8,6 +8,8 @@ class ProjectVendorWorkManagementController extends GetxController {
   final PartiesService _partiesService = PartiesService();
   final PurchaseService _purchaseService = PurchaseService();
   final MasterService _masterService = MasterService();
+  final ProjectModuleRefreshController _refreshController =
+      ProjectModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -31,6 +33,7 @@ class ProjectVendorWorkManagementController extends GetxController {
   int? purchaseOrderId;
   int? purchaseInvoiceId;
   String status = 'open';
+  Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<PartyModel> parties = const <PartyModel>[];
@@ -44,11 +47,21 @@ class ProjectVendorWorkManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applyFilters);
+    _refreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'project_vendor_work') {
+          return;
+        }
+        unawaited(loadData(selectId: selectedRow?.work.id));
+      },
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -434,8 +447,8 @@ class ProjectVendorWorkManagementController extends GetxController {
               selectedRow!.work.id!,
               model,
             );
-      reloadProjectVendorWorkRegister();
       await loadData(selectId: response.data?.id ?? selectedRow?.work.id);
+      _refreshController.notifyChanged(source: 'project_vendor_work');
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -453,8 +466,8 @@ class ProjectVendorWorkManagementController extends GetxController {
       return null;
     }
     final response = await _projectService.deleteVendorWork(row!.work.id!);
-    reloadProjectVendorWorkRegister();
     await loadData();
+    _refreshController.notifyChanged(source: 'project_vendor_work');
     return response.message;
   }
 

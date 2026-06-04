@@ -1,8 +1,7 @@
 import '../../screen.dart';
-import '../../helper/crm_register_reload_helper.dart';
+import 'crm_module_refresh_controller.dart';
 
 class CrmOpportunitiesController extends GetxController {
-  static final Set<String> _activeTags = <String>{};
   static const int allFilterIntValue = 0;
   static const String allFilterStringValue = '__all__';
   static const List<AppDropdownItem<String>> filterStatusItems =
@@ -33,6 +32,8 @@ class CrmOpportunitiesController extends GetxController {
   final AuthService _authService = AuthService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
+  final CrmModuleRefreshController _refreshController =
+      CrmModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -80,6 +81,7 @@ class CrmOpportunitiesController extends GetxController {
   Map<String, dynamic>? salesChain;
   bool appliedInitialNewMode = false;
   bool filtersApplied = false;
+  Worker? _refreshWorker;
 
   bool get isSelectedOpportunityReadOnly {
     final data = selectedItem?.toJson() ?? const <String, dynamic>{};
@@ -96,14 +98,26 @@ class CrmOpportunitiesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _activeTags.add(instanceTag);
     searchController.addListener(applySearch);
+    _refreshWorker = ever<CrmModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'crm_opportunities') {
+          return;
+        }
+        unawaited(
+          loadPage(
+            selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
+          ),
+        );
+      },
+    );
     loadPage(selectId: initialSelectId);
   }
 
   @override
   void onClose() {
-    _activeTags.remove(instanceTag);
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -120,16 +134,6 @@ class CrmOpportunitiesController extends GetxController {
     disposeFollowups(followups);
     disposeProducts(products);
     super.onClose();
-  }
-
-  static Future<void> refreshIfRegistered() async {
-    for (final tag in _activeTags.toList(growable: false)) {
-      if (!Get.isRegistered<CrmOpportunitiesController>(tag: tag)) {
-        _activeTags.remove(tag);
-        continue;
-      }
-      await Get.find<CrmOpportunitiesController>(tag: tag).loadPage();
-    }
   }
 
   String normalizedStageType(CrmStageModel stage) =>
@@ -567,10 +571,10 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCrmOpportunityRegister();
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      _refreshController.notifyChanged(source: 'crm_opportunities');
     } catch (error) {
       formError = error.toString();
       appScaffoldMessengerKey.currentState?.showSnackBar(
@@ -591,8 +595,8 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCrmOpportunityRegister();
       await loadPage();
+      _refreshController.notifyChanged(source: 'crm_opportunities');
     } catch (error) {
       formError = error.toString();
       update();
@@ -610,8 +614,8 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCrmOpportunityRegister();
       await loadPage(selectId: _filterAllowsStatus('won') ? id : null);
+      _refreshController.notifyChanged(source: 'crm_opportunities');
     } catch (error) {
       formError = error.toString();
       update();
@@ -629,8 +633,8 @@ class CrmOpportunitiesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCrmOpportunityRegister();
       await loadPage(selectId: _filterAllowsStatus('lost') ? id : null);
+      _refreshController.notifyChanged(source: 'crm_opportunities');
     } catch (error) {
       formError = error.toString();
       update();

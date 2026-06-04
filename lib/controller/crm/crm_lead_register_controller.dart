@@ -1,8 +1,8 @@
 import '../../screen.dart';
+import 'crm_module_refresh_controller.dart';
 
 class CrmLeadRegisterController extends GetxController {
   CrmLeadRegisterController({required this.instanceTag});
-  static final Set<String> _activeTags = <String>{};
   final String instanceTag;
 
   static const List<AppDropdownItem<String>> statusItems =
@@ -15,6 +15,8 @@ class CrmLeadRegisterController extends GetxController {
       ];
 
   final CrmService _service = CrmService();
+  final CrmModuleRefreshController _refreshController =
+      CrmModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
@@ -23,18 +25,27 @@ class CrmLeadRegisterController extends GetxController {
   String? error;
   Set<String> statuses = <String>{'draft', 'in_progress'};
   List<CrmLeadModel> rows = const <CrmLeadModel>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
-    _activeTags.add(instanceTag);
     searchController.addListener(_notifySearch);
+    _refreshWorker = ever<CrmModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     load();
   }
 
   @override
   void onClose() {
-    _activeTags.remove(instanceTag);
+    _refreshWorker?.dispose();
     searchController
       ..removeListener(_notifySearch)
       ..dispose();
@@ -169,16 +180,6 @@ class CrmLeadRegisterController extends GetxController {
         return 'Lost';
       default:
         return 'Draft';
-    }
-  }
-
-  static Future<void> refreshIfRegistered() async {
-    for (final tag in _activeTags.toList(growable: false)) {
-      if (!Get.isRegistered<CrmLeadRegisterController>(tag: tag)) {
-        _activeTags.remove(tag);
-        continue;
-      }
-      await Get.find<CrmLeadRegisterController>(tag: tag).load();
     }
   }
 }

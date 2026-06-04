@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../project/project_module_refresh_controller.dart';
 
 class ErpModuleDashboardController extends GetxController {
   ErpModuleDashboardController({
@@ -11,6 +12,8 @@ class ErpModuleDashboardController extends GetxController {
   Future<ErpDashboardSnapshot> Function(ErpDashboardTrendFilter? filter)?
   loader;
   String? shellTitle;
+  final ProjectModuleRefreshController _projectRefreshController =
+      ProjectModuleRefreshController.ensureRegistered();
 
   Future<ErpDashboardSnapshot>? snapshotFuture;
   ErpDashboardSnapshot? snapshotCache;
@@ -18,11 +21,27 @@ class ErpModuleDashboardController extends GetxController {
   ErpDashboardTrendFilter trendFilter = const ErpDashboardTrendFilter(
     preset: ErpDashboardTrendPreset.monthly,
   );
+  Worker? _projectRefreshWorker;
 
   @override
   void onInit() {
     super.onInit();
+    _projectRefreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _projectRefreshController.lastEvent,
+      (event) {
+        if (event == null || moduleKey != 'projects') {
+          return;
+        }
+        reload();
+      },
+    );
     snapshotFuture = loadSnapshot(cacheResult: true);
+  }
+
+  @override
+  void onClose() {
+    _projectRefreshWorker?.dispose();
+    super.onClose();
   }
 
   Future<ErpDashboardSnapshot> loadSnapshot({bool cacheResult = false}) async {

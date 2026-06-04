@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/project_register_reload_helper.dart';
+import 'project_module_refresh_controller.dart';
 
 class ProjectManagementController extends GetxController {
   ProjectManagementController();
@@ -8,6 +8,8 @@ class ProjectManagementController extends GetxController {
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final MediaService _mediaService = MediaService();
+  final ProjectModuleRefreshController _refreshController =
+      ProjectModuleRefreshController.ensureRegistered();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -37,6 +39,7 @@ class ProjectManagementController extends GetxController {
   bool loadingProjectCode = false;
   String? pageError;
   String? formError;
+  Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<ProjectModel> filteredProjects = const <ProjectModel>[];
@@ -55,11 +58,21 @@ class ProjectManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    _refreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'project_management') {
+          return;
+        }
+        unawaited(loadData(selectId: selectedProject?.id));
+      },
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -293,7 +306,7 @@ class ProjectManagementController extends GetxController {
         return null;
       }
       await loadData(selectId: saved.id);
-      reloadProjectRegister();
+      _refreshController.notifyChanged(source: 'project_management');
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();

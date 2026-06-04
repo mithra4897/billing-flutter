@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/project_register_reload_helper.dart';
+import 'project_module_refresh_controller.dart';
 
 class ProjectResourceUsageManagementController extends GetxController {
   ProjectResourceUsageManagementController();
@@ -7,6 +7,8 @@ class ProjectResourceUsageManagementController extends GetxController {
   final ProjectService _projectService = ProjectService();
   final AssetsService _assetsService = AssetsService();
   final MasterService _masterService = MasterService();
+  final ProjectModuleRefreshController _refreshController =
+      ProjectModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -28,6 +30,7 @@ class ProjectResourceUsageManagementController extends GetxController {
   int? projectId;
   int? taskId;
   int? assetId;
+  Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<AssetModel> assets = const <AssetModel>[];
@@ -43,11 +46,21 @@ class ProjectResourceUsageManagementController extends GetxController {
     usageHoursController.addListener(_syncCalculatedTotalCost);
     usageQtyController.addListener(_syncCalculatedTotalCost);
     unitCostController.addListener(_syncCalculatedTotalCost);
+    _refreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'project_resource_usage') {
+          return;
+        }
+        unawaited(loadData(selectId: selectedRow?.usage.id));
+      },
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -332,7 +345,7 @@ class ProjectResourceUsageManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.usage.id);
-      reloadProjectResourceUsageRegister();
+      _refreshController.notifyChanged(source: 'project_resource_usage');
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -355,7 +368,7 @@ class ProjectResourceUsageManagementController extends GetxController {
       );
       formError = null;
       await loadData();
-      reloadProjectResourceUsageRegister();
+      _refreshController.notifyChanged(source: 'project_resource_usage');
       return response.message;
     } on ApiException catch (errorValue) {
       formError = errorValue.displayMessage;

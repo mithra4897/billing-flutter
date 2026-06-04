@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/project_register_reload_helper.dart';
+import 'project_module_refresh_controller.dart';
 
 class ProjectBillingManagementController extends GetxController {
   ProjectBillingManagementController();
@@ -7,6 +7,8 @@ class ProjectBillingManagementController extends GetxController {
   final ProjectService _projectService = ProjectService();
   final SalesService _salesService = SalesService();
   final MasterService _masterService = MasterService();
+  final ProjectModuleRefreshController _refreshController =
+      ProjectModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -25,6 +27,7 @@ class ProjectBillingManagementController extends GetxController {
   int? salesInvoiceId;
   String basis = 'fixed';
   String status = 'draft';
+  Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<SalesInvoiceModel> salesInvoices = const <SalesInvoiceModel>[];
@@ -36,11 +39,21 @@ class ProjectBillingManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    _refreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'project_billing') {
+          return;
+        }
+        unawaited(loadData(selectId: selectedRow?.billing.id));
+      },
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -296,6 +309,14 @@ class ProjectBillingManagementController extends GetxController {
     update();
   }
 
+  void clearFormError() {
+    if ((formError ?? '').isEmpty) {
+      return;
+    }
+    formError = null;
+    update();
+  }
+
   double? doubleValue(String text) => double.tryParse(text.trim());
 
   String decimalText(double? value) => value == null
@@ -334,7 +355,7 @@ class ProjectBillingManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.billing.id);
-      reloadProjectBillingRegister();
+      _refreshController.notifyChanged(source: 'project_billing');
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -349,10 +370,21 @@ class ProjectBillingManagementController extends GetxController {
   Future<String?> deleteBilling() async {
     final row = selectedRow;
     if (row?.billing.id == null) return null;
-    final response = await _projectService.deleteBilling(row!.billing.id!);
-    await loadData();
-    reloadProjectBillingRegister();
-    return response.message;
+    try {
+      final response = await _projectService.deleteBilling(row!.billing.id!);
+      formError = null;
+      await loadData();
+      _refreshController.notifyChanged(source: 'project_billing');
+      return response.message;
+    } on ApiException catch (errorValue) {
+      formError = errorValue.displayMessage;
+      update();
+      return errorValue.displayMessage;
+    } catch (errorValue) {
+      formError = errorValue.toString();
+      update();
+      return formError;
+    }
   }
 
   void startNewBilling({required bool isDesktop}) {

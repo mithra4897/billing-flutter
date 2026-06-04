@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/sales_register_reload_helper.dart';
+import 'sales_module_refresh_controller.dart';
 
 class SalesInvoiceManagementController extends GetxController {
   SalesInvoiceManagementController();
@@ -20,6 +20,8 @@ class SalesInvoiceManagementController extends GetxController {
   final PartiesService partiesService = PartiesService();
   final AccountsService accountsService = AccountsService();
   final InventoryService inventoryService = InventoryService();
+  final SalesModuleRefreshController _refreshController =
+      SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -402,8 +404,7 @@ class SalesInvoiceManagementController extends GetxController {
 
   String resolveCustomerPrintGstin(Map<String, dynamic> customerData) {
     return resolvePreferredPartyGstin(
-      customerGstDetailsById[customerPartyId] ??
-          const <PartyGstDetailModel>[],
+      customerGstDetailsById[customerPartyId] ?? const <PartyGstDetailModel>[],
       sourceData: customerData,
       fallback: stringValue(customerData, 'gstin'),
     );
@@ -2554,7 +2555,7 @@ class SalesInvoiceManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage(selectId: response.data?.id);
-      reloadSalesInvoiceRegister();
+      _refreshController.notifyChanged(source: 'sales_invoice');
     } catch (error) {
       if (!mounted) {
         return;
@@ -2592,7 +2593,7 @@ class SalesInvoiceManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage(selectId: response.data?.id);
-      reloadSalesInvoiceRegister();
+      _refreshController.notifyChanged(source: 'sales_invoice');
     } catch (error) {
       if (!mounted) {
         return;
@@ -2614,7 +2615,7 @@ class SalesInvoiceManagementController extends GetxController {
         ).showSnackBar(SnackBar(content: Text(response.message)));
       }
       await loadPage();
-      reloadSalesInvoiceRegister();
+      _refreshController.notifyChanged(source: 'sales_invoice');
     } catch (error) {
       if (!mounted) {
         return;

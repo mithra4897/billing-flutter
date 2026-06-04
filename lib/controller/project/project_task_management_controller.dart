@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/project_register_reload_helper.dart';
+import 'project_module_refresh_controller.dart';
 
 class ProjectTaskManagementController extends GetxController {
   ProjectTaskManagementController();
@@ -7,6 +7,8 @@ class ProjectTaskManagementController extends GetxController {
   final ProjectService _projectService = ProjectService();
   final HrService _hrService = HrService();
   final MasterService _masterService = MasterService();
+  final ProjectModuleRefreshController _refreshController =
+      ProjectModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -40,6 +42,7 @@ class ProjectTaskManagementController extends GetxController {
   bool canDeleteTasks = false;
   String? pageError;
   String? formError;
+  Worker? _refreshWorker;
   int? projectId;
   int? assignedEmployeeId;
   String taskStatus = 'open';
@@ -56,11 +59,21 @@ class ProjectTaskManagementController extends GetxController {
     super.onInit();
     searchController.addListener(_applySearch);
     taskCodeController.addListener(_handleTaskCodeChanged);
+    _refreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'project_task') {
+          return;
+        }
+        unawaited(loadData(selectTaskId: selectedRow?.task.id));
+      },
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -341,7 +354,7 @@ class ProjectTaskManagementController extends GetxController {
           ? await _projectService.createTask(resolvedProjectId, model)
           : await _projectService.updateTask(selectedRow!.task.id!, model);
       await loadData(selectTaskId: response.data?.id ?? selectedRow?.task.id);
-      reloadProjectTaskRegister();
+      _refreshController.notifyChanged(source: 'project_task');
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -360,7 +373,7 @@ class ProjectTaskManagementController extends GetxController {
     }
     final response = await _projectService.deleteTask(row!.task.id!);
     await loadData();
-    reloadProjectTaskRegister();
+    _refreshController.notifyChanged(source: 'project_task');
     return response.message;
   }
 

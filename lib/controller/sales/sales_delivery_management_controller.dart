@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/sales_register_reload_helper.dart';
+import 'sales_module_refresh_controller.dart';
 
 class SalesDeliveryLineDraft {
   SalesDeliveryLineDraft({
@@ -137,6 +137,8 @@ class SalesDeliveryManagementController extends GetxController {
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
+  final SalesModuleRefreshController _refreshController =
+      SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -1409,7 +1411,7 @@ class SalesDeliveryManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadSalesDeliveryRegister();
+      _refreshController.notifyChanged(source: 'sales_delivery');
     } catch (error) {
       formError = error.toString();
       update();
@@ -1433,7 +1435,7 @@ class SalesDeliveryManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadSalesDeliveryRegister();
+      _refreshController.notifyChanged(source: 'sales_delivery');
     } catch (error) {
       formError = error.toString();
       update();

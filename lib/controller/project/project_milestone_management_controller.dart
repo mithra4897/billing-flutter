@@ -1,11 +1,13 @@
 import '../../screen.dart';
-import '../../helper/project_register_reload_helper.dart';
+import 'project_module_refresh_controller.dart';
 
 class ProjectMilestoneManagementController extends GetxController {
   ProjectMilestoneManagementController();
 
   final ProjectService _projectService = ProjectService();
   final MasterService _masterService = MasterService();
+  final ProjectModuleRefreshController _refreshController =
+      ProjectModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -24,6 +26,7 @@ class ProjectMilestoneManagementController extends GetxController {
   String? formError;
   int? projectId;
   String status = 'open';
+  Worker? _refreshWorker;
 
   List<ProjectModel> projects = const <ProjectModel>[];
   List<ProjectMilestoneRow> rows = const <ProjectMilestoneRow>[];
@@ -34,11 +37,21 @@ class ProjectMilestoneManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    _refreshWorker = ever<ProjectModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'project_milestone') {
+          return;
+        }
+        unawaited(loadData(selectId: selectedRow?.milestone.id));
+      },
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -201,7 +214,7 @@ class ProjectMilestoneManagementController extends GetxController {
               model,
             );
       await loadData(selectId: response.data?.id ?? selectedRow?.milestone.id);
-      reloadProjectMilestoneRegister();
+      _refreshController.notifyChanged(source: 'project_milestone');
       return response.message;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -220,7 +233,7 @@ class ProjectMilestoneManagementController extends GetxController {
     }
     final response = await _projectService.deleteMilestone(row!.milestone.id!);
     await loadData();
-    reloadProjectMilestoneRegister();
+    _refreshController.notifyChanged(source: 'project_milestone');
     return response.message;
   }
 

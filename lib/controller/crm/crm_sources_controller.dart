@@ -1,11 +1,13 @@
 import '../../screen.dart';
-import '../../helper/crm_register_reload_helper.dart';
+import 'crm_module_refresh_controller.dart';
 
 class CrmSourcesController extends GetxController {
   CrmSourcesController({required this.startInNewMode});
 
   final bool startInNewMode;
   final CrmService _crmService = CrmService();
+  final CrmModuleRefreshController _refreshController =
+      CrmModuleRefreshController.ensureRegistered();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -23,16 +25,31 @@ class CrmSourcesController extends GetxController {
   CrmSourceModel? selectedItem;
   bool isActive = true;
   bool appliedInitialNewMode = false;
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    _refreshWorker = ever<CrmModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null || event.source == 'crm_sources') {
+          return;
+        }
+        unawaited(
+          loadPage(
+            selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
+          ),
+        );
+      },
+    );
     loadPage();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -158,10 +175,10 @@ class CrmSourcesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCrmSourceRegister();
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      _refreshController.notifyChanged(source: 'crm_sources');
     } catch (error) {
       formError = error.toString();
       update();
@@ -182,8 +199,8 @@ class CrmSourcesController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCrmSourceRegister();
       await loadPage();
+      _refreshController.notifyChanged(source: 'crm_sources');
     } catch (error) {
       formError = error.toString();
       update();

@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/sales_register_reload_helper.dart';
+import 'sales_module_refresh_controller.dart';
 
 class SalesReturnLineDraft {
   SalesReturnLineDraft({
@@ -187,6 +187,8 @@ class SalesReturnManagementController extends GetxController {
   final SalesService _salesService = SalesService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
+  final SalesModuleRefreshController _refreshController =
+      SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -814,7 +816,7 @@ class SalesReturnManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadSalesReturnRegister();
+      _refreshController.notifyChanged(source: 'sales_return');
     } catch (error) {
       formError = error.toString();
       update();
@@ -838,7 +840,7 @@ class SalesReturnManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadSalesReturnRegister();
+      _refreshController.notifyChanged(source: 'sales_return');
     } catch (error) {
       formError = error.toString();
       update();

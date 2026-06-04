@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/sales_register_reload_helper.dart';
+import 'sales_module_refresh_controller.dart';
 
 class SalesReceiptAllocationDraft {
   SalesReceiptAllocationDraft({
@@ -60,6 +60,8 @@ class SalesReceiptManagementController extends GetxController {
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final AccountsService _accountsService = AccountsService();
+  final SalesModuleRefreshController _refreshController =
+      SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -680,7 +682,7 @@ class SalesReceiptManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadSalesReceiptRegister();
+      _refreshController.notifyChanged(source: 'sales_receipt');
     } catch (error) {
       formError = error.toString();
       update();
@@ -726,7 +728,7 @@ class SalesReceiptManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadSalesReceiptRegister();
+      _refreshController.notifyChanged(source: 'sales_receipt');
     } catch (error) {
       formError = error.toString();
       update();
@@ -786,16 +788,21 @@ class SalesReceiptManagementController extends GetxController {
     final receiptId = intValue(selectedItem?.toJson() ?? const {}, 'id');
     final sourceInvoiceId =
         invoiceId ??
-        allocations.cast<SalesReceiptAllocationDraft?>().firstWhere(
+        allocations
+            .cast<SalesReceiptAllocationDraft?>()
+            .firstWhere(
               (allocation) => allocation?.salesInvoiceId != null,
               orElse: () => null,
-            )?.salesInvoiceId;
+            )
+            ?.salesInvoiceId;
     try {
       if (receiptId != null) {
         final response = await _crmService.salesChain(receiptId: receiptId);
         salesChain = response.data;
       } else if (sourceInvoiceId != null) {
-        final response = await _crmService.salesChain(invoiceId: sourceInvoiceId);
+        final response = await _crmService.salesChain(
+          invoiceId: sourceInvoiceId,
+        );
         salesChain = response.data;
       } else {
         salesChain = null;

@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../controller/sales/sales_module_refresh_controller.dart';
 
 typedef SalesRegisterLoader<T> = Future<dynamic> Function(SalesService service);
 typedef SalesRegisterMatcher<T> =
@@ -34,6 +35,8 @@ class SalesRegisterController<T> extends GetxController {
   final SalesRegisterMatcher<T> matches;
   final SalesRegisterDashboardMatcher<T> dashboardMatches;
   final SalesService _service = SalesService();
+  final SalesModuleRefreshController _refreshController =
+      SalesModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
@@ -41,6 +44,7 @@ class SalesRegisterController<T> extends GetxController {
   String status = '';
   String dashboardFilter = '';
   List<T> rows = <T>[];
+  Worker? _refreshWorker;
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
@@ -57,11 +61,21 @@ class SalesRegisterController<T> extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(update);
+    _refreshWorker = ever<SalesModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     searchController
       ..removeListener(update)
       ..dispose();
