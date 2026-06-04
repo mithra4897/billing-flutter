@@ -1,5 +1,4 @@
 import '../../screen.dart';
-import 'crm_lead_register_controller.dart';
 import 'crm_module_refresh_controller.dart';
 
 class CrmLeadsController extends GetxController {
