@@ -32,8 +32,8 @@ class FixedAssetManagementController extends GetxController {
   final AssetsService _assets = AssetsService();
   final AssetModuleRefreshController _refreshController =
       AssetModuleRefreshController.ensureRegistered();
-  final MasterService _master = MasterService();
   final PartiesService _partiesService = PartiesService();
+  final MasterService _master = MasterService();
   final HrService _hrService = HrService();
 
   final ScrollController pageScrollController = ScrollController();
@@ -212,6 +212,16 @@ class FixedAssetManagementController extends GetxController {
         .toList(growable: false);
   }
 
+  Future<List<T>> _safeOptionList<T>(
+    Future<PaginatedResponse<T>> request,
+  ) async {
+    try {
+      return (await request).data ?? <T>[];
+    } catch (_) {
+      return <T>[];
+    }
+  }
+
   String listTitle(AssetModel row) {
     final data = row.toJson();
     final code = stringValue(data, 'asset_code');
@@ -327,13 +337,18 @@ class FixedAssetManagementController extends GetxController {
         _assets.assets(filters: listFilters),
         _assets.categories(filters: optionFilters),
         _assets.costCenters(filters: optionFilters),
-        _master.companies(filters: const {'per_page': 200}),
-        _master.branches(filters: const {'per_page': 500}),
-        _master.businessLocations(filters: const {'per_page': 500}),
-        _master.warehouses(filters: const {'per_page': 500}),
-        _partiesService.parties(filters: const {'per_page': 500}),
-        _hrService.departments(filters: const {'per_page': 500}),
-        _hrService.employees(filters: optionFilters),
+        _safeOptionList<WarehouseModel>(
+          _master.warehouses(filters: const {'per_page': 500}),
+        ),
+        _safeOptionList<PartyModel>(
+          _partiesService.parties(filters: const {'per_page': 500}),
+        ),
+        _safeOptionList<DepartmentModel>(
+          _hrService.departments(filters: const {'per_page': 300}),
+        ),
+        _safeOptionList<EmployeeModel>(
+          _hrService.employees(filters: optionFilters),
+        ),
       ]);
 
       rows =
@@ -345,29 +360,21 @@ class FixedAssetManagementController extends GetxController {
       costCenters =
           (responses[2] as PaginatedResponse<CostCenterModel>).data ??
           const <CostCenterModel>[];
-      warehouses =
-          ((responses[6] as PaginatedResponse<WarehouseModel>).data ??
-                  const <WarehouseModel>[])
-              .where((warehouse) => warehouse.isActive)
-              .toList(growable: false);
-      parties =
-          ((responses[7] as PaginatedResponse<PartyModel>).data ??
-                  const <PartyModel>[])
-              .where((party) => party.isActive)
-              .toList(growable: false);
-      departments =
-          ((responses[8] as PaginatedResponse<DepartmentModel>).data ??
-                  const <DepartmentModel>[])
-              .where((department) => department.isActive)
-              .toList(growable: false);
-      employees =
-          ((responses[9] as PaginatedResponse<EmployeeModel>).data ??
-                  const <EmployeeModel>[])
-              .where((employee) {
-                final status = (employee.status ?? '').trim().toLowerCase();
-                return status.isEmpty || status == 'active';
-              })
-              .toList(growable: false);
+      warehouses = (responses[3] as List<WarehouseModel>)
+          .where((warehouse) => warehouse.isActive)
+          .toList(growable: false);
+      parties = (responses[4] as List<PartyModel>)
+          .where((party) => party.isActive)
+          .toList(growable: false);
+      departments = (responses[5] as List<DepartmentModel>)
+          .where((department) => department.isActive)
+          .toList(growable: false);
+      employees = (responses[6] as List<EmployeeModel>)
+          .where((employee) {
+            final status = (employee.status ?? '').trim().toLowerCase();
+            return status.isEmpty || status == 'active';
+          })
+          .toList(growable: false);
 
       loading = false;
 
