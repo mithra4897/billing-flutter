@@ -41,6 +41,9 @@ class ProjectTimesheetManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    hoursWorkedController.addListener(_syncCalculatedAmounts);
+    hourlyCostController.addListener(_syncCalculatedAmounts);
+    billableRateController.addListener(_syncCalculatedAmounts);
     loadData();
   }
 
@@ -51,6 +54,9 @@ class ProjectTimesheetManagementController extends GetxController {
     searchController
       ..removeListener(_applySearch)
       ..dispose();
+    hoursWorkedController.removeListener(_syncCalculatedAmounts);
+    hourlyCostController.removeListener(_syncCalculatedAmounts);
+    billableRateController.removeListener(_syncCalculatedAmounts);
     workDateController.dispose();
     hoursWorkedController.dispose();
     hourlyCostController.dispose();
@@ -256,6 +262,24 @@ class ProjectTimesheetManagementController extends GetxController {
     update();
   }
 
+  void _syncCalculatedAmounts() {
+    final hoursWorked = doubleValue(hoursWorkedController.text) ?? 0;
+    final hourlyCost = doubleValue(hourlyCostController.text) ?? 0;
+    final billableRate = doubleValue(billableRateController.text) ?? 0;
+
+    final nextCostAmount = decimalText(hoursWorked * hourlyCost);
+    final nextBillableAmount = decimalText(hoursWorked * billableRate);
+
+    if (costAmountController.text != nextCostAmount) {
+      costAmountController.text = nextCostAmount;
+    }
+    if (billableAmountController.text != nextBillableAmount) {
+      billableAmountController.text = nextBillableAmount;
+    }
+
+    update();
+  }
+
   double? doubleValue(String text) => double.tryParse(text.trim());
   int? intValue(String text) => int.tryParse(text.trim());
 
@@ -263,7 +287,7 @@ class ProjectTimesheetManagementController extends GetxController {
       ? ''
       : (value == value.roundToDouble()
             ? value.toInt().toString()
-            : value.toString());
+            : value.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''));
 
   Future<String?> saveTimesheet() async {
     if (!formKey.currentState!.validate()) return null;

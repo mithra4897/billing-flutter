@@ -1,9 +1,16 @@
+int _persistentControllerSessionScope = 0;
+
+void advancePersistentControllerSessionScope() {
+  _persistentControllerSessionScope++;
+}
+
 String persistentControllerTag(
   String controllerName, {
   Map<String, Object?> scope = const <String, Object?>{},
 }) {
+  final sessionScope = _persistentControllerSessionScope;
   if (scope.isEmpty) {
-    return controllerName;
+    return '$controllerName#session=$sessionScope';
   }
 
   final parts =
@@ -14,11 +21,11 @@ String persistentControllerTag(
         ..sort((left, right) => left.key.compareTo(right.key));
 
   if (parts.isEmpty) {
-    return controllerName;
+    return '$controllerName#session=$sessionScope';
   }
 
   final suffix = parts.map((entry) => '${entry.key}=${entry.value}').join('&');
-  return '$controllerName?$suffix';
+  return '$controllerName#$suffix&session=$sessionScope';
 }
 
 List<T> filterBySearchAndStatus<T>(

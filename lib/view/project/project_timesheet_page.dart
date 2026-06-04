@@ -80,7 +80,9 @@ class _ProjectTimesheetManagementPageState
       title: 'Project Timesheets',
       editorTitle: controller.selectedRow == null
           ? null
-          : controller.employeeName(controller.selectedRow!.timesheet.employeeId),
+          : controller.employeeName(
+              controller.selectedRow!.timesheet.employeeId,
+            ),
       scrollController: controller.pageScrollController,
       list: SettingsListCard<ProjectTimesheetRow>(
         searchController: controller.searchController,
@@ -155,7 +157,9 @@ class _ProjectTimesheetManagementPageState
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  validator: Validators.optionalNonNegativeNumber('Hourly Cost'),
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Hourly Cost',
+                  ),
                 ),
                 AppFormTextField(
                   controller: controller.billableRateController,
@@ -173,7 +177,10 @@ class _ProjectTimesheetManagementPageState
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  validator: Validators.optionalNonNegativeNumber('Cost Amount'),
+                  readOnly: true,
+                  validator: Validators.optionalNonNegativeNumber(
+                    'Cost Amount',
+                  ),
                 ),
                 AppFormTextField(
                   controller: controller.billableAmountController,
@@ -181,6 +188,7 @@ class _ProjectTimesheetManagementPageState
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                  readOnly: true,
                   validator: Validators.optionalNonNegativeNumber(
                     'Billable Amount',
                   ),

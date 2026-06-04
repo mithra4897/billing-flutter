@@ -13,6 +13,7 @@ class AppSessionService {
     LoginResponseModel session, {
     required bool rememberMe,
   }) async {
+    advancePersistentControllerSessionScope();
     await SessionStorage.saveSession(
       token: session.accessToken,
       tokenType: session.tokenType,
@@ -37,6 +38,7 @@ class AppSessionService {
   Future<void> clearSession() async {
     _refreshTimer?.cancel();
     _refreshTimer = null;
+    advancePersistentControllerSessionScope();
     await SessionStorage.clearSessionOnly();
     accessVersion.value++;
   }
