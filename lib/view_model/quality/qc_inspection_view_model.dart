@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/quality_register_reload_helper.dart';
+import 'quality_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> kQcInspectionScopeItems =
     <AppDropdownItem<String>>[
@@ -54,6 +54,8 @@ class QcInspectionViewModel extends GetxController {
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
+  final QualityModuleRefreshController _refreshController =
+      QualityModuleRefreshController.ensureRegistered();
   final QualityService _service = QualityService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -644,14 +646,14 @@ class QcInspectionViewModel extends GetxController {
           final newId = intValue(response.data!.toJson(), 'id');
           if (newId != null) {
             await _loadDetail(newId);
-            reloadQcInspectionRegister();
+            _refreshController.notifyChanged(source: 'qc_inspection');
             saving = false;
             update();
             return;
           }
         }
         await load();
-        reloadQcInspectionRegister();
+        _refreshController.notifyChanged(source: 'qc_inspection');
       } else {
         final response = await _service.updateQcInspection(
           selectedId!,
@@ -659,7 +661,7 @@ class QcInspectionViewModel extends GetxController {
         );
         actionMessage = response.message;
         await _loadDetail(selectedId!);
-        reloadQcInspectionRegister();
+        _refreshController.notifyChanged(source: 'qc_inspection');
       }
     } catch (e) {
       formError = e.toString();
@@ -679,7 +681,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.startQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
-      reloadQcInspectionRegister();
+      _refreshController.notifyChanged(source: 'qc_inspection');
     } catch (e) {
       formError = e.toString();
       update();
@@ -695,7 +697,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.completeQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
-      reloadQcInspectionRegister();
+      _refreshController.notifyChanged(source: 'qc_inspection');
     } catch (e) {
       formError = e.toString();
       update();
@@ -711,7 +713,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.approveQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
-      reloadQcInspectionRegister();
+      _refreshController.notifyChanged(source: 'qc_inspection');
     } catch (e) {
       formError = e.toString();
       update();
@@ -727,7 +729,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.rejectQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
-      reloadQcInspectionRegister();
+      _refreshController.notifyChanged(source: 'qc_inspection');
     } catch (e) {
       formError = e.toString();
       update();
@@ -743,7 +745,7 @@ class QcInspectionViewModel extends GetxController {
       final response = await _service.cancelQcInspection(id);
       actionMessage = response.message;
       await _loadDetail(id);
-      reloadQcInspectionRegister();
+      _refreshController.notifyChanged(source: 'qc_inspection');
     } catch (e) {
       formError = e.toString();
       update();
@@ -761,7 +763,7 @@ class QcInspectionViewModel extends GetxController {
       selectedId = null;
       _detail = null;
       await load();
-      reloadQcInspectionRegister();
+      _refreshController.notifyChanged(source: 'qc_inspection');
     } catch (e) {
       formError = e.toString();
       update();

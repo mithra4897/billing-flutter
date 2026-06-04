@@ -1,11 +1,13 @@
 import '../../../screen.dart';
-import '../../helper/maintenance_register_reload_helper.dart';
+import 'maintenance_module_refresh_controller.dart';
 
 class MaintenanceRequestViewModel extends GetxController {
   MaintenanceRequestViewModel() {
     searchController.addListener(update);
   }
 
+  final MaintenanceModuleRefreshController _refreshController =
+      MaintenanceModuleRefreshController.ensureRegistered();
   final MaintenanceService _maintenance = MaintenanceService();
   final MasterService _master = MasterService();
   final AssetsService _assets = AssetsService();
@@ -480,7 +482,7 @@ class MaintenanceRequestViewModel extends GetxController {
           MaintenanceRequestModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
-        reloadMaintenanceRequestRegister();
+        _refreshController.notifyChanged(source: 'maintenance_request');
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -494,7 +496,7 @@ class MaintenanceRequestViewModel extends GetxController {
           MaintenanceRequestModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
-        reloadMaintenanceRequestRegister();
+        _refreshController.notifyChanged(source: 'maintenance_request');
         await load(selectId: id);
       }
     } catch (e) {
@@ -515,7 +517,7 @@ class MaintenanceRequestViewModel extends GetxController {
     try {
       final response = await _maintenance.approveRequest(id, empty);
       actionMessage = response.message;
-      reloadMaintenanceRequestRegister();
+      _refreshController.notifyChanged(source: 'maintenance_request');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -532,7 +534,7 @@ class MaintenanceRequestViewModel extends GetxController {
     try {
       final response = await _maintenance.cancelRequest(id, empty);
       actionMessage = response.message;
-      reloadMaintenanceRequestRegister();
+      _refreshController.notifyChanged(source: 'maintenance_request');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -548,7 +550,7 @@ class MaintenanceRequestViewModel extends GetxController {
     try {
       await _maintenance.deleteRequest(id);
       actionMessage = 'Maintenance request deleted.';
-      reloadMaintenanceRequestRegister();
+      _refreshController.notifyChanged(source: 'maintenance_request');
       await load();
     } catch (e) {
       formError = e.toString();

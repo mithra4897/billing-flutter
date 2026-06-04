@@ -1,8 +1,10 @@
 import '../../../screen.dart';
-import '../../../helper/settings_register_reload_helper.dart';
+import 'settings_accounting_module_refresh_controller.dart';
 
 class PostingRuleGroupManagementController extends GetxController {
   PostingRuleGroupManagementController();
+
+  static const String _refreshSource = 'PostingRuleGroupManagementController';
 
   final AccountsService _accountsService = AccountsService();
   final MasterService _masterService = MasterService();
@@ -15,6 +17,8 @@ class PostingRuleGroupManagementController extends GetxController {
   final TextEditingController codeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+  late final SettingsAccountingModuleRefreshController _moduleRefresh;
+  Worker? _refreshWorker;
 
   bool initialLoading = true;
   bool saving = false;
@@ -32,12 +36,24 @@ class PostingRuleGroupManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _moduleRefresh =
+        SettingsAccountingModuleRefreshController.ensureRegistered();
+    _refreshWorker = ever<SettingsAccountingModuleRefreshEvent?>(
+      _moduleRefresh.lastEvent,
+      (event) {
+        if (event == null || event.source == _refreshSource) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     searchController.addListener(_applySearch);
     load();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -200,7 +216,7 @@ class PostingRuleGroupManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadPostingRuleGroupRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await load(selectId: intValue(json(response.data), 'id') ?? selectedId);
     } catch (error) {
       formError = error.toString();
@@ -224,7 +240,7 @@ class PostingRuleGroupManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadPostingRuleGroupRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await load();
     } catch (error) {
       formError = error.toString();

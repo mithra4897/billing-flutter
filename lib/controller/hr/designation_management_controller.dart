@@ -1,10 +1,12 @@
 import '../../screen.dart';
-import '../../helper/hr_register_reload_helper.dart';
+import 'hr_module_refresh_controller.dart';
 
 class DesignationManagementController extends GetxController {
   DesignationManagementController();
 
   final HrService _hrService = HrService();
+  final HrModuleRefreshController _refreshController =
+      HrModuleRefreshController.ensureRegistered();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -182,9 +184,7 @@ class DesignationManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadDesignations(selectId: saved.id);
-      reloadAttendanceRegister();
-      reloadPayrollRunRegister();
-      reloadPayslipRegister();
+      _refreshController.notifyChanged(source: 'designation_management');
     } catch (error) {
       formError = error.toString();
       update();
@@ -210,9 +210,7 @@ class DesignationManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadDesignations();
-      reloadAttendanceRegister();
-      reloadPayrollRunRegister();
-      reloadPayslipRegister();
+      _refreshController.notifyChanged(source: 'designation_management');
     } catch (error) {
       formError = error.toString();
       update();

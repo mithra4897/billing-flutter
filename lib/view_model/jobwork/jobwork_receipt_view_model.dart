@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../../helper/jobwork_register_reload_helper.dart';
+import 'jobwork_module_refresh_controller.dart';
 
 class JobworkReceiptLineDraft {
   JobworkReceiptLineDraft({
@@ -82,6 +82,8 @@ class JobworkReceiptViewModel extends GetxController {
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
+  final JobworkModuleRefreshController _refreshController =
+      JobworkModuleRefreshController.ensureRegistered();
   final JobworkService _service = JobworkService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
@@ -757,12 +759,12 @@ class JobworkReceiptViewModel extends GetxController {
         final response = await _service.createReceipt(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
-        reloadJobworkReceiptRegister();
+        _refreshController.notifyChanged(source: 'jobwork_receipt');
       } else {
         final response = await _service.updateReceipt(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
-        reloadJobworkReceiptRegister();
+        _refreshController.notifyChanged(source: 'jobwork_receipt');
       }
     } catch (e) {
       formError = e.toString();
@@ -782,7 +784,7 @@ class JobworkReceiptViewModel extends GetxController {
       final response = await _service.postReceipt(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadJobworkReceiptRegister();
+      _refreshController.notifyChanged(source: 'jobwork_receipt');
     } catch (e) {
       formError = e.toString();
       update();
@@ -798,7 +800,7 @@ class JobworkReceiptViewModel extends GetxController {
       final response = await _service.cancelReceipt(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadJobworkReceiptRegister();
+      _refreshController.notifyChanged(source: 'jobwork_receipt');
     } catch (e) {
       formError = e.toString();
       update();
@@ -814,7 +816,7 @@ class JobworkReceiptViewModel extends GetxController {
       await _service.deleteReceipt(id);
       actionMessage = 'Receipt deleted.';
       await load();
-      reloadJobworkReceiptRegister();
+      _refreshController.notifyChanged(source: 'jobwork_receipt');
     } catch (e) {
       formError = e.toString();
       update();

@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../view_model/maintenance/maintenance_module_refresh_controller.dart';
 
 void _openMaintenanceShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -108,23 +109,36 @@ class _MaintFilters extends StatelessWidget {
 
 class MaintenanceWorkOrderRegisterController extends GetxController {
   final MaintenanceService _service = MaintenanceService();
+  final MaintenanceModuleRefreshController _refreshController =
+      MaintenanceModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   String? companyBanner;
   List<MaintenanceWorkOrderModel> rows = const <MaintenanceWorkOrderModel>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<MaintenanceModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onContextChanged);
     searchController
       ..removeListener(update)

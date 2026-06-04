@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/asset_register_reload_helper.dart';
+import '../../view_model/assets/asset_module_refresh_controller.dart';
 
 Map<String, dynamic>? assetDisposalJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -50,6 +50,8 @@ class AssetDisposalManagementController extends GetxController {
   final int? initialId;
 
   final AssetsService _assets = AssetsService();
+  final AssetModuleRefreshController _refreshController =
+      AssetModuleRefreshController.ensureRegistered();
   final MasterService _master = MasterService();
   final PartiesService _partiesService = PartiesService();
 
@@ -434,7 +436,7 @@ class AssetDisposalManagementController extends GetxController {
       actionMessage = existingId == null
           ? 'Disposal created.'
           : 'Disposal updated.';
-      reloadAssetDisposalRegister();
+      _refreshController.notifyChanged(source: 'asset_disposal');
       return savedId;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -463,7 +465,7 @@ class AssetDisposalManagementController extends GetxController {
       applyFromModel(response.data!);
       await reloadList();
       actionMessage = message;
-      reloadAssetDisposalRegister();
+      _refreshController.notifyChanged(source: 'asset_disposal');
     } catch (errorValue) {
       formError = errorValue.toString();
     } finally {
@@ -489,7 +491,7 @@ class AssetDisposalManagementController extends GetxController {
       await reloadList();
       resetDraft();
       actionMessage = 'Disposal deleted.';
-      reloadAssetDisposalRegister();
+      _refreshController.notifyChanged(source: 'asset_disposal');
       return true;
     } catch (errorValue) {
       formError = errorValue.toString();

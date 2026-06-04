@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/asset_register_reload_helper.dart';
+import '../../view_model/assets/asset_module_refresh_controller.dart';
 
 Map<String, dynamic>? assetCostCenterJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -29,6 +29,8 @@ class AssetCostCenterManagementController extends GetxController {
   final int? initialId;
 
   final AssetsService _assets = AssetsService();
+  final AssetModuleRefreshController _refreshController =
+      AssetModuleRefreshController.ensureRegistered();
   final MasterService _master = MasterService();
 
   final ScrollController pageScrollController = ScrollController();
@@ -327,7 +329,7 @@ class AssetCostCenterManagementController extends GetxController {
             response.data;
         _apply(detail);
         actionMessage = 'Cost center saved.';
-        reloadAssetCostCenterRegister();
+        _refreshController.notifyChanged(source: 'asset_cost_center');
         return existingId;
       }
 
@@ -356,7 +358,7 @@ class AssetCostCenterManagementController extends GetxController {
           response.data;
       _apply(detail);
       actionMessage = 'Cost center created.';
-      reloadAssetCostCenterRegister();
+      _refreshController.notifyChanged(source: 'asset_cost_center');
       return newId;
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -384,7 +386,7 @@ class AssetCostCenterManagementController extends GetxController {
       await reloadList();
       actionMessage = 'Cost center deleted.';
       resetDraft();
-      reloadAssetCostCenterRegister();
+      _refreshController.notifyChanged(source: 'asset_cost_center');
       return true;
     } catch (errorValue) {
       formError = errorValue.toString();

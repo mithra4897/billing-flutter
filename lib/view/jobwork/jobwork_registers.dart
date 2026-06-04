@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../view_model/jobwork/jobwork_module_refresh_controller.dart';
 
 typedef JobworkRegisterLoader<T> =
     Future<ApiResponse<List<T>>> Function(
@@ -95,12 +96,15 @@ class JobworkRegisterController<T> extends GetxController {
   final JobworkRegisterLoader<T> loader;
   final JobworkRegisterMatcher<T> matches;
   final JobworkService _service = JobworkService();
+  final JobworkModuleRefreshController _refreshController =
+      JobworkModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   String? companyBanner;
   List<T> rows = <T>[];
+  Worker? _refreshWorker;
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
@@ -114,11 +118,21 @@ class JobworkRegisterController<T> extends GetxController {
     super.onInit();
     WorkingContextService.version.addListener(_onContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<JobworkModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onContextChanged);
     searchController
       ..removeListener(update)

@@ -1,8 +1,10 @@
 import '../../../screen.dart';
-import '../../../helper/settings_register_reload_helper.dart';
+import 'settings_accounting_module_refresh_controller.dart';
 
 class VoucherTypeManagementController extends GetxController {
   VoucherTypeManagementController();
+
+  static const String _refreshSource = 'VoucherTypeManagementController';
 
   final AccountsService _accountsService = AccountsService();
   final MasterService _masterService = MasterService();
@@ -14,6 +16,8 @@ class VoucherTypeManagementController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController codeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
+  late final SettingsAccountingModuleRefreshController _moduleRefresh;
+  Worker? _refreshWorker;
 
   bool initialLoading = true;
   bool saving = false;
@@ -34,12 +38,24 @@ class VoucherTypeManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _moduleRefresh =
+        SettingsAccountingModuleRefreshController.ensureRegistered();
+    _refreshWorker = ever<SettingsAccountingModuleRefreshEvent?>(
+      _moduleRefresh.lastEvent,
+      (event) {
+        if (event == null || event.source == _refreshSource) {
+          return;
+        }
+        unawaited(loadTypes());
+      },
+    );
     searchController.addListener(_applySearch);
     loadTypes();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -218,7 +234,7 @@ class VoucherTypeManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadVoucherTypeRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadTypes(selectId: saved?.id);
     } catch (error) {
       formError = error.toString();
@@ -244,7 +260,7 @@ class VoucherTypeManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadVoucherTypeRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadTypes();
     } catch (error) {
       formError = error.toString();

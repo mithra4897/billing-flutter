@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../../helper/settings_register_reload_helper.dart';
+import 'settings_accounting_module_refresh_controller.dart';
 
 class DocumentPostingLineDraft {
   DocumentPostingLineDraft({
@@ -25,6 +25,8 @@ class DocumentPostingLineDraft {
 
 class DocumentPostingManagementController extends GetxController {
   DocumentPostingManagementController();
+
+  static const String _refreshSource = 'DocumentPostingManagementController';
 
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
@@ -55,6 +57,8 @@ class DocumentPostingManagementController extends GetxController {
   final TextEditingController documentDateController = TextEditingController();
   final TextEditingController voucherIdController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
+  late final SettingsAccountingModuleRefreshController _moduleRefresh;
+  Worker? _refreshWorker;
 
   bool initialLoading = true;
   bool saving = false;
@@ -85,6 +89,17 @@ class DocumentPostingManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _moduleRefresh =
+        SettingsAccountingModuleRefreshController.ensureRegistered();
+    _refreshWorker = ever<SettingsAccountingModuleRefreshEvent?>(
+      _moduleRefresh.lastEvent,
+      (event) {
+        if (event == null || event.source == _refreshSource) {
+          return;
+        }
+        unawaited(loadPage());
+      },
+    );
     searchController.addListener(_applySearch);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
     loadPage();
@@ -92,6 +107,7 @@ class DocumentPostingManagementController extends GetxController {
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
@@ -491,7 +507,7 @@ class DocumentPostingManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadDocumentPostingRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage(
         selectId: intValue(json(response.data), 'id') ?? selectedId,
       );
@@ -518,7 +534,7 @@ class DocumentPostingManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadDocumentPostingRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage();
     } catch (errorValue) {
       formError = errorValue.toString();

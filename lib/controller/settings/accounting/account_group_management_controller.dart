@@ -1,8 +1,10 @@
 import '../../../screen.dart';
-import '../../../helper/settings_register_reload_helper.dart';
+import 'settings_accounting_module_refresh_controller.dart';
 
 class AccountGroupManagementController extends GetxController {
   AccountGroupManagementController();
+
+  static const String _refreshSource = 'AccountGroupManagementController';
 
   final AccountsService _accountsService = AccountsService();
 
@@ -14,6 +16,8 @@ class AccountGroupManagementController extends GetxController {
   final TextEditingController groupCodeController = TextEditingController();
   final TextEditingController groupNameController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
+  late final SettingsAccountingModuleRefreshController _moduleRefresh;
+  Worker? _refreshWorker;
 
   bool initialLoading = true;
   bool saving = false;
@@ -31,12 +35,24 @@ class AccountGroupManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _moduleRefresh =
+        SettingsAccountingModuleRefreshController.ensureRegistered();
+    _refreshWorker = ever<SettingsAccountingModuleRefreshEvent?>(
+      _moduleRefresh.lastEvent,
+      (event) {
+        if (event == null || event.source == _refreshSource) {
+          return;
+        }
+        unawaited(loadGroups());
+      },
+    );
     searchController.addListener(_applySearch);
     loadGroups();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -211,7 +227,7 @@ class AccountGroupManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadAccountGroupRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadGroups(selectId: saved?.id);
     } catch (error) {
       formError = error.toString();
@@ -237,7 +253,7 @@ class AccountGroupManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadAccountGroupRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadGroups();
     } catch (error) {
       formError = error.toString();

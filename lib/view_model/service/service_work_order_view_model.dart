@@ -1,11 +1,13 @@
 import '../../screen.dart';
-import '../../helper/service_register_reload_helper.dart';
+import 'service_module_refresh_controller.dart';
 
 class ServiceWorkOrderViewModel extends GetxController {
   ServiceWorkOrderViewModel() {
     searchController.addListener(update);
   }
 
+  final ServiceModuleRefreshController _refreshController =
+      ServiceModuleRefreshController.ensureRegistered();
   final ServiceModuleService _service = ServiceModuleService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
@@ -624,7 +626,7 @@ class ServiceWorkOrderViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
-        reloadServiceWorkOrderRegister();
+        _refreshController.notifyChanged(source: 'service_work_order');
       } else {
         final id = selectedId;
         if (id == null) {
@@ -638,7 +640,7 @@ class ServiceWorkOrderViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: id);
-        reloadServiceWorkOrderRegister();
+        _refreshController.notifyChanged(source: 'service_work_order');
       }
     } catch (e) {
       formError = e.toString();
@@ -658,7 +660,7 @@ class ServiceWorkOrderViewModel extends GetxController {
       final response = await _service.startWorkOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceWorkOrderRegister();
+      _refreshController.notifyChanged(source: 'service_work_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -674,7 +676,7 @@ class ServiceWorkOrderViewModel extends GetxController {
       final response = await _service.completeWorkOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceWorkOrderRegister();
+      _refreshController.notifyChanged(source: 'service_work_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -690,7 +692,7 @@ class ServiceWorkOrderViewModel extends GetxController {
       final response = await _service.closeWorkOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceWorkOrderRegister();
+      _refreshController.notifyChanged(source: 'service_work_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -706,7 +708,7 @@ class ServiceWorkOrderViewModel extends GetxController {
       final response = await _service.cancelWorkOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceWorkOrderRegister();
+      _refreshController.notifyChanged(source: 'service_work_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -722,7 +724,7 @@ class ServiceWorkOrderViewModel extends GetxController {
       await _service.deleteWorkOrder(id);
       actionMessage = 'Work order deleted.';
       await load();
-      reloadServiceWorkOrderRegister();
+      _refreshController.notifyChanged(source: 'service_work_order');
     } catch (e) {
       formError = e.toString();
       update();

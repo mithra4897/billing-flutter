@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../view_model/manufacturing/manufacturing_module_refresh_controller.dart';
 
 typedef ManufacturingRegisterLoader<T> =
     Future<ApiResponse<List<T>>> Function(
@@ -135,12 +136,15 @@ class ManufacturingRegisterController<T> extends GetxController {
   final ManufacturingRegisterLoader<T> loader;
   final ManufacturingRegisterMatcher<T> matches;
   final ManufacturingService _service = ManufacturingService();
+  final ManufacturingModuleRefreshController _refreshController =
+      ManufacturingModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   String? companyBanner;
   List<T> rows = <T>[];
+  Worker? _refreshWorker;
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
@@ -154,11 +158,21 @@ class ManufacturingRegisterController<T> extends GetxController {
     super.onInit();
     WorkingContextService.version.addListener(_onContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<ManufacturingModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onContextChanged);
     searchController
       ..removeListener(update)

@@ -1,11 +1,13 @@
 import '../../../screen.dart';
-import '../../helper/maintenance_register_reload_helper.dart';
+import 'maintenance_module_refresh_controller.dart';
 
 class AmcContractViewModel extends GetxController {
   AmcContractViewModel() {
     searchController.addListener(update);
   }
 
+  final MaintenanceModuleRefreshController _refreshController =
+      MaintenanceModuleRefreshController.ensureRegistered();
   final MaintenanceService _maintenance = MaintenanceService();
   final MasterService _master = MasterService();
   final PartiesService _parties = PartiesService();
@@ -447,7 +449,7 @@ class AmcContractViewModel extends GetxController {
           AmcContractModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
-        reloadAmcContractRegister();
+        _refreshController.notifyChanged(source: 'amc_contract');
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -461,7 +463,7 @@ class AmcContractViewModel extends GetxController {
           AmcContractModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
-        reloadAmcContractRegister();
+        _refreshController.notifyChanged(source: 'amc_contract');
         await load(selectId: id);
       }
     } catch (e) {
@@ -482,7 +484,7 @@ class AmcContractViewModel extends GetxController {
     try {
       final response = await _maintenance.approveAmcContract(id, empty);
       actionMessage = response.message;
-      reloadAmcContractRegister();
+      _refreshController.notifyChanged(source: 'amc_contract');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -499,7 +501,7 @@ class AmcContractViewModel extends GetxController {
     try {
       final response = await _maintenance.terminateAmcContract(id, empty);
       actionMessage = response.message;
-      reloadAmcContractRegister();
+      _refreshController.notifyChanged(source: 'amc_contract');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -516,7 +518,7 @@ class AmcContractViewModel extends GetxController {
     try {
       final response = await _maintenance.cancelAmcContract(id, empty);
       actionMessage = response.message;
-      reloadAmcContractRegister();
+      _refreshController.notifyChanged(source: 'amc_contract');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -532,7 +534,7 @@ class AmcContractViewModel extends GetxController {
     try {
       await _maintenance.deleteAmcContract(id);
       actionMessage = 'AMC contract deleted.';
-      reloadAmcContractRegister();
+      _refreshController.notifyChanged(source: 'amc_contract');
       await load();
     } catch (e) {
       formError = e.toString();

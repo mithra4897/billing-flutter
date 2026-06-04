@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../../helper/settings_register_reload_helper.dart';
+import 'settings_accounting_module_refresh_controller.dart';
 
 class BudgetLineDraft {
   BudgetLineDraft({this.accountId, String? amount, String? remarks})
@@ -18,6 +18,8 @@ class BudgetLineDraft {
 
 class BudgetManagementController extends GetxController {
   BudgetManagementController();
+
+  static const String _refreshSource = 'BudgetManagementController';
 
   static const List<AppDropdownItem<String>> statusItems =
       <AppDropdownItem<String>>[
@@ -39,6 +41,8 @@ class BudgetManagementController extends GetxController {
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
+  late final SettingsAccountingModuleRefreshController _moduleRefresh;
+  Worker? _refreshWorker;
 
   bool initialLoading = true;
   bool saving = false;
@@ -59,6 +63,17 @@ class BudgetManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _moduleRefresh =
+        SettingsAccountingModuleRefreshController.ensureRegistered();
+    _refreshWorker = ever<SettingsAccountingModuleRefreshEvent?>(
+      _moduleRefresh.lastEvent,
+      (event) {
+        if (event == null || event.source == _refreshSource) {
+          return;
+        }
+        unawaited(loadPage());
+      },
+    );
     searchController.addListener(_applySearch);
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
     loadPage();
@@ -66,6 +81,7 @@ class BudgetManagementController extends GetxController {
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
@@ -346,7 +362,7 @@ class BudgetManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadBudgetRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage(
         selectId: intValue(json(response.data), 'id') ?? selectedId,
       );
@@ -373,7 +389,7 @@ class BudgetManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadBudgetRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage();
     } catch (errorValue) {
       formError = errorValue.toString();

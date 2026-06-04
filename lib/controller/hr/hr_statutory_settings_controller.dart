@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/hr_register_reload_helper.dart';
+import 'hr_module_refresh_controller.dart';
 
 class HrPtSlabControllers {
   HrPtSlabControllers({
@@ -36,6 +36,8 @@ class HrStatutorySettingsController extends GetxController {
       ];
 
   final HrService hr = HrService();
+  final HrModuleRefreshController _refreshController =
+      HrModuleRefreshController.ensureRegistered();
   final MasterService master = MasterService();
   final ScrollController scroll = ScrollController();
 
@@ -67,15 +69,25 @@ class HrStatutorySettingsController extends GetxController {
   String esiOn = 'gross';
 
   final List<HrPtSlabControllers> ptSlabs = <HrPtSlabControllers>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
+    _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
+      event,
+    ) {
+      if (event == null || event.source == 'hr_statutory_settings') {
+        return;
+      }
+      unawaited(load());
+    });
     load();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     scroll.dispose();
     nameCtrl.dispose();
     effFromCtrl.dispose();
@@ -311,10 +323,7 @@ class HrStatutorySettingsController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(res.message)),
       );
-      reloadHrStatutorySettingsRegister();
-      reloadAttendanceRegister();
-      reloadPayrollRunRegister();
-      reloadPayslipRegister();
+      _refreshController.notifyChanged(source: 'hr_statutory_settings');
       await reloadProfiles(selectId: res.data!.id);
     } catch (errorValue) {
       error = errorValue.toString();
@@ -336,10 +345,7 @@ class HrStatutorySettingsController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(res.message)),
       );
-      reloadHrStatutorySettingsRegister();
-      reloadAttendanceRegister();
-      reloadPayrollRunRegister();
-      reloadPayslipRegister();
+      _refreshController.notifyChanged(source: 'hr_statutory_settings');
       selectedProfileId = null;
       await reloadProfiles();
     } catch (errorValue) {

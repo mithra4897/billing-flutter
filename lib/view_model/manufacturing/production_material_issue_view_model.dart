@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/manufacturing_register_reload_helper.dart';
+import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionMaterialIssueLineDraft {
   ProductionMaterialIssueLineDraft({
@@ -66,6 +66,8 @@ class ProductionMaterialIssueLineDraft {
 }
 
 class ProductionMaterialIssueViewModel extends GetxController {
+  final ManufacturingModuleRefreshController _refreshController =
+      ManufacturingModuleRefreshController.ensureRegistered();
   final ManufacturingService _service = ManufacturingService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -1106,7 +1108,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
           'id',
         ),
       );
-      reloadProductionMaterialIssueRegister();
+      _refreshController.notifyChanged(source: 'production_material_issue');
     } catch (e) {
       formError = e.toString();
       _notifySafely();
@@ -1132,7 +1134,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadProductionMaterialIssueRegister();
+      _refreshController.notifyChanged(source: 'production_material_issue');
     } catch (e) {
       formError = e.toString();
       _notifySafely();
@@ -1149,7 +1151,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadProductionMaterialIssueRegister();
+      _refreshController.notifyChanged(source: 'production_material_issue');
     } catch (e) {
       formError = e.toString();
       _notifySafely();
@@ -1163,7 +1165,7 @@ class ProductionMaterialIssueViewModel extends GetxController {
       await _service.deleteProductionMaterialIssue(id);
       actionMessage = 'Production material issue deleted successfully.';
       await load();
-      reloadProductionMaterialIssueRegister();
+      _refreshController.notifyChanged(source: 'production_material_issue');
     } catch (e) {
       formError = e.toString();
       _notifySafely();

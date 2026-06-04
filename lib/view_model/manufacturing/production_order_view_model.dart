@@ -1,7 +1,9 @@
 import '../../../screen.dart';
-import '../../helper/manufacturing_register_reload_helper.dart';
+import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionOrderViewModel extends GetxController {
+  final ManufacturingModuleRefreshController _refreshController =
+      ManufacturingModuleRefreshController.ensureRegistered();
   final ManufacturingService _service = ManufacturingService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -475,7 +477,7 @@ class ProductionOrderViewModel extends GetxController {
           'id',
         ),
       );
-      reloadProductionOrderRegister();
+      _refreshController.notifyChanged(source: 'production_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -495,7 +497,7 @@ class ProductionOrderViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadProductionOrderRegister();
+      _refreshController.notifyChanged(source: 'production_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -512,7 +514,7 @@ class ProductionOrderViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadProductionOrderRegister();
+      _refreshController.notifyChanged(source: 'production_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -529,7 +531,7 @@ class ProductionOrderViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadProductionOrderRegister();
+      _refreshController.notifyChanged(source: 'production_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -543,7 +545,7 @@ class ProductionOrderViewModel extends GetxController {
       await _service.deleteProductionOrder(id);
       actionMessage = 'Production order deleted successfully.';
       await load();
-      reloadProductionOrderRegister();
+      _refreshController.notifyChanged(source: 'production_order');
     } catch (e) {
       formError = e.toString();
       update();

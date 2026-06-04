@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../view_model/service/service_module_refresh_controller.dart';
 
 void _openServiceShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -135,23 +136,36 @@ class ServiceRegisterController<T> extends GetxController {
   final ServiceRegisterLoader<T> loader;
   final ServiceRegisterMatcher<T> matches;
   final ServiceModuleService _service = ServiceModuleService();
+  final ServiceModuleRefreshController _refreshController =
+      ServiceModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   String? companyBanner;
   List<T> rows = <T>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<ServiceModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onContextChanged);
     searchController
       ..removeListener(update)

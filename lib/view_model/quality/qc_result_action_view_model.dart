@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/quality_register_reload_helper.dart';
+import 'quality_module_refresh_controller.dart';
 
 const Set<String> _resultActionInspectionStatuses = <String>{
   'completed',
@@ -23,6 +23,8 @@ class QcResultActionViewModel extends GetxController {
     searchController.addListener(update);
   }
 
+  final QualityModuleRefreshController _refreshController =
+      QualityModuleRefreshController.ensureRegistered();
   final QualityService _service = QualityService();
   final MasterService _masterService = MasterService();
 
@@ -284,7 +286,7 @@ class QcResultActionViewModel extends GetxController {
       if (selected == null) {
         final response = await _service.createQcResultAction(doc);
         actionMessage = response.message;
-        reloadQcResultActionRegister();
+        _refreshController.notifyChanged(source: 'qc_result_action');
         await load(selectId: response.data?.id);
       } else {
         final response = await _service.updateQcResultAction(
@@ -292,7 +294,7 @@ class QcResultActionViewModel extends GetxController {
           doc,
         );
         actionMessage = response.message;
-        reloadQcResultActionRegister();
+        _refreshController.notifyChanged(source: 'qc_result_action');
         await load(selectId: selected!.id);
       }
     } catch (e) {
@@ -312,7 +314,7 @@ class QcResultActionViewModel extends GetxController {
     try {
       final response = await _service.completeQcResultAction(id);
       actionMessage = response.message;
-      reloadQcResultActionRegister();
+      _refreshController.notifyChanged(source: 'qc_result_action');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -328,7 +330,7 @@ class QcResultActionViewModel extends GetxController {
     try {
       final response = await _service.cancelQcResultAction(id);
       actionMessage = response.message;
-      reloadQcResultActionRegister();
+      _refreshController.notifyChanged(source: 'qc_result_action');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -344,7 +346,7 @@ class QcResultActionViewModel extends GetxController {
     try {
       await _service.deleteQcResultAction(id);
       actionMessage = 'Result action deleted.';
-      reloadQcResultActionRegister();
+      _refreshController.notifyChanged(source: 'qc_result_action');
       await load();
     } catch (e) {
       formError = e.toString();

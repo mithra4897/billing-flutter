@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/quality_register_reload_helper.dart';
+import 'quality_module_refresh_controller.dart';
 
 class QcPlanLineDraft {
   QcPlanLineDraft({
@@ -96,6 +96,8 @@ class QcPlanViewModel extends GetxController {
     load(selectId: selected?.id);
   }
 
+  final QualityModuleRefreshController _refreshController =
+      QualityModuleRefreshController.ensureRegistered();
   final QualityService _service = QualityService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -589,12 +591,12 @@ class QcPlanViewModel extends GetxController {
         final response = await _service.createQcPlan(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
-        reloadQcPlanRegister();
+        _refreshController.notifyChanged(source: 'qc_plan');
       } else {
         final response = await _service.updateQcPlan(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
-        reloadQcPlanRegister();
+        _refreshController.notifyChanged(source: 'qc_plan');
       }
     } catch (e) {
       formError = e.toString();
@@ -614,7 +616,7 @@ class QcPlanViewModel extends GetxController {
       final response = await _service.approveQcPlan(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadQcPlanRegister();
+      _refreshController.notifyChanged(source: 'qc_plan');
     } catch (e) {
       formError = e.toString();
       update();
@@ -630,7 +632,7 @@ class QcPlanViewModel extends GetxController {
       final response = await _service.deactivateQcPlan(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadQcPlanRegister();
+      _refreshController.notifyChanged(source: 'qc_plan');
     } catch (e) {
       formError = e.toString();
       update();
@@ -646,7 +648,7 @@ class QcPlanViewModel extends GetxController {
       final response = await _service.obsoleteQcPlan(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadQcPlanRegister();
+      _refreshController.notifyChanged(source: 'qc_plan');
     } catch (e) {
       formError = e.toString();
       update();
@@ -662,7 +664,7 @@ class QcPlanViewModel extends GetxController {
       await _service.deleteQcPlan(id);
       actionMessage = 'QC plan deleted.';
       await load();
-      reloadQcPlanRegister();
+      _refreshController.notifyChanged(source: 'qc_plan');
     } catch (e) {
       formError = e.toString();
       update();

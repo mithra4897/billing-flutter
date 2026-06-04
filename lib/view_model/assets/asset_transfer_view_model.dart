@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/asset_register_reload_helper.dart';
+import 'asset_module_refresh_controller.dart';
 
 class AssetTransferViewModel extends GetxController {
   AssetTransferViewModel() {
@@ -7,6 +7,8 @@ class AssetTransferViewModel extends GetxController {
   }
 
   final AssetsService _assets = AssetsService();
+  final AssetModuleRefreshController _refreshController =
+      AssetModuleRefreshController.ensureRegistered();
 
   final TextEditingController searchController = TextEditingController();
 
@@ -229,7 +231,7 @@ class AssetTransferViewModel extends GetxController {
         actionMessage = response.message;
         return false;
       }
-      reloadAssetTransferRegister();
+      _refreshController.notifyChanged(source: 'asset_transfer');
       return true;
     } catch (e) {
       actionMessage = e.toString();
@@ -253,7 +255,7 @@ class AssetTransferViewModel extends GetxController {
       }
       actionMessage = 'Transfer updated.';
       await refreshDetail();
-      reloadAssetTransferRegister();
+      _refreshController.notifyChanged(source: 'asset_transfer');
     } catch (e) {
       actionMessage = e.toString();
     } finally {

@@ -1,10 +1,12 @@
 import '../../screen.dart';
-import '../../helper/hr_register_reload_helper.dart';
+import 'hr_module_refresh_controller.dart';
 
 class LeaveTypeManagementController extends GetxController {
   LeaveTypeManagementController();
 
   final HrService _hrService = HrService();
+  final HrModuleRefreshController _refreshController =
+      HrModuleRefreshController.ensureRegistered();
 
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -165,9 +167,7 @@ class LeaveTypeManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadLeaveTypes(selectId: saved.id);
-      reloadAttendanceRegister();
-      reloadPayrollRunRegister();
-      reloadPayslipRegister();
+      _refreshController.notifyChanged(source: 'leave_type_management');
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -193,9 +193,7 @@ class LeaveTypeManagementController extends GetxController {
         SnackBar(content: Text(response.message)),
       );
       await loadLeaveTypes();
-      reloadAttendanceRegister();
-      reloadPayrollRunRegister();
-      reloadPayslipRegister();
+      _refreshController.notifyChanged(source: 'leave_type_management');
     } catch (errorValue) {
       formError = errorValue.toString();
       update();

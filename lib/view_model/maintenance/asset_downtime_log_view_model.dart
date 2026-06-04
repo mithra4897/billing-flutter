@@ -1,11 +1,13 @@
 import '../../../screen.dart';
-import '../../helper/maintenance_register_reload_helper.dart';
+import 'maintenance_module_refresh_controller.dart';
 
 class AssetDowntimeLogViewModel extends GetxController {
   AssetDowntimeLogViewModel() {
     searchController.addListener(update);
   }
 
+  final MaintenanceModuleRefreshController _refreshController =
+      MaintenanceModuleRefreshController.ensureRegistered();
   final MaintenanceService _maintenance = MaintenanceService();
   final AssetsService _assets = AssetsService();
 
@@ -275,7 +277,7 @@ class AssetDowntimeLogViewModel extends GetxController {
           AssetDowntimeLogModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
-        reloadAssetDowntimeLogRegister();
+        _refreshController.notifyChanged(source: 'asset_downtime_log');
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -289,7 +291,7 @@ class AssetDowntimeLogViewModel extends GetxController {
           AssetDowntimeLogModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
-        reloadAssetDowntimeLogRegister();
+        _refreshController.notifyChanged(source: 'asset_downtime_log');
         await load(selectId: id);
       }
     } catch (e) {
@@ -309,7 +311,7 @@ class AssetDowntimeLogViewModel extends GetxController {
     try {
       await _maintenance.deleteDowntimeLog(id);
       actionMessage = 'Downtime log deleted.';
-      reloadAssetDowntimeLogRegister();
+      _refreshController.notifyChanged(source: 'asset_downtime_log');
       await load();
     } catch (e) {
       formError = e.toString();

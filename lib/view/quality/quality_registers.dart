@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../view_model/quality/quality_module_refresh_controller.dart';
 
 Map<String, dynamic>? _asJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -129,23 +130,36 @@ class _QualityFilters extends StatelessWidget {
 
 class QcPlanRegisterController extends GetxController {
   final QualityService _service = QualityService();
+  final QualityModuleRefreshController _refreshController =
+      QualityModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   String? companyBanner;
   List<QcPlanModel> rows = const <QcPlanModel>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<QualityModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onContextChanged);
     searchController
       ..removeListener(update)
@@ -280,23 +294,36 @@ class _QcPlanRegisterPageState extends State<QcPlanRegisterPage> {
 
 class QcInspectionRegisterController extends GetxController {
   final QualityService _service = QualityService();
+  final QualityModuleRefreshController _refreshController =
+      QualityModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   String? companyBanner;
   List<QcInspectionModel> rows = const <QcInspectionModel>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<QualityModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onContextChanged);
     searchController
       ..removeListener(update)

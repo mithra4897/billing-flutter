@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/hr_register_reload_helper.dart';
+import 'hr_module_refresh_controller.dart';
 
 Map<String, dynamic>? expenseClaimAsJsonMap(dynamic value) {
   if (value is Map<String, dynamic>) {
@@ -199,6 +199,8 @@ class ExpenseClaimsManagementController extends GetxController {
       ];
 
   final HrService hrService = HrService();
+  final HrModuleRefreshController _refreshController =
+      HrModuleRefreshController.ensureRegistered();
   final AccountsService accountsService = AccountsService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
@@ -234,6 +236,7 @@ class ExpenseClaimsManagementController extends GetxController {
   String? filterClaimStatus;
 
   List<ExpenseLineEditors> lineEditors = <ExpenseLineEditors>[];
+  Worker? _refreshWorker;
 
   bool get employeeFieldReadOnly => true;
 
@@ -248,11 +251,20 @@ class ExpenseClaimsManagementController extends GetxController {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
     searchController.addListener(_onSearchChanged);
+    _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
+      event,
+    ) {
+      if (event == null || event.source == 'expense_claims') {
+        return;
+      }
+      unawaited(loadPage(selectClaimId: editingClaimId));
+    });
     loadPage();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     searchController.removeListener(_onSearchChanged);
     pageScrollController.dispose();
@@ -628,7 +640,7 @@ class ExpenseClaimsManagementController extends GetxController {
         }
       }
       saving = false;
-      reloadExpenseClaimRegister();
+      _refreshController.notifyChanged(source: 'expense_claims');
       await loadPage(selectClaimId: newId);
       return applyNow
           ? 'Expense claim applied successfully.'

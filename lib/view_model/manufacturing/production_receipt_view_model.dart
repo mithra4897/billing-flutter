@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/manufacturing_register_reload_helper.dart';
+import 'manufacturing_module_refresh_controller.dart';
 
 class ProductionReceiptLineDraft {
   ProductionReceiptLineDraft({
@@ -60,6 +60,8 @@ class ProductionReceiptLineDraft {
 }
 
 class ProductionReceiptViewModel extends GetxController {
+  final ManufacturingModuleRefreshController _refreshController =
+      ManufacturingModuleRefreshController.ensureRegistered();
   final ManufacturingService _service = ManufacturingService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -418,7 +420,7 @@ class ProductionReceiptViewModel extends GetxController {
           'id',
         ),
       );
-      reloadProductionReceiptRegister();
+      _refreshController.notifyChanged(source: 'production_receipt');
     } catch (e) {
       formError = e.toString();
       update();
@@ -438,7 +440,7 @@ class ProductionReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadProductionReceiptRegister();
+      _refreshController.notifyChanged(source: 'production_receipt');
     } catch (e) {
       formError = e.toString();
       update();
@@ -455,7 +457,7 @@ class ProductionReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadProductionReceiptRegister();
+      _refreshController.notifyChanged(source: 'production_receipt');
     } catch (e) {
       formError = e.toString();
       update();
@@ -469,7 +471,7 @@ class ProductionReceiptViewModel extends GetxController {
       await _service.deleteProductionReceipt(id);
       actionMessage = 'Production receipt deleted successfully.';
       await load();
-      reloadProductionReceiptRegister();
+      _refreshController.notifyChanged(source: 'production_receipt');
     } catch (e) {
       formError = e.toString();
       update();

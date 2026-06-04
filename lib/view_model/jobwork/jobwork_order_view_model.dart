@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../../helper/jobwork_register_reload_helper.dart';
+import 'jobwork_module_refresh_controller.dart';
 
 class JobworkMaterialDraft {
   JobworkMaterialDraft({
@@ -145,6 +145,8 @@ class JobworkOrderViewModel extends GetxController {
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
+  final JobworkModuleRefreshController _refreshController =
+      JobworkModuleRefreshController.ensureRegistered();
   final JobworkService _service = JobworkService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
@@ -867,13 +869,13 @@ class JobworkOrderViewModel extends GetxController {
         final response = await _service.createOrder(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
-        reloadJobworkOrderRegister();
+        _refreshController.notifyChanged(source: 'jobwork_order');
       } else if (canEditLines) {
         final doc = _buildFullDocument();
         final response = await _service.updateOrder(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
-        reloadJobworkOrderRegister();
+        _refreshController.notifyChanged(source: 'jobwork_order');
       } else {
         final response = await _service.updateOrder(
           selected!.id!,
@@ -881,7 +883,7 @@ class JobworkOrderViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: selected!.id);
-        reloadJobworkOrderRegister();
+        _refreshController.notifyChanged(source: 'jobwork_order');
       }
     } catch (e) {
       formError = e.toString();
@@ -901,7 +903,7 @@ class JobworkOrderViewModel extends GetxController {
       final response = await _service.releaseOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadJobworkOrderRegister();
+      _refreshController.notifyChanged(source: 'jobwork_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -917,7 +919,7 @@ class JobworkOrderViewModel extends GetxController {
       final response = await _service.closeOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadJobworkOrderRegister();
+      _refreshController.notifyChanged(source: 'jobwork_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -933,7 +935,7 @@ class JobworkOrderViewModel extends GetxController {
       final response = await _service.cancelOrder(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadJobworkOrderRegister();
+      _refreshController.notifyChanged(source: 'jobwork_order');
     } catch (e) {
       formError = e.toString();
       update();
@@ -949,7 +951,7 @@ class JobworkOrderViewModel extends GetxController {
       await _service.deleteOrder(id);
       actionMessage = 'Jobwork order deleted.';
       await load();
-      reloadJobworkOrderRegister();
+      _refreshController.notifyChanged(source: 'jobwork_order');
     } catch (e) {
       formError = e.toString();
       update();

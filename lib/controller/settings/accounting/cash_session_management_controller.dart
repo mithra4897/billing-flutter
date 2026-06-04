@@ -1,8 +1,10 @@
 import '../../../screen.dart';
-import '../../../helper/settings_register_reload_helper.dart';
+import 'settings_accounting_module_refresh_controller.dart';
 
 class CashSessionManagementController extends GetxController {
   CashSessionManagementController();
+
+  static const String _refreshSource = 'CashSessionManagementController';
 
   final AccountsService _accountsService = AccountsService();
   final MasterService _masterService = MasterService();
@@ -24,6 +26,8 @@ class CashSessionManagementController extends GetxController {
   final TextEditingController actualClosingController = TextEditingController();
   final TextEditingController closingRemarksController =
       TextEditingController();
+  late final SettingsAccountingModuleRefreshController _moduleRefresh;
+  Worker? _refreshWorker;
 
   bool initialLoading = true;
   bool saving = false;
@@ -46,12 +50,24 @@ class CashSessionManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _moduleRefresh =
+        SettingsAccountingModuleRefreshController.ensureRegistered();
+    _refreshWorker = ever<SettingsAccountingModuleRefreshEvent?>(
+      _moduleRefresh.lastEvent,
+      (event) {
+        if (event == null || event.source == _refreshSource) {
+          return;
+        }
+        unawaited(loadPage());
+      },
+    );
     searchController.addListener(_applySearch);
     loadPage();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -283,7 +299,7 @@ class CashSessionManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCashSessionRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage(selectId: response.data?.id);
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -321,7 +337,7 @@ class CashSessionManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCashSessionRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage(selectId: response.data?.id);
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -350,7 +366,7 @@ class CashSessionManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
-      reloadCashSessionRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage(selectId: response.data?.id);
     } catch (errorValue) {
       formError = errorValue.toString();

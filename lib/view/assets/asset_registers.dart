@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../view_model/assets/asset_module_refresh_controller.dart';
 
 typedef AssetCompanyInfo = ({int? companyId, String? banner});
 typedef AssetRegisterLoader<T> =
@@ -227,6 +228,8 @@ class AssetRegisterController<T> extends GetxController {
   final AssetRegisterScopeHintBuilder scopeHintBuilder;
   final AssetRegisterCompanyFilter<T>? companyFilter;
   final AssetsService _service = AssetsService();
+  final AssetModuleRefreshController _refreshController =
+      AssetModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
@@ -235,6 +238,7 @@ class AssetRegisterController<T> extends GetxController {
   int? sessionCompanyId;
   String scopeHint = '';
   List<T> rows = <T>[];
+  Worker? _refreshWorker;
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
@@ -248,11 +252,21 @@ class AssetRegisterController<T> extends GetxController {
     super.onInit();
     searchController.addListener(update);
     WorkingContextService.version.addListener(_onContextChanged);
+    _refreshWorker = ever<AssetModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     searchController
       ..removeListener(update)
       ..dispose();

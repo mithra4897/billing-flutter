@@ -1,11 +1,13 @@
 import '../../screen.dart';
-import '../../helper/service_register_reload_helper.dart';
+import 'service_module_refresh_controller.dart';
 
 class ServiceTicketViewModel extends GetxController {
   ServiceTicketViewModel() {
     searchController.addListener(update);
   }
 
+  final ServiceModuleRefreshController _refreshController =
+      ServiceModuleRefreshController.ensureRegistered();
   final ServiceModuleService _service = ServiceModuleService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
@@ -552,7 +554,7 @@ class ServiceTicketViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
-        reloadServiceTicketRegister();
+        _refreshController.notifyChanged(source: 'service_ticket');
       } else {
         final id = selectedId;
         if (id == null) {
@@ -566,7 +568,7 @@ class ServiceTicketViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: id);
-        reloadServiceTicketRegister();
+        _refreshController.notifyChanged(source: 'service_ticket');
       }
     } catch (e) {
       formError = e.toString();
@@ -589,7 +591,7 @@ class ServiceTicketViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceTicketRegister();
+      _refreshController.notifyChanged(source: 'service_ticket');
     } catch (e) {
       formError = e.toString();
       update();
@@ -605,7 +607,7 @@ class ServiceTicketViewModel extends GetxController {
       final response = await _service.resolveTicket(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceTicketRegister();
+      _refreshController.notifyChanged(source: 'service_ticket');
     } catch (e) {
       formError = e.toString();
       update();
@@ -621,7 +623,7 @@ class ServiceTicketViewModel extends GetxController {
       final response = await _service.closeTicket(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceTicketRegister();
+      _refreshController.notifyChanged(source: 'service_ticket');
     } catch (e) {
       formError = e.toString();
       update();
@@ -637,7 +639,7 @@ class ServiceTicketViewModel extends GetxController {
       final response = await _service.cancelTicket(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceTicketRegister();
+      _refreshController.notifyChanged(source: 'service_ticket');
     } catch (e) {
       formError = e.toString();
       update();
@@ -653,7 +655,7 @@ class ServiceTicketViewModel extends GetxController {
       await _service.deleteTicket(id);
       actionMessage = 'Ticket deleted.';
       await load();
-      reloadServiceTicketRegister();
+      _refreshController.notifyChanged(source: 'service_ticket');
     } catch (e) {
       formError = e.toString();
       update();

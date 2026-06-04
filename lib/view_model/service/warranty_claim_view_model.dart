@@ -1,11 +1,13 @@
 import '../../screen.dart';
-import '../../helper/service_register_reload_helper.dart';
+import 'service_module_refresh_controller.dart';
 
 class WarrantyClaimViewModel extends GetxController {
   WarrantyClaimViewModel() {
     searchController.addListener(update);
   }
 
+  final ServiceModuleRefreshController _refreshController =
+      ServiceModuleRefreshController.ensureRegistered();
   final ServiceModuleService _service = ServiceModuleService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
@@ -556,7 +558,7 @@ class WarrantyClaimViewModel extends GetxController {
           ServiceTicketModel.fromJson(_buildCreatePayload()),
         );
         actionMessage = response.message;
-        reloadWarrantyClaimRegister();
+        _refreshController.notifyChanged(source: 'warranty_claim');
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -570,7 +572,7 @@ class WarrantyClaimViewModel extends GetxController {
           ServiceTicketModel.fromJson(_buildUpdatePayload()),
         );
         actionMessage = response.message;
-        reloadWarrantyClaimRegister();
+        _refreshController.notifyChanged(source: 'warranty_claim');
         await load(selectId: id);
       }
     } catch (e) {
@@ -593,7 +595,7 @@ class WarrantyClaimViewModel extends GetxController {
         assignedToUserId: assignedToUserId,
       );
       actionMessage = response.message;
-      reloadWarrantyClaimRegister();
+      _refreshController.notifyChanged(source: 'warranty_claim');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -609,7 +611,7 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       final response = await _service.resolveWarrantyClaim(id);
       actionMessage = response.message;
-      reloadWarrantyClaimRegister();
+      _refreshController.notifyChanged(source: 'warranty_claim');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -625,7 +627,7 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       final response = await _service.closeWarrantyClaim(id);
       actionMessage = response.message;
-      reloadWarrantyClaimRegister();
+      _refreshController.notifyChanged(source: 'warranty_claim');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -641,7 +643,7 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       final response = await _service.cancelWarrantyClaim(id);
       actionMessage = response.message;
-      reloadWarrantyClaimRegister();
+      _refreshController.notifyChanged(source: 'warranty_claim');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -657,7 +659,7 @@ class WarrantyClaimViewModel extends GetxController {
     try {
       await _service.deleteWarrantyClaim(id);
       actionMessage = 'Warranty claim deleted.';
-      reloadWarrantyClaimRegister();
+      _refreshController.notifyChanged(source: 'warranty_claim');
       await load();
     } catch (e) {
       formError = e.toString();

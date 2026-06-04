@@ -1,11 +1,13 @@
 import '../../../screen.dart';
-import '../../helper/maintenance_register_reload_helper.dart';
+import 'maintenance_module_refresh_controller.dart';
 
 class MaintenancePlanViewModel extends GetxController {
   MaintenancePlanViewModel() {
     searchController.addListener(update);
   }
 
+  final MaintenanceModuleRefreshController _refreshController =
+      MaintenanceModuleRefreshController.ensureRegistered();
   final MaintenanceService _service = MaintenanceService();
   final MasterService _masterService = MasterService();
 
@@ -255,7 +257,7 @@ class MaintenancePlanViewModel extends GetxController {
           MaintenancePlanModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
-        reloadMaintenancePlanRegister();
+        _refreshController.notifyChanged(source: 'maintenance_plan');
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
       } else {
         final id = selectedId;
@@ -269,7 +271,7 @@ class MaintenancePlanViewModel extends GetxController {
           MaintenancePlanModel.fromJson(_buildPayload()),
         );
         actionMessage = response.message;
-        reloadMaintenancePlanRegister();
+        _refreshController.notifyChanged(source: 'maintenance_plan');
         await load(selectId: id);
       }
     } catch (e) {
@@ -289,7 +291,7 @@ class MaintenancePlanViewModel extends GetxController {
     try {
       await _service.deletePlan(id);
       actionMessage = 'Maintenance plan deleted.';
-      reloadMaintenancePlanRegister();
+      _refreshController.notifyChanged(source: 'maintenance_plan');
       await load();
     } catch (e) {
       formError = e.toString();

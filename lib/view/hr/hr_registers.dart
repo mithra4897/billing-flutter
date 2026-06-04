@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../controller/hr/hr_module_refresh_controller.dart';
 
 void _showNeedCompanySnack(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
@@ -115,6 +116,8 @@ const List<AppDropdownItem<String?>> _hrAttendanceStatusFilterItems =
 
 class AttendanceRegisterController extends GetxController {
   final HrService _service = HrService();
+  final HrModuleRefreshController _refreshController =
+      HrModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
@@ -128,17 +131,27 @@ class AttendanceRegisterController extends GetxController {
   String? filterAttendanceStatus;
   List<EmployeeModel> employees = const <EmployeeModel>[];
   List<AttendanceRecordModel> rows = const <AttendanceRecordModel>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
+      event,
+    ) {
+      if (event == null) {
+        return;
+      }
+      unawaited(load());
+    });
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     searchController
       ..removeListener(update)
@@ -313,6 +326,8 @@ class AttendanceRegisterController extends GetxController {
 
 class PayrollRunRegisterController extends GetxController {
   final HrService _service = HrService();
+  final HrModuleRefreshController _refreshController =
+      HrModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
   String statusFilter = '';
 
@@ -329,17 +344,27 @@ class PayrollRunRegisterController extends GetxController {
   String? error;
   String? companyBanner;
   List<PayrollRunModel> rows = const <PayrollRunModel>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
+      event,
+    ) {
+      if (event == null) {
+        return;
+      }
+      unawaited(load());
+    });
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     searchController
       ..removeListener(update)
@@ -404,6 +429,8 @@ class PayrollRunRegisterController extends GetxController {
 
 class PayslipRegisterController extends GetxController {
   final HrService _service = HrService();
+  final HrModuleRefreshController _refreshController =
+      HrModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController dateFromController = TextEditingController();
   final TextEditingController dateToController = TextEditingController();
@@ -417,17 +444,27 @@ class PayslipRegisterController extends GetxController {
   int? filterPayrollRunId;
   List<EmployeeModel> employees = const <EmployeeModel>[];
   List<PayslipModel> rows = const <PayslipModel>[];
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
     WorkingContextService.version.addListener(_onWorkingContextChanged);
     searchController.addListener(update);
+    _refreshWorker = ever<HrModuleRefreshEvent?>(_refreshController.lastEvent, (
+      event,
+    ) {
+      if (event == null) {
+        return;
+      }
+      unawaited(load());
+    });
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     WorkingContextService.version.removeListener(_onWorkingContextChanged);
     searchController
       ..removeListener(update)

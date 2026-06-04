@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/quality_register_reload_helper.dart';
+import 'quality_module_refresh_controller.dart';
 
 class QcNcLineOption {
   QcNcLineOption({
@@ -21,6 +21,8 @@ class QcNonConformanceLogViewModel extends GetxController {
     searchController.addListener(update);
   }
 
+  final QualityModuleRefreshController _refreshController =
+      QualityModuleRefreshController.ensureRegistered();
   final QualityService _service = QualityService();
 
   final TextEditingController searchController = TextEditingController();
@@ -322,7 +324,7 @@ class QcNonConformanceLogViewModel extends GetxController {
       if (selected == null) {
         final response = await _service.createQcNonConformanceLog(doc);
         actionMessage = response.message;
-        reloadQcNonConformanceLogRegister();
+        _refreshController.notifyChanged(source: 'qc_non_conformance_log');
         await load(selectId: response.data?.id);
       } else {
         final response = await _service.updateQcNonConformanceLog(
@@ -330,7 +332,7 @@ class QcNonConformanceLogViewModel extends GetxController {
           doc,
         );
         actionMessage = response.message;
-        reloadQcNonConformanceLogRegister();
+        _refreshController.notifyChanged(source: 'qc_non_conformance_log');
         await load(selectId: selected!.id);
       }
     } catch (e) {
@@ -350,7 +352,7 @@ class QcNonConformanceLogViewModel extends GetxController {
     try {
       final response = await _service.closeQcNonConformanceLog(id);
       actionMessage = response.message;
-      reloadQcNonConformanceLogRegister();
+      _refreshController.notifyChanged(source: 'qc_non_conformance_log');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -366,7 +368,7 @@ class QcNonConformanceLogViewModel extends GetxController {
     try {
       final response = await _service.waiveQcNonConformanceLog(id);
       actionMessage = response.message;
-      reloadQcNonConformanceLogRegister();
+      _refreshController.notifyChanged(source: 'qc_non_conformance_log');
       await load(selectId: id);
     } catch (e) {
       formError = e.toString();
@@ -382,7 +384,7 @@ class QcNonConformanceLogViewModel extends GetxController {
     try {
       await _service.deleteQcNonConformanceLog(id);
       actionMessage = 'Log deleted.';
-      reloadQcNonConformanceLogRegister();
+      _refreshController.notifyChanged(source: 'qc_non_conformance_log');
       await load();
     } catch (e) {
       formError = e.toString();

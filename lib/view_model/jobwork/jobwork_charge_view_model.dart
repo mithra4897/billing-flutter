@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../../helper/jobwork_register_reload_helper.dart';
+import 'jobwork_module_refresh_controller.dart';
 
 class JobworkChargeLineDraft {
   JobworkChargeLineDraft({
@@ -78,6 +78,8 @@ class JobworkChargeViewModel extends GetxController {
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
+  final JobworkModuleRefreshController _refreshController =
+      JobworkModuleRefreshController.ensureRegistered();
   final JobworkService _service = JobworkService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
@@ -571,12 +573,12 @@ class JobworkChargeViewModel extends GetxController {
         final response = await _service.createCharge(doc);
         actionMessage = response.message;
         await load(selectId: response.data?.id);
-        reloadJobworkChargeRegister();
+        _refreshController.notifyChanged(source: 'jobwork_charge');
       } else {
         final response = await _service.updateCharge(selected!.id!, doc);
         actionMessage = response.message;
         await load(selectId: selected!.id);
-        reloadJobworkChargeRegister();
+        _refreshController.notifyChanged(source: 'jobwork_charge');
       }
     } catch (e) {
       formError = e.toString();
@@ -596,7 +598,7 @@ class JobworkChargeViewModel extends GetxController {
       final response = await _service.postCharge(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadJobworkChargeRegister();
+      _refreshController.notifyChanged(source: 'jobwork_charge');
     } catch (e) {
       formError = e.toString();
       update();
@@ -612,7 +614,7 @@ class JobworkChargeViewModel extends GetxController {
       final response = await _service.cancelCharge(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadJobworkChargeRegister();
+      _refreshController.notifyChanged(source: 'jobwork_charge');
     } catch (e) {
       formError = e.toString();
       update();
@@ -628,7 +630,7 @@ class JobworkChargeViewModel extends GetxController {
       await _service.deleteCharge(id);
       actionMessage = 'Charge deleted.';
       await load();
-      reloadJobworkChargeRegister();
+      _refreshController.notifyChanged(source: 'jobwork_charge');
     } catch (e) {
       formError = e.toString();
       update();

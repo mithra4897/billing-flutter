@@ -1,11 +1,13 @@
 import '../../screen.dart';
-import '../../helper/service_register_reload_helper.dart';
+import 'service_module_refresh_controller.dart';
 
 class ServiceContractViewModel extends GetxController {
   ServiceContractViewModel() {
     searchController.addListener(update);
   }
 
+  final ServiceModuleRefreshController _refreshController =
+      ServiceModuleRefreshController.ensureRegistered();
   final ServiceModuleService _service = ServiceModuleService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
@@ -428,7 +430,7 @@ class ServiceContractViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: intValue(response.data?.toJson() ?? {}, 'id'));
-        reloadServiceContractRegister();
+        _refreshController.notifyChanged(source: 'service_contract');
       } else {
         final id = selectedId;
         if (id == null) {
@@ -442,7 +444,7 @@ class ServiceContractViewModel extends GetxController {
         );
         actionMessage = response.message;
         await load(selectId: id);
-        reloadServiceContractRegister();
+        _refreshController.notifyChanged(source: 'service_contract');
       }
     } catch (e) {
       formError = e.toString();
@@ -462,7 +464,7 @@ class ServiceContractViewModel extends GetxController {
       final response = await _service.approveContract(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceContractRegister();
+      _refreshController.notifyChanged(source: 'service_contract');
     } catch (e) {
       formError = e.toString();
       update();
@@ -478,7 +480,7 @@ class ServiceContractViewModel extends GetxController {
       final response = await _service.terminateContract(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceContractRegister();
+      _refreshController.notifyChanged(source: 'service_contract');
     } catch (e) {
       formError = e.toString();
       update();
@@ -494,7 +496,7 @@ class ServiceContractViewModel extends GetxController {
       final response = await _service.cancelContract(id);
       actionMessage = response.message;
       await load(selectId: id);
-      reloadServiceContractRegister();
+      _refreshController.notifyChanged(source: 'service_contract');
     } catch (e) {
       formError = e.toString();
       update();
@@ -510,7 +512,7 @@ class ServiceContractViewModel extends GetxController {
       await _service.deleteContract(id);
       actionMessage = 'Service contract deleted.';
       await load();
-      reloadServiceContractRegister();
+      _refreshController.notifyChanged(source: 'service_contract');
     } catch (e) {
       formError = e.toString();
       update();

@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../../helper/settings_register_reload_helper.dart';
+import 'settings_accounting_module_refresh_controller.dart';
 
 class VoucherLineDraft {
   VoucherLineDraft({
@@ -39,6 +39,8 @@ class VoucherModeOption {
 
 class VoucherManagementController extends GetxController {
   VoucherManagementController();
+
+  static const String _refreshSource = 'VoucherManagementController';
 
   static const List<AppDropdownItem<String>> approvalStatusItems =
       <AppDropdownItem<String>>[
@@ -151,16 +153,30 @@ class VoucherManagementController extends GetxController {
   bool deleting = false;
   bool auditLogLoading = false;
   List<VoucherLineDraft> lines = <VoucherLineDraft>[];
+  late final SettingsAccountingModuleRefreshController _moduleRefresh;
+  Worker? _refreshWorker;
 
   @override
   void onInit() {
     super.onInit();
+    _moduleRefresh =
+        SettingsAccountingModuleRefreshController.ensureRegistered();
+    _refreshWorker = ever<SettingsAccountingModuleRefreshEvent?>(
+      _moduleRefresh.lastEvent,
+      (event) {
+        if (event == null || event.source == _refreshSource) {
+          return;
+        }
+        unawaited(loadPage());
+      },
+    );
     searchController.addListener(applySearch);
     loadPage();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -992,7 +1008,7 @@ class VoucherManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(okMessage)),
       );
-      reloadVoucherRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       if (wasCreate) {
         await loadPage();
         resetForm();
@@ -1039,7 +1055,7 @@ class VoucherManagementController extends GetxController {
           ),
         ),
       );
-      reloadVoucherRegister();
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage();
       resetForm();
     } catch (errorValue) {

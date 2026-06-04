@@ -1,7 +1,8 @@
 import '../../../screen.dart';
-import '../../../helper/settings_register_reload_helper.dart';
+import 'settings_accounting_module_refresh_controller.dart';
 
 class AccountManagementController extends GetxController {
+  static const String _refreshSource = 'AccountManagementController';
   static const List<AppDropdownItem<String>> accountTypeItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'general', label: 'General'),
@@ -37,6 +38,8 @@ class AccountManagementController extends GetxController {
       TextEditingController();
   final TextEditingController currencyCodeController = TextEditingController();
   final TextEditingController remarksController = TextEditingController();
+  late final SettingsAccountingModuleRefreshController _moduleRefresh;
+  Worker? _refreshWorker;
 
   bool initialLoading = true;
   bool saving = false;
@@ -61,12 +64,24 @@ class AccountManagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _moduleRefresh =
+        SettingsAccountingModuleRefreshController.ensureRegistered();
+    _refreshWorker = ever<SettingsAccountingModuleRefreshEvent?>(
+      _moduleRefresh.lastEvent,
+      (event) {
+        if (event == null || event.source == _refreshSource) {
+          return;
+        }
+        unawaited(loadPage());
+      },
+    );
     searchController.addListener(_applySearch);
     loadPage();
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     pageScrollController.dispose();
     workspaceController.dispose();
     searchController
@@ -132,7 +147,9 @@ class AccountManagementController extends GetxController {
       filteredAccounts = _filterAccounts(nextAccounts, searchController.text);
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
-      groups = nextGroups.where((item) => item.isActive).toList(growable: false);
+      groups = nextGroups
+          .where((item) => item.isActive)
+          .toList(growable: false);
       initialLoading = false;
 
       final selected = selectId != null
@@ -300,8 +317,8 @@ class AccountManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage(selectId: response.data?.id);
-      reloadPartyAccountRegister();
     } catch (error) {
       formError = error.toString();
       update();
@@ -326,8 +343,8 @@ class AccountManagementController extends GetxController {
       appScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text(response.message)),
       );
+      _moduleRefresh.notifyChanged(source: _refreshSource);
       await loadPage();
-      reloadPartyAccountRegister();
     } catch (error) {
       formError = error.toString();
       update();
