@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/purchase_register_reload_helper.dart';
+import 'purchase_module_refresh_controller.dart';
 
 class PurchaseReturnLineDraft {
   PurchaseReturnLineDraft({
@@ -107,6 +107,8 @@ class PurchaseReturnManagementController extends GetxController {
       ];
 
   final PurchaseService _purchaseService = PurchaseService();
+  final PurchaseModuleRefreshController _refreshController =
+      PurchaseModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
   final ScrollController pageScrollController = ScrollController();
@@ -191,14 +193,14 @@ class PurchaseReturnManagementController extends GetxController {
       _initialized = true;
     }
     await loadPage(selectId: initialId);
-    reloadPurchaseReturnRegister();
+    _refreshController.notifyChanged(source: 'purchase_return');
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
-    reloadPurchaseReturnRegister();
+    _refreshController.notifyChanged(source: 'purchase_return');
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -624,13 +626,13 @@ class PurchaseReturnManagementController extends GetxController {
       if (saved != null) {
         _upsertReturn(saved);
         await selectDocument(saved, notify: false);
-        reloadPurchaseReturnRegister();
+        _refreshController.notifyChanged(source: 'purchase_return');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
-        reloadPurchaseReturnRegister();
+        _refreshController.notifyChanged(source: 'purchase_return');
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -656,13 +658,13 @@ class PurchaseReturnManagementController extends GetxController {
       if (updated != null) {
         _upsertReturn(updated);
         await selectDocument(updated, notify: false);
-        reloadPurchaseReturnRegister();
+        _refreshController.notifyChanged(source: 'purchase_return');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
-        reloadPurchaseReturnRegister();
+        _refreshController.notifyChanged(source: 'purchase_return');
       }
     } catch (errorValue) {
       formError = errorValue.toString();

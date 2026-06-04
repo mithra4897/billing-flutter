@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> stockMovementTypeItems =
     <AppDropdownItem<String>>[
@@ -35,6 +35,8 @@ class StockMovementViewModel extends GetxController {
 
   final int? initialItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController referenceTypeController = TextEditingController();
@@ -407,7 +409,7 @@ class StockMovementViewModel extends GetxController {
         'id',
       );
       await load(selectId: id);
-      reloadStockMovementRegister();
+      _refreshController.notifyChanged(source: 'stock_movement');
     } catch (e) {
       formError = e.toString();
       update();
@@ -423,7 +425,7 @@ class StockMovementViewModel extends GetxController {
     try {
       await _inventoryService.deleteStockMovement(id);
       await load();
-      reloadStockMovementRegister();
+      _refreshController.notifyChanged(source: 'stock_movement');
     } catch (e) {
       formError = e.toString();
       update();

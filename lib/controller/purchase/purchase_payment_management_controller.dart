@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/purchase_register_reload_helper.dart';
+import 'purchase_module_refresh_controller.dart';
 
 class PaymentAllocationDraft {
   PaymentAllocationDraft({
@@ -68,6 +68,8 @@ class PurchasePaymentManagementController extends GetxController {
       ];
 
   final PurchaseService _purchaseService = PurchaseService();
+  final PurchaseModuleRefreshController _refreshController =
+      PurchaseModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final AccountsService _accountsService = AccountsService();
@@ -161,14 +163,14 @@ class PurchasePaymentManagementController extends GetxController {
       selectId: initialId,
       initialPurchaseInvoiceId: initialPurchaseInvoiceId,
     );
-    reloadPurchasePaymentRegister();
+    _refreshController.notifyChanged(source: 'purchase_payment');
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
-    reloadPurchasePaymentRegister();
+    _refreshController.notifyChanged(source: 'purchase_payment');
   }
 
   Future<void> loadPage({
@@ -690,13 +692,13 @@ class PurchasePaymentManagementController extends GetxController {
       if (saved != null) {
         _upsertPayment(saved);
         await selectDocument(saved, notify: false);
-        reloadPurchasePaymentRegister();
+        _refreshController.notifyChanged(source: 'purchase_payment');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
-        reloadPurchasePaymentRegister();
+        _refreshController.notifyChanged(source: 'purchase_payment');
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -722,13 +724,13 @@ class PurchasePaymentManagementController extends GetxController {
       if (updated != null) {
         _upsertPayment(updated);
         await selectDocument(updated, notify: false);
-        reloadPurchasePaymentRegister();
+        _refreshController.notifyChanged(source: 'purchase_payment');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
-        reloadPurchasePaymentRegister();
+        _refreshController.notifyChanged(source: 'purchase_payment');
       }
     } catch (errorValue) {
       formError = errorValue.toString();

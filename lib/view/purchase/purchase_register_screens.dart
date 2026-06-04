@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../controller/purchase/purchase_module_refresh_controller.dart';
 
 typedef PurchaseRegisterLoader<T> =
     Future<dynamic> Function(PurchaseService service);
@@ -37,12 +38,15 @@ class PurchaseListRegisterController<T> extends GetxController {
   final PurchaseRegisterLoader<T> loader;
   final PurchaseRegisterMatcher<T> matches;
   final PurchaseService _service = PurchaseService();
+  final PurchaseModuleRefreshController _refreshController =
+      PurchaseModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   String status = '';
   List<T> rows = <T>[];
+  Worker? _refreshWorker;
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
@@ -55,11 +59,21 @@ class PurchaseListRegisterController<T> extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(update);
+    _refreshWorker = ever<PurchaseModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     searchController
       ..removeListener(update)
       ..dispose();

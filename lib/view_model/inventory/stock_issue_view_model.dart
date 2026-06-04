@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 /// Backend `issue_purpose` enum values; labels are UI-facing.
 const List<AppDropdownItem<String>> stockIssuePurposeItems =
@@ -72,6 +72,8 @@ class StockIssueViewModel extends GetxController {
 
   final int? initialItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final HrService _hrService = HrService();
   final TextEditingController searchController = TextEditingController();
@@ -862,7 +864,7 @@ class StockIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockIssueRegister();
+      _refreshController.notifyChanged(source: 'stock_issue');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -885,7 +887,7 @@ class StockIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockIssueRegister();
+      _refreshController.notifyChanged(source: 'stock_issue');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -905,7 +907,7 @@ class StockIssueViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockIssueRegister();
+      _refreshController.notifyChanged(source: 'stock_issue');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -922,7 +924,7 @@ class StockIssueViewModel extends GetxController {
       final response = await _inventoryService.deleteStockIssue(id);
       actionMessage = response.message;
       await load();
-      reloadStockIssueRegister();
+      _refreshController.notifyChanged(source: 'stock_issue');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

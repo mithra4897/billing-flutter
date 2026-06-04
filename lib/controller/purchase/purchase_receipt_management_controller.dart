@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/purchase_register_reload_helper.dart';
+import 'purchase_module_refresh_controller.dart';
 
 class PurchaseReceiptLineDraft {
   PurchaseReceiptLineDraft({
@@ -92,6 +92,8 @@ class PurchaseReceiptManagementController extends GetxController {
       ];
 
   final PurchaseService _purchaseService = PurchaseService();
+  final PurchaseModuleRefreshController _refreshController =
+      PurchaseModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
@@ -189,14 +191,14 @@ class PurchaseReceiptManagementController extends GetxController {
       _initialized = true;
     }
     await loadPage(selectId: initialId);
-    reloadPurchaseReceiptRegister();
+    _refreshController.notifyChanged(source: 'purchase_receipt');
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
-    reloadPurchaseReceiptRegister();
+    _refreshController.notifyChanged(source: 'purchase_receipt');
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -879,13 +881,13 @@ class PurchaseReceiptManagementController extends GetxController {
       if (saved != null) {
         _upsertReceipt(saved);
         await selectDocument(saved, notify: false);
-        reloadPurchaseReceiptRegister();
+        _refreshController.notifyChanged(source: 'purchase_receipt');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
-        reloadPurchaseReceiptRegister();
+        _refreshController.notifyChanged(source: 'purchase_receipt');
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -911,13 +913,13 @@ class PurchaseReceiptManagementController extends GetxController {
       if (updated != null) {
         _upsertReceipt(updated);
         await selectDocument(updated, notify: false);
-        reloadPurchaseReceiptRegister();
+        _refreshController.notifyChanged(source: 'purchase_receipt');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
-        reloadPurchaseReceiptRegister();
+        _refreshController.notifyChanged(source: 'purchase_receipt');
       }
     } catch (errorValue) {
       formError = errorValue.toString();

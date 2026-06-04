@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 /// Mutable line state for the opening stock editor (View binds controllers).
 class OpeningStockLineDraft {
@@ -75,6 +75,8 @@ class OpeningStockViewModel extends GetxController {
   final int? initialItemId;
   final int? filterItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController openingNoController = TextEditingController();
@@ -1294,7 +1296,7 @@ class OpeningStockViewModel extends GetxController {
       }
       actionMessage = response.message;
       await load(selectId: id);
-      reloadOpeningStockRegister();
+      _refreshController.notifyChanged(source: 'opening_stock');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1320,7 +1322,7 @@ class OpeningStockViewModel extends GetxController {
       }
       actionMessage = response.message;
       await load(selectId: id);
-      reloadOpeningStockRegister();
+      _refreshController.notifyChanged(source: 'opening_stock');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1343,7 +1345,7 @@ class OpeningStockViewModel extends GetxController {
       }
       actionMessage = response.message;
       await load(selectId: id);
-      reloadOpeningStockRegister();
+      _refreshController.notifyChanged(source: 'opening_stock');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1363,7 +1365,7 @@ class OpeningStockViewModel extends GetxController {
       }
       actionMessage = response.message;
       await load();
-      reloadOpeningStockRegister();
+      _refreshController.notifyChanged(source: 'opening_stock');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

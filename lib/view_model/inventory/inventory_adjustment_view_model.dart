@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> inventoryAdjustmentTypeItems =
     <AppDropdownItem<String>>[
@@ -108,6 +108,8 @@ class InventoryAdjustmentViewModel extends GetxController {
 
   final int? initialItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
 
   final TextEditingController searchController = TextEditingController();
@@ -736,7 +738,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadInventoryAdjustmentRegister();
+      _refreshController.notifyChanged(source: 'inventory_adjustment');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -757,7 +759,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadInventoryAdjustmentRegister();
+      _refreshController.notifyChanged(source: 'inventory_adjustment');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -775,7 +777,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadInventoryAdjustmentRegister();
+      _refreshController.notifyChanged(source: 'inventory_adjustment');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -790,7 +792,7 @@ class InventoryAdjustmentViewModel extends GetxController {
       final response = await _inventoryService.deleteInventoryAdjustment(id);
       actionMessage = response.message;
       await load();
-      reloadInventoryAdjustmentRegister();
+      _refreshController.notifyChanged(source: 'inventory_adjustment');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

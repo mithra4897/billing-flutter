@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> stockDamageTypeItems =
     <AppDropdownItem<String>>[
@@ -75,6 +75,8 @@ class StockDamageViewModel extends GetxController {
 
   final int? initialItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController damageNoController = TextEditingController();
@@ -827,7 +829,7 @@ class StockDamageViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockDamageRegister();
+      _refreshController.notifyChanged(source: 'stock_damage');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -848,7 +850,7 @@ class StockDamageViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockDamageRegister();
+      _refreshController.notifyChanged(source: 'stock_damage');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -866,7 +868,7 @@ class StockDamageViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockDamageRegister();
+      _refreshController.notifyChanged(source: 'stock_damage');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -881,7 +883,7 @@ class StockDamageViewModel extends GetxController {
       final response = await _inventoryService.deleteStockDamageEntry(id);
       actionMessage = response.message;
       await load();
-      reloadStockDamageRegister();
+      _refreshController.notifyChanged(source: 'stock_damage');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

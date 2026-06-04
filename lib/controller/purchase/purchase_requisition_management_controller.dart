@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/purchase_register_reload_helper.dart';
+import 'purchase_module_refresh_controller.dart';
 
 class PurchaseRequisitionLineDraft {
   PurchaseRequisitionLineDraft({
@@ -75,6 +75,8 @@ class PurchaseRequisitionManagementController extends GetxController {
       ];
 
   final PurchaseService _purchaseService = PurchaseService();
+  final PurchaseModuleRefreshController _refreshController =
+      PurchaseModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final AuthService _authService = AuthService();
   final HrService _hrService = HrService();
@@ -166,14 +168,14 @@ class PurchaseRequisitionManagementController extends GetxController {
       _initialized = true;
     }
     await loadPage(selectId: initialId);
-    reloadPurchaseRequisitionRegister();
+    _refreshController.notifyChanged(source: 'purchase_requisition');
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
-    reloadPurchaseRequisitionRegister();
+    _refreshController.notifyChanged(source: 'purchase_requisition');
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -583,9 +585,9 @@ class PurchaseRequisitionManagementController extends GetxController {
   }
 
   Future<void> _refreshRegisterListIfOpen() async {
-    if (!Get.isRegistered<PurchaseListRegisterController<PurchaseRequisitionModel>>(
-      tag: registerControllerTag,
-    )) {
+    if (!Get.isRegistered<
+      PurchaseListRegisterController<PurchaseRequisitionModel>
+    >(tag: registerControllerTag)) {
       return;
     }
 
@@ -658,7 +660,7 @@ class PurchaseRequisitionManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadPurchaseRequisitionRegister();
+      _refreshController.notifyChanged(source: 'purchase_requisition');
     } catch (errorValue) {
       formError = errorValue.toString();
       update();
@@ -683,7 +685,7 @@ class PurchaseRequisitionManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
-      reloadPurchaseRequisitionRegister();
+      _refreshController.notifyChanged(source: 'purchase_requisition');
     } catch (errorValue) {
       formError = errorValue.toString();
       update();

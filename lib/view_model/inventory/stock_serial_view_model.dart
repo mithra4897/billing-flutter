@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 const List<AppDropdownItem<String>> stockSerialStatusItems =
     <AppDropdownItem<String>>[
@@ -18,6 +18,8 @@ class StockSerialViewModel extends GetxController {
 
   final int? initialItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController serialNoController = TextEditingController();
@@ -373,7 +375,7 @@ class StockSerialViewModel extends GetxController {
         'id',
       );
       await load(selectId: id);
-      reloadStockSerialRegister();
+      _refreshController.notifyChanged(source: 'stock_serial');
     } catch (e) {
       formError = e.toString();
       update();
@@ -389,7 +391,7 @@ class StockSerialViewModel extends GetxController {
     try {
       await _inventoryService.deleteStockSerial(id);
       await load();
-      reloadStockSerialRegister();
+      _refreshController.notifyChanged(source: 'stock_serial');
     } catch (e) {
       formError = e.toString();
       update();

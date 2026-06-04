@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 class StockTransferLineDraft {
   StockTransferLineDraft({
@@ -63,6 +63,8 @@ class StockTransferViewModel extends GetxController {
 
   final int? initialItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController transferNoController = TextEditingController();
@@ -851,7 +853,7 @@ class StockTransferViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockTransferRegister();
+      _refreshController.notifyChanged(source: 'stock_transfer');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -874,7 +876,7 @@ class StockTransferViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockTransferRegister();
+      _refreshController.notifyChanged(source: 'stock_transfer');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -894,7 +896,7 @@ class StockTransferViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadStockTransferRegister();
+      _refreshController.notifyChanged(source: 'stock_transfer');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -911,7 +913,7 @@ class StockTransferViewModel extends GetxController {
       final response = await _inventoryService.deleteStockTransfer(id);
       actionMessage = response.message;
       await load();
-      reloadStockTransferRegister();
+      _refreshController.notifyChanged(source: 'stock_transfer');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

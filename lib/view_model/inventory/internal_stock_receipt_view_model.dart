@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 /// Backend `receipt_source` enum values; labels are UI-facing.
 const List<AppDropdownItem<String>> internalStockReceiptSourceItems =
@@ -86,6 +86,8 @@ class InternalStockReceiptViewModel extends GetxController {
 
   final int? initialItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController receiptNoController = TextEditingController();
@@ -976,7 +978,7 @@ class InternalStockReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadInternalStockReceiptRegister();
+      _refreshController.notifyChanged(source: 'internal_stock_receipt');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -999,7 +1001,7 @@ class InternalStockReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadInternalStockReceiptRegister();
+      _refreshController.notifyChanged(source: 'internal_stock_receipt');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1019,7 +1021,7 @@ class InternalStockReceiptViewModel extends GetxController {
       );
       actionMessage = response.message;
       await load(selectId: id);
-      reloadInternalStockReceiptRegister();
+      _refreshController.notifyChanged(source: 'internal_stock_receipt');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;
@@ -1036,7 +1038,7 @@ class InternalStockReceiptViewModel extends GetxController {
       final response = await _inventoryService.deleteInternalStockReceipt(id);
       actionMessage = response.message;
       await load();
-      reloadInternalStockReceiptRegister();
+      _refreshController.notifyChanged(source: 'internal_stock_receipt');
     } catch (e) {
       formError = e.toString();
       actionMessage = null;

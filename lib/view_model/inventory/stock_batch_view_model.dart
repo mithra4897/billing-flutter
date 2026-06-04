@@ -1,5 +1,5 @@
 import '../../../screen.dart';
-import '../../helper/inventory_register_reload_helper.dart';
+import 'inventory_module_refresh_controller.dart';
 
 class StockBatchViewModel extends GetxController {
   StockBatchViewModel({this.initialItemId}) {
@@ -8,6 +8,8 @@ class StockBatchViewModel extends GetxController {
 
   final int? initialItemId;
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController batchNoController = TextEditingController();
@@ -289,7 +291,7 @@ class StockBatchViewModel extends GetxController {
         'id',
       );
       await load(selectId: id);
-      reloadStockBatchRegister();
+      _refreshController.notifyChanged(source: 'stock_batch');
     } catch (e) {
       formError = e.toString();
       update();
@@ -305,7 +307,7 @@ class StockBatchViewModel extends GetxController {
     try {
       await _inventoryService.deleteStockBatch(id);
       await load();
-      reloadStockBatchRegister();
+      _refreshController.notifyChanged(source: 'stock_batch');
     } catch (e) {
       formError = e.toString();
       update();

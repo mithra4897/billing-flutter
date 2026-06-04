@@ -1,5 +1,5 @@
 import '../../screen.dart';
-import '../../helper/purchase_register_reload_helper.dart';
+import 'purchase_module_refresh_controller.dart';
 
 enum PurchaseOrderLinkDriver { none, supplier, requisition }
 
@@ -110,6 +110,8 @@ class PurchaseOrderManagementController extends GetxController {
   ];
 
   final PurchaseService _purchaseService = PurchaseService();
+  final PurchaseModuleRefreshController _refreshController =
+      PurchaseModuleRefreshController.ensureRegistered();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
@@ -221,14 +223,14 @@ class PurchaseOrderManagementController extends GetxController {
   Future<void> initialize({int? initialId}) async {
     if (!_initialized) _initialized = true;
     await loadPage(selectId: initialId);
-    reloadPurchaseOrderRegister();
+    _refreshController.notifyChanged(source: 'purchase_order');
   }
 
   Future<void> _handleWorkingContextChanged() async {
     await loadPage(
       selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
     );
-    reloadPurchaseOrderRegister();
+    _refreshController.notifyChanged(source: 'purchase_order');
   }
 
   Future<void> loadPage({int? selectId}) async {
@@ -1377,13 +1379,13 @@ class PurchaseOrderManagementController extends GetxController {
       if (saved != null) {
         _upsertOrder(saved);
         await selectDocument(saved, notify: false);
-        reloadPurchaseOrderRegister();
+        _refreshController.notifyChanged(source: 'purchase_order');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
-        reloadPurchaseOrderRegister();
+        _refreshController.notifyChanged(source: 'purchase_order');
       }
     } catch (errorValue) {
       formError = errorValue.toString();
@@ -1409,13 +1411,13 @@ class PurchaseOrderManagementController extends GetxController {
       if (updated != null) {
         _upsertOrder(updated);
         await selectDocument(updated, notify: false);
-        reloadPurchaseOrderRegister();
+        _refreshController.notifyChanged(source: 'purchase_order');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
-        reloadPurchaseOrderRegister();
+        _refreshController.notifyChanged(source: 'purchase_order');
       }
     } catch (errorValue) {
       formError = errorValue.toString();

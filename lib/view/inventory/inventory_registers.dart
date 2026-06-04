@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import '../../view_model/inventory/inventory_module_refresh_controller.dart';
 
 typedef InventoryRegisterLoader<T> =
     Future<PaginatedResponse<T>> Function(InventoryService service);
@@ -19,11 +20,14 @@ class InventoryRegisterController<T> extends GetxController {
   final InventoryRegisterLoader<T> loader;
   final InventoryRegisterMatcher<T> matches;
   final InventoryService _service = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
 
   bool loading = true;
   String? error;
   List<T> rows = <T>[];
+  Worker? _refreshWorker;
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
@@ -36,11 +40,21 @@ class InventoryRegisterController<T> extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(update);
+    _refreshWorker = ever<InventoryModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      (event) {
+        if (event == null) {
+          return;
+        }
+        unawaited(load());
+      },
+    );
     unawaited(load());
   }
 
   @override
   void onClose() {
+    _refreshWorker?.dispose();
     searchController
       ..removeListener(update)
       ..dispose();
