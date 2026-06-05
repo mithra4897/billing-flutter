@@ -303,61 +303,89 @@ class _PartyAccountRegisterPageState extends State<PartyAccountRegisterPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SettingsFormWrap(
-                          children: [
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Party',
-                              mappedItems: partyItems,
-                              initialValue: controller.formPartyId,
-                              onChanged: controller.setFormPartyId,
-                              validator: Validators.requiredSelection('Party'),
-                            ),
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Account',
-                              mappedItems: accountItems,
-                              initialValue: controller.formAccountId,
-                              onChanged: controller.setFormAccountId,
-                              validator: Validators.requiredSelection(
-                                'Account',
-                              ),
-                            ),
-                            AppDropdownField<String>.fromMapped(
-                              labelText: 'Purpose',
-                              mappedItems: PartyAccountRegisterController
-                                  .accountPurposeItems,
-                              initialValue: controller.formPurpose,
-                              onChanged: controller.setFormPurpose,
-                              validator: Validators.requiredSelection(
-                                'Purpose',
-                              ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Remarks',
-                              controller: controller.remarksController,
-                              maxLines: 3,
-                              validator: Validators.optionalMaxLength(
-                                1000,
-                                'Remarks',
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppUiConstants.spacingMd),
-                        Wrap(
-                          spacing: AppUiConstants.spacingMd,
-                          runSpacing: AppUiConstants.spacingSm,
-                          children: [
-                            AppSwitchTile(
-                              label: 'Default for purpose',
-                              value: controller.formDefault,
-                              onChanged: controller.setFormDefault,
-                            ),
-                            AppSwitchTile(
-                              label: 'Active',
-                              value: controller.formActive,
-                              onChanged: controller.setFormActive,
-                            ),
-                          ],
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final availableWidth = constraints.maxWidth;
+                            final columnCount = availableWidth >= 980
+                                ? 3
+                                : availableWidth >= 680
+                                ? 2
+                                : 1;
+                            final fieldWidth =
+                                (availableWidth -
+                                    (columnCount - 1) *
+                                        AppUiConstants.spacingMd) /
+                                columnCount;
+
+                            Widget fieldBox(Widget child) =>
+                                SizedBox(width: fieldWidth, child: child);
+
+                            return Wrap(
+                              spacing: AppUiConstants.spacingMd,
+                              runSpacing: AppUiConstants.spacingSm,
+                              children: [
+                                fieldBox(
+                                  AppDropdownField<int>.fromMapped(
+                                    labelText: 'Party',
+                                    mappedItems: partyItems,
+                                    initialValue: controller.formPartyId,
+                                    onChanged: controller.setFormPartyId,
+                                    validator: Validators.requiredSelection(
+                                      'Party',
+                                    ),
+                                  ),
+                                ),
+                                fieldBox(
+                                  AppDropdownField<int>.fromMapped(
+                                    labelText: 'Account',
+                                    mappedItems: accountItems,
+                                    initialValue: controller.formAccountId,
+                                    onChanged: controller.setFormAccountId,
+                                    validator: Validators.requiredSelection(
+                                      'Account',
+                                    ),
+                                  ),
+                                ),
+                                fieldBox(
+                                  AppDropdownField<String>.fromMapped(
+                                    labelText: 'Purpose',
+                                    mappedItems: PartyAccountRegisterController
+                                        .accountPurposeItems,
+                                    initialValue: controller.formPurpose,
+                                    onChanged: controller.setFormPurpose,
+                                    validator: Validators.requiredSelection(
+                                      'Purpose',
+                                    ),
+                                  ),
+                                ),
+                                fieldBox(
+                                  AppFormTextField(
+                                    labelText: 'Remarks',
+                                    controller: controller.remarksController,
+                                    maxLines: 1,
+                                    validator: Validators.optionalMaxLength(
+                                      1000,
+                                      'Remarks',
+                                    ),
+                                  ),
+                                ),
+                                fieldBox(
+                                  AppSwitchTile(
+                                    label: 'Default for purpose',
+                                    value: controller.formDefault,
+                                    onChanged: controller.setFormDefault,
+                                  ),
+                                ),
+                                fieldBox(
+                                  AppSwitchTile(
+                                    label: 'Active',
+                                    value: controller.formActive,
+                                    onChanged: controller.setFormActive,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: AppUiConstants.spacingLg),
                         Row(
