@@ -9,10 +9,7 @@ class SessionContextButton extends StatefulWidget {
 
 class _SessionContextButtonState extends State<SessionContextButton> {
   bool _busy = false;
-  String? _companyLabel;
-  String? _branchLabel;
-  String? _locationLabel;
-  String? _financialYearLabel;
+  WorkingContextDisplay? _display;
 
   @override
   void initState() {
@@ -44,61 +41,39 @@ class _SessionContextButtonState extends State<SessionContextButton> {
       return;
     }
 
-    final company = authContext?.companies.cast<CompanyModel?>().firstWhere(
-      (item) => item?.id == companyId,
-      orElse: () => null,
-    );
-    final branch = authContext?.branches.cast<BranchModel?>().firstWhere(
-      (item) => item?.id == branchId,
-      orElse: () => null,
-    );
-    final location = authContext?.locations
-        .cast<BusinessLocationModel?>()
-        .firstWhere((item) => item?.id == locationId, orElse: () => null);
-    final financialYear = authContext?.financialYears
-        .cast<FinancialYearModel?>()
-        .firstWhere((item) => item?.id == financialYearId, orElse: () => null);
-
     setState(() {
-      _companyLabel = company?.toString();
-      _branchLabel = branch?.toString();
-      _locationLabel = location?.toString();
-      _financialYearLabel = financialYear?.toString();
+      _display = buildWorkingContextDisplay(
+        companies: authContext?.companies ?? const <CompanyModel>[],
+        branches: authContext?.branches ?? const <BranchModel>[],
+        locations: authContext?.locations ?? const <BusinessLocationModel>[],
+        financialYears:
+            authContext?.financialYears ?? const <FinancialYearModel>[],
+        companyId: companyId,
+        branchId: branchId,
+        locationId: locationId,
+        financialYearId: financialYearId,
+      );
     });
   }
 
   String get _primarySummaryLabel {
-    final primary = <String>[
-      if ((_companyLabel ?? '').trim().isNotEmpty) _companyLabel!,
-      if ((_branchLabel ?? '').trim().isNotEmpty) _branchLabel!,
-      if ((_locationLabel ?? '').trim().isNotEmpty) _locationLabel!,
-    ];
-    if (primary.isEmpty) {
+    final value = _display?.primarySummary ?? '';
+    if (value.trim().isEmpty) {
       return 'Context';
     }
-    return primary.join(' / ');
+    return value;
   }
 
   String? get _financialYearSummaryLabel {
-    final value = (_financialYearLabel ?? '').trim();
-    if (value.isEmpty) {
-      return null;
-    }
-    return 'FY: $value';
+    return _display?.financialYearSummary;
   }
 
   String get _tooltipLabel {
-    final values = <String>[
-      if ((_companyLabel ?? '').trim().isNotEmpty) 'Company: $_companyLabel',
-      if ((_branchLabel ?? '').trim().isNotEmpty) 'Branch: $_branchLabel',
-      if ((_locationLabel ?? '').trim().isNotEmpty) 'Location: $_locationLabel',
-      if ((_financialYearLabel ?? '').trim().isNotEmpty)
-        'FY: $_financialYearLabel',
-    ];
-    if (values.isEmpty) {
+    final value = _display?.tooltipSummary ?? '';
+    if (value.trim().isEmpty) {
       return 'Working Context';
     }
-    return values.join('\n');
+    return value;
   }
 
   Future<void> _openContextDialog() async {

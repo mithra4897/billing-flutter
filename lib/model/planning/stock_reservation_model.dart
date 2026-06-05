@@ -11,6 +11,8 @@ class StockReservationModel extends JsonModel {
     this.referenceType,
     this.referenceId,
     this.referenceLineId,
+    this.referenceDocumentNo,
+    this.referenceDisplay,
     this.reservedQty,
     this.releasedQty,
     this.balanceReservedQty,
@@ -29,6 +31,8 @@ class StockReservationModel extends JsonModel {
   final String? referenceType;
   final int? referenceId;
   final int? referenceLineId;
+  final String? referenceDocumentNo;
+  final String? referenceDisplay;
   final double? reservedQty;
   final double? releasedQty;
   final double? balanceReservedQty;
@@ -50,6 +54,8 @@ class StockReservationModel extends JsonModel {
       referenceType: json['reference_type']?.toString(),
       referenceId: JsonModel.nullableInt(json['reference_id']),
       referenceLineId: JsonModel.nullableInt(json['reference_line_id']),
+      referenceDocumentNo: json['reference_document_no']?.toString(),
+      referenceDisplay: json['reference_display']?.toString(),
       reservedQty: JsonModel.nullableDouble(json['reserved_qty']),
       releasedQty: JsonModel.nullableDouble(json['released_qty']),
       balanceReservedQty: JsonModel.nullableDouble(
@@ -65,9 +71,9 @@ class StockReservationModel extends JsonModel {
   }
   @override
   String toString() => JsonModel.combineValues([
+    referenceDisplay,
     referenceType,
   ], defaultValue: 'Stock Reservation');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -80,6 +86,9 @@ class StockReservationModel extends JsonModel {
     if (referenceType != null) 'reference_type': referenceType,
     if (referenceId != null) 'reference_id': referenceId,
     if (referenceLineId != null) 'reference_line_id': referenceLineId,
+    if (referenceDocumentNo != null)
+      'reference_document_no': referenceDocumentNo,
+    if (referenceDisplay != null) 'reference_display': referenceDisplay,
     if (reservedQty != null) 'reserved_qty': reservedQty,
     if (releasedQty != null) 'released_qty': releasedQty,
     if (balanceReservedQty != null) 'balance_reserved_qty': balanceReservedQty,

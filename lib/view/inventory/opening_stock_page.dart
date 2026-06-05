@@ -393,9 +393,19 @@ class _OpeningStockEditor extends StatelessWidget {
     }
 
     final canEdit = vm.status == 'draft';
-    final contextLabel = vm.contextLabels.isEmpty
+    final contextDisplay = buildWorkingContextDisplay(
+      companies: vm.companies,
+      branches: vm.branches,
+      locations: vm.locations,
+      financialYears: vm.financialYears,
+      companyId: vm.companyId,
+      branchId: vm.branchId,
+      locationId: vm.locationId,
+      financialYearId: vm.financialYearId,
+    );
+    final contextLabel = contextDisplay.fullSummary.trim().isEmpty
         ? 'No working context selected'
-        : vm.contextLabels.join(' / ');
+        : contextDisplay.fullSummary;
     return Form(
       child: Builder(
         builder: (formContext) => Column(
@@ -407,7 +417,24 @@ class _OpeningStockEditor extends StatelessWidget {
             ],
             InputDecorator(
               decoration: const InputDecoration(labelText: 'Context'),
-              child: Text(contextLabel),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    contextDisplay.primarySummary.trim().isEmpty
+                        ? 'No working context selected'
+                        : contextDisplay.primarySummary,
+                  ),
+                  if (contextDisplay.financialYearSummary != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      contextDisplay.financialYearSummary!,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
             SettingsFormWrap(

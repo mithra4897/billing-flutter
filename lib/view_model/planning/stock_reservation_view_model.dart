@@ -1,6 +1,21 @@
 import '../../../screen.dart';
 
 class StockReservationViewModel extends GetxController {
+  static const List<AppDropdownItem<String>> referenceTypeItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem<String>(value: 'sales_order', label: 'Sales Order'),
+        AppDropdownItem<String>(
+          value: 'production_order',
+          label: 'Production Order',
+        ),
+        AppDropdownItem<String>(value: 'jobwork_order', label: 'Jobwork Order'),
+        AppDropdownItem<String>(value: 'service_order', label: 'Service Order'),
+        AppDropdownItem<String>(value: 'project_order', label: 'Project Order'),
+        AppDropdownItem<String>(value: 'site_request', label: 'Site Request'),
+        AppDropdownItem<String>(value: 'customer_hold', label: 'Customer Hold'),
+        AppDropdownItem<String>(value: 'sample_order', label: 'Sample Order'),
+      ];
+
   final PlanningService _service = PlanningService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
@@ -299,6 +314,12 @@ class StockReservationViewModel extends GetxController {
   void setSerialId(int? value) {
     if (isLocked) return;
     serialId = value;
+    update();
+  }
+
+  void setReferenceType(String? value) {
+    if (isLocked) return;
+    referenceTypeController.text = value ?? '';
     update();
   }
 

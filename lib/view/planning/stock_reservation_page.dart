@@ -30,7 +30,7 @@ class _StockReservationPageState extends State<StockReservationPage> {
     _viewModel = Get.put(
       StockReservationViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -119,9 +119,13 @@ class _StockReservationPageState extends State<StockReservationPage> {
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(
-            title:
-                '${stringValue(data, 'reference_type')} #${intValue(data, 'reference_id') ?? '-'}',
+            title: stringValue(
+              data,
+              'reference_display',
+              '${stringValue(data, 'reference_type')} #${intValue(data, 'reference_id') ?? '-'}',
+            ),
             subtitle: [
+              stringValue(data, 'reference_document_no'),
               stringValue(data, 'status'),
               stringValue(data, 'reserved_qty'),
             ].where((x) => x.trim().isNotEmpty).join(' · '),
@@ -254,17 +258,20 @@ class _StockReservationEditor extends StatelessWidget {
                   initialValue: vm.serialId,
                   onChanged: vm.setSerialId,
                 ),
-                AppFormTextField(
+                AppDropdownField<String>.fromMapped(
                   labelText: 'Reference Type',
-                  controller: vm.referenceTypeController,
-                  enabled: !vm.isLocked,
-                  validator: Validators.required('Reference Type'),
+                  mappedItems: StockReservationViewModel.referenceTypeItems,
+                  initialValue: vm.referenceTypeController.text.trim().isEmpty
+                      ? null
+                      : vm.referenceTypeController.text.trim(),
+                  onChanged: vm.setReferenceType,
                 ),
                 AppFormTextField(
-                  labelText: 'Reference Id',
+                  labelText: 'Reference Id (Record Id)',
                   controller: vm.referenceIdController,
                   enabled: !vm.isLocked,
                   keyboardType: TextInputType.number,
+                  hintText: 'Use internal id, not document no like SO-001',
                   validator: Validators.compose([
                     Validators.required('Reference Id'),
                     Validators.optionalMinimumInteger(1, 'Reference Id'),

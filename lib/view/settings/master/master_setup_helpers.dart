@@ -102,6 +102,113 @@ String locationNameById(List<BusinessLocationModel> locations, int? id) {
       '';
 }
 
+String companyContextLabelById(List<CompanyModel> companies, int? id) {
+  return companies
+          .cast<CompanyModel?>()
+          .firstWhere((item) => item?.id == id, orElse: () => null)
+          ?.toString() ??
+      '';
+}
+
+String branchContextLabelById(List<BranchModel> branches, int? id) {
+  return branches
+          .cast<BranchModel?>()
+          .firstWhere((item) => item?.id == id, orElse: () => null)
+          ?.toString() ??
+      '';
+}
+
+String locationContextLabelById(
+  List<BusinessLocationModel> locations,
+  int? id,
+) {
+  return locations
+          .cast<BusinessLocationModel?>()
+          .firstWhere((item) => item?.id == id, orElse: () => null)
+          ?.toString() ??
+      '';
+}
+
+String financialYearContextLabelById(
+  List<FinancialYearModel> financialYears,
+  int? id,
+) {
+  return financialYears
+          .cast<FinancialYearModel?>()
+          .firstWhere((item) => item?.id == id, orElse: () => null)
+          ?.toString() ??
+      '';
+}
+
+class WorkingContextDisplay {
+  const WorkingContextDisplay({
+    required this.companyLabel,
+    required this.branchLabel,
+    required this.locationLabel,
+    required this.financialYearLabel,
+  });
+
+  final String companyLabel;
+  final String branchLabel;
+  final String locationLabel;
+  final String financialYearLabel;
+
+  List<String> get primarySegments => <String>[
+    companyLabel,
+    branchLabel,
+    locationLabel,
+  ].where((value) => value.trim().isNotEmpty).toList(growable: false);
+
+  String get primarySummary => primarySegments.join(' / ');
+
+  String? get financialYearSummary {
+    final value = financialYearLabel.trim();
+    if (value.isEmpty) {
+      return null;
+    }
+    return 'FY: $value';
+  }
+
+  String get fullSummary {
+    final fySummary = financialYearSummary;
+    return <String>[
+      ...primarySegments,
+      ...?fySummary == null ? null : <String>[fySummary],
+    ].join(' / ');
+  }
+
+  String get tooltipSummary {
+    final fySummary = financialYearSummary;
+    return <String>[
+      if (companyLabel.trim().isNotEmpty) 'Company: $companyLabel',
+      if (branchLabel.trim().isNotEmpty) 'Branch: $branchLabel',
+      if (locationLabel.trim().isNotEmpty) 'Location: $locationLabel',
+      ...?fySummary == null ? null : <String>[fySummary],
+    ].join('\n');
+  }
+}
+
+WorkingContextDisplay buildWorkingContextDisplay({
+  required List<CompanyModel> companies,
+  required List<BranchModel> branches,
+  required List<BusinessLocationModel> locations,
+  required List<FinancialYearModel> financialYears,
+  required int? companyId,
+  required int? branchId,
+  required int? locationId,
+  required int? financialYearId,
+}) {
+  return WorkingContextDisplay(
+    companyLabel: companyContextLabelById(companies, companyId),
+    branchLabel: branchContextLabelById(branches, branchId),
+    locationLabel: locationContextLabelById(locations, locationId),
+    financialYearLabel: financialYearContextLabelById(
+      financialYears,
+      financialYearId,
+    ),
+  );
+}
+
 List<BranchModel> branchesForCompany(
   List<BranchModel> branches,
   int? companyId,
@@ -230,19 +337,20 @@ List<String> workingContextLabels({
   required int? locationId,
   required int? financialYearId,
 }) {
+  final display = buildWorkingContextDisplay(
+    companies: companies,
+    branches: branches,
+    locations: locations,
+    financialYears: financialYears,
+    companyId: companyId,
+    branchId: branchId,
+    locationId: locationId,
+    financialYearId: financialYearId,
+  );
   return <String>[
-    companyNameById(companies, companyId),
-    branchNameById(branches, branchId),
-    locationNameById(locations, locationId),
-    financialYears
-            .cast<FinancialYearModel?>()
-            .firstWhere(
-              (item) => item?.id == financialYearId,
-              orElse: () => null,
-            )
-            ?.toString() ??
-        '',
-  ].where((value) => value.trim().isNotEmpty).toList(growable: false);
+    ...display.primarySegments,
+    if (display.financialYearSummary != null) display.financialYearSummary!,
+  ];
 }
 
 List<DocumentSeriesModel> documentSeriesForContext({
