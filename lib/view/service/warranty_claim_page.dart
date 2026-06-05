@@ -378,10 +378,25 @@ class _WarrantyClaimEditor extends StatelessWidget {
                     enabled: edit,
                     maxLines: 3,
                   ),
-                  AppFormTextField(
+                  AppDropdownField<String>.fromMapped(
                     labelText: 'Priority',
-                    controller: vm.priorityController,
-                    enabled: edit,
+                    mappedItems: const [
+                      AppDropdownItem<String>(value: 'low', label: 'Low'),
+                      AppDropdownItem<String>(value: 'normal', label: 'Normal'),
+                      AppDropdownItem<String>(value: 'high', label: 'High'),
+                      AppDropdownItem<String>(
+                        value: 'critical',
+                        label: 'Critical',
+                      ),
+                    ],
+                    initialValue: vm.priorityController.text.trim().isEmpty
+                        ? 'normal'
+                        : vm.priorityController.text.trim(),
+                    onChanged: (value) {
+                      if (edit) {
+                        vm.priorityController.text = value ?? 'normal';
+                      }
+                    },
                   ),
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Branch (optional)',

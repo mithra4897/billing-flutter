@@ -20,6 +20,7 @@ class ServiceContractModel extends JsonModel {
     this.salesInvoiceId,
     this.contractStatus,
     this.notes,
+    this.assets = const <ServiceContractAssetModel>[],
     this.approvedBy,
     this.approvedAt,
     this.createdBy,
@@ -44,6 +45,7 @@ class ServiceContractModel extends JsonModel {
   final int? salesInvoiceId;
   final String? contractStatus;
   final String? notes;
+  final List<ServiceContractAssetModel> assets;
   final int? approvedBy;
   final String? approvedAt;
   final int? createdBy;
@@ -73,6 +75,7 @@ class ServiceContractModel extends JsonModel {
       salesInvoiceId: JsonModel.nullableInt(json['sales_invoice_id']),
       contractStatus: json['contract_status']?.toString(),
       notes: json['notes']?.toString(),
+      assets: _assets(json['assets']),
       approvedBy: JsonModel.nullableInt(json['approved_by']),
       approvedAt: json['approved_at']?.toString(),
       createdBy: JsonModel.nullableInt(json['created_by']),
@@ -87,7 +90,6 @@ class ServiceContractModel extends JsonModel {
     contractDate,
     contractStartDate,
   ], defaultValue: 'Service Contract');
-
 
   @override
   Map<String, dynamic> toJson() => {
@@ -110,6 +112,8 @@ class ServiceContractModel extends JsonModel {
     if (salesInvoiceId != null) 'sales_invoice_id': salesInvoiceId,
     if (contractStatus != null) 'contract_status': contractStatus,
     if (notes != null) 'notes': notes,
+    if (assets.isNotEmpty)
+      'assets': assets.map((asset) => asset.toJson()).toList(growable: false),
     if (approvedBy != null) 'approved_by': approvedBy,
     if (approvedAt != null) 'approved_at': approvedAt,
     if (createdBy != null) 'created_by': createdBy,
@@ -117,4 +121,18 @@ class ServiceContractModel extends JsonModel {
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
   };
+
+  static List<ServiceContractAssetModel> _assets(dynamic value) {
+    if (value is! List) {
+      return const <ServiceContractAssetModel>[];
+    }
+    return value
+        .whereType<Map>()
+        .map(
+          (item) => ServiceContractAssetModel.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .toList(growable: false);
+  }
 }

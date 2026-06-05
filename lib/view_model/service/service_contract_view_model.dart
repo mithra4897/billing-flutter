@@ -219,11 +219,11 @@ class ServiceContractViewModel extends GetxController {
         .toIso8601String()
         .split('T')
         .first;
-    contractTypeController.clear();
-    startDateController.clear();
+    contractTypeController.text = 'warranty';
+    startDateController.text = contractDateController.text;
     endDateController.clear();
-    coverageController.clear();
-    visitFrequencyController.clear();
+    coverageController.text = 'labor_only';
+    visitFrequencyController.text = 'on_call';
     responseTimeController.clear();
     resolutionTimeController.clear();
     contractValueController.text = '0';
@@ -334,6 +334,20 @@ class ServiceContractViewModel extends GetxController {
     final cd = contractDateController.text.trim();
     if (cd.isEmpty) {
       return 'Contract date is required.';
+    }
+    final startDate = startDateController.text.trim();
+    if (startDate.isEmpty) {
+      return 'Start date is required.';
+    }
+    final endDate = endDateController.text.trim();
+    final endDateError = Validators.dateOnOrAfterField(
+      endDate,
+      'End date',
+      startDate,
+      startFieldName: 'Start date',
+    );
+    if (endDateError != null) {
+      return endDateError;
     }
     final manualNo = contractNoController.text.trim();
     if (manualNo.isEmpty && documentSeriesId == null) {

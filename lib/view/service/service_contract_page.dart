@@ -294,10 +294,37 @@ class _ServiceContractEditor extends StatelessWidget {
                     enabled: edit,
                     validator: Validators.required('Contract date'),
                   ),
-                  AppFormTextField(
+                  AppDropdownField<String>.fromMapped(
                     labelText: 'Contract type',
-                    controller: vm.contractTypeController,
-                    enabled: edit,
+                    mappedItems: const [
+                      AppDropdownItem<String>(
+                        value: 'warranty',
+                        label: 'Warranty',
+                      ),
+                      AppDropdownItem<String>(value: 'amc', label: 'AMC'),
+                      AppDropdownItem<String>(value: 'cmc', label: 'CMC'),
+                      AppDropdownItem<String>(
+                        value: 'installation_support',
+                        label: 'Installation support',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'paid_support',
+                        label: 'Paid support',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'extended_warranty',
+                        label: 'Extended warranty',
+                      ),
+                      AppDropdownItem<String>(value: 'other', label: 'Other'),
+                    ],
+                    initialValue: vm.contractTypeController.text.trim().isEmpty
+                        ? 'warranty'
+                        : vm.contractTypeController.text.trim(),
+                    onChanged: (value) {
+                      if (edit) {
+                        vm.contractTypeController.text = value ?? 'warranty';
+                      }
+                    },
                   ),
                   AppDateField(
                     labelText: 'Start date',
@@ -309,16 +336,75 @@ class _ServiceContractEditor extends StatelessWidget {
                     controller: vm.endDateController,
                     enabled: edit,
                   ),
-                  AppFormTextField(
+                  AppDropdownField<String>.fromMapped(
                     labelText: 'Coverage scope',
-                    controller: vm.coverageController,
-                    enabled: edit,
-                    maxLines: 2,
+                    mappedItems: const [
+                      AppDropdownItem<String>(
+                        value: 'labor_only',
+                        label: 'Labor only',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'parts_only',
+                        label: 'Parts only',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'labor_and_parts',
+                        label: 'Labor and parts',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'inspection_only',
+                        label: 'Inspection only',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'installation_only',
+                        label: 'Installation only',
+                      ),
+                      AppDropdownItem<String>(value: 'custom', label: 'Custom'),
+                    ],
+                    initialValue: vm.coverageController.text.trim().isEmpty
+                        ? 'labor_only'
+                        : vm.coverageController.text.trim(),
+                    onChanged: (value) {
+                      if (edit) {
+                        vm.coverageController.text = value ?? 'labor_only';
+                      }
+                    },
                   ),
-                  AppFormTextField(
+                  AppDropdownField<String>.fromMapped(
                     labelText: 'Visit frequency',
-                    controller: vm.visitFrequencyController,
-                    enabled: edit,
+                    mappedItems: const [
+                      AppDropdownItem<String>(
+                        value: 'one_time',
+                        label: 'One time',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'monthly',
+                        label: 'Monthly',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'quarterly',
+                        label: 'Quarterly',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'half_yearly',
+                        label: 'Half yearly',
+                      ),
+                      AppDropdownItem<String>(value: 'yearly', label: 'Yearly'),
+                      AppDropdownItem<String>(
+                        value: 'on_call',
+                        label: 'On call',
+                      ),
+                      AppDropdownItem<String>(value: 'custom', label: 'Custom'),
+                    ],
+                    initialValue:
+                        vm.visitFrequencyController.text.trim().isEmpty
+                        ? 'on_call'
+                        : vm.visitFrequencyController.text.trim(),
+                    onChanged: (value) {
+                      if (edit) {
+                        vm.visitFrequencyController.text = value ?? 'on_call';
+                      }
+                    },
                   ),
                   AppFormTextField(
                     labelText: 'Response time (hours)',
@@ -358,20 +444,17 @@ class _ServiceContractEditor extends StatelessWidget {
                     enabled: edit,
                     keyboardType: TextInputType.number,
                   ),
-                  if (vm.selected != null)
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: AppUiConstants.spacingSm,
-                        bottom: AppUiConstants.spacingSm,
-                      ),
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Status',
-                          border: OutlineInputBorder(),
-                        ),
-                        child: Text(vm.contractStatus),
-                      ),
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(),
                     ),
+                    child: Text(
+                      vm.contractStatus.trim().isEmpty
+                          ? 'draft'
+                          : vm.contractStatus,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingMd),

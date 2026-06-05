@@ -58,7 +58,7 @@ class ServiceTicketModel extends JsonModel {
   final int? serialId;
   final String? serialNo;
   final String? ticketType;
-  final int? priorityLevel;
+  final String? priorityLevel;
   final String? issueTitle;
   final String? issueDescription;
   final String? ticketSource;
@@ -100,7 +100,7 @@ class ServiceTicketModel extends JsonModel {
       serialId: JsonModel.nullableInt(json['serial_id']),
       serialNo: json['serial_no']?.toString(),
       ticketType: json['ticket_type']?.toString(),
-      priorityLevel: JsonModel.nullableInt(json['priority_level']),
+      priorityLevel: json['priority_level']?.toString(),
       issueTitle: json['issue_title']?.toString(),
       issueDescription: json['issue_description']?.toString(),
       ticketSource: json['ticket_source']?.toString(),
@@ -127,7 +127,6 @@ class ServiceTicketModel extends JsonModel {
     contactPersonName,
     serialNo,
   ], defaultValue: 'Service Ticket');
-
 
   @override
   Map<String, dynamic> toJson() => {

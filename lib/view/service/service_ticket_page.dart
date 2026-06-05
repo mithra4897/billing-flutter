@@ -322,10 +322,96 @@ class _ServiceTicketEditor extends StatelessWidget {
                     enabled: edit,
                     maxLines: 3,
                   ),
-                  AppFormTextField(
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Ticket type',
+                    mappedItems: const [
+                      AppDropdownItem<String>(
+                        value: 'complaint',
+                        label: 'Complaint',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'installation',
+                        label: 'Installation',
+                      ),
+                      AppDropdownItem<String>(value: 'demo', label: 'Demo'),
+                      AppDropdownItem<String>(
+                        value: 'preventive_service',
+                        label: 'Preventive service',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'breakdown',
+                        label: 'Breakdown',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'amc_visit',
+                        label: 'AMC visit',
+                      ),
+                      AppDropdownItem<String>(
+                        value: 'paid_service',
+                        label: 'Paid service',
+                      ),
+                      AppDropdownItem<String>(value: 'other', label: 'Other'),
+                    ],
+                    initialValue: vm.ticketType,
+                    onChanged: (value) {
+                      if (edit) {
+                        vm.setTicketType(value);
+                      }
+                    },
+                  ),
+                  AppDropdownField<String>.fromMapped(
                     labelText: 'Priority',
-                    controller: vm.priorityController,
-                    enabled: edit,
+                    mappedItems: const [
+                      AppDropdownItem<String>(value: 'low', label: 'Low'),
+                      AppDropdownItem<String>(value: 'normal', label: 'Normal'),
+                      AppDropdownItem<String>(value: 'high', label: 'High'),
+                      AppDropdownItem<String>(
+                        value: 'critical',
+                        label: 'Critical',
+                      ),
+                    ],
+                    initialValue: vm.priorityLevel,
+                    onChanged: (value) {
+                      if (edit) {
+                        vm.setPriorityLevel(value);
+                      }
+                    },
+                  ),
+                  AppDropdownField<int?>.fromMapped(
+                    labelText: 'Contract (optional)',
+                    mappedItems: [
+                      const AppDropdownItem<int?>(value: null, label: '-'),
+                      ...vm.contractOptions.map(
+                        (contract) => AppDropdownItem<int?>(
+                          value: contract.id!,
+                          label: contract.toString(),
+                        ),
+                      ),
+                    ],
+                    initialValue: vm.serviceContractId,
+                    onChanged: (int? v) {
+                      if (edit) {
+                        unawaited(vm.setServiceContractId(v));
+                      }
+                    },
+                  ),
+                  AppDropdownField<int?>.fromMapped(
+                    labelText: 'Contract asset (optional)',
+                    mappedItems: [
+                      const AppDropdownItem<int?>(value: null, label: '-'),
+                      ...vm.contractAssetOptions.map(
+                        (asset) => AppDropdownItem<int?>(
+                          value: asset.id!,
+                          label: asset.toString(),
+                        ),
+                      ),
+                    ],
+                    initialValue: vm.serviceContractAssetId,
+                    onChanged: (value) {
+                      if (edit) {
+                        vm.setServiceContractAssetId(value);
+                      }
+                    },
                   ),
                   AppDropdownField<int?>.fromMapped(
                     labelText: 'Branch (optional)',

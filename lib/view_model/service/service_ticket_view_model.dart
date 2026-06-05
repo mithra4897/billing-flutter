@@ -19,7 +19,6 @@ class ServiceTicketViewModel extends GetxController {
   final TextEditingController issueTitleController = TextEditingController();
   final TextEditingController issueDescriptionController =
       TextEditingController();
-  final TextEditingController priorityController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController contactPersonController = TextEditingController();
   final TextEditingController contactMobileController = TextEditingController();
@@ -42,6 +41,9 @@ class ServiceTicketViewModel extends GetxController {
   List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<UserModel> users = const <UserModel>[];
+  List<ServiceContractModel> contracts = const <ServiceContractModel>[];
+  List<ServiceContractAssetModel> contractAssets =
+      const <ServiceContractAssetModel>[];
 
   ServiceTicketModel? selected;
 
@@ -51,6 +53,10 @@ class ServiceTicketViewModel extends GetxController {
   int? branchId;
   int? locationId;
   int? financialYearId;
+  int? serviceContractId;
+  int? serviceContractAssetId;
+  String ticketType = 'complaint';
+  String priorityLevel = 'normal';
 
   int? _sessionCompanyId;
   int? _contextFinancialYearId;
@@ -172,6 +178,7 @@ class ServiceTicketViewModel extends GetxController {
         _masterService.businessLocations(filters: const {'per_page': 400}),
         _masterService.financialYears(filters: const {'per_page': 100}),
         _authService.users(filters: const {'per_page': 500}),
+        _service.contracts(filters: filters),
       ]);
 
       var rawRows =
@@ -217,6 +224,14 @@ class ServiceTicketViewModel extends GetxController {
           ((responses[7] as PaginatedResponse<UserModel>).data ??
                   const <UserModel>[])
               .where((x) => (x.status ?? '').toLowerCase() != 'inactive')
+              .toList(growable: false);
+      contracts =
+          ((responses[8] as PaginatedResponse<ServiceContractModel>).data ??
+                  const <ServiceContractModel>[])
+              .where((x) {
+                final status = (x.contractStatus ?? '').toLowerCase();
+                return status == 'active';
+              })
               .toList(growable: false);
       _contextFinancialYearId = await _resolveContextFinancialYearId();
 
@@ -268,6 +283,11 @@ class ServiceTicketViewModel extends GetxController {
     customerPartyId = null;
     branchId = null;
     locationId = null;
+    serviceContractId = null;
+    serviceContractAssetId = null;
+    contractAssets = const <ServiceContractAssetModel>[];
+    ticketType = 'complaint';
+    priorityLevel = 'normal';
     ticketNoController.clear();
     ticketDateController.text = DateTime.now()
         .toIso8601String()
@@ -275,7 +295,6 @@ class ServiceTicketViewModel extends GetxController {
         .first;
     issueTitleController.clear();
     issueDescriptionController.clear();
-    priorityController.text = 'medium';
     notesController.clear();
     contactPersonController.clear();
     contactMobileController.clear();
@@ -314,6 +333,28 @@ class ServiceTicketViewModel extends GetxController {
       return;
     }
     customerPartyId = value;
+    final contractOk =
+        serviceContractId == null ||
+        contractOptions.any((contract) => contract.id == serviceContractId);
+    if (!contractOk) {
+      unawaited(setServiceContractId(null));
+    }
+    update();
+  }
+
+  void setTicketType(String? value) {
+    if (!canEdit || value == null) {
+      return;
+    }
+    ticketType = value;
+    update();
+  }
+
+  void setPriorityLevel(String? value) {
+    if (!canEdit || value == null) {
+      return;
+    }
+    priorityLevel = value;
     update();
   }
 
@@ -338,6 +379,54 @@ class ServiceTicketViewModel extends GetxController {
       return;
     }
     financialYearId = value;
+    update();
+  }
+
+  Future<void> setServiceContractId(int? value) async {
+    serviceContractId = value;
+    serviceContractAssetId = null;
+    contractAssets = const <ServiceContractAssetModel>[];
+    update();
+
+    if (value == null) {
+      return;
+    }
+
+    try {
+      final response = await _service.contract(value);
+      final data = response.data?.toJson() ?? const <String, dynamic>{};
+      final rawAssets = data['assets'];
+      if (rawAssets is List) {
+        contractAssets = rawAssets
+            .whereType<Map>()
+            .map(
+              (item) => ServiceContractAssetModel.fromJson(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .where((asset) => asset.id != null && asset.isActive != false)
+            .toList(growable: false);
+      }
+    } catch (e) {
+      formError = e.toString();
+    }
+    update();
+  }
+
+  void setServiceContractAssetId(int? value) {
+    if (!canEdit) {
+      return;
+    }
+    serviceContractAssetId = value;
+    final asset = contractAssets.cast<ServiceContractAssetModel?>().firstWhere(
+      (item) => item?.id == value,
+      orElse: () => null,
+    );
+    if (asset != null) {
+      itemIdController.text = asset.itemId?.toString() ?? itemIdController.text;
+      serialIdController.text =
+          asset.serialId?.toString() ?? serialIdController.text;
+    }
     update();
   }
 
@@ -412,6 +501,31 @@ class ServiceTicketViewModel extends GetxController {
         .toList(growable: false);
   }
 
+  List<ServiceContractModel> get contractOptions {
+    final cid = companyId;
+    final customerId = customerPartyId;
+    return contracts
+        .where((contract) {
+          if (contract.id == null) {
+            return false;
+          }
+          if (cid != null && contract.companyId != cid) {
+            return false;
+          }
+          if (customerId != null && contract.customerPartyId != customerId) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
+  }
+
+  List<ServiceContractAssetModel> get contractAssetOptions {
+    return contractAssets
+        .where((asset) => asset.id != null && asset.isActive != false)
+        .toList(growable: false);
+  }
+
   List<FinancialYearModel> get financialYearOptions {
     final cid = companyId;
     return financialYears
@@ -459,9 +573,25 @@ class ServiceTicketViewModel extends GetxController {
     );
     issueTitleController.text = stringValue(data, 'issue_title');
     issueDescriptionController.text = stringValue(data, 'issue_description');
-    priorityController.text = stringValue(data, 'priority_level');
-    if (priorityController.text.trim().isEmpty) {
-      priorityController.text = 'medium';
+    ticketType = stringValue(data, 'ticket_type');
+    if (ticketType.trim().isEmpty) {
+      ticketType = 'complaint';
+    }
+    priorityLevel = stringValue(data, 'priority_level');
+    if (priorityLevel.trim().isEmpty) {
+      priorityLevel = 'normal';
+    }
+    serviceContractId = intValue(data, 'service_contract_id');
+    serviceContractAssetId = intValue(data, 'service_contract_asset_id');
+    if (serviceContractId != null) {
+      unawaited(
+        setServiceContractId(serviceContractId).then((_) {
+          serviceContractAssetId = intValue(data, 'service_contract_asset_id');
+          update();
+        }),
+      );
+    } else {
+      contractAssets = const <ServiceContractAssetModel>[];
     }
     notesController.text = stringValue(data, 'notes');
     contactPersonController.text = stringValue(data, 'contact_person_name');
@@ -500,8 +630,8 @@ class ServiceTicketViewModel extends GetxController {
       'customer_party_id': customerPartyId,
       'ticket_date': ticketDateController.text.trim(),
       'issue_title': issueTitleController.text.trim(),
-      'ticket_type': 'complaint',
-      'priority_level': nullIfEmpty(priorityController.text) ?? 'normal',
+      'ticket_type': ticketType,
+      'priority_level': priorityLevel,
       'issue_description': nullIfEmpty(issueDescriptionController.text),
       'notes': nullIfEmpty(notesController.text),
       'contact_person_name': nullIfEmpty(contactPersonController.text),
@@ -510,6 +640,8 @@ class ServiceTicketViewModel extends GetxController {
       if (branchId != null) 'branch_id': branchId,
       if (locationId != null) 'location_id': locationId,
       if (financialYearId != null) 'financial_year_id': financialYearId,
+      'service_contract_id': ?serviceContractId,
+      'service_contract_asset_id': ?serviceContractAssetId,
       'item_id': ?itemId,
       'serial_id': ?serialId,
       'document_series_id': ?documentSeriesId,
@@ -527,9 +659,9 @@ class ServiceTicketViewModel extends GetxController {
       'customer_party_id': customerPartyId,
       'ticket_date': ticketDateController.text.trim(),
       'issue_title': issueTitleController.text.trim(),
-      'ticket_type': stringValue(data, 'ticket_type'),
+      'ticket_type': ticketType,
       'ticket_status': stringValue(data, 'ticket_status'),
-      'priority_level': nullIfEmpty(priorityController.text) ?? 'normal',
+      'priority_level': priorityLevel,
       'issue_description': nullIfEmpty(issueDescriptionController.text),
       'notes': nullIfEmpty(notesController.text),
       'contact_person_name': nullIfEmpty(contactPersonController.text),
@@ -538,6 +670,8 @@ class ServiceTicketViewModel extends GetxController {
       if (branchId != null) 'branch_id': branchId,
       if (locationId != null) 'location_id': locationId,
       if (financialYearId != null) 'financial_year_id': financialYearId,
+      'service_contract_id': ?serviceContractId,
+      'service_contract_asset_id': ?serviceContractAssetId,
       'item_id': ?itemId,
       'serial_id': ?serialId,
       if (ticketNo.isNotEmpty) 'ticket_no': ticketNo,
@@ -678,7 +812,6 @@ class ServiceTicketViewModel extends GetxController {
     ticketDateController.dispose();
     issueTitleController.dispose();
     issueDescriptionController.dispose();
-    priorityController.dispose();
     notesController.dispose();
     contactPersonController.dispose();
     contactMobileController.dispose();

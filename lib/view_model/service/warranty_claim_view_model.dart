@@ -273,7 +273,7 @@ class WarrantyClaimViewModel extends GetxController {
         .first;
     issueTitleController.clear();
     issueDescriptionController.clear();
-    priorityController.text = 'medium';
+    priorityController.text = 'normal';
     notesController.clear();
     contactPersonController.clear();
     contactMobileController.clear();
@@ -460,7 +460,7 @@ class WarrantyClaimViewModel extends GetxController {
     issueDescriptionController.text = stringValue(data, 'issue_description');
     priorityController.text = stringValue(data, 'priority_level');
     if (priorityController.text.trim().isEmpty) {
-      priorityController.text = 'medium';
+      priorityController.text = 'normal';
     }
     notesController.text = stringValue(data, 'notes');
     contactPersonController.text = stringValue(data, 'contact_person_name');
