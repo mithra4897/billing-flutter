@@ -267,6 +267,27 @@ class _ProductionOrderEditor extends StatelessWidget {
                   controller: vm.productionNoController,
                   enabled: !vm.isLocked,
                 ),
+                DocumentSeriesSelector<int>(
+                  labelText: 'Document Series',
+                  mappedItems: vm.seriesOptions
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => AppDropdownItem<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                        ),
+                      )
+                      .toList(growable: false),
+                  initialValue: vm.documentSeriesId,
+                  onChanged: vm.setDocumentSeriesId,
+                  validator: (value) {
+                    if (vm.productionNoController.text.trim().isEmpty &&
+                        value == null) {
+                      return 'Document Series is required';
+                    }
+                    return null;
+                  },
+                ),
                 AppFormTextField(
                   labelText: 'Production Date',
                   controller: vm.productionDateController,

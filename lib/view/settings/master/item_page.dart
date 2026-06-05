@@ -442,6 +442,11 @@ class _ItemManagementPageState extends State<ItemManagementPage>
                 onChanged: controller.setIsPurchaseable,
               ),
               AppToggleChip(
+                label: 'Manufacturable',
+                value: controller.isManufacturable,
+                onChanged: controller.setIsManufacturable,
+              ),
+              AppToggleChip(
                 label: 'Jobwork Applicable',
                 value: controller.isJobworkApplicable,
                 onChanged: controller.setIsJobworkApplicable,

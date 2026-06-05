@@ -73,14 +73,87 @@ class ProductionOrderViewModel extends GetxController {
       .where((fy) => companyId == null || fy.companyId == companyId)
       .toList(growable: false);
 
-  List<DocumentSeriesModel> get seriesOptions => documentSeries
-      .where(
-        (s) =>
-            (s.documentType == null || s.documentType == 'PRODUCTION_ORDER') &&
-            (companyId == null || s.companyId == companyId) &&
-            (financialYearId == null || s.financialYearId == financialYearId),
-      )
-      .toList(growable: false);
+  List<DocumentSeriesModel> get seriesOptions {
+    final options = documentSeries
+        .where((series) {
+          if (series.documentType != 'PRODUCTION_ORDER') {
+            return false;
+          }
+          if (companyId != null && series.companyId != companyId) {
+            return false;
+          }
+          if (branchId != null &&
+              series.branchId != null &&
+              series.branchId != branchId) {
+            return false;
+          }
+          if (locationId != null &&
+              series.locationId != null &&
+              series.locationId != locationId) {
+            return false;
+          }
+          if (financialYearId != null &&
+              series.financialYearId != null &&
+              series.financialYearId != financialYearId) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
+
+    if (documentSeriesId == null ||
+        options.any((series) => series.id == documentSeriesId)) {
+      return options;
+    }
+
+    final current = documentSeries.cast<DocumentSeriesModel?>().firstWhere(
+      (series) => series?.id == documentSeriesId,
+      orElse: () => null,
+    );
+
+    return current == null
+        ? options
+        : <DocumentSeriesModel>[...options, current];
+  }
+
+  DocumentSeriesModel? get _resolvedDocumentSeries {
+    DocumentSeriesModel? fallback;
+    for (final series in documentSeries) {
+      if (series.documentType != 'PRODUCTION_ORDER') {
+        continue;
+      }
+      if (companyId != null && series.companyId != companyId) {
+        continue;
+      }
+      if (branchId != null &&
+          series.branchId != null &&
+          series.branchId != branchId) {
+        continue;
+      }
+      if (locationId != null &&
+          series.locationId != null &&
+          series.locationId != locationId) {
+        continue;
+      }
+      if (financialYearId != null &&
+          series.financialYearId != null &&
+          series.financialYearId != financialYearId) {
+        continue;
+      }
+      if (documentSeriesId == series.id) {
+        return series;
+      }
+      fallback ??= series;
+      if (series.isDefault) {
+        return series;
+      }
+    }
+    return fallback;
+  }
+
+  void _syncDocumentSeries() {
+    documentSeriesId = _resolvedDocumentSeries?.id;
+  }
 
   List<BomModel> get bomOptions => boms
       .where((bom) {
@@ -262,7 +335,7 @@ class ProductionOrderViewModel extends GetxController {
     branchId = contextSelection.branchId;
     locationId = contextSelection.locationId;
     financialYearId = contextSelection.financialYearId;
-    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    _syncDocumentSeries();
     bomId = null;
     outputItemId = null;
     outputUomId = null;
@@ -322,7 +395,7 @@ class ProductionOrderViewModel extends GetxController {
     financialYearId = financialYearOptions.isNotEmpty
         ? financialYearOptions.first.id
         : null;
-    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    _syncDocumentSeries();
     bomId = null;
     outputItemId = null;
     outputUomId = null;
@@ -336,12 +409,14 @@ class ProductionOrderViewModel extends GetxController {
     if (isLocked) return;
     branchId = value;
     locationId = locationOptions.isNotEmpty ? locationOptions.first.id : null;
+    _syncDocumentSeries();
     update();
   }
 
   void onLocationChanged(int? value) {
     if (isLocked) return;
     locationId = value;
+    _syncDocumentSeries();
     warehouseId = warehouseOptions.isNotEmpty
         ? warehouseOptions.first.id
         : null;
@@ -351,7 +426,13 @@ class ProductionOrderViewModel extends GetxController {
   void onFinancialYearChanged(int? value) {
     if (isLocked) return;
     financialYearId = value;
-    documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
+    _syncDocumentSeries();
+    update();
+  }
+
+  void setDocumentSeriesId(int? value) {
+    if (isLocked) return;
+    documentSeriesId = value;
     update();
   }
 
@@ -415,6 +496,12 @@ class ProductionOrderViewModel extends GetxController {
     }
     if (financialYearOptions.every((fy) => fy.id != financialYearId)) {
       return 'Select a financial year for the chosen company.';
+    }
+    if (documentSeriesId == null) {
+      return 'Document series is required.';
+    }
+    if (seriesOptions.every((series) => series.id != documentSeriesId)) {
+      return 'Select a valid production order document series.';
     }
     if (bomId == null || outputItemId == null || outputUomId == null) {
       return 'BOM, output item and output UOM are required.';

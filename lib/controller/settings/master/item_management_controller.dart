@@ -498,6 +498,11 @@ class ItemManagementController extends GetxController {
     update();
   }
 
+  void setIsManufacturable(bool value) {
+    isManufacturable = value;
+    update();
+  }
+
   void setIsJobworkApplicable(bool value) {
     isJobworkApplicable = value;
     update();
