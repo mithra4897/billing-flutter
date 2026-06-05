@@ -410,6 +410,7 @@ export 'view/settings/accounting/party_account_register_page.dart';
 export 'view/settings/accounting/posting_rule_group_page.dart';
 export 'view/settings/accounting/posting_rule_page.dart';
 export 'view/settings/accounting/voucher_page.dart';
+export 'view/settings/accounting/voucher_allocation_page.dart';
 export 'view/settings/accounting/voucher_type_page.dart';
 export 'view/settings/communication/email_messages_page.dart';
 export 'view/settings/communication/email_module_settings_page.dart';

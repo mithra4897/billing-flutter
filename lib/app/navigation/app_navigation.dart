@@ -366,6 +366,13 @@ class AppNavigation {
           requiredPermissions: ['accounts.view'],
         ),
         AppNavigationItem(
+          key: 'voucher-allocations',
+          title: 'Voucher Allocations',
+          icon: Icons.call_split_outlined,
+          path: '/accounting/voucher-allocations',
+          requiredPermissions: ['accounts.view'],
+        ),
+        AppNavigationItem(
           key: 'cash-sessions',
           title: 'Cash Sessions',
           icon: Icons.point_of_sale_outlined,

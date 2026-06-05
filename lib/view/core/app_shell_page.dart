@@ -440,6 +440,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return AccountManagementPage(key: routeKey, embedded: true);
       case '/accounting/vouchers':
         return VoucherManagementPage(key: routeKey, embedded: true);
+      case '/accounting/voucher-allocations':
+        return VoucherAllocationManagementPage(key: routeKey, embedded: true);
       case '/accounting/cash-sessions':
         return CashSessionManagementPage(key: routeKey, embedded: true);
       case '/accounting/bank-reconciliation':
