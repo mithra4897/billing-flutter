@@ -36,7 +36,7 @@ class _ServiceFeedbackPageState extends State<ServiceFeedbackPage> {
     _viewModel = Get.put(
       ServiceFeedbackViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -245,7 +245,7 @@ class _ServiceFeedbackEditor extends StatelessWidget {
                       vm.setServiceWorkOrderId(v);
                     },
                   ),
-                  AppFormTextField(
+                  AppDateField(
                     labelText: 'Feedback date',
                     controller: vm.feedbackDateController,
                     validator: Validators.required('Feedback date'),

@@ -304,7 +304,7 @@ class _ServiceTicketEditor extends StatelessWidget {
                       }
                     },
                   ),
-                  AppFormTextField(
+                  AppDateField(
                     labelText: 'Ticket date',
                     controller: vm.ticketDateController,
                     enabled: edit,

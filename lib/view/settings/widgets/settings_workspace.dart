@@ -749,6 +749,7 @@ class SettingsFormWrap extends StatelessWidget {
                 if (child is AppDropdownField ||
                     child is DocumentSeriesSelector ||
                     child is AppFormTextField ||
+                    child is AppDateField ||
                     child is AppCheckboxFilter ||
                     child is AppDateSelectorField ||
                     child is AppDateTimeSelectorField ||

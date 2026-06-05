@@ -12,6 +12,7 @@ class WarrantyClaimViewModel extends GetxController {
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final AuthService _authService = AuthService();
+  final InventoryService _inventoryService = InventoryService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController ticketNoController = TextEditingController();
@@ -26,8 +27,6 @@ class WarrantyClaimViewModel extends GetxController {
   final TextEditingController contactEmailController = TextEditingController();
   final TextEditingController itemIdController = TextEditingController();
   final TextEditingController serialIdController = TextEditingController();
-  final TextEditingController contractAssetIdController =
-      TextEditingController();
 
   bool loading = true;
   bool detailLoading = false;
@@ -45,6 +44,12 @@ class WarrantyClaimViewModel extends GetxController {
   List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<UserModel> users = const <UserModel>[];
+  List<ServiceContractModel> contracts = const <ServiceContractModel>[];
+  List<ServiceContractAssetModel> contractAssets =
+      const <ServiceContractAssetModel>[];
+  List<ItemModel> items = const <ItemModel>[];
+  List<StockSerialModel> serials = const <StockSerialModel>[];
+  List<ServiceWorkOrderModel> workOrders = const <ServiceWorkOrderModel>[];
 
   ServiceTicketModel? selected;
 
@@ -54,6 +59,8 @@ class WarrantyClaimViewModel extends GetxController {
   int? branchId;
   int? locationId;
   int? financialYearId;
+  int? serviceContractId;
+  int? serviceContractAssetId;
 
   int? _sessionCompanyId;
   int? _contextFinancialYearId;
@@ -97,6 +104,31 @@ class WarrantyClaimViewModel extends GetxController {
   int? get selectedId =>
       intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
 
+  List<ServiceWorkOrderModel> get selectedWorkOrders {
+    final id = selectedId;
+    if (id == null) {
+      return const <ServiceWorkOrderModel>[];
+    }
+    return workOrders
+        .where((workOrder) => workOrder.serviceTicketId == id)
+        .toList(growable: false);
+  }
+
+  ServiceWorkOrderModel? get selectedWorkOrder => selectedWorkOrders
+      .cast<ServiceWorkOrderModel?>()
+      .firstWhere((workOrder) => workOrder != null, orElse: () => null);
+
+  bool get hasWorkOrder => selectedWorkOrder != null;
+
+  String get workOrderButtonLabel {
+    final workOrder = selectedWorkOrder;
+    if (workOrder == null) {
+      return 'Create work order';
+    }
+    final no = (workOrder.workOrderNo ?? '').trim();
+    return no.isEmpty ? 'Work order created' : 'Work order $no created';
+  }
+
   List<DocumentSeriesModel> get ticketSeriesOptions {
     final cid = companyId;
     return documentSeries
@@ -105,6 +137,24 @@ class WarrantyClaimViewModel extends GetxController {
             return false;
           }
           if (s.documentType != 'SERVICE_TICKET') {
+            return false;
+          }
+          if (cid != null && s.companyId != null && s.companyId != cid) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
+  }
+
+  List<DocumentSeriesModel> get woSeriesOptions {
+    final cid = companyId;
+    return documentSeries
+        .where((s) {
+          if (!s.isActive) {
+            return false;
+          }
+          if (s.documentType != 'SERVICE_WORK_ORDER') {
             return false;
           }
           if (cid != null && s.companyId != null && s.companyId != cid) {
@@ -175,6 +225,10 @@ class WarrantyClaimViewModel extends GetxController {
         _masterService.businessLocations(filters: const {'per_page': 400}),
         _masterService.financialYears(filters: const {'per_page': 100}),
         _authService.users(filters: const {'per_page': 500}),
+        _service.contracts(filters: filters),
+        _inventoryService.items(filters: filters),
+        _inventoryService.stockSerials(filters: filters),
+        _service.workOrders(filters: filters),
       ]);
 
       rows =
@@ -216,6 +270,22 @@ class WarrantyClaimViewModel extends GetxController {
                   const <UserModel>[])
               .where((x) => (x.status ?? '').toLowerCase() != 'inactive')
               .toList(growable: false);
+      contracts =
+          ((responses[8] as PaginatedResponse<ServiceContractModel>).data ??
+                  const <ServiceContractModel>[])
+              .where((x) => x.contractStatus == 'active')
+              .toList(growable: false);
+      items =
+          ((responses[9] as PaginatedResponse<ItemModel>).data ??
+                  const <ItemModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      serials =
+          (responses[10] as PaginatedResponse<StockSerialModel>).data ??
+          const <StockSerialModel>[];
+      workOrders =
+          (responses[11] as PaginatedResponse<ServiceWorkOrderModel>).data ??
+          const <ServiceWorkOrderModel>[];
       _contextFinancialYearId = await _resolveContextFinancialYearId();
 
       loading = false;
@@ -266,6 +336,9 @@ class WarrantyClaimViewModel extends GetxController {
     customerPartyId = null;
     branchId = null;
     locationId = null;
+    serviceContractId = null;
+    serviceContractAssetId = null;
+    contractAssets = const <ServiceContractAssetModel>[];
     ticketNoController.clear();
     ticketDateController.text = DateTime.now()
         .toIso8601String()
@@ -280,7 +353,6 @@ class WarrantyClaimViewModel extends GetxController {
     contactEmailController.clear();
     itemIdController.clear();
     serialIdController.clear();
-    contractAssetIdController.clear();
     update();
   }
 
@@ -313,6 +385,85 @@ class WarrantyClaimViewModel extends GetxController {
       return;
     }
     customerPartyId = value;
+    final contractOk =
+        serviceContractId == null ||
+        contractOptions.any((contract) => contract.id == serviceContractId);
+    if (!contractOk) {
+      unawaited(setServiceContractId(null));
+    }
+    update();
+  }
+
+  Future<void> setServiceContractId(int? value) async {
+    serviceContractId = value;
+    serviceContractAssetId = null;
+    contractAssets = const <ServiceContractAssetModel>[];
+    update();
+
+    if (value == null) {
+      return;
+    }
+
+    try {
+      final response = await _service.contract(value);
+      final data = response.data?.toJson() ?? const <String, dynamic>{};
+      final rawAssets = data['assets'];
+      if (rawAssets is List) {
+        contractAssets = rawAssets
+            .whereType<Map>()
+            .map(
+              (item) => ServiceContractAssetModel.fromJson(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .where((asset) => asset.id != null && asset.isActive != false)
+            .toList(growable: false);
+      }
+    } catch (e) {
+      formError = e.toString();
+    }
+    update();
+  }
+
+  void setServiceContractAssetId(int? value) {
+    if (!canEdit) {
+      return;
+    }
+    serviceContractAssetId = value;
+    final asset = contractAssets.cast<ServiceContractAssetModel?>().firstWhere(
+      (item) => item?.id == value,
+      orElse: () => null,
+    );
+    if (asset != null) {
+      itemIdController.text = asset.itemId?.toString() ?? itemIdController.text;
+      serialIdController.text =
+          asset.serialId?.toString() ?? serialIdController.text;
+    }
+    update();
+  }
+
+  void setItemId(int? value) {
+    if (!canEdit) {
+      return;
+    }
+    itemIdController.text = value?.toString() ?? '';
+    final currentSerialId = serialId;
+    if (currentSerialId != null &&
+        !serialOptions.any((serial) => serial.id == currentSerialId)) {
+      serialIdController.clear();
+    }
+    update();
+  }
+
+  void setSerialId(int? value) {
+    if (!canEdit) {
+      return;
+    }
+    serialIdController.text = value?.toString() ?? '';
+    final serial = selectedSerial;
+    if (serial?.itemId != null && itemId == null) {
+      itemIdController.text = serial!.itemId!.toString();
+    }
     update();
   }
 
@@ -411,6 +562,68 @@ class WarrantyClaimViewModel extends GetxController {
         .toList(growable: false);
   }
 
+  List<ServiceContractModel> get contractOptions {
+    final cid = companyId;
+    final customerId = customerPartyId;
+    return contracts
+        .where((contract) {
+          if (contract.id == null) {
+            return false;
+          }
+          if (cid != null && contract.companyId != cid) {
+            return false;
+          }
+          if (customerId != null && contract.customerPartyId != customerId) {
+            return false;
+          }
+          final type = (contract.contractType ?? '').toLowerCase();
+          return type == 'warranty' || type == 'extended_warranty';
+        })
+        .toList(growable: false);
+  }
+
+  List<ServiceContractAssetModel> get contractAssetOptions {
+    return contractAssets
+        .where((asset) => asset.id != null && asset.isActive != false)
+        .toList(growable: false);
+  }
+
+  int? get itemId => int.tryParse(itemIdController.text.trim());
+  int? get serialId => int.tryParse(serialIdController.text.trim());
+
+  ItemModel? get selectedItem => items.cast<ItemModel?>().firstWhere(
+    (item) => item?.id == itemId,
+    orElse: () => null,
+  );
+
+  StockSerialModel? get selectedSerial => serials
+      .cast<StockSerialModel?>()
+      .firstWhere((serial) => serial?.id == serialId, orElse: () => null);
+
+  List<ItemModel> get itemOptions {
+    final cid = companyId;
+    return items
+        .where((item) {
+          if (item.id == null || !item.isActive) {
+            return false;
+          }
+          return cid == null || item.companyId == cid;
+        })
+        .toList(growable: false);
+  }
+
+  List<StockSerialModel> get serialOptions {
+    final selectedItemId = itemId;
+    return serials
+        .where((serial) {
+          if (serial.id == null) {
+            return false;
+          }
+          return selectedItemId == null || serial.itemId == selectedItemId;
+        })
+        .toList(growable: false);
+  }
+
   List<FinancialYearModel> get financialYearOptions {
     final cid = companyId;
     return financialYears
@@ -468,8 +681,18 @@ class WarrantyClaimViewModel extends GetxController {
     contactEmailController.text = stringValue(data, 'contact_email');
     itemIdController.text = intValue(data, 'item_id')?.toString() ?? '';
     serialIdController.text = intValue(data, 'serial_id')?.toString() ?? '';
-    contractAssetIdController.text =
-        intValue(data, 'service_contract_asset_id')?.toString() ?? '';
+    serviceContractId = intValue(data, 'service_contract_id');
+    serviceContractAssetId = intValue(data, 'service_contract_asset_id');
+    if (serviceContractId != null) {
+      unawaited(
+        setServiceContractId(serviceContractId).then((_) {
+          serviceContractAssetId = intValue(data, 'service_contract_asset_id');
+          update();
+        }),
+      );
+    } else {
+      contractAssets = const <ServiceContractAssetModel>[];
+    }
   }
 
   String? _validateSave() {
@@ -496,7 +719,6 @@ class WarrantyClaimViewModel extends GetxController {
   Map<String, dynamic> _buildCreatePayload() {
     final itemId = int.tryParse(itemIdController.text.trim())!;
     final serialId = int.tryParse(serialIdController.text.trim());
-    final assetId = int.tryParse(contractAssetIdController.text.trim());
     final ticketNo = ticketNoController.text.trim();
     return <String, dynamic>{
       'company_id': companyId,
@@ -514,7 +736,8 @@ class WarrantyClaimViewModel extends GetxController {
       if (locationId != null) 'location_id': locationId,
       if (financialYearId != null) 'financial_year_id': financialYearId,
       'serial_id': ?serialId,
-      'service_contract_asset_id': ?assetId,
+      'service_contract_id': ?serviceContractId,
+      'service_contract_asset_id': ?serviceContractAssetId,
       'document_series_id': ?documentSeriesId,
       if (ticketNo.isNotEmpty) 'ticket_no': ticketNo,
     };
@@ -523,7 +746,6 @@ class WarrantyClaimViewModel extends GetxController {
   Map<String, dynamic> _buildUpdatePayload() {
     final itemId = int.tryParse(itemIdController.text.trim());
     final serialId = int.tryParse(serialIdController.text.trim());
-    final assetId = int.tryParse(contractAssetIdController.text.trim());
     final data = selected?.toJson() ?? const <String, dynamic>{};
     final ticketNo = ticketNoController.text.trim();
     return <String, dynamic>{
@@ -544,7 +766,8 @@ class WarrantyClaimViewModel extends GetxController {
       if (financialYearId != null) 'financial_year_id': financialYearId,
       'item_id': ?itemId,
       'serial_id': ?serialId,
-      'service_contract_asset_id': ?assetId,
+      'service_contract_id': ?serviceContractId,
+      'service_contract_asset_id': ?serviceContractAssetId,
       if (ticketNo.isNotEmpty) 'ticket_no': ticketNo,
     };
   }
@@ -675,7 +898,7 @@ class WarrantyClaimViewModel extends GetxController {
     }
   }
 
-  Future<void> createWorkOrderFromClaim() async {
+  Future<void> createWorkOrderFromClaim({Map<String, dynamic>? body}) async {
     final id = selectedId;
     if (id == null) {
       return;
@@ -683,7 +906,13 @@ class WarrantyClaimViewModel extends GetxController {
     actionBusy = true;
     update();
     try {
-      final response = await _service.createWorkOrderFromWarrantyClaim(id);
+      final seriesId = woSeriesOptions.isNotEmpty
+          ? woSeriesOptions.first.id
+          : null;
+      final response = await _service.createWorkOrderFromWarrantyClaim(
+        id,
+        body: {'document_series_id': ?seriesId, ...?body},
+      );
       if (response.success) {
         actionMessage = response.message.isNotEmpty
             ? response.message
@@ -716,7 +945,6 @@ class WarrantyClaimViewModel extends GetxController {
     contactEmailController.dispose();
     itemIdController.dispose();
     serialIdController.dispose();
-    contractAssetIdController.dispose();
     super.onClose();
   }
 }

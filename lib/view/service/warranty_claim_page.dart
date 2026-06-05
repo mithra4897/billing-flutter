@@ -85,29 +85,155 @@ class _WarrantyClaimPageState extends State<WarrantyClaimPage> {
   }
 
   Future<void> _createWo() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Create work order'),
-        content: const Text(
-          'Create a service work order from this claim using server defaults?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('No'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Create'),
-          ),
-        ],
+    int? seriesId = _viewModel.woSeriesOptions.isNotEmpty
+        ? _viewModel.woSeriesOptions.first.id
+        : null;
+    int? technicianUserId = intValue(
+      _viewModel.selected?.toJson() ?? const <String, dynamic>{},
+      'assigned_to_user_id',
+    );
+    String executionMode = stringValue(
+      _viewModel.selected?.toJson() ?? const <String, dynamic>{},
+      'service_mode',
+    );
+    if (executionMode.trim().isEmpty) {
+      executionMode = 'onsite';
+    }
+    final dateCtrl = TextEditingController(
+      text: DateTime.now().toIso8601String().split('T').first,
+    );
+    final diagnosisCtrl = TextEditingController(
+      text: stringValue(
+        _viewModel.selected?.toJson() ?? const <String, dynamic>{},
+        'issue_description',
       ),
     );
-    if (ok != true || !mounted) {
+    final actionCtrl = TextEditingController();
+    final resolutionCtrl = TextEditingController();
+    final remarksCtrl = TextEditingController(
+      text: stringValue(
+        _viewModel.selected?.toJson() ?? const <String, dynamic>{},
+        'notes',
+      ),
+    );
+
+    final body = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+            title: const Text('Create work order'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DocumentSeriesSelector<int?>(
+                    labelText: 'Work order series',
+                    mappedItems: [
+                      const AppDropdownItem<int?>(value: null, label: '-'),
+                      ..._viewModel.woSeriesOptions
+                          .where((s) => s.id != null)
+                          .map(
+                            (s) => AppDropdownItem<int?>(
+                              value: s.id!,
+                              label: s.toString(),
+                            ),
+                          ),
+                    ],
+                    initialValue: seriesId,
+                    onChanged: (value) => setState(() => seriesId = value),
+                  ),
+                  AppDateField(
+                    labelText: 'Work order date',
+                    controller: dateCtrl,
+                    validator: Validators.required('Work order date'),
+                  ),
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Execution mode',
+                    mappedItems: const [
+                      AppDropdownItem<String>(value: 'onsite', label: 'Onsite'),
+                      AppDropdownItem<String>(value: 'remote', label: 'Remote'),
+                      AppDropdownItem<String>(
+                        value: 'workshop',
+                        label: 'Workshop',
+                      ),
+                    ],
+                    initialValue: executionMode,
+                    onChanged: (value) =>
+                        setState(() => executionMode = value ?? 'onsite'),
+                  ),
+                  AppDropdownField<int?>.fromMapped(
+                    labelText: 'Technician',
+                    mappedItems: [
+                      const AppDropdownItem<int?>(value: null, label: '-'),
+                      ..._viewModel.users
+                          .where((u) => u.id != null)
+                          .map(
+                            (u) => AppDropdownItem<int?>(
+                              value: u.id!,
+                              label: u.toString(),
+                            ),
+                          ),
+                    ],
+                    initialValue: technicianUserId,
+                    onChanged: (value) =>
+                        setState(() => technicianUserId = value),
+                  ),
+                  AppFormTextField(
+                    labelText: 'Diagnosis notes',
+                    controller: diagnosisCtrl,
+                    maxLines: 3,
+                  ),
+                  AppFormTextField(
+                    labelText: 'Action taken',
+                    controller: actionCtrl,
+                    maxLines: 2,
+                  ),
+                  AppFormTextField(
+                    labelText: 'Resolution summary',
+                    controller: resolutionCtrl,
+                    maxLines: 2,
+                  ),
+                  AppFormTextField(
+                    labelText: 'Remarks',
+                    controller: remarksCtrl,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, <String, dynamic>{
+                  'document_series_id': ?seriesId,
+                  'work_order_date': dateCtrl.text.trim(),
+                  'execution_mode': executionMode,
+                  'technician_user_id': ?technicianUserId,
+                  'diagnosis_notes': nullIfEmpty(diagnosisCtrl.text),
+                  'action_taken': nullIfEmpty(actionCtrl.text),
+                  'resolution_summary': nullIfEmpty(resolutionCtrl.text),
+                  'remarks': nullIfEmpty(remarksCtrl.text),
+                }),
+                child: const Text('Create'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    dateCtrl.dispose();
+    diagnosisCtrl.dispose();
+    actionCtrl.dispose();
+    resolutionCtrl.dispose();
+    remarksCtrl.dispose();
+    if (body == null || !mounted) {
       return;
     }
-    await _viewModel.createWorkOrderFromClaim();
+    await _viewModel.createWorkOrderFromClaim(body: body);
     _snack();
   }
 
@@ -334,38 +460,79 @@ class _WarrantyClaimEditor extends StatelessWidget {
                       }
                     },
                   ),
-                  AppFormTextField(
+                  AppDateField(
                     labelText: 'Ticket date',
                     controller: vm.ticketDateController,
                     enabled: edit,
                     validator: Validators.required('Ticket date'),
                   ),
-                  AppFormTextField(
-                    labelText: 'Item id',
-                    controller: vm.itemIdController,
-                    enabled: edit,
-                    keyboardType: TextInputType.number,
-                    validator: Validators.compose([
-                      Validators.required('Item id'),
-                      (v) {
-                        if (int.tryParse((v ?? '').trim()) == null) {
-                          return 'Enter a valid item id';
-                        }
-                        return null;
-                      },
-                    ]),
+                  AppSearchPickerField<int>(
+                    labelText: 'Item',
+                    selectedLabel: vm.selectedItem?.toString(),
+                    options: vm.itemOptions
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppSearchPickerOption<int>(
+                            value: item.id!,
+                            label: item.toString(),
+                            subtitle: item.itemCode,
+                          ),
+                        )
+                        .toList(growable: false),
+                    validator: (_) =>
+                        vm.itemId == null ? 'Item is required' : null,
+                    onChanged: edit ? vm.setItemId : (_) {},
                   ),
-                  AppFormTextField(
-                    labelText: 'Serial id (optional)',
-                    controller: vm.serialIdController,
-                    enabled: edit,
-                    keyboardType: TextInputType.number,
+                  AppSearchPickerField<int>(
+                    labelText: 'Serial (optional)',
+                    selectedLabel: vm.selectedSerial?.toString(),
+                    options: vm.serialOptions
+                        .where((serial) => serial.id != null)
+                        .map(
+                          (serial) => AppSearchPickerOption<int>(
+                            value: serial.id!,
+                            label: serial.toString(),
+                            subtitle: serial.status,
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: edit ? vm.setSerialId : (_) {},
                   ),
-                  AppFormTextField(
-                    labelText: 'Service contract asset id (optional)',
-                    controller: vm.contractAssetIdController,
-                    enabled: edit,
-                    keyboardType: TextInputType.number,
+                  AppDropdownField<int?>.fromMapped(
+                    labelText: 'Warranty contract (optional)',
+                    mappedItems: [
+                      const AppDropdownItem<int?>(value: null, label: '-'),
+                      ...vm.contractOptions.map(
+                        (contract) => AppDropdownItem<int?>(
+                          value: contract.id!,
+                          label: contract.toString(),
+                        ),
+                      ),
+                    ],
+                    initialValue: vm.serviceContractId,
+                    onChanged: (value) {
+                      if (edit) {
+                        unawaited(vm.setServiceContractId(value));
+                      }
+                    },
+                  ),
+                  AppDropdownField<int?>.fromMapped(
+                    labelText: 'Warranty asset (optional)',
+                    mappedItems: [
+                      const AppDropdownItem<int?>(value: null, label: '-'),
+                      ...vm.contractAssetOptions.map(
+                        (asset) => AppDropdownItem<int?>(
+                          value: asset.id!,
+                          label: asset.toString(),
+                        ),
+                      ),
+                    ],
+                    initialValue: vm.serviceContractAssetId,
+                    onChanged: (value) {
+                      if (edit) {
+                        vm.setServiceContractAssetId(value);
+                      }
+                    },
                   ),
                   AppFormTextField(
                     labelText: 'Issue title (optional)',
@@ -515,11 +682,17 @@ class _WarrantyClaimEditor extends StatelessWidget {
                       onPressed: vm.saving ? null : () => onCancelClaim(),
                     ),
                   AppActionButton(
-                    icon: Icons.build_circle_outlined,
-                    label: 'Create work order',
+                    icon: vm.hasWorkOrder
+                        ? Icons.check_circle_outline
+                        : Icons.build_circle_outlined,
+                    label: vm.workOrderButtonLabel,
                     filled: false,
                     busy: vm.actionBusy,
-                    onPressed: vm.selected == null || vm.saving || vm.actionBusy
+                    onPressed:
+                        vm.selected == null ||
+                            vm.saving ||
+                            vm.actionBusy ||
+                            vm.hasWorkOrder
                         ? null
                         : () => onCreateWorkOrder(),
                   ),

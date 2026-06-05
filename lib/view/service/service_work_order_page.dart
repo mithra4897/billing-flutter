@@ -322,7 +322,7 @@ class _ServiceWorkOrderEditor extends StatelessWidget {
                       }
                     },
                   ),
-                  AppFormTextField(
+                  AppDateField(
                     labelText: 'Work order date',
                     controller: vm.workOrderDateController,
                     enabled: edit,
