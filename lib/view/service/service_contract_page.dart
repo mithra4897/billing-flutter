@@ -40,7 +40,7 @@ class _ServiceContractPageState extends State<ServiceContractPage> {
     _viewModel = Get.put(
       ServiceContractViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -225,7 +225,7 @@ class _ServiceContractEditor extends StatelessWidget {
                 AppErrorStateView.inline(message: vm.formError!),
                 const SizedBox(height: AppUiConstants.spacingSm),
               ],
-              SettingsFormWrap(
+              _ContractThreeColumnWrap(
                 children: [
                   AppDropdownField<int>.fromMapped(
                     labelText: 'Customer',
@@ -288,7 +288,7 @@ class _ServiceContractEditor extends StatelessWidget {
                       }
                     },
                   ),
-                  AppFormTextField(
+                  AppDateField(
                     labelText: 'Contract date',
                     controller: vm.contractDateController,
                     enabled: edit,
@@ -299,12 +299,12 @@ class _ServiceContractEditor extends StatelessWidget {
                     controller: vm.contractTypeController,
                     enabled: edit,
                   ),
-                  AppFormTextField(
+                  AppDateField(
                     labelText: 'Start date',
                     controller: vm.startDateController,
                     enabled: edit,
                   ),
-                  AppFormTextField(
+                  AppDateField(
                     labelText: 'End date',
                     controller: vm.endDateController,
                     enabled: edit,
@@ -352,24 +352,11 @@ class _ServiceContractEditor extends StatelessWidget {
                       decimal: true,
                     ),
                   ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Total: $total',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
                   AppFormTextField(
                     labelText: 'Sales invoice id (optional)',
                     controller: vm.salesInvoiceIdController,
                     enabled: edit,
                     keyboardType: TextInputType.number,
-                  ),
-                  AppFormTextField(
-                    labelText: 'Notes',
-                    controller: vm.notesController,
-                    enabled: edit,
-                    maxLines: 3,
                   ),
                   if (vm.selected != null)
                     Padding(
@@ -386,6 +373,21 @@ class _ServiceContractEditor extends StatelessWidget {
                       ),
                     ),
                 ],
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Total: $total',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              const SizedBox(height: AppUiConstants.spacingMd),
+              AppFormTextField(
+                labelText: 'Notes',
+                controller: vm.notesController,
+                enabled: edit,
+                maxLines: 3,
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
               Wrap(
@@ -432,6 +434,49 @@ class _ServiceContractEditor extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ContractThreeColumnWrap extends StatelessWidget {
+  const _ContractThreeColumnWrap({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = AppUiConstants.spacingMd;
+        const maxFieldWidth = 300.0;
+        final isCompact = constraints.maxWidth < 480;
+        final availableWidth = constraints.maxWidth;
+        final rowFieldWidth = ((availableWidth - (spacing * 2)) / 3).clamp(
+          0.0,
+          maxFieldWidth,
+        );
+        final fieldWidth = isCompact ? availableWidth : rowFieldWidth;
+        if (isCompact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0) const SizedBox(height: spacing),
+                SizedBox(width: fieldWidth, child: children[i]),
+              ],
+            ],
+          );
+        }
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final field in children)
+              SizedBox(width: fieldWidth, child: field),
+          ],
+        );
+      },
     );
   }
 }

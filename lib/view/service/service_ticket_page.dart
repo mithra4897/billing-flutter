@@ -69,7 +69,14 @@ class _ServiceTicketPageState extends State<ServiceTicketPage> {
   }
 
   Future<void> _assign() async {
-    final result = await promptServiceAssigneeUserId(context);
+    final result = await promptServiceAssigneeUserId(
+      context,
+      _viewModel.users,
+      initialUserId: intValue(
+        _viewModel.selected?.toJson() ?? const <String, dynamic>{},
+        'assigned_to_user_id',
+      ),
+    );
     if (!mounted || !result.submitted) {
       return;
     }

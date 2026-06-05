@@ -11,6 +11,7 @@ class WarrantyClaimViewModel extends GetxController {
   final ServiceModuleService _service = ServiceModuleService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
+  final AuthService _authService = AuthService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController ticketNoController = TextEditingController();
@@ -43,6 +44,7 @@ class WarrantyClaimViewModel extends GetxController {
   List<BranchModel> branches = const <BranchModel>[];
   List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
+  List<UserModel> users = const <UserModel>[];
 
   ServiceTicketModel? selected;
 
@@ -172,6 +174,7 @@ class WarrantyClaimViewModel extends GetxController {
         _masterService.branches(filters: const {'per_page': 400}),
         _masterService.businessLocations(filters: const {'per_page': 400}),
         _masterService.financialYears(filters: const {'per_page': 100}),
+        _authService.users(filters: const {'per_page': 500}),
       ]);
 
       rows =
@@ -207,6 +210,11 @@ class WarrantyClaimViewModel extends GetxController {
           ((responses[6] as PaginatedResponse<FinancialYearModel>).data ??
                   const <FinancialYearModel>[])
               .where((x) => x.isActive)
+              .toList(growable: false);
+      users =
+          ((responses[7] as PaginatedResponse<UserModel>).data ??
+                  const <UserModel>[])
+              .where((x) => (x.status ?? '').toLowerCase() != 'inactive')
               .toList(growable: false);
       _contextFinancialYearId = await _resolveContextFinancialYearId();
 
@@ -495,7 +503,7 @@ class WarrantyClaimViewModel extends GetxController {
       'customer_party_id': customerPartyId,
       'ticket_date': ticketDateController.text.trim(),
       'item_id': itemId,
-      'priority_level': nullIfEmpty(priorityController.text) ?? 'medium',
+      'priority_level': nullIfEmpty(priorityController.text) ?? 'normal',
       'issue_title': nullIfEmpty(issueTitleController.text),
       'issue_description': nullIfEmpty(issueDescriptionController.text),
       'notes': nullIfEmpty(notesController.text),
@@ -524,7 +532,7 @@ class WarrantyClaimViewModel extends GetxController {
       'ticket_date': ticketDateController.text.trim(),
       'ticket_type': stringValue(data, 'ticket_type'),
       'ticket_status': stringValue(data, 'ticket_status'),
-      'priority_level': nullIfEmpty(priorityController.text) ?? 'medium',
+      'priority_level': nullIfEmpty(priorityController.text) ?? 'normal',
       'issue_title': nullIfEmpty(issueTitleController.text),
       'issue_description': nullIfEmpty(issueDescriptionController.text),
       'notes': nullIfEmpty(notesController.text),

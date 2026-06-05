@@ -11,6 +11,7 @@ class ServiceTicketViewModel extends GetxController {
   final ServiceModuleService _service = ServiceModuleService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
+  final AuthService _authService = AuthService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController ticketNoController = TextEditingController();
@@ -40,6 +41,7 @@ class ServiceTicketViewModel extends GetxController {
   List<BranchModel> branches = const <BranchModel>[];
   List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
+  List<UserModel> users = const <UserModel>[];
 
   ServiceTicketModel? selected;
 
@@ -169,6 +171,7 @@ class ServiceTicketViewModel extends GetxController {
         _masterService.branches(filters: const {'per_page': 400}),
         _masterService.businessLocations(filters: const {'per_page': 400}),
         _masterService.financialYears(filters: const {'per_page': 100}),
+        _authService.users(filters: const {'per_page': 500}),
       ]);
 
       var rawRows =
@@ -209,6 +212,11 @@ class ServiceTicketViewModel extends GetxController {
           ((responses[6] as PaginatedResponse<FinancialYearModel>).data ??
                   const <FinancialYearModel>[])
               .where((x) => x.isActive)
+              .toList(growable: false);
+      users =
+          ((responses[7] as PaginatedResponse<UserModel>).data ??
+                  const <UserModel>[])
+              .where((x) => (x.status ?? '').toLowerCase() != 'inactive')
               .toList(growable: false);
       _contextFinancialYearId = await _resolveContextFinancialYearId();
 
@@ -492,8 +500,8 @@ class ServiceTicketViewModel extends GetxController {
       'customer_party_id': customerPartyId,
       'ticket_date': ticketDateController.text.trim(),
       'issue_title': issueTitleController.text.trim(),
-      'ticket_type': 'support',
-      'priority_level': nullIfEmpty(priorityController.text) ?? 'medium',
+      'ticket_type': 'complaint',
+      'priority_level': nullIfEmpty(priorityController.text) ?? 'normal',
       'issue_description': nullIfEmpty(issueDescriptionController.text),
       'notes': nullIfEmpty(notesController.text),
       'contact_person_name': nullIfEmpty(contactPersonController.text),
@@ -521,7 +529,7 @@ class ServiceTicketViewModel extends GetxController {
       'issue_title': issueTitleController.text.trim(),
       'ticket_type': stringValue(data, 'ticket_type'),
       'ticket_status': stringValue(data, 'ticket_status'),
-      'priority_level': nullIfEmpty(priorityController.text) ?? 'medium',
+      'priority_level': nullIfEmpty(priorityController.text) ?? 'normal',
       'issue_description': nullIfEmpty(issueDescriptionController.text),
       'notes': nullIfEmpty(notesController.text),
       'contact_person_name': nullIfEmpty(contactPersonController.text),

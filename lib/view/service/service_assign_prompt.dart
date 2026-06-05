@@ -3,21 +3,36 @@ import '../../screen.dart';
 typedef ServiceAssignResult = ({bool submitted, int? assignedToUserId});
 
 /// [submitted] is false when the dialog was dismissed without confirming.
-/// When confirmed with an empty user id field, [assignedToUserId] is null (assign to self).
+/// When confirmed with "Assign to myself", [assignedToUserId] is null.
 Future<ServiceAssignResult> promptServiceAssigneeUserId(
   BuildContext context,
-) async {
-  final controller = TextEditingController();
+  List<UserModel> users, {
+  int? initialUserId,
+}) async {
+  var selectedUserId = initialUserId;
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Assign'),
       content: SizedBox(
         width: 400,
-        child: AppFormTextField(
-          labelText: 'Assign to user ID',
-          controller: controller,
-          hintText: 'Leave blank to assign to yourself',
+        child: AppDropdownField<int?>.fromMapped(
+          labelText: 'Assign to',
+          mappedItems: [
+            const AppDropdownItem<int?>(value: null, label: 'Assign to myself'),
+            ...users
+                .where((user) => user.id != null)
+                .map(
+                  (user) => AppDropdownItem<int?>(
+                    value: user.id!,
+                    label: user.toString(),
+                  ),
+                ),
+          ],
+          initialValue: selectedUserId,
+          onChanged: (value) {
+            selectedUserId = value;
+          },
         ),
       ),
       actions: [
@@ -35,9 +50,5 @@ Future<ServiceAssignResult> promptServiceAssigneeUserId(
   if (ok != true) {
     return (submitted: false, assignedToUserId: null);
   }
-  final raw = controller.text.trim();
-  if (raw.isEmpty) {
-    return (submitted: true, assignedToUserId: null);
-  }
-  return (submitted: true, assignedToUserId: int.tryParse(raw));
+  return (submitted: true, assignedToUserId: selectedUserId);
 }
