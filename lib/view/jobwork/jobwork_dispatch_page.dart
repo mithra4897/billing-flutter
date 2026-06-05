@@ -366,6 +366,15 @@ class _JobworkDispatchEditor extends StatelessWidget {
               const SizedBox(height: AppUiConstants.spacingSm),
               ...List<Widget>.generate(vm.lineDrafts.length, (index) {
                 final line = vm.lineDrafts[index];
+                final batchOptions = vm.batchOptions(
+                  line.itemId,
+                  line.warehouseId ?? vm.warehouseId,
+                );
+                final serialOptions = vm.serialOptions(
+                  line.itemId,
+                  line.warehouseId ?? vm.warehouseId,
+                  line.batchId,
+                );
                 final matItems = <AppDropdownItem<int?>>[
                   const AppDropdownItem<int?>(value: null, label: '-'),
                   ...vm.orderMaterialOptions
@@ -456,6 +465,44 @@ class _JobworkDispatchEditor extends StatelessWidget {
                             if (editLines) vm.setLineWarehouseId(index, value);
                           },
                         ),
+                        if (vm.itemHasBatch(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Batch',
+                            mappedItems: batchOptions
+                                .where((x) => x.id != null)
+                                .map(
+                                  (x) => AppDropdownItem<int>(
+                                    value: x.id!,
+                                    label: (x.batchNo ?? '').trim().isNotEmpty
+                                        ? x.batchNo!
+                                        : x.toString(),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            initialValue: line.batchId,
+                            onChanged: (int? value) {
+                              if (editLines) vm.setLineBatchId(index, value);
+                            },
+                          ),
+                        if (vm.itemHasSerial(line.itemId))
+                          AppDropdownField<int>.fromMapped(
+                            labelText: 'Serial',
+                            mappedItems: serialOptions
+                                .where((x) => x.id != null)
+                                .map(
+                                  (x) => AppDropdownItem<int>(
+                                    value: x.id!,
+                                    label: (x.serialNo ?? '').trim().isNotEmpty
+                                        ? x.serialNo!
+                                        : x.toString(),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            initialValue: line.serialId,
+                            onChanged: (int? value) {
+                              if (editLines) vm.setLineSerialId(index, value);
+                            },
+                          ),
                         AppFormTextField(
                           labelText: 'Qty',
                           controller: line.qtyController,

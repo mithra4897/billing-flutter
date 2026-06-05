@@ -313,6 +313,7 @@ class _JobworkChargeEditor extends StatelessWidget {
               const SizedBox(height: AppUiConstants.spacingSm),
               ...List<Widget>.generate(vm.lineDrafts.length, (index) {
                 final line = vm.lineDrafts[index];
+                final breakdown = vm.lineTaxBreakdown(line);
                 return Padding(
                   padding: const EdgeInsets.only(
                     bottom: AppUiConstants.spacingSm,
@@ -322,74 +323,133 @@ class _JobworkChargeEditor extends StatelessWidget {
                     total: vm.lineDrafts.length,
                     removeEnabled: editLines && vm.lineDrafts.length > 1,
                     onRemove: editLines ? () => vm.removeLine(index) : null,
-                    child: PurchaseCompactFieldGrid(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        AppFormTextField(
-                          labelText: 'Service description',
-                          controller: line.serviceDescriptionController,
-                          enabled: editLines,
-                          validator: Validators.compose([
-                            Validators.required('Service description'),
-                            Validators.optionalMaxLength(
-                              500,
-                              'Service description',
-                            ),
-                          ]),
-                        ),
-                        AppSearchPickerField<int>(
-                          labelText: 'Item (optional)',
-                          selectedLabel: vm.items
-                              .cast<ItemModel?>()
-                              .firstWhere(
-                                (item) => item?.id == line.itemId,
-                                orElse: () => null,
-                              )
-                              ?.toString(),
-                          options: vm.items
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppSearchPickerOption<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                  subtitle: item.itemCode,
+                        PurchaseCompactFieldGrid(
+                          children: [
+                            AppFormTextField(
+                              labelText: 'Service description',
+                              controller: line.serviceDescriptionController,
+                              enabled: editLines,
+                              validator: Validators.compose([
+                                Validators.required('Service description'),
+                                Validators.optionalMaxLength(
+                                  500,
+                                  'Service description',
                                 ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (int? value) {
-                            if (editLines) vm.setLineItemId(index, value);
-                          },
+                              ]),
+                            ),
+                            AppSearchPickerField<int>(
+                              labelText: 'Item (optional)',
+                              selectedLabel: vm.items
+                                  .cast<ItemModel?>()
+                                  .firstWhere(
+                                    (item) => item?.id == line.itemId,
+                                    orElse: () => null,
+                                  )
+                                  ?.toString(),
+                              options: vm.items
+                                  .where((item) => item.id != null)
+                                  .map(
+                                    (item) => AppSearchPickerOption<int>(
+                                      value: item.id!,
+                                      label: item.toString(),
+                                      subtitle: item.itemCode,
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              onChanged: (int? value) {
+                                if (editLines) vm.setLineItemId(index, value);
+                              },
+                            ),
+                            AppSearchPickerField<int>(
+                              labelText: 'Output item (optional)',
+                              selectedLabel: vm.outputItemOptions
+                                  .cast<ItemModel?>()
+                                  .firstWhere(
+                                    (item) => item?.id == line.outputItemId,
+                                    orElse: () => null,
+                                  )
+                                  ?.toString(),
+                              options: vm.outputItemOptions
+                                  .where((item) => item.id != null)
+                                  .map(
+                                    (item) => AppSearchPickerOption<int>(
+                                      value: item.id!,
+                                      label: item.toString(),
+                                      subtitle: item.itemCode,
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              onChanged: (int? value) {
+                                if (editLines) {
+                                  vm.setLineOutputItemId(index, value);
+                                }
+                              },
+                            ),
+                            AppFormTextField(
+                              labelText: 'Qty',
+                              controller: line.qtyController,
+                              enabled: editLines,
+                              onChanged: (_) => vm.update(),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: Validators.requiredPositiveNumber(
+                                'Quantity',
+                              ),
+                            ),
+                            AppFormTextField(
+                              labelText: 'Rate',
+                              controller: line.rateController,
+                              enabled: editLines,
+                              onChanged: (_) => vm.update(),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                            ),
+                            AppFormTextField(
+                              labelText: 'Amount',
+                              controller: line.amountController,
+                              enabled: editLines,
+                              onChanged: (_) => vm.update(),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                            ),
+                            AppDropdownField<int>.fromMapped(
+                              labelText: 'Tax code',
+                              mappedItems: vm.taxCodes
+                                  .where((item) => item.id != null)
+                                  .map(
+                                    (item) => AppDropdownItem<int>(
+                                      value: item.id!,
+                                      label: item.toString(),
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                              initialValue: line.taxCodeId,
+                              onChanged: (int? value) {
+                                if (editLines) {
+                                  vm.setLineTaxCodeId(index, value);
+                                }
+                              },
+                            ),
+                            AppFormTextField(
+                              labelText: 'Remarks',
+                              controller: line.remarksController,
+                              enabled: editLines,
+                            ),
+                          ],
                         ),
-                        AppFormTextField(
-                          labelText: 'Qty',
-                          controller: line.qtyController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.requiredPositiveNumber(
-                            'Quantity',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Rate',
-                          controller: line.rateController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Amount',
-                          controller: line.amountController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: line.remarksController,
-                          enabled: editLines,
+                        const SizedBox(height: AppUiConstants.spacingXs),
+                        Text(
+                          'Taxable ${breakdown.taxable.toStringAsFixed(2)} · CGST ${breakdown.cgst.toStringAsFixed(2)} · SGST ${breakdown.sgst.toStringAsFixed(2)} · IGST ${breakdown.igst.toStringAsFixed(2)} · Total ${breakdown.total.toStringAsFixed(2)}',
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
                     ),

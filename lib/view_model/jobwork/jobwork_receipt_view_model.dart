@@ -7,6 +7,8 @@ class JobworkReceiptLineDraft {
     this.itemId,
     this.uomId,
     this.warehouseId,
+    this.batchId,
+    this.serialId,
     this.outputType = 'processed_material',
     String? receiptQty,
     String? acceptedQty,
@@ -25,6 +27,8 @@ class JobworkReceiptLineDraft {
       itemId: m.itemId,
       uomId: m.uomId,
       warehouseId: m.warehouseId,
+      batchId: m.batchId,
+      serialId: m.serialId,
       outputType: m.outputType,
       receiptQty: m.receiptQty.toString(),
       acceptedQty: m.acceptedQty.toString(),
@@ -38,6 +42,8 @@ class JobworkReceiptLineDraft {
   int? itemId;
   int? uomId;
   int? warehouseId;
+  int? batchId;
+  int? serialId;
   String outputType;
 
   final TextEditingController receiptQtyController;
@@ -57,6 +63,8 @@ class JobworkReceiptLineDraft {
       itemId: itemId,
       uomId: uomId,
       warehouseId: warehouseId ?? headerWarehouseId,
+      batchId: batchId,
+      serialId: serialId,
       receiptQty: rq,
       acceptedQty: aq,
       rejectedQty: rjq,
@@ -119,6 +127,8 @@ class JobworkReceiptViewModel extends GetxController {
   List<ItemModel> items = const <ItemModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
+  List<StockBatchModel> batches = const <StockBatchModel>[];
+  List<StockSerialModel> serials = const <StockSerialModel>[];
   List<JobworkOrderModel> jobworkOrders = const <JobworkOrderModel>[];
 
   JobworkReceiptModel? selected;
@@ -261,6 +271,8 @@ class JobworkReceiptViewModel extends GetxController {
         _inventoryService.uomConversionsAll(
           filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
         ),
+        _inventoryService.stockBatches(filters: const {'per_page': 500}),
+        _inventoryService.stockSerials(filters: const {'per_page': 500}),
         _service.orders(filters: const {'per_page': 300}),
       ]);
       rows =
@@ -319,8 +331,14 @@ class JobworkReceiptViewModel extends GetxController {
                   const <UomConversionModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+      batches =
+          (responses[12] as PaginatedResponse<StockBatchModel>).data ??
+          const <StockBatchModel>[];
+      serials =
+          (responses[13] as PaginatedResponse<StockSerialModel>).data ??
+          const <StockSerialModel>[];
       jobworkOrders =
-          (responses[12] as PaginatedResponse<JobworkOrderModel>).data ??
+          (responses[14] as PaginatedResponse<JobworkOrderModel>).data ??
           const <JobworkOrderModel>[];
 
       loading = false;
@@ -581,6 +599,58 @@ class JobworkReceiptViewModel extends GetxController {
     return allowedUomsForItem(item, uoms, uomConversions);
   }
 
+  ItemModel? itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    return items.cast<ItemModel?>().firstWhere(
+      (x) => x?.id == itemId,
+      orElse: () => null,
+    );
+  }
+
+  bool itemHasBatch(int? itemId) => itemById(itemId)?.hasBatch ?? false;
+
+  bool itemHasSerial(int? itemId) => itemById(itemId)?.hasSerial ?? false;
+
+  List<StockBatchModel> batchOptions(int? itemId, int? warehouseId) {
+    return batches
+        .where((batch) {
+          if (itemId != null && batch.itemId != itemId) {
+            return false;
+          }
+          if (warehouseId != null && batch.warehouseId != warehouseId) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
+  }
+
+  List<StockSerialModel> serialOptions(
+    int? itemId,
+    int? warehouseId,
+    int? batchId,
+  ) {
+    return serials
+        .where((serial) {
+          if (itemId != null && serial.itemId != itemId) {
+            return false;
+          }
+          if (warehouseId != null && serial.warehouseId != warehouseId) {
+            return false;
+          }
+          if (batchId != null && serial.batchId != batchId) {
+            return false;
+          }
+          final status = (serial.status ?? '').trim().toLowerCase();
+          return status.isEmpty ||
+              status == 'available' ||
+              status == 'returned';
+        })
+        .toList(growable: false);
+  }
+
   void addLine() {
     if (!canEditLines) {
       return;
@@ -629,6 +699,12 @@ class JobworkReceiptViewModel extends GetxController {
       uomConversions,
       current: line.uomId,
     );
+    if (!itemHasBatch(value)) {
+      line.batchId = null;
+    }
+    if (!itemHasSerial(value)) {
+      line.serialId = null;
+    }
     update();
   }
 
@@ -644,7 +720,60 @@ class JobworkReceiptViewModel extends GetxController {
     if (!canEditLines) {
       return;
     }
-    lineDrafts[index].warehouseId = value;
+    final line = lineDrafts[index];
+    line.warehouseId = value;
+    if (line.batchId != null &&
+        batchOptions(line.itemId, value).every((x) => x.id != line.batchId)) {
+      line.batchId = null;
+    }
+    if (line.serialId != null &&
+        serialOptions(
+          line.itemId,
+          value,
+          line.batchId,
+        ).every((x) => x.id != line.serialId)) {
+      line.serialId = null;
+    }
+    if (!itemHasBatch(line.itemId)) {
+      line.batchId = null;
+    }
+    if (!itemHasSerial(line.itemId)) {
+      line.serialId = null;
+    }
+    update();
+  }
+
+  void setLineBatchId(int index, int? value) {
+    if (!canEditLines) {
+      return;
+    }
+    final line = lineDrafts[index];
+    line.batchId = value;
+    if (line.serialId != null &&
+        serialOptions(
+          line.itemId,
+          line.warehouseId,
+          value,
+        ).every((x) => x.id != line.serialId)) {
+      line.serialId = null;
+    }
+    update();
+  }
+
+  void setLineSerialId(int index, int? value) {
+    if (!canEditLines) {
+      return;
+    }
+    final line = lineDrafts[index];
+    line.serialId = value;
+    if (value != null) {
+      final serial = serialOptions(line.itemId, line.warehouseId, line.batchId)
+          .cast<StockSerialModel?>()
+          .firstWhere((x) => x?.id == value, orElse: () => null);
+      if (serial?.batchId != null) {
+        line.batchId = serial!.batchId;
+      }
+    }
     update();
   }
 
@@ -708,6 +837,12 @@ class JobworkReceiptViewModel extends GetxController {
             d.uomId == null ||
             (double.tryParse(d.receiptQtyController.text.trim()) ?? 0) <= 0) {
           return 'Each line needs item, UOM and receipt quantity.';
+        }
+        if (itemHasBatch(d.itemId) && d.batchId == null) {
+          return 'Select a batch for each batch-managed item.';
+        }
+        if (itemHasSerial(d.itemId) && d.serialId == null) {
+          return 'Select a serial for each serial-managed item.';
         }
       }
     }

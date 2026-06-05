@@ -2,9 +2,12 @@ import '../../../screen.dart';
 import 'jobwork_module_refresh_controller.dart';
 
 class JobworkChargeLineDraft {
+  static List<TaxCodeModel> taxCodesLookup = const <TaxCodeModel>[];
+
   JobworkChargeLineDraft({
     this.itemId,
     this.outputItemId,
+    this.taxCodeId,
     String? serviceDescription,
     String? qty,
     String? rate,
@@ -22,6 +25,7 @@ class JobworkChargeLineDraft {
     return JobworkChargeLineDraft(
       itemId: m.itemId,
       outputItemId: m.outputItemId,
+      taxCodeId: m.taxCodeId,
       serviceDescription: m.serviceDescription,
       qty: m.qty.toString(),
       rate: m.rate.toString(),
@@ -32,6 +36,7 @@ class JobworkChargeLineDraft {
 
   int? itemId;
   int? outputItemId;
+  int? taxCodeId;
 
   final TextEditingController serviceDescriptionController;
   final TextEditingController qtyController;
@@ -46,6 +51,14 @@ class JobworkChargeLineDraft {
     if (amt == null || amt == 0) {
       amt = (q * r);
     }
+    final taxCode = purchaseTaxCodeById(taxCodesLookup, taxCodeId);
+    final normalizedRate = q > 0 ? amt / q : amt;
+    final breakdown = computePurchaseLineTaxBreakdown(
+      qty: q <= 0 ? 1 : q,
+      rate: normalizedRate,
+      discountPercent: 0,
+      taxCode: taxCode,
+    );
     return JobworkChargeLineModel(
       serviceDescription: serviceDescriptionController.text.trim(),
       itemId: itemId,
@@ -53,12 +66,13 @@ class JobworkChargeLineDraft {
       qty: q,
       rate: r,
       amount: amt,
-      taxPercent: 0,
-      cgstAmount: 0,
-      sgstAmount: 0,
-      igstAmount: 0,
-      cessAmount: 0,
-      lineTotal: amt,
+      taxCodeId: taxCodeId,
+      taxPercent: (taxCode?.taxRate ?? 0).toDouble(),
+      cgstAmount: breakdown.cgst,
+      sgstAmount: breakdown.sgst,
+      igstAmount: breakdown.igst,
+      cessAmount: breakdown.cess,
+      lineTotal: breakdown.total,
       remarks: nullIfEmpty(remarksController.text),
     );
   }
@@ -108,6 +122,7 @@ class JobworkChargeViewModel extends GetxController {
   List<PartyModel> parties = const <PartyModel>[];
   List<PartyTypeModel> partyTypes = const <PartyTypeModel>[];
   List<ItemModel> items = const <ItemModel>[];
+  List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
   List<JobworkOrderModel> jobworkOrders = const <JobworkOrderModel>[];
 
   JobworkChargeModel? selected;
@@ -173,6 +188,21 @@ class JobworkChargeViewModel extends GetxController {
       .where((o) => companyId == null || o.companyId == companyId)
       .toList(growable: false);
 
+  List<ItemModel> get outputItemOptions {
+    final outputIds =
+        selectedOrderDetail?.outputs
+            .map((entry) => entry.itemId)
+            .whereType<int>()
+            .toSet() ??
+        <int>{};
+    if (outputIds.isEmpty) {
+      return const <ItemModel>[];
+    }
+    return items
+        .where((item) => item.id != null && outputIds.contains(item.id))
+        .toList(growable: false);
+  }
+
   List<JobworkChargeModel> get filteredRows {
     final q = searchController.text.trim().toLowerCase();
     return rows
@@ -221,6 +251,7 @@ class JobworkChargeViewModel extends GetxController {
         _partiesService.parties(filters: const {'per_page': 500}),
         _partiesService.partyTypes(filters: const {'per_page': 100}),
         _inventoryService.items(filters: const {'per_page': 500}),
+        _inventoryService.taxCodes(filters: const {'per_page': 300}),
         _service.orders(filters: const {'per_page': 300}),
       ]);
       rows =
@@ -264,9 +295,15 @@ class JobworkChargeViewModel extends GetxController {
                   const <ItemModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+      taxCodes =
+          ((responses[9] as PaginatedResponse<TaxCodeModel>).data ??
+                  const <TaxCodeModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
       jobworkOrders =
-          (responses[9] as PaginatedResponse<JobworkOrderModel>).data ??
+          (responses[10] as PaginatedResponse<JobworkOrderModel>).data ??
           const <JobworkOrderModel>[];
+      JobworkChargeLineDraft.taxCodesLookup = taxCodes;
 
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -502,8 +539,59 @@ class JobworkChargeViewModel extends GetxController {
     if (!canEditLines) {
       return;
     }
-    lineDrafts[index].itemId = value;
+    final line = lineDrafts[index];
+    line.itemId = value;
+    final item = itemById(value);
+    line.taxCodeId ??= item?.taxCodeId;
+    if (line.serviceDescriptionController.text.trim().isEmpty &&
+        item != null &&
+        item.toString().trim().isNotEmpty) {
+      line.serviceDescriptionController.text = item.toString().trim();
+    }
     update();
+  }
+
+  void setLineOutputItemId(int index, int? value) {
+    if (!canEditLines) {
+      return;
+    }
+    lineDrafts[index].outputItemId = value;
+    update();
+  }
+
+  void setLineTaxCodeId(int index, int? value) {
+    if (!canEditLines) {
+      return;
+    }
+    lineDrafts[index].taxCodeId = value;
+    update();
+  }
+
+  ItemModel? itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    return items.cast<ItemModel?>().firstWhere(
+      (x) => x?.id == itemId,
+      orElse: () => null,
+    );
+  }
+
+  TaxCodeModel? taxCodeById(int? taxCodeId) =>
+      purchaseTaxCodeById(taxCodes, taxCodeId);
+
+  PurchaseLineTaxBreakdown lineTaxBreakdown(JobworkChargeLineDraft line) {
+    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
+    final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+    final amount = double.tryParse(line.amountController.text.trim());
+    final taxableAmount = amount == null || amount <= 0 ? qty * rate : amount;
+    final normalizedRate = qty > 0 ? taxableAmount / qty : taxableAmount;
+    return computePurchaseLineTaxBreakdown(
+      qty: qty <= 0 ? 1 : qty,
+      rate: normalizedRate,
+      discountPercent: 0,
+      taxCode: taxCodeById(line.taxCodeId),
+    );
   }
 
   String? _validate() {
