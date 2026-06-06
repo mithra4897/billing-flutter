@@ -315,7 +315,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                           if (text.isEmpty) {
                             return null;
                           }
-                          return double.tryParse(text) == null
+                          return Validators.parseFlexibleNumber(text) == null
                               ? 'Round off must be a valid number'
                               : null;
                         },
@@ -535,7 +535,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     total:
                         taxSummary.total +
                         (controller.applyRoundOff
-                            ? (double.tryParse(
+                            ? (Validators.parseFlexibleNumber(
                                     controller.roundOffController.text.trim(),
                                   ) ??
                                   0)
@@ -543,7 +543,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     currencyCode: currency,
                     subtitle: (() {
                       final roundOff = controller.applyRoundOff
-                          ? (double.tryParse(
+                          ? (Validators.parseFlexibleNumber(
                                   controller.roundOffController.text.trim(),
                                 ) ??
                                 0)

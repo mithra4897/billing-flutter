@@ -114,7 +114,10 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
 
   Widget _buildTaxSummaryCard(SalesOrderManagementController controller) {
     final roundOff = controller.applyRoundOff
-        ? (double.tryParse(controller.roundOffController.text.trim()) ?? 0)
+        ? (Validators.parseFlexibleNumber(
+                controller.roundOffController.text.trim(),
+              ) ??
+              0)
         : 0;
     final subtitle = roundOff == 0
         ? null
@@ -285,7 +288,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     if (trimmed.isEmpty) {
                       return null;
                     }
-                    if (double.tryParse(trimmed) == null) {
+                    if (Validators.parseFlexibleNumber(trimmed) == null) {
                       return 'Round off must be a valid number';
                     }
                     return null;

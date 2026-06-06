@@ -229,7 +229,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                           if (text.isEmpty) {
                             return null;
                           }
-                          return double.tryParse(text) == null
+                          return Validators.parseFlexibleNumber(text) == null
                               ? 'Round off must be a valid number'
                               : null;
                         },

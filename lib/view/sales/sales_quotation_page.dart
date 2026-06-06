@@ -263,7 +263,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                     if (text.isEmpty) {
                       return null;
                     }
-                    return double.tryParse(text) == null
+                    return Validators.parseFlexibleNumber(text) == null
                         ? 'Round off must be a valid number'
                         : null;
                   },
@@ -580,7 +580,10 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
   Widget _buildTaxSummaryCard(SalesQuotationManagementController controller) {
     final summary = controller.taxSummary();
     final roundOff = controller.applyRoundOff
-        ? (double.tryParse(controller.roundOffController.text.trim()) ?? 0)
+        ? (Validators.parseFlexibleNumber(
+                controller.roundOffController.text.trim(),
+              ) ??
+              0)
         : 0;
     return GstSummaryCard(
       taxable: summary.taxable,

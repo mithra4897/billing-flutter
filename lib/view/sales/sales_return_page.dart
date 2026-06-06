@@ -224,7 +224,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                     if (text.isEmpty) {
                       return null;
                     }
-                    return double.tryParse(text) == null
+                    return Validators.parseFlexibleNumber(text) == null
                         ? 'Round off must be a valid number'
                         : null;
                   },
@@ -435,7 +435,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
   Widget _buildTaxSummaryCard(SalesReturnManagementController controller) {
     final summary = controller.taxSummary();
     final roundOff = controller.applyRoundOff
-        ? (double.tryParse(controller.roundOffController.text.trim()) ?? 0)
+        ? (Validators.parseFlexibleNumber(
+                controller.roundOffController.text.trim(),
+              ) ??
+              0)
         : 0;
     return GstSummaryCard(
       taxable: summary.taxable,

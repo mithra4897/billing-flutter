@@ -454,6 +454,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                               decoration: const InputDecoration(
                                 labelText: 'Invoiced Qty',
                               ),
+                              inputFormatters: const <TextInputFormatter>[
+                                NumericInputFormatter(),
+                              ],
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -462,7 +465,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                                 index,
                                 line.copyWith(
                                   invoicedQty:
-                                      double.tryParse(value.trim()) ??
+                                      Validators.parseFlexibleNumber(value) ??
                                       line.invoicedQty,
                                 ),
                               ),
@@ -478,6 +481,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                               decoration: const InputDecoration(
                                 labelText: 'Rate',
                               ),
+                              inputFormatters: const <TextInputFormatter>[
+                                NumericInputFormatter(),
+                              ],
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -486,7 +492,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                                 index,
                                 line.copyWith(
                                   rate:
-                                      double.tryParse(value.trim()) ??
+                                      Validators.parseFlexibleNumber(value) ??
                                       line.rate,
                                 ),
                               ),
@@ -501,6 +507,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                               decoration: const InputDecoration(
                                 labelText: 'Discount %',
                               ),
+                              inputFormatters: const <TextInputFormatter>[
+                                NumericInputFormatter(),
+                              ],
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -510,7 +519,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                                 line.copyWith(
                                   discountPercent: nullIfEmpty(value) == null
                                       ? null
-                                      : double.tryParse(value.trim()),
+                                      : Validators.parseFlexibleNumber(value),
                                 ),
                               ),
                             ),

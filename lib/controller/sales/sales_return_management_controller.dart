@@ -52,9 +52,11 @@ class SalesReturnLineDraft {
     final draft = SalesReturnLineDraft(
       salesInvoiceLineId: intValue(json, 'sales_invoice_line_id'),
       taxCodeId: intValue(json, 'tax_code_id'),
-      taxPercent: double.tryParse(json['tax_percent']?.toString() ?? ''),
+      taxPercent: Validators.parseFlexibleNumber(
+        json['tax_percent']?.toString(),
+      ),
       taxType: stringValue(json, 'tax_type'),
-      discountPercent: double.tryParse(
+      discountPercent: Validators.parseFlexibleNumber(
         json['discount_percent']?.toString() ?? '',
       ),
       returnQty: stringValue(json, 'return_qty'),
@@ -155,8 +157,9 @@ class SalesReturnLineDraft {
       if (taxCodeId != null) 'tax_code_id': taxCodeId,
       if (discountPercent != null) 'discount_percent': discountPercent,
       if (taxPercent != null) 'tax_percent': taxPercent,
-      'return_qty': double.tryParse(returnQtyController.text.trim()) ?? 0,
-      'rate': double.tryParse(rateController.text.trim()) ?? 0,
+      'return_qty':
+          Validators.parseFlexibleNumber(returnQtyController.text) ?? 0,
+      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }
@@ -446,7 +449,9 @@ class SalesReturnManagementController extends GetxController {
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
         : stringValue(data, 'round_off_amount');
-    applyRoundOff = (double.tryParse(roundOffController.text.trim()) ?? 0) != 0;
+    applyRoundOff =
+        (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
+        0;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     invoiceLines =
@@ -696,8 +701,8 @@ class SalesReturnManagementController extends GetxController {
 
   SalesLineTaxBreakdown taxBreakdownForLine(SalesReturnLineDraft line) {
     return computeSalesLineTaxBreakdown(
-      qty: double.tryParse(line.returnQtyController.text.trim()) ?? 0,
-      rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+      qty: Validators.parseFlexibleNumber(line.returnQtyController.text) ?? 0,
+      rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
       discountPercent: line.discountPercent ?? 0,
       taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
       taxPercent: line.taxPercent,
@@ -710,12 +715,11 @@ class SalesReturnManagementController extends GetxController {
   }
 
   void _syncAutoRoundOff() {
-    if (!applyRoundOff) {
-      return;
-    }
-    final baseTotal = taxSummary().total;
-    final autoRoundOff = roundToDouble(baseTotal.round() - baseTotal, 2);
-    roundOffController.text = autoRoundOff.toStringAsFixed(2);
+    Validators.syncAutoRoundOffController(
+      roundOffController,
+      enabled: applyRoundOff,
+      baseTotal: taxSummary().total,
+    );
   }
 
   Map<String, dynamic> linePayload(SalesReturnLineDraft line) {
@@ -799,7 +803,9 @@ class SalesReturnManagementController extends GetxController {
     }
     if (lines.any((line) {
       return line.salesInvoiceLineId == null ||
-          (double.tryParse(line.returnQtyController.text.trim()) ?? 0) <= 0;
+          (Validators.parseFlexibleNumber(line.returnQtyController.text) ??
+                  0) <=
+              0;
     })) {
       formError = 'Each line needs invoice line and return quantity.';
       update();
@@ -826,7 +832,8 @@ class SalesReturnManagementController extends GetxController {
       'return_date': returnDateController.text.trim(),
       'reason': nullIfEmpty(reasonController.text),
       'round_off_amount': applyRoundOff
-          ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+          ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                0)
           : 0,
       'taxable_amount': roundToDouble(summary.taxable, 2),
       'cgst_amount': roundToDouble(summary.cgst, 2),
@@ -836,7 +843,10 @@ class SalesReturnManagementController extends GetxController {
       'total_amount': roundToDouble(
         summary.total +
             (applyRoundOff
-                ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+                ? (Validators.parseFlexibleNumber(
+                        roundOffController.text.trim(),
+                      ) ??
+                      0)
                 : 0),
         2,
       ),
@@ -860,7 +870,9 @@ class SalesReturnManagementController extends GetxController {
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
       if (preserveApplyRoundOff &&
-          (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+          (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                  0) ==
+              0) {
         applyRoundOff = true;
         update();
       }

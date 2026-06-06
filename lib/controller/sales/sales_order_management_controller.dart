@@ -71,9 +71,10 @@ class OrderLineDraft {
       'uom_id': uomId,
       'tax_code_id': taxCodeId,
       'description': nullIfEmpty(descriptionController.text),
-      'ordered_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-      'rate': double.tryParse(rateController.text.trim()) ?? 0,
-      'discount_percent': double.tryParse(discountController.text.trim()) ?? 0,
+      'ordered_qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
+      'discount_percent':
+          Validators.parseFlexibleNumber(discountController.text) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }
@@ -316,7 +317,8 @@ class SalesOrderManagementController extends GetxController {
   String quotationLinePickerLabel(Map<String, dynamic> line) {
     final itemId = intValue(line, 'item_id');
     final item = itemById(itemId);
-    final quoteQty = double.tryParse(line['qty']?.toString() ?? '') ?? 0;
+    final quoteQty =
+        Validators.parseFlexibleNumber(line['qty']?.toString()) ?? 0;
     final lineNo = intValue(line, 'line_no') ?? 0;
     final name = (item?.itemName ?? '').trim().isNotEmpty
         ? item!.itemName
@@ -408,7 +410,8 @@ class SalesOrderManagementController extends GetxController {
         );
         line.remarksController.text = stringValue(quotationLine, 'remarks');
         final quoteQty =
-            double.tryParse(quotationLine['qty']?.toString() ?? '') ?? 0;
+            Validators.parseFlexibleNumber(quotationLine['qty']?.toString()) ??
+            0;
         if (quoteQty > 0) {
           line.qtyController.text = quoteQty.toString();
         }
@@ -720,7 +723,9 @@ class SalesOrderManagementController extends GetxController {
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
         : stringValue(data, 'round_off_amount');
-    applyRoundOff = (double.tryParse(roundOffController.text.trim()) ?? 0) != 0;
+    applyRoundOff =
+        (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
+        0;
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
@@ -903,17 +908,18 @@ class SalesOrderManagementController extends GetxController {
 
   SalesLineTaxBreakdown taxBreakdownForLine(OrderLineDraft line) {
     return computeSalesLineTaxBreakdown(
-      qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
-      rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+      qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
+      rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
       discountPercent:
-          double.tryParse(line.discountController.text.trim()) ?? 0,
+          Validators.parseFlexibleNumber(line.discountController.text) ?? 0,
       taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
     );
   }
 
   SalesDocumentTaxSummary taxSummary() {
     final roundOff = applyRoundOff
-        ? (double.tryParse(roundOffController.text.trim()) ?? 0.0)
+        ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+              0.0)
         : 0.0;
     return summarizeSalesLineTaxes(
       lines.map(taxBreakdownForLine),
@@ -926,12 +932,11 @@ class SalesOrderManagementController extends GetxController {
   }
 
   void _syncAutoRoundOff() {
-    if (!applyRoundOff) {
-      return;
-    }
-    final baseTotal = _baseTaxSummary().total;
-    final autoRoundOff = roundToDouble(baseTotal.round() - baseTotal, 2);
-    roundOffController.text = autoRoundOff.toStringAsFixed(2);
+    Validators.syncAutoRoundOffController(
+      roundOffController,
+      enabled: applyRoundOff,
+      baseTotal: _baseTaxSummary().total,
+    );
   }
 
   Map<String, dynamic> linePayload(OrderLineDraft line) {
@@ -987,8 +992,8 @@ class SalesOrderManagementController extends GetxController {
                 item?.itemCode ??
                 line.descriptionController.text.trim(),
             description: line.descriptionController.text.trim(),
-            qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
-            rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+            qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
+            rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
             lineTotal: roundToDouble(breakdown.taxable, 2),
           );
@@ -1105,7 +1110,7 @@ class SalesOrderManagementController extends GetxController {
 
   void refreshComputedState() {
     _syncAutoRoundOff();
-    refreshComputedState();
+    refreshLineItemsSection();
   }
 
   void setLineItemId(int index, int? value) {
@@ -1161,7 +1166,7 @@ class SalesOrderManagementController extends GetxController {
       (line) =>
           line.itemId == null ||
           line.uomId == null ||
-          (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
+          (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) <= 0,
     )) {
       formError = 'Each line needs item, UOM, and quantity.';
       update();
@@ -1186,9 +1191,11 @@ class SalesOrderManagementController extends GetxController {
       'customer_reference_no': nullIfEmpty(customerRefNoController.text),
       'customer_reference_date': nullIfEmpty(customerRefDateController.text),
       'currency_code': nullIfEmpty(currencyCodeController.text) ?? 'INR',
-      'exchange_rate': double.tryParse(exchangeRateController.text.trim()) ?? 1,
+      'exchange_rate':
+          Validators.parseFlexibleNumber(exchangeRateController.text) ?? 1,
       'round_off_amount': applyRoundOff
-          ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+          ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                0)
           : 0,
       'taxable_amount': roundToDouble(summary.taxable, 2),
       'cgst_amount': roundToDouble(summary.cgst, 2),
@@ -1217,7 +1224,9 @@ class SalesOrderManagementController extends GetxController {
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
       if (preserveApplyRoundOff &&
-          (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+          (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                  0) ==
+              0) {
         applyRoundOff = true;
         update();
       }

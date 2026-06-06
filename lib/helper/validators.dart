@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 class Validators {
   const Validators._();
 
@@ -10,6 +12,78 @@ class Validators {
   static final RegExp _mobilePattern = RegExp(r'^[6-9]\d{9}$');
   static final RegExp _phoneAllowedCharsPattern = RegExp(r'^[0-9+\-\s()]+$');
   static final RegExp _phoneDigitPattern = RegExp(r'^\d{6,15}$');
+
+  static double? parseFlexibleNumber(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final normalized = trimmed.replaceAll(',', '');
+    return double.tryParse(normalized);
+  }
+
+  static double parseControllerNumber(TextEditingController? controller) {
+    return parseFlexibleNumber(controller?.text) ?? 0;
+  }
+
+  static double calculateNearestWholeRoundOff(double baseTotal) {
+    return (((baseTotal.round() - baseTotal) * 100).round()) / 100;
+  }
+
+  static void syncAutoRoundOffController(
+    TextEditingController controller, {
+    required bool enabled,
+    required double baseTotal,
+  }) {
+    if (!enabled) {
+      return;
+    }
+    controller.text = calculateNearestWholeRoundOff(
+      baseTotal,
+    ).toStringAsFixed(2);
+  }
+
+  static String formatFlexibleNumberString(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    final normalized = trimmed.replaceAll(',', '');
+    if (double.tryParse(normalized) == null) {
+      return trimmed;
+    }
+
+    var sign = '';
+    var unsigned = normalized;
+    if (unsigned.startsWith('-')) {
+      sign = '-';
+      unsigned = unsigned.substring(1);
+    }
+
+    final parts = unsigned.split('.');
+    final integerPart = parts.first;
+    final fractionalPart = parts.length > 1 ? parts.sublist(1).join('.') : '';
+    final groupedInteger = _groupDigits(integerPart);
+    if (fractionalPart.isEmpty) {
+      return '$sign$groupedInteger';
+    }
+    return '$sign$groupedInteger.$fractionalPart';
+  }
+
+  static String _groupDigits(String digits) {
+    if (digits.isEmpty) {
+      return '0';
+    }
+    final buffer = StringBuffer();
+    for (var index = 0; index < digits.length; index++) {
+      final remaining = digits.length - index;
+      buffer.write(digits[index]);
+      if (remaining > 1 && remaining % 3 == 1) {
+        buffer.write(',');
+      }
+    }
+    return buffer.toString();
+  }
 
   static String? Function(String?) required(String fieldName) {
     return (value) => requiredField(value, fieldName);
@@ -173,7 +247,7 @@ class Validators {
     if (text.isEmpty) {
       return '$fieldName is required';
     }
-    final parsed = double.tryParse(text);
+    final parsed = parseFlexibleNumber(text);
     if (parsed == null) {
       return '$fieldName must be a valid number';
     }
@@ -244,7 +318,7 @@ class Validators {
       return null;
     }
 
-    final parsed = double.tryParse(trimmed);
+    final parsed = Validators.parseFlexibleNumber(trimmed);
     if (parsed == null) {
       return '$fieldName must be a valid number';
     }
@@ -421,7 +495,7 @@ String? Function(String?) percentField0To100Optional(String fieldName) {
     if (trimmed.isEmpty) {
       return null;
     }
-    final parsed = double.tryParse(trimmed);
+    final parsed = Validators.parseFlexibleNumber(trimmed);
     if (parsed == null) {
       return '$fieldName must be a valid number';
     }

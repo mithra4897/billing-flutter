@@ -18,8 +18,9 @@ class _DocumentSeriesManagementPageState
   @override
   void initState() {
     super.initState();
-    _controllerTag =
-        persistentControllerTag('DocumentSeriesManagementController');
+    _controllerTag = persistentControllerTag(
+      'DocumentSeriesManagementController',
+    );
     Get.put(DocumentSeriesManagementController(), tag: _controllerTag);
   }
 
@@ -152,6 +153,9 @@ class _DocumentSeriesManagementPageState
                   child: TextFormField(
                     controller: controller.nextNumberController,
                     decoration: const InputDecoration(labelText: 'Next Number'),
+                    inputFormatters: const <TextInputFormatter>[
+                      NumericInputFormatter(),
+                    ],
                     keyboardType: TextInputType.number,
                     validator: Validators.optionalNonNegativeInteger(
                       'Next Number',
@@ -165,6 +169,9 @@ class _DocumentSeriesManagementPageState
                     decoration: const InputDecoration(
                       labelText: 'Number Length',
                     ),
+                    inputFormatters: const <TextInputFormatter>[
+                      NumericInputFormatter(),
+                    ],
                     keyboardType: TextInputType.number,
                     validator: Validators.optionalNonNegativeInteger(
                       'Number Length',

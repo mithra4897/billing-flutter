@@ -24,8 +24,12 @@ class PurchaseOrderLineDraft {
   factory PurchaseOrderLineDraft.fromRequisitionLine(
     Map<String, dynamic> json,
   ) {
-    final pendingQty = double.tryParse(stringValue(json, 'pending_qty'));
-    final requestedQty = double.tryParse(stringValue(json, 'requested_qty'));
+    final pendingQty = Validators.parseFlexibleNumber(
+      stringValue(json, 'pending_qty'),
+    );
+    final requestedQty = Validators.parseFlexibleNumber(
+      stringValue(json, 'requested_qty'),
+    );
     final effectiveQty = pendingQty != null && pendingQty > 0
         ? pendingQty
         : (requestedQty ?? 0);
@@ -76,9 +80,10 @@ class PurchaseOrderLineDraft {
       'uom_id': uomId,
       'tax_code_id': taxCodeId,
       'description': nullIfEmpty(descriptionController.text),
-      'ordered_qty': double.tryParse(qtyController.text.trim()) ?? 0,
-      'rate': double.tryParse(rateController.text.trim()) ?? 0,
-      'discount_percent': double.tryParse(discountController.text.trim()) ?? 0,
+      'ordered_qty': Validators.parseFlexibleNumber(qtyController.text) ?? 0,
+      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
+      'discount_percent':
+          Validators.parseFlexibleNumber(discountController.text) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }
@@ -443,7 +448,9 @@ class PurchaseOrderManagementController extends GetxController {
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
         : stringValue(data, 'round_off_amount');
-    applyRoundOff = (double.tryParse(roundOffController.text.trim()) ?? 0) != 0;
+    applyRoundOff =
+        (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
+        0;
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
@@ -540,9 +547,10 @@ class PurchaseOrderManagementController extends GetxController {
   }
 
   PurchaseLineTaxBreakdown taxBreakdownForLine(PurchaseOrderLineDraft line) {
-    final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-    final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
-    final discount = double.tryParse(line.discountController.text.trim()) ?? 0;
+    final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+    final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+    final discount =
+        Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
     return computePurchaseLineTaxBreakdown(
       qty: qty,
       rate: rate,
@@ -556,12 +564,11 @@ class PurchaseOrderManagementController extends GetxController {
   }
 
   void _syncAutoRoundOff() {
-    if (!applyRoundOff) {
-      return;
-    }
-    final baseTotal = orderTaxSummary().total;
-    final autoRoundOff = roundToDouble(baseTotal.round() - baseTotal, 2);
-    roundOffController.text = autoRoundOff.toStringAsFixed(2);
+    Validators.syncAutoRoundOffController(
+      roundOffController,
+      enabled: applyRoundOff,
+      baseTotal: orderTaxSummary().total,
+    );
   }
 
   PartyModel? supplierById(int? supplierId) {
@@ -652,8 +659,8 @@ class PurchaseOrderManagementController extends GetxController {
                 item?.itemCode ??
                 line.descriptionController.text.trim(),
             description: line.descriptionController.text.trim(),
-            qty: double.tryParse(line.qtyController.text.trim()) ?? 0,
-            rate: double.tryParse(line.rateController.text.trim()) ?? 0,
+            qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
+            rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
             lineTotal: roundToDouble(breakdown.taxable, 2),
           );
@@ -838,7 +845,8 @@ class PurchaseOrderManagementController extends GetxController {
         fallback: fallbackDescription,
       );
     }
-    final currentRate = double.tryParse(draft.rateController.text.trim()) ?? 0;
+    final currentRate =
+        Validators.parseFlexibleNumber(draft.rateController.text) ?? 0;
     if (currentRate <= 0 && item?.standardCost != null) {
       draft.rateController.text = item!.standardCost!.toString();
     }
@@ -886,7 +894,8 @@ class PurchaseOrderManagementController extends GetxController {
   }
 
   bool isOpenDemandRequisitionLine(Map<String, dynamic> line) {
-    final pendingQty = double.tryParse(stringValue(line, 'pending_qty')) ?? 0;
+    final pendingQty =
+        Validators.parseFlexibleNumber(stringValue(line, 'pending_qty')) ?? 0;
     final status = stringValue(line, 'line_status');
     if (pendingQty <= 0) return false;
     return status != 'cancelled' && status != 'fully_ordered';
@@ -1361,7 +1370,7 @@ class PurchaseOrderManagementController extends GetxController {
       (line) =>
           line.itemId == null ||
           line.uomId == null ||
-          (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
+          (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) <= 0,
     )) {
       formError = 'Each line needs item, UOM, and ordered quantity.';
       update();
@@ -1390,9 +1399,11 @@ class PurchaseOrderManagementController extends GetxController {
         supplierReferenceDateController.text,
       ),
       'currency_code': nullIfEmpty(currencyCodeController.text) ?? 'INR',
-      'exchange_rate': double.tryParse(exchangeRateController.text.trim()) ?? 1,
+      'exchange_rate':
+          Validators.parseFlexibleNumber(exchangeRateController.text) ?? 1,
       'round_off_amount': applyRoundOff
-          ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+          ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                0)
           : 0,
       'notes': nullIfEmpty(notesController.text),
       'terms_conditions': nullIfEmpty(termsController.text),
@@ -1418,7 +1429,9 @@ class PurchaseOrderManagementController extends GetxController {
         _upsertOrder(saved);
         await selectDocument(saved, notify: false);
         if (preserveApplyRoundOff &&
-            (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+            (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                    0) ==
+                0) {
           applyRoundOff = true;
         }
         _refreshController.notifyChanged(source: 'purchase_order');
@@ -1428,7 +1441,9 @@ class PurchaseOrderManagementController extends GetxController {
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
         if (preserveApplyRoundOff &&
-            (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+            (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                    0) ==
+                0) {
           applyRoundOff = true;
           update();
         }

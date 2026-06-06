@@ -142,6 +142,9 @@ class _UomConversionManagementPageState
                   labelText: 'Conversion Factor',
                   hintText: '1 Base = ? Target',
                 ),
+                inputFormatters: const <TextInputFormatter>[
+                  NumericInputFormatter(),
+                ],
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
