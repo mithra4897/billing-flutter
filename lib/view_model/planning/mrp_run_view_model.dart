@@ -1,6 +1,21 @@
 import '../../../screen.dart';
 
 class MrpRunViewModel extends GetxController {
+  static const List<AppDropdownItem<String>> runScopeItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem<String>(value: 'all_items', label: 'All Items'),
+        AppDropdownItem<String>(
+          value: 'selected_warehouse',
+          label: 'Warehouse Only',
+        ),
+      ];
+
+  static const List<AppDropdownItem<String>> runModeItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem<String>(value: 'official', label: 'Official Run'),
+        AppDropdownItem<String>(value: 'simulation', label: 'Simulation'),
+      ];
+
   final PlanningService _service = PlanningService();
   final MasterService _masterService = MasterService();
 
@@ -20,8 +35,18 @@ class MrpRunViewModel extends GetxController {
 
   List<MrpRunModel> rows = const <MrpRunModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
+  List<BranchModel> branches = const <BranchModel>[];
+  List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
+  List<WarehouseModel> warehouses = const <WarehouseModel>[];
+  List<PlanningCalendarModel> calendars = const <PlanningCalendarModel>[];
   MrpRunModel? selected;
   int? companyId;
+  int? branchId;
+  int? locationId;
+  int? warehouseId;
+  int? planningCalendarId;
+  String runScope = 'all_items';
+  String runMode = 'official';
 
   MrpRunViewModel() {
     searchController.addListener(update);
@@ -54,6 +79,46 @@ class MrpRunViewModel extends GetxController {
     return value;
   }
 
+  List<BranchModel> get branchOptions => branchesForCompany(
+    branches,
+    companyId,
+  ).where((branch) => branch.isActive).toList(growable: false);
+
+  List<BusinessLocationModel> get locationOptions => locationsForBranch(
+    locations,
+    branchId,
+  ).where((location) => location.isActive).toList(growable: false);
+
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((warehouse) {
+        if (!warehouse.isActive || warehouse.id == null) {
+          return false;
+        }
+        if (companyId != null && warehouse.companyId != companyId) {
+          return false;
+        }
+        if (branchId != null && warehouse.branchId != branchId) {
+          return false;
+        }
+        if (locationId != null && warehouse.locationId != locationId) {
+          return false;
+        }
+        return true;
+      })
+      .toList(growable: false);
+
+  List<PlanningCalendarModel> get calendarOptions => calendars
+      .where((calendar) {
+        if (calendar.id == null) {
+          return false;
+        }
+        if (companyId != null && calendar.companyId != companyId) {
+          return false;
+        }
+        return calendar.isActive ?? true;
+      })
+      .toList(growable: false);
+
   Future<void> load({int? selectId}) async {
     loading = true;
     pageError = null;
@@ -62,6 +127,10 @@ class MrpRunViewModel extends GetxController {
       final responses = await Future.wait<dynamic>([
         _service.mrpRuns(filters: const {'per_page': 200}),
         _masterService.companies(filters: const {'per_page': 200}),
+        _masterService.branches(filters: const {'per_page': 300}),
+        _masterService.businessLocations(filters: const {'per_page': 300}),
+        _masterService.warehouses(filters: const {'per_page': 300}),
+        _service.calendars(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<MrpRunModel>).data ??
@@ -71,14 +140,36 @@ class MrpRunViewModel extends GetxController {
                   const <CompanyModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+      branches =
+          ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                  const <BranchModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      locations =
+          ((responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+                  const <BusinessLocationModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      warehouses =
+          ((responses[4] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      calendars =
+          ((responses[5] as PaginatedResponse<PlanningCalendarModel>).data ??
+                  const <PlanningCalendarModel>[])
+              .where((x) => x.isActive ?? true)
+              .toList(growable: false);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: companies,
-            branches: const <BranchModel>[],
-            locations: const <BusinessLocationModel>[],
+            branches: branches,
+            locations: locations,
             financialYears: const <FinancialYearModel>[],
           );
       companyId = contextSelection.companyId;
+      branchId = contextSelection.branchId;
+      locationId = contextSelection.locationId;
       loading = false;
       if (selectId != null) {
         final existing = rows.cast<MrpRunModel?>().firstWhere(
@@ -114,7 +205,31 @@ class MrpRunViewModel extends GetxController {
   void resetDraft() {
     selected = null;
     formError = null;
-    companyId ??= companies.isNotEmpty ? companies.first.id : null;
+    final normalized = normalizedWorkingContextSelection(
+      companies: companies,
+      branches: branches,
+      locations: locations,
+      financialYears: const <FinancialYearModel>[],
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+      financialYearId: null,
+    );
+    companyId = normalized.companyId;
+    branchId = normalized.branchId;
+    locationId = normalized.locationId;
+    warehouseId = null;
+    planningCalendarId =
+        calendarOptions
+            .cast<PlanningCalendarModel?>()
+            .firstWhere(
+              (calendar) => calendar?.isDefault == true,
+              orElse: () => null,
+            )
+            ?.id ??
+        (calendarOptions.isNotEmpty ? calendarOptions.first.id : null);
+    runScope = 'all_items';
+    runMode = 'official';
     runNoController.clear();
     final today = DateTime.now().toIso8601String().split('T').first;
     runDateController.text = today;
@@ -135,6 +250,10 @@ class MrpRunViewModel extends GetxController {
       final response = await _service.mrpRun(id);
       final data = (response.data ?? row).toJson();
       companyId = intValue(data, 'company_id');
+      branchId = intValue(data, 'branch_id');
+      locationId = intValue(data, 'location_id');
+      warehouseId = intValue(data, 'warehouse_id');
+      planningCalendarId = intValue(data, 'planning_calendar_id');
       runNoController.text = stringValue(data, 'run_no');
       runDateController.text = normalizeDateValue(
         nullableStringValue(data, 'run_date'),
@@ -145,6 +264,8 @@ class MrpRunViewModel extends GetxController {
       endDateController.text = normalizeDateValue(
         nullableStringValue(data, 'planning_end_date'),
       );
+      runScope = _normalizeRunScope(stringValue(data, 'run_scope'));
+      runMode = _normalizeRunMode(stringValue(data, 'run_mode'));
       notesController.text = stringValue(data, 'notes');
     } catch (e) {
       formError = e.toString();
@@ -156,6 +277,71 @@ class MrpRunViewModel extends GetxController {
 
   void onCompanyChanged(int? value) {
     companyId = value;
+    final nextBranches = branchOptions;
+    branchId = containsMasterId(nextBranches, branchId, (item) => item.id)
+        ? branchId
+        : (nextBranches.isNotEmpty ? nextBranches.first.id : null);
+    final nextLocations = locationOptions;
+    locationId = containsMasterId(nextLocations, locationId, (item) => item.id)
+        ? locationId
+        : (nextLocations.isNotEmpty ? nextLocations.first.id : null);
+    if (!warehouseOptions.any((warehouse) => warehouse.id == warehouseId)) {
+      warehouseId = null;
+    }
+    if (!calendarOptions.any((calendar) => calendar.id == planningCalendarId)) {
+      planningCalendarId =
+          calendarOptions
+              .cast<PlanningCalendarModel?>()
+              .firstWhere(
+                (calendar) => calendar?.isDefault == true,
+                orElse: () => null,
+              )
+              ?.id ??
+          (calendarOptions.isNotEmpty ? calendarOptions.first.id : null);
+    }
+    update();
+  }
+
+  void onBranchChanged(int? value) {
+    branchId = value;
+    final nextLocations = locationOptions;
+    locationId = containsMasterId(nextLocations, locationId, (item) => item.id)
+        ? locationId
+        : (nextLocations.isNotEmpty ? nextLocations.first.id : null);
+    if (!warehouseOptions.any((warehouse) => warehouse.id == warehouseId)) {
+      warehouseId = null;
+    }
+    update();
+  }
+
+  void onLocationChanged(int? value) {
+    locationId = value;
+    if (!warehouseOptions.any((warehouse) => warehouse.id == warehouseId)) {
+      warehouseId = null;
+    }
+    update();
+  }
+
+  void onWarehouseChanged(int? value) {
+    warehouseId = value;
+    update();
+  }
+
+  void onPlanningCalendarChanged(int? value) {
+    planningCalendarId = value;
+    update();
+  }
+
+  void onRunScopeChanged(String? value) {
+    runScope = _normalizeRunScope(value);
+    if (runScope != 'selected_warehouse') {
+      warehouseId = null;
+    }
+    update();
+  }
+
+  void onRunModeChanged(String? value) {
+    runMode = _normalizeRunMode(value);
     update();
   }
 
@@ -189,10 +375,16 @@ class MrpRunViewModel extends GetxController {
     update();
     final payload = <String, dynamic>{
       'company_id': companyId,
+      'branch_id': branchId,
+      'location_id': locationId,
+      'warehouse_id': runScope == 'selected_warehouse' ? warehouseId : null,
+      'planning_calendar_id': planningCalendarId,
       'run_no': nullIfEmpty(runNoController.text),
       'run_date': runDateController.text.trim(),
       'planning_start_date': startDateController.text.trim(),
       'planning_end_date': endDateController.text.trim(),
+      'run_scope': runScope,
+      'run_mode': runMode,
       'notes': nullIfEmpty(notesController.text),
     };
     try {
@@ -273,5 +465,29 @@ class MrpRunViewModel extends GetxController {
     endDateController.dispose();
     notesController.dispose();
     super.onClose();
+  }
+
+  String _normalizeRunScope(String? value) {
+    final normalized = (value ?? 'all_items').trim().toLowerCase();
+    switch (normalized) {
+      case 'all':
+        return 'all_items';
+      case 'warehouse':
+        return 'selected_warehouse';
+      default:
+        return normalized.isEmpty ? 'all_items' : normalized;
+    }
+  }
+
+  String _normalizeRunMode(String? value) {
+    final normalized = (value ?? 'official').trim().toLowerCase();
+    switch (normalized) {
+      case 'full':
+        return 'official';
+      case 'regenerative':
+        return 'simulation';
+      default:
+        return normalized.isEmpty ? 'official' : normalized;
+    }
   }
 }

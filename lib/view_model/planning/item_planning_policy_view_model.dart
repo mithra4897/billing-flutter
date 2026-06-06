@@ -4,15 +4,26 @@ class ItemPlanningPolicyViewModel extends GetxController {
   final PlanningService _service = PlanningService();
   final MasterService _masterService = MasterService();
   final InventoryService _inventoryService = InventoryService();
+  final ManufacturingService _manufacturingService = ManufacturingService();
 
   final TextEditingController searchController = TextEditingController();
   final TextEditingController planningMethodController =
       TextEditingController();
   final TextEditingController procurementTypeController =
       TextEditingController();
+  final TextEditingController leadTimeDaysController = TextEditingController();
+  final TextEditingController safetyStockQtyController =
+      TextEditingController();
   final TextEditingController reorderLevelQtyController =
       TextEditingController();
   final TextEditingController reorderQtyController = TextEditingController();
+  final TextEditingController minimumOrderQtyController =
+      TextEditingController();
+  final TextEditingController maxOrderQtyController = TextEditingController();
+  final TextEditingController orderMultipleQtyController =
+      TextEditingController();
+  final TextEditingController planningFenceDaysController =
+      TextEditingController();
   final TextEditingController remarksController = TextEditingController();
 
   bool loading = true;
@@ -25,10 +36,17 @@ class ItemPlanningPolicyViewModel extends GetxController {
   List<ItemPlanningPolicyModel> rows = const <ItemPlanningPolicyModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
   List<ItemModel> items = const <ItemModel>[];
+  List<WarehouseModel> warehouses = const <WarehouseModel>[];
+  List<PartyModel> suppliers = const <PartyModel>[];
+  List<BomModel> boms = const <BomModel>[];
 
   ItemPlanningPolicyModel? selected;
   int? companyId;
   int? itemId;
+  int? warehouseId;
+  int? preferredSupplierPartyId;
+  int? preferredBomId;
+  int? preferredWarehouseId;
   bool isActive = true;
   bool isMrpEnabled = true;
   bool isReorderEnabled = true;
@@ -70,6 +88,33 @@ class ItemPlanningPolicyViewModel extends GetxController {
       })
       .toList(growable: false);
 
+  List<WarehouseModel> get warehouseOptions => warehouses
+      .where((x) {
+        if (!x.isActive || x.id == null) return false;
+        if (companyId != null && x.companyId != companyId) return false;
+        return true;
+      })
+      .toList(growable: false);
+
+  List<WarehouseModel> get preferredWarehouseOptions => warehouseOptions;
+
+  List<PartyModel> get supplierOptions => suppliers
+      .where((x) {
+        if (x.id == null || !x.isActive) return false;
+        if (companyId != null && x.companyId != companyId) return false;
+        return true;
+      })
+      .toList(growable: false);
+
+  List<BomModel> get bomOptions => boms
+      .where((x) {
+        if (x.id == null) return false;
+        if (companyId != null && x.companyId != companyId) return false;
+        if (itemId != null && x.outputItemId != itemId) return false;
+        return (x.isActive ?? true) && (x.approvalStatus ?? '') == 'approved';
+      })
+      .toList(growable: false);
+
   String? consumeActionMessage() {
     final value = actionMessage;
     actionMessage = null;
@@ -85,6 +130,7 @@ class ItemPlanningPolicyViewModel extends GetxController {
         _service.itemPolicies(filters: const {'per_page': 200}),
         _masterService.companies(filters: const {'per_page': 200}),
         _inventoryService.items(filters: const {'per_page': 500}),
+        _masterService.warehouses(filters: const {'per_page': 300}),
       ]);
       rows =
           (responses[0] as PaginatedResponse<ItemPlanningPolicyModel>).data ??
@@ -99,6 +145,12 @@ class ItemPlanningPolicyViewModel extends GetxController {
                   const <ItemModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+      warehouses =
+          ((responses[3] as PaginatedResponse<WarehouseModel>).data ??
+                  const <WarehouseModel>[])
+              .where((x) => x.isActive)
+              .toList(growable: false);
+      boms = await _loadBomsSafely();
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies: companies,
@@ -107,6 +159,7 @@ class ItemPlanningPolicyViewModel extends GetxController {
             financialYears: const <FinancialYearModel>[],
           );
       companyId = contextSelection.companyId;
+      suppliers = await _loadSuppliersSafely(companyId: companyId);
       loading = false;
       if (selectId != null) {
         if (await restoreSelectionAfterReload<ItemPlanningPolicyModel>(
@@ -129,15 +182,60 @@ class ItemPlanningPolicyViewModel extends GetxController {
     }
   }
 
+  Future<List<PartyModel>> _reloadSuppliersForCompany() async {
+    suppliers = await _loadSuppliersSafely(companyId: companyId);
+    if (!supplierOptions.any((x) => x.id == preferredSupplierPartyId)) {
+      preferredSupplierPartyId = null;
+    }
+    update();
+    return suppliers;
+  }
+
+  Future<List<PartyModel>> _loadSuppliersSafely({int? companyId}) async {
+    try {
+      final filters = <String, dynamic>{'per_page': 300};
+      if (companyId != null) {
+        filters['company_id'] = companyId;
+      }
+      final response = await _masterService.parties(filters: filters);
+      return (response.data ?? const <PartyModel>[])
+          .where((x) => x.id != null && x.isActive)
+          .toList(growable: false);
+    } catch (_) {
+      return const <PartyModel>[];
+    }
+  }
+
+  Future<List<BomModel>> _loadBomsSafely() async {
+    try {
+      final response = await _manufacturingService.boms(
+        filters: const {'per_page': 300},
+      );
+      return response.data ?? const <BomModel>[];
+    } catch (_) {
+      return const <BomModel>[];
+    }
+  }
+
   void resetDraft() {
     selected = null;
     formError = null;
     companyId ??= companies.isNotEmpty ? companies.first.id : null;
     itemId = null;
+    warehouseId = null;
+    preferredSupplierPartyId = null;
+    preferredBomId = null;
+    preferredWarehouseId = null;
     planningMethodController.text = 'reorder';
     procurementTypeController.text = 'purchase';
+    leadTimeDaysController.clear();
+    safetyStockQtyController.clear();
     reorderLevelQtyController.clear();
     reorderQtyController.clear();
+    minimumOrderQtyController.clear();
+    maxOrderQtyController.clear();
+    orderMultipleQtyController.clear();
+    planningFenceDaysController.clear();
     remarksController.clear();
     isActive = true;
     isMrpEnabled = true;
@@ -156,7 +254,15 @@ class ItemPlanningPolicyViewModel extends GetxController {
       final response = await _service.itemPolicy(id);
       final data = (response.data ?? row).toJson();
       companyId = intValue(data, 'company_id');
+      await _reloadSuppliersForCompany();
       itemId = intValue(data, 'item_id');
+      warehouseId = intValue(data, 'warehouse_id');
+      preferredSupplierPartyId = intValue(data, 'preferred_supplier_party_id');
+      if (!supplierOptions.any((x) => x.id == preferredSupplierPartyId)) {
+        preferredSupplierPartyId = null;
+      }
+      preferredBomId = intValue(data, 'preferred_bom_id');
+      preferredWarehouseId = intValue(data, 'preferred_warehouse_id');
       planningMethodController.text = stringValue(
         data,
         'planning_method',
@@ -167,8 +273,17 @@ class ItemPlanningPolicyViewModel extends GetxController {
         'procurement_type',
         'purchase',
       );
+      leadTimeDaysController.text = stringValue(data, 'lead_time_days');
+      safetyStockQtyController.text = stringValue(data, 'safety_stock_qty');
       reorderLevelQtyController.text = stringValue(data, 'reorder_level_qty');
       reorderQtyController.text = stringValue(data, 'reorder_qty');
+      minimumOrderQtyController.text = stringValue(data, 'minimum_order_qty');
+      maxOrderQtyController.text = stringValue(data, 'max_order_qty');
+      orderMultipleQtyController.text = stringValue(data, 'order_multiple_qty');
+      planningFenceDaysController.text = stringValue(
+        data,
+        'planning_fence_days',
+      );
       remarksController.text = stringValue(data, 'remarks');
       isActive = boolValue(data, 'is_active', fallback: true);
       isMrpEnabled = boolValue(data, 'is_mrp_enabled', fallback: true);
@@ -186,11 +301,44 @@ class ItemPlanningPolicyViewModel extends GetxController {
     if (!itemOptions.any((x) => x.id == itemId)) {
       itemId = null;
     }
+    if (!warehouseOptions.any((x) => x.id == warehouseId)) {
+      warehouseId = null;
+    }
+    if (!preferredWarehouseOptions.any((x) => x.id == preferredWarehouseId)) {
+      preferredWarehouseId = null;
+    }
+    if (!bomOptions.any((x) => x.id == preferredBomId)) {
+      preferredBomId = null;
+    }
+    unawaited(_reloadSuppliersForCompany());
     update();
   }
 
   void setItemId(int? value) {
     itemId = value;
+    if (!bomOptions.any((x) => x.id == preferredBomId)) {
+      preferredBomId = null;
+    }
+    update();
+  }
+
+  void setWarehouseId(int? value) {
+    warehouseId = value == null || value <= 0 ? null : value;
+    update();
+  }
+
+  void setPreferredSupplierPartyId(int? value) {
+    preferredSupplierPartyId = value;
+    update();
+  }
+
+  void setPreferredBomId(int? value) {
+    preferredBomId = value;
+    update();
+  }
+
+  void setPreferredWarehouseId(int? value) {
+    preferredWarehouseId = value;
     update();
   }
 
@@ -212,6 +360,10 @@ class ItemPlanningPolicyViewModel extends GetxController {
   String? _validate() {
     if (companyId == null) return 'Company is required.';
     if (itemId == null) return 'Item is required.';
+    final procurementType = procurementTypeController.text.trim().toLowerCase();
+    if (procurementType == 'purchase' && preferredSupplierPartyId == null) {
+      return 'Preferred supplier is required for purchase planning policies.';
+    }
     return null;
   }
 
@@ -228,12 +380,28 @@ class ItemPlanningPolicyViewModel extends GetxController {
     final payload = <String, dynamic>{
       'company_id': companyId,
       'item_id': itemId,
+      'warehouse_id': warehouseId,
       'planning_method': nullIfEmpty(planningMethodController.text),
       'procurement_type': nullIfEmpty(procurementTypeController.text),
+      'lead_time_days': int.tryParse(leadTimeDaysController.text.trim()),
+      'safety_stock_qty': double.tryParse(safetyStockQtyController.text.trim()),
       'reorder_level_qty': double.tryParse(
         reorderLevelQtyController.text.trim(),
       ),
       'reorder_qty': double.tryParse(reorderQtyController.text.trim()),
+      'minimum_order_qty': double.tryParse(
+        minimumOrderQtyController.text.trim(),
+      ),
+      'max_order_qty': double.tryParse(maxOrderQtyController.text.trim()),
+      'order_multiple_qty': double.tryParse(
+        orderMultipleQtyController.text.trim(),
+      ),
+      'planning_fence_days': int.tryParse(
+        planningFenceDaysController.text.trim(),
+      ),
+      'preferred_supplier_party_id': preferredSupplierPartyId,
+      'preferred_bom_id': preferredBomId,
+      'preferred_warehouse_id': preferredWarehouseId,
       'is_active': isActive ? 1 : 0,
       'is_mrp_enabled': isMrpEnabled ? 1 : 0,
       'is_reorder_enabled': isReorderEnabled ? 1 : 0,
@@ -283,8 +451,14 @@ class ItemPlanningPolicyViewModel extends GetxController {
     searchController.dispose();
     planningMethodController.dispose();
     procurementTypeController.dispose();
+    leadTimeDaysController.dispose();
+    safetyStockQtyController.dispose();
     reorderLevelQtyController.dispose();
     reorderQtyController.dispose();
+    minimumOrderQtyController.dispose();
+    maxOrderQtyController.dispose();
+    orderMultipleQtyController.dispose();
+    planningFenceDaysController.dispose();
     remarksController.dispose();
     super.onClose();
   }

@@ -303,7 +303,21 @@ class SalesDeliveryManagementController extends GetxController {
       .toList(growable: false);
 
   List<AppDropdownItem<int>> get warehouseDropdownItems => warehouses
-      .where((item) => item.id != null)
+      .where((item) {
+        if (item.id == null) {
+          return false;
+        }
+        if (companyId != null && item.companyId != companyId) {
+          return false;
+        }
+        if (branchId != null && item.branchId != branchId) {
+          return false;
+        }
+        if (locationId != null && item.locationId != locationId) {
+          return false;
+        }
+        return true;
+      })
       .map((item) => AppDropdownItem(value: item.id!, label: item.toString()))
       .toList(growable: false);
 

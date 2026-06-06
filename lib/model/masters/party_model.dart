@@ -3,6 +3,7 @@ import '../../screen.dart';
 class PartyModel extends JsonModel {
   const PartyModel({
     super.id,
+    this.companyId,
     this.partyCode,
     this.partyName,
     this.displayName,
@@ -21,6 +22,7 @@ class PartyModel extends JsonModel {
     this.contacts = const [],
     this.gstDetails = const [],
   });
+  final int? companyId;
   final String? partyCode;
   final String? partyName;
   final String? displayName;
@@ -43,6 +45,7 @@ class PartyModel extends JsonModel {
   String toString() => displayName ?? partyName ?? partyCode ?? 'New Party';
 
   PartyModel copyWith({
+    int? companyId,
     String? partyCode,
     String? partyName,
     String? displayName,
@@ -63,6 +66,7 @@ class PartyModel extends JsonModel {
   }) {
     return PartyModel(
       id: id,
+      companyId: companyId ?? this.companyId,
       partyCode: partyCode ?? this.partyCode,
       partyName: partyName ?? this.partyName,
       displayName: displayName ?? this.displayName,
@@ -86,6 +90,7 @@ class PartyModel extends JsonModel {
   factory PartyModel.fromJson(Map<String, dynamic> json) {
     return PartyModel(
       id: _parseInt(json['id']),
+      companyId: _parseInt(json['company_id']),
       partyCode: json['party_code']?.toString() ?? '',
       partyName: json['party_name']?.toString() ?? '',
       displayName: json['display_name']?.toString(),
@@ -119,6 +124,7 @@ class PartyModel extends JsonModel {
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
       if (partyCode != null) 'party_code': partyCode,
       if (partyName != null) 'party_name': partyName,
       if (displayName != null) 'display_name': displayName,

@@ -1,6 +1,25 @@
 import '../../../screen.dart';
 
 class PlanningCalendarViewModel extends GetxController {
+  static const List<AppDropdownItem<String>> planningFrequencyItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem<String>(value: 'daily', label: 'Daily'),
+        AppDropdownItem<String>(value: 'weekly', label: 'Weekly'),
+        AppDropdownItem<String>(value: 'monthly', label: 'Monthly'),
+        AppDropdownItem<String>(value: 'custom', label: 'Custom'),
+      ];
+
+  static const List<AppDropdownItem<String>> weekStartDayItems =
+      <AppDropdownItem<String>>[
+        AppDropdownItem<String>(value: 'monday', label: 'Monday'),
+        AppDropdownItem<String>(value: 'tuesday', label: 'Tuesday'),
+        AppDropdownItem<String>(value: 'wednesday', label: 'Wednesday'),
+        AppDropdownItem<String>(value: 'thursday', label: 'Thursday'),
+        AppDropdownItem<String>(value: 'friday', label: 'Friday'),
+        AppDropdownItem<String>(value: 'saturday', label: 'Saturday'),
+        AppDropdownItem<String>(value: 'sunday', label: 'Sunday'),
+      ];
+
   final PlanningService _service = PlanningService();
   final MasterService _masterService = MasterService();
 
@@ -166,10 +185,32 @@ class PlanningCalendarViewModel extends GetxController {
     update();
   }
 
+  void onPlanningFrequencyChanged(String? value) {
+    frequencyController.text = _normalizePlanningFrequency(value);
+    update();
+  }
+
+  void onWeekStartDayChanged(String? value) {
+    weekStartDayController.text = _normalizeWeekStartDay(value);
+    update();
+  }
+
   String? _validate() {
     if (companyId == null) return 'Company is required.';
     if (codeController.text.trim().isEmpty) return 'Calendar code is required.';
     if (nameController.text.trim().isEmpty) return 'Calendar name is required.';
+    if (!planningFrequencyItems.any(
+      (item) =>
+          item.value == _normalizePlanningFrequency(frequencyController.text),
+    )) {
+      return 'Planning frequency is invalid.';
+    }
+    if (!weekStartDayItems.any(
+      (item) =>
+          item.value == _normalizeWeekStartDay(weekStartDayController.text),
+    )) {
+      return 'Week start day is invalid.';
+    }
     return null;
   }
 
@@ -187,8 +228,10 @@ class PlanningCalendarViewModel extends GetxController {
       'company_id': companyId,
       'calendar_code': codeController.text.trim(),
       'calendar_name': nameController.text.trim(),
-      'planning_frequency': nullIfEmpty(frequencyController.text),
-      'week_start_day': nullIfEmpty(weekStartDayController.text),
+      'planning_frequency': _normalizePlanningFrequency(
+        frequencyController.text,
+      ),
+      'week_start_day': _normalizeWeekStartDay(weekStartDayController.text),
       'is_default': isDefault ? 1 : 0,
       'is_active': isActive ? 1 : 0,
       'remarks': nullIfEmpty(remarksController.text),
@@ -241,5 +284,24 @@ class PlanningCalendarViewModel extends GetxController {
     weekStartDayController.dispose();
     remarksController.dispose();
     super.onClose();
+  }
+
+  String _normalizePlanningFrequency(String? value) {
+    final normalized = (value ?? 'weekly').trim().toLowerCase();
+    switch (normalized) {
+      case 'day':
+        return 'daily';
+      case 'week':
+        return 'weekly';
+      case 'month':
+        return 'monthly';
+      default:
+        return normalized.isEmpty ? 'weekly' : normalized;
+    }
+  }
+
+  String _normalizeWeekStartDay(String? value) {
+    final normalized = (value ?? 'monday').trim().toLowerCase();
+    return normalized.isEmpty ? 'monday' : normalized;
   }
 }

@@ -15,6 +15,8 @@ class MrpReadonlyViewModel extends GetxController {
   bool detailLoading = false;
   String? pageError;
   String? formError;
+  List<MrpRunModel> runs = const <MrpRunModel>[];
+  int? selectedRunId;
   List<JsonModel> rows = const <JsonModel>[];
   JsonModel? selected;
 
@@ -37,14 +39,38 @@ class MrpReadonlyViewModel extends GetxController {
       final companyId = await SessionStorage.getCurrentCompanyId();
       if (companyId == null) {
         rows = const <JsonModel>[];
+        runs = const <MrpRunModel>[];
+        selectedRunId = null;
         selected = null;
         loading = false;
         pageError = 'Select a company in the header to load MRP records.';
         update();
         return;
       }
-      final filters = <String, dynamic>{'per_page': 100};
-      filters['company_id'] = companyId;
+      runs =
+          (await _service.mrpRuns(
+            filters: <String, dynamic>{
+              'per_page': 200,
+              'company_id': companyId,
+            },
+          )).data ??
+          const <MrpRunModel>[];
+      runs = List<MrpRunModel>.from(runs)
+        ..sort((left, right) {
+          final rightId = intValue(right.toJson(), 'id') ?? 0;
+          final leftId = intValue(left.toJson(), 'id') ?? 0;
+          return rightId.compareTo(leftId);
+        });
+      if (!runs.any((run) => run.id == selectedRunId)) {
+        selectedRunId = runs.isNotEmpty ? runs.first.id : null;
+      }
+      final filters = <String, dynamic>{
+        'per_page': 100,
+        'company_id': companyId,
+      };
+      if (selectedRunId != null) {
+        filters['mrp_run_id'] = selectedRunId;
+      }
       switch (module) {
         case MrpReadonlyModule.demand:
           rows =
@@ -82,6 +108,11 @@ class MrpReadonlyViewModel extends GetxController {
       loading = false;
       update();
     }
+  }
+
+  Future<void> onRunChanged(int? value) async {
+    selectedRunId = value;
+    await load();
   }
 
   Future<void> select(JsonModel row) async {

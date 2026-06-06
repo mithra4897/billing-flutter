@@ -1,4 +1,5 @@
 import '../../screen.dart';
+import 'mrp_detail_widgets.dart';
 
 class MrpRecommendationPage extends StatefulWidget {
   const MrpRecommendationPage({
@@ -30,7 +31,7 @@ class _MrpRecommendationPageState extends State<MrpRecommendationPage> {
     _viewModel = Get.put(
       MrpRecommendationViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -99,11 +100,21 @@ class _MrpRecommendationPageState extends State<MrpRecommendationPage> {
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(
-            title: stringValue(data, 'recommendation_type', 'Recommendation'),
+            title: [
+              stringValue(data, 'recommendation_type', 'Recommendation'),
+              'Qty ${stringValue(data, 'recommended_qty', '0')}',
+            ].where((x) => x.trim().isNotEmpty).join(' · '),
             subtitle: [
               stringValue(data, 'recommendation_status'),
-              stringValue(data, 'recommended_qty'),
+              _shortDate(stringValue(data, 'recommended_date')),
+              stringValue(data, 'converted_document_type'),
             ].where((x) => x.trim().isNotEmpty).join(' · '),
+            detail: [
+              if (nullableStringValue(data, 'priority_level') != null)
+                'Priority ${stringValue(data, 'priority_level')}',
+              if (nullableStringValue(data, 'warehouse_id') != null)
+                'Warehouse #${stringValue(data, 'warehouse_id')}',
+            ].join(' · '),
             selected: selected,
             onTap: () async {
               final id = intValue(data, 'id');
@@ -179,9 +190,169 @@ class _MrpRecommendationPageState extends State<MrpRecommendationPage> {
                   ],
                 ),
                 const SizedBox(height: AppUiConstants.spacingMd),
-                SingleChildScrollView(child: Text(_viewModel.detailText)),
+                _MrpRecommendationDetail(record: _viewModel.selected),
               ],
             ),
     );
+  }
+
+  String _shortDate(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    final tIndex = trimmed.indexOf('T');
+    return tIndex > 0 ? trimmed.substring(0, tIndex) : trimmed;
+  }
+}
+
+class _MrpRecommendationDetail extends StatelessWidget {
+  const _MrpRecommendationDetail({required this.record});
+
+  final MrpRecommendationModel? record;
+
+  @override
+  Widget build(BuildContext context) {
+    if (record == null) {
+      return const SettingsEmptyState(
+        icon: Icons.recommend_outlined,
+        title: 'No recommendation selected',
+        message: 'Choose a recommendation from the list to view details.',
+        minHeight: 240,
+      );
+    }
+
+    final data = record!.toJson();
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_title(data), style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: AppUiConstants.spacingXs),
+          Text(
+            _subtitle(data),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(
+                context,
+              ).extension<AppThemeExtension>()!.mutedText,
+            ),
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          MrpDetailSection(
+            title: 'Overview',
+            hideEmptyFields: false,
+            fields: <MrpDetailFieldData>[
+              MrpDetailFieldData(
+                labelText: 'Recommendation Type',
+                value: stringValue(data, 'recommendation_type', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Status',
+                value: stringValue(data, 'recommendation_status', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Recommended Qty',
+                value: stringValue(data, 'recommended_qty', '0'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Recommended Date',
+                value: stringValue(data, 'recommended_date', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Priority',
+                value: stringValue(data, 'priority_level', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'MRP Run',
+                value: stringValue(data, 'mrp_run_id', '-'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          MrpDetailSection(
+            title: 'Source',
+            hideEmptyFields: false,
+            fields: <MrpDetailFieldData>[
+              MrpDetailFieldData(
+                labelText: 'Net Requirement',
+                value: stringValue(data, 'mrp_net_requirement_id', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Item',
+                value: stringValue(data, 'item_id', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Warehouse',
+                value: stringValue(data, 'warehouse_id', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Source Warehouse',
+                value: stringValue(data, 'source_warehouse_id', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Supplier',
+                value: stringValue(data, 'supplier_party_id', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'BOM',
+                value: stringValue(data, 'bom_id', '-'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppUiConstants.spacingMd),
+          MrpDetailSection(
+            title: 'Approval & Conversion',
+            hideEmptyFields: false,
+            fields: <MrpDetailFieldData>[
+              MrpDetailFieldData(
+                labelText: 'Approved By',
+                value: stringValue(data, 'approved_by', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Approved At',
+                value: stringValue(data, 'approved_at', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Converted Document Type',
+                value: stringValue(data, 'converted_document_type', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Converted Document No',
+                value: stringValue(data, 'converted_document_id', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Created At',
+                value: stringValue(data, 'created_at', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Updated At',
+                value: stringValue(data, 'updated_at', '-'),
+              ),
+              MrpDetailFieldData(
+                labelText: 'Notes',
+                value: stringValue(data, 'notes', '-'),
+                large: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _title(Map<String, dynamic> data) {
+    return [
+      stringValue(data, 'recommendation_type', 'Recommendation'),
+      'Qty ${stringValue(data, 'recommended_qty', '0')}',
+    ].where((value) => value.trim().isNotEmpty).join(' · ');
+  }
+
+  String _subtitle(Map<String, dynamic> data) {
+    final parts = <String>[
+      stringValue(data, 'recommendation_status'),
+      stringValue(data, 'recommended_date'),
+      stringValue(data, 'converted_document_type'),
+    ].where((value) => value.trim().isNotEmpty).toList(growable: false);
+    return parts.isEmpty ? 'Recommendation detail' : parts.join(' · ');
   }
 }

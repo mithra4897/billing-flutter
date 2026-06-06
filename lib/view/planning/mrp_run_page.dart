@@ -30,7 +30,7 @@ class _MrpRunPageState extends State<MrpRunPage> {
     _viewModel = Get.put(
       MrpRunViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -198,6 +198,60 @@ class _MrpRunEditor extends StatelessWidget {
                   labelText: 'Run No (optional)',
                   controller: vm.runNoController,
                 ),
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Branch',
+                  mappedItems: <AppDropdownItem<int?>>[
+                    const AppDropdownItem<int?>(
+                      value: null,
+                      label: 'All Branches',
+                    ),
+                    ...vm.branchOptions
+                        .where((branch) => branch.id != null)
+                        .map(
+                          (branch) => AppDropdownItem<int?>(
+                            value: branch.id,
+                            label: branch.toString(),
+                          ),
+                        ),
+                  ],
+                  initialValue: vm.branchId,
+                  onChanged: vm.onBranchChanged,
+                ),
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Location',
+                  mappedItems: <AppDropdownItem<int?>>[
+                    const AppDropdownItem<int?>(
+                      value: null,
+                      label: 'All Locations',
+                    ),
+                    ...vm.locationOptions
+                        .where((location) => location.id != null)
+                        .map(
+                          (location) => AppDropdownItem<int?>(
+                            value: location.id,
+                            label: location.toString(),
+                          ),
+                        ),
+                  ],
+                  initialValue: vm.locationId,
+                  onChanged: vm.onLocationChanged,
+                ),
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Planning Calendar',
+                  mappedItems: <AppDropdownItem<int?>>[
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
+                    ...vm.calendarOptions
+                        .where((calendar) => calendar.id != null)
+                        .map(
+                          (calendar) => AppDropdownItem<int?>(
+                            value: calendar.id,
+                            label: calendar.toString(),
+                          ),
+                        ),
+                  ],
+                  initialValue: vm.planningCalendarId,
+                  onChanged: vm.onPlanningCalendarChanged,
+                ),
                 AppFormTextField(
                   labelText: 'Run Date',
                   controller: vm.runDateController,
@@ -224,6 +278,44 @@ class _MrpRunEditor extends StatelessWidget {
                     Validators.required('Planning End Date'),
                     Validators.date('Planning End Date'),
                   ]),
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Run Scope',
+                  mappedItems: MrpRunViewModel.runScopeItems,
+                  initialValue: vm.runScope,
+                  onChanged: vm.onRunScopeChanged,
+                ),
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Warehouse Scope',
+                  mappedItems: <AppDropdownItem<int?>>[
+                    const AppDropdownItem<int?>(
+                      value: null,
+                      label: 'All Warehouses',
+                    ),
+                    ...vm.warehouseOptions
+                        .where((warehouse) => warehouse.id != null)
+                        .map(
+                          (warehouse) => AppDropdownItem<int?>(
+                            value: warehouse.id,
+                            label: warehouse.toString(),
+                          ),
+                        ),
+                  ],
+                  initialValue: vm.warehouseId,
+                  onChanged: vm.onWarehouseChanged,
+                  validator: (_) {
+                    if (vm.runScope == 'selected_warehouse' &&
+                        vm.warehouseId == null) {
+                      return 'Warehouse is required for warehouse scope';
+                    }
+                    return null;
+                  },
+                ),
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Run Mode',
+                  mappedItems: MrpRunViewModel.runModeItems,
+                  initialValue: vm.runMode,
+                  onChanged: vm.onRunModeChanged,
                 ),
                 AppFormTextField(
                   labelText: 'Notes',
@@ -270,8 +362,61 @@ class _MrpRunEditor extends StatelessWidget {
                   ),
               ],
             ),
+            if (vm.selected != null) ...[
+              const SizedBox(height: AppUiConstants.spacingMd),
+              SettingsFormWrap(
+                children: [
+                  _MrpRunInfoField(labelText: 'Status', value: vm.status),
+                  _MrpRunInfoField(
+                    labelText: 'Items Processed',
+                    value:
+                        '${intValue(vm.selected!.toJson(), 'total_items_processed') ?? 0}',
+                  ),
+                  _MrpRunInfoField(
+                    labelText: 'Shortage Items',
+                    value:
+                        '${intValue(vm.selected!.toJson(), 'total_shortage_items') ?? 0}',
+                  ),
+                  _MrpRunInfoField(
+                    labelText: 'Recommendations',
+                    value:
+                        '${intValue(vm.selected!.toJson(), 'total_recommendations') ?? 0}',
+                  ),
+                ],
+              ),
+              if (stringValue(
+                vm.selected!.toJson(),
+                'error_message',
+              ).trim().isNotEmpty) ...[
+                const SizedBox(height: AppUiConstants.spacingSm),
+                AppErrorStateView.inline(
+                  message: stringValue(vm.selected!.toJson(), 'error_message'),
+                ),
+              ],
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MrpRunInfoField extends StatelessWidget {
+  const _MrpRunInfoField({required this.labelText, required this.value});
+
+  final String labelText;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppFieldBox(
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: labelText,
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          contentPadding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+        ),
+        child: Text(value.trim().isEmpty ? '-' : value),
       ),
     );
   }

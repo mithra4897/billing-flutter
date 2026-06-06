@@ -30,7 +30,7 @@ class _PlanningCalendarPageState extends State<PlanningCalendarPage> {
     _viewModel = Get.put(
       PlanningCalendarViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -195,13 +195,21 @@ class _CalendarEditor extends StatelessWidget {
                   controller: vm.nameController,
                   validator: Validators.required('Calendar Name'),
                 ),
-                AppFormTextField(
+                AppDropdownField<String>.fromMapped(
                   labelText: 'Planning Frequency',
-                  controller: vm.frequencyController,
+                  mappedItems: PlanningCalendarViewModel.planningFrequencyItems,
+                  initialValue: vm.frequencyController.text.trim().isEmpty
+                      ? 'weekly'
+                      : vm.frequencyController.text.trim().toLowerCase(),
+                  onChanged: vm.onPlanningFrequencyChanged,
                 ),
-                AppFormTextField(
+                AppDropdownField<String>.fromMapped(
                   labelText: 'Week Start Day',
-                  controller: vm.weekStartDayController,
+                  mappedItems: PlanningCalendarViewModel.weekStartDayItems,
+                  initialValue: vm.weekStartDayController.text.trim().isEmpty
+                      ? 'monday'
+                      : vm.weekStartDayController.text.trim().toLowerCase(),
+                  onChanged: vm.onWeekStartDayChanged,
                 ),
                 AppSwitchTile(
                   label: 'Default Calendar',

@@ -30,7 +30,7 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
     _viewModel = Get.put(
       ItemPlanningPolicyViewModel()..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -119,9 +119,33 @@ class _ItemPlanningPolicyPageState extends State<ItemPlanningPolicyPage> {
           final itemMap = data['item'] is Map<String, dynamic>
               ? data['item'] as Map<String, dynamic>
               : const <String, dynamic>{};
+          final warehouseMap = data['warehouse'] is Map<String, dynamic>
+              ? data['warehouse'] as Map<String, dynamic>
+              : const <String, dynamic>{};
           return SettingsListTile(
-            title: stringValue(itemMap, 'item_name', 'Item Policy'),
-            subtitle: stringValue(data, 'planning_method'),
+            title: [
+              stringValue(itemMap, 'item_code'),
+              stringValue(itemMap, 'item_name', 'Item Policy'),
+            ].where((value) => value.trim().isNotEmpty).join(' · '),
+            subtitle: [
+              stringValue(
+                warehouseMap,
+                'name',
+                data['warehouse_id'] == null ? 'All Warehouses' : '',
+              ),
+              stringValue(data, 'planning_method'),
+              stringValue(data, 'procurement_type'),
+            ].where((value) => value.trim().isNotEmpty).join(' · '),
+            detail: [
+              if (nullableStringValue(data, 'reorder_level_qty') != null)
+                'Level ${stringValue(data, 'reorder_level_qty')}',
+              if (nullableStringValue(data, 'reorder_qty') != null)
+                'Qty ${stringValue(data, 'reorder_qty')}',
+              if (boolValue(data, 'is_mrp_enabled', fallback: false)) 'MRP',
+              if (boolValue(data, 'is_reorder_enabled', fallback: false))
+                'Reorder',
+              if (!boolValue(data, 'is_active', fallback: true)) 'Inactive',
+            ].join(' · '),
             selected: selected,
             onTap: () async {
               final id = intValue(data, 'id');
@@ -202,6 +226,35 @@ class _ItemPolicyEditor extends StatelessWidget {
                   validator: (_) =>
                       vm.itemId == null ? 'Item is required' : null,
                 ),
+                AppSearchPickerField<int>(
+                  labelText: 'Warehouse',
+                  selectedLabel: vm.warehouseId == null
+                      ? 'All Warehouses'
+                      : vm.warehouseOptions
+                            .cast<WarehouseModel?>()
+                            .firstWhere(
+                              (x) => x?.id == vm.warehouseId,
+                              orElse: () => null,
+                            )
+                            ?.toString(),
+                  options: <AppSearchPickerOption<int>>[
+                    const AppSearchPickerOption<int>(
+                      value: 0,
+                      label: 'All Warehouses',
+                      subtitle: 'Company-level policy',
+                    ),
+                    ...vm.warehouseOptions
+                        .where((x) => x.id != null)
+                        .map(
+                          (x) => AppSearchPickerOption<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                            subtitle: x.code,
+                          ),
+                        ),
+                  ],
+                  onChanged: vm.setWarehouseId,
+                ),
                 AppFormTextField(
                   labelText: 'Planning Method',
                   controller: vm.planningMethodController,
@@ -209,6 +262,18 @@ class _ItemPolicyEditor extends StatelessWidget {
                 AppFormTextField(
                   labelText: 'Procurement Type',
                   controller: vm.procurementTypeController,
+                ),
+                AppFormTextField(
+                  labelText: 'Lead Time (days)',
+                  controller: vm.leadTimeDaysController,
+                  keyboardType: TextInputType.number,
+                ),
+                AppFormTextField(
+                  labelText: 'Safety Stock Qty',
+                  controller: vm.safetyStockQtyController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Reorder Level Qty',
@@ -223,6 +288,80 @@ class _ItemPolicyEditor extends StatelessWidget {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
+                ),
+                AppFormTextField(
+                  labelText: 'Minimum Order Qty',
+                  controller: vm.minimumOrderQtyController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                AppFormTextField(
+                  labelText: 'Maximum Order Qty',
+                  controller: vm.maxOrderQtyController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                AppFormTextField(
+                  labelText: 'Order Multiple Qty',
+                  controller: vm.orderMultipleQtyController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+                AppFormTextField(
+                  labelText: 'Planning Fence (days)',
+                  controller: vm.planningFenceDaysController,
+                  keyboardType: TextInputType.number,
+                ),
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Preferred Supplier',
+                  mappedItems: <AppDropdownItem<int?>>[
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
+                    ...vm.supplierOptions
+                        .where((supplier) => supplier.id != null)
+                        .map(
+                          (supplier) => AppDropdownItem<int?>(
+                            value: supplier.id,
+                            label: supplier.toString(),
+                          ),
+                        ),
+                  ],
+                  initialValue: vm.preferredSupplierPartyId,
+                  onChanged: vm.setPreferredSupplierPartyId,
+                ),
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Preferred BOM',
+                  mappedItems: <AppDropdownItem<int?>>[
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
+                    ...vm.bomOptions
+                        .where((bom) => bom.id != null)
+                        .map(
+                          (bom) => AppDropdownItem<int?>(
+                            value: bom.id,
+                            label: bom.toString(),
+                          ),
+                        ),
+                  ],
+                  initialValue: vm.preferredBomId,
+                  onChanged: vm.setPreferredBomId,
+                ),
+                AppDropdownField<int?>.fromMapped(
+                  labelText: 'Preferred Source Warehouse',
+                  mappedItems: <AppDropdownItem<int?>>[
+                    const AppDropdownItem<int?>(value: null, label: 'None'),
+                    ...vm.preferredWarehouseOptions
+                        .where((warehouse) => warehouse.id != null)
+                        .map(
+                          (warehouse) => AppDropdownItem<int?>(
+                            value: warehouse.id,
+                            label: warehouse.toString(),
+                          ),
+                        ),
+                  ],
+                  initialValue: vm.preferredWarehouseId,
+                  onChanged: vm.setPreferredWarehouseId,
                 ),
                 AppSwitchTile(
                   label: 'MRP Enabled',

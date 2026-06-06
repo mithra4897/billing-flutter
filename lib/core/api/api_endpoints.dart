@@ -21,9 +21,9 @@ class ApiEndpoints {
   static const String documentSeries = '/masters/document-series';
   static const String printTemplates = '/masters/print-templates';
 
-  static const String parties = '/parties';
-  static const String partyAddresses = '/parties/addresses';
-  static const String partyContacts = '/parties/contacts';
+  static const String parties = '/masters/parties';
+  static const String partyAddresses = '/masters/parties/addresses';
+  static const String partyContacts = '/masters/parties/contacts';
 
   // --- Accounting (`routes/accounts.php`) ---
   static const String _acct = '/accounting';
@@ -136,7 +136,8 @@ class ApiEndpoints {
   static const String crmEnquiries = '$_crm/enquiries';
   static const String crmPendingFollowups = '$_crm/enquiries/pending-followups';
   static const String crmOpportunities = '$_crm/opportunities';
-  static const String crmOpportunityFollowups = '$_crm/opportunities/follow-ups';
+  static const String crmOpportunityFollowups =
+      '$_crm/opportunities/follow-ups';
   static const String crmSalesChain = '$_crm/sales-chain';
 
   // --- Sales (partial; extend as services migrate) ---
