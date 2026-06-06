@@ -107,6 +107,7 @@ class SalesQuotationManagementController extends GetxController {
       TextEditingController();
   final TextEditingController currencyCodeController = TextEditingController();
   final TextEditingController exchangeRateController = TextEditingController();
+  final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
 
@@ -143,6 +144,7 @@ class SalesQuotationManagementController extends GetxController {
   int? documentSeriesId;
   int? customerPartyId;
   bool isActive = true;
+  bool applyRoundOff = false;
   int? crmOpportunityId;
   Map<String, dynamic>? salesChain;
   List<QuotationLineDraft> lines = <QuotationLineDraft>[];
@@ -171,6 +173,7 @@ class SalesQuotationManagementController extends GetxController {
     customerRefDateController.dispose();
     currencyCodeController.dispose();
     exchangeRateController.dispose();
+    roundOffController.dispose();
     notesController.dispose();
     termsController.dispose();
     _disposeLines(lines);
@@ -490,6 +493,11 @@ class SalesQuotationManagementController extends GetxController {
     );
     currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
     exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff = (double.tryParse(roundOffController.text.trim()) ?? 0) != 0;
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
@@ -521,6 +529,8 @@ class SalesQuotationManagementController extends GetxController {
     customerRefDateController.clear();
     currencyCodeController.text = 'INR';
     exchangeRateController.text = '1';
+    roundOffController.clear();
+    applyRoundOff = false;
     notesController.clear();
     termsController.clear();
     isActive = true;
@@ -721,6 +731,15 @@ class SalesQuotationManagementController extends GetxController {
     return summarizeSalesLineTaxes(lines.map(taxBreakdownForLine));
   }
 
+  void _syncAutoRoundOff() {
+    if (!applyRoundOff) {
+      return;
+    }
+    final baseTotal = taxSummary().total;
+    final autoRoundOff = roundToDouble(baseTotal.round() - baseTotal, 2);
+    roundOffController.text = autoRoundOff.toStringAsFixed(2);
+  }
+
   Map<String, dynamic> linePayload(QuotationLineDraft line) {
     final payload = line.toJson();
     final breakdown = taxBreakdownForLine(line);
@@ -836,7 +855,7 @@ class SalesQuotationManagementController extends GetxController {
 
   void addLine() {
     lines = List<QuotationLineDraft>.from(lines)..add(QuotationLineDraft());
-    refreshLineItemsSection();
+    refreshComputedState();
   }
 
   void removeLine(int index) {
@@ -852,7 +871,12 @@ class SalesQuotationManagementController extends GetxController {
       createEmpty: () => QuotationLineDraft(),
       assign: (entries) => lines = entries,
       dispose: (entry) => entry.dispose(),
-      notify: notify ? refreshLineItemsSection : null,
+      notify: notify
+          ? () {
+              _syncAutoRoundOff();
+              refreshLineItemsSection();
+            }
+          : null,
     );
   }
 
@@ -890,7 +914,21 @@ class SalesQuotationManagementController extends GetxController {
     update();
   }
 
+  void setApplyRoundOff(bool value) {
+    if (!canEdit) {
+      return;
+    }
+    applyRoundOff = value;
+    if (value) {
+      _syncAutoRoundOff();
+    } else {
+      roundOffController.clear();
+    }
+    update();
+  }
+
   void refreshComputedState() {
+    _syncAutoRoundOff();
     refreshLineItemsSection();
   }
 
@@ -911,7 +949,7 @@ class SalesQuotationManagementController extends GetxController {
       currentUomId: line.uomId,
       setTaxCodeId: (taxCodeId) => line.taxCodeId = taxCodeId,
     );
-    refreshLineItemsSection();
+    refreshComputedState();
   }
 
   void setLineUomId(int index, int? value) {
@@ -919,7 +957,7 @@ class SalesQuotationManagementController extends GetxController {
       return;
     }
     lines[index].uomId = value;
-    refreshLineItemsSection();
+    refreshComputedState();
   }
 
   void setLineTaxCodeId(int index, int? value) {
@@ -952,6 +990,7 @@ class SalesQuotationManagementController extends GetxController {
     saving = true;
     formError = null;
     update();
+    final preserveApplyRoundOff = applyRoundOff;
     final summary = taxSummary();
     final payload = <String, dynamic>{
       'company_id': companyId,
@@ -967,12 +1006,21 @@ class SalesQuotationManagementController extends GetxController {
       'customer_reference_date': nullIfEmpty(customerRefDateController.text),
       'currency_code': nullIfEmpty(currencyCodeController.text) ?? 'INR',
       'exchange_rate': double.tryParse(exchangeRateController.text.trim()) ?? 1,
+      'round_off_amount': applyRoundOff
+          ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+          : 0,
       'taxable_amount': roundToDouble(summary.taxable, 2),
       'cgst_amount': roundToDouble(summary.cgst, 2),
       'sgst_amount': roundToDouble(summary.sgst, 2),
       'igst_amount': roundToDouble(summary.igst, 2),
       'cess_amount': roundToDouble(summary.cess, 2),
-      'total_amount': roundToDouble(summary.total, 2),
+      'total_amount': roundToDouble(
+        summary.total +
+            (applyRoundOff
+                ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+                : 0),
+        2,
+      ),
       'notes': nullIfEmpty(notesController.text),
       'terms_conditions': nullIfEmpty(termsController.text),
       'is_active': isActive,
@@ -998,6 +1046,11 @@ class SalesQuotationManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      if (preserveApplyRoundOff &&
+          (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+        applyRoundOff = true;
+        update();
+      }
       _refreshController.notifyChanged(source: 'sales_quotation');
     } catch (error) {
       formError = errorMessage(error);

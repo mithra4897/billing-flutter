@@ -197,6 +197,7 @@ class SalesReturnManagementController extends GetxController {
   final TextEditingController returnNoController = TextEditingController();
   final TextEditingController returnDateController = TextEditingController();
   final TextEditingController reasonController = TextEditingController();
+  final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
   bool initialLoading = true;
@@ -227,6 +228,7 @@ class SalesReturnManagementController extends GetxController {
   int? salesInvoiceId;
   int? customerPartyId;
   bool isActive = true;
+  bool applyRoundOff = false;
   List<SalesReturnLineDraft> lines = <SalesReturnLineDraft>[];
 
   bool _initialized = false;
@@ -249,6 +251,7 @@ class SalesReturnManagementController extends GetxController {
     returnNoController.dispose();
     returnDateController.dispose();
     reasonController.dispose();
+    roundOffController.dispose();
     notesController.dispose();
     _disposeLines(lines);
     super.onClose();
@@ -439,6 +442,11 @@ class SalesReturnManagementController extends GetxController {
       nullableStringValue(data, 'return_date'),
     );
     reasonController.text = stringValue(data, 'reason');
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff = (double.tryParse(roundOffController.text.trim()) ?? 0) != 0;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     invoiceLines =
@@ -467,6 +475,8 @@ class SalesReturnManagementController extends GetxController {
         .split('T')
         .first;
     reasonController.clear();
+    roundOffController.clear();
+    applyRoundOff = false;
     notesController.clear();
     isActive = true;
     invoiceLines = const <SalesInvoiceLineModel>[];
@@ -637,12 +647,8 @@ class SalesReturnManagementController extends GetxController {
         (entry) => entry?.id == line.salesInvoiceLineId,
         orElse: () => null,
       );
-      if (line.batchId == null) {
-        line.batchId = sourceLine?.batchId;
-      }
-      if (line.serialId == null) {
-        line.serialId = sourceLine?.serialId;
-      }
+      line.batchId ??= sourceLine?.batchId;
+      line.serialId ??= sourceLine?.serialId;
       if (line.batchNoController.text.trim().isEmpty) {
         line.batchNoController.text = sourceLine?.batchNo ?? '';
       }
@@ -666,6 +672,16 @@ class SalesReturnManagementController extends GetxController {
 
   void setIsActive(bool value) {
     isActive = value;
+    update();
+  }
+
+  void setApplyRoundOff(bool value) {
+    applyRoundOff = value;
+    if (value) {
+      _syncAutoRoundOff();
+    } else {
+      roundOffController.clear();
+    }
     update();
   }
 
@@ -693,6 +709,15 @@ class SalesReturnManagementController extends GetxController {
     return summarizeSalesLineTaxes(lines.map(taxBreakdownForLine));
   }
 
+  void _syncAutoRoundOff() {
+    if (!applyRoundOff) {
+      return;
+    }
+    final baseTotal = taxSummary().total;
+    final autoRoundOff = roundToDouble(baseTotal.round() - baseTotal, 2);
+    roundOffController.text = autoRoundOff.toStringAsFixed(2);
+  }
+
   Map<String, dynamic> linePayload(SalesReturnLineDraft line) {
     final payload = line.toJson();
     final breakdown = taxBreakdownForLine(line);
@@ -712,6 +737,7 @@ class SalesReturnManagementController extends GetxController {
 
   void addLine() {
     lines = List<SalesReturnLineDraft>.from(lines)..add(SalesReturnLineDraft());
+    _syncAutoRoundOff();
     update();
   }
 
@@ -731,7 +757,12 @@ class SalesReturnManagementController extends GetxController {
       createEmpty: () => SalesReturnLineDraft(),
       assign: (entries) => lines = entries,
       dispose: (entry) => entry.dispose(),
-      notify: notify ? update : null,
+      notify: notify
+          ? () {
+              _syncAutoRoundOff();
+              update();
+            }
+          : null,
     );
   }
 
@@ -748,10 +779,12 @@ class SalesReturnManagementController extends GetxController {
       line.warehouseNameController.text = warehouseName(selected.warehouseId);
       line.uomNameController.text = uomName(selected.uomId);
     }
+    _syncAutoRoundOff();
     update();
   }
 
   void refreshLineState() {
+    _syncAutoRoundOff();
     update();
   }
 
@@ -775,6 +808,7 @@ class SalesReturnManagementController extends GetxController {
     saving = true;
     formError = null;
     update();
+    final preserveApplyRoundOff = applyRoundOff;
     final invoice = invoices.cast<SalesInvoiceModel?>().firstWhere(
       (item) => item?.id == salesInvoiceId,
       orElse: () => null,
@@ -791,12 +825,21 @@ class SalesReturnManagementController extends GetxController {
       'return_no': nullIfEmpty(returnNoController.text),
       'return_date': returnDateController.text.trim(),
       'reason': nullIfEmpty(reasonController.text),
+      'round_off_amount': applyRoundOff
+          ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+          : 0,
       'taxable_amount': roundToDouble(summary.taxable, 2),
       'cgst_amount': roundToDouble(summary.cgst, 2),
       'sgst_amount': roundToDouble(summary.sgst, 2),
       'igst_amount': roundToDouble(summary.igst, 2),
       'cess_amount': roundToDouble(summary.cess, 2),
-      'total_amount': roundToDouble(summary.total, 2),
+      'total_amount': roundToDouble(
+        summary.total +
+            (applyRoundOff
+                ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+                : 0),
+        2,
+      ),
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
       'lines': lines.map(linePayload).toList(growable: false),
@@ -816,6 +859,11 @@ class SalesReturnManagementController extends GetxController {
       await loadPage(
         selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
       );
+      if (preserveApplyRoundOff &&
+          (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+        applyRoundOff = true;
+        update();
+      }
       _refreshController.notifyChanged(source: 'sales_return');
     } catch (error) {
       formError = error.toString();

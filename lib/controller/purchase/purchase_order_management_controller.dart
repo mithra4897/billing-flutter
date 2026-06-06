@@ -130,6 +130,7 @@ class PurchaseOrderManagementController extends GetxController {
       TextEditingController();
   final TextEditingController currencyCodeController = TextEditingController();
   final TextEditingController exchangeRateController = TextEditingController();
+  final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
 
@@ -168,6 +169,7 @@ class PurchaseOrderManagementController extends GetxController {
   int? purchaseRequisitionId;
   int? supplierPartyId;
   bool isActive = true;
+  bool applyRoundOff = false;
   String? selectionInfo;
   List<PurchaseOrderLineDraft> lines = <PurchaseOrderLineDraft>[];
   final Map<int, PurchaseRequisitionModel> requisitionDetailCache =
@@ -214,6 +216,7 @@ class PurchaseOrderManagementController extends GetxController {
     supplierReferenceDateController.dispose();
     currencyCodeController.dispose();
     exchangeRateController.dispose();
+    roundOffController.dispose();
     notesController.dispose();
     termsController.dispose();
     _disposeLines(lines);
@@ -436,6 +439,11 @@ class PurchaseOrderManagementController extends GetxController {
     );
     currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
     exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff = (double.tryParse(roundOffController.text.trim()) ?? 0) != 0;
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
@@ -466,6 +474,8 @@ class PurchaseOrderManagementController extends GetxController {
     supplierReferenceDateController.clear();
     currencyCodeController.text = 'INR';
     exchangeRateController.text = '1';
+    roundOffController.clear();
+    applyRoundOff = false;
     notesController.clear();
     termsController.clear();
     isActive = true;
@@ -543,6 +553,15 @@ class PurchaseOrderManagementController extends GetxController {
 
   PurchaseDocumentTaxSummary orderTaxSummary() {
     return summarizePurchaseLineTaxes(lines.map(taxBreakdownForLine));
+  }
+
+  void _syncAutoRoundOff() {
+    if (!applyRoundOff) {
+      return;
+    }
+    final baseTotal = orderTaxSummary().total;
+    final autoRoundOff = roundToDouble(baseTotal.round() - baseTotal, 2);
+    roundOffController.text = autoRoundOff.toStringAsFixed(2);
   }
 
   PartyModel? supplierById(int? supplierId) {
@@ -1285,6 +1304,21 @@ class PurchaseOrderManagementController extends GetxController {
     update();
   }
 
+  void setApplyRoundOff(bool value) {
+    applyRoundOff = value;
+    if (value) {
+      _syncAutoRoundOff();
+    } else {
+      roundOffController.clear();
+    }
+    update();
+  }
+
+  void refreshComputedState() {
+    _syncAutoRoundOff();
+    update();
+  }
+
   void setLineItemId(PurchaseOrderLineDraft line, int? value) {
     line.itemId = value;
     line.warehouseId ??= warehouses.isNotEmpty ? warehouses.first.id : null;
@@ -1292,22 +1326,22 @@ class PurchaseOrderManagementController extends GetxController {
       line,
       supplierId: hasSpecificSupplierSelection ? supplierPartyId : null,
     );
-    update();
+    refreshComputedState();
   }
 
   void setLineUomId(PurchaseOrderLineDraft line, int? value) {
     line.uomId = value;
-    update();
+    refreshComputedState();
   }
 
   void setLineWarehouseId(PurchaseOrderLineDraft line, int? value) {
     line.warehouseId = value;
-    update();
+    refreshComputedState();
   }
 
   void setLineTaxCodeId(PurchaseOrderLineDraft line, int? value) {
     line.taxCodeId = value;
-    update();
+    refreshComputedState();
   }
 
   Future<void> save(BuildContext context) async {
@@ -1336,6 +1370,7 @@ class PurchaseOrderManagementController extends GetxController {
     saving = true;
     formError = null;
     update();
+    final preserveApplyRoundOff = applyRoundOff;
 
     final payload = <String, dynamic>{
       'company_id': companyId,
@@ -1356,6 +1391,9 @@ class PurchaseOrderManagementController extends GetxController {
       ),
       'currency_code': nullIfEmpty(currencyCodeController.text) ?? 'INR',
       'exchange_rate': double.tryParse(exchangeRateController.text.trim()) ?? 1,
+      'round_off_amount': applyRoundOff
+          ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+          : 0,
       'notes': nullIfEmpty(notesController.text),
       'terms_conditions': nullIfEmpty(termsController.text),
       'is_active': isActive,
@@ -1379,12 +1417,21 @@ class PurchaseOrderManagementController extends GetxController {
       if (saved != null) {
         _upsertOrder(saved);
         await selectDocument(saved, notify: false);
+        if (preserveApplyRoundOff &&
+            (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+          applyRoundOff = true;
+        }
         _refreshController.notifyChanged(source: 'purchase_order');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        if (preserveApplyRoundOff &&
+            (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+          applyRoundOff = true;
+          update();
+        }
         _refreshController.notifyChanged(source: 'purchase_order');
       }
     } catch (errorValue) {
@@ -1457,7 +1504,12 @@ class PurchaseOrderManagementController extends GetxController {
       createEmpty: () => PurchaseOrderLineDraft(),
       assign: (entries) => lines = entries,
       dispose: (entry) => entry.dispose(),
-      notify: notify ? update : null,
+      notify: notify
+          ? () {
+              _syncAutoRoundOff();
+              update();
+            }
+          : null,
     );
   }
 

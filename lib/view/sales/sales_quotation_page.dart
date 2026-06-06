@@ -250,6 +250,32 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   termsController: controller.termsController,
                   onCurrencyChanged: (_) => controller.refreshComputedState(),
                 ),
+                AppFormTextField(
+                  labelText: 'Round off',
+                  controller: controller.roundOffController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  enabled: controller.canEdit && controller.applyRoundOff,
+                  validator: (value) {
+                    final text = (value ?? '').trim();
+                    if (text.isEmpty) {
+                      return null;
+                    }
+                    return double.tryParse(text) == null
+                        ? 'Round off must be a valid number'
+                        : null;
+                  },
+                  onChanged: (_) => controller.refreshComputedState(),
+                ),
+                AppSwitchTile(
+                  label: 'Apply round off',
+                  value: controller.applyRoundOff,
+                  onChanged: controller.canEdit
+                      ? controller.setApplyRoundOff
+                      : null,
+                ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
@@ -441,9 +467,11 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               actions: [
                 if (controller.selectedItem != null &&
                     !hasExistingOrder &&
-                    const {'posted', 'sent', 'accepted'}.contains(
-                      controller.status,
-                    ))
+                    const {
+                      'posted',
+                      'sent',
+                      'accepted',
+                    }.contains(controller.status))
                   AppActionButton(
                     icon: Icons.shopping_cart_checkout_outlined,
                     label: 'Create order',
@@ -551,14 +579,20 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
   Widget _buildTaxSummaryCard(SalesQuotationManagementController controller) {
     final summary = controller.taxSummary();
+    final roundOff = controller.applyRoundOff
+        ? (double.tryParse(controller.roundOffController.text.trim()) ?? 0)
+        : 0;
     return GstSummaryCard(
       taxable: summary.taxable,
       cgst: summary.cgst,
       sgst: summary.sgst,
       igst: summary.igst,
       cess: summary.cess,
-      total: summary.total,
+      total: summary.total + roundOff,
       currencyCode: controller.currencyCodeForTaxSummary,
+      subtitle: roundOff == 0
+          ? null
+          : 'Includes round off ${roundOff.toStringAsFixed(2)}',
     );
   }
 }

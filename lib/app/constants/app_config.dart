@@ -15,7 +15,7 @@ class AppConfig {
       return configuredUrl;
     }
 
-    return 'http://192.168.1.47:8000';
+    return 'http://192.168.1.55:8000';
     // return 'https://bill.sakthicontroller.com/api/public';
   }
 

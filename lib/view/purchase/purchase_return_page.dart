@@ -217,6 +217,29 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                         controller: controller.returnReasonController,
                       ),
                       AppFormTextField(
+                        labelText: 'Round off',
+                        controller: controller.roundOffController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        enabled: controller.applyRoundOff,
+                        validator: (value) {
+                          final text = (value ?? '').trim();
+                          if (text.isEmpty) {
+                            return null;
+                          }
+                          return double.tryParse(text) == null
+                              ? 'Round off must be a valid number'
+                              : null;
+                        },
+                      ),
+                      AppSwitchTile(
+                        label: 'Apply round off',
+                        value: controller.applyRoundOff,
+                        onChanged: controller.setApplyRoundOff,
+                      ),
+                      AppFormTextField(
                         labelText: 'Notes',
                         controller: controller.notesController,
                         maxLines: 3,
@@ -316,6 +339,8 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                             AppFormTextField(
                               labelText: 'Return Qty',
                               controller: line.returnQtyController,
+                              onChanged: (_) =>
+                                  controller.refreshComputedState(),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -330,6 +355,8 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                             AppFormTextField(
                               labelText: 'Rate',
                               controller: line.rateController,
+                              onChanged: (_) =>
+                                  controller.refreshComputedState(),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,

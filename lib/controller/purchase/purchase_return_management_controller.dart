@@ -119,6 +119,7 @@ class PurchaseReturnManagementController extends GetxController {
   final TextEditingController returnNoController = TextEditingController();
   final TextEditingController returnDateController = TextEditingController();
   final TextEditingController returnReasonController = TextEditingController();
+  final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
   bool initialLoading = true;
@@ -149,6 +150,7 @@ class PurchaseReturnManagementController extends GetxController {
   int? purchaseInvoiceId;
   int? supplierPartyId;
   bool isActive = true;
+  bool applyRoundOff = false;
   List<PurchaseReturnLineDraft> lines = <PurchaseReturnLineDraft>[];
 
   bool _initialized = false;
@@ -183,6 +185,7 @@ class PurchaseReturnManagementController extends GetxController {
     returnNoController.dispose();
     returnDateController.dispose();
     returnReasonController.dispose();
+    roundOffController.dispose();
     notesController.dispose();
     _disposeLines(lines);
     super.onClose();
@@ -363,6 +366,11 @@ class PurchaseReturnManagementController extends GetxController {
       nullableStringValue(data, 'return_date'),
     );
     returnReasonController.text = stringValue(data, 'return_reason');
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff = (double.tryParse(roundOffController.text.trim()) ?? 0) != 0;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     invoiceLines = nextInvoiceLines;
@@ -391,6 +399,8 @@ class PurchaseReturnManagementController extends GetxController {
         .split('T')
         .first;
     returnReasonController.clear();
+    roundOffController.clear();
+    applyRoundOff = false;
     notesController.clear();
     isActive = true;
     invoiceLines = const <PurchaseInvoiceLineModel>[];
@@ -532,7 +542,12 @@ class PurchaseReturnManagementController extends GetxController {
       createEmpty: () => PurchaseReturnLineDraft(),
       assign: (entries) => lines = entries,
       dispose: (entry) => entry.dispose(),
-      notify: notify ? update : null,
+      notify: notify
+          ? () {
+              _syncAutoRoundOff();
+              update();
+            }
+          : null,
     );
   }
 
@@ -553,6 +568,34 @@ class PurchaseReturnManagementController extends GetxController {
     update();
   }
 
+  void setApplyRoundOff(bool value) {
+    applyRoundOff = value;
+    if (value) {
+      _syncAutoRoundOff();
+    } else {
+      roundOffController.clear();
+    }
+    update();
+  }
+
+  void _syncAutoRoundOff() {
+    if (!applyRoundOff) {
+      return;
+    }
+    final baseTotal = lines.fold<double>(0, (sum, line) {
+      final qty = double.tryParse(line.returnQtyController.text.trim()) ?? 0;
+      final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+      return sum + (qty * rate);
+    });
+    final autoRoundOff = roundToDouble(baseTotal.round() - baseTotal, 2);
+    roundOffController.text = autoRoundOff.toStringAsFixed(2);
+  }
+
+  void refreshComputedState() {
+    _syncAutoRoundOff();
+    update();
+  }
+
   void selectInvoiceLine(PurchaseReturnLineDraft line, int? value) {
     final selected = invoiceLines.cast<PurchaseInvoiceLineModel?>().firstWhere(
       (item) => item?.id == value,
@@ -560,14 +603,14 @@ class PurchaseReturnManagementController extends GetxController {
     );
     if (selected == null) {
       line.applyInvoiceLine(null);
-      update();
+      refreshComputedState();
       return;
     }
     line.applyInvoiceLine(selected);
     line.itemNameController.text = itemName(selected.itemId);
     line.warehouseNameController.text = warehouseName(selected.warehouseId);
     line.uomNameController.text = uomName(selected.uomId);
-    update();
+    refreshComputedState();
   }
 
   Future<void> save(BuildContext context) async {
@@ -589,6 +632,7 @@ class PurchaseReturnManagementController extends GetxController {
     saving = true;
     formError = null;
     update();
+    final preserveApplyRoundOff = applyRoundOff;
     final invoice = invoiceOptions.cast<PurchaseInvoiceModel?>().firstWhere(
       (item) => item?.id == purchaseInvoiceId,
       orElse: () => null,
@@ -604,6 +648,9 @@ class PurchaseReturnManagementController extends GetxController {
       'return_no': nullIfEmpty(returnNoController.text),
       'return_date': returnDateController.text.trim(),
       'return_reason': nullIfEmpty(returnReasonController.text),
+      'round_off_amount': applyRoundOff
+          ? (double.tryParse(roundOffController.text.trim()) ?? 0)
+          : 0,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
       'lines': lines.map((item) => item.toJson()).toList(growable: false),
@@ -626,12 +673,21 @@ class PurchaseReturnManagementController extends GetxController {
       if (saved != null) {
         _upsertReturn(saved);
         await selectDocument(saved, notify: false);
+        if (preserveApplyRoundOff &&
+            (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+          applyRoundOff = true;
+        }
         _refreshController.notifyChanged(source: 'purchase_return');
         update();
       } else {
         await loadPage(
           selectId: intValue(response.data?.toJson() ?? const {}, 'id'),
         );
+        if (preserveApplyRoundOff &&
+            (double.tryParse(roundOffController.text.trim()) ?? 0) == 0) {
+          applyRoundOff = true;
+          update();
+        }
         _refreshController.notifyChanged(source: 'purchase_return');
       }
     } catch (errorValue) {

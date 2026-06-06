@@ -303,6 +303,29 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         ),
                       ),
                       AppFormTextField(
+                        labelText: 'Round off',
+                        controller: controller.roundOffController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        enabled: controller.applyRoundOff,
+                        validator: (value) {
+                          final text = (value ?? '').trim();
+                          if (text.isEmpty) {
+                            return null;
+                          }
+                          return double.tryParse(text) == null
+                              ? 'Round off must be a valid number'
+                              : null;
+                        },
+                      ),
+                      AppSwitchTile(
+                        label: 'Apply round off',
+                        value: controller.applyRoundOff,
+                        onChanged: controller.setApplyRoundOff,
+                      ),
+                      AppFormTextField(
                         labelText: 'Notes',
                         controller: controller.notesController,
                         maxLines: 3,
@@ -433,6 +456,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                             AppFormTextField(
                               labelText: 'Ordered Qty',
                               controller: line.qtyController,
+                              onChanged: (_) =>
+                                  controller.refreshComputedState(),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -447,6 +472,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                             AppFormTextField(
                               labelText: 'Rate',
                               controller: line.rateController,
+                              onChanged: (_) =>
+                                  controller.refreshComputedState(),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -459,6 +486,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                             AppFormTextField(
                               labelText: 'Discount %',
                               controller: line.discountController,
+                              onChanged: (_) =>
+                                  controller.refreshComputedState(),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
@@ -503,10 +532,27 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     sgst: taxSummary.sgst,
                     igst: taxSummary.igst,
                     cess: 0,
-                    total: taxSummary.total,
+                    total:
+                        taxSummary.total +
+                        (controller.applyRoundOff
+                            ? (double.tryParse(
+                                    controller.roundOffController.text.trim(),
+                                  ) ??
+                                  0)
+                            : 0),
                     currencyCode: currency,
-                    subtitle:
-                        'Live totals for the current purchase order lines.',
+                    subtitle: (() {
+                      final roundOff = controller.applyRoundOff
+                          ? (double.tryParse(
+                                  controller.roundOffController.text.trim(),
+                                ) ??
+                                0)
+                          : 0;
+                      if (roundOff == 0) {
+                        return 'Live totals for the current purchase order lines.';
+                      }
+                      return 'Live totals for the current purchase order lines · includes round off ${roundOff.toStringAsFixed(2)}';
+                    })(),
                   ),
                 ],
               ),
