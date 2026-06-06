@@ -27,11 +27,24 @@ class _QcInspectionPageState extends State<QcInspectionPage> {
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('QcInspectionViewModel');
-    _viewModel = Get.put(
-      QcInspectionViewModel()..load(selectId: widget.initialId),
-      tag: _controllerTag,
-      permanent: true,
-    );
+    if (Get.isRegistered<QcInspectionViewModel>(tag: _controllerTag)) {
+      _viewModel = Get.find<QcInspectionViewModel>(tag: _controllerTag);
+    } else {
+      _viewModel = Get.put(
+        QcInspectionViewModel(),
+        tag: _controllerTag,
+        permanent: true,
+      );
+    }
+    unawaited(_viewModel.load(selectId: widget.initialId));
+  }
+
+  @override
+  void didUpdateWidget(covariant QcInspectionPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialId != widget.initialId) {
+      unawaited(_viewModel.load(selectId: widget.initialId));
+    }
   }
 
   @override

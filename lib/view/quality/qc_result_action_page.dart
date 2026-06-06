@@ -36,11 +36,24 @@ class _QcResultActionPageState extends State<QcResultActionPage> {
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('QcResultActionViewModel');
-    _viewModel = Get.put(
-      QcResultActionViewModel()..load(selectId: widget.initialId),
-      tag: _controllerTag,
-    permanent: true,
-    );
+    if (Get.isRegistered<QcResultActionViewModel>(tag: _controllerTag)) {
+      _viewModel = Get.find<QcResultActionViewModel>(tag: _controllerTag);
+    } else {
+      _viewModel = Get.put(
+        QcResultActionViewModel(),
+        tag: _controllerTag,
+        permanent: true,
+      );
+    }
+    unawaited(_viewModel.load(selectId: widget.initialId));
+  }
+
+  @override
+  void didUpdateWidget(covariant QcResultActionPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialId != widget.initialId) {
+      unawaited(_viewModel.load(selectId: widget.initialId));
+    }
   }
 
   @override
