@@ -28,7 +28,9 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchaseInvoiceManagementController',
-      scope: <String, Object?>{'identity': identityHashCode(this)},
+      scope: uniqueControllerScope(<String, Object?>{
+        'identity': identityHashCode(this),
+      }),
     );
     Get.put(PurchaseInvoiceManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -92,6 +94,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       );
     }
     final taxSummary = controller.invoiceTaxSummary();
+    final summaryTotal = taxSummary.total;
     final currency = controller.currencyCodeController.text.trim().isEmpty
         ? 'INR'
         : controller.currencyCodeController.text.trim();
@@ -300,6 +303,55 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                         validator: Validators.optionalNonNegativeNumber(
                           'Exchange Rate',
                         ),
+                      ),
+                      AppFormTextField(
+                        labelText: 'Round off',
+                        controller: controller.roundOffController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        enabled: controller.applyRoundOff,
+                        onChanged: (_) => controller.refreshComputedState(),
+                        validator: (value) {
+                          final trimmed = value?.trim() ?? '';
+                          if (trimmed.isEmpty) {
+                            return null;
+                          }
+                          if (Validators.parseFlexibleNumber(trimmed) == null) {
+                            return 'Round off must be a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      AppSwitchTile(
+                        label: 'Apply round off',
+                        value: controller.applyRoundOff,
+                        onChanged: controller.setApplyRoundOff,
+                      ),
+                      AppFormTextField(
+                        labelText: 'Adjustment amount',
+                        controller: controller.adjustmentAmountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        onChanged: (_) => controller.refreshComputedState(),
+                        validator: (value) {
+                          final trimmed = value?.trim() ?? '';
+                          if (trimmed.isEmpty) {
+                            return null;
+                          }
+                          if (Validators.parseFlexibleNumber(trimmed) == null) {
+                            return 'Adjustment amount must be a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      AppFormTextField(
+                        labelText: 'Adjustment remarks',
+                        controller: controller.adjustmentRemarksController,
+                        maxLines: 2,
                       ),
                       AppFormTextField(
                         labelText: 'Notes',
@@ -575,10 +627,26 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                     sgst: taxSummary.sgst,
                     igst: taxSummary.igst,
                     cess: 0,
-                    total: taxSummary.total,
+                    total: summaryTotal,
                     currencyCode: currency,
-                    subtitle:
-                        'Live totals for the current purchase invoice lines.',
+                    subtitle: controller.isSelectedInvoiceReadOnly
+                        ? 'Saved invoice totals from the posted document.'
+                        : controller.applyRoundOff &&
+                              (Validators.parseFlexibleNumber(
+                                        controller.roundOffController.text
+                                            .trim(),
+                                      ) ??
+                                      0) !=
+                                  0
+                        ? 'Live totals for the current purchase invoice lines. Includes round off ${((Validators.parseFlexibleNumber(controller.roundOffController.text.trim()) ?? 0)).toStringAsFixed(2)}${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0) != 0) ? ' and adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}' : ''}.'
+                        : ((Validators.parseFlexibleNumber(
+                                    controller.adjustmentAmountController.text
+                                        .trim(),
+                                  ) ??
+                                  0) !=
+                              0)
+                        ? 'Live totals for the current purchase invoice lines. Includes adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}.'
+                        : 'Live totals for the current purchase invoice lines.',
                   ),
                 ],
               ),

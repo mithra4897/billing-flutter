@@ -10,7 +10,8 @@ class DecimalInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final normalized = newValue.text.replaceAll(',', '.');
+    // Treat commas as grouping separators so 1,234.50 keeps its value.
+    final normalized = newValue.text.replaceAll(',', '');
 
     if (normalized.isEmpty) {
       return newValue.copyWith(text: normalized);

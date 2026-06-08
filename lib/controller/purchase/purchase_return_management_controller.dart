@@ -56,6 +56,7 @@ class PurchaseReturnLineDraft {
   final TextEditingController rateController;
   final TextEditingController returnReasonController;
   final TextEditingController remarksController;
+  bool _disposed = false;
 
   void applyInvoiceLine(PurchaseInvoiceLineModel? line) {
     purchaseInvoiceLineId = line?.id;
@@ -85,6 +86,10 @@ class PurchaseReturnLineDraft {
   }
 
   void dispose() {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     itemNameController.dispose();
     warehouseNameController.dispose();
     uomNameController.dispose();

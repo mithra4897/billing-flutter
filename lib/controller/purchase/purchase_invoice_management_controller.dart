@@ -40,6 +40,11 @@ class PurchaseInvoiceManagementController extends GetxController {
       TextEditingController();
   final TextEditingController currencyCodeController = TextEditingController();
   final TextEditingController exchangeRateController = TextEditingController();
+  final TextEditingController roundOffController = TextEditingController();
+  final TextEditingController adjustmentAmountController =
+      TextEditingController();
+  final TextEditingController adjustmentRemarksController =
+      TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
 
@@ -81,6 +86,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   int? purchaseReceiptId;
   int? supplierPartyId;
   int? adjustmentAccountId;
+  bool applyRoundOff = false;
   List<PurchaseInvoiceLineModel> lines = <PurchaseInvoiceLineModel>[];
   bool isActive = true;
   bool _initialized = false;
@@ -117,6 +123,9 @@ class PurchaseInvoiceManagementController extends GetxController {
     supplierReferenceDateController.dispose();
     currencyCodeController.dispose();
     exchangeRateController.dispose();
+    roundOffController.dispose();
+    adjustmentAmountController.dispose();
+    adjustmentRemarksController.dispose();
     notesController.dispose();
     termsController.dispose();
     super.onClose();
@@ -344,6 +353,16 @@ class PurchaseInvoiceManagementController extends GetxController {
     );
     currencyCodeController.text = full.currencyCode ?? 'INR';
     exchangeRateController.text = full.exchangeRate?.toString() ?? '1';
+    roundOffController.text =
+        full.roundOffAmount == null || full.roundOffAmount == 0
+        ? ''
+        : full.roundOffAmount.toString();
+    adjustmentAmountController.text =
+        full.adjustmentAmount == null || full.adjustmentAmount == 0
+        ? ''
+        : full.adjustmentAmount.toString();
+    adjustmentRemarksController.text = full.adjustmentRemarks ?? '';
+    applyRoundOff = (full.roundOffAmount ?? 0) != 0;
     notesController.text = full.notes ?? '';
     termsController.text = full.termsConditions ?? '';
     lines = full.lines.isEmpty
@@ -387,6 +406,10 @@ class PurchaseInvoiceManagementController extends GetxController {
     supplierReferenceDateController.clear();
     currencyCodeController.text = 'INR';
     exchangeRateController.text = '1';
+    roundOffController.clear();
+    adjustmentAmountController.clear();
+    adjustmentRemarksController.clear();
+    applyRoundOff = false;
     notesController.clear();
     termsController.clear();
     lines = <PurchaseInvoiceLineModel>[
@@ -476,6 +499,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   }
 
   DocumentPrintDataModel purchaseInvoicePrintData() {
+    final summary = invoiceTaxSummary();
     final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
@@ -540,9 +564,6 @@ class PurchaseInvoiceManagementController extends GetxController {
 
     final roundedSubtotal = double.parse(subtotal.toStringAsFixed(2));
     final roundedTax = double.parse(taxAmount.toStringAsFixed(2));
-    final roundedTotal = double.parse(
-      (subtotal + taxAmount).toStringAsFixed(2),
-    );
     return buildManagedDocumentPrintData(
       companies: companies,
       companyId: companyId,
@@ -570,7 +591,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       termsConditions: termsController.text.trim(),
       subtotal: roundedSubtotal,
       taxAmount: roundedTax,
-      totalAmount: roundedTotal,
+      totalAmount: summary.total,
       currencyCode: currencyCodeController.text.trim().isEmpty
           ? 'INR'
           : currencyCodeController.text.trim(),
@@ -600,8 +621,68 @@ class PurchaseInvoiceManagementController extends GetxController {
     );
   }
 
-  PurchaseDocumentTaxSummary invoiceTaxSummary() {
+  PurchaseDocumentTaxSummary _baseInvoiceTaxSummary() {
     return summarizePurchaseLineTaxes(lines.map(taxBreakdownForLine));
+  }
+
+  PurchaseDocumentTaxSummary invoiceTaxSummary() {
+    final roundOff = applyRoundOff
+        ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0)
+        : 0;
+    final adjustment =
+        Validators.parseFlexibleNumber(
+          adjustmentAmountController.text.trim(),
+        ) ??
+        0;
+    final base = _baseInvoiceTaxSummary();
+    return summarizePurchaseLineTaxes([
+      PurchaseLineTaxBreakdown(
+        taxable: base.taxable,
+        cgst: base.cgst,
+        sgst: base.sgst,
+        igst: base.igst,
+        cess: base.cess,
+        total: base.total,
+      ),
+    ], adjustment: roundOff + adjustment);
+  }
+
+  void _syncAutoRoundOff() {
+    final roundOff =
+        Validators.parseFlexibleNumber(roundOffController.text) ?? 0;
+    final adjustment =
+        Validators.parseFlexibleNumber(
+          adjustmentAmountController.text.trim(),
+        ) ??
+        0;
+    final baseTotal = invoiceTaxSummary().total - adjustment - roundOff;
+    Validators.syncAutoRoundOffController(
+      roundOffController,
+      enabled: applyRoundOff,
+      baseTotal: baseTotal,
+    );
+  }
+
+  double _roundOffAmountForSave() {
+    if (!applyRoundOff) {
+      return 0;
+    }
+    return Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0;
+  }
+
+  String _roundOffMethodForSave() {
+    return applyRoundOff ? 'bill' : 'manual';
+  }
+
+  double _roundOffPrecisionForSave() {
+    return 1;
+  }
+
+  void refreshComputedState() {
+    if (applyRoundOff) {
+      _syncAutoRoundOff();
+    }
+    update();
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {
@@ -706,8 +787,10 @@ class PurchaseInvoiceManagementController extends GetxController {
   }
 
   double pendingInvoiceQtyForOrderLine(Map<String, dynamic> line) {
-    final orderedQty = double.tryParse(stringValue(line, 'ordered_qty')) ?? 0;
-    final invoicedQty = double.tryParse(stringValue(line, 'invoiced_qty')) ?? 0;
+    final orderedQty =
+        Validators.parseFlexibleNumber(stringValue(line, 'ordered_qty')) ?? 0;
+    final invoicedQty =
+        Validators.parseFlexibleNumber(stringValue(line, 'invoiced_qty')) ?? 0;
     return (orderedQty - invoicedQty).clamp(0, double.infinity).toDouble();
   }
 
@@ -726,10 +809,14 @@ class PurchaseInvoiceManagementController extends GetxController {
             warehouseId: intValue(line, 'warehouse_id'),
             uomId: intValue(line, 'uom_id') ?? 0,
             invoicedQty: pendingQty,
-            rate: double.tryParse(stringValue(line, 'rate')) ?? 0,
+            rate:
+                Validators.parseFlexibleNumber(stringValue(line, 'rate')) ?? 0,
             description: nullableStringValue(line, 'description'),
             discountPercent:
-                double.tryParse(stringValue(line, 'discount_percent')) ?? 0,
+                Validators.parseFlexibleNumber(
+                  stringValue(line, 'discount_percent'),
+                ) ??
+                0,
             taxCodeId: intValue(line, 'tax_code_id'),
             remarks: nullableStringValue(line, 'remarks'),
           );
@@ -798,7 +885,10 @@ class PurchaseInvoiceManagementController extends GetxController {
       final id = intValue(rl, 'id');
       if (id == null) continue;
       pendingLeft[id] =
-          double.tryParse(stringValue(rl, 'pending_invoice_qty')) ?? 0;
+          Validators.parseFlexibleNumber(
+            stringValue(rl, 'pending_invoice_qty'),
+          ) ??
+          0;
     }
     return sourceLines
         .map((line) {
@@ -918,6 +1008,8 @@ class PurchaseInvoiceManagementController extends GetxController {
       'exchange_rate',
       '1',
     );
+    roundOffController.clear();
+    applyRoundOff = false;
     notesController.text = receipt.notes?.trim().isNotEmpty == true
         ? receipt.notes!
         : stringValue(receiptOrderData, 'notes');
@@ -972,6 +1064,11 @@ class PurchaseInvoiceManagementController extends GetxController {
     );
     currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
     exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
+    final roundOffAmount = order.roundOffAmount ?? 0;
+    roundOffController.text = roundOffAmount == 0
+        ? ''
+        : roundOffAmount.toString();
+    applyRoundOff = roundOffAmount != 0;
     notesController.text = stringValue(data, 'notes');
     termsController.text = stringValue(data, 'terms_conditions');
     lines = nextLines;
@@ -986,14 +1083,14 @@ class PurchaseInvoiceManagementController extends GetxController {
       ..add(
         PurchaseInvoiceLineModel(itemId: 0, uomId: 0, invoicedQty: 0, rate: 0),
       );
-    update();
+    refreshComputedState();
   }
 
   void updateLine(int index, PurchaseInvoiceLineModel line) {
     final next = List<PurchaseInvoiceLineModel>.from(lines);
     next[index] = line;
     lines = next;
-    update();
+    refreshComputedState();
   }
 
   void removeLine(int index) {
@@ -1004,7 +1101,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       );
     }
     lines = next;
-    update();
+    refreshComputedState();
   }
 
   void setFinancialYearId(int? value) {
@@ -1029,6 +1126,16 @@ class PurchaseInvoiceManagementController extends GetxController {
     update();
   }
 
+  void setApplyRoundOff(bool value) {
+    applyRoundOff = value;
+    if (value) {
+      _syncAutoRoundOff();
+    } else {
+      roundOffController.clear();
+    }
+    update();
+  }
+
   void setIsActive(bool value) {
     isActive = value;
     update();
@@ -1040,6 +1147,17 @@ class PurchaseInvoiceManagementController extends GetxController {
       (line) => line.itemId <= 0 || line.uomId <= 0 || line.invoicedQty <= 0,
     )) {
       formError = 'Each line needs item, UOM, and invoiced quantity.';
+      update();
+      return;
+    }
+    final adjustmentAmount =
+        Validators.parseFlexibleNumber(
+          adjustmentAmountController.text.trim(),
+        ) ??
+        0;
+    if (adjustmentAmount != 0 && adjustmentAccountId == null) {
+      formError =
+          'Choose an adjustment account when adjustment amount is not zero.';
       update();
       return;
     }
@@ -1060,8 +1178,15 @@ class PurchaseInvoiceManagementController extends GetxController {
       invoiceNo: nullIfEmpty(invoiceNoController.text),
       dueDate: nullIfEmpty(dueDateController.text),
       currencyCode: nullIfEmpty(currencyCodeController.text),
-      exchangeRate: double.tryParse(exchangeRateController.text.trim()),
-      adjustmentAccountId: adjustmentAccountId,
+      exchangeRate: Validators.parseFlexibleNumber(
+        exchangeRateController.text.trim(),
+      ),
+      roundOffMethod: _roundOffMethodForSave(),
+      roundOffPrecision: _roundOffPrecisionForSave(),
+      roundOffAmount: _roundOffAmountForSave(),
+      adjustmentAmount: adjustmentAmount == 0 ? null : adjustmentAmount,
+      adjustmentAccountId: adjustmentAmount == 0 ? null : adjustmentAccountId,
+      adjustmentRemarks: nullIfEmpty(adjustmentRemarksController.text),
       notes: nullIfEmpty(notesController.text),
       termsConditions: nullIfEmpty(termsController.text),
       supplierReferenceNo: nullIfEmpty(supplierReferenceNoController.text),

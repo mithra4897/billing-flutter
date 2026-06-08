@@ -28,7 +28,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchaseReceiptManagementController',
-      scope: <String, Object?>{'identity': identityHashCode(this)},
+      scope: uniqueControllerScope(<String, Object?>{
+        'identity': identityHashCode(this),
+      }),
     );
     Get.put(PurchaseReceiptManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {

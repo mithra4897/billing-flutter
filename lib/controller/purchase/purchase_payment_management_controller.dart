@@ -27,7 +27,8 @@ class PaymentAllocationDraft {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'purchase_invoice_id': purchaseInvoiceId,
-      'allocated_amount': double.tryParse(amountController.text.trim()) ?? 0,
+      'allocated_amount':
+          Validators.parseFlexibleNumber(amountController.text) ?? 0,
       'allocation_type': allocationType,
       'remarks': nullIfEmpty(remarksController.text),
     };
@@ -112,6 +113,8 @@ class PurchasePaymentManagementController extends GetxController {
   int? accountId;
   bool isActive = true;
   List<PaymentAllocationDraft> allocations = <PaymentAllocationDraft>[];
+  bool _paidAmountManuallyEdited = false;
+  bool _syncingPaidAmountController = false;
 
   bool _initialized = false;
 
@@ -339,6 +342,7 @@ class PurchasePaymentManagementController extends GetxController {
       nullableStringValue(data, 'reference_date'),
     );
     paidAmountController.text = stringValue(data, 'paid_amount', '0');
+    _paidAmountManuallyEdited = false;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     allocations = nextAllocations;
@@ -367,6 +371,7 @@ class PurchasePaymentManagementController extends GetxController {
     referenceNoController.clear();
     referenceDateController.clear();
     paidAmountController.clear();
+    _paidAmountManuallyEdited = false;
     notesController.clear();
     isActive = true;
     allocations = <PaymentAllocationDraft>[];
@@ -400,9 +405,10 @@ class PurchasePaymentManagementController extends GetxController {
         financialYearId: invoice.financialYearId,
       );
       supplierPartyId = invoice.supplierPartyId;
-      referenceNoController.text = invoice.invoiceNo ?? '';
+      referenceNoController.clear();
       referenceDateController.text = displayDate(invoice.invoiceDate);
       paidAmountController.text = allocAmount;
+      _paidAmountManuallyEdited = false;
       notesController.text = invoice.notes ?? '';
       if (!invoices.any((entry) => entry.id == invoice.id)) {
         invoices = <PurchaseInvoiceModel>[invoice, ...invoices];
@@ -492,7 +498,7 @@ class PurchasePaymentManagementController extends GetxController {
 
   double invoiceOutstanding(PurchaseInvoiceModel invoice) {
     final rawBalance = invoice.toJson()['balance_amount'];
-    final balance = double.tryParse(rawBalance?.toString() ?? '');
+    final balance = Validators.parseFlexibleNumber(rawBalance?.toString());
     if (balance != null) {
       return balance;
     }
@@ -500,7 +506,24 @@ class PurchasePaymentManagementController extends GetxController {
     if (rawTotal is num) {
       return rawTotal.toDouble();
     }
-    return double.tryParse(rawTotal?.toString() ?? '') ?? 0;
+    return Validators.parseFlexibleNumber(rawTotal?.toString()) ?? 0;
+  }
+
+  double totalAllocatedAmount() {
+    return allocations.fold<double>(
+      0,
+      (sum, allocation) =>
+          sum +
+              (Validators.parseFlexibleNumber(allocation.amountController.text) ??
+                  0),
+    );
+  }
+
+  void handlePaidAmountChanged() {
+    if (_syncingPaidAmountController) {
+      return;
+    }
+    _paidAmountManuallyEdited = true;
   }
 
   String nestedInvoiceSubtitle(PurchaseInvoiceModel invoice) {
@@ -521,12 +544,16 @@ class PurchasePaymentManagementController extends GetxController {
   }
 
   void syncPaidAmountFromAllocations() {
-    final total = allocations.fold<double>(
-      0,
-      (sum, allocation) =>
-          sum + (double.tryParse(allocation.amountController.text.trim()) ?? 0),
-    );
-    paidAmountController.text = total > 0 ? total.toStringAsFixed(2) : '';
+    final total = totalAllocatedAmount();
+    final current = Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    final nextAmount = _paidAmountManuallyEdited && current > total
+        ? current
+        : total;
+    _syncingPaidAmountController = true;
+    paidAmountController.text = nextAmount > 0
+        ? nextAmount.toStringAsFixed(2)
+        : '';
+    _syncingPaidAmountController = false;
     update();
   }
 
@@ -550,14 +577,15 @@ class PurchasePaymentManagementController extends GetxController {
     final outstanding = invoiceOutstanding(invoice);
     allocations[index].purchaseInvoiceId = purchaseInvoiceId;
     allocations[index].allocationType = 'against_invoice';
-    if (allocations[index].amountController.text.trim().isEmpty ||
-        (double.tryParse(allocations[index].amountController.text.trim()) ??
-                0) <=
-            0) {
-      allocations[index].amountController.text = outstanding > 0
-          ? outstanding.toStringAsFixed(2)
-          : '';
-    }
+      final currentAllocated =
+          Validators.parseFlexibleNumber(allocations[index].amountController.text) ??
+          0;
+    final nextAllocated = currentAllocated <= 0
+        ? outstanding
+        : (currentAllocated > outstanding ? outstanding : currentAllocated);
+    allocations[index].amountController.text = nextAllocated > 0
+        ? nextAllocated.toStringAsFixed(2)
+        : '';
     companyId = invoice.companyId;
     branchId = invoice.branchId;
     locationId = invoice.locationId;
@@ -567,9 +595,6 @@ class PurchasePaymentManagementController extends GetxController {
       financialYearId: invoice.financialYearId,
     );
     supplierPartyId = invoice.supplierPartyId;
-    referenceNoController.text = referenceNoController.text.trim().isEmpty
-        ? (invoice.invoiceNo ?? '')
-        : referenceNoController.text;
     referenceDateController.text = referenceDateController.text.trim().isEmpty
         ? displayDate(invoice.invoiceDate)
         : referenceDateController.text;
@@ -593,14 +618,14 @@ class PurchasePaymentManagementController extends GetxController {
   void addAllocation() {
     allocations = List<PaymentAllocationDraft>.from(allocations)
       ..add(PaymentAllocationDraft());
-    update();
+    syncPaidAmountFromAllocations();
   }
 
   void removeAllocation(int index) {
     final updated = List<PaymentAllocationDraft>.from(allocations);
     final removed = updated.removeAt(index);
     allocations = updated;
-    update();
+    syncPaidAmountFromAllocations();
     disposeDraftEntriesNextFrame<PaymentAllocationDraft>([
       removed,
     ], (entry) => entry.dispose());
@@ -645,8 +670,16 @@ class PurchasePaymentManagementController extends GetxController {
 
   Future<void> save(BuildContext context) async {
     if (!formKey.currentState!.validate()) return;
-    if ((double.tryParse(paidAmountController.text.trim()) ?? 0) <= 0) {
+    final paidAmount =
+        Validators.parseFlexibleNumber(paidAmountController.text) ?? 0;
+    final totalAllocated = totalAllocatedAmount();
+    if (paidAmount <= 0) {
       formError = 'Paid amount must be greater than zero.';
+      update();
+      return;
+    }
+    if (allocations.isNotEmpty && paidAmount < totalAllocated) {
+      formError = 'Paid amount cannot be less than the total allocated amount.';
       update();
       return;
     }
@@ -666,7 +699,7 @@ class PurchasePaymentManagementController extends GetxController {
       'account_id': accountId,
       'reference_no': nullIfEmpty(referenceNoController.text),
       'reference_date': nullIfEmpty(referenceDateController.text),
-      'paid_amount': double.tryParse(paidAmountController.text.trim()) ?? 0,
+      'paid_amount': paidAmount,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
       if (allocations.isNotEmpty)

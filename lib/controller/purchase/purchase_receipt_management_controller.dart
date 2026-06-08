@@ -8,6 +8,7 @@ class PurchaseReceiptLineDraft {
     this.warehouseId,
     this.uomId,
     this.serialId,
+    this.taxCodeId,
     String? description,
     String? receivedQty,
     String? acceptedQty,
@@ -28,6 +29,7 @@ class PurchaseReceiptLineDraft {
       warehouseId: intValue(json, 'warehouse_id'),
       uomId: intValue(json, 'uom_id'),
       serialId: intValue(json, 'serial_id'),
+      taxCodeId: intValue(json, 'tax_code_id'),
       description: stringValue(json, 'description'),
       receivedQty: stringValue(json, 'received_qty'),
       acceptedQty: stringValue(json, 'accepted_qty'),
@@ -42,12 +44,14 @@ class PurchaseReceiptLineDraft {
   int? warehouseId;
   int? uomId;
   int? serialId;
+  int? taxCodeId;
   final TextEditingController descriptionController;
   final TextEditingController receivedQtyController;
   final TextEditingController acceptedQtyController;
   final TextEditingController rejectedQtyController;
   final TextEditingController rateController;
   final TextEditingController remarksController;
+  bool _disposed = false;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -57,15 +61,25 @@ class PurchaseReceiptLineDraft {
       'uom_id': uomId,
       'serial_id': serialId,
       'description': nullIfEmpty(descriptionController.text),
-      'received_qty': double.tryParse(receivedQtyController.text.trim()) ?? 0,
-      'accepted_qty': double.tryParse(acceptedQtyController.text.trim()) ?? 0,
-      'rejected_qty': double.tryParse(rejectedQtyController.text.trim()) ?? 0,
-      'rate': double.tryParse(rateController.text.trim()) ?? 0,
+      'received_qty':
+          Validators.parseFlexibleNumber(receivedQtyController.text.trim()) ??
+          0,
+      'accepted_qty':
+          Validators.parseFlexibleNumber(acceptedQtyController.text.trim()) ??
+          0,
+      'rejected_qty':
+          Validators.parseFlexibleNumber(rejectedQtyController.text.trim()) ??
+          0,
+      'rate': Validators.parseFlexibleNumber(rateController.text.trim()) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }
 
   void dispose() {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     descriptionController.dispose();
     receivedQtyController.dispose();
     acceptedQtyController.dispose();
@@ -111,6 +125,7 @@ class PurchaseReceiptManagementController extends GetxController {
   final TextEditingController supplierDcNoController = TextEditingController();
   final TextEditingController supplierDcDateController =
       TextEditingController();
+  final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
   bool initialLoading = true;
@@ -128,9 +143,12 @@ class PurchaseReceiptManagementController extends GetxController {
   List<ItemModel> itemsLookup = const <ItemModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
+  List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
   final Map<String, List<StockSerialModel>> serialOptionsByItemWarehouse =
       <String, List<StockSerialModel>>{};
   final Set<String> serialOptionsLoadingKeys = <String>{};
+  final Map<int, PurchaseOrderModel> orderDetailCache =
+      <int, PurchaseOrderModel>{};
   PurchaseReceiptModel? selectedItem;
   int? contextCompanyId;
   int? contextBranchId;
@@ -144,6 +162,7 @@ class PurchaseReceiptManagementController extends GetxController {
   int? purchaseOrderId;
   int? supplierPartyId;
   int? warehouseId;
+  bool applyRoundOff = false;
   bool isActive = true;
   List<PurchaseReceiptLineDraft> lines = <PurchaseReceiptLineDraft>[];
   bool _initialized = false;
@@ -181,6 +200,7 @@ class PurchaseReceiptManagementController extends GetxController {
     supplierInvoiceDateController.dispose();
     supplierDcNoController.dispose();
     supplierDcDateController.dispose();
+    roundOffController.dispose();
     notesController.dispose();
     _disposeLines(lines);
     super.onClose();
@@ -241,6 +261,9 @@ class PurchaseReceiptManagementController extends GetxController {
         ),
         _inventoryService.uomConversionsAll(
           filters: const {'per_page': 500, 'sort_by': 'from_uom_id'},
+        ),
+        _inventoryService.taxCodes(
+          filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
       ]);
       final contextSelection = await WorkingContextService.instance
@@ -308,6 +331,11 @@ class PurchaseReceiptManagementController extends GetxController {
       uomConversions =
           ((responses[12] as ApiResponse<List<UomConversionModel>>).data ??
                   const <UomConversionModel>[])
+              .where((item) => item.isActive)
+              .toList(growable: false);
+      taxCodes =
+          ((responses[13] as PaginatedResponse<TaxCodeModel>).data ??
+                  const <TaxCodeModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       contextCompanyId = contextSelection.companyId;
@@ -381,8 +409,16 @@ class PurchaseReceiptManagementController extends GetxController {
     supplierDcDateController.text = displayDate(
       nullableStringValue(data, 'supplier_dc_date'),
     );
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff =
+        (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
+        0;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
+    await _enrichLineTaxCodes(nextLines, purchaseOrderId);
     _replaceLines(nextLines, notify: false);
     formError = null;
     for (final line in lines) {
@@ -414,6 +450,8 @@ class PurchaseReceiptManagementController extends GetxController {
     supplierInvoiceDateController.clear();
     supplierDcNoController.clear();
     supplierDcDateController.clear();
+    roundOffController.clear();
+    applyRoundOff = false;
     notesController.clear();
     isActive = true;
     _replaceLines(const <PurchaseReceiptLineDraft>[], notify: false);
@@ -616,8 +654,10 @@ class PurchaseReceiptManagementController extends GetxController {
   }
 
   double pendingReceiptQtyForOrderLine(Map<String, dynamic> line) {
-    final orderedQty = double.tryParse(stringValue(line, 'ordered_qty')) ?? 0;
-    final receivedQty = double.tryParse(stringValue(line, 'received_qty')) ?? 0;
+    final orderedQty =
+        Validators.parseFlexibleNumber(stringValue(line, 'ordered_qty')) ?? 0;
+    final receivedQty =
+        Validators.parseFlexibleNumber(stringValue(line, 'received_qty')) ?? 0;
     return (orderedQty - receivedQty).clamp(0, double.infinity).toDouble();
   }
 
@@ -643,6 +683,7 @@ class PurchaseReceiptManagementController extends GetxController {
                 itemId: itemId,
                 warehouseId: intValue(line, 'warehouse_id'),
                 uomId: intValue(line, 'uom_id'),
+                taxCodeId: intValue(line, 'tax_code_id'),
                 description: stringValue(line, 'description'),
                 receivedQty: '1',
                 acceptedQty: '1',
@@ -660,6 +701,7 @@ class PurchaseReceiptManagementController extends GetxController {
               itemId: itemId,
               warehouseId: intValue(line, 'warehouse_id'),
               uomId: intValue(line, 'uom_id'),
+              taxCodeId: intValue(line, 'tax_code_id'),
               description: stringValue(line, 'description'),
               receivedQty: pendingQty.toString(),
               acceptedQty: pendingQty.toString(),
@@ -717,6 +759,13 @@ class PurchaseReceiptManagementController extends GetxController {
     supplierInvoiceDateController.clear();
     supplierDcNoController.clear();
     supplierDcDateController.clear();
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff =
+        (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
+        0;
     notesController.text = stringValue(data, 'notes');
     _replaceLines(nextLines, notify: false);
     formError = nextLines.length == 1 && nextLines.first.itemId == null
@@ -783,6 +832,70 @@ class PurchaseReceiptManagementController extends GetxController {
     update();
   }
 
+  PurchaseLineTaxBreakdown taxBreakdownForLine(PurchaseReceiptLineDraft line) {
+    final qty =
+        Validators.parseFlexibleNumber(
+          line.receivedQtyController.text.trim(),
+        ) ??
+        0;
+    final rate =
+        Validators.parseFlexibleNumber(line.rateController.text.trim()) ?? 0;
+    return computePurchaseLineTaxBreakdown(
+      qty: qty,
+      rate: rate,
+      discountPercent: 0,
+      taxCode: purchaseTaxCodeById(taxCodes, line.taxCodeId),
+    );
+  }
+
+  PurchaseDocumentTaxSummary receiptTaxSummary() {
+    final roundOff = applyRoundOff
+        ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0)
+        : 0;
+    final base = summarizePurchaseLineTaxes(lines.map(taxBreakdownForLine));
+    return PurchaseDocumentTaxSummary(
+      taxable: base.taxable,
+      cgst: base.cgst,
+      sgst: base.sgst,
+      igst: base.igst,
+      cess: base.cess,
+      total: base.total + roundOff,
+    );
+  }
+
+  double receiptSubTotal() {
+    return receiptTaxSummary().taxable;
+  }
+
+  double receiptRoundOff() {
+    if (!applyRoundOff) {
+      return 0;
+    }
+    return Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0;
+  }
+
+  double receiptTotal() => receiptTaxSummary().total;
+
+  void _syncAutoRoundOff() {
+    final roundOff =
+        Validators.parseFlexibleNumber(roundOffController.text) ?? 0;
+    Validators.syncAutoRoundOffController(
+      roundOffController,
+      enabled: applyRoundOff,
+      baseTotal: receiptTaxSummary().total - roundOff,
+    );
+  }
+
+  void setApplyRoundOff(bool value) {
+    applyRoundOff = value;
+    if (value) {
+      _syncAutoRoundOff();
+    } else {
+      roundOffController.clear();
+    }
+    update();
+  }
+
   Future<void> setLineItemId(PurchaseReceiptLineDraft line, int? value) async {
     line.itemId = value;
     line.uomId = resolveDefaultUom(value, line.uomId);
@@ -806,6 +919,49 @@ class PurchaseReceiptManagementController extends GetxController {
     update();
   }
 
+  Future<PurchaseOrderModel?> _getOrderDetail(int? orderId) async {
+    if (orderId == null) {
+      return null;
+    }
+    final cached = orderDetailCache[orderId];
+    if (cached != null) {
+      return cached;
+    }
+    final response = await _purchaseService.order(orderId);
+    final order = response.data;
+    if (order != null) {
+      orderDetailCache[orderId] = order;
+    }
+    return order;
+  }
+
+  Future<void> _enrichLineTaxCodes(
+    List<PurchaseReceiptLineDraft> drafts,
+    int? orderId,
+  ) async {
+    if (drafts.isEmpty || orderId == null) {
+      return;
+    }
+    final order = await _getOrderDetail(orderId);
+    if (order == null) {
+      return;
+    }
+    final orderLines = (order.toJson()['lines'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>();
+    final taxCodeByOrderLineId = <int, int?>{
+      for (final line in orderLines)
+        if (intValue(line, 'id') != null)
+          intValue(line, 'id')!: intValue(line, 'tax_code_id'),
+    };
+    for (final draft in drafts) {
+      final orderLineId = draft.purchaseOrderLineId;
+      if (orderLineId == null) {
+        continue;
+      }
+      draft.taxCodeId = taxCodeByOrderLineId[orderLineId];
+    }
+  }
+
   void setLineUomId(PurchaseReceiptLineDraft line, int? value) {
     line.uomId = value;
     update();
@@ -819,7 +975,11 @@ class PurchaseReceiptManagementController extends GetxController {
           line.uomId == null ||
           line.warehouseId == null ||
           (isSerialManagedItem(line.itemId) && line.serialId == null) ||
-          (double.tryParse(line.receivedQtyController.text.trim()) ?? 0) <= 0,
+          (Validators.parseFlexibleNumber(
+                    line.receivedQtyController.text.trim(),
+                  ) ??
+                  0) <=
+              0,
     )) {
       formError =
           'Each line needs item, warehouse, UOM, received quantity, and serial for serial-managed items.';
@@ -830,9 +990,15 @@ class PurchaseReceiptManagementController extends GetxController {
       final line = lines[index];
       if (isSerialManagedItem(line.itemId)) {
         final receivedQty =
-            double.tryParse(line.receivedQtyController.text.trim()) ?? 0;
+            Validators.parseFlexibleNumber(
+              line.receivedQtyController.text.trim(),
+            ) ??
+            0;
         final acceptedQty =
-            double.tryParse(line.acceptedQtyController.text.trim()) ?? 0;
+            Validators.parseFlexibleNumber(
+              line.acceptedQtyController.text.trim(),
+            ) ??
+            0;
         if (receivedQty != 1 || acceptedQty != 1) {
           formError =
               'Serial-managed receipt lines must have received qty 1 and accepted qty 1 at line ${index + 1}.';
@@ -859,6 +1025,10 @@ class PurchaseReceiptManagementController extends GetxController {
       'supplier_invoice_date': nullIfEmpty(supplierInvoiceDateController.text),
       'supplier_dc_no': nullIfEmpty(supplierDcNoController.text),
       'supplier_dc_date': nullIfEmpty(supplierDcDateController.text),
+      'round_off_amount': applyRoundOff
+          ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                0)
+          : 0,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
       'lines': lines.map((line) => line.toJson()).toList(growable: false),

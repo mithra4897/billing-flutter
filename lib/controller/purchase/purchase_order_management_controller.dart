@@ -71,6 +71,7 @@ class PurchaseOrderLineDraft {
   final TextEditingController rateController;
   final TextEditingController discountController;
   final TextEditingController remarksController;
+  bool _disposed = false;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -89,6 +90,10 @@ class PurchaseOrderLineDraft {
   }
 
   void dispose() {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     descriptionController.dispose();
     qtyController.dispose();
     rateController.dispose();
@@ -232,6 +237,16 @@ class PurchaseOrderManagementController extends GetxController {
     if (!_initialized) _initialized = true;
     await loadPage(selectId: initialId);
     _refreshController.notifyChanged(source: 'purchase_order');
+  }
+
+  String errorMessage(Object error) {
+    if (error is ApiException) {
+      return error.displayMessage;
+    }
+    if (error is ApiResponse) {
+      return error.message;
+    }
+    return error.toString();
   }
 
   Future<void> _handleWorkingContextChanged() async {
@@ -392,10 +407,20 @@ class PurchaseOrderManagementController extends GetxController {
             update();
             return;
           }
-        } catch (_) {}
+          formError = 'Purchase order #$selectId was not found.';
+        } catch (errorValue) {
+          formError =
+              'Unable to load purchase order #$selectId. ${errorMessage(errorValue)}';
+        }
       }
       if (selected != null) {
-        await selectDocument(selected, notify: false);
+        try {
+          await selectDocument(selected, notify: false);
+        } catch (errorValue) {
+          _applyDocumentToForm(selected, notify: false);
+          formError =
+              'Loaded basic order data, but full details could not be fetched. ${errorMessage(errorValue)}';
+        }
       } else {
         resetForm(notify: false);
       }
@@ -415,12 +440,16 @@ class PurchaseOrderManagementController extends GetxController {
     if (id == null) return;
     final response = await _purchaseService.order(id);
     final full = response.data ?? item;
-    final data = full.toJson();
+    _applyDocumentToForm(full, notify: notify);
+  }
+
+  void _applyDocumentToForm(PurchaseOrderModel item, {bool notify = true}) {
+    final data = item.toJson();
     final nextLines = (data['lines'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .map(PurchaseOrderLineDraft.fromJson)
         .toList(growable: true);
-    selectedItem = full;
+    selectedItem = item;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
     locationId = intValue(data, 'location_id');
@@ -457,7 +486,7 @@ class PurchaseOrderManagementController extends GetxController {
     _replaceLines(nextLines, notify: false);
     formError = null;
     selectionInfo = null;
-    _upsertOrder(full, notify: false);
+    _upsertOrder(item, notify: false);
     if (notify) update();
   }
 

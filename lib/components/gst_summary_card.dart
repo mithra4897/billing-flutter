@@ -109,9 +109,15 @@ class GstSummaryCard extends StatelessWidget {
   }
 
   String _amountInWords(double amount) {
-    final normalized = amount.isNegative ? 0 : amount;
-    final whole = normalized.floor();
-    final fraction = ((normalized - whole) * 100).round();
+    final normalized = amount.isNegative
+        ? 0
+        : double.parse(amount.toStringAsFixed(2));
+    var whole = normalized.floor();
+    var fraction = ((normalized - whole) * 100).round();
+    if (fraction == 100) {
+      whole += 1;
+      fraction = 0;
+    }
     final code = currencyCode.trim().toUpperCase();
     final majorUnit = code == 'INR' ? 'Rupees' : code;
     final minorUnit = code == 'INR' ? 'Paise' : 'Cents';

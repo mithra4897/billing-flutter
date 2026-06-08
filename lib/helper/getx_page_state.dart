@@ -4,6 +4,15 @@ void advancePersistentControllerSessionScope() {
   _persistentControllerSessionScope++;
 }
 
+Map<String, Object?> uniqueControllerScope([
+  Map<String, Object?> scope = const <String, Object?>{},
+]) {
+  return <String, Object?>{
+    'instance': DateTime.now().microsecondsSinceEpoch,
+    ...scope,
+  };
+}
+
 String persistentControllerTag(
   String controllerName, {
   Map<String, Object?> scope = const <String, Object?>{},

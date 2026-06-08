@@ -37,7 +37,9 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchaseRequisitionManagementController',
-      scope: <String, Object?>{'identity': identityHashCode(this)},
+      scope: uniqueControllerScope(<String, Object?>{
+        'identity': identityHashCode(this),
+      }),
     );
     Get.put(PurchaseRequisitionManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {

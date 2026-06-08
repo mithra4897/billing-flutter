@@ -30,7 +30,9 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchasePaymentManagementController',
-      scope: <String, Object?>{'identity': identityHashCode(this)},
+      scope: uniqueControllerScope(<String, Object?>{
+        'identity': identityHashCode(this),
+      }),
     );
     Get.put(PurchasePaymentManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -282,6 +284,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        onChanged: (_) => controller.handlePaidAmountChanged(),
                         validator: Validators.compose([
                           Validators.required('Paid Amount'),
                           Validators.optionalNonNegativeNumber('Paid Amount'),

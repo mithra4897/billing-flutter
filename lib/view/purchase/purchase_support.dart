@@ -114,9 +114,10 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
   double? taxPercent,
   String? taxType,
 }) {
-  final gross = qty > 0 && rate >= 0 ? qty * rate : 0.0;
+  final gross = roundToDouble(qty > 0 && rate >= 0 ? qty * rate : 0.0, 2);
   final clampedDiscount = discountPercent.clamp(0, 100).toDouble();
-  final taxable = roundToDouble(gross * (1 - (clampedDiscount / 100)), 2);
+  final discountAmount = roundToDouble((gross * clampedDiscount) / 100, 2);
+  final taxable = roundToDouble(gross - discountAmount, 2);
   var resolvedTaxPercent = (taxPercent ?? taxCode?.taxRate ?? 0).toDouble();
   final resolvedTaxType =
       (taxType ??
@@ -160,8 +161,9 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
 }
 
 PurchaseDocumentTaxSummary summarizePurchaseLineTaxes(
-  Iterable<PurchaseLineTaxBreakdown> lines,
-) {
+  Iterable<PurchaseLineTaxBreakdown> lines, {
+  double adjustment = 0,
+}) {
   double taxable = 0;
   double cgst = 0;
   double sgst = 0;
@@ -177,12 +179,12 @@ PurchaseDocumentTaxSummary summarizePurchaseLineTaxes(
   }
 
   return PurchaseDocumentTaxSummary(
-    taxable: taxable,
-    cgst: cgst,
-    sgst: sgst,
-    igst: igst,
-    cess: cess,
-    total: taxable + cgst + sgst + igst + cess,
+    taxable: roundToDouble(taxable, 2),
+    cgst: roundToDouble(cgst, 2),
+    sgst: roundToDouble(sgst, 2),
+    igst: roundToDouble(igst, 2),
+    cess: roundToDouble(cess, 2),
+    total: roundToDouble(taxable + cgst + sgst + igst + cess + adjustment, 2),
   );
 }
 

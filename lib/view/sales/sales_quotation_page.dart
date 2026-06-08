@@ -135,7 +135,14 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     }
 
     final selected = controller.selectedItem?.toJson() ?? const {};
-    final totalStr = stringValue(selected, 'total_amount');
+    final roundOff = controller.applyRoundOff
+        ? (Validators.parseFlexibleNumber(
+                controller.roundOffController.text.trim(),
+              ) ??
+              0)
+        : 0;
+    final totalStr = (controller.taxSummary().total + roundOff)
+        .toStringAsFixed(2);
     final hasExistingOrder =
         ((controller.salesChain?['orders'] as List?) ?? const []).isNotEmpty;
 
@@ -183,7 +190,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               data: controller.salesChain,
               hideQuotationChip: true,
             ),
-            if (controller.selectedItem != null && totalStr.isNotEmpty)
+            if (controller.selectedItem != null)
               Padding(
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,

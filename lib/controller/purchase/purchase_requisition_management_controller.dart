@@ -36,8 +36,13 @@ class PurchaseRequisitionLineDraft {
   final TextEditingController requestedQtyController;
   final TextEditingController estimatedRateController;
   final TextEditingController remarksController;
+  bool _disposed = false;
 
   void dispose() {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
     descriptionController.dispose();
     requestedQtyController.dispose();
     estimatedRateController.dispose();
@@ -50,9 +55,10 @@ class PurchaseRequisitionLineDraft {
       'warehouse_id': warehouseId,
       'uom_id': uomId,
       'description': nullIfEmpty(descriptionController.text),
-      'requested_qty': double.tryParse(requestedQtyController.text.trim()) ?? 0,
+      'requested_qty':
+          Validators.parseFlexibleNumber(requestedQtyController.text) ?? 0,
       'estimated_rate':
-          double.tryParse(estimatedRateController.text.trim()) ?? 0,
+          Validators.parseFlexibleNumber(estimatedRateController.text) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }
@@ -611,7 +617,9 @@ class PurchaseRequisitionManagementController extends GetxController {
       (line) =>
           line.itemId == null ||
           line.uomId == null ||
-          (double.tryParse(line.requestedQtyController.text.trim()) ?? 0) <= 0,
+          (Validators.parseFlexibleNumber(line.requestedQtyController.text) ??
+                  0) <=
+              0,
     );
     if (invalidLine) {
       formError = 'Each line needs item, UOM, and quantity.';

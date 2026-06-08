@@ -35,6 +35,7 @@ class SalesInvoiceManagementController extends GetxController {
       TextEditingController();
   final TextEditingController currencyCodeController = TextEditingController();
   final TextEditingController exchangeRateController = TextEditingController();
+  final TextEditingController roundOffController = TextEditingController();
   final TextEditingController adjustmentAmountController =
       TextEditingController();
   final TextEditingController adjustmentRemarksController =
@@ -98,6 +99,7 @@ class SalesInvoiceManagementController extends GetxController {
   int? billingAddressId;
   int? shippingAddressId;
   int? adjustmentAccountId;
+  bool applyRoundOff = false;
   bool isActive = true;
   Map<String, dynamic>? salesChain;
   List<InvoiceLineDraft> lines = <InvoiceLineDraft>[];
@@ -542,7 +544,10 @@ class SalesInvoiceManagementController extends GetxController {
               return true;
             }
             final qty =
-                double.tryParse(row['qty_available']?.toString() ?? '') ?? 0;
+                Validators.parseFlexibleNumber(
+                  row['qty_available']?.toString(),
+                ) ??
+                0;
             return qty > 0;
           })
           .map((row) => int.tryParse(row['warehouse_id']?.toString() ?? ''))
@@ -654,7 +659,9 @@ class SalesInvoiceManagementController extends GetxController {
                 .map((e) => Map<String, dynamic>.from(e))
                 .where((batch) {
                   final qty =
-                      double.tryParse(batch['balance_qty']?.toString() ?? '') ??
+                      Validators.parseFlexibleNumber(
+                        batch['balance_qty']?.toString(),
+                      ) ??
                       0;
                   return qty > 0;
                 })
@@ -969,9 +976,10 @@ class SalesInvoiceManagementController extends GetxController {
       (i) => i?.id == itemId,
       orElse: () => null,
     );
-    final ordered = double.tryParse(line['ordered_qty']?.toString() ?? '') ?? 0;
+    final ordered =
+        Validators.parseFlexibleNumber(line['ordered_qty']?.toString()) ?? 0;
     final invoiced =
-        double.tryParse(line['invoiced_qty']?.toString() ?? '') ?? 0;
+        Validators.parseFlexibleNumber(line['invoiced_qty']?.toString()) ?? 0;
     final rem = ordered - invoiced;
     final lineNo = intValue(line, 'line_no') ?? 0;
     final name = (item?.itemName ?? '').trim().isNotEmpty
@@ -987,7 +995,8 @@ class SalesInvoiceManagementController extends GetxController {
       orElse: () => null,
     );
     final pend =
-        double.tryParse(line['pending_invoice_qty']?.toString() ?? '') ?? 0;
+        Validators.parseFlexibleNumber(line['pending_invoice_qty']?.toString()) ??
+        0;
     final lineNo = intValue(line, 'line_no') ?? 0;
     final name = (item?.itemName ?? '').trim().isNotEmpty
         ? item!.itemName
@@ -1087,6 +1096,10 @@ class SalesInvoiceManagementController extends GetxController {
     dueDateController.text = displayDate(
       nullableStringValue(j, 'expected_delivery_date'),
     );
+    final roundOff =
+        Validators.parseFlexibleNumber(j['round_off_amount']?.toString()) ?? 0;
+    roundOffController.text = roundOff == 0 ? '' : roundOff.toString();
+    applyRoundOff = roundOff != 0;
     adjustmentAmountController.clear();
     adjustmentRemarksController.clear();
     adjustmentAccountId = null;
@@ -1118,7 +1131,12 @@ class SalesInvoiceManagementController extends GetxController {
     notesController.text = stringValue(j, 'notes');
     termsController.text = stringValue(j, 'terms_conditions');
     dueDateController.text = displayDate(nullableStringValue(j, 'valid_until'));
-    final adj = double.tryParse(j['adjustment_amount']?.toString() ?? '') ?? 0;
+    final roundOff =
+        Validators.parseFlexibleNumber(j['round_off_amount']?.toString()) ?? 0;
+    roundOffController.text = roundOff == 0 ? '' : roundOff.toString();
+    applyRoundOff = roundOff != 0;
+    final adj =
+        Validators.parseFlexibleNumber(j['adjustment_amount']?.toString()) ?? 0;
     adjustmentAmountController.text = adj == 0 ? '' : adj.toString();
     final adjAcc = intValue(j, 'adjustment_account_id');
     adjustmentAccountId = adjAcc == 0 ? null : adjAcc;
@@ -1142,6 +1160,10 @@ class SalesInvoiceManagementController extends GetxController {
         rawShippingAddressId == null || rawShippingAddressId == 0
         ? null
         : rawShippingAddressId;
+    final roundOff =
+        Validators.parseFlexibleNumber(j['round_off_amount']?.toString()) ?? 0;
+    roundOffController.text = roundOff == 0 ? '' : roundOff.toString();
+    applyRoundOff = roundOff != 0;
     notesController.text = stringValue(j, 'notes');
   }
 
@@ -1449,9 +1471,10 @@ class SalesInvoiceManagementController extends GetxController {
       line.rateController.text = stringValue(ol, 'rate');
       line.discountController.text = stringValue(ol, 'discount_percent');
       line.remarksController.text = stringValue(ol, 'remarks');
-      final ordered = double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
+      final ordered =
+          Validators.parseFlexibleNumber(ol['ordered_qty']?.toString()) ?? 0;
       final invoiced =
-          double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
+          Validators.parseFlexibleNumber(ol['invoiced_qty']?.toString()) ?? 0;
       final rem = ordered - invoiced;
       final serialNo = stringValue(ol, 'serial_no').trim();
       if (isSerialManagedItem(line.itemId)) {
@@ -1496,7 +1519,8 @@ class SalesInvoiceManagementController extends GetxController {
       line.discountController.text = stringValue(dl, 'discount_percent');
       line.remarksController.text = stringValue(dl, 'remarks');
       final pend =
-          double.tryParse(dl['pending_invoice_qty']?.toString() ?? '') ?? 0;
+          Validators.parseFlexibleNumber(dl['pending_invoice_qty']?.toString()) ??
+          0;
       final serialNo = stringValue(dl, 'serial_no').trim();
       if (isSerialManagedItem(line.itemId)) {
         setLineSerialNumbers(
@@ -1524,9 +1548,10 @@ class SalesInvoiceManagementController extends GetxController {
     }
     final drafts = <InvoiceLineDraft>[];
     for (final ol in cache) {
-      final ordered = double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
+      final ordered =
+          Validators.parseFlexibleNumber(ol['ordered_qty']?.toString()) ?? 0;
       final invoiced =
-          double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
+          Validators.parseFlexibleNumber(ol['invoiced_qty']?.toString()) ?? 0;
       if (ordered - invoiced <= 0) {
         continue;
       }
@@ -1544,7 +1569,8 @@ class SalesInvoiceManagementController extends GetxController {
     final drafts = <InvoiceLineDraft>[];
     for (final dl in cache) {
       final pend =
-          double.tryParse(dl['pending_invoice_qty']?.toString() ?? '') ?? 0;
+          Validators.parseFlexibleNumber(dl['pending_invoice_qty']?.toString()) ??
+          0;
       if (pend <= 0) {
         continue;
       }
@@ -1582,7 +1608,7 @@ class SalesInvoiceManagementController extends GetxController {
       return 0;
     }
     final d = rowJson(selectedItem!);
-    return double.tryParse(d['balance_amount']?.toString() ?? '') ?? 0;
+    return Validators.parseFlexibleNumber(d['balance_amount']?.toString()) ?? 0;
   }
 
   bool hasInitialized = false;
@@ -1644,6 +1670,7 @@ class SalesInvoiceManagementController extends GetxController {
     customerRefDateController.dispose();
     currencyCodeController.dispose();
     exchangeRateController.dispose();
+    roundOffController.dispose();
     adjustmentAmountController.dispose();
     adjustmentRemarksController.dispose();
     notesController.dispose();
@@ -2090,6 +2117,11 @@ class SalesInvoiceManagementController extends GetxController {
       customerRefDateController.text = displayDate(full.customerReferenceDate);
       currencyCodeController.text = full.currencyCode ?? 'INR';
       exchangeRateController.text = (full.exchangeRate ?? 1).toString();
+      roundOffController.text =
+          full.roundOffAmount == null || full.roundOffAmount == 0
+          ? ''
+          : full.roundOffAmount.toString();
+      applyRoundOff = (full.roundOffAmount ?? 0) != 0;
       adjustmentAmountController.text =
           full.adjustmentAmount == null || full.adjustmentAmount == 0
           ? ''
@@ -2144,6 +2176,8 @@ class SalesInvoiceManagementController extends GetxController {
       customerRefDateController.clear();
       currencyCodeController.text = 'INR';
       exchangeRateController.text = '1';
+      roundOffController.clear();
+      applyRoundOff = false;
       adjustmentAmountController.clear();
       adjustmentRemarksController.clear();
       adjustmentAccountId = null;
@@ -2217,10 +2251,11 @@ class SalesInvoiceManagementController extends GetxController {
     final isInterState = isInterStateForSummary();
 
     for (final line in lines) {
-      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-      final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+      final rate =
+          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
       final discount =
-          double.tryParse(line.discountController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
       if (qty <= 0 || rate < 0) {
         continue;
       }
@@ -2252,15 +2287,44 @@ class SalesInvoiceManagementController extends GetxController {
       }
     }
 
+    final roundOff = applyRoundOff
+        ? (Validators.parseFlexibleNumber(roundOffController.text) ?? 0.0)
+        : 0.0;
     final adjustment =
-        double.tryParse(adjustmentAmountController.text.trim()) ?? 0;
+        Validators.parseFlexibleNumber(adjustmentAmountController.text) ?? 0;
     return InvoiceTaxSummary(
       taxable: taxable,
       cgst: cgst,
       sgst: sgst,
       igst: igst,
-      total: taxable + cgst + sgst + igst + adjustment,
+      total: taxable + cgst + sgst + igst + roundOff + adjustment,
     );
+  }
+
+  void syncAutoRoundOff() {
+    if (!applyRoundOff) {
+      return;
+    }
+    final roundOff = Validators.parseFlexibleNumber(roundOffController.text) ?? 0;
+    final adjustment =
+        Validators.parseFlexibleNumber(adjustmentAmountController.text) ?? 0;
+    final baseTotal = invoiceTaxSummary().total - adjustment - roundOff;
+    Validators.syncAutoRoundOffController(
+      roundOffController,
+      enabled: applyRoundOff,
+      baseTotal: baseTotal,
+    );
+  }
+
+  void setApplyRoundOff(bool value) {
+    State(() {
+      applyRoundOff = value;
+      if (value) {
+        syncAutoRoundOff();
+      } else {
+        roundOffController.clear();
+      }
+    });
   }
 
   DocumentPrintDataModel salesInvoicePrintData() {
@@ -2281,10 +2345,12 @@ class SalesInvoiceManagementController extends GetxController {
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
         .map((line) {
-          final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-          final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+          final qty =
+              Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+          final rate =
+              Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
           final discount =
-              double.tryParse(line.discountController.text.trim()) ?? 0;
+              Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
           final taxCode = taxCodeById(line.taxCodeId);
           final breakdown = computeSalesLineTaxBreakdown(
             qty: qty,
@@ -2408,9 +2474,11 @@ class SalesInvoiceManagementController extends GetxController {
   List<SalesInvoiceLineModel> linesForSave() {
     final result = <SalesInvoiceLineModel>[];
     for (final line in lines) {
-      final qty = double.tryParse(line.qtyController.text.trim()) ?? 0;
-      final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
-      final disc = double.tryParse(line.discountController.text.trim()) ?? 0;
+      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+      final rate =
+          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      final disc =
+          Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
       final description = nullIfEmpty(line.descriptionController.text);
       final remarks = nullIfEmpty(line.remarksController.text);
 
@@ -2484,13 +2552,17 @@ class SalesInvoiceManagementController extends GetxController {
       (line) =>
           line.itemId == null ||
           line.uomId == null ||
-          (double.tryParse(line.qtyController.text.trim()) ?? 0) <= 0,
+          (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) <= 0,
     )) {
       State(() => formError = 'Each line needs item, UOM, and quantity.');
       return;
     }
 
-    final adjAmt = double.tryParse(adjustmentAmountController.text.trim()) ?? 0;
+    final adjAmt =
+        Validators.parseFlexibleNumber(adjustmentAmountController.text) ?? 0;
+    final roundOff = applyRoundOff
+        ? (Validators.parseFlexibleNumber(roundOffController.text) ?? 0.0)
+        : 0.0;
     if (adjAmt != 0 && adjustmentAccountId == null) {
       State(
         () => formError =
@@ -2520,7 +2592,11 @@ class SalesInvoiceManagementController extends GetxController {
       invoiceNo: nullIfEmpty(invoiceNoController.text),
       dueDate: nullIfEmpty(dueDateController.text),
       currencyCode: nullIfEmpty(currencyCodeController.text) ?? 'INR',
-      exchangeRate: double.tryParse(exchangeRateController.text.trim()) ?? 1,
+      exchangeRate:
+          Validators.parseFlexibleNumber(exchangeRateController.text) ?? 1,
+      roundOffMethod: 'manual',
+      roundOffPrecision: 1.0,
+      roundOffAmount: roundOff,
       notes: nullIfEmpty(notesController.text),
       termsConditions: nullIfEmpty(termsController.text),
       customerReferenceNo: nullIfEmpty(customerRefNoController.text),
@@ -2716,8 +2792,10 @@ class InvoiceLineDraft {
   }
 
   factory InvoiceLineDraft.fromOrderLineMap(Map<String, dynamic> ol) {
-    final ordered = double.tryParse(ol['ordered_qty']?.toString() ?? '') ?? 0;
-    final invoiced = double.tryParse(ol['invoiced_qty']?.toString() ?? '') ?? 0;
+    final ordered =
+        Validators.parseFlexibleNumber(ol['ordered_qty']?.toString()) ?? 0;
+    final invoiced =
+        Validators.parseFlexibleNumber(ol['invoiced_qty']?.toString()) ?? 0;
     final rem = ordered - invoiced;
     return InvoiceLineDraft(
       salesOrderLineId: intValue(ol, 'id'),
@@ -2745,7 +2823,8 @@ class InvoiceLineDraft {
     int? taxCodeId,
   }) {
     final pend =
-        double.tryParse(dl['pending_invoice_qty']?.toString() ?? '') ?? 0;
+        Validators.parseFlexibleNumber(dl['pending_invoice_qty']?.toString()) ??
+        0;
     final sol = intValue(dl, 'sales_order_line_id');
     return InvoiceLineDraft(
       salesDeliveryLineId: intValue(dl, 'id'),

@@ -24,6 +24,7 @@ class PurchaseReceiptModel extends JsonModel {
     this.transporterPartyId,
     this.lrNo,
     this.lrDate,
+    this.roundOffAmount,
     this.voucherId,
     this.receiptStatus,
     this.notes,
@@ -57,6 +58,7 @@ class PurchaseReceiptModel extends JsonModel {
   final int? transporterPartyId;
   final String? lrNo;
   final String? lrDate;
+  final double? roundOffAmount;
   final int? voucherId;
   final String? receiptStatus;
   final String? notes;
@@ -93,6 +95,7 @@ class PurchaseReceiptModel extends JsonModel {
       transporterPartyId: JsonModel.nullableInt(json['transporter_party_id']),
       lrNo: json['lr_no']?.toString(),
       lrDate: json['lr_date']?.toString(),
+      roundOffAmount: JsonModel.nullableDouble(json['round_off_amount']),
       voucherId: JsonModel.nullableInt(json['voucher_id']),
       receiptStatus: json['receipt_status']?.toString(),
       notes: json['notes']?.toString(),
@@ -143,6 +146,7 @@ class PurchaseReceiptModel extends JsonModel {
     if (transporterPartyId != null) 'transporter_party_id': transporterPartyId,
     if (lrNo != null) 'lr_no': lrNo,
     if (lrDate != null) 'lr_date': lrDate,
+    if (roundOffAmount != null) 'round_off_amount': roundOffAmount,
     if (voucherId != null) 'voucher_id': voucherId,
     if (receiptStatus != null) 'receipt_status': receiptStatus,
     if (notes != null) 'notes': notes,

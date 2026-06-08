@@ -27,7 +27,8 @@ class SalesReceiptAllocationDraft {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'sales_invoice_id': salesInvoiceId,
-      'allocated_amount': double.tryParse(amountController.text.trim()) ?? 0,
+      'allocated_amount':
+          Validators.parseFlexibleNumber(amountController.text) ?? 0,
       'allocation_type': allocationType,
       'remarks': nullIfEmpty(remarksController.text),
     };
@@ -455,7 +456,8 @@ class SalesReceiptManagementController extends GetxController {
       }
       final data = invoice.toJson();
       final balance =
-          double.tryParse(data['balance_amount']?.toString() ?? '') ?? 0;
+          Validators.parseFlexibleNumber(data['balance_amount']?.toString()) ??
+          0;
       if (balance <= 0) {
         formError = 'This invoice has no outstanding balance to receive.';
         update();
@@ -612,7 +614,7 @@ class SalesReceiptManagementController extends GetxController {
     if (!formKey.currentState!.validate()) {
       return;
     }
-    if ((double.tryParse(paidAmountController.text.trim()) ?? 0) <= 0) {
+    if ((Validators.parseFlexibleNumber(paidAmountController.text) ?? 0) <= 0) {
       formError = 'Paid amount must be greater than zero.';
       update();
       return;
@@ -635,7 +637,8 @@ class SalesReceiptManagementController extends GetxController {
       'payment_reference_date': nullIfEmpty(
         paymentReferenceDateController.text,
       ),
-      'paid_amount': double.tryParse(paidAmountController.text.trim()) ?? 0,
+      'paid_amount':
+          Validators.parseFlexibleNumber(paidAmountController.text) ?? 0,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
       if (allocations.isNotEmpty)

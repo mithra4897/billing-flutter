@@ -151,7 +151,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     }
 
     final selected = controller.selectedItem?.toJson() ?? const {};
-    final totalStr = stringValue(selected, 'total_amount');
+    final totalStr = controller.taxSummary().total.toStringAsFixed(2);
     final hasExistingDelivery =
         ((controller.salesChain?['deliveries'] as List?) ?? const [])
             .isNotEmpty;
@@ -200,7 +200,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
               data: controller.salesChain,
               hideOrderChip: true,
             ),
-            if (controller.selectedItem != null && totalStr.isNotEmpty)
+            if (controller.selectedItem != null)
               Padding(
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,

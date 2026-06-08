@@ -28,7 +28,9 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
     super.initState();
     _controllerTag = persistentControllerTag(
       'PurchaseReturnManagementController',
-      scope: <String, Object?>{'identity': identityHashCode(this)},
+      scope: uniqueControllerScope(<String, Object?>{
+        'identity': identityHashCode(this),
+      }),
     );
     Get.put(PurchaseReturnManagementController(), tag: _controllerTag);
     WidgetsBinding.instance.addPostFrameCallback((_) {

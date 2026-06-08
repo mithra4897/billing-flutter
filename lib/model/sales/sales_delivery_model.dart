@@ -22,6 +22,7 @@ class SalesDeliveryModel extends JsonModel {
     this.lrNo,
     this.lrDate,
     this.deliveryKind,
+    this.roundOffAmount,
     this.voucherId,
     this.deliveryStatus,
     this.notes,
@@ -54,6 +55,7 @@ class SalesDeliveryModel extends JsonModel {
   final String? lrNo;
   final String? lrDate;
   final String? deliveryKind;
+  final double? roundOffAmount;
   final int? voucherId;
   final String? deliveryStatus;
   final String? notes;
@@ -89,6 +91,7 @@ class SalesDeliveryModel extends JsonModel {
       lrNo: json['lr_no']?.toString(),
       lrDate: json['lr_date']?.toString(),
       deliveryKind: json['delivery_kind']?.toString(),
+      roundOffAmount: JsonModel.nullableDouble(json['round_off_amount']),
       voucherId: JsonModel.nullableInt(json['voucher_id']),
       deliveryStatus: json['delivery_status']?.toString(),
       notes: json['notes']?.toString(),
@@ -134,6 +137,7 @@ class SalesDeliveryModel extends JsonModel {
     if (lrNo != null) 'lr_no': lrNo,
     if (lrDate != null) 'lr_date': lrDate,
     if (deliveryKind != null) 'delivery_kind': deliveryKind,
+    if (roundOffAmount != null) 'round_off_amount': roundOffAmount,
     if (voucherId != null) 'voucher_id': voucherId,
     if (deliveryStatus != null) 'delivery_status': deliveryStatus,
     if (notes != null) 'notes': notes,

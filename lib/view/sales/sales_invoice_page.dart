@@ -106,6 +106,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         ? 'INR'
         : controller.currencyCodeController.text.trim();
     final isInterState = controller.isInterStateForSummary();
+    final roundOff = controller.applyRoundOff
+        ? (double.tryParse(controller.roundOffController.text.trim()) ?? 0)
+        : 0;
     return GstSummaryCard(
       taxable: summary.taxable,
       cgst: summary.cgst,
@@ -115,8 +118,10 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       total: summary.total,
       currencyCode: currency,
       subtitle: isInterState == null
-          ? 'Live totals for the current invoice lines.'
-          : 'Live totals for the current invoice lines. ${isInterState ? 'Inter-state invoice using IGST.' : 'Intra-state invoice using CGST and SGST.'}',
+          ? (roundOff == 0
+                ? 'Live totals for the current invoice lines.'
+                : 'Live totals for the current invoice lines. Includes round off ${roundOff.toStringAsFixed(2)}.')
+          : 'Live totals for the current invoice lines. ${isInterState ? 'Inter-state invoice using IGST.' : 'Intra-state invoice using CGST and SGST.'}${roundOff == 0 ? '' : ' Includes round off ${roundOff.toStringAsFixed(2)}.'}',
     );
   }
 
@@ -135,7 +140,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       );
     }
 
-    final totalStr = controller.selectedItem?.totalAmount?.toString() ?? '';
+    final liveSummary = controller.invoiceTaxSummary();
+    final totalStr = liveSummary.total.toStringAsFixed(2);
 
     return SettingsWorkspace(
       controller: controller.workspaceController,
@@ -228,7 +234,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               data: controller.salesChain,
               hideInvoiceChip: true,
             ),
-            if (controller.selectedItem != null && totalStr.isNotEmpty)
+            if (controller.selectedItem != null)
               Padding(
                 padding: const EdgeInsets.only(
                   bottom: AppUiConstants.spacingSm,
@@ -455,6 +461,33 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   validator: Validators.optionalNonNegativeNumber(
                     'Exchange Rate',
                   ),
+                ),
+                AppFormTextField(
+                  labelText: 'Round off',
+                  controller: controller.roundOffController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  enabled: controller.canEdit && controller.applyRoundOff,
+                  onChanged: (_) => controller.State(() {}),
+                  validator: (value) {
+                    final trimmed = value?.trim() ?? '';
+                    if (trimmed.isEmpty) {
+                      return null;
+                    }
+                    if (double.tryParse(trimmed) == null) {
+                      return 'Round off must be a valid number';
+                    }
+                    return null;
+                  },
+                ),
+                AppSwitchTile(
+                  label: 'Apply round off',
+                  value: controller.applyRoundOff,
+                  onChanged: controller.canEdit
+                      ? controller.setApplyRoundOff
+                      : null,
                 ),
                 AppFormTextField(
                   labelText: 'Adjustment amount',

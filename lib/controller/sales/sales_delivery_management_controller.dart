@@ -60,8 +60,9 @@ class SalesDeliveryLineDraft {
       if (batchId != null) 'batch_id': batchId,
       'uom_id': uomId,
       'description': nullIfEmpty(descriptionController.text),
-      'delivered_qty': double.tryParse(deliveredQtyController.text.trim()) ?? 0,
-      'rate': double.tryParse(rateController.text.trim()) ?? 0,
+      'delivered_qty':
+          Validators.parseFlexibleNumber(deliveredQtyController.text) ?? 0,
+      'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,
       'remarks': nullIfEmpty(remarksController.text),
     };
   }
@@ -149,6 +150,7 @@ class SalesDeliveryManagementController extends GetxController {
   final TextEditingController vehicleNoController = TextEditingController();
   final TextEditingController lrNoController = TextEditingController();
   final TextEditingController lrDateController = TextEditingController();
+  final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
   bool initialLoading = true;
@@ -196,6 +198,7 @@ class SalesDeliveryManagementController extends GetxController {
   int? customerPartyId;
   int? transporterPartyId;
   String deliveryKind = 'dc';
+  bool applyRoundOff = false;
   bool isActive = true;
   Map<String, dynamic>? salesChain;
   List<SalesDeliveryLineDraft> lines = <SalesDeliveryLineDraft>[];
@@ -232,6 +235,7 @@ class SalesDeliveryManagementController extends GetxController {
     vehicleNoController.dispose();
     lrNoController.dispose();
     lrDateController.dispose();
+    roundOffController.dispose();
     notesController.dispose();
     _disposeLines(lines);
     _disposeReturnableDcs(returnableDcs);
@@ -518,7 +522,9 @@ class SalesDeliveryManagementController extends GetxController {
                 .map((entry) => Map<String, dynamic>.from(entry))
                 .where((batch) {
                   final qty =
-                      double.tryParse(batch['balance_qty']?.toString() ?? '') ??
+                      Validators.parseFlexibleNumber(
+                        batch['balance_qty']?.toString(),
+                      ) ??
                       0;
                   return qty > 0;
                 })
@@ -615,8 +621,9 @@ class SalesDeliveryManagementController extends GetxController {
     final result = <Map<String, dynamic>>[];
     for (final line in lines) {
       final deliveredQty =
-          double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
-      final rate = double.tryParse(line.rateController.text.trim()) ?? 0;
+          Validators.parseFlexibleNumber(line.deliveredQtyController.text) ?? 0;
+      final rate =
+          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
       final description = nullIfEmpty(line.descriptionController.text);
       final remarks = nullIfEmpty(line.remarksController.text);
       final basePayload = <String, dynamic>{
@@ -660,7 +667,7 @@ class SalesDeliveryManagementController extends GetxController {
             'item_name': nullIfEmpty(row.itemNameController.text),
             'uom_id': row.uomId,
             'description': nullIfEmpty(row.descriptionController.text),
-            'qty': double.tryParse(row.qtyController.text.trim()) ?? 0,
+            'qty': Validators.parseFlexibleNumber(row.qtyController.text) ?? 0,
             'remarks': nullIfEmpty(row.remarksController.text),
           },
         )
@@ -888,6 +895,13 @@ class SalesDeliveryManagementController extends GetxController {
     vehicleNoController.text = stringValue(data, 'vehicle_no');
     lrNoController.text = stringValue(data, 'lr_no');
     lrDateController.text = displayDate(nullableStringValue(data, 'lr_date'));
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff =
+        (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
+        0;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceLines(nextLines, notify: false);
@@ -933,6 +947,8 @@ class SalesDeliveryManagementController extends GetxController {
     vehicleNoController.clear();
     lrNoController.clear();
     lrDateController.clear();
+    roundOffController.clear();
+    applyRoundOff = false;
     notesController.clear();
     isActive = true;
     _replaceLines(const <SalesDeliveryLineDraft>[], notify: false);
@@ -1034,7 +1050,43 @@ class SalesDeliveryManagementController extends GetxController {
     documentSeriesId = deliveryDocumentSeriesIdFrom(data);
     final customerId = intValue(data, 'customer_party_id');
     customerPartyId = customerId == 0 ? null : customerId;
+    roundOffController.text =
+        stringValue(data, 'round_off_amount').trim().isEmpty
+        ? ''
+        : stringValue(data, 'round_off_amount');
+    applyRoundOff =
+        (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
+        0;
     notesController.text = stringValue(data, 'notes');
+  }
+
+  double deliverySubTotal() {
+    if (isReturnableDc) {
+      return 0;
+    }
+    return lines.fold<double>(0, (sum, line) {
+      final qty =
+          Validators.parseFlexibleNumber(line.deliveredQtyController.text) ?? 0;
+      final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      return sum + (qty * rate);
+    });
+  }
+
+  double deliveryRoundOff() {
+    if (!applyRoundOff) {
+      return 0;
+    }
+    return Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0;
+  }
+
+  double deliveryTotal() => deliverySubTotal() + deliveryRoundOff();
+
+  void _syncAutoRoundOff() {
+    Validators.syncAutoRoundOffController(
+      roundOffController,
+      enabled: applyRoundOff,
+      baseTotal: deliverySubTotal(),
+    );
   }
 
   void applyLinesFromOrderJson(Map<String, dynamic> data) {
@@ -1042,9 +1094,13 @@ class SalesDeliveryManagementController extends GetxController {
         .whereType<Map<String, dynamic>>()
         .map((line) {
           final ordered =
-              double.tryParse(line['ordered_qty']?.toString() ?? '') ?? 0;
+              Validators.parseFlexibleNumber(line['ordered_qty']?.toString()) ??
+              0;
           final delivered =
-              double.tryParse(line['delivered_qty']?.toString() ?? '') ?? 0;
+              Validators.parseFlexibleNumber(
+                line['delivered_qty']?.toString(),
+              ) ??
+              0;
           final pending = ordered - delivered;
           return SalesDeliveryLineDraft(
             salesOrderLineId: intValue(line, 'id'),
@@ -1065,7 +1121,8 @@ class SalesDeliveryManagementController extends GetxController {
         })
         .where((line) {
           final qty =
-              double.tryParse(line.deliveredQtyController.text.trim()) ?? 0;
+              Validators.parseFlexibleNumber(line.deliveredQtyController.text) ??
+              0;
           return qty > 0;
         })
         .toList(growable: true);
@@ -1093,7 +1150,8 @@ class SalesDeliveryManagementController extends GetxController {
                     row.itemNameController.text.trim().isNotEmpty,
               )
               .map((row) {
-                final qty = double.tryParse(row.qtyController.text.trim()) ?? 0;
+                final qty =
+                    Validators.parseFlexibleNumber(row.qtyController.text) ?? 0;
                 final item = itemById(row.itemId);
                 return DocumentPrintLineModel(
                   itemName:
@@ -1111,10 +1169,13 @@ class SalesDeliveryManagementController extends GetxController {
               .where((line) => line.itemId != null && line.itemId! > 0)
               .map((line) {
                 final qty =
-                    double.tryParse(line.deliveredQtyController.text.trim()) ??
+                    Validators.parseFlexibleNumber(
+                      line.deliveredQtyController.text,
+                    ) ??
                     0;
                 final rate =
-                    double.tryParse(line.rateController.text.trim()) ?? 0;
+                    Validators.parseFlexibleNumber(line.rateController.text) ??
+                    0;
                 final total = qty * rate;
                 subtotal += total;
                 final item = itemById(line.itemId);
@@ -1190,6 +1251,16 @@ class SalesDeliveryManagementController extends GetxController {
       update();
     }
     await refreshSalesChain();
+  }
+
+  void setApplyRoundOff(bool value) {
+    applyRoundOff = value;
+    if (value) {
+      _syncAutoRoundOff();
+    } else {
+      roundOffController.clear();
+    }
+    update();
   }
 
   void addLine() {
@@ -1347,6 +1418,7 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   void refreshState() {
+    _syncAutoRoundOff();
     refreshLineItemsSection();
   }
 
@@ -1359,7 +1431,8 @@ class SalesDeliveryManagementController extends GetxController {
             line.itemId == null ||
             line.uomId == null ||
             line.warehouseId == null ||
-            (double.tryParse(line.deliveredQtyController.text.trim()) ?? 0) <=
+            (Validators.parseFlexibleNumber(line.deliveredQtyController.text) ??
+                    0) <=
                 0,
       )) {
         formError =
@@ -1373,7 +1446,7 @@ class SalesDeliveryManagementController extends GetxController {
             (row.itemId == null &&
                 row.itemNameController.text.trim().isEmpty) ||
             row.uomId == null ||
-            (double.tryParse(row.qtyController.text.trim()) ?? 0) <= 0,
+            (Validators.parseFlexibleNumber(row.qtyController.text) ?? 0) <= 0,
       )) {
         formError =
             'Each returnable DC row needs an item or new item name, UOM, and quantity.';
@@ -1398,6 +1471,10 @@ class SalesDeliveryManagementController extends GetxController {
       'vehicle_no': nullIfEmpty(vehicleNoController.text),
       'lr_no': nullIfEmpty(lrNoController.text),
       'lr_date': nullIfEmpty(lrDateController.text),
+      'round_off_amount': applyRoundOff
+          ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
+                0)
+          : 0,
       'delivery_kind': deliveryKind,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
