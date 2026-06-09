@@ -999,7 +999,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                if (controller.status == 'posted')
+                if (controller.selectedItem != null &&
+                    !const {'draft', 'cancelled'}.contains(controller.status))
                   AppActionButton(
                     icon: Icons.print_outlined,
                     label: 'Print',
