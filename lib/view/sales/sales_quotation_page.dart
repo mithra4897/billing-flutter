@@ -88,6 +88,12 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
+          AdaptiveShellActionButton(
             onPressed: () {
               controller.resetForm();
               if (!Responsive.isDesktop(context)) {
@@ -108,6 +114,34 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    SalesQuotationManagementController controller,
+  ) {
+    return openSalesSearchStatusFilterPanel(
+      context: context,
+      title: 'Filter Sales Quotations',
+      searchController: controller.searchController,
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      searchHint: 'Search by number or customer',
+      status: controller.statusFilter,
+      statusItems: SalesQuotationManagementController.listStatusFilter,
+      onApply: (search, status, dateFrom, dateTo) {
+        controller.searchController.text = search;
+        controller.dateFromController.text = dateFrom;
+        controller.dateToController.text = dateTo;
+        controller.setStatusFilter(status);
+      },
+      onClear: () {
+        controller.searchController.clear();
+        controller.dateFromController.clear();
+        controller.dateToController.clear();
+        controller.setStatusFilter('');
       },
     );
   }
@@ -141,8 +175,9 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               ) ??
               0)
         : 0;
-    final totalStr = (controller.taxSummary().total + roundOff)
-        .toStringAsFixed(2);
+    final totalStr = (controller.taxSummary().total + roundOff).toStringAsFixed(
+      2,
+    );
     final hasExistingOrder =
         ((controller.salesChain?['orders'] as List?) ?? const []).isNotEmpty;
 
@@ -163,6 +198,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
         statusValue: controller.statusFilter,
         statusItems: SalesQuotationManagementController.listStatusFilter,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
+        showInlineFilters: false,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

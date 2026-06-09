@@ -20,12 +20,15 @@ class SalesInvoiceManagementController extends GetxController {
   final PartiesService partiesService = PartiesService();
   final AccountsService accountsService = AccountsService();
   final InventoryService inventoryService = InventoryService();
+  final TaxesService taxesService = TaxesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController invoiceNoController = TextEditingController();
   final TextEditingController invoiceDateController = TextEditingController();
@@ -58,6 +61,7 @@ class SalesInvoiceManagementController extends GetxController {
   final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
   final Map<int, List<PartyGstDetailModel>> customerGstDetailsById =
       <int, List<PartyGstDetailModel>>{};
+  List<GstRegistrationModel> gstRegistrations = const <GstRegistrationModel>[];
   List<AccountModel> accounts = const <AccountModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
   List<ItemPriceModel> itemPrices = const <ItemPriceModel>[];
@@ -314,46 +318,15 @@ class SalesInvoiceManagementController extends GetxController {
     return customerDetailsById[partyId] ?? customerListEntryById(partyId);
   }
 
-  String? normalizeStateCode(String? code) {
-    final trimmed = (code ?? '').trim().toUpperCase();
-    if (trimmed.isEmpty) {
-      return null;
-    }
-    if (RegExp(r'^\d+$').hasMatch(trimmed)) {
-      return trimmed.padLeft(2, '0');
-    }
-    return trimmed;
-  }
-
-  String? gstStateFromGstin(String? gstin) {
-    final normalized = (gstin ?? '').trim().toUpperCase();
-    if (normalized.length < 2) {
-      return null;
-    }
-    final prefix = normalized.substring(0, 2);
-    return RegExp(r'^\d{2}$').hasMatch(prefix) ? prefix : null;
-  }
-
   String? resolveCompanyStateCodeForSummary() {
-    final location = locations.cast<BusinessLocationModel?>().firstWhere(
-      (entry) => entry?.id == locationId,
-      orElse: () => null,
+    return resolveCompanyStateCodeForGstSummary(
+      gstRegistrations: gstRegistrations,
+      locations: locations,
+      companies: companies,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
     );
-    final fromLocation = normalizeStateCode(location?.stateCode);
-    if (fromLocation != null) {
-      return fromLocation;
-    }
-
-    final company = companies.cast<CompanyModel?>().firstWhere(
-      (entry) => entry?.id == companyId,
-      orElse: () => null,
-    );
-    final fromCompany = normalizeStateCode(company?.stateCode);
-    if (fromCompany != null) {
-      return fromCompany;
-    }
-
-    return gstStateFromGstin(company?.gstin);
   }
 
   PartyAddressModel? preferredCustomerAddress(PartyModel? customer) {
@@ -366,42 +339,15 @@ class SalesInvoiceManagementController extends GetxController {
 
   String? resolveCustomerStateCodeForSummary() {
     final customer = customerForTaxContext(customerPartyId);
-    final preferredAddress = preferredCustomerAddress(customer);
-    final fromAddress = normalizeStateCode(preferredAddress?.stateCode);
-    if (fromAddress != null) {
-      return fromAddress;
-    }
-
-    final partyId = customerPartyId;
-    if (partyId != null) {
-      final gstDetails =
-          customerGstDetailsById[partyId] ?? const <PartyGstDetailModel>[];
-      final activeDetails = gstDetails
-          .where((detail) {
-            final data = detail.toJson();
-            return data['is_active'] != false && data['is_active'] != 0;
-          })
-          .toList(growable: false);
-      if (activeDetails.isNotEmpty) {
-        final preferred = activeDetails.firstWhere((detail) {
-          final data = detail.toJson();
-          return data['is_default'] == true || data['is_default'] == 1;
-        }, orElse: () => activeDetails.first);
-        final data = preferred.toJson();
-        final fromStateCode = normalizeStateCode(
-          data['state_code']?.toString(),
-        );
-        if (fromStateCode != null) {
-          return fromStateCode;
-        }
-        final fromGstin = gstStateFromGstin(data['gstin']?.toString());
-        if (fromGstin != null) {
-          return fromGstin;
-        }
-      }
-    }
-
-    return null;
+    return resolvePartyStateCodeForGstSummary(
+      party: customer,
+      gstDetails:
+          customerGstDetailsById[customerPartyId] ??
+          const <PartyGstDetailModel>[],
+      shippingAddressId: shippingAddressId,
+      billingAddressId: billingAddressId,
+      preferredAddressType: 'shipping',
+    );
   }
 
   String resolveCustomerPrintGstin(Map<String, dynamic> customerData) {
@@ -413,12 +359,10 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   bool? isInterStateForSummary() {
-    final companyState = resolveCompanyStateCodeForSummary();
-    final customerState = resolveCustomerStateCodeForSummary();
-    if (companyState == null || customerState == null) {
-      return null;
-    }
-    return companyState != customerState;
+    return resolveIsInterStateForGstSummary(
+      companyStateCode: resolveCompanyStateCodeForSummary(),
+      counterpartyStateCode: resolveCustomerStateCodeForSummary(),
+    );
   }
 
   Future<void> ensureCustomerTaxContext(int? partyId) async {
@@ -777,11 +721,6 @@ class SalesInvoiceManagementController extends GetxController {
       if (!mounted) {
         return;
       }
-      final hasSelectedSerial = cachedSerials.any(
-        (serial) =>
-            int.tryParse(serial['serial_id']?.toString() ?? '') ==
-            line.serialId,
-      );
       if (line.serialId == null &&
           cachedSerials.length == 1 &&
           lineSerialNumbers(line).isEmpty) {
@@ -826,11 +765,6 @@ class SalesInvoiceManagementController extends GetxController {
                 serial,
         }..remove('');
         reconcileLineSerials(line, serials);
-        final hasSelectedSerial = serials.any(
-          (serial) =>
-              int.tryParse(serial['serial_id']?.toString() ?? '') ==
-              line.serialId,
-        );
         if (line.itemId == itemId &&
             line.warehouseId == warehouseId &&
             line.serialId == null &&
@@ -995,7 +929,9 @@ class SalesInvoiceManagementController extends GetxController {
       orElse: () => null,
     );
     final pend =
-        Validators.parseFlexibleNumber(line['pending_invoice_qty']?.toString()) ??
+        Validators.parseFlexibleNumber(
+          line['pending_invoice_qty']?.toString(),
+        ) ??
         0;
     final lineNo = intValue(line, 'line_no') ?? 0;
     final name = (item?.itemName ?? '').trim().isNotEmpty
@@ -1519,7 +1455,9 @@ class SalesInvoiceManagementController extends GetxController {
       line.discountController.text = stringValue(dl, 'discount_percent');
       line.remarksController.text = stringValue(dl, 'remarks');
       final pend =
-          Validators.parseFlexibleNumber(dl['pending_invoice_qty']?.toString()) ??
+          Validators.parseFlexibleNumber(
+            dl['pending_invoice_qty']?.toString(),
+          ) ??
           0;
       final serialNo = stringValue(dl, 'serial_no').trim();
       if (isSerialManagedItem(line.itemId)) {
@@ -1569,7 +1507,9 @@ class SalesInvoiceManagementController extends GetxController {
     final drafts = <InvoiceLineDraft>[];
     for (final dl in cache) {
       final pend =
-          Validators.parseFlexibleNumber(dl['pending_invoice_qty']?.toString()) ??
+          Validators.parseFlexibleNumber(
+            dl['pending_invoice_qty']?.toString(),
+          ) ??
           0;
       if (pend <= 0) {
         continue;
@@ -1620,6 +1560,7 @@ class SalesInvoiceManagementController extends GetxController {
 
   bool get mounted => !isClosed;
 
+  // ignore: non_constant_identifier_names
   void State(VoidCallback fn) {
     if (isClosed) {
       return;
@@ -1660,6 +1601,8 @@ class SalesInvoiceManagementController extends GetxController {
     WorkingContextService.version.removeListener(handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     searchController
       ..removeListener(applyFilters)
       ..dispose();
@@ -1783,6 +1726,9 @@ class SalesInvoiceManagementController extends GetxController {
         partiesService.parties(
           filters: const {'per_page': 400, 'sort_by': 'party_name'},
         ),
+        taxesService.gstRegistrationsAll(
+          filters: const {'is_active': 1, 'sort_by': 'id'},
+        ),
       ]);
 
       final contextSelection = await WorkingContextService.instance
@@ -1899,6 +1845,9 @@ class SalesInvoiceManagementController extends GetxController {
               (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
               const <PartyTypeModel>[],
         );
+        gstRegistrations =
+            (responses[8] as ApiResponse<List<GstRegistrationModel>>).data ??
+            const <GstRegistrationModel>[];
         contextCompanyId = contextSelection.companyId;
         contextBranchId = contextSelection.branchId;
         contextLocationId = contextSelection.locationId;
@@ -2209,7 +2158,13 @@ class SalesInvoiceManagementController extends GetxController {
                 status,
                 cust,
               ].join(' ').toLowerCase().contains(search);
-          return statusOk && searchOk;
+          return statusOk &&
+              searchOk &&
+              matchesDateValueRange(
+                item.invoiceDate,
+                fromValue: dateFromController.text,
+                toValue: dateToController.text,
+              );
         })
         .toList(growable: false);
     if (!notify) {
@@ -2314,7 +2269,8 @@ class SalesInvoiceManagementController extends GetxController {
     if (!applyRoundOff) {
       return;
     }
-    final roundOff = Validators.parseFlexibleNumber(roundOffController.text) ?? 0;
+    final roundOff =
+        Validators.parseFlexibleNumber(roundOffController.text) ?? 0;
     final adjustment =
         Validators.parseFlexibleNumber(adjustmentAmountController.text) ?? 0;
     final baseTotal = invoiceTaxSummary().total - adjustment - roundOff;

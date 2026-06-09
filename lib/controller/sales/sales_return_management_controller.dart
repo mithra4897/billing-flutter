@@ -196,6 +196,8 @@ class SalesReturnManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController returnNoController = TextEditingController();
   final TextEditingController returnDateController = TextEditingController();
@@ -248,6 +250,8 @@ class SalesReturnManagementController extends GetxController {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     searchController
       ..removeListener(_applyFilters)
       ..dispose();
@@ -493,21 +497,30 @@ class SalesReturnManagementController extends GetxController {
   }
 
   void _applyFilters({bool notify = true}) {
-    filteredItems = filterBySearchAndStatus(
-      items,
-      query: searchController.text,
-      status: statusFilter,
-      statusOf: (item) => stringValue(item.toJson(), 'return_status'),
-      searchFieldsOf: (item) {
-        final data = item.toJson();
-        return <String>[
-          stringValue(data, 'return_no'),
-          stringValue(data, 'return_status'),
-          stringValue(data, 'reason'),
-          quotationCustomerLabel(data),
-        ];
-      },
-    );
+    filteredItems =
+        filterBySearchAndStatus(
+              items,
+              query: searchController.text,
+              status: statusFilter,
+              statusOf: (item) => stringValue(item.toJson(), 'return_status'),
+              searchFieldsOf: (item) {
+                final data = item.toJson();
+                return <String>[
+                  stringValue(data, 'return_no'),
+                  stringValue(data, 'return_status'),
+                  stringValue(data, 'reason'),
+                  quotationCustomerLabel(data),
+                ];
+              },
+            )
+            .where(
+              (item) => matchesDateValueRange(
+                nullableStringValue(item.toJson(), 'return_date'),
+                fromValue: dateFromController.text,
+                toValue: dateToController.text,
+              ),
+            )
+            .toList(growable: false);
     if (notify) {
       update();
     }

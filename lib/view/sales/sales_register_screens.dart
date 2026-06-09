@@ -6,6 +6,7 @@ typedef SalesRegisterMatcher<T> =
     bool Function(T row, String query, String status);
 typedef SalesRegisterDashboardMatcher<T> =
     bool Function(T row, String dashboardFilter);
+typedef SalesRegisterDateValue<T> = String? Function(T row);
 
 void _openSalesShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -29,15 +30,19 @@ class SalesRegisterController<T> extends GetxController {
     required this.loader,
     required this.matches,
     required this.dashboardMatches,
+    required this.dateValueOf,
   });
 
   final SalesRegisterLoader<T> loader;
   final SalesRegisterMatcher<T> matches;
   final SalesRegisterDashboardMatcher<T> dashboardMatches;
+  final SalesRegisterDateValue<T> dateValueOf;
   final SalesService _service = SalesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
 
   bool loading = true;
   String? error;
@@ -52,6 +57,11 @@ class SalesRegisterController<T> extends GetxController {
         .where(
           (row) =>
               matches(row, query, status) &&
+              matchesDateValueRange(
+                dateValueOf(row),
+                fromValue: dateFromController.text,
+                toValue: dateToController.text,
+              ) &&
               dashboardMatches(row, dashboardFilter),
         )
         .toList(growable: false);
@@ -76,6 +86,8 @@ class SalesRegisterController<T> extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     searchController
       ..removeListener(update)
       ..dispose();
@@ -91,6 +103,8 @@ class SalesRegisterController<T> extends GetxController {
     dashboardFilter = value.trim();
     status = statusOverride;
     searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
     update();
   }
 
@@ -124,6 +138,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.loader,
     required this.matches,
     required this.dashboardMatches,
+    required this.dateValueOf,
     required this.emptyMessage,
     required this.newRoute,
     required this.newLabel,
@@ -133,6 +148,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
     required this.rowRoute,
     this.queryParameters = const <String, String>{},
     this.dashboardStatusForFilter,
+    this.extraActionsBuilder,
   });
 
   final String controllerName;
@@ -141,6 +157,7 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   final SalesRegisterLoader<T> loader;
   final SalesRegisterMatcher<T> matches;
   final SalesRegisterDashboardMatcher<T> dashboardMatches;
+  final SalesRegisterDateValue<T> dateValueOf;
   final String emptyMessage;
   final String newRoute;
   final String newLabel;
@@ -150,6 +167,11 @@ class _SalesRegisterShell<T> extends StatefulWidget {
   final String Function(T row) rowRoute;
   final Map<String, String> queryParameters;
   final String Function(String dashboardFilter)? dashboardStatusForFilter;
+  final List<Widget> Function(
+    BuildContext context,
+    SalesRegisterController<T> controller,
+  )?
+  extraActionsBuilder;
 
   @override
   State<_SalesRegisterShell<T>> createState() => _SalesRegisterShellState<T>();
@@ -181,6 +203,7 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           loader: widget.loader,
           matches: widget.matches,
           dashboardMatches: widget.dashboardMatches,
+          dateValueOf: widget.dateValueOf,
         ),
         tag: _controllerTag,
       );
@@ -219,6 +242,9 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
     return GetBuilder<SalesRegisterController<T>>(
       tag: _controllerTag,
       builder: (controller) {
+        final extraActions =
+            widget.extraActionsBuilder?.call(context, controller) ??
+            const <Widget>[];
         return PurchaseRegisterPage<T>(
           title: widget.title,
           embedded: widget.embedded,
@@ -227,24 +253,52 @@ class _SalesRegisterShellState<T> extends State<_SalesRegisterShell<T>> {
           onRetry: controller.load,
           emptyMessage: widget.emptyMessage,
           actions: [
+            ...extraActions,
+            AdaptiveShellActionButton(
+              onPressed: () => _openFilterPanel(context, controller),
+              icon: Icons.filter_alt_outlined,
+              label: 'Filter',
+              filled: false,
+            ),
             AdaptiveShellActionButton(
               onPressed: () => _openSalesShellRoute(context, widget.newRoute),
               icon: Icons.add_outlined,
               label: widget.newLabel,
             ),
           ],
-          filters: _SalesRegisterFilters(
-            searchController: controller.searchController,
-            searchHint: widget.searchHint,
-            status: controller.status,
-            statusItems: widget.statusItems,
-            onStatusChanged: (value) => controller.setStatus(value ?? ''),
-          ),
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) =>
               _openSalesShellRoute(context, widget.rowRoute(row)),
         );
+      },
+    );
+  }
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    SalesRegisterController<T> controller,
+  ) {
+    return openSalesSearchStatusFilterPanel(
+      context: context,
+      title: 'Filter ${widget.title}',
+      searchController: controller.searchController,
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      searchHint: widget.searchHint,
+      status: controller.status,
+      statusItems: widget.statusItems,
+      onApply: (search, status, dateFrom, dateTo) {
+        controller.searchController.text = search;
+        controller.dateFromController.text = dateFrom;
+        controller.dateToController.text = dateTo;
+        controller.setStatus(status);
+      },
+      onClear: () {
+        controller.searchController.clear();
+        controller.dateFromController.clear();
+        controller.dateToController.clear();
+        controller.setStatus('');
       },
     );
   }
@@ -309,6 +363,7 @@ class SalesQuotationRegisterPage extends StatelessWidget {
             return true;
         }
       },
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'quotation_date'),
       emptyMessage: 'No quotations yet. Create a quote for your customer.',
       newRoute: '/sales/quotations/new',
       newLabel: 'New quotation',
@@ -431,6 +486,7 @@ class SalesOrderRegisterPage extends StatelessWidget {
             return true;
         }
       },
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'order_date'),
       emptyMessage:
           'No sales orders yet. Create an order from a quote or directly.',
       newRoute: '/sales/orders/new',
@@ -531,11 +587,15 @@ class SalesInvoiceRegisterPage extends StatelessWidget {
             return true;
         }
       },
+      dateValueOf: (row) => row.invoiceDate,
       emptyMessage: 'No invoices yet. Create an invoice for your customer.',
       newRoute: '/sales/invoices/new',
       newLabel: 'New invoice',
       searchHint: 'Search number or customer',
       statusItems: _statusItems,
+      extraActionsBuilder: (context, controller) => <Widget>[
+        SalesInvoiceExportButton(invoices: controller.filteredRows),
+      ],
       dashboardStatusForFilter: (dashboardFilter) {
         switch (dashboardFilter.trim()) {
           case 'open':
@@ -612,6 +672,7 @@ class SalesDeliveryRegisterPage extends StatelessWidget {
             (query.isEmpty || searchText.contains(query));
       },
       dashboardMatches: (row, dashboardFilter) => true,
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'delivery_date'),
       emptyMessage: 'No deliveries yet.',
       newRoute: '/sales/deliveries/new',
       newLabel: 'New delivery',
@@ -692,6 +753,7 @@ class SalesReceiptRegisterPage extends StatelessWidget {
             return true;
         }
       },
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
       emptyMessage: 'No receipts yet.',
       newRoute: '/sales/receipts/new',
       newLabel: 'New receipt',
@@ -767,6 +829,7 @@ class SalesReturnRegisterPage extends StatelessWidget {
             (query.isEmpty || searchText.contains(query));
       },
       dashboardMatches: (row, dashboardFilter) => true,
+      dateValueOf: (row) => nullableStringValue(row.toJson(), 'return_date'),
       emptyMessage: 'No returns yet.',
       newRoute: '/sales/returns/new',
       newLabel: 'New return',
@@ -793,70 +856,6 @@ class SalesReturnRegisterPage extends StatelessWidget {
         ),
       ],
       rowRoute: (row) => '/sales/returns/${intValue(row.toJson(), 'id')}',
-    );
-  }
-}
-
-class _SalesRegisterFilters extends StatelessWidget {
-  const _SalesRegisterFilters({
-    required this.searchController,
-    required this.searchHint,
-    required this.status,
-    required this.statusItems,
-    required this.onStatusChanged,
-  });
-
-  final TextEditingController searchController;
-  final String searchHint;
-  final String status;
-  final List<AppDropdownItem<String>> statusItems;
-  final ValueChanged<String?> onStatusChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppUiConstants.spacingMd),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 720;
-          final children = <Widget>[
-            AppFormTextField(
-              labelText: searchHint,
-              controller: searchController,
-              prefixIcon: const Icon(Icons.search_outlined),
-            ),
-            AppDropdownField<String>.fromMapped(
-              labelText: 'Status',
-              mappedItems: statusItems,
-              initialValue: status,
-              onChanged: onStatusChanged,
-            ),
-          ];
-          if (compact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children
-                  .map(
-                    (child) => Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: AppUiConstants.spacingSm,
-                      ),
-                      child: child,
-                    ),
-                  )
-                  .toList(growable: false),
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: children[0]),
-              const SizedBox(width: AppUiConstants.spacingSm),
-              Expanded(child: children[1]),
-            ],
-          );
-        },
-      ),
     );
   }
 }

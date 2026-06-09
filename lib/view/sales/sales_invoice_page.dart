@@ -73,6 +73,12 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
+          AdaptiveShellActionButton(
             onPressed: () {
               controller.resetForm();
               if (!Responsive.isDesktop(context)) {
@@ -93,6 +99,36 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    SalesInvoiceManagementController controller,
+  ) {
+    return openSalesSearchStatusFilterPanel(
+      context: context,
+      title: 'Filter Sales Invoices',
+      searchController: controller.searchController,
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      searchHint: 'Search by number or customer',
+      status: controller.statusFilter,
+      statusItems: SalesInvoiceManagementController.listStatusFilter,
+      onApply: (search, status, dateFrom, dateTo) {
+        controller.searchController.text = search;
+        controller.dateFromController.text = dateFrom;
+        controller.dateToController.text = dateTo;
+        controller.statusFilter = status;
+        controller.applyFilters();
+      },
+      onClear: () {
+        controller.searchController.clear();
+        controller.dateFromController.clear();
+        controller.dateToController.clear();
+        controller.statusFilter = '';
+        controller.applyFilters();
       },
     );
   }
@@ -165,6 +201,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           controller.statusFilter = value ?? '';
           controller.applyFilters();
         },
+        showInlineFilters: false,
         itemBuilder: (item, selected) {
           final data = controller.rowJson(item);
           final st = item.invoiceStatus ?? '';

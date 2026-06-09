@@ -66,6 +66,12 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
+          AdaptiveShellActionButton(
             onPressed: () {
               controller.resetForm();
               if (!Responsive.isDesktop(context)) {
@@ -86,6 +92,34 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    SalesReceiptManagementController controller,
+  ) {
+    return openSalesSearchStatusFilterPanel(
+      context: context,
+      title: 'Filter Sales Receipts',
+      searchController: controller.searchController,
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      searchHint: 'Search receipts',
+      status: controller.statusFilter,
+      statusItems: SalesReceiptManagementController.statusItems,
+      onApply: (search, status, dateFrom, dateTo) {
+        controller.searchController.text = search;
+        controller.dateFromController.text = dateFrom;
+        controller.dateToController.text = dateTo;
+        controller.setStatusFilter(status);
+      },
+      onClear: () {
+        controller.searchController.clear();
+        controller.dateFromController.clear();
+        controller.dateToController.clear();
+        controller.setStatusFilter('');
       },
     );
   }
@@ -130,6 +164,7 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
         statusValue: controller.statusFilter,
         statusItems: SalesReceiptManagementController.statusItems,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
+        showInlineFilters: false,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

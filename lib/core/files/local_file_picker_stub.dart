@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'local_file_picker.dart';
 
@@ -38,6 +39,18 @@ Future<bool> saveTextFile({
   required String text,
   String mimeType = 'application/json',
 }) async {
+  return saveBytesFile(
+    suggestedName: suggestedName,
+    bytes: Uint8List.fromList(text.codeUnits),
+    mimeType: mimeType,
+  );
+}
+
+Future<bool> saveBytesFile({
+  required String suggestedName,
+  required Uint8List bytes,
+  String mimeType = 'application/octet-stream',
+}) async {
   final path = await FilePicker.platform.saveFile(
     dialogTitle: 'Save file',
     fileName: suggestedName,
@@ -49,7 +62,7 @@ Future<bool> saveTextFile({
   }
 
   final file = File(path);
-  await file.writeAsString(text);
+  await file.writeAsBytes(bytes, flush: true);
   return true;
 }
 
@@ -57,6 +70,11 @@ List<String>? _extensionsForMimeType(String mimeType, String suggestedName) {
   final lowerName = suggestedName.toLowerCase();
   if (mimeType.contains('json') || lowerName.endsWith('.json')) {
     return const ['json'];
+  }
+  if (mimeType.contains('excel') ||
+      lowerName.endsWith('.xls') ||
+      lowerName.endsWith('.xlsx')) {
+    return const ['xls'];
   }
   if (mimeType.contains('text')) {
     return const ['txt'];

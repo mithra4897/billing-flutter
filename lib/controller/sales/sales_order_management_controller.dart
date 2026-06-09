@@ -111,12 +111,15 @@ class SalesOrderManagementController extends GetxController {
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
+  final TaxesService _taxesService = TaxesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController orderNoController = TextEditingController();
   final TextEditingController orderDateController = TextEditingController();
@@ -140,6 +143,7 @@ class SalesOrderManagementController extends GetxController {
   List<SalesOrderModel> items = const <SalesOrderModel>[];
   List<SalesOrderModel> filteredItems = const <SalesOrderModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
+  List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<SalesQuotationModel> quotationsAll = const <SalesQuotationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
@@ -147,6 +151,7 @@ class SalesOrderManagementController extends GetxController {
   final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
   final Map<int, List<PartyGstDetailModel>> customerGstDetailsById =
       <int, List<PartyGstDetailModel>>{};
+  List<GstRegistrationModel> gstRegistrations = const <GstRegistrationModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
   final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
   List<ItemPriceModel> itemPrices = const <ItemPriceModel>[];
@@ -186,6 +191,8 @@ class SalesOrderManagementController extends GetxController {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     searchController
       ..removeListener(_applyFilters)
       ..dispose();
@@ -491,6 +498,9 @@ class SalesOrderManagementController extends GetxController {
         _salesService.quotationsAll(
           filters: const {'sort_by': 'quotation_date'},
         ),
+        _taxesService.gstRegistrationsAll(
+          filters: const {'is_active': 1, 'sort_by': 'id'},
+        ),
       ]);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -522,6 +532,9 @@ class SalesOrderManagementController extends GetxController {
       companies =
           (responses[1] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
+      locations =
+          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+          const <BusinessLocationModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
@@ -585,6 +598,9 @@ class SalesOrderManagementController extends GetxController {
       quotationsAll =
           (responses[14] as ApiResponse<List<SalesQuotationModel>>).data ??
           const <SalesQuotationModel>[];
+      gstRegistrations =
+          (responses[15] as ApiResponse<List<GstRegistrationModel>>).data ??
+          const <GstRegistrationModel>[];
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -775,20 +791,31 @@ class SalesOrderManagementController extends GetxController {
   }
 
   void _applyFilters({bool notify = true}) {
-    filteredItems = filterBySearchAndStatus(
-      items,
-      query: searchController.text,
-      status: statusFilter,
-      statusOf: (item) => stringValue(item.toJson(), 'order_status'),
-      searchFieldsOf: (item) {
-        final data = item.toJson();
-        return <String>[
-          stringValue(data, 'order_no'),
-          stringValue(data, 'order_status'),
-          quotationCustomerLabel(data),
-        ];
-      },
-    ).where(_matchesDashboardFilter).toList(growable: false);
+    filteredItems =
+        filterBySearchAndStatus(
+              items,
+              query: searchController.text,
+              status: statusFilter,
+              statusOf: (item) => stringValue(item.toJson(), 'order_status'),
+              searchFieldsOf: (item) {
+                final data = item.toJson();
+                return <String>[
+                  stringValue(data, 'order_no'),
+                  stringValue(data, 'order_status'),
+                  quotationCustomerLabel(data),
+                ];
+              },
+            )
+            .where(
+              (item) =>
+                  matchesDateValueRange(
+                    nullableStringValue(item.toJson(), 'order_date'),
+                    fromValue: dateFromController.text,
+                    toValue: dateToController.text,
+                  ) &&
+                  _matchesDashboardFilter(item),
+            )
+            .toList(growable: false);
     if (notify) {
       update();
     }
@@ -835,6 +862,8 @@ class SalesOrderManagementController extends GetxController {
       statusFilter = '';
     }
     searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
     _applyFilters();
   }
 
@@ -906,6 +935,34 @@ class SalesOrderManagementController extends GetxController {
     return currency.isEmpty ? 'INR' : currency;
   }
 
+  String? resolveCompanyStateCodeForSummary() {
+    return resolveCompanyStateCodeForGstSummary(
+      gstRegistrations: gstRegistrations,
+      locations: locations,
+      companies: companies,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+    );
+  }
+
+  String? resolveCustomerStateCodeForSummary() {
+    final customer = customerForPrintContext(customerPartyId);
+    return resolvePartyStateCodeForGstSummary(
+      party: customer,
+      gstDetails:
+          customerGstDetailsById[customerPartyId] ??
+          const <PartyGstDetailModel>[],
+    );
+  }
+
+  bool? isInterStateForSummary() {
+    return resolveIsInterStateForGstSummary(
+      companyStateCode: resolveCompanyStateCodeForSummary(),
+      counterpartyStateCode: resolveCustomerStateCodeForSummary(),
+    );
+  }
+
   SalesLineTaxBreakdown taxBreakdownForLine(OrderLineDraft line) {
     return computeSalesLineTaxBreakdown(
       qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
@@ -913,6 +970,7 @@ class SalesOrderManagementController extends GetxController {
       discountPercent:
           Validators.parseFlexibleNumber(line.discountController.text) ?? 0,
       taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
+      isInterState: isInterStateForSummary(),
     );
   }
 

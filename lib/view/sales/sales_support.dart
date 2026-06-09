@@ -58,6 +58,212 @@ String quotationCustomerLabel(Map<String, dynamic> data) {
   return stringValue(data, 'customer_name');
 }
 
+Future<void> openSalesSearchStatusFilterPanel({
+  required BuildContext context,
+  required String title,
+  required TextEditingController searchController,
+  required TextEditingController dateFromController,
+  required TextEditingController dateToController,
+  required String searchHint,
+  required String status,
+  required List<AppDropdownItem<String>> statusItems,
+  required void Function(
+    String search,
+    String status,
+    String dateFrom,
+    String dateTo,
+  )
+  onApply,
+  required VoidCallback onClear,
+}) async {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final horizontalPadding = screenWidth < 600 ? 12.0 : 24.0;
+  final dialogPadding = screenWidth < 600 ? 16.0 : AppUiConstants.cardPadding;
+  final dialogSearchController = TextEditingController(
+    text: searchController.text,
+  );
+  final dialogDateFromController = TextEditingController(
+    text: dateFromController.text,
+  );
+  final dialogDateToController = TextEditingController(
+    text: dateToController.text,
+  );
+  var tempStatus = status;
+
+  await showDialog<bool>(
+    context: context,
+    barrierDismissible: true,
+    builder: (dialogContext) {
+      final appTheme = Theme.of(dialogContext).extension<AppThemeExtension>()!;
+      return StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return Dialog(
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: 20,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppUiConstants.cardRadius),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  dialogPadding,
+                  dialogPadding,
+                  dialogPadding,
+                  MediaQuery.of(dialogContext).viewInsets.bottom +
+                      dialogPadding,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: Theme.of(dialogContext).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          tooltip: 'Close',
+                          icon: const Icon(Icons.close),
+                          color: appTheme.mutedText,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _SalesSearchStatusFilters(
+                      searchController: dialogSearchController,
+                      dateFromController: dialogDateFromController,
+                      dateToController: dialogDateToController,
+                      searchHint: searchHint,
+                      status: tempStatus,
+                      statusItems: statusItems,
+                      onStatusChanged: (value) {
+                        setDialogState(() {
+                          tempStatus = value ?? '';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () {
+                            onApply(
+                              dialogSearchController.text,
+                              tempStatus,
+                              dialogDateFromController.text,
+                              dialogDateToController.text,
+                            );
+                            Navigator.of(dialogContext).pop(true);
+                          },
+                          icon: const Icon(Icons.search),
+                          label: const Text('Apply Filters'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            onClear();
+                            Navigator.of(dialogContext).pop(true);
+                          },
+                          icon: const Icon(Icons.clear),
+                          label: const Text('Clear'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+
+  dialogSearchController.dispose();
+  dialogDateFromController.dispose();
+  dialogDateToController.dispose();
+}
+
+class _SalesSearchStatusFilters extends StatelessWidget {
+  const _SalesSearchStatusFilters({
+    required this.searchController,
+    required this.dateFromController,
+    required this.dateToController,
+    required this.searchHint,
+    required this.status,
+    required this.statusItems,
+    required this.onStatusChanged,
+  });
+
+  final TextEditingController searchController;
+  final TextEditingController dateFromController;
+  final TextEditingController dateToController;
+  final String searchHint;
+  final String status;
+  final List<AppDropdownItem<String>> statusItems;
+  final ValueChanged<String?> onStatusChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 720;
+        final children = <Widget>[
+          AppFormTextField(
+            labelText: searchHint,
+            controller: searchController,
+            prefixIcon: const Icon(Icons.search_outlined),
+          ),
+          AppDateField(labelText: 'From Date', controller: dateFromController),
+          AppDateField(labelText: 'To Date', controller: dateToController),
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Status',
+            mappedItems: statusItems,
+            initialValue: status,
+            onChanged: onStatusChanged,
+          ),
+        ];
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children
+                .map(
+                  (child) => Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppUiConstants.spacingSm,
+                    ),
+                    child: child,
+                  ),
+                )
+                .toList(growable: false),
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 3, child: children[0]),
+            const SizedBox(width: AppUiConstants.spacingSm),
+            Expanded(child: children[1]),
+            const SizedBox(width: AppUiConstants.spacingSm),
+            Expanded(child: children[2]),
+            const SizedBox(width: AppUiConstants.spacingSm),
+            Expanded(child: children[3]),
+          ],
+        );
+      },
+    );
+  }
+}
+
 PartyAddressModel? preferredPartyAddress(
   PartyModel? party, {
   int? shippingAddressId,
@@ -115,6 +321,187 @@ PartyAddressModel? preferredPartyAddress(
   }
 
   return null;
+}
+
+String? normalizeGstStateCode(String? code) {
+  final normalized = (code ?? '').trim().toUpperCase();
+  if (normalized.isEmpty) {
+    return null;
+  }
+  final digitsOnly = normalized.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digitsOnly.isNotEmpty && digitsOnly.length <= 2) {
+    return digitsOnly.padLeft(2, '0');
+  }
+  return normalized;
+}
+
+String? gstStateCodeFromGstin(String? gstin) {
+  final normalized = (gstin ?? '').trim().toUpperCase();
+  if (normalized.length < 2) {
+    return null;
+  }
+  final prefix = normalized.substring(0, 2);
+  return RegExp(r'^\d{2}$').hasMatch(prefix) ? prefix : null;
+}
+
+String? resolveCompanyStateCodeForGstSummary({
+  required List<GstRegistrationModel> gstRegistrations,
+  required List<BusinessLocationModel> locations,
+  required List<CompanyModel> companies,
+  required int? companyId,
+  required int? branchId,
+  required int? locationId,
+}) {
+  final matchingRegistrations = gstRegistrations
+      .where(
+        (entry) =>
+            entry.isActive &&
+            (companyId == null || entry.companyId == companyId),
+      )
+      .toList(growable: false);
+  if (matchingRegistrations.isNotEmpty) {
+    matchingRegistrations.sort((a, b) {
+      int score(GstRegistrationModel entry) {
+        var value = 0;
+        if (locationId != null && entry.locationId == locationId) {
+          value += 4;
+        }
+        if (branchId != null && entry.branchId == branchId) {
+          value += 2;
+        }
+        if (entry.isDefault) {
+          value += 1;
+        }
+        return value;
+      }
+
+      final byScore = score(b).compareTo(score(a));
+      if (byScore != 0) {
+        return byScore;
+      }
+      return (a.id ?? 0).compareTo(b.id ?? 0);
+    });
+    final fromRegistration = gstStateCodeFromGstin(
+      matchingRegistrations.first.gstin,
+    );
+    if (fromRegistration != null) {
+      return fromRegistration;
+    }
+  }
+
+  final location = locations.cast<BusinessLocationModel?>().firstWhere(
+    (entry) => entry?.id == locationId,
+    orElse: () => null,
+  );
+  final fromLocation = normalizeGstStateCode(location?.stateCode);
+  if (fromLocation != null) {
+    return fromLocation;
+  }
+
+  final company = companies.cast<CompanyModel?>().firstWhere(
+    (entry) => entry?.id == companyId,
+    orElse: () => null,
+  );
+  final fromCompany = normalizeGstStateCode(company?.stateCode);
+  if (fromCompany != null) {
+    return fromCompany;
+  }
+
+  return gstStateCodeFromGstin(company?.gstin);
+}
+
+String? resolvePartyStateCodeForGstSummary({
+  required PartyModel? party,
+  List<PartyGstDetailModel> gstDetails = const <PartyGstDetailModel>[],
+  int? shippingAddressId,
+  int? billingAddressId,
+  String preferredAddressType = 'shipping',
+}) {
+  if (party == null) {
+    return null;
+  }
+
+  PartyAddressModel? byId(int? id) {
+    if (id == null) {
+      return null;
+    }
+    return party.addresses.cast<PartyAddressModel?>().firstWhere(
+      (address) => address?.id == id,
+      orElse: () => null,
+    );
+  }
+
+  final normalizedPreferredType = preferredAddressType.trim().toLowerCase();
+  final preferredAddress = normalizedPreferredType == 'billing'
+      ? (byId(billingAddressId) ?? byId(shippingAddressId))
+      : (byId(shippingAddressId) ?? byId(billingAddressId));
+  final fromPreferredAddress = normalizeGstStateCode(
+    preferredAddress?.stateCode,
+  );
+  if (fromPreferredAddress != null) {
+    return fromPreferredAddress;
+  }
+
+  final typedAddresses = party.addresses.where(
+    (address) =>
+        address.isActive &&
+        (address.addressType ?? '').trim().toLowerCase() ==
+            normalizedPreferredType,
+  );
+  if (typedAddresses.isNotEmpty) {
+    final preferredTypedAddress = typedAddresses.firstWhere(
+      (address) => address.isDefault,
+      orElse: () => typedAddresses.first,
+    );
+    final fromTypedAddress = normalizeGstStateCode(
+      preferredTypedAddress.stateCode,
+    );
+    if (fromTypedAddress != null) {
+      return fromTypedAddress;
+    }
+  }
+
+  final activeAddresses = party.addresses.where((address) => address.isActive);
+  if (activeAddresses.isNotEmpty) {
+    final activeAddress = activeAddresses.firstWhere(
+      (address) => address.isDefault,
+      orElse: () => activeAddresses.first,
+    );
+    final fromActiveAddress = normalizeGstStateCode(activeAddress.stateCode);
+    if (fromActiveAddress != null) {
+      return fromActiveAddress;
+    }
+  }
+
+  final activeGstDetails = gstDetails
+      .where((detail) => detail.isActive != false)
+      .toList(growable: false);
+  if (activeGstDetails.isNotEmpty) {
+    final preferredGstDetail = activeGstDetails.firstWhere(
+      (detail) => detail.isDefault == true,
+      orElse: () => activeGstDetails.first,
+    );
+    final fromStateCode = normalizeGstStateCode(preferredGstDetail.stateCode);
+    if (fromStateCode != null) {
+      return fromStateCode;
+    }
+    final fromGstin = gstStateCodeFromGstin(preferredGstDetail.gstin);
+    if (fromGstin != null) {
+      return fromGstin;
+    }
+  }
+
+  return null;
+}
+
+bool? resolveIsInterStateForGstSummary({
+  required String? companyStateCode,
+  required String? counterpartyStateCode,
+}) {
+  if (companyStateCode == null || counterpartyStateCode == null) {
+    return null;
+  }
+  return companyStateCode != counterpartyStateCode;
 }
 
 String formatPartyAddress(PartyAddressModel? address, {String fallback = ''}) {

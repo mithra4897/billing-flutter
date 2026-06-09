@@ -88,6 +88,12 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
+          AdaptiveShellActionButton(
             onPressed: () {
               controller.resetForm();
               if (!Responsive.isDesktop(context)) {
@@ -108,6 +114,34 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
           actions: actions,
           child: content,
         );
+      },
+    );
+  }
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    SalesOrderManagementController controller,
+  ) {
+    return openSalesSearchStatusFilterPanel(
+      context: context,
+      title: 'Filter Sales Orders',
+      searchController: controller.searchController,
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      searchHint: 'Search by number or customer',
+      status: controller.statusFilter,
+      statusItems: SalesOrderManagementController.listStatusFilter,
+      onApply: (search, status, dateFrom, dateTo) {
+        controller.searchController.text = search;
+        controller.dateFromController.text = dateFrom;
+        controller.dateToController.text = dateTo;
+        controller.setStatusFilter(status);
+      },
+      onClear: () {
+        controller.searchController.clear();
+        controller.dateFromController.clear();
+        controller.dateToController.clear();
+        controller.setStatusFilter('');
       },
     );
   }
@@ -173,6 +207,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
         statusValue: controller.statusFilter,
         statusItems: SalesOrderManagementController.listStatusFilter,
         onStatusChanged: (value) => controller.setStatusFilter(value ?? ''),
+        showInlineFilters: false,
         itemBuilder: (item, selected) {
           final data = item.toJson();
           return SettingsListTile(

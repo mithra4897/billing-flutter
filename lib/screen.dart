@@ -44,6 +44,7 @@ export 'components/numeric_field_focus_binding.dart';
 export 'components/numeric_input_formatter.dart';
 export 'components/printing/document_designer_inspector.dart';
 export 'components/report_pagination_bar.dart';
+export 'components/sales_invoice_export_button.dart';
 export 'components/session_context_button.dart';
 export 'components/upload_path_field.dart';
 export 'components/validated_form_text_field.dart';

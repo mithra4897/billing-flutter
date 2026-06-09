@@ -111,6 +111,7 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
   required double rate,
   required double discountPercent,
   required TaxCodeModel? taxCode,
+  bool? isInterState,
   double? taxPercent,
   String? taxType,
 }) {
@@ -127,15 +128,13 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
           .trim()
           .toLowerCase();
   final cessRate = (taxCode?.cessRate ?? 0).toDouble();
+  final useIgst = isInterState ?? resolvedTaxType.contains('igst');
 
   var cgst = 0.0;
   var sgst = 0.0;
   var igst = 0.0;
 
   switch (resolvedTaxType) {
-    case 'igst':
-      igst = roundToDouble((taxable * resolvedTaxPercent) / 100, 2);
-      break;
     case 'cess_only':
     case 'exempt':
     case 'nil_rated':
@@ -143,8 +142,12 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
       resolvedTaxPercent = 0.0;
       break;
     default:
-      cgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
-      sgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
+      if (useIgst) {
+        igst = roundToDouble((taxable * resolvedTaxPercent) / 100, 2);
+      } else {
+        cgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
+        sgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
+      }
       break;
   }
 
@@ -282,6 +285,8 @@ class PurchaseListCard<T> extends StatefulWidget {
     this.statusValue,
     this.statusItems = const <AppDropdownItem<String>>[],
     this.onStatusChanged,
+    this.showInlineFilters = true,
+    this.headerActions = const <Widget>[],
     required this.itemBuilder,
   });
 
@@ -293,6 +298,8 @@ class PurchaseListCard<T> extends StatefulWidget {
   final String? statusValue;
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<String?>? onStatusChanged;
+  final bool showInlineFilters;
+  final List<Widget> headerActions;
   final Widget Function(T item, bool selected) itemBuilder;
 
   static const double listViewportHeight = 520;
@@ -394,24 +401,38 @@ class _PurchaseListCardState<T> extends State<PurchaseListCard<T>> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: widget.searchController,
-                decoration: InputDecoration(
-                  hintText: widget.searchHint,
-                  prefixIcon: const Icon(Icons.search),
+              if (widget.headerActions.isNotEmpty) ...[
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Wrap(
+                    spacing: AppUiConstants.spacingSm,
+                    runSpacing: AppUiConstants.spacingSm,
+                    alignment: WrapAlignment.end,
+                    children: widget.headerActions,
+                  ),
                 ),
-              ),
-              if (widget.statusItems.isNotEmpty &&
-                  widget.onStatusChanged != null) ...[
-                const SizedBox(height: AppUiConstants.spacingSm),
-                AppDropdownField<String>.fromMapped(
-                  labelText: 'Status',
-                  mappedItems: widget.statusItems,
-                  initialValue: widget.statusValue,
-                  onChanged: widget.onStatusChanged!,
-                ),
+                const SizedBox(height: AppUiConstants.spacingMd),
               ],
-              const SizedBox(height: AppUiConstants.spacingMd),
+              if (widget.showInlineFilters) ...[
+                TextField(
+                  controller: widget.searchController,
+                  decoration: InputDecoration(
+                    hintText: widget.searchHint,
+                    prefixIcon: const Icon(Icons.search),
+                  ),
+                ),
+                if (widget.statusItems.isNotEmpty &&
+                    widget.onStatusChanged != null) ...[
+                  const SizedBox(height: AppUiConstants.spacingSm),
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Status',
+                    mappedItems: widget.statusItems,
+                    initialValue: widget.statusValue,
+                    onChanged: widget.onStatusChanged!,
+                  ),
+                ],
+                const SizedBox(height: AppUiConstants.spacingMd),
+              ],
               if (widget.items.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(

@@ -26,6 +26,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   final PartiesService _partiesService = PartiesService();
   final AccountsService _accountsService = AccountsService();
   final InventoryService _inventoryService = InventoryService();
+  final TaxesService _taxesService = TaxesService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -56,6 +57,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   List<PurchaseInvoiceModel> items = const <PurchaseInvoiceModel>[];
   List<PurchaseInvoiceModel> filteredItems = const <PurchaseInvoiceModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
+  List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<PurchaseOrderModel> orders = const <PurchaseOrderModel>[];
@@ -65,6 +67,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   final Map<int, PartyModel> supplierDetailsById = <int, PartyModel>{};
   final Map<int, List<PartyGstDetailModel>> supplierGstDetailsById =
       <int, List<PartyGstDetailModel>>{};
+  List<GstRegistrationModel> gstRegistrations = const <GstRegistrationModel>[];
   List<AccountModel> accounts = const <AccountModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
   final Map<int, ItemModel> itemLookupById = <int, ItemModel>{};
@@ -192,6 +195,9 @@ class PurchaseInvoiceManagementController extends GetxController {
         _inventoryService.taxCodes(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
+        _taxesService.gstRegistrationsAll(
+          filters: const {'is_active': 1, 'sort_by': 'id'},
+        ),
       ]);
 
       final contextSelection = await WorkingContextService.instance
@@ -225,6 +231,9 @@ class PurchaseInvoiceManagementController extends GetxController {
       companies =
           (responses[1] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
+      locations =
+          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+          const <BusinessLocationModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
@@ -291,6 +300,9 @@ class PurchaseInvoiceManagementController extends GetxController {
                   const <TaxCodeModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      gstRegistrations =
+          (responses[16] as ApiResponse<List<GstRegistrationModel>>).data ??
+          const <GstRegistrationModel>[];
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -377,6 +389,7 @@ class PurchaseInvoiceManagementController extends GetxController {
         : full.lines;
     isActive = full.isActive;
     formError = null;
+    unawaited(ensureSupplierPrintContext(supplierPartyId));
     if (full.purchaseReceiptId != null) {
       unawaited(enrichLinesFromReceiptHeader(full.purchaseReceiptId!));
     }
@@ -531,6 +544,7 @@ class PurchaseInvoiceManagementController extends GetxController {
             rate: rate,
             discountPercent: discount,
             taxCode: taxCode,
+            isInterState: isInterStateForSummary(),
             taxPercent: line.taxPercent,
             taxType: line.taxType,
           );
@@ -610,12 +624,46 @@ class PurchaseInvoiceManagementController extends GetxController {
     );
   }
 
+  String? resolveCompanyStateCodeForSummary() {
+    return resolveCompanyStateCodeForGstSummary(
+      gstRegistrations: gstRegistrations,
+      locations: locations,
+      companies: companies,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+    );
+  }
+
+  String? resolveSupplierStateCodeForSummary() {
+    final supplier = supplierForPrintContext(supplierPartyId);
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    return resolvePartyStateCodeForGstSummary(
+      party: supplier,
+      gstDetails:
+          supplierGstDetailsById[supplierPartyId] ??
+          supplier?.gstDetails ??
+          const <PartyGstDetailModel>[],
+      shippingAddressId: intValue(selected, 'shipping_address_id'),
+      billingAddressId: intValue(selected, 'billing_address_id'),
+      preferredAddressType: 'billing',
+    );
+  }
+
+  bool? isInterStateForSummary() {
+    return resolveIsInterStateForGstSummary(
+      companyStateCode: resolveCompanyStateCodeForSummary(),
+      counterpartyStateCode: resolveSupplierStateCodeForSummary(),
+    );
+  }
+
   PurchaseLineTaxBreakdown taxBreakdownForLine(PurchaseInvoiceLineModel line) {
     return computePurchaseLineTaxBreakdown(
       qty: line.invoicedQty,
       rate: line.rate,
       discountPercent: line.discountPercent ?? 0,
       taxCode: purchaseTaxCodeById(taxCodes, line.taxCodeId),
+      isInterState: isInterStateForSummary(),
       taxPercent: line.taxPercent,
       taxType: line.taxType,
     );
@@ -1118,6 +1166,7 @@ class PurchaseInvoiceManagementController extends GetxController {
 
   void setSupplierPartyId(int? value) {
     supplierPartyId = value;
+    unawaited(ensureSupplierPrintContext(value));
     update();
   }
 

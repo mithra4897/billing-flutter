@@ -125,6 +125,7 @@ class PurchaseOrderManagementController extends GetxController {
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
+  final TaxesService _taxesService = TaxesService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -152,6 +153,7 @@ class PurchaseOrderManagementController extends GetxController {
   List<PurchaseOrderModel> items = const <PurchaseOrderModel>[];
   List<PurchaseOrderModel> filteredItems = const <PurchaseOrderModel>[];
   List<CompanyModel> companies = const <CompanyModel>[];
+  List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<PurchaseRequisitionModel> requisitions =
@@ -166,6 +168,7 @@ class PurchaseOrderManagementController extends GetxController {
   final Map<int, PartyModel> supplierDetailsById = <int, PartyModel>{};
   final Map<int, List<PartyGstDetailModel>> supplierGstDetailsById =
       <int, List<PartyGstDetailModel>>{};
+  List<GstRegistrationModel> gstRegistrations = const <GstRegistrationModel>[];
   PurchaseOrderModel? selectedItem;
   int? contextCompanyId;
   int? contextBranchId;
@@ -303,6 +306,9 @@ class PurchaseOrderManagementController extends GetxController {
         _inventoryService.itemSupplierMaps(
           filters: const {'per_page': 1000, 'is_active': 1},
         ),
+        _taxesService.gstRegistrationsAll(
+          filters: const {'is_active': 1, 'sort_by': 'id'},
+        ),
       ]);
 
       final contextSelection = await WorkingContextService.instance
@@ -336,6 +342,9 @@ class PurchaseOrderManagementController extends GetxController {
       companies =
           (responses[1] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
+      locations =
+          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+          const <BusinessLocationModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
@@ -385,6 +394,9 @@ class PurchaseOrderManagementController extends GetxController {
                   const <ItemSupplierMapModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      gstRegistrations =
+          (responses[15] as ApiResponse<List<GstRegistrationModel>>).data ??
+          const <GstRegistrationModel>[];
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -575,6 +587,35 @@ class PurchaseOrderManagementController extends GetxController {
     );
   }
 
+  String? resolveCompanyStateCodeForSummary() {
+    return resolveCompanyStateCodeForGstSummary(
+      gstRegistrations: gstRegistrations,
+      locations: locations,
+      companies: companies,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+    );
+  }
+
+  String? resolveSupplierStateCodeForSummary() {
+    final supplier = supplierForPrintContext(supplierPartyId);
+    return resolvePartyStateCodeForGstSummary(
+      party: supplier,
+      gstDetails:
+          supplierGstDetailsById[supplierPartyId] ??
+          const <PartyGstDetailModel>[],
+      preferredAddressType: 'billing',
+    );
+  }
+
+  bool? isInterStateForSummary() {
+    return resolveIsInterStateForGstSummary(
+      companyStateCode: resolveCompanyStateCodeForSummary(),
+      counterpartyStateCode: resolveSupplierStateCodeForSummary(),
+    );
+  }
+
   PurchaseLineTaxBreakdown taxBreakdownForLine(PurchaseOrderLineDraft line) {
     final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
     final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
@@ -585,6 +626,7 @@ class PurchaseOrderManagementController extends GetxController {
       rate: rate,
       discountPercent: discount,
       taxCode: purchaseTaxCodeById(taxCodes, line.taxCodeId),
+      isInterState: isInterStateForSummary(),
     );
   }
 

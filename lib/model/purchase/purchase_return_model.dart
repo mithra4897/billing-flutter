@@ -12,6 +12,9 @@ class PurchaseReturnModel extends JsonModel {
     this.returnNo,
     this.returnDate,
     this.supplierPartyId,
+    this.billingAddressId,
+    this.shippingAddressId,
+    this.contactId,
     this.supplierName,
     this.supplier,
     this.purchaseInvoiceNo,
@@ -46,6 +49,9 @@ class PurchaseReturnModel extends JsonModel {
   final String? returnNo;
   final String? returnDate;
   final int? supplierPartyId;
+  final int? billingAddressId;
+  final int? shippingAddressId;
+  final int? contactId;
   final String? supplierName;
   final Map<String, dynamic>? supplier;
   final String? purchaseInvoiceNo;
@@ -83,6 +89,9 @@ class PurchaseReturnModel extends JsonModel {
       returnNo: json['return_no']?.toString(),
       returnDate: json['return_date']?.toString(),
       supplierPartyId: JsonModel.nullableInt(json['supplier_party_id']),
+      billingAddressId: JsonModel.nullableInt(json['billing_address_id']),
+      shippingAddressId: JsonModel.nullableInt(json['shipping_address_id']),
+      contactId: JsonModel.nullableInt(json['contact_id']),
       supplierName: json['supplier_name']?.toString(),
       supplier: JsonModel.mapOf(json['supplier']),
       purchaseInvoiceNo: json['purchase_invoice_no']?.toString(),
@@ -130,6 +139,9 @@ class PurchaseReturnModel extends JsonModel {
     if (returnNo != null) 'return_no': returnNo,
     if (returnDate != null) 'return_date': returnDate,
     if (supplierPartyId != null) 'supplier_party_id': supplierPartyId,
+    if (billingAddressId != null) 'billing_address_id': billingAddressId,
+    if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
+    if (contactId != null) 'contact_id': contactId,
     if (supplierName != null) 'supplier_name': supplierName,
     if (supplier != null) 'supplier': supplier,
     if (purchaseInvoiceNo != null) 'purchase_invoice_no': purchaseInvoiceNo,

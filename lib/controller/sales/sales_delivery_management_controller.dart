@@ -144,6 +144,8 @@ class SalesDeliveryManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController deliveryNoController = TextEditingController();
   final TextEditingController deliveryDateController = TextEditingController();
@@ -228,6 +230,8 @@ class SalesDeliveryManagementController extends GetxController {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     searchController
       ..removeListener(_applyFilters)
       ..dispose();
@@ -966,20 +970,29 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   void _applyFilters({bool notify = true}) {
-    filteredItems = filterBySearchAndStatus(
-      items,
-      query: searchController.text,
-      status: statusFilter,
-      statusOf: (item) => stringValue(item.toJson(), 'delivery_status'),
-      searchFieldsOf: (item) {
-        final data = item.toJson();
-        return <String>[
-          stringValue(data, 'delivery_no'),
-          stringValue(data, 'delivery_status'),
-          quotationCustomerLabel(data),
-        ];
-      },
-    );
+    filteredItems =
+        filterBySearchAndStatus(
+              items,
+              query: searchController.text,
+              status: statusFilter,
+              statusOf: (item) => stringValue(item.toJson(), 'delivery_status'),
+              searchFieldsOf: (item) {
+                final data = item.toJson();
+                return <String>[
+                  stringValue(data, 'delivery_no'),
+                  stringValue(data, 'delivery_status'),
+                  quotationCustomerLabel(data),
+                ];
+              },
+            )
+            .where(
+              (item) => matchesDateValueRange(
+                nullableStringValue(item.toJson(), 'delivery_date'),
+                fromValue: dateFromController.text,
+                toValue: dateToController.text,
+              ),
+            )
+            .toList(growable: false);
     if (notify) update();
   }
 

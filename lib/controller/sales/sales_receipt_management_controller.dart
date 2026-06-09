@@ -67,6 +67,8 @@ class SalesReceiptManagementController extends GetxController {
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController receiptNoController = TextEditingController();
   final TextEditingController receiptDateController = TextEditingController();
@@ -122,6 +124,8 @@ class SalesReceiptManagementController extends GetxController {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
     pageScrollController.dispose();
     workspaceController.dispose();
+    dateFromController.dispose();
+    dateToController.dispose();
     searchController
       ..removeListener(_applyFilters)
       ..dispose();
@@ -507,20 +511,28 @@ class SalesReceiptManagementController extends GetxController {
     String status,
   ) {
     return filterBySearchAndStatus(
-      source,
-      query: searchText,
-      status: status,
-      statusOf: (item) => stringValue(item.toJson(), 'receipt_status'),
-      searchFieldsOf: (item) {
-        final data = item.toJson();
-        return <String>[
-          stringValue(data, 'receipt_no'),
-          stringValue(data, 'receipt_status'),
-          quotationCustomerLabel(data),
-          stringValue(data, 'payment_reference_no'),
-        ];
-      },
-    );
+          source,
+          query: searchText,
+          status: status,
+          statusOf: (item) => stringValue(item.toJson(), 'receipt_status'),
+          searchFieldsOf: (item) {
+            final data = item.toJson();
+            return <String>[
+              stringValue(data, 'receipt_no'),
+              stringValue(data, 'receipt_status'),
+              quotationCustomerLabel(data),
+              stringValue(data, 'payment_reference_no'),
+            ];
+          },
+        )
+        .where(
+          (item) => matchesDateValueRange(
+            nullableStringValue(item.toJson(), 'receipt_date'),
+            fromValue: dateFromController.text,
+            toValue: dateToController.text,
+          ),
+        )
+        .toList(growable: false);
   }
 
   void setStatusFilter(String value) {

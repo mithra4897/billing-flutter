@@ -36,6 +36,18 @@ Future<bool> saveTextFile({
   String mimeType = 'application/json',
 }) async {
   final bytes = Uint8List.fromList(text.codeUnits);
+  return saveBytesFile(
+    suggestedName: suggestedName,
+    bytes: bytes,
+    mimeType: mimeType,
+  );
+}
+
+Future<bool> saveBytesFile({
+  required String suggestedName,
+  required Uint8List bytes,
+  String mimeType = 'application/octet-stream',
+}) async {
   final blob = html.Blob(<dynamic>[bytes], mimeType);
   final url = html.Url.createObjectUrlFromBlob(blob);
   final anchor = html.AnchorElement(href: url)

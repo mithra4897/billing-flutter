@@ -26,3 +26,15 @@ Future<bool> saveTextFile({
     mimeType: mimeType,
   );
 }
+
+Future<bool> saveBytesFile({
+  required String suggestedName,
+  required Uint8List bytes,
+  String mimeType = 'application/octet-stream',
+}) {
+  return picker.saveBytesFile(
+    suggestedName: suggestedName,
+    bytes: bytes,
+    mimeType: mimeType,
+  );
+}

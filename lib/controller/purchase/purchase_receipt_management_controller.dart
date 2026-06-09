@@ -111,6 +111,7 @@ class PurchaseReceiptManagementController extends GetxController {
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
+  final TaxesService _taxesService = TaxesService();
   final ScrollController pageScrollController = ScrollController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
@@ -135,15 +136,21 @@ class PurchaseReceiptManagementController extends GetxController {
   String statusFilter = '';
   List<PurchaseReceiptModel> items = const <PurchaseReceiptModel>[];
   List<PurchaseReceiptModel> filteredItems = const <PurchaseReceiptModel>[];
+  List<CompanyModel> companies = const <CompanyModel>[];
+  List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<PurchaseOrderModel> orders = const <PurchaseOrderModel>[];
   List<PartyModel> suppliers = const <PartyModel>[];
+  final Map<int, PartyModel> supplierDetailsById = <int, PartyModel>{};
+  final Map<int, List<PartyGstDetailModel>> supplierGstDetailsById =
+      <int, List<PartyGstDetailModel>>{};
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<ItemModel> itemsLookup = const <ItemModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<UomConversionModel> uomConversions = const <UomConversionModel>[];
   List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
+  List<GstRegistrationModel> gstRegistrations = const <GstRegistrationModel>[];
   final Map<String, List<StockSerialModel>> serialOptionsByItemWarehouse =
       <String, List<StockSerialModel>>{};
   final Set<String> serialOptionsLoadingKeys = <String>{};
@@ -265,6 +272,9 @@ class PurchaseReceiptManagementController extends GetxController {
         _inventoryService.taxCodes(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
+        _taxesService.gstRegistrationsAll(
+          filters: const {'is_active': 1, 'sort_by': 'id'},
+        ),
       ]);
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
@@ -294,6 +304,12 @@ class PurchaseReceiptManagementController extends GetxController {
       items =
           (responses[0] as PaginatedResponse<PurchaseReceiptModel>).data ??
           const <PurchaseReceiptModel>[];
+      companies =
+          (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          const <CompanyModel>[];
+      locations =
+          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+          const <BusinessLocationModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
@@ -338,6 +354,9 @@ class PurchaseReceiptManagementController extends GetxController {
                   const <TaxCodeModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      gstRegistrations =
+          (responses[14] as ApiResponse<List<GstRegistrationModel>>).data ??
+          const <GstRegistrationModel>[];
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -418,6 +437,7 @@ class PurchaseReceiptManagementController extends GetxController {
         0;
     notesController.text = stringValue(data, 'notes');
     isActive = boolValue(data, 'is_active', fallback: true);
+    unawaited(ensureSupplierPrintContext(supplierPartyId));
     await _enrichLineTaxCodes(nextLines, purchaseOrderId);
     _replaceLines(nextLines, notify: false);
     formError = null;
@@ -428,6 +448,57 @@ class PurchaseReceiptManagementController extends GetxController {
     }
     _upsertReceipt(full, notify: false);
     if (notify) update();
+  }
+
+  PartyModel? supplierById(int? supplierId) {
+    return suppliers.cast<PartyModel?>().firstWhere(
+      (entry) => entry?.id == supplierId,
+      orElse: () => null,
+    );
+  }
+
+  PartyModel? supplierForPrintContext(int? supplierId) {
+    if (supplierId == null) {
+      return null;
+    }
+    return supplierDetailsById[supplierId] ?? supplierById(supplierId);
+  }
+
+  Future<void> ensureSupplierPrintContext(int? supplierId) async {
+    if (supplierId == null) {
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _partiesService.party(supplierId),
+        _partiesService.partyAddresses(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyContacts(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyGstDetails(
+          supplierId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+      ]);
+      final party = (responses[0] as ApiResponse<PartyModel>).data;
+      if (party != null) {
+        supplierDetailsById[supplierId] = party.copyWith(
+          addresses:
+              (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+              party.addresses,
+          contacts:
+              (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+              party.contacts,
+        );
+        supplierGstDetailsById[supplierId] =
+            (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+            party.gstDetails;
+      }
+    } catch (_) {}
   }
 
   void resetForm({bool notify = true}) {
@@ -819,6 +890,7 @@ class PurchaseReceiptManagementController extends GetxController {
 
   void setSupplierPartyId(int? value) {
     supplierPartyId = value;
+    unawaited(ensureSupplierPrintContext(value));
     update();
   }
 
@@ -830,6 +902,36 @@ class PurchaseReceiptManagementController extends GetxController {
   void setIsActive(bool value) {
     isActive = value;
     update();
+  }
+
+  String? resolveCompanyStateCodeForSummary() {
+    return resolveCompanyStateCodeForGstSummary(
+      gstRegistrations: gstRegistrations,
+      locations: locations,
+      companies: companies,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+    );
+  }
+
+  String? resolveSupplierStateCodeForSummary() {
+    final supplier = supplierForPrintContext(supplierPartyId);
+    return resolvePartyStateCodeForGstSummary(
+      party: supplier,
+      gstDetails:
+          supplierGstDetailsById[supplierPartyId] ??
+          supplier?.gstDetails ??
+          const <PartyGstDetailModel>[],
+      preferredAddressType: 'billing',
+    );
+  }
+
+  bool? isInterStateForSummary() {
+    return resolveIsInterStateForGstSummary(
+      companyStateCode: resolveCompanyStateCodeForSummary(),
+      counterpartyStateCode: resolveSupplierStateCodeForSummary(),
+    );
   }
 
   PurchaseLineTaxBreakdown taxBreakdownForLine(PurchaseReceiptLineDraft line) {
@@ -845,6 +947,7 @@ class PurchaseReceiptManagementController extends GetxController {
       rate: rate,
       discountPercent: 0,
       taxCode: purchaseTaxCodeById(taxCodes, line.taxCodeId),
+      isInterState: isInterStateForSummary(),
     );
   }
 
