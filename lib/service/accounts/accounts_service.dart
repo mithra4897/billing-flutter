@@ -60,6 +60,9 @@ class AccountsService extends ErpModuleService {
   }) => collection<AccountModel>(
     ApiEndpoints.accountsListAll,
     filters: filters,
+    headerOverrides: filters != null && filters['company_id'] != null
+        ? const <String, String?>{'X-Branch-Id': null}
+        : null,
     fromJson: AccountModel.fromJson,
   );
 

@@ -20,11 +20,13 @@ class ErpModuleService {
   Future<ApiResponse<List<T>>> collection<T>(
     String endpoint, {
     Map<String, dynamic>? filters,
+    Map<String, String?>? headerOverrides,
     required T Function(Map<String, dynamic> json) fromJson,
   }) {
     return client.get<List<T>>(
       endpoint,
       queryParameters: filters,
+      headerOverrides: headerOverrides,
       fromData: (json) {
         if (json is! List) {
           return <T>[];

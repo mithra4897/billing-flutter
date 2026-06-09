@@ -76,6 +76,8 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
   static const Duration _debounceDuration = Duration(milliseconds: 300);
   static const double _dropdownOffset = 4;
   static const double _dropdownMaxHeight = 250;
+  static const double _dropdownMinHeight = 80;
+  static const double _preferredDropdownVisibleHeight = 220;
 
   final LayerLink _layerLink = LayerLink();
   final GlobalKey _fieldKey = GlobalKey();
@@ -148,11 +150,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     if (_focusNode.hasFocus) {
       _blurTimer?.cancel();
       _holdBlurClose = false;
-      _openDropdown();
-      _scheduleSearch(
-        _selected == null ? _controller.text : '',
-        immediate: true,
-      );
+      unawaited(_prepareDropdownForOpen());
       return;
     }
 
@@ -183,6 +181,60 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     _controller.value = TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  Future<void> _prepareDropdownForOpen() async {
+    await _ensureSpaceBelow();
+    if (!mounted || !_focusNode.hasFocus || !widget.enabled) {
+      return;
+    }
+    _openDropdown();
+    _scheduleSearch(_selected == null ? _controller.text : '', immediate: true);
+  }
+
+  Future<void> _ensureSpaceBelow() async {
+    final fieldContext = _fieldKey.currentContext;
+    if (fieldContext == null) {
+      return;
+    }
+    final renderBox = fieldContext.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.attached) {
+      return;
+    }
+    final scrollable = Scrollable.maybeOf(fieldContext);
+    final position = scrollable?.position;
+    if (position == null || !position.hasPixels) {
+      return;
+    }
+
+    final fieldOrigin = renderBox.localToGlobal(Offset.zero);
+    final fieldBottom = fieldOrigin.dy + renderBox.size.height;
+    final viewportHeight = MediaQuery.sizeOf(fieldContext).height;
+    final availableBelow = viewportHeight - fieldBottom - _dropdownOffset;
+    final requiredBelow = _preferredDropdownVisibleHeight;
+
+    if (availableBelow >= requiredBelow) {
+      return;
+    }
+
+    final delta = requiredBelow - availableBelow;
+    if (delta <= 0) {
+      return;
+    }
+
+    final target = (position.pixels + delta + 16).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((target - position.pixels).abs() < 1) {
+      return;
+    }
+
+    await position.animateTo(
+      target,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
     );
   }
 
@@ -510,8 +562,16 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
     }
 
     final size = renderBox.size;
+    final fieldOrigin = renderBox.localToGlobal(Offset.zero);
     final entries = _buildEntries();
     final theme = Theme.of(context);
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final availableBelow =
+        viewportHeight - (fieldOrigin.dy + size.height) - _dropdownOffset - 12;
+    final dropdownHeight = availableBelow.clamp(
+      _dropdownMinHeight,
+      _dropdownMaxHeight,
+    );
 
     return Stack(
       children: [
@@ -533,8 +593,8 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
             child: SizedBox(
               width: size.width,
               child: Container(
-                constraints: const BoxConstraints(
-                  maxHeight: _dropdownMaxHeight,
+                constraints: BoxConstraints(
+                  maxHeight: dropdownHeight,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -632,11 +692,7 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                       extentOffset: _controller.text.length,
                     );
                   }
-                  _openDropdown();
-                  _scheduleSearch(
-                    _selected == null ? _controller.text : '',
-                    immediate: true,
-                  );
+                  unawaited(_prepareDropdownForOpen());
                 },
               ),
             ),

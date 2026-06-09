@@ -50,12 +50,14 @@ class ApiClient {
   Future<ApiResponse<T>> get<T>(
     String endpoint, {
     Map<String, dynamic>? queryParameters,
+    Map<String, String?>? headerOverrides,
     T Function(dynamic json)? fromData,
   }) async {
     final uri = _buildUri(endpoint, queryParameters);
     final response = await _getResponse(
       endpoint,
       queryParameters: queryParameters,
+      headerOverrides: headerOverrides,
     );
     return _parseResponse(
       response,
@@ -67,12 +69,14 @@ class ApiClient {
   Future<PaginatedResponse<T>> getPaginated<T>(
     String endpoint, {
     Map<String, dynamic>? queryParameters,
+    Map<String, String?>? headerOverrides,
     required T Function(Map<String, dynamic> json) itemFromJson,
   }) async {
     final uri = _buildUri(endpoint, queryParameters);
     final response = await _getResponse(
       endpoint,
       queryParameters: queryParameters,
+      headerOverrides: headerOverrides,
     );
     final json = _decodeBody(response.body);
     _throwIfHttpError(
@@ -349,9 +353,10 @@ class ApiClient {
   Future<http.Response> _getResponse(
     String endpoint, {
     Map<String, dynamic>? queryParameters,
+    Map<String, String?>? headerOverrides,
   }) async {
     final uri = _buildUri(endpoint, queryParameters);
-    final headers = await _buildHeaders();
+    final headers = await _buildHeaders(headerOverrides: headerOverrides);
     final path = _normalizePath(uri.path);
 
     if (!_isCacheableGetPath(path)) {
@@ -440,7 +445,9 @@ class ApiClient {
     return response;
   }
 
-  Future<Map<String, String>> _buildHeaders() async {
+  Future<Map<String, String>> _buildHeaders({
+    Map<String, String?>? headerOverrides,
+  }) async {
     final token = await SessionStorage.getAuthToken();
     final tokenType = await SessionStorage.getTokenType();
 
@@ -454,6 +461,16 @@ class ApiClient {
     }
 
     headers.addAll(await _buildContextHeaders());
+    if (headerOverrides != null) {
+      for (final entry in headerOverrides.entries) {
+        final value = entry.value;
+        if (value == null) {
+          headers.remove(entry.key);
+        } else {
+          headers[entry.key] = value;
+        }
+      }
+    }
 
     return headers;
   }

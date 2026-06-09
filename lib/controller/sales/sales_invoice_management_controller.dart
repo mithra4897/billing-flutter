@@ -1906,10 +1906,9 @@ class SalesInvoiceManagementController extends GetxController {
         this.quotationsAll = quotationsAll;
         this.ordersAll = ordersAll;
         this.deliveriesAll = deliveriesAll;
-        initialLoading = false;
       });
       await loadReferenceDataInBackground();
-      applyFilters();
+      applyFilters(notify: false);
 
       final selected = selectId != null
           ? items.cast<SalesInvoiceModel?>().firstWhere(
@@ -1938,7 +1937,9 @@ class SalesInvoiceManagementController extends GetxController {
           if (detail != null) {
             pendingSelection = null;
             await selectDocument(detail);
-            update();
+            State(() {
+              initialLoading = false;
+            });
             return;
           }
         } catch (_) {}
@@ -1964,6 +1965,9 @@ class SalesInvoiceManagementController extends GetxController {
           }
         }
       }
+      State(() {
+        initialLoading = false;
+      });
     } catch (error) {
       if (!mounted) {
         return;
@@ -2190,25 +2194,30 @@ class SalesInvoiceManagementController extends GetxController {
     });
   }
 
-  void applyFilters() {
+  void applyFilters({bool notify = true}) {
     final search = searchController.text.trim().toLowerCase();
+    final nextFiltered = items
+        .where((item) {
+          final data = rowJson(item);
+          final status = item.invoiceStatus ?? '';
+          final statusOk = statusFilter.isEmpty || status == statusFilter;
+          final cust = quotationCustomerLabel(data);
+          final searchOk =
+              search.isEmpty ||
+              [
+                item.invoiceNo ?? '',
+                status,
+                cust,
+              ].join(' ').toLowerCase().contains(search);
+          return statusOk && searchOk;
+        })
+        .toList(growable: false);
+    if (!notify) {
+      filteredItems = nextFiltered;
+      return;
+    }
     State(() {
-      filteredItems = items
-          .where((item) {
-            final data = rowJson(item);
-            final status = item.invoiceStatus ?? '';
-            final statusOk = statusFilter.isEmpty || status == statusFilter;
-            final cust = quotationCustomerLabel(data);
-            final searchOk =
-                search.isEmpty ||
-                [
-                  item.invoiceNo ?? '',
-                  status,
-                  cust,
-                ].join(' ').toLowerCase().contains(search);
-            return statusOk && searchOk;
-          })
-          .toList(growable: false);
+      filteredItems = nextFiltered;
     });
   }
 

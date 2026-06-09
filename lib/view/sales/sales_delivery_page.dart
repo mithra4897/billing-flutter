@@ -249,6 +249,11 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                   controller: controller.notesController,
                   maxLines: 3,
                 ),
+                AppFormTextField(
+                  labelText: 'Terms & Conditions',
+                  controller: controller.termsController,
+                  maxLines: 3,
+                ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),

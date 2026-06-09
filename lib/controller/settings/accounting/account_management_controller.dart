@@ -102,9 +102,6 @@ class AccountManagementController extends GetxController {
 
     try {
       final responses = await Future.wait<dynamic>([
-        _accountsService.accounts(
-          filters: const {'per_page': 300, 'sort_by': 'account_name'},
-        ),
         _masterService.companies(
           filters: const {'per_page': 200, 'sort_by': 'legal_name'},
         ),
@@ -116,17 +113,14 @@ class AccountManagementController extends GetxController {
         ),
       ]);
 
-      final nextAccounts =
-          (responses[0] as PaginatedResponse<AccountModel>).data ??
-          const <AccountModel>[];
       final companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          (responses[0] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
       final branches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
+          (responses[1] as PaginatedResponse<BranchModel>).data ??
           const <BranchModel>[];
       final nextGroups =
-          (responses[3] as ApiResponse<List<AccountGroupModel>>).data ??
+          (responses[2] as ApiResponse<List<AccountGroupModel>>).data ??
           const <AccountGroupModel>[];
 
       final activeCompanies = companies
@@ -142,6 +136,15 @@ class AccountManagementController extends GetxController {
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
+
+      final accountsResponse = await _accountsService.accountsAll(
+        filters: <String, dynamic>{
+          'sort_by': 'account_name',
+          if (contextSelection.companyId != null)
+            'company_id': contextSelection.companyId,
+        },
+      );
+      final nextAccounts = accountsResponse.data ?? const <AccountModel>[];
 
       accounts = nextAccounts;
       filteredAccounts = _filterAccounts(nextAccounts, searchController.text);

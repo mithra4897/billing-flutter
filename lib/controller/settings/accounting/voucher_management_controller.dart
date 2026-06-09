@@ -475,23 +475,10 @@ class VoucherManagementController extends GetxController {
         .toList(growable: false);
   }
 
-  Map<String, dynamic>? accountGroupJson(AccountModel item) {
-    final map = item.toJson();
-    final value = map['account_group'] ?? map['accountGroup'];
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-    if (value is Map) {
-      return Map<String, dynamic>.from(value);
-    }
-    return null;
-  }
-
-  String? accountGroupNatureOf(AccountModel item) =>
-      accountGroupJson(item)?['group_nature']?.toString();
+  String? accountGroupNatureOf(AccountModel item) => item.accountGroupNature;
 
   String? accountGroupCategoryOf(AccountModel item) =>
-      accountGroupJson(item)?['group_category']?.toString();
+      item.accountGroupCategory;
 
   String costCenterValueOf(CostCenterModel item) =>
       item.costCenterCode?.trim().isNotEmpty == true

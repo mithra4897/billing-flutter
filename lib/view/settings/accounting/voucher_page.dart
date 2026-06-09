@@ -460,7 +460,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                           'Activity log',
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
-                ),
+                  ),
               ),
             ],
           ],

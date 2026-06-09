@@ -152,6 +152,7 @@ class SalesDeliveryManagementController extends GetxController {
   final TextEditingController lrDateController = TextEditingController();
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
+  final TextEditingController termsController = TextEditingController();
 
   bool initialLoading = true;
   bool saving = false;
@@ -237,6 +238,7 @@ class SalesDeliveryManagementController extends GetxController {
     lrDateController.dispose();
     roundOffController.dispose();
     notesController.dispose();
+    termsController.dispose();
     _disposeLines(lines);
     _disposeReturnableDcs(returnableDcs);
     super.onClose();
@@ -903,6 +905,7 @@ class SalesDeliveryManagementController extends GetxController {
         (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
         0;
     notesController.text = stringValue(data, 'notes');
+    termsController.text = stringValue(data, 'terms_conditions');
     isActive = boolValue(data, 'is_active', fallback: true);
     _replaceLines(nextLines, notify: false);
     _replaceReturnableDcs(nextReturnableDcs, notify: false);
@@ -950,6 +953,7 @@ class SalesDeliveryManagementController extends GetxController {
     roundOffController.clear();
     applyRoundOff = false;
     notesController.clear();
+    termsController.clear();
     isActive = true;
     _replaceLines(const <SalesDeliveryLineDraft>[], notify: false);
     _replaceReturnableDcs(
@@ -1058,6 +1062,7 @@ class SalesDeliveryManagementController extends GetxController {
         (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
         0;
     notesController.text = stringValue(data, 'notes');
+    termsController.text = stringValue(data, 'terms_conditions');
   }
 
   double deliverySubTotal() {
@@ -1067,7 +1072,8 @@ class SalesDeliveryManagementController extends GetxController {
     return lines.fold<double>(0, (sum, line) {
       final qty =
           Validators.parseFlexibleNumber(line.deliveredQtyController.text) ?? 0;
-      final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      final rate =
+          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
       return sum + (qty * rate);
     });
   }
@@ -1121,7 +1127,9 @@ class SalesDeliveryManagementController extends GetxController {
         })
         .where((line) {
           final qty =
-              Validators.parseFlexibleNumber(line.deliveredQtyController.text) ??
+              Validators.parseFlexibleNumber(
+                line.deliveredQtyController.text,
+              ) ??
               0;
           return qty > 0;
         })
@@ -1211,6 +1219,7 @@ class SalesDeliveryManagementController extends GetxController {
             : const <String, dynamic>{},
       ),
       notes: notesController.text.trim(),
+      termsConditions: termsController.text.trim(),
       subtotal: roundToDouble(subtotal, 2),
       taxAmount: 0,
       totalAmount: roundToDouble(subtotal, 2),
@@ -1477,6 +1486,7 @@ class SalesDeliveryManagementController extends GetxController {
           : 0,
       'delivery_kind': deliveryKind,
       'notes': nullIfEmpty(notesController.text),
+      'terms_conditions': nullIfEmpty(termsController.text),
       'is_active': isActive,
       'lines': deliveryKind == 'rdc'
           ? const <Map<String, dynamic>>[]

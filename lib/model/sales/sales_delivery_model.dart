@@ -26,6 +26,7 @@ class SalesDeliveryModel extends JsonModel {
     this.voucherId,
     this.deliveryStatus,
     this.notes,
+    this.termsConditions,
     this.postedBy,
     this.postedAt,
     this.isActive,
@@ -59,6 +60,7 @@ class SalesDeliveryModel extends JsonModel {
   final int? voucherId;
   final String? deliveryStatus;
   final String? notes;
+  final String? termsConditions;
   final int? postedBy;
   final String? postedAt;
   final bool? isActive;
@@ -95,6 +97,7 @@ class SalesDeliveryModel extends JsonModel {
       voucherId: JsonModel.nullableInt(json['voucher_id']),
       deliveryStatus: json['delivery_status']?.toString(),
       notes: json['notes']?.toString(),
+      termsConditions: json['terms_conditions']?.toString(),
       postedBy: JsonModel.nullableInt(json['posted_by']),
       postedAt: json['posted_at']?.toString(),
       isActive: json['is_active'] == null
@@ -141,6 +144,7 @@ class SalesDeliveryModel extends JsonModel {
     if (voucherId != null) 'voucher_id': voucherId,
     if (deliveryStatus != null) 'delivery_status': deliveryStatus,
     if (notes != null) 'notes': notes,
+    if (termsConditions != null) 'terms_conditions': termsConditions,
     if (postedBy != null) 'posted_by': postedBy,
     if (postedAt != null) 'posted_at': postedAt,
     if (isActive != null) 'is_active': isActive,
