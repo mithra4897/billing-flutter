@@ -342,6 +342,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                       path: '/parties',
                       queryParameters: {
                         'new': '1',
+                        'party_context': 'customer',
                         if (name.trim().isNotEmpty) 'party_name': name.trim(),
                       },
                     );
@@ -381,11 +382,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                         .map(
                           (j) => AppDropdownItem<int?>(
                             value: intValue(j, 'id'),
-                            label: stringValue(
-                              j,
-                              'quotation_no',
-                              'Quotation',
-                            ),
+                            label: stringValue(j, 'quotation_no', 'Quotation'),
                           ),
                         ),
                   ],

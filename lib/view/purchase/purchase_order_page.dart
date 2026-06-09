@@ -229,6 +229,20 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Supplier',
+                        doctypeLabel: 'Supplier',
+                        allowCreate: true,
+                        onNavigateToCreateNew: (name) {
+                          final uri = Uri(
+                            path: '/parties',
+                            queryParameters: {
+                              'new': '1',
+                              'party_context': 'supplier',
+                              if (name.trim().isNotEmpty)
+                                'party_name': name.trim(),
+                            },
+                          );
+                          openModuleShellRoute(context, uri.toString());
+                        },
                         mappedItems: <AppDropdownItem<int>>[
                           const AppDropdownItem(
                             value: PurchaseOrderManagementController

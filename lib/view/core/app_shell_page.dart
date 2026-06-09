@@ -433,6 +433,7 @@ class _AppShellPageState extends State<AppShellPage> {
               (_currentQueryParameters['new'] ?? '') == '1' ||
               (_currentQueryParameters['new'] ?? '').toLowerCase() == 'true',
           initialPartyName: _currentQueryParameters['party_name'],
+          initialPartyContext: _currentQueryParameters['party_context'],
         );
       case '/accounting/account-groups':
         return AccountGroupManagementPage(key: routeKey, embedded: true);

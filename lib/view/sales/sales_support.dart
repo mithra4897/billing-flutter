@@ -176,7 +176,11 @@ String resolvePreferredPartyGstin(
     return direct;
   }
 
-  for (final key in <String>['gst_details', 'gstDetails', 'party_gst_details']) {
+  for (final key in <String>[
+    'gst_details',
+    'gstDetails',
+    'party_gst_details',
+  ]) {
     final raw = sourceData[key];
     if (raw is List) {
       for (final item in raw.whereType<Map>()) {
@@ -347,7 +351,8 @@ String? formattedSalesRateFromItemPricing(
     itemPrices: itemPrices,
     preferredUomId: preferredUomId ?? item.salesUomId ?? item.baseUomId,
   );
-  return _formatSalesRate(activePrice?.price) ?? formattedStandardSellingRate(item);
+  return _formatSalesRate(activePrice?.price) ??
+      formattedStandardSellingRate(item);
 }
 
 /// When the user picks an item, fill rate / UOM / tax (and optionally single-warehouse) from master.
@@ -472,6 +477,7 @@ List<Widget> buildSalesCustomerCommercialFields({
           path: '/parties',
           queryParameters: {
             'new': '1',
+            'party_context': 'customer',
             if (name.trim().isNotEmpty) 'party_name': name.trim(),
           },
         );

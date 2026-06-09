@@ -226,6 +226,20 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
                       ),
                       AppDropdownField<int>.fromMapped(
                         labelText: 'Supplier',
+                        doctypeLabel: 'Supplier',
+                        allowCreate: true,
+                        onNavigateToCreateNew: (name) {
+                          final uri = Uri(
+                            path: '/parties',
+                            queryParameters: {
+                              'new': '1',
+                              'party_context': 'supplier',
+                              if (name.trim().isNotEmpty)
+                                'party_name': name.trim(),
+                            },
+                          );
+                          openModuleShellRoute(context, uri.toString());
+                        },
                         mappedItems: controller.suppliers
                             .where((item) => item.id != null)
                             .map(

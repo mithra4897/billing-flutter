@@ -161,128 +161,131 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
               ignoring: !canEdit,
               child: SettingsFormWrap(
                 children: [
-                DocumentSeriesSelector<int>(
-                  labelText: 'Document Series',
-                  mappedItems: controller
-                      .seriesOptions()
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                  )
-                      .toList(growable: false),
-                  initialValue: controller.documentSeriesId,
-                  onChanged: canEdit
-                      ? controller.setDocumentSeriesId
-                      : (_) {},
-                ),
-                AppFormTextField(
-                  labelText: 'Receipt No',
-                  controller: controller.receiptNoController,
-                  hintText: 'Auto-generated on save',
-                  enabled: canEdit,
-                  validator: Validators.optionalMaxLength(100, 'Receipt No'),
-                ),
-                AppDateField(
-                  labelText: 'Receipt Date',
-                  controller: controller.receiptDateController,
-                  enabled: canEdit,
-                  validator: Validators.compose([
-                    Validators.required('Receipt Date'),
-                    Validators.date('Receipt Date'),
-                  ]),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Customer',
-                  doctypeLabel: 'Customer',
-                  allowCreate: true,
-                  onNavigateToCreateNew: (name) {
-                    final uri = Uri(
-                      path: '/parties',
-                      queryParameters: {
-                        'new': '1',
-                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
-                      },
-                    );
-                    final navigate = ShellRouteScope.maybeOf(context);
-                    if (navigate != null) {
-                      navigate(uri.toString());
-                    } else {
-                      Navigator.of(context).pushNamed(uri.toString());
-                    }
-                  },
-                  mappedItems: controller.customers
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.customerPartyId,
-                  onChanged: canEdit
-                      ? controller.setCustomerPartyId
-                      : (_) {},
-                  validator: Validators.requiredSelection('Customer'),
-                ),
-                AppDropdownField<String>.fromMapped(
-                  labelText: 'Payment Mode',
-                  mappedItems: controller.paymentModeDropdownItems(),
-                  initialValue: controller.paymentMode,
-                  onChanged: canEdit ? controller.setPaymentMode : (_) {},
-                  validator: Validators.requiredSelection('Payment Mode'),
-                ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Cash / bank ledger',
-                  mappedItems: controller.receiptLedgerOptions
-                      .where((item) => item.id != null)
-                      .map(
-                        (item) => AppDropdownItem(
-                          value: item.id!,
-                          label: item.toString(),
-                        ),
-                      )
-                      .toList(growable: false),
-                  initialValue: controller.accountId,
-                  onChanged: canEdit ? controller.setAccountId : (_) {},
-                  validator: Validators.requiredSelection('Cash / bank ledger'),
-                ),
-                AppFormTextField(
-                  labelText: 'Payment Reference No',
-                  controller: controller.paymentReferenceNoController,
-                  enabled: canEdit,
-                  validator: Validators.optionalMaxLength(
-                    100,
-                    'Payment Reference No',
+                  DocumentSeriesSelector<int>(
+                    labelText: 'Document Series',
+                    mappedItems: controller
+                        .seriesOptions()
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: controller.documentSeriesId,
+                    onChanged: canEdit
+                        ? controller.setDocumentSeriesId
+                        : (_) {},
                   ),
-                ),
-                AppDateField(
-                  labelText: 'Payment Reference Date',
-                  controller: controller.paymentReferenceDateController,
-                  enabled: canEdit,
-                  validator: Validators.optionalDate('Payment Reference Date'),
-                ),
-                AppFormTextField(
-                  labelText: 'Paid Amount',
-                  controller: controller.paidAmountController,
-                  enabled: canEdit,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                  AppFormTextField(
+                    labelText: 'Receipt No',
+                    controller: controller.receiptNoController,
+                    hintText: 'Auto-generated on save',
+                    enabled: canEdit,
+                    validator: Validators.optionalMaxLength(100, 'Receipt No'),
                   ),
-                  validator: Validators.compose([
-                    Validators.required('Paid Amount'),
-                    Validators.optionalNonNegativeNumber('Paid Amount'),
-                  ]),
-                ),
-                AppFormTextField(
-                  labelText: 'Notes',
-                  controller: controller.notesController,
-                  enabled: canEdit,
-                  maxLines: 3,
-                ),
+                  AppDateField(
+                    labelText: 'Receipt Date',
+                    controller: controller.receiptDateController,
+                    enabled: canEdit,
+                    validator: Validators.compose([
+                      Validators.required('Receipt Date'),
+                      Validators.date('Receipt Date'),
+                    ]),
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Customer',
+                    doctypeLabel: 'Customer',
+                    allowCreate: true,
+                    onNavigateToCreateNew: (name) {
+                      final uri = Uri(
+                        path: '/parties',
+                        queryParameters: {
+                          'new': '1',
+                          'party_context': 'customer',
+                          if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                        },
+                      );
+                      final navigate = ShellRouteScope.maybeOf(context);
+                      if (navigate != null) {
+                        navigate(uri.toString());
+                      } else {
+                        Navigator.of(context).pushNamed(uri.toString());
+                      }
+                    },
+                    mappedItems: controller.customers
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: controller.customerPartyId,
+                    onChanged: canEdit ? controller.setCustomerPartyId : (_) {},
+                    validator: Validators.requiredSelection('Customer'),
+                  ),
+                  AppDropdownField<String>.fromMapped(
+                    labelText: 'Payment Mode',
+                    mappedItems: controller.paymentModeDropdownItems(),
+                    initialValue: controller.paymentMode,
+                    onChanged: canEdit ? controller.setPaymentMode : (_) {},
+                    validator: Validators.requiredSelection('Payment Mode'),
+                  ),
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Cash / bank ledger',
+                    mappedItems: controller.receiptLedgerOptions
+                        .where((item) => item.id != null)
+                        .map(
+                          (item) => AppDropdownItem(
+                            value: item.id!,
+                            label: item.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: controller.accountId,
+                    onChanged: canEdit ? controller.setAccountId : (_) {},
+                    validator: Validators.requiredSelection(
+                      'Cash / bank ledger',
+                    ),
+                  ),
+                  AppFormTextField(
+                    labelText: 'Payment Reference No',
+                    controller: controller.paymentReferenceNoController,
+                    enabled: canEdit,
+                    validator: Validators.optionalMaxLength(
+                      100,
+                      'Payment Reference No',
+                    ),
+                  ),
+                  AppDateField(
+                    labelText: 'Payment Reference Date',
+                    controller: controller.paymentReferenceDateController,
+                    enabled: canEdit,
+                    validator: Validators.optionalDate(
+                      'Payment Reference Date',
+                    ),
+                  ),
+                  AppFormTextField(
+                    labelText: 'Paid Amount',
+                    controller: controller.paidAmountController,
+                    enabled: canEdit,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: Validators.compose([
+                      Validators.required('Paid Amount'),
+                      Validators.optionalNonNegativeNumber('Paid Amount'),
+                    ]),
+                  ),
+                  AppFormTextField(
+                    labelText: 'Notes',
+                    controller: controller.notesController,
+                    enabled: canEdit,
+                    maxLines: 3,
+                  ),
                 ],
               ),
             ),

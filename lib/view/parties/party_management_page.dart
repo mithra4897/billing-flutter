@@ -9,6 +9,7 @@ class PartyManagementPage extends StatefulWidget {
     this.startInNewMode = false,
     this.initialPartyId,
     this.initialPartyName,
+    this.initialPartyContext,
   });
 
   final bool embedded;
@@ -16,6 +17,7 @@ class PartyManagementPage extends StatefulWidget {
   final bool startInNewMode;
   final int? initialPartyId;
   final String? initialPartyName;
+  final String? initialPartyContext;
 
   @override
   State<PartyManagementPage> createState() => _PartyManagementPageState();
@@ -190,6 +192,25 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       }
       _controller.update();
       unawaited(_loadPartyAccountsAccess());
+      unawaited(_loadPage(selectId: widget.initialPartyId));
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant PartyManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final createContextChanged =
+        oldWidget.startInNewMode != widget.startInNewMode ||
+        oldWidget.initialPartyId != widget.initialPartyId ||
+        oldWidget.initialPartyName != widget.initialPartyName ||
+        oldWidget.initialPartyContext != widget.initialPartyContext;
+    if (!createContextChanged) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
       unawaited(_loadPage(selectId: widget.initialPartyId));
     });
   }
@@ -373,7 +394,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               (item) => item?.id == selectId,
               orElse: () => null,
             )
-          : (widget.startInNewMode && _selectedParty == null
+          : (widget.startInNewMode
                 ? null
                 : (_selectedParty == null
                       ? (parties.isNotEmpty ? parties.first : null)
@@ -388,12 +409,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
       } else {
         _resetPartyForm();
         _clearDetailTabs();
-        // Pre-fill party name if navigated from a "create new" dropdown action
-        if (widget.initialPartyName != null &&
-            _partyNameController.text.isEmpty) {
-          _partyNameController.text = widget.initialPartyName!;
-          _displayNameController.text = widget.initialPartyName!;
-        }
+        _applyInitialPartyDraftDefaults();
       }
     } catch (error) {
       if (!mounted || requestToken != _listLoadRequestToken) {
@@ -471,6 +487,71 @@ class _PartyManagementPageState extends State<PartyManagementPage>
   bool _supportsGst(int? id) => !_isNonBusinessPartyType(id);
 
   bool _supportsCompanyFlag(int? id) => !_isNonBusinessPartyType(id);
+
+  bool _looksLikeCustomerType(PartyTypeModel type) {
+    final data = type.toJson();
+    final code =
+        (stringValue(data, 'code').isNotEmpty
+                ? stringValue(data, 'code')
+                : stringValue(data, 'type_code'))
+            .trim()
+            .toLowerCase();
+    final name =
+        (stringValue(data, 'name').isNotEmpty
+                ? stringValue(data, 'name')
+                : stringValue(data, 'type_name'))
+            .trim()
+            .toLowerCase();
+    return code.contains('customer') ||
+        code.contains('buyer') ||
+        name.contains('customer') ||
+        name.contains('buyer');
+  }
+
+  bool _looksLikeSupplierType(PartyTypeModel type) {
+    final data = type.toJson();
+    final code =
+        (stringValue(data, 'code').isNotEmpty
+                ? stringValue(data, 'code')
+                : stringValue(data, 'type_code'))
+            .trim()
+            .toLowerCase();
+    final name =
+        (stringValue(data, 'name').isNotEmpty
+                ? stringValue(data, 'name')
+                : stringValue(data, 'type_name'))
+            .trim()
+            .toLowerCase();
+    return code.contains('supplier') ||
+        code.contains('vendor') ||
+        name.contains('supplier') ||
+        name.contains('vendor');
+  }
+
+  int? _defaultPartyTypeIdForContext(String? context) {
+    final normalized = (context ?? '').trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    PartyTypeModel? matched;
+    switch (normalized) {
+      case 'customer':
+        matched = _partyTypes.cast<PartyTypeModel?>().firstWhere(
+          (item) => item != null && _looksLikeCustomerType(item),
+          orElse: () => null,
+        );
+        break;
+      case 'supplier':
+        matched = _partyTypes.cast<PartyTypeModel?>().firstWhere(
+          (item) => item != null && _looksLikeSupplierType(item),
+          orElse: () => null,
+        );
+        break;
+    }
+
+    return intValue(matched?.toJson() ?? const {}, 'id');
+  }
 
   String _partyTypeCode(int? id) {
     if (id == null) {
@@ -617,6 +698,20 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _currencyController.text = 'INR';
     _openingBalanceController.clear();
     _remarksController.clear();
+  }
+
+  void _applyInitialPartyDraftDefaults() {
+    if (widget.initialPartyName != null && _partyNameController.text.isEmpty) {
+      _partyNameController.text = widget.initialPartyName!;
+      _displayNameController.text = widget.initialPartyName!;
+    }
+
+    final initialPartyTypeId = _defaultPartyTypeIdForContext(
+      widget.initialPartyContext,
+    );
+    if (initialPartyTypeId != null && _partyTypeId != initialPartyTypeId) {
+      _onPartyTypeChanged(initialPartyTypeId);
+    }
   }
 
   void _clearDetailTabs() {

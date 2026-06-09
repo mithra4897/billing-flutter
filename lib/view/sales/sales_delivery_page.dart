@@ -205,6 +205,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                       path: '/parties',
                       queryParameters: {
                         'new': '1',
+                        'party_context': 'customer',
                         if (name.trim().isNotEmpty) 'party_name': name.trim(),
                       },
                     );
