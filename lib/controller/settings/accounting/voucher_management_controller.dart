@@ -808,7 +808,7 @@ class VoucherManagementController extends GetxController {
   }
 
   List<VoucherLineModel> buildQuickEntryLines() {
-    final amount = double.tryParse(amountController.text.trim()) ?? 0;
+    final amount = Validators.parseFlexibleNumber(amountController.text) ?? 0;
     final costCenter = nullIfEmpty(costCenterController.text);
     final department = nullIfEmpty(departmentController.text);
     final project = nullIfEmpty(projectController.text);
@@ -856,7 +856,7 @@ class VoucherManagementController extends GetxController {
   double get totalDebit {
     double total = 0;
     for (final line in lines) {
-      final amount = double.tryParse(line.amountText.trim()) ?? 0;
+      final amount = Validators.parseFlexibleNumber(line.amountText) ?? 0;
       if (line.entryType == 'debit') {
         total += amount;
       }
@@ -867,7 +867,7 @@ class VoucherManagementController extends GetxController {
   double get totalCredit {
     double total = 0;
     for (final line in lines) {
-      final amount = double.tryParse(line.amountText.trim()) ?? 0;
+      final amount = Validators.parseFlexibleNumber(line.amountText) ?? 0;
       if (line.entryType == 'credit') {
         total += amount;
       }
@@ -881,7 +881,7 @@ class VoucherManagementController extends GetxController {
     }
 
     if (usesQuickEntry) {
-      final amount = double.tryParse(amountController.text.trim()) ?? 0;
+      final amount = Validators.parseFlexibleNumber(amountController.text) ?? 0;
       if (debitAccountId == null || creditAccountId == null || amount <= 0) {
         formError = 'Complete both accounts and amount for this voucher.';
         update();
@@ -900,8 +900,8 @@ class VoucherManagementController extends GetxController {
         lines.any(
           (line) =>
               line.accountId == null ||
-              double.tryParse(line.amountText.trim()) == null ||
-              (double.tryParse(line.amountText.trim()) ?? 0) <= 0,
+              Validators.parseFlexibleNumber(line.amountText) == null ||
+              (Validators.parseFlexibleNumber(line.amountText) ?? 0) <= 0,
         );
     if (hasInvalidLine) {
       formError = 'Each voucher line needs account and amount.';
@@ -917,7 +917,7 @@ class VoucherManagementController extends GetxController {
                   accountId: line.accountId,
                   partyId: line.partyId,
                   entryType: line.entryType,
-                  amount: double.tryParse(line.amountText.trim()),
+                  amount: Validators.parseFlexibleNumber(line.amountText),
                   costCenter: nullIfEmpty(line.costCenter),
                   department: nullIfEmpty(line.department),
                   project: nullIfEmpty(line.project),

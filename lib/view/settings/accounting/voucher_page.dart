@@ -460,7 +460,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                           'Activity log',
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
-                  ),
+                ),
               ),
             ],
           ],
@@ -737,7 +737,7 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                 Validators.required('Amount'),
                 Validators.optionalNonNegativeNumber('Amount'),
                 (value) {
-                  final parsed = double.tryParse(value?.trim() ?? '');
+                  final parsed = Validators.parseFlexibleNumber(value);
                   if (parsed == null || parsed <= 0) {
                     return 'Amount must be greater than zero';
                   }
@@ -883,7 +883,9 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                           Validators.required('Amount'),
                           Validators.optionalNonNegativeNumber('Amount'),
                           (value) {
-                            final parsed = double.tryParse(value?.trim() ?? '');
+                            final parsed = Validators.parseFlexibleNumber(
+                              value,
+                            );
                             if (parsed == null || parsed <= 0) {
                               return 'Amount must be greater than zero';
                             }
