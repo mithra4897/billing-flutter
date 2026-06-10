@@ -525,7 +525,7 @@ class PurchaseOrderManagementController extends GetxController {
     roundOffController.clear();
     applyRoundOff = false;
     notesController.clear();
-    termsController.clear();
+    termsController.text = documentTermsDefault('purchase_order');
     isActive = true;
     _replaceLines(const <PurchaseOrderLineDraft>[], notify: false);
     formError = null;

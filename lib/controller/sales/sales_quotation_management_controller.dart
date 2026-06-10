@@ -551,7 +551,7 @@ class SalesQuotationManagementController extends GetxController {
     roundOffController.clear();
     applyRoundOff = false;
     notesController.clear();
-    termsController.clear();
+    termsController.text = documentTermsDefault('sales_quotation');
     isActive = true;
     _replaceLines(const <QuotationLineDraft>[], notify: false);
     formError = null;

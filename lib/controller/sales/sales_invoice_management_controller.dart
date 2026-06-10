@@ -1028,7 +1028,10 @@ class SalesInvoiceManagementController extends GetxController {
       nullableStringValue(j, 'customer_reference_date'),
     );
     notesController.text = stringValue(j, 'notes');
-    termsController.text = stringValue(j, 'terms_conditions');
+    termsController.text = documentTermsOrDefault(
+      nullableStringValue(j, 'terms_conditions'),
+      'sales_invoice',
+    );
     dueDateController.text = displayDate(
       nullableStringValue(j, 'expected_delivery_date'),
     );
@@ -1065,7 +1068,10 @@ class SalesInvoiceManagementController extends GetxController {
       nullableStringValue(j, 'customer_reference_date'),
     );
     notesController.text = stringValue(j, 'notes');
-    termsController.text = stringValue(j, 'terms_conditions');
+    termsController.text = documentTermsOrDefault(
+      nullableStringValue(j, 'terms_conditions'),
+      'sales_invoice',
+    );
     dueDateController.text = displayDate(nullableStringValue(j, 'valid_until'));
     final roundOff =
         Validators.parseFlexibleNumber(j['round_off_amount']?.toString()) ?? 0;
@@ -1343,7 +1349,7 @@ class SalesInvoiceManagementController extends GetxController {
           applyInvoiceHeaderFromDeliveryJson(dJson);
           currencyCodeController.text = 'INR';
           exchangeRateController.text = '1';
-          termsController.clear();
+          termsController.text = documentTermsDefault('sales_invoice');
           customerRefNoController.clear();
           customerRefDateController.clear();
         }
@@ -2135,7 +2141,7 @@ class SalesInvoiceManagementController extends GetxController {
       adjustmentRemarksController.clear();
       adjustmentAccountId = null;
       notesController.clear();
-      termsController.clear();
+      termsController.text = documentTermsDefault('sales_invoice');
       isActive = true;
       lines = <InvoiceLineDraft>[InvoiceLineDraft()];
       formError = null;

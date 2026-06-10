@@ -64,6 +64,7 @@ export 'helper/string_extensions.dart';
 export 'helper/getx_page_state.dart';
 export 'helper/disposable_draft_list.dart';
 export 'helper/date_value_helper.dart';
+export 'helper/document_terms_defaults.dart';
 export 'helper/document_type_dropdown_helper.dart';
 export 'helper/reload_selected_row_helper.dart';
 export 'helper/status_color_helper.dart';

@@ -957,7 +957,7 @@ class SalesDeliveryManagementController extends GetxController {
     roundOffController.clear();
     applyRoundOff = false;
     notesController.clear();
-    termsController.clear();
+    termsController.text = documentTermsDefault('sales_delivery');
     isActive = true;
     _replaceLines(const <SalesDeliveryLineDraft>[], notify: false);
     _replaceReturnableDcs(
@@ -1075,7 +1075,10 @@ class SalesDeliveryManagementController extends GetxController {
         (Validators.parseFlexibleNumber(roundOffController.text.trim()) ?? 0) !=
         0;
     notesController.text = stringValue(data, 'notes');
-    termsController.text = stringValue(data, 'terms_conditions');
+    termsController.text = documentTermsOrDefault(
+      nullableStringValue(data, 'terms_conditions'),
+      'sales_delivery',
+    );
   }
 
   double deliverySubTotal() {

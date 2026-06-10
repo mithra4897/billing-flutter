@@ -684,7 +684,10 @@ class SalesOrderManagementController extends GetxController {
       exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
       roundOffController.clear();
       notesController.text = stringValue(data, 'notes');
-      termsController.text = stringValue(data, 'terms_conditions');
+      termsController.text = documentTermsOrDefault(
+        nullableStringValue(data, 'terms_conditions'),
+        'sales_order',
+      );
       isActive = true;
       _replaceLines(nextLines, notify: false);
       formError = null;
@@ -780,7 +783,7 @@ class SalesOrderManagementController extends GetxController {
     roundOffController.clear();
     applyRoundOff = false;
     notesController.clear();
-    termsController.clear();
+    termsController.text = documentTermsDefault('sales_order');
     isActive = true;
     _replaceLines(const <OrderLineDraft>[], notify: false);
     formError = null;
