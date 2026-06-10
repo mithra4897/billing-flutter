@@ -3,9 +3,9 @@ String documentTermsDefault(String documentType) {
     case 'sales_quotation':
     case 'sales_order':
       return '''
-1. Prototypes works doesn't cover any warranty
-2. Products damaged will not be covered under the warranty, its carries warranty if specified in description
-3. Subject to Vellore Jurisdiction.
+1. Prototype works do not carry any warranty.
+2. Damaged products are not covered under warranty. Warranty applies only if it is specified in the description.
+3. Subject to Vellore jurisdiction.
 ''';
     case 'sales_invoice':
       return '''
@@ -20,11 +20,11 @@ String documentTermsDefault(String documentType) {
       return '''
 Payment Terms :
 1. Payment will be made 45 days after the successful delivery of the magnetic relay.
-2. Any invoice discrepancies should be resolved before payment processing.
-3. Payment will be made via NEFT as per standard company policy
+2. Any invoice discrepancies must be resolved before payment processing.
+3. Payment will be made via NEFT as per standard company policy.
 
 Delivery Terms :
-1. Delivery must be made inside our office premises at as in shipping location.
+1. Delivery must be made inside our office premises as specified in the shipping location.
 2. The supplier must ensure safe and damage-free delivery.
 3. The delivery timeline should be 5 days from the date of order confirmation.
 4. Any delays beyond the agreed delivery date must be communicated in advance.

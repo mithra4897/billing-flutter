@@ -732,10 +732,7 @@ class SalesOrderManagementController extends GetxController {
       exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
       roundOffController.clear();
       notesController.text = stringValue(data, 'notes');
-      termsController.text = documentTermsOrDefault(
-        nullableStringValue(data, 'terms_conditions'),
-        'sales_order',
-      );
+      termsController.text = documentTermsDefault('sales_order');
       isActive = true;
       _replaceLines(nextLines, notify: false);
       formError = null;

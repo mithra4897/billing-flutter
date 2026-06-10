@@ -1030,10 +1030,7 @@ class SalesInvoiceManagementController extends GetxController {
       nullableStringValue(j, 'customer_reference_date'),
     );
     notesController.text = stringValue(j, 'notes');
-    termsController.text = documentTermsOrDefault(
-      nullableStringValue(j, 'terms_conditions'),
-      'sales_invoice',
-    );
+    termsController.text = documentTermsDefault('sales_invoice');
     dueDateController.text = displayDate(
       nullableStringValue(j, 'expected_delivery_date'),
     );
@@ -1070,10 +1067,7 @@ class SalesInvoiceManagementController extends GetxController {
       nullableStringValue(j, 'customer_reference_date'),
     );
     notesController.text = stringValue(j, 'notes');
-    termsController.text = documentTermsOrDefault(
-      nullableStringValue(j, 'terms_conditions'),
-      'sales_invoice',
-    );
+    termsController.text = documentTermsDefault('sales_invoice');
     dueDateController.text = displayDate(nullableStringValue(j, 'valid_until'));
     final roundOff =
         Validators.parseFlexibleNumber(j['round_off_amount']?.toString()) ?? 0;

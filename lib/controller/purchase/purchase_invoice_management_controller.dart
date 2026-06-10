@@ -1061,7 +1061,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     notesController.text = receipt.notes?.trim().isNotEmpty == true
         ? receipt.notes!
         : stringValue(receiptOrderData, 'notes');
-    termsController.text = stringValue(receiptOrderData, 'terms_conditions');
+    termsController.clear();
     lines = nextLines;
     formError = nextLines.length == 1 && nextLines.first.itemId == 0
         ? 'Selected purchase receipt has no pending invoice quantity.'
@@ -1118,7 +1118,7 @@ class PurchaseInvoiceManagementController extends GetxController {
         : roundOffAmount.toString();
     applyRoundOff = roundOffAmount != 0;
     notesController.text = stringValue(data, 'notes');
-    termsController.text = stringValue(data, 'terms_conditions');
+    termsController.clear();
     lines = nextLines;
     formError = nextLines.length == 1 && nextLines.first.itemId == 0
         ? 'Selected purchase order has no pending invoice quantity.'
