@@ -4,6 +4,10 @@ import 'purchase_module_refresh_controller.dart';
 class PurchaseReturnLineDraft {
   PurchaseReturnLineDraft({
     this.purchaseInvoiceLineId,
+    this.taxCodeId,
+    this.taxPercent,
+    this.taxType,
+    this.discountPercent,
     String? itemName,
     String? warehouseName,
     String? uomName,
@@ -34,6 +38,14 @@ class PurchaseReturnLineDraft {
   factory PurchaseReturnLineDraft.fromJson(Map<String, dynamic> json) {
     final draft = PurchaseReturnLineDraft(
       purchaseInvoiceLineId: intValue(json, 'purchase_invoice_line_id'),
+      taxCodeId: intValue(json, 'tax_code_id'),
+      taxPercent: Validators.parseFlexibleNumber(
+        json['tax_percent']?.toString(),
+      ),
+      taxType: stringValue(json, 'tax_type'),
+      discountPercent: Validators.parseFlexibleNumber(
+        json['discount_percent']?.toString(),
+      ),
       returnQty: stringValue(json, 'return_qty'),
       rate: stringValue(json, 'rate'),
       returnReason: stringValue(json, 'return_reason'),
@@ -49,6 +61,10 @@ class PurchaseReturnLineDraft {
   int? itemId;
   int? warehouseId;
   int? uomId;
+  int? taxCodeId;
+  double? taxPercent;
+  String? taxType;
+  double? discountPercent;
   final TextEditingController itemNameController;
   final TextEditingController warehouseNameController;
   final TextEditingController uomNameController;
@@ -63,6 +79,10 @@ class PurchaseReturnLineDraft {
     itemId = line?.itemId;
     warehouseId = line?.warehouseId;
     uomId = line?.uomId;
+    taxCodeId = line?.taxCodeId;
+    taxPercent = line?.taxPercent;
+    taxType = line?.taxType;
+    discountPercent = line?.discountPercent;
     itemNameController.text = '';
     warehouseNameController.text = '';
     uomNameController.text = '';
@@ -77,6 +97,10 @@ class PurchaseReturnLineDraft {
       'item_id': itemId,
       'warehouse_id': warehouseId,
       'uom_id': uomId,
+      if (taxCodeId != null) 'tax_code_id': taxCodeId,
+      if (taxPercent != null) 'tax_percent': taxPercent,
+      if (taxType != null) 'tax_type': taxType,
+      if (discountPercent != null) 'discount_percent': discountPercent,
       'return_qty':
           Validators.parseFlexibleNumber(returnQtyController.text) ?? 0,
       'rate': Validators.parseFlexibleNumber(rateController.text) ?? 0,

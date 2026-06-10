@@ -189,7 +189,9 @@ class SalesReturnManagementController extends GetxController {
 
   final SalesService _salesService = SalesService();
   final MasterService _masterService = MasterService();
+  final PartiesService _partiesService = PartiesService();
   final InventoryService _inventoryService = InventoryService();
+  final TaxesService _taxesService = TaxesService();
   final SalesModuleRefreshController _refreshController =
       SalesModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
@@ -212,15 +214,22 @@ class SalesReturnManagementController extends GetxController {
   String statusFilter = '';
   List<SalesReturnModel> items = const <SalesReturnModel>[];
   List<SalesReturnModel> filteredItems = const <SalesReturnModel>[];
+  List<CompanyModel> companies = const <CompanyModel>[];
+  List<BusinessLocationModel> locations = const <BusinessLocationModel>[];
   List<FinancialYearModel> financialYears = const <FinancialYearModel>[];
   List<DocumentSeriesModel> documentSeries = const <DocumentSeriesModel>[];
   List<SalesInvoiceModel> invoices = const <SalesInvoiceModel>[];
   List<SalesInvoiceLineModel> invoiceLines = const <SalesInvoiceLineModel>[];
+  final Map<int, PartyModel> customerDetailsById = <int, PartyModel>{};
+  final Map<int, List<PartyGstDetailModel>> customerGstDetailsById =
+      <int, List<PartyGstDetailModel>>{};
   List<ItemModel> itemsLookup = const <ItemModel>[];
   List<UomModel> uoms = const <UomModel>[];
   List<WarehouseModel> warehouses = const <WarehouseModel>[];
   List<TaxCodeModel> taxCodes = const <TaxCodeModel>[];
+  List<GstRegistrationModel> gstRegistrations = const <GstRegistrationModel>[];
   SalesReturnModel? selectedItem;
+  SalesInvoiceModel? selectedInvoiceDetail;
   int? contextCompanyId;
   int? contextBranchId;
   int? contextLocationId;
@@ -237,6 +246,7 @@ class SalesReturnManagementController extends GetxController {
   List<SalesReturnLineDraft> lines = <SalesReturnLineDraft>[];
 
   bool _initialized = false;
+  bool get mounted => !isClosed;
 
   @override
   void onInit() {
@@ -316,6 +326,9 @@ class SalesReturnManagementController extends GetxController {
         _inventoryService.taxCodes(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
+        _taxesService.gstRegistrationsAll(
+          filters: const {'is_active': 1, 'sort_by': 'id'},
+        ),
       ]);
 
       final contextSelection = await WorkingContextService.instance
@@ -346,6 +359,12 @@ class SalesReturnManagementController extends GetxController {
       items =
           (responses[0] as PaginatedResponse<SalesReturnModel>).data ??
           const <SalesReturnModel>[];
+      companies =
+          (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          const <CompanyModel>[];
+      locations =
+          (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+          const <BusinessLocationModel>[];
       financialYears =
           (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
@@ -377,6 +396,9 @@ class SalesReturnManagementController extends GetxController {
                   const <TaxCodeModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
+      gstRegistrations =
+          (responses[11] as ApiResponse<List<GstRegistrationModel>>).data ??
+          const <GstRegistrationModel>[];
       contextCompanyId = contextSelection.companyId;
       contextBranchId = contextSelection.branchId;
       contextLocationId = contextSelection.locationId;
@@ -436,6 +458,7 @@ class SalesReturnManagementController extends GetxController {
     final invoiceResponse = invoiceId == null
         ? null
         : await _salesService.invoice(invoiceId);
+    selectedInvoiceDetail = invoiceResponse?.data;
     selectedItem = full;
     companyId = intValue(data, 'company_id');
     branchId = intValue(data, 'branch_id');
@@ -463,6 +486,7 @@ class SalesReturnManagementController extends GetxController {
     _replaceLines(nextLines, notify: false);
     formError = null;
     _syncLineDisplayNames();
+    unawaited(ensureCustomerTaxContext(customerPartyId));
     if (notify) {
       update();
     }
@@ -478,6 +502,7 @@ class SalesReturnManagementController extends GetxController {
     documentSeriesId = series.isNotEmpty ? series.first.id : null;
     salesInvoiceId = null;
     customerPartyId = null;
+    selectedInvoiceDetail = null;
     returnNoController.clear();
     returnDateController.text = DateTime.now()
         .toIso8601String()
@@ -634,6 +659,7 @@ class SalesReturnManagementController extends GetxController {
   Future<void> handleInvoiceChanged(int? value) async {
     salesInvoiceId = value;
     customerPartyId = null;
+    selectedInvoiceDetail = null;
     invoiceLines = const <SalesInvoiceLineModel>[];
     _replaceLines(const <SalesReturnLineDraft>[], notify: false);
     update();
@@ -642,6 +668,7 @@ class SalesReturnManagementController extends GetxController {
     }
     final response = await _salesService.invoice(value);
     final invoice = response.data;
+    selectedInvoiceDetail = invoice;
     customerPartyId = invoice?.customerPartyId;
     invoiceLines = invoice?.lines ?? const <SalesInvoiceLineModel>[];
     _replaceLines(
@@ -653,6 +680,7 @@ class SalesReturnManagementController extends GetxController {
       notify: false,
     );
     _syncLineDisplayNames();
+    unawaited(ensureCustomerTaxContext(customerPartyId));
     update();
   }
 
@@ -707,8 +735,102 @@ class SalesReturnManagementController extends GetxController {
       .cast<SalesInvoiceModel?>()
       .firstWhere((item) => item?.id == salesInvoiceId, orElse: () => null);
 
+  SalesInvoiceModel? get invoiceForTaxContext =>
+      selectedInvoiceDetail ?? selectedInvoice;
+
+  PartyModel? customerListEntryById(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return customerDetailsById[partyId];
+  }
+
+  PartyModel? customerForTaxContext(int? partyId) {
+    if (partyId == null) {
+      return null;
+    }
+    return customerDetailsById[partyId] ?? customerListEntryById(partyId);
+  }
+
+  String? resolveCompanyStateCodeForSummary() {
+    return resolveCompanyStateCodeForGstSummary(
+      gstRegistrations: gstRegistrations,
+      locations: locations,
+      companies: companies,
+      companyId: companyId,
+      branchId: branchId,
+      locationId: locationId,
+    );
+  }
+
+  String? resolveCustomerStateCodeForSummary() {
+    final invoice = invoiceForTaxContext;
+    final customer = customerForTaxContext(customerPartyId);
+    return resolvePartyStateCodeForGstSummary(
+      party: customer,
+      gstDetails:
+          customerGstDetailsById[customerPartyId] ??
+          customer?.gstDetails ??
+          const <PartyGstDetailModel>[],
+      shippingAddressId: invoice?.shippingAddressId,
+      billingAddressId: invoice?.billingAddressId,
+      preferredAddressType: 'shipping',
+    );
+  }
+
+  bool? isInterStateForSummary() {
+    return resolveIsInterStateForGstSummary(
+      companyStateCode: resolveCompanyStateCodeForSummary(),
+      counterpartyStateCode: resolveCustomerStateCodeForSummary(),
+    );
+  }
+
+  Future<void> ensureCustomerTaxContext(int? partyId) async {
+    if (partyId == null) {
+      return;
+    }
+    try {
+      final responses = await Future.wait<dynamic>([
+        _partiesService.party(partyId),
+        _partiesService.partyAddresses(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyContacts(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+        _partiesService.partyGstDetails(
+          partyId,
+          filters: const <String, dynamic>{'per_page': 100},
+        ),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      final party = (responses[0] as ApiResponse<PartyModel>).data;
+      if (party != null) {
+        customerDetailsById[partyId] = party.copyWith(
+          addresses:
+              (responses[1] as PaginatedResponse<PartyAddressModel>).data ??
+              party.addresses,
+          contacts:
+              (responses[2] as PaginatedResponse<PartyContactModel>).data ??
+              party.contacts,
+          gstDetails:
+              (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+              party.gstDetails,
+        );
+      }
+      customerGstDetailsById[partyId] =
+          (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+          const <PartyGstDetailModel>[];
+      update();
+    } catch (_) {}
+  }
+
   String get currencyCodeForTaxSummary {
-    final currency = selectedInvoice?.currencyCode?.trim() ?? '';
+    final currency = invoiceForTaxContext?.currencyCode?.trim() ?? '';
     return currency.isEmpty ? 'INR' : currency;
   }
 
@@ -718,6 +840,7 @@ class SalesReturnManagementController extends GetxController {
       rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
       discountPercent: line.discountPercent ?? 0,
       taxCode: salesTaxCodeById(taxCodes, line.taxCodeId),
+      isInterState: isInterStateForSummary(),
       taxPercent: line.taxPercent,
       taxType: line.taxType,
     );
