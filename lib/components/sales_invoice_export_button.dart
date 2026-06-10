@@ -295,14 +295,17 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     Map<String, dynamic> invoice,
     Map<String, dynamic> customer,
   ) {
+    final preferredGstDetail = _preferredGstDetail(invoice, customer);
     return _firstNonEmpty(<String?>[
       nullableStringValue(_preferredAddress(invoice, customer), 'gstin'),
+      nullableStringValue(preferredGstDetail, 'gstin'),
       nullableStringValue(invoice, 'party_gstin'),
       nullableStringValue(invoice, 'customer_gstin'),
       nullableStringValue(invoice, 'gstin'),
       nullableStringValue(customer, 'gstin'),
       nullableStringValue(customer, 'party_gstin'),
       nullableStringValue(customer, 'gst_no'),
+      nullableStringValue(customer, 'customer_gstin'),
     ]).toUpperCase();
   }
 
@@ -312,8 +315,10 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     String gstin,
   ) {
     final preferredAddress = _preferredAddress(invoice, customer);
+    final preferredGstDetail = _preferredGstDetail(invoice, customer);
     final state = _firstNonEmpty(<String?>[
       nullableStringValue(preferredAddress, 'state_name'),
+      nullableStringValue(preferredGstDetail, 'state_name'),
       nullableStringValue(invoice, 'state_name'),
       nullableStringValue(customer, 'state_name'),
     ]);
@@ -329,6 +334,8 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
   ) {
     final company = _asMap(invoice['company']);
     final location = _asMap(invoice['location']);
+    final customer = _asMap(invoice['customer']);
+    final preferredGstDetail = _preferredGstDetail(invoice, customer);
     final companyCode = _firstNonEmpty(<String?>[
       nullableStringValue(location, 'state_code'),
       nullableStringValue(company, 'state_code'),
@@ -336,11 +343,12 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     ]);
     final customerCode = _firstNonEmpty(<String?>[
       nullableStringValue(
-        _preferredAddress(invoice, _asMap(invoice['customer'])),
+        _preferredAddress(invoice, customer),
         'state_code',
       ),
+      nullableStringValue(preferredGstDetail, 'state_code'),
       nullableStringValue(invoice, 'state_code'),
-      nullableStringValue(_asMap(invoice['customer']), 'state_code'),
+      nullableStringValue(customer, 'state_code'),
       _gstStateFromGstin(customerGstin),
     ]);
     if (companyCode.isEmpty || customerCode.isEmpty) {
@@ -368,6 +376,43 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       'addresses',
       'party_addresses',
       'customer_addresses',
+    ]) {
+      final values = _asListOfMaps(customer[key]);
+      if (values.isNotEmpty) {
+        final active = values.where((item) => item['is_active'] != false);
+        for (final candidate in active) {
+          if (candidate['is_default'] == true) {
+            return candidate;
+          }
+        }
+        return active.isNotEmpty ? active.first : values.first;
+      }
+    }
+
+    return const <String, dynamic>{};
+  }
+
+  Map<String, dynamic> _preferredGstDetail(
+    Map<String, dynamic> invoice,
+    Map<String, dynamic> customer,
+  ) {
+    for (final key in <String>[
+      'gst_detail',
+      'gst_details',
+      'party_gst_details',
+      'customer_gst_details',
+    ]) {
+      final nested = _asMap(invoice[key]);
+      if (nested.isNotEmpty) {
+        return nested;
+      }
+    }
+
+    for (final key in <String>[
+      'gst_details',
+      'gstDetails',
+      'party_gst_details',
+      'customer_gst_details',
     ]) {
       final values = _asListOfMaps(customer[key]);
       if (values.isNotEmpty) {
