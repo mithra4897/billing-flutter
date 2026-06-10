@@ -56,19 +56,38 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     });
 
     try {
-      final invoiceDetails = await _loadInvoiceDetails(widget.invoices);
-      final workbook = _buildWorkbook(invoiceDetails);
+      final exportData = await _loadInvoiceDetails(widget.invoices);
+      if (exportData.invoiceDetails.isEmpty) {
+        final reason = exportData.failures.isNotEmpty
+            ? exportData.failures.first.error
+            : 'No invoice details were available.';
+        throw reason;
+      }
+      final workbook = _buildWorkbook(exportData.invoiceDetails);
       final saved = await saveBytesFile(
         suggestedName: _suggestedFileName(),
         bytes: workbook,
         mimeType:
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
-      _showMessage(
-        saved
-            ? 'Sales invoices exported successfully.'
-            : 'Sales invoice export cancelled.',
-      );
+      if (saved) {
+        final failures = exportData.failures;
+        if (failures.isEmpty) {
+          _showMessage('Sales invoices exported successfully.');
+        } else {
+          final labels = failures
+              .take(3)
+              .map((failure) => failure.label)
+              .where((label) => label.isNotEmpty)
+              .join(', ');
+          final suffix = failures.length > 3 ? ' and more' : '';
+          _showMessage(
+            'Sales invoices exported with ${failures.length} skipped: $labels$suffix.',
+          );
+        }
+      } else {
+        _showMessage('Sales invoice export cancelled.');
+      }
     } catch (error) {
       _showMessage('Sales invoice export failed: $error');
     } finally {
@@ -80,19 +99,41 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _loadInvoiceDetails(
+  Future<_InvoiceExportLoadResult> _loadInvoiceDetails(
     List<SalesInvoiceModel> invoices,
   ) async {
-    final details = await Future.wait(
-      invoices.where((invoice) => (invoice.id ?? 0) > 0).map((invoice) async {
-        final response = await _salesService.client.get<Map<String, dynamic>>(
-          '${ApiEndpoints.salesInvoices}/${invoice.id ?? 0}',
-          fromData: (json) => Map<String, dynamic>.from(json as Map),
-        );
-        return response.data;
-      }),
+    final invoiceIds = invoices
+        .map((invoice) => invoice.id ?? 0)
+        .where((id) => id > 0)
+        .toList(growable: false);
+    if (invoiceIds.isEmpty) {
+      return const _InvoiceExportLoadResult(
+        invoiceDetails: <Map<String, dynamic>>[],
+        failures: <_InvoiceExportFailure>[],
+      );
+    }
+
+    final response = await _salesService.invoiceExportData(invoiceIds);
+    final details = response.data ?? const <Map<String, dynamic>>[];
+    final returnedIds = details
+        .map((item) => intValue(item, 'id') ?? 0)
+        .where((id) => id > 0)
+        .toSet();
+    final failures = invoices
+        .where((invoice) => (invoice.id ?? 0) > 0)
+        .where((invoice) => !returnedIds.contains(invoice.id ?? 0))
+        .map(
+          (invoice) => _InvoiceExportFailure(
+            label: _invoiceLabel(invoice),
+            error: 'Invoice details were not returned by the export service.',
+          ),
+        )
+        .toList(growable: false);
+
+    return _InvoiceExportLoadResult(
+      invoiceDetails: details,
+      failures: failures,
     );
-    return details.whereType<Map<String, dynamic>>().toList(growable: false);
   }
 
   void _showMessage(String message) {
@@ -109,6 +150,15 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     final time =
         '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
     return 'sales_invoices_${date}_$time.xlsx';
+  }
+
+  String _invoiceLabel(SalesInvoiceModel invoice) {
+    final invoiceNo = invoice.invoiceNo?.trim() ?? '';
+    if (invoiceNo.isNotEmpty) {
+      return invoiceNo;
+    }
+    final id = invoice.id ?? 0;
+    return id > 0 ? 'Invoice #$id' : 'Invoice';
   }
 
   Uint8List _buildWorkbook(List<Map<String, dynamic>> invoiceDetails) {
@@ -342,10 +392,7 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
       _gstStateFromGstin(nullableStringValue(company, 'gstin')),
     ]);
     final customerCode = _firstNonEmpty(<String?>[
-      nullableStringValue(
-        _preferredAddress(invoice, customer),
-        'state_code',
-      ),
+      nullableStringValue(_preferredAddress(invoice, customer), 'state_code'),
       nullableStringValue(preferredGstDetail, 'state_code'),
       nullableStringValue(invoice, 'state_code'),
       nullableStringValue(customer, 'state_code'),
@@ -758,6 +805,23 @@ class _SalesInvoiceExportButtonState extends State<SalesInvoiceExportButton> {
     }
     return buffer.toString().split('').reversed.join();
   }
+}
+
+class _InvoiceExportLoadResult {
+  const _InvoiceExportLoadResult({
+    required this.invoiceDetails,
+    required this.failures,
+  });
+
+  final List<Map<String, dynamic>> invoiceDetails;
+  final List<_InvoiceExportFailure> failures;
+}
+
+class _InvoiceExportFailure {
+  const _InvoiceExportFailure({required this.label, required this.error});
+
+  final String label;
+  final String error;
 }
 
 class _ExcelCell {
