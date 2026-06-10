@@ -1253,25 +1253,31 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
                       .toList(growable: false),
                   onChanged: controller.setLeadId,
                 ),
-                AppSearchPickerField<int>(
+                AppDropdownField<int>.fromMapped(
                   labelText: 'Customer',
-                  selectedLabel: controller.customers
-                      .cast<PartyModel?>()
-                      .firstWhere(
-                        (item) => item?.id == controller.customerPartyId,
-                        orElse: () => null,
-                      )
-                      ?.toString(),
-                  options: controller.customers
+                  doctypeLabel: 'Customer',
+                  allowCreate: true,
+                  onNavigateToCreateNew: (name) {
+                    final uri = Uri(
+                      path: '/parties',
+                      queryParameters: {
+                        'new': '1',
+                        'party_context': 'customer',
+                        if (name.trim().isNotEmpty) 'party_name': name.trim(),
+                      },
+                    );
+                    openModuleShellRoute(context, uri.toString());
+                  },
+                  mappedItems: controller.customers
                       .where((item) => item.id != null)
                       .map(
-                        (item) => AppSearchPickerOption<int>(
+                        (item) => AppDropdownItem(
                           value: item.id!,
                           label: item.toString(),
-                          subtitle: item.partyCode,
                         ),
                       )
                       .toList(growable: false),
+                  initialValue: controller.customerPartyId,
                   onChanged: controller.setCustomerPartyId,
                 ),
                 AppDropdownField<int>.fromMapped(
