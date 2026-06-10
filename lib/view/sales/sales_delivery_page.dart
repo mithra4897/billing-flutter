@@ -147,7 +147,7 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       return AppErrorStateView(
         title: 'Unable to load sales deliveries',
         message: controller.pageError!,
-        onRetry: controller.loadPage,
+        onRetry: controller.reloadLastRequestedPage,
       );
     }
     return SettingsWorkspace(

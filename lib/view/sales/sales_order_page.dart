@@ -180,7 +180,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       return AppErrorStateView(
         title: 'Unable to load orders',
         message: controller.pageError!,
-        onRetry: controller.loadPage,
+        onRetry: controller.reloadLastRequestedPage,
       );
     }
 

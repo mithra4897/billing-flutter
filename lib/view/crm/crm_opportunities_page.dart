@@ -1833,18 +1833,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     if (orderId != null) {
       return '/sales/invoices/new?order_id=$orderId';
     }
-    final quotations = controller.salesChain?['quotations'];
-    if (quotations is! List || quotations.isEmpty) {
-      return null;
-    }
-    final first = quotations.first;
-    if (first is! Map) {
-      return null;
-    }
-    final quotationId = intValue(Map<String, dynamic>.from(first), 'id');
-    return quotationId == null
-        ? null
-        : '/sales/invoices/new?quotation_id=$quotationId';
+    return null;
   }
 
   Future<void> _confirmRemoveChild(

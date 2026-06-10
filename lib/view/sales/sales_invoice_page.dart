@@ -172,7 +172,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       return AppErrorStateView(
         title: 'Unable to load invoices',
         message: controller.pageError!,
-        onRetry: controller.loadPage,
+        onRetry: controller.reloadLastRequestedPage,
       );
     }
 

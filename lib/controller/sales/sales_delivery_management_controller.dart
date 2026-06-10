@@ -209,6 +209,9 @@ class SalesDeliveryManagementController extends GetxController {
       <SalesDeliveryReturnableDcDraft>[];
 
   bool _initialized = false;
+  int? _lastRequestedSelectId;
+  int? _lastRequestedOrderId;
+  bool _lastRequestedEditorOnly = false;
 
   String get deliveryKindLabel =>
       deliveryKind == 'rdc' ? 'Returnable DC' : 'DC';
@@ -263,10 +266,16 @@ class SalesDeliveryManagementController extends GetxController {
     );
   }
 
-  Future<void> _handleWorkingContextChanged() async {
-    await loadPage(
-      selectId: intValue(selectedItem?.toJson() ?? const {}, 'id'),
+  Future<void> reloadLastRequestedPage() {
+    return loadPage(
+      selectId: _lastRequestedSelectId,
+      initialOrderId: _lastRequestedOrderId,
+      editorOnly: _lastRequestedEditorOnly,
     );
+  }
+
+  Future<void> _handleWorkingContextChanged() async {
+    await reloadLastRequestedPage();
   }
 
   bool get mounted => !isClosed;
@@ -685,14 +694,32 @@ class SalesDeliveryManagementController extends GetxController {
     int? initialOrderId,
     bool editorOnly = false,
   }) async {
+    _lastRequestedSelectId = selectId;
+    _lastRequestedOrderId = initialOrderId;
+    _lastRequestedEditorOnly = editorOnly;
     initialLoading = items.isEmpty;
     pageError = null;
     update();
     try {
+      final deliveryFilters = <String, dynamic>{
+        'per_page': 200,
+        'sort_by': 'delivery_date',
+      };
+      if (editorOnly && initialOrderId != null) {
+        deliveryFilters['sales_order_id'] = initialOrderId;
+      }
+      ApiResponse<List<SalesDeliveryModel>>? deliveriesResponse;
+      try {
+        deliveriesResponse = await _salesService.deliveriesAll(
+          filters: deliveryFilters,
+        );
+      } catch (error) {
+        if (!(editorOnly && selectId == null && initialOrderId != null)) {
+          rethrow;
+        }
+      }
+
       final responses = await Future.wait<dynamic>([
-        _salesService.deliveriesAll(
-          filters: const {'per_page': 200, 'sort_by': 'delivery_date'},
-        ),
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
@@ -736,51 +763,51 @@ class SalesDeliveryManagementController extends GetxController {
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                ((responses[0] as PaginatedResponse<CompanyModel>).data ??
                         const <CompanyModel>[])
                     .where((item) => item.isActive)
                     .toList(growable: false),
             branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                ((responses[1] as PaginatedResponse<BranchModel>).data ??
                         const <BranchModel>[])
                     .where((item) => item.isActive)
                     .toList(growable: false),
             locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
+                ((responses[2] as PaginatedResponse<BusinessLocationModel>)
                             .data ??
                         const <BusinessLocationModel>[])
                     .where((item) => item.isActive)
                     .toList(growable: false),
             financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+                ((responses[3] as PaginatedResponse<FinancialYearModel>).data ??
                         const <FinancialYearModel>[])
                     .where((item) => item.isActive)
                     .toList(growable: false),
           );
       items =
-          (responses[0] as ApiResponse<List<SalesDeliveryModel>>).data ??
+          deliveriesResponse?.data ??
           const <SalesDeliveryModel>[];
       companies =
-          (responses[1] as PaginatedResponse<CompanyModel>).data ??
+          (responses[0] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
       financialYears =
-          (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+          (responses[3] as PaginatedResponse<FinancialYearModel>).data ??
           const <FinancialYearModel>[];
       documentSeries =
-          ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
+          ((responses[4] as PaginatedResponse<DocumentSeriesModel>).data ??
                   const <DocumentSeriesModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       orders =
-          (responses[6] as ApiResponse<List<SalesOrderModel>>).data ??
+          (responses[5] as ApiResponse<List<SalesOrderModel>>).data ??
           const <SalesOrderModel>[];
       allParties =
-          (responses[8] as PaginatedResponse<PartyModel>).data ??
+          (responses[7] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
       customers = salesCustomersOrFallback(
         parties: allParties,
         partyTypes:
-            (responses[7] as PaginatedResponse<PartyTypeModel>).data ??
+            (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
             const <PartyTypeModel>[],
       );
       customerDetailsById
@@ -791,17 +818,17 @@ class SalesDeliveryManagementController extends GetxController {
               .map((item) => MapEntry(item.id!, item)),
         );
       warehouses =
-          ((responses[9] as PaginatedResponse<WarehouseModel>).data ??
+          ((responses[8] as PaginatedResponse<WarehouseModel>).data ??
                   const <WarehouseModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       itemsLookup =
-          ((responses[10] as PaginatedResponse<ItemModel>).data ??
+          ((responses[9] as PaginatedResponse<ItemModel>).data ??
                   const <ItemModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       itemPrices =
-          ((responses[11] as PaginatedResponse<ItemPriceModel>).data ??
+          ((responses[10] as PaginatedResponse<ItemPriceModel>).data ??
                   const <ItemPriceModel>[])
               .where((price) => price.isActive)
               .toList(growable: false);
@@ -813,12 +840,12 @@ class SalesDeliveryManagementController extends GetxController {
               .map((item) => MapEntry(item.id!, item)),
         );
       uoms =
-          ((responses[12] as PaginatedResponse<UomModel>).data ??
+          ((responses[11] as PaginatedResponse<UomModel>).data ??
                   const <UomModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
       uomConversions =
-          ((responses[13] as ApiResponse<List<UomConversionModel>>).data ??
+          ((responses[12] as ApiResponse<List<UomConversionModel>>).data ??
                   const <UomConversionModel>[])
               .where((item) => item.isActive)
               .toList(growable: false);
@@ -838,6 +865,18 @@ class SalesDeliveryManagementController extends GetxController {
                 : (selectedItem == null
                       ? (items.isNotEmpty ? items.first : null)
                       : null));
+      final existingDeliveryFromOrder =
+          selectId == null && initialOrderId != null
+          ? items.cast<SalesDeliveryModel?>().firstWhere(
+              (item) =>
+                  intValue(
+                    item?.toJson() ?? const <String, dynamic>{},
+                    'sales_order_id',
+                  ) ==
+                  initialOrderId,
+              orElse: () => null,
+            )
+          : null;
       if (selected == null && selectId != null) {
         try {
           final detail = (await _salesService.delivery(selectId)).data;
@@ -850,6 +889,8 @@ class SalesDeliveryManagementController extends GetxController {
       }
       if (selected != null) {
         await selectDocument(selected, notify: false);
+      } else if (existingDeliveryFromOrder != null) {
+        await selectDocument(existingDeliveryFromOrder, notify: false);
       } else {
         resetForm(notify: false);
         if (initialOrderId != null && editorOnly) {

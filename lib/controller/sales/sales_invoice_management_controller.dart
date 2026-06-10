@@ -280,9 +280,11 @@ class SalesInvoiceManagementController extends GetxController {
 
     final nextLines = List<InvoiceLineDraft>.from(lines);
     nextLines.removeAt(lineIndex);
-    line.dispose();
     nextLines.insertAll(lineIndex, replacements);
-    lines = nextLines;
+    _replaceInvoiceLines(nextLines);
+    disposeDraftEntriesNextFrame<InvoiceLineDraft>([
+      line,
+    ], (entry) => entry.dispose());
   }
 
   List<InvoiceLineDraft> buildInvoiceDraftsFromLines(
@@ -1480,9 +1482,24 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   void disposeAllInvoiceLineDrafts() {
-    for (final line in lines) {
-      line.dispose();
-    }
+    disposeDraftEntriesNextFrame<InvoiceLineDraft>(
+      List<InvoiceLineDraft>.from(lines),
+      (entry) => entry.dispose(),
+    );
+  }
+
+  void _replaceInvoiceLines(
+    List<InvoiceLineDraft> nextLines, {
+    bool notify = true,
+  }) {
+    replaceDisposableDraftEntries<InvoiceLineDraft>(
+      previous: lines,
+      next: nextLines,
+      createEmpty: () => InvoiceLineDraft(),
+      assign: (entries) => lines = entries,
+      dispose: (entry) => entry.dispose(),
+      notify: notify ? update : null,
+    );
   }
 
   void applyLinesFromOrderCache() {
@@ -1501,8 +1518,7 @@ class SalesInvoiceManagementController extends GetxController {
       }
       drafts.add(InvoiceLineDraft.fromOrderLineMap(ol));
     }
-    disposeAllInvoiceLineDrafts();
-    lines = drafts.isEmpty ? <InvoiceLineDraft>[InvoiceLineDraft()] : drafts;
+    _replaceInvoiceLines(drafts, notify: false);
   }
 
   void applyLinesFromDeliveryCache() {
@@ -1532,8 +1548,7 @@ class SalesInvoiceManagementController extends GetxController {
       }
       drafts.add(InvoiceLineDraft.fromDeliveryLineMap(dl, taxCodeId: taxId));
     }
-    disposeAllInvoiceLineDrafts();
-    lines = drafts.isEmpty ? <InvoiceLineDraft>[InvoiceLineDraft()] : drafts;
+    _replaceInvoiceLines(drafts, notify: false);
   }
 
   void applyAutoInvoiceLinesFromSources() {
@@ -1563,6 +1578,11 @@ class SalesInvoiceManagementController extends GetxController {
   int? initialQuotationId;
   int? initialOrderId;
   int? initialDeliveryId;
+  int? _lastRequestedSelectId;
+  int? _lastRequestedQuotationId;
+  int? _lastRequestedOrderId;
+  int? _lastRequestedDeliveryId;
+  bool _lastRequestedEditorOnly = false;
 
   bool get mounted => !isClosed;
 
@@ -1595,11 +1615,27 @@ class SalesInvoiceManagementController extends GetxController {
     this.initialDeliveryId = initialDeliveryId;
     this.editorOnly = editorOnly;
     hasInitialized = true;
-    await loadPage(selectId: initialId);
+    await loadPage(
+      selectId: initialId,
+      initialQuotationId: initialQuotationId,
+      initialOrderId: initialOrderId,
+      initialDeliveryId: initialDeliveryId,
+      editorOnly: editorOnly,
+    );
+  }
+
+  Future<void> reloadLastRequestedPage() {
+    return loadPage(
+      selectId: _lastRequestedSelectId,
+      initialQuotationId: _lastRequestedQuotationId,
+      initialOrderId: _lastRequestedOrderId,
+      initialDeliveryId: _lastRequestedDeliveryId,
+      editorOnly: _lastRequestedEditorOnly,
+    );
   }
 
   void handleWorkingContextChanged() {
-    unawaited(loadPage(selectId: selectedItem?.id));
+    unawaited(reloadLastRequestedPage());
   }
 
   @override
@@ -1702,17 +1738,52 @@ class SalesInvoiceManagementController extends GetxController {
     } catch (_) {}
   }
 
-  Future<void> loadPage({int? selectId}) async {
+  Future<void> loadPage({
+    int? selectId,
+    int? initialQuotationId,
+    int? initialOrderId,
+    int? initialDeliveryId,
+    bool? editorOnly,
+  }) async {
+    final effectiveQuotationId = initialQuotationId ?? this.initialQuotationId;
+    final effectiveOrderId = initialOrderId ?? this.initialOrderId;
+    final effectiveDeliveryId = initialDeliveryId ?? this.initialDeliveryId;
+    final effectiveEditorOnly = editorOnly ?? this.editorOnly;
+    _lastRequestedSelectId = selectId;
+    _lastRequestedQuotationId = effectiveQuotationId;
+    _lastRequestedOrderId = effectiveOrderId;
+    _lastRequestedDeliveryId = effectiveDeliveryId;
+    _lastRequestedEditorOnly = effectiveEditorOnly;
+
     State(() {
       initialLoading = items.isEmpty;
       pageError = null;
     });
 
     try {
+      final invoiceFilters = <String, dynamic>{
+        'per_page': 200,
+        'sort_by': 'invoice_date',
+      };
+      if (effectiveDeliveryId != null) {
+        invoiceFilters['sales_delivery_id'] = effectiveDeliveryId;
+      } else if (effectiveOrderId != null) {
+        invoiceFilters['sales_order_id'] = effectiveOrderId;
+      }
+      PaginatedResponse<SalesInvoiceModel>? invoicesResponse;
+      try {
+        invoicesResponse = await salesService.invoices(filters: invoiceFilters);
+      } catch (error) {
+        if (!(effectiveEditorOnly &&
+            selectId == null &&
+            (effectiveQuotationId != null ||
+                effectiveOrderId != null ||
+                effectiveDeliveryId != null))) {
+          rethrow;
+        }
+      }
+
       final responses = await Future.wait<dynamic>([
-        salesService.invoices(
-          filters: const {'per_page': 200, 'sort_by': 'invoice_date'},
-        ),
         masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
@@ -1740,23 +1811,23 @@ class SalesInvoiceManagementController extends GetxController {
       final contextSelection = await WorkingContextService.instance
           .resolveSelection(
             companies:
-                ((responses[1] as PaginatedResponse<CompanyModel>).data ??
+                ((responses[0] as PaginatedResponse<CompanyModel>).data ??
                         const <CompanyModel>[])
                     .where((item) => item.isActive)
                     .toList(growable: false),
             branches:
-                ((responses[2] as PaginatedResponse<BranchModel>).data ??
+                ((responses[1] as PaginatedResponse<BranchModel>).data ??
                         const <BranchModel>[])
                     .where((item) => item.isActive)
                     .toList(growable: false),
             locations:
-                ((responses[3] as PaginatedResponse<BusinessLocationModel>)
+                ((responses[2] as PaginatedResponse<BusinessLocationModel>)
                             .data ??
                         const <BusinessLocationModel>[])
                     .where((item) => item.isActive)
                     .toList(growable: false),
             financialYears:
-                ((responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+                ((responses[3] as PaginatedResponse<FinancialYearModel>).data ??
                         const <FinancialYearModel>[])
                     .where((item) => item.isActive)
                     .toList(growable: false),
@@ -1813,7 +1884,7 @@ class SalesInvoiceManagementController extends GetxController {
 
       State(() {
         items =
-            (responses[0] as PaginatedResponse<SalesInvoiceModel>).data ??
+            invoicesResponse?.data ??
             const <SalesInvoiceModel>[];
         final pending = pendingSelection;
         if (pending != null && pending.id != null) {
@@ -1830,29 +1901,29 @@ class SalesInvoiceManagementController extends GetxController {
           }
         }
         companies =
-            (responses[1] as PaginatedResponse<CompanyModel>).data ??
+            (responses[0] as PaginatedResponse<CompanyModel>).data ??
             const <CompanyModel>[];
         locations =
-            (responses[3] as PaginatedResponse<BusinessLocationModel>).data ??
+            (responses[2] as PaginatedResponse<BusinessLocationModel>).data ??
             const <BusinessLocationModel>[];
         financialYears =
-            (responses[4] as PaginatedResponse<FinancialYearModel>).data ??
+            (responses[3] as PaginatedResponse<FinancialYearModel>).data ??
             const <FinancialYearModel>[];
         documentSeries =
-            ((responses[5] as PaginatedResponse<DocumentSeriesModel>).data ??
+            ((responses[4] as PaginatedResponse<DocumentSeriesModel>).data ??
                     const <DocumentSeriesModel>[])
                 .where((item) => item.isActive)
                 .toList();
         customers = salesCustomersOrFallback(
           parties:
-              ((responses[7] as PaginatedResponse<PartyModel>).data ??
+              ((responses[6] as PaginatedResponse<PartyModel>).data ??
               const <PartyModel>[]),
           partyTypes:
-              (responses[6] as PaginatedResponse<PartyTypeModel>).data ??
+              (responses[5] as PaginatedResponse<PartyTypeModel>).data ??
               const <PartyTypeModel>[],
         );
         gstRegistrations =
-            (responses[8] as ApiResponse<List<GstRegistrationModel>>).data ??
+            (responses[7] as ApiResponse<List<GstRegistrationModel>>).data ??
             const <GstRegistrationModel>[];
         contextCompanyId = contextSelection.companyId;
         contextBranchId = contextSelection.branchId;
@@ -1880,11 +1951,27 @@ class SalesInvoiceManagementController extends GetxController {
                 return null;
               },
             )
-          : (editorOnly
+          : (effectiveEditorOnly
                 ? null
                 : (selectedItem == null
                       ? (items.isNotEmpty ? items.first : null)
                       : null));
+      final existingInvoiceFromDelivery =
+          selectId == null && effectiveDeliveryId != null
+          ? items.cast<SalesInvoiceModel?>().firstWhere(
+              (item) => item?.salesDeliveryId == effectiveDeliveryId,
+              orElse: () => null,
+            )
+          : null;
+      final existingInvoiceFromOrder =
+          selectId == null &&
+              effectiveDeliveryId == null &&
+              effectiveOrderId != null
+          ? items.cast<SalesInvoiceModel?>().firstWhere(
+              (item) => item?.salesOrderId == effectiveOrderId,
+              orElse: () => null,
+            )
+          : null;
 
       if (selected == null && selectId != null) {
         try {
@@ -1903,18 +1990,24 @@ class SalesInvoiceManagementController extends GetxController {
       if (selected != null) {
         pendingSelection = null;
         await selectDocument(selected);
+      } else if (existingInvoiceFromDelivery != null) {
+        pendingSelection = null;
+        await selectDocument(existingInvoiceFromDelivery);
+      } else if (existingInvoiceFromOrder != null) {
+        pendingSelection = null;
+        await selectDocument(existingInvoiceFromOrder);
       } else {
         resetForm();
-        final deliveryPref = initialDeliveryId;
-        if (deliveryPref != null && editorOnly) {
+        final deliveryPref = effectiveDeliveryId;
+        if (deliveryPref != null && effectiveEditorOnly) {
           await prefillNewInvoiceFromDelivery(deliveryPref);
         } else {
-          final orderPref = initialOrderId;
-          if (orderPref != null && editorOnly) {
+          final orderPref = effectiveOrderId;
+          if (orderPref != null && effectiveEditorOnly) {
             await prefillNewInvoiceFromOrder(orderPref);
           } else {
-            final qPref = initialQuotationId;
-            if (qPref != null && editorOnly) {
+            final qPref = effectiveQuotationId;
+            if (qPref != null && effectiveEditorOnly) {
               await prefillNewInvoiceFromQuotation(qPref);
             }
           }
@@ -1947,9 +2040,6 @@ class SalesInvoiceManagementController extends GetxController {
               .whereType<Map<String, dynamic>>()
               .map(InvoiceLineDraft.fromQuotationLine)
               .toList(growable: true);
-      for (final old in lines) {
-        old.dispose();
-      }
       if (!mounted) {
         return;
       }
@@ -1966,9 +2056,7 @@ class SalesInvoiceManagementController extends GetxController {
             .split('T')
             .first;
         isActive = true;
-        lines = quotationLines.isEmpty
-            ? <InvoiceLineDraft>[InvoiceLineDraft()]
-            : quotationLines;
+        _replaceInvoiceLines(quotationLines, notify: false);
         formError = null;
       });
       syncInventoryOptionsForLines(lines);
@@ -2049,9 +2137,6 @@ class SalesInvoiceManagementController extends GetxController {
     final response = await salesService.invoice(id!);
     final full = response.data ?? item;
     final draftLines = buildInvoiceDraftsFromLines(full.lines);
-    for (final old in lines) {
-      old.dispose();
-    }
     State(() {
       selectedItem = full;
       salesQuotationId = null;
@@ -2090,9 +2175,7 @@ class SalesInvoiceManagementController extends GetxController {
       notesController.text = full.notes ?? '';
       termsController.text = full.termsConditions ?? '';
       isActive = full.isActive ?? true;
-      lines = draftLines.isEmpty
-          ? <InvoiceLineDraft>[InvoiceLineDraft()]
-          : draftLines;
+      _replaceInvoiceLines(draftLines, notify: false);
       formError = null;
     });
     syncInventoryOptionsForLines(lines);
@@ -2106,9 +2189,6 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   void resetForm() {
-    for (final line in lines) {
-      line.dispose();
-    }
     final series = seriesOptions();
     State(() {
       selectedItem = null;
@@ -2143,7 +2223,7 @@ class SalesInvoiceManagementController extends GetxController {
       notesController.clear();
       termsController.text = documentTermsDefault('sales_invoice');
       isActive = true;
-      lines = <InvoiceLineDraft>[InvoiceLineDraft()];
+      _replaceInvoiceLines(const <InvoiceLineDraft>[], notify: false);
       formError = null;
       salesChain = null;
     });
