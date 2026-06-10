@@ -1877,9 +1877,7 @@ class SalesInvoiceManagementController extends GetxController {
       }
 
       State(() {
-        items =
-            invoicesResponse?.data ??
-            const <SalesInvoiceModel>[];
+        items = invoicesResponse?.data ?? const <SalesInvoiceModel>[];
         final pending = pendingSelection;
         if (pending != null && pending.id != null) {
           final pendingId = pending.id!;
@@ -2424,6 +2422,7 @@ class SalesInvoiceManagementController extends GetxController {
                 item?.itemCode ??
                 line.descriptionController.text.trim(),
             description: line.descriptionController.text.trim(),
+            hsn: item?.hsnSacCode?.trim() ?? '',
             qty: qty,
             rate: rate,
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),

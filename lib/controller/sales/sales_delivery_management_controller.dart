@@ -784,9 +784,7 @@ class SalesDeliveryManagementController extends GetxController {
                     .where((item) => item.isActive)
                     .toList(growable: false),
           );
-      items =
-          deliveriesResponse?.data ??
-          const <SalesDeliveryModel>[];
+      items = deliveriesResponse?.data ?? const <SalesDeliveryModel>[];
       companies =
           (responses[0] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
@@ -1221,6 +1219,7 @@ class SalesDeliveryManagementController extends GetxController {
                       item?.itemCode ??
                       row.itemNameController.text.trim(),
                   description: row.descriptionController.text.trim(),
+                  hsn: item?.hsnSacCode?.trim() ?? '',
                   qty: qty,
                   rate: 0,
                   lineTotal: 0,
@@ -1247,6 +1246,7 @@ class SalesDeliveryManagementController extends GetxController {
                       item?.itemCode ??
                       line.descriptionController.text.trim(),
                   description: line.descriptionController.text.trim(),
+                  hsn: item?.hsnSacCode?.trim() ?? '',
                   qty: qty,
                   rate: rate,
                   lineTotal: roundToDouble(total, 2),

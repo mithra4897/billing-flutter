@@ -138,6 +138,7 @@ class DocumentPrintLineModel extends JsonModel {
   const DocumentPrintLineModel({
     this.itemName = '',
     this.description = '',
+    this.hsn = '',
     this.qty = 0,
     this.rate = 0,
     this.taxAmount,
@@ -146,6 +147,7 @@ class DocumentPrintLineModel extends JsonModel {
 
   final String itemName;
   final String description;
+  final String hsn;
   final double qty;
   final double rate;
   final double? taxAmount;
@@ -155,6 +157,7 @@ class DocumentPrintLineModel extends JsonModel {
     return DocumentPrintLineModel(
       itemName: json['item_name']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
+      hsn: json['hsn']?.toString() ?? json['hsn_sac_code']?.toString() ?? '',
       qty: DocumentPrintDataModel._toDouble(json['qty']),
       rate: DocumentPrintDataModel._toDouble(json['rate']),
       taxAmount: json['tax_amount'] == null
@@ -172,6 +175,7 @@ class DocumentPrintLineModel extends JsonModel {
     return <String, dynamic>{
       'item_name': itemName,
       'description': description,
+      'hsn': hsn,
       'qty': qty,
       'rate': rate,
       if (taxAmount != null) 'tax_amount': taxAmount,

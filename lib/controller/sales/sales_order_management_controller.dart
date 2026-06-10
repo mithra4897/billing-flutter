@@ -476,9 +476,7 @@ class SalesOrderManagementController extends GetxController {
         try {
           ordersResponse = await _salesService.orders(filters: orderFilters);
         } catch (error) {
-          if (!(editorOnly &&
-              selectId == null &&
-              initialQuotationId != null)) {
+          if (!(editorOnly && selectId == null && initialQuotationId != null)) {
             rethrow;
           }
           ordersResponse = null;
@@ -1124,6 +1122,7 @@ class SalesOrderManagementController extends GetxController {
                 item?.itemCode ??
                 line.descriptionController.text.trim(),
             description: line.descriptionController.text.trim(),
+            hsn: item?.hsnSacCode?.trim() ?? '',
             qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
             rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),

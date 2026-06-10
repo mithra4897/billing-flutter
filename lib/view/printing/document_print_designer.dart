@@ -209,12 +209,63 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           columns: columns,
         );
       } else if (isPrintLinesTableShape(shape)) {
-        return shape.copyWith(dataPath: 'lines');
+        return _ensureHsnColumnForLines(shape.copyWith(dataPath: 'lines'));
       }
       return shape;
     }).toList();
 
     return normalized.copyWith(shapes: shapes);
+  }
+
+  DocumentPrintShape _ensureHsnColumnForLines(DocumentPrintShape shape) {
+    const hsnEnabledDocumentTypes = <String>{
+      'sales_invoice',
+      'sales_quotation',
+      'sales_order',
+      'sales_delivery',
+      'sales_returnable_delivery',
+      'purchase_order',
+      'purchase_invoice',
+    };
+    if (!hsnEnabledDocumentTypes.contains(widget.documentType)) {
+      return shape;
+    }
+    final hasHsn = shape.columns.any((column) => column.key == 'hsn');
+    if (hasHsn || shape.columns.isEmpty) {
+      return shape;
+    }
+    final amountIndex = shape.columns.indexWhere(
+      (column) => column.key == 'line_total',
+    );
+    if (amountIndex < 0) {
+      return shape.copyWith(
+        columns: [
+          ...shape.columns,
+          const DocumentPrintColumn(
+            key: 'hsn',
+            label: 'HSN',
+            widthFactor: 1.6,
+            align: 'center',
+            titleAlign: 'center',
+          ),
+        ],
+      );
+    }
+
+    final updatedColumns = [...shape.columns];
+    final amountColumn = updatedColumns[amountIndex];
+    updatedColumns[amountIndex] = amountColumn.copyWith(widthFactor: 1.3);
+    updatedColumns.insert(
+      amountIndex,
+      const DocumentPrintColumn(
+        key: 'hsn',
+        label: 'HSN',
+        widthFactor: 1.6,
+        align: 'center',
+        titleAlign: 'center',
+      ),
+    );
+    return shape.copyWith(columns: updatedColumns);
   }
 
   bool _isGstBreakupTableShape(DocumentPrintShape shape) {
@@ -1303,27 +1354,32 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       return null;
     }
 
-    final vector = await _buildTemplateVectorPdfBytes(template);
-    if (vector != null) {
-      return vector;
+    try {
+      final vector = await _buildTemplateVectorPdfBytes(template);
+      if (vector != null) {
+        return vector;
+      }
+    } catch (_) {
+      // Fall back to the captured preview only if vector generation fails.
     }
 
     final png = await _capturePreviewPng();
-    if (png == null) {
-      return null;
+    if (png != null) {
+      final document = pw.Document();
+      final image = pw.MemoryImage(png);
+      final format = _pageFormatForTemplate(template);
+      document.addPage(
+        pw.Page(
+          pageFormat: format,
+          margin: pw.EdgeInsets.zero,
+          build: (_) =>
+              pw.SizedBox.expand(child: pw.Image(image, fit: pw.BoxFit.fill)),
+        ),
+      );
+      return document.save();
     }
-    final document = pw.Document();
-    final image = pw.MemoryImage(png);
-    final format = _pageFormatForTemplate(template);
-    document.addPage(
-      pw.Page(
-        pageFormat: format,
-        margin: pw.EdgeInsets.zero,
-        build: (_) =>
-            pw.SizedBox.expand(child: pw.Image(image, fit: pw.BoxFit.fill)),
-      ),
-    );
-    return document.save();
+
+    return _buildTemplateVectorPdfBytes(template);
   }
 
   Future<Uint8List?> _buildTemplateVectorPdfBytes(
@@ -1466,7 +1522,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               ..saveContext()
               ..setLineWidth(math.max(0.4, shape.strokeWidth))
               ..setStrokeColor(_pdfColor(shape.strokeColor))
-              ..drawLine(0, size.y, size.x, 0)
+              ..drawLine(0, 0, size.x, size.y)
               ..strokePath()
               ..restoreContext();
           },
@@ -1566,11 +1622,15 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         ? DocumentPrintShape.defaultTableColumns()
         : shape.columns;
     final visibleRows = <Map<String, dynamic>>[];
-    final headerHeight = shape.printHeader
+    final double headerHeight = shape.printHeader
         ? math.max(8.0, shape.titleHeight)
-        : 0;
+        : 0.0;
+    final totalWeight = columns.fold<double>(
+      0,
+      (sum, column) => sum + column.widthFactor,
+    );
     final bool useFullHeight = isPrintLinesTableShape(shape);
-    final availableBottomLimit = shape.printTotal && useFullHeight
+    final double availableBottomLimit = shape.printTotal && useFullHeight
         ? shape.height - headerHeight
         : shape.height;
     var usedHeight = headerHeight;
@@ -1595,73 +1655,283 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       usedHeight += rowHeight;
     }
 
-    final dataRows = visibleRows
-        .map(
-          (row) => columns
-              .map((column) => resolvePrintCellValue(row, column.key))
-              .toList(growable: false),
-        )
-        .toList();
+    final double strokeWidth = math.max(0.4, math.min(1.0, shape.strokeWidth));
+    final columnWidths = <double>[
+      for (final column in columns)
+        shape.width *
+            (totalWeight > 0 ? column.widthFactor / totalWeight : 0.0),
+    ];
+    final totals = shape.printTotal
+        ? _calculatePdfColumnTotals(visibleRows, columns)
+        : const <String, double>{};
+    final double totalRowTop = useFullHeight
+        ? shape.height - headerHeight
+        : usedHeight;
+    final double contentBottom = useFullHeight
+        ? shape.height
+        : (totals.isNotEmpty
+              ? totalRowTop + headerHeight
+              : math.max(usedHeight, shape.printHeader ? headerHeight : 0.0));
+    final children = <pw.Widget>[];
 
-    if (shape.printTotal) {
-      final totals = _calculatePdfColumnTotals(visibleRows, columns);
-      if (totals.isNotEmpty) {
-        dataRows.add([
-          for (var i = 0; i < columns.length; i++)
-            i == 0
-                ? 'Total'
-                : (totals[columns[i].key] == null
-                      ? ''
-                      : formatPrintAmount(totals[columns[i].key]!)),
-        ]);
-      }
+    final fillColor = _pdfFillColor(shape);
+    if (fillColor != null) {
+      children.add(pw.Positioned.fill(child: pw.Container(color: fillColor)));
     }
 
-    final table = pw.TableHelper.fromTextArray(
-      headers: shape.printHeader
-          ? columns.map((column) => column.label).toList(growable: false)
-          : null,
-      data: dataRows,
-      border: pw.TableBorder.all(
-        color: _pdfColor(shape.strokeColor),
-        width: 0.7,
-      ),
-      headerDecoration: pw.BoxDecoration(color: _pdfColor(shape.headerColor)),
-      headerStyle: pw.TextStyle(
-        fontWeight: pw.FontWeight.bold,
-        fontSize: 9,
-        color: _pdfColor(shape.headerTextColor),
-      ),
-      cellStyle: pw.TextStyle(
-        fontSize: 8.5,
-        color: _pdfColor(shape.bodyTextColor),
-      ),
-      cellPadding: pw.EdgeInsets.symmetric(
-        horizontal: math.max(2, shape.cellGap / 2),
-        vertical: 4,
-      ),
-      cellAlignments: {
-        for (var i = 0; i < columns.length; i++)
-          i: _pdfTableCellAlignment(columns[i].align),
-      },
-      headerAlignments: {
-        for (var i = 0; i < columns.length; i++)
-          i: _pdfTableCellAlignment(columns[i].titleAlign),
-      },
-      columnWidths: {
-        for (var i = 0; i < columns.length; i++)
-          i: pw.FlexColumnWidth(columns[i].widthFactor),
-      },
-    );
+    if (shape.printHeader) {
+      children.add(
+        pw.Positioned(
+          left: 0,
+          top: 0,
+          child: pw.SizedBox(
+            width: shape.width,
+            height: headerHeight,
+            child: pw.Container(color: _pdfColor(shape.headerColor)),
+          ),
+        ),
+      );
+      children.add(
+        _buildPdfTableRowLayer(
+          top: 0,
+          height: headerHeight.toDouble(),
+          columns: columns,
+          columnWidths: columnWidths,
+          values: columns.map((column) => column.label).toList(growable: false),
+          textColor: _pdfColor(shape.headerTextColor),
+          fontSize: 12,
+          fontWeight: pw.FontWeight.bold,
+          padding: math.max(2.0, shape.cellGap),
+          alignments: columns
+              .map((column) => column.titleAlign)
+              .toList(growable: false),
+        ),
+      );
+      children.add(
+        _buildPdfHorizontalRule(
+          top: headerHeight,
+          width: shape.width,
+          color: _pdfColor(shape.strokeColor),
+          strokeWidth: strokeWidth,
+        ),
+      );
+    }
 
-    return pw.Container(
-      color: _pdfFillColor(shape),
-      child: pw.ClipRect(
+    var currentTop = headerHeight;
+    for (final row in visibleRows) {
+      final rowHeight = measurePrintTableRowHeight(
+        row,
+        columns,
+        shape.width,
+        shape,
+      );
+      children.add(
+        _buildPdfTableRowLayer(
+          top: currentTop,
+          height: rowHeight.toDouble(),
+          columns: columns,
+          columnWidths: columnWidths,
+          values: columns
+              .map((column) => resolvePrintCellValue(row, column.key))
+              .toList(growable: false),
+          textColor: _pdfColor(shape.bodyTextColor),
+          fontSize: 11,
+          padding: math.max(2.0, shape.cellGap),
+          alignments: columns
+              .map((column) => column.align)
+              .toList(growable: false),
+        ),
+      );
+      currentTop += rowHeight;
+      children.add(
+        _buildPdfHorizontalRule(
+          top: currentTop,
+          width: shape.width,
+          color: _pdfColor(shape.strokeColor),
+          strokeWidth: strokeWidth,
+        ),
+      );
+    }
+
+    if (totals.isNotEmpty) {
+      children.add(
+        pw.Positioned(
+          left: 0,
+          top: totalRowTop,
+          child: pw.SizedBox(
+            width: shape.width,
+            height: headerHeight,
+            child: pw.Container(color: _pdfColor(shape.headerColor)),
+          ),
+        ),
+      );
+      children.add(
+        _buildPdfHorizontalRule(
+          top: totalRowTop,
+          width: shape.width,
+          color: _pdfColor(shape.strokeColor),
+          strokeWidth: strokeWidth,
+        ),
+      );
+      children.add(
+        _buildPdfTableRowLayer(
+          top: totalRowTop,
+          height: headerHeight.toDouble(),
+          columns: columns,
+          columnWidths: columnWidths,
+          values: [
+            for (var i = 0; i < columns.length; i++)
+              i == 0
+                  ? 'Total'
+                  : (totals[columns[i].key] == null
+                        ? ''
+                        : formatPrintAmount(totals[columns[i].key]!)),
+          ],
+          textColor: _pdfColor(shape.headerTextColor),
+          fontSize: 11,
+          fontWeight: pw.FontWeight.bold,
+          padding: math.max(2.0, shape.cellGap),
+          alignments: [
+            'left',
+            ...columns.skip(1).map((column) => column.align),
+          ],
+        ),
+      );
+      children.add(
+        _buildPdfHorizontalRule(
+          top: totalRowTop + headerHeight,
+          width: shape.width,
+          color: _pdfColor(shape.strokeColor),
+          strokeWidth: strokeWidth,
+        ),
+      );
+    }
+
+    var cursorX = 0.0;
+    for (var i = 0; i < columnWidths.length; i++) {
+      if (i > 0) {
+        children.add(
+          _buildPdfVerticalRule(
+            left: cursorX,
+            top: 0,
+            height: contentBottom,
+            color: _pdfColor(shape.strokeColor),
+            strokeWidth: strokeWidth,
+          ),
+        );
+      }
+      cursorX += columnWidths[i];
+    }
+
+    children.add(
+      pw.Positioned(
+        left: 0,
+        top: 0,
         child: pw.SizedBox(
           width: shape.width,
-          height: shape.height,
-          child: table,
+          height: contentBottom,
+          child: pw.Container(
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(
+                color: _pdfColor(shape.strokeColor),
+                width: strokeWidth,
+              ),
+            ),
+          ),
         ),
+      ),
+    );
+
+    return pw.ClipRect(
+      child: pw.SizedBox(
+        width: shape.width,
+        height: shape.height,
+        child: pw.Stack(children: children),
+      ),
+    );
+  }
+
+  pw.Widget _buildPdfTableRowLayer({
+    required double top,
+    required double height,
+    required List<DocumentPrintColumn> columns,
+    required List<double> columnWidths,
+    required List<String> values,
+    required PdfColor textColor,
+    required double fontSize,
+    required double padding,
+    List<String>? alignments,
+    pw.FontWeight fontWeight = pw.FontWeight.normal,
+  }) {
+    var cursorX = 0.0;
+    final children = <pw.Widget>[];
+    for (var i = 0; i < columns.length; i++) {
+      final columnWidth = columnWidths[i];
+      children.add(
+        pw.Positioned(
+          left: cursorX,
+          top: top,
+          child: pw.SizedBox(
+            width: columnWidth,
+            height: height,
+            child: pw.Padding(
+              padding: pw.EdgeInsets.symmetric(horizontal: padding),
+              child: pw.Align(
+                alignment: _pdfTableCellAlignment(
+                  alignments == null ? columns[i].align : alignments[i],
+                ),
+                child: pw.Text(
+                  i < values.length ? values[i] : '',
+                  textAlign: _pdfTextAlign(
+                    alignments == null ? columns[i].align : alignments[i],
+                  ),
+                  style: pw.TextStyle(
+                    fontSize: fontSize,
+                    color: textColor,
+                    fontWeight: fontWeight,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      cursorX += columnWidth;
+    }
+    return pw.Stack(children: children);
+  }
+
+  pw.Widget _buildPdfHorizontalRule({
+    required double top,
+    required double width,
+    required PdfColor color,
+    required double strokeWidth,
+  }) {
+    return pw.Positioned(
+      left: 0,
+      top: math.max(0, top - (strokeWidth / 2)),
+      child: pw.SizedBox(
+        width: width,
+        height: strokeWidth,
+        child: pw.Container(color: color),
+      ),
+    );
+  }
+
+  pw.Widget _buildPdfVerticalRule({
+    required double left,
+    required double top,
+    required double height,
+    required PdfColor color,
+    required double strokeWidth,
+  }) {
+    return pw.Positioned(
+      left: math.max(0, left - (strokeWidth / 2)),
+      top: top,
+      child: pw.SizedBox(
+        width: strokeWidth,
+        height: height,
+        child: pw.Container(color: color),
       ),
     );
   }

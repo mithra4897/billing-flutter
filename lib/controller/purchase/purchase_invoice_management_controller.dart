@@ -566,6 +566,7 @@ class PurchaseInvoiceManagementController extends GetxController {
             itemName:
                 item?.itemName ?? item?.itemCode ?? (line.description ?? ''),
             description: line.description ?? '',
+            hsn: item?.hsnSacCode?.trim() ?? '',
             qty: qty,
             rate: rate,
             taxAmount: double.parse(
