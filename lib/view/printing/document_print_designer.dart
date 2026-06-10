@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../screen.dart';
+import '../../core/files/pdf_web_actions.dart';
 
 Future<void> openDocumentPrintDesigner(
   BuildContext context, {
@@ -1600,7 +1601,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               .map((column) => resolvePrintCellValue(row, column.key))
               .toList(growable: false),
         )
-        .toList(growable: false);
+        .toList();
 
     if (shape.printTotal) {
       final totals = _calculatePdfColumnTotals(visibleRows, columns);
@@ -1784,6 +1785,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       if (bytes == null) {
         throw Exception('Unable to capture print preview.');
       }
+      if (kIsWeb) {
+        await printPdfBytes(bytes, title: widget.title);
+        return;
+      }
       await Printing.layoutPdf(
         name: '${widget.title}.pdf',
         onLayout: (_) async => bytes,
@@ -1812,6 +1817,17 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       final bytes = await _buildPdfBytes();
       if (bytes == null) {
         throw Exception('Unable to generate PDF from preview.');
+      }
+      if (kIsWeb) {
+        final saved = await saveBytesFile(
+          suggestedName: '${widget.title}.pdf',
+          bytes: bytes,
+          mimeType: 'application/pdf',
+        );
+        if (!saved) {
+          throw Exception('PDF download was cancelled.');
+        }
+        return;
       }
       await Printing.sharePdf(bytes: bytes, filename: '${widget.title}.pdf');
     } catch (error) {
