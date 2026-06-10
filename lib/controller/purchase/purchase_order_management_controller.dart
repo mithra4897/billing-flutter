@@ -469,6 +469,7 @@ class PurchaseOrderManagementController extends GetxController {
     documentSeriesId = intValue(data, 'document_series_id');
     purchaseRequisitionId = intValue(data, 'purchase_requisition_id');
     supplierPartyId = intValue(data, 'supplier_party_id');
+    unawaited(ensureSupplierPrintContext(supplierPartyId));
     orderNoController.text = stringValue(data, 'order_no');
     orderDateController.text = displayDate(
       nullableStringValue(data, 'order_date'),
@@ -600,11 +601,15 @@ class PurchaseOrderManagementController extends GetxController {
 
   String? resolveSupplierStateCodeForSummary() {
     final supplier = supplierForPrintContext(supplierPartyId);
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
     return resolvePartyStateCodeForGstSummary(
       party: supplier,
       gstDetails:
           supplierGstDetailsById[supplierPartyId] ??
+          supplier?.gstDetails ??
           const <PartyGstDetailModel>[],
+      shippingAddressId: intValue(selected, 'shipping_address_id'),
+      billingAddressId: intValue(selected, 'billing_address_id'),
       preferredAddressType: 'billing',
     );
   }
@@ -685,6 +690,9 @@ class PurchaseOrderManagementController extends GetxController {
           contacts:
               (responses[2] as PaginatedResponse<PartyContactModel>).data ??
               party.contacts,
+          gstDetails:
+              (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+              party.gstDetails,
         );
         supplierGstDetailsById[supplierId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
@@ -1302,6 +1310,7 @@ class PurchaseOrderManagementController extends GetxController {
     supplierPartyId = supplierId;
     formError = null;
     selectionInfo = null;
+    unawaited(ensureSupplierPrintContext(supplierId));
     update();
 
     try {

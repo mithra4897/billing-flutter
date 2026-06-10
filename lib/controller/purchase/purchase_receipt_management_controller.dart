@@ -493,6 +493,9 @@ class PurchaseReceiptManagementController extends GetxController {
           contacts:
               (responses[2] as PaginatedResponse<PartyContactModel>).data ??
               party.contacts,
+          gstDetails:
+              (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+              party.gstDetails,
         );
         supplierGstDetailsById[supplierId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
@@ -803,6 +806,7 @@ class PurchaseReceiptManagementController extends GetxController {
     final response = await _purchaseService.order(orderId);
     final order = response.data;
     if (order == null) return;
+    orderDetailCache[orderId] = order;
 
     final data = order.toJson();
     final nextLines = buildReceiptLinesFromOrder(order);
@@ -825,6 +829,7 @@ class PurchaseReceiptManagementController extends GetxController {
     );
     supplierPartyId = intValue(data, 'supplier_party_id');
     warehouseId = defaultWarehouseId;
+    unawaited(ensureSupplierPrintContext(supplierPartyId));
     receiptNoController.clear();
     supplierInvoiceNoController.clear();
     supplierInvoiceDateController.clear();
@@ -917,12 +922,26 @@ class PurchaseReceiptManagementController extends GetxController {
 
   String? resolveSupplierStateCodeForSummary() {
     final supplier = supplierForPrintContext(supplierPartyId);
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final selectedOrder = orderDetailCache[purchaseOrderId]?.toJson();
     return resolvePartyStateCodeForGstSummary(
       party: supplier,
       gstDetails:
           supplierGstDetailsById[supplierPartyId] ??
           supplier?.gstDetails ??
           const <PartyGstDetailModel>[],
+      shippingAddressId:
+          intValue(selected, 'shipping_address_id') ??
+          intValue(
+            selectedOrder ?? const <String, dynamic>{},
+            'shipping_address_id',
+          ),
+      billingAddressId:
+          intValue(selected, 'billing_address_id') ??
+          intValue(
+            selectedOrder ?? const <String, dynamic>{},
+            'billing_address_id',
+          ),
       preferredAddressType: 'billing',
     );
   }

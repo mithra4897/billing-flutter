@@ -668,6 +668,7 @@ class SalesOrderManagementController extends GetxController {
           ? series.first.id
           : intValue(data, 'document_series_id');
       customerPartyId = intValue(data, 'customer_party_id');
+      unawaited(ensureCustomerPrintContext(customerPartyId));
       orderNoController.clear();
       orderDateController.text = DateTime.now()
           .toIso8601String()
@@ -753,6 +754,7 @@ class SalesOrderManagementController extends GetxController {
     if (salesQuotationId != null) {
       await fetchQuotationLines(salesQuotationId!);
     }
+    unawaited(ensureCustomerPrintContext(customerPartyId));
     await refreshSalesChain();
     if (notify) {
       update();
@@ -921,6 +923,9 @@ class SalesOrderManagementController extends GetxController {
           contacts:
               (responses[2] as PaginatedResponse<PartyContactModel>).data ??
               party.contacts,
+          gstDetails:
+              (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+              party.gstDetails,
         );
         customerGstDetailsById[partyId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
@@ -951,11 +956,33 @@ class SalesOrderManagementController extends GetxController {
 
   String? resolveCustomerStateCodeForSummary() {
     final customer = customerForPrintContext(customerPartyId);
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final selectedQuotation = quotationChoices
+        .cast<SalesQuotationModel?>()
+        .firstWhere(
+          (quotation) => quotation?.id == salesQuotationId,
+          orElse: () => null,
+        )
+        ?.toJson();
     return resolvePartyStateCodeForGstSummary(
       party: customer,
       gstDetails:
           customerGstDetailsById[customerPartyId] ??
+          customer?.gstDetails ??
           const <PartyGstDetailModel>[],
+      shippingAddressId:
+          intValue(selected, 'shipping_address_id') ??
+          intValue(
+            selectedQuotation ?? const <String, dynamic>{},
+            'shipping_address_id',
+          ),
+      billingAddressId:
+          intValue(selected, 'billing_address_id') ??
+          intValue(
+            selectedQuotation ?? const <String, dynamic>{},
+            'billing_address_id',
+          ),
+      preferredAddressType: 'shipping',
     );
   }
 
@@ -1137,6 +1164,7 @@ class SalesOrderManagementController extends GetxController {
   void setCustomerPartyId(int? value) {
     if (!canEdit) return;
     customerPartyId = value;
+    unawaited(ensureCustomerPrintContext(value));
     if (salesQuotationId != null) {
       final stillOk = quotationChoices.any(
         (quotation) => intValue(quotation.toJson(), 'id') == salesQuotationId,

@@ -523,6 +523,7 @@ class SalesQuotationManagementController extends GetxController {
     crmOpportunityId = intValue(data, 'crm_opportunity_id');
     _replaceLines(nextLines, notify: false);
     formError = null;
+    unawaited(ensureCustomerPrintContext(customerPartyId));
     await refreshSalesChain(notify: false);
     if (notify) {
       update();
@@ -604,6 +605,7 @@ class SalesQuotationManagementController extends GetxController {
       }
       if (partyId != null) {
         customerPartyId = partyId;
+        unawaited(ensureCustomerPrintContext(partyId));
       }
       final note =
           'Linked CRM opportunity: ${stringValue(opportunityData, 'opportunity_name')}'
@@ -733,6 +735,9 @@ class SalesQuotationManagementController extends GetxController {
           contacts:
               (responses[2] as PaginatedResponse<PartyContactModel>).data ??
               party.contacts,
+          gstDetails:
+              (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
+              party.gstDetails,
         );
         customerGstDetailsById[partyId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
@@ -763,11 +768,16 @@ class SalesQuotationManagementController extends GetxController {
 
   String? resolveCustomerStateCodeForSummary() {
     final customer = customerForPrintContext(customerPartyId);
+    final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
     return resolvePartyStateCodeForGstSummary(
       party: customer,
       gstDetails:
           customerGstDetailsById[customerPartyId] ??
+          customer?.gstDetails ??
           const <PartyGstDetailModel>[],
+      shippingAddressId: intValue(selected, 'shipping_address_id'),
+      billingAddressId: intValue(selected, 'billing_address_id'),
+      preferredAddressType: 'shipping',
     );
   }
 
@@ -964,6 +974,7 @@ class SalesQuotationManagementController extends GetxController {
       return;
     }
     customerPartyId = value;
+    unawaited(ensureCustomerPrintContext(value));
     update();
   }
 
