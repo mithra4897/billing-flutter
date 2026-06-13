@@ -819,6 +819,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                           if (line.itemId == null) {
                             return 'Select item first';
                           }
+                          if (!controller.isStockTrackedItem(line.itemId)) {
+                            return null;
+                          }
                           if (controller
                               .warehouseOptionsForLine(line)
                               .isEmpty) {

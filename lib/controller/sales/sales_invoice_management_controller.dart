@@ -163,6 +163,8 @@ class SalesInvoiceManagementController extends GetxController {
     );
   }
 
+  bool isStockTrackedItem(int? itemId) => itemById(itemId)?.trackInventory == true;
+
   bool isSerialManagedItem(int? itemId) => itemById(itemId)?.hasSerial == true;
 
   bool isBatchManagedItem(int? itemId) => itemById(itemId)?.hasBatch == true;
@@ -455,6 +457,9 @@ class SalesInvoiceManagementController extends GetxController {
   Future<void> syncWarehouseOptionsForLine(InvoiceLineDraft line) async {
     final itemId = line.itemId;
     if (itemId == null) {
+      return;
+    }
+    if (!isStockTrackedItem(itemId)) {
       return;
     }
     final cachedWarehouseIds = allowedWarehouseIdsByItem[itemId];
