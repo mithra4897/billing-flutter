@@ -136,6 +136,7 @@ class DocumentPrintDataModel extends JsonModel {
 
 class DocumentPrintLineModel extends JsonModel {
   const DocumentPrintLineModel({
+    this.lineNo,
     this.itemName = '',
     this.description = '',
     this.hsn = '',
@@ -145,6 +146,7 @@ class DocumentPrintLineModel extends JsonModel {
     this.lineTotal = 0,
   }) : super(id: null);
 
+  final int? lineNo;
   final String itemName;
   final String description;
   final String hsn;
@@ -155,6 +157,9 @@ class DocumentPrintLineModel extends JsonModel {
 
   factory DocumentPrintLineModel.fromJson(Map<String, dynamic> json) {
     return DocumentPrintLineModel(
+      lineNo: json['line_no'] is num
+          ? (json['line_no'] as num).toInt()
+          : int.tryParse(json['line_no']?.toString() ?? ''),
       itemName: json['item_name']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       hsn: json['hsn']?.toString() ?? json['hsn_sac_code']?.toString() ?? '',
@@ -173,6 +178,7 @@ class DocumentPrintLineModel extends JsonModel {
   @override
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      if (lineNo != null) 'line_no': lineNo,
       'item_name': itemName,
       'description': description,
       'hsn': hsn,

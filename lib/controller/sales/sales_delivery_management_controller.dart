@@ -1214,6 +1214,7 @@ class SalesDeliveryManagementController extends GetxController {
                     Validators.parseFlexibleNumber(row.qtyController.text) ?? 0;
                 final item = itemById(row.itemId);
                 return DocumentPrintLineModel(
+                  lineNo: returnableDcs.indexOf(row) + 1,
                   itemName:
                       item?.itemName ??
                       item?.itemCode ??
@@ -1241,6 +1242,7 @@ class SalesDeliveryManagementController extends GetxController {
                 subtotal += total;
                 final item = itemById(line.itemId);
                 return DocumentPrintLineModel(
+                  lineNo: lines.indexOf(line) + 1,
                   itemName:
                       item?.itemName ??
                       item?.itemCode ??

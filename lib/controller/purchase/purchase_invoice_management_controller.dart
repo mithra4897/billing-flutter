@@ -563,6 +563,7 @@ class PurchaseInvoiceManagementController extends GetxController {
           );
           final item = itemById(line.itemId);
           return DocumentPrintLineModel(
+            lineNo: lines.indexOf(line) + 1,
             itemName:
                 item?.itemName ?? item?.itemCode ?? (line.description ?? ''),
             description: line.description ?? '',

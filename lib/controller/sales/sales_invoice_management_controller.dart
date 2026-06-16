@@ -163,7 +163,8 @@ class SalesInvoiceManagementController extends GetxController {
     );
   }
 
-  bool isStockTrackedItem(int? itemId) => itemById(itemId)?.trackInventory == true;
+  bool isStockTrackedItem(int? itemId) =>
+      itemById(itemId)?.trackInventory == true;
 
   bool isSerialManagedItem(int? itemId) => itemById(itemId)?.hasSerial == true;
 
@@ -2422,6 +2423,7 @@ class SalesInvoiceManagementController extends GetxController {
             orElse: () => null,
           );
           return DocumentPrintLineModel(
+            lineNo: lines.indexOf(line) + 1,
             itemName:
                 item?.itemName ??
                 item?.itemCode ??

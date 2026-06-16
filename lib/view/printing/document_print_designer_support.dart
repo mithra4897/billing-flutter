@@ -119,7 +119,7 @@ String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
       return '';
     }
     if (value is num) {
-      return formatPrintAmount(value.toDouble());
+      return formatPrintValueForKey(key, value.toDouble());
     }
     return value.toString();
   });
@@ -146,13 +146,25 @@ String resolvePrintCellValue(Map<String, dynamic> row, String key) {
     return '';
   }
   if (value is num) {
-    return formatPrintAmount(value.toDouble());
+    return formatPrintValueForKey(key, value.toDouble());
   }
   return value.toString();
 }
 
+String formatPrintValueForKey(String key, double value) {
+  return _isPrintAmountLikeKey(key)
+      ? _formatPrintAmount(value, fixedDecimals: 2)
+      : formatPrintAmount(value);
+}
+
 String formatPrintAmount(double value) {
-  final raw = value == value.roundToDouble()
+  return _formatPrintAmount(value);
+}
+
+String _formatPrintAmount(double value, {int? fixedDecimals}) {
+  final raw = fixedDecimals != null
+      ? value.toStringAsFixed(fixedDecimals)
+      : value == value.roundToDouble()
       ? value.round().toString()
       : value.toStringAsFixed(2);
   final negative = raw.startsWith('-');
@@ -161,6 +173,30 @@ String formatPrintAmount(double value) {
   final whole = parts.first;
   final decimal = parts.length > 1 ? '.${parts.last}' : '';
   return '${negative ? '-' : ''}${_groupIndianDigits(whole)}$decimal';
+}
+
+bool _isPrintAmountLikeKey(String key) {
+  const amountKeys = <String>{
+    'rate',
+    'tax_amount',
+    'line_total',
+    'subtotal',
+    'taxable',
+    'total_amount',
+    'total_tax',
+    'cgst',
+    'sgst',
+    'igst',
+    'cess',
+    'discount_amount',
+    'gross_amount',
+    'taxable_amount',
+    'cgst_amount',
+    'sgst_amount',
+    'igst_amount',
+    'cess_amount',
+  };
+  return amountKeys.contains(key.trim().toLowerCase());
 }
 
 String _groupIndianDigits(String digits) {
