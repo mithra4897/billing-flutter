@@ -141,17 +141,45 @@ String resolvePrintTemplateText(String input, Map<String, dynamic> data) {
 }
 
 String resolvePrintCellValue(Map<String, dynamic> row, String key) {
+  return resolvePrintCellValueForColumn(row, null, key);
+}
+
+String resolvePrintCellValueForColumn(
+  Map<String, dynamic> row,
+  DocumentPrintColumn? column,
+  String key,
+) {
   final value = resolvePrintPath(row, key);
   if (value == null) {
     return '';
   }
   if (value is num) {
-    return formatPrintValueForKey(key, value.toDouble());
+    if (_shouldHideZeroPrintValue(key, value.toDouble())) {
+      return '';
+    }
+    return formatPrintValueForKey(
+      key,
+      value.toDouble(),
+      columnNumberFormat: column?.numberFormat,
+    );
   }
   return value.toString();
 }
 
-String formatPrintValueForKey(String key, double value) {
+String formatPrintValueForKey(
+  String key,
+  double value, {
+  String? columnNumberFormat,
+}) {
+  final normalizedFormat = (columnNumberFormat ?? 'default')
+      .trim()
+      .toLowerCase();
+  if (normalizedFormat == 'auto') {
+    return formatPrintAmount(value);
+  }
+  if (normalizedFormat == 'fixed_2') {
+    return _formatPrintAmount(value, fixedDecimals: 2);
+  }
   return _isPrintAmountLikeKey(key)
       ? _formatPrintAmount(value, fixedDecimals: 2)
       : formatPrintAmount(value);
@@ -199,6 +227,11 @@ bool _isPrintAmountLikeKey(String key) {
   return amountKeys.contains(key.trim().toLowerCase());
 }
 
+bool _shouldHideZeroPrintValue(String key, double value) {
+  const hideZeroKeys = <String>{'cgst', 'sgst', 'igst', 'cess'};
+  return hideZeroKeys.contains(key.trim().toLowerCase()) && value.abs() < 0.005;
+}
+
 String _groupIndianDigits(String digits) {
   if (digits.length <= 3) {
     return digits;
@@ -224,7 +257,11 @@ bool printTableRowHasVisibleValues(
   List<DocumentPrintColumn> columns,
 ) {
   return columns.any(
-    (column) => resolvePrintCellValue(row, column.key).trim().isNotEmpty,
+    (column) => resolvePrintCellValueForColumn(
+      row,
+      column,
+      column.key,
+    ).trim().isNotEmpty,
   );
 }
 
@@ -244,7 +281,7 @@ double measurePrintTableRowHeight(
   for (final column in columns) {
     final weight = totalWeight > 0 ? column.widthFactor / totalWeight : 0.0;
     final columnWidth = tableWidth * weight;
-    final text = resolvePrintCellValue(row, column.key);
+    final text = resolvePrintCellValueForColumn(row, column, column.key);
     final painter = TextPainter(
       text: TextSpan(
         text: text,

@@ -195,9 +195,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
     final shapes = normalized.shapes.map((shape) {
       if (_isGstBreakupTableShape(shape)) {
-        final columns = shape.columns.isEmpty
-            ? defaultGstBreakupTableColumns
-            : shape.columns;
+        final columns = _normalizeGstBreakupColumns(
+          shape.columns.isEmpty ? defaultGstBreakupTableColumns : shape.columns,
+          widget.documentData.gstBreakup,
+        );
         final tableHeight = measurePrintTableHeight(
           shape: shape,
           rows: widget.documentData.gstBreakup,
@@ -217,6 +218,20 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return normalized.copyWith(shapes: shapes);
   }
 
+  List<DocumentPrintColumn> _normalizeGstBreakupColumns(
+    List<DocumentPrintColumn> columns,
+    List<DocumentPrintTaxBreakupRowModel> rows,
+  ) {
+    final hideIgst =
+        rows.isNotEmpty && rows.every((row) => row.igst.abs() < 0.005);
+    if (!hideIgst) {
+      return columns;
+    }
+    return columns
+        .where((column) => column.key != 'igst')
+        .toList(growable: false);
+  }
+
   DocumentPrintShape _normalizeLinesTableColumns(DocumentPrintShape shape) {
     const hsnEnabledDocumentTypes = <String>{
       'sales_invoice',
@@ -234,48 +249,63 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       return shape;
     }
 
-    const serialColumn = DocumentPrintColumn(
-      key: 'line_no',
-      label: 'S.No',
-      widthFactor: 0.9,
-      align: 'center',
-      titleAlign: 'center',
-    );
-    const hsnColumn = DocumentPrintColumn(
-      key: 'hsn',
-      label: 'HSN',
-      widthFactor: 1.6,
-      align: 'center',
-      titleAlign: 'center',
-    );
-
-    final remainingColumns = shape.columns
-        .where((column) => column.key != 'line_no' && column.key != 'hsn')
+    var changed = false;
+    final updatedColumns = shape.columns
         .map((column) {
-          if (column.key == 'item_name') {
-            return column.copyWith(widthFactor: 3.6);
+          if (column.key == 'line_no') {
+            changed = true;
+            return column.copyWith(
+              label: column.label.trim().isEmpty ? 'S.No' : column.label,
+              widthFactor: column.widthFactor <= 0 ? 0.9 : column.widthFactor,
+              align: 'center',
+              titleAlign: 'center',
+            );
           }
-          if (column.key == 'line_total') {
-            return column.copyWith(widthFactor: 1.3);
+          if (column.key == 'hsn') {
+            changed = true;
+            return column.copyWith(
+              label: column.label.trim().isEmpty ? 'HSN' : column.label,
+              widthFactor: column.widthFactor <= 0 ? 1.6 : column.widthFactor,
+              align: 'center',
+              titleAlign: 'center',
+            );
           }
           return column;
         })
-        .toList(growable: false);
+        .toList(growable: true);
 
-    final itemIndex = remainingColumns.indexWhere(
-      (column) => column.key == 'item_name',
-    );
-
-    final updatedColumns = <DocumentPrintColumn>[serialColumn];
-    if (itemIndex < 0) {
-      updatedColumns.addAll(remainingColumns);
-      updatedColumns.add(hsnColumn);
-    } else {
-      updatedColumns.addAll(remainingColumns.take(itemIndex + 1));
-      updatedColumns.add(hsnColumn);
-      updatedColumns.addAll(remainingColumns.skip(itemIndex + 1));
+    if (!updatedColumns.any((column) => column.key == 'line_no')) {
+      updatedColumns.insert(
+        0,
+        const DocumentPrintColumn(
+          key: 'line_no',
+          label: 'S.No',
+          widthFactor: 0.9,
+          align: 'center',
+          titleAlign: 'center',
+        ),
+      );
+      changed = true;
     }
-    return shape.copyWith(columns: updatedColumns);
+    if (!updatedColumns.any((column) => column.key == 'hsn')) {
+      final itemIndex = updatedColumns.indexWhere(
+        (column) => column.key == 'item_name',
+      );
+      final insertAt = itemIndex >= 0 ? itemIndex + 1 : updatedColumns.length;
+      updatedColumns.insert(
+        insertAt,
+        const DocumentPrintColumn(
+          key: 'hsn',
+          label: 'HSN',
+          widthFactor: 1.6,
+          align: 'center',
+          titleAlign: 'center',
+        ),
+      );
+      changed = true;
+    }
+
+    return changed ? shape.copyWith(columns: updatedColumns) : shape;
   }
 
   bool _isGstBreakupTableShape(DocumentPrintShape shape) {
@@ -1742,7 +1772,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           columns: columns,
           columnWidths: columnWidths,
           values: columns
-              .map((column) => resolvePrintCellValue(row, column.key))
+              .map(
+                (column) =>
+                    resolvePrintCellValueForColumn(row, column, column.key),
+              )
               .toList(growable: false),
           textColor: _pdfColor(shape.bodyTextColor),
           fontSize: 11,
@@ -1798,6 +1831,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                         : formatPrintValueForKey(
                             columns[i].key,
                             totals[columns[i].key]!,
+                            columnNumberFormat: columns[i].numberFormat,
                           )),
           ],
           textColor: _pdfColor(shape.headerTextColor),
@@ -2973,7 +3007,7 @@ class DocumentCanvasPainter extends CustomPainter {
         _paintTableCell(
           canvas,
           cellRect,
-          resolvePrintCellValue(row, column.key),
+          resolvePrintCellValueForColumn(row, column, column.key),
           _textAlignForColumn(column.align),
           TextStyle(fontSize: 11 * scale, color: Color(shape.bodyTextColor)),
           centerVertically: true,
@@ -3014,7 +3048,11 @@ class DocumentCanvasPainter extends CustomPainter {
               ? 'Total'
               : totals[column.key] == null
               ? ''
-              : formatPrintValueForKey(column.key, totals[column.key]!);
+              : formatPrintValueForKey(
+                  column.key,
+                  totals[column.key]!,
+                  columnNumberFormat: column.numberFormat,
+                );
           _paintTableCell(
             canvas,
             cellRect,
