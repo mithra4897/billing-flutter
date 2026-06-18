@@ -908,6 +908,22 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      IconButton(
+                        tooltip: 'Move up',
+                        onPressed: index > 0
+                            ? () => _moveColumn(index, -1)
+                            : null,
+                        icon: const Icon(Icons.arrow_upward),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      IconButton(
+                        tooltip: 'Move down',
+                        onPressed: index < columns.length - 1
+                            ? () => _moveColumn(index, 1)
+                            : null,
+                        icon: const Icon(Icons.arrow_downward),
+                        visualDensity: VisualDensity.compact,
+                      ),
                       Expanded(
                         child: DocumentDesignerStringField(
                           key: ValueKey('col-$index-label'),
@@ -981,6 +997,29 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 4),
+                  _CompactDropdownField<String>(
+                    value: column.numberFormat,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'default',
+                        child: Text('Default Format'),
+                      ),
+                      DropdownMenuItem(value: 'auto', child: Text('Auto')),
+                      DropdownMenuItem(
+                        value: 'fixed_2',
+                        child: Text('2 Decimals'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        _updateColumn(
+                          index,
+                          column.copyWith(numberFormat: val),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 4),
                   AppSwitchTile(
                     label: 'Total Column',
                     value: column.totalColumn,
@@ -1007,6 +1046,17 @@ class DocumentDesignerTableColumnInspector extends StatelessWidget {
   void _deleteColumn(int index) {
     final list = [...columns];
     list.removeAt(index);
+    onChanged(list);
+  }
+
+  void _moveColumn(int index, int offset) {
+    final targetIndex = index + offset;
+    if (targetIndex < 0 || targetIndex >= columns.length) {
+      return;
+    }
+    final list = [...columns];
+    final column = list.removeAt(index);
+    list.insert(targetIndex, column);
     onChanged(list);
   }
 }

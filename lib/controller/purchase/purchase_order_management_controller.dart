@@ -733,6 +733,7 @@ class PurchaseOrderManagementController extends GetxController {
             igst: breakdown.igst,
           );
           return DocumentPrintLineModel(
+            lineNo: lines.indexOf(line) + 1,
             itemName:
                 item?.itemName ??
                 item?.itemCode ??

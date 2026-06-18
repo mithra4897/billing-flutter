@@ -297,9 +297,23 @@ class DocumentPrintTemplate {
           printTotal: true,
           columns: const [
             DocumentPrintColumn(
+              key: 'line_no',
+              label: 'S.No',
+              widthFactor: 0.9,
+              align: 'center',
+              titleAlign: 'center',
+            ),
+            DocumentPrintColumn(
               key: 'item_name',
               label: 'Item',
-              widthFactor: 4.5,
+              widthFactor: 3.6,
+            ),
+            DocumentPrintColumn(
+              key: 'hsn',
+              label: 'HSN',
+              widthFactor: 1.6,
+              align: 'center',
+              titleAlign: 'center',
             ),
             DocumentPrintColumn(
               key: 'qty',
@@ -322,13 +336,6 @@ class DocumentPrintTemplate {
               align: 'right',
               titleAlign: 'center',
               totalColumn: true,
-            ),
-            DocumentPrintColumn(
-              key: 'hsn',
-              label: 'HSN',
-              widthFactor: 1.6,
-              align: 'center',
-              titleAlign: 'center',
             ),
             DocumentPrintColumn(
               key: 'line_total',
@@ -1172,11 +1179,25 @@ class DocumentPrintShape {
 
   static List<DocumentPrintColumn> defaultTableColumns() {
     return const [
-      DocumentPrintColumn(key: 'item_name', label: 'Item', widthFactor: 3.2),
+      DocumentPrintColumn(
+        key: 'line_no',
+        label: 'S.No',
+        widthFactor: 0.9,
+        align: 'center',
+        titleAlign: 'center',
+      ),
+      DocumentPrintColumn(key: 'item_name', label: 'Item', widthFactor: 2.8),
+      DocumentPrintColumn(
+        key: 'hsn',
+        label: 'HSN',
+        widthFactor: 1.6,
+        align: 'center',
+        titleAlign: 'center',
+      ),
       DocumentPrintColumn(
         key: 'description',
         label: 'Description',
-        widthFactor: 3,
+        widthFactor: 2.2,
       ),
       DocumentPrintColumn(
         key: 'qty',
@@ -1189,13 +1210,6 @@ class DocumentPrintShape {
         label: 'Rate',
         widthFactor: 1.2,
         align: 'right',
-      ),
-      DocumentPrintColumn(
-        key: 'hsn',
-        label: 'HSN',
-        widthFactor: 1.6,
-        align: 'center',
-        titleAlign: 'center',
       ),
       DocumentPrintColumn(
         key: 'line_total',
@@ -1363,6 +1377,7 @@ class DocumentPrintColumn {
     this.align = 'left',
     this.titleAlign = 'center',
     this.totalColumn = false,
+    this.numberFormat = 'default',
   });
 
   final String key;
@@ -1371,6 +1386,7 @@ class DocumentPrintColumn {
   final String align;
   final String titleAlign;
   final bool totalColumn;
+  final String numberFormat;
 
   factory DocumentPrintColumn.fromJson(Map<String, dynamic> json) {
     return DocumentPrintColumn(
@@ -1380,6 +1396,7 @@ class DocumentPrintColumn {
       align: stringValue(json, 'align', 'left'),
       titleAlign: stringValue(json, 'titleAlign', 'center'),
       totalColumn: boolValue(json, 'totalColumn'),
+      numberFormat: stringValue(json, 'numberFormat', 'default'),
     );
   }
 
@@ -1391,6 +1408,7 @@ class DocumentPrintColumn {
       'align': align,
       'titleAlign': titleAlign,
       'totalColumn': totalColumn,
+      'numberFormat': numberFormat,
     };
   }
 
@@ -1401,6 +1419,7 @@ class DocumentPrintColumn {
     String? align,
     String? titleAlign,
     bool? totalColumn,
+    String? numberFormat,
   }) {
     return DocumentPrintColumn(
       key: key ?? this.key,
@@ -1409,6 +1428,7 @@ class DocumentPrintColumn {
       align: align ?? this.align,
       titleAlign: titleAlign ?? this.titleAlign,
       totalColumn: totalColumn ?? this.totalColumn,
+      numberFormat: numberFormat ?? this.numberFormat,
     );
   }
 }

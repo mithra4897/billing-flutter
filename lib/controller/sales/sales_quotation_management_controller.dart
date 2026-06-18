@@ -863,6 +863,7 @@ class SalesQuotationManagementController extends GetxController {
             cess: breakdown.cess,
           );
           return DocumentPrintLineModel(
+            lineNo: lines.indexOf(line) + 1,
             itemName:
                 item?.itemName ??
                 item?.itemCode ??
