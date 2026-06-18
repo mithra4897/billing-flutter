@@ -104,7 +104,9 @@ class FinancialReportViews {
         _tsvLines(b, [
           'voucher_no',
           'voucher_date',
-          'account_name',
+          'classification',
+          'cash_accounts',
+          'counterparty_accounts',
           'narration',
           'inflow',
           'outflow',
@@ -262,8 +264,22 @@ class FinancialReportViews {
           children: [
             _meta(theme, 'From', period['date_from']?.toString() ?? ''),
             _meta(theme, 'To', period['date_to']?.toString() ?? ''),
-            _meta(theme, 'Opening', _money(summary['opening_balance'])),
-            _meta(theme, 'Closing', _money(summary['closing_balance'])),
+            _meta(
+              theme,
+              'Opening',
+              _balance(
+                summary['opening_balance'],
+                summary['opening_balance_side'],
+              ),
+            ),
+            _meta(
+              theme,
+              'Closing',
+              _balance(
+                summary['closing_balance'],
+                summary['closing_balance_side'],
+              ),
+            ),
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingMd),
@@ -290,7 +306,7 @@ class FinancialReportViews {
                   r['narration']?.toString() ?? '',
                   _money(r['debit']),
                   _money(r['credit']),
-                  _money(r['running_balance']),
+                  _balance(r['running_balance'], r['running_balance_side']),
                 ];
               })
               .toList(growable: false),
@@ -378,7 +394,7 @@ class FinancialReportViews {
                     r['account_code']?.toString() ?? '',
                     r['account_name']?.toString() ?? '',
                     r['group_name']?.toString() ?? '',
-                    _money(r['amount']),
+                    _balance(r['amount'], r['balance_side']),
                   ];
                 })
                 .toList(growable: false),
@@ -398,7 +414,11 @@ class FinancialReportViews {
           children: [
             _meta(theme, 'From', period['date_from']?.toString() ?? ''),
             _meta(theme, 'To', period['date_to']?.toString() ?? ''),
-            _meta(theme, 'Net profit', _money(totals['net_profit'])),
+            _meta(
+              theme,
+              totals['net_label']?.toString() ?? 'Net Profit',
+              _balance(totals['net_amount'], totals['net_side']),
+            ),
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingMd),
@@ -432,7 +452,7 @@ class FinancialReportViews {
                     r['account_name']?.toString() ?? '',
                     r['group_name']?.toString() ?? '',
                     r['group_category']?.toString() ?? '',
-                    _money(r['amount']),
+                    _balance(r['amount'], r['balance_side']),
                   ];
                 })
                 .toList(growable: false),
@@ -452,9 +472,17 @@ class FinancialReportViews {
           children: [
             _meta(theme, 'From', period['date_from']?.toString() ?? ''),
             _meta(theme, 'To', period['date_to']?.toString() ?? ''),
-            _meta(theme, 'Inflows', _money(summary['operating_inflows'])),
-            _meta(theme, 'Outflows', _money(summary['operating_outflows'])),
+            _meta(theme, 'Inflows', _money(summary['cash_inflows'])),
+            _meta(theme, 'Outflows', _money(summary['cash_outflows'])),
             _meta(theme, 'Net', _money(summary['net_cash_flow'])),
+            _meta(theme, 'Operating', _money(_net(summary, 'operating'))),
+            _meta(theme, 'Investing', _money(_net(summary, 'investing'))),
+            _meta(theme, 'Financing', _money(_net(summary, 'financing'))),
+            _meta(
+              theme,
+              'Internal transfer',
+              _money(_net(summary, 'internal_transfer')),
+            ),
           ],
         ),
         const SizedBox(height: AppUiConstants.spacingMd),
@@ -463,7 +491,9 @@ class FinancialReportViews {
           const [
             'Date',
             'Voucher',
-            'Account',
+            'Class',
+            'Cash Account',
+            'Counterparty',
             'Narration',
             'Inflow',
             'Outflow',
@@ -474,7 +504,9 @@ class FinancialReportViews {
                 return [
                   r['voucher_date']?.toString() ?? '',
                   r['voucher_no']?.toString() ?? '',
-                  r['account_name']?.toString() ?? '',
+                  r['classification']?.toString() ?? '',
+                  r['cash_accounts']?.toString() ?? '',
+                  r['counterparty_accounts']?.toString() ?? '',
                   r['narration']?.toString() ?? '',
                   _money(r['inflow']),
                   _money(r['outflow']),
@@ -574,66 +606,7 @@ class FinancialReportViews {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final estimatedWidth = headers.fold<double>(
-          0,
-          (sum, header) => sum + (_isNumericHeader(header) ? 140.0 : 220.0),
-        );
-
-        return Scrollbar(
-          thumbVisibility: true,
-          notificationPredicate: (notification) =>
-              notification.metrics.axis == Axis.horizontal,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: constraints.maxWidth,
-                maxWidth: estimatedWidth > constraints.maxWidth
-                    ? estimatedWidth
-                    : constraints.maxWidth,
-              ),
-              child: DataTable(
-                headingRowHeight: 52,
-                dataRowMinHeight: 56,
-                dataRowMaxHeight: 64,
-                columnSpacing: AppUiConstants.spacingLg,
-                horizontalMargin: AppUiConstants.spacingSm,
-                columns: headers
-                    .map(
-                      (header) => DataColumn(
-                        numeric: _isNumericHeader(header),
-                        label: Text(header),
-                      ),
-                    )
-                    .toList(growable: false),
-                rows: rows
-                    .map(
-                      (cells) => DataRow(
-                        cells: cells
-                            .asMap()
-                            .entries
-                            .map(
-                              (entry) => DataCell(
-                                _ReportTableCell(
-                                  text: entry.value,
-                                  alignEnd: _isNumericHeader(
-                                    headers[entry.key],
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(growable: false),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    return _ReportDataTable(theme: theme, headers: headers, rows: rows);
   }
 
   static bool _isNumericHeader(String header) {
@@ -645,6 +618,8 @@ class FinancialReportViews {
       'Outstanding',
       'Inflows',
       'Outflows',
+      'Inflow',
+      'Outflow',
       'Net',
       'Days',
       'Ln',
@@ -668,6 +643,37 @@ class FinancialReportViews {
       return '';
     }
     return n.toStringAsFixed(2);
+  }
+
+  static String _balance(dynamic amount, dynamic side) {
+    final numericAmount = double.tryParse(amount?.toString() ?? '');
+    final absoluteAmount = numericAmount == null ? amount : numericAmount.abs();
+    final value = _money(absoluteAmount);
+    if (value.isEmpty && numericAmount == null) {
+      return '';
+    }
+    var sideValue = side?.toString().trim().toLowerCase();
+    if ((sideValue == null || sideValue.isEmpty) && numericAmount != null) {
+      if (numericAmount < 0) {
+        sideValue = 'credit';
+      } else if (numericAmount > 0) {
+        sideValue = 'debit';
+      }
+    }
+    if (sideValue == 'debit') {
+      return '$value Dr';
+    }
+    if (sideValue == 'credit') {
+      return '$value Cr';
+    }
+    return value;
+  }
+
+  static double _num(dynamic value) => double.tryParse(value.toString()) ?? 0;
+
+  static double _net(Map<String, dynamic> summary, String prefix) {
+    return _num(summary['${prefix}_inflows']) -
+        _num(summary['${prefix}_outflows']);
   }
 
   static Map<String, dynamic> _mapDynamic(dynamic v) {
@@ -711,6 +717,106 @@ class _ReportTableCell extends StatelessWidget {
       child: alignEnd
           ? Align(alignment: Alignment.centerRight, child: child)
           : child,
+    );
+  }
+}
+
+class _ReportDataTable extends StatefulWidget {
+  const _ReportDataTable({
+    required this.theme,
+    required this.headers,
+    required this.rows,
+  });
+
+  final ThemeData theme;
+  final List<String> headers;
+  final List<List<String>> rows;
+
+  @override
+  State<_ReportDataTable> createState() => _ReportDataTableState();
+}
+
+class _ReportDataTableState extends State<_ReportDataTable> {
+  late final ScrollController _horizontalScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final estimatedWidth = widget.headers.fold<double>(
+          0,
+          (sum, header) =>
+              sum +
+              (FinancialReportViews._isNumericHeader(header) ? 140.0 : 220.0),
+        );
+
+        return Scrollbar(
+          controller: _horizontalScrollController,
+          thumbVisibility: true,
+          notificationPredicate: (notification) =>
+              notification.metrics.axis == Axis.horizontal,
+          child: SingleChildScrollView(
+            controller: _horizontalScrollController,
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth,
+                maxWidth: estimatedWidth > constraints.maxWidth
+                    ? estimatedWidth
+                    : constraints.maxWidth,
+              ),
+              child: DataTable(
+                headingRowHeight: 52,
+                dataRowMinHeight: 56,
+                dataRowMaxHeight: 64,
+                columnSpacing: AppUiConstants.spacingLg,
+                horizontalMargin: AppUiConstants.spacingSm,
+                columns: widget.headers
+                    .map(
+                      (header) => DataColumn(
+                        numeric: FinancialReportViews._isNumericHeader(header),
+                        label: Text(header),
+                      ),
+                    )
+                    .toList(growable: false),
+                rows: widget.rows
+                    .map(
+                      (cells) => DataRow(
+                        cells: cells
+                            .asMap()
+                            .entries
+                            .map(
+                              (entry) => DataCell(
+                                _ReportTableCell(
+                                  text: entry.value,
+                                  alignEnd: FinancialReportViews
+                                      ._isNumericHeader(
+                                        widget.headers[entry.key],
+                                      ),
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

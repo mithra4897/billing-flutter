@@ -254,15 +254,7 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
         if (controller.needsDayBookBranch)
           AppDropdownField<int?>.fromMapped(
             labelText: 'Branch (optional)',
-            mappedItems: <AppDropdownItem<int?>>[
-              const AppDropdownItem<int?>(value: null, label: 'All branches'),
-              ...controller.branchOptions
-                  .where((b) => b.id != null)
-                  .map(
-                    (b) =>
-                        AppDropdownItem<int?>(value: b.id, label: b.toString()),
-                  ),
-            ],
+            mappedItems: controller.branchFilterItems,
             initialValue: controller.dayBookBranchId,
             onChanged: controller.setDayBookBranchId,
           ),
@@ -280,15 +272,9 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
             onChanged: controller.setAccountId,
           ),
         if (controller.needsParty)
-          AppDropdownField<int>.fromMapped(
+          AppDropdownField<int?>.fromMapped(
             labelText: 'Party',
-            mappedItems: controller.partyOptions
-                .where((item) => item.id != null)
-                .map(
-                  (item) =>
-                      AppDropdownItem(value: item.id!, label: item.toString()),
-                )
-                .toList(growable: false),
+            mappedItems: controller.partyFilterItems,
             initialValue: controller.partyId,
             onChanged: controller.setPartyId,
           ),

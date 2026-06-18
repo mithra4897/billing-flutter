@@ -876,6 +876,10 @@ class VoucherManagementController extends GetxController {
   }
 
   Future<void> saveVoucher() async {
+    if (saving) {
+      return;
+    }
+
     if (formKey.currentState?.validate() != true) {
       return;
     }

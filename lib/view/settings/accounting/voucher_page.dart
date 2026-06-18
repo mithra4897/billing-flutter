@@ -410,7 +410,8 @@ class _VoucherManagementPageState extends State<VoucherManagementPage> {
                         ? 'Save Voucher'
                         : 'Update Voucher',
                     onPressed:
-                        (controller.selectedVoucher == null ||
+                        !controller.saving &&
+                            (controller.selectedVoucher == null ||
                             controller.canEditSelectedVoucher)
                         ? controller.saveVoucher
                         : null,

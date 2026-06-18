@@ -78,9 +78,6 @@ class FinancialReportsController extends GetxController {
         _masterService.companies(
           filters: const {'per_page': 100, 'sort_by': 'legal_name'},
         ),
-        _accountsService.accountsAll(
-          filters: const {'sort_by': 'account_name'},
-        ),
         _masterService.branches(
           filters: const {'per_page': 500, 'sort_by': 'name'},
         ),
@@ -92,14 +89,11 @@ class FinancialReportsController extends GetxController {
       final companies =
           (responses[0] as PaginatedResponse<CompanyModel>).data ??
           const <CompanyModel>[];
-      final nextAccounts =
-          (responses[1] as ApiResponse<List<AccountModel>>).data ??
-          const <AccountModel>[];
       final nextBranches =
-          (responses[2] as PaginatedResponse<BranchModel>).data ??
+          (responses[1] as PaginatedResponse<BranchModel>).data ??
           const <BranchModel>[];
       final nextParties =
-          (responses[3] as PaginatedResponse<PartyModel>).data ??
+          (responses[2] as PaginatedResponse<PartyModel>).data ??
           const <PartyModel>[];
       final activeCompanies = companies
           .where((item) => item.isActive)
@@ -112,6 +106,15 @@ class FinancialReportsController extends GetxController {
             financialYears: const <FinancialYearModel>[],
           );
       final nextCompanyId = contextSelection.companyId;
+      final accountsResponse = await _accountsService.accountsAll(
+        filters: <String, dynamic>{
+          'sort_by': 'account_name',
+          'sort_order': 'asc',
+          'is_active': 1,
+          'company_id': ?nextCompanyId,
+        },
+      );
+      final nextAccounts = accountsResponse.data ?? const <AccountModel>[];
       final partyAccountResponse = nextCompanyId == null
           ? null
           : await _accountsService.partyAccountsRegister(
@@ -186,7 +189,10 @@ class FinancialReportsController extends GetxController {
         _putNonEmptyFilter(filters, 'date_from', dateFromController.text);
         _putNonEmptyFilter(filters, 'date_to', dateToController.text);
         if (reportType == 'financial_statement_pack') {
-          _putNonEmptyFilter(filters, 'as_of_date', asOfDateController.text);
+          final statementAsOfDate = dateToController.text.trim().isNotEmpty
+              ? dateToController.text
+              : asOfDateController.text;
+          _putNonEmptyFilter(filters, 'as_of_date', statementAsOfDate);
         }
         break;
     }
@@ -244,6 +250,15 @@ class FinancialReportsController extends GetxController {
       reportType == 'accounts_payable_aging';
 
   bool get needsDayBookBranch => reportType == 'day_book';
+
+  List<AppDropdownItem<int?>> get branchFilterItems => <AppDropdownItem<int?>>[
+    const AppDropdownItem<int?>(value: null, label: 'All branches'),
+    ...branchOptions
+        .where((b) => b.id != null)
+        .map(
+          (b) => AppDropdownItem<int?>(value: b.id, label: b.toString()),
+        ),
+  ];
 
   List<BranchModel> get branchOptions => branches
       .where(
@@ -309,6 +324,26 @@ class FinancialReportsController extends GetxController {
     return activePartiesById.values.toList(growable: false);
   }
 
+  String get allPartyLabel {
+    switch (reportType) {
+      case 'accounts_receivable_aging':
+        return 'All customers';
+      case 'accounts_payable_aging':
+        return 'All suppliers';
+      default:
+        return 'All parties';
+    }
+  }
+
+  List<AppDropdownItem<int?>> get partyFilterItems => <AppDropdownItem<int?>>[
+    AppDropdownItem<int?>(value: null, label: allPartyLabel),
+    ...partyOptions
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int?>(value: item.id, label: item.toString()),
+        ),
+  ];
+
   bool get usesDateRange =>
       reportType == 'day_book' ||
       reportType == 'general_ledger' ||
@@ -331,7 +366,7 @@ class FinancialReportsController extends GetxController {
     if (!needsAccount) {
       accountId = null;
     }
-    if (!needsParty) {
+    if (!needsParty || reportType == 'general_ledger') {
       partyId = null;
     }
     if (!needsDayBookBranch) {
@@ -374,6 +409,11 @@ class FinancialReportsController extends GetxController {
   }
 
   void _sanitizeSelections() {
+    final branchIds = branchOptions.map((branch) => branch.id).whereType<int>().toSet();
+    if (dayBookBranchId != null && !branchIds.contains(dayBookBranchId)) {
+      dayBookBranchId = null;
+    }
+
     final accountIds = accountOptions
         .map((account) => account.id)
         .whereType<int>()
