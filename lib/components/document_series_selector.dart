@@ -6,15 +6,17 @@ class DocumentSeriesSelector<T> extends StatelessWidget {
     required this.labelText,
     required this.mappedItems,
     required this.initialValue,
-    required this.onChanged,
+    this.onChanged,
     this.validator,
+    this.enabled = true,
   });
 
   final String labelText;
   final List<AppDropdownItem<T>> mappedItems;
   final T? initialValue;
-  final ValueChanged<T?> onChanged;
+  final ValueChanged<T?>? onChanged;
   final FormFieldValidator<T?>? validator;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -29,9 +31,9 @@ class DocumentSeriesSelector<T> extends StatelessWidget {
         );
 
     if (shouldRenderReadOnly) {
-      if (initialValue != onlyItem.value) {
+      if (enabled && onChanged != null && initialValue != onlyItem.value) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          onChanged(onlyItem.value);
+          onChanged?.call(onlyItem.value);
         });
       }
 
@@ -50,6 +52,7 @@ class DocumentSeriesSelector<T> extends StatelessWidget {
       initialValue: initialValue,
       onChanged: onChanged,
       validator: validator,
+      enabled: enabled,
     );
   }
 }

@@ -397,6 +397,71 @@ class StockTransferRegisterPage extends StatelessWidget {
   }
 }
 
+class ProduceTrackingRegisterPage extends StatelessWidget {
+  const ProduceTrackingRegisterPage({super.key, this.embedded = false});
+
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InventoryRegisterShell<ProduceTrackingModel>(
+      controllerName: 'ProduceTrackingRegisterController',
+      title: 'Produce Tracking',
+      embedded: embedded,
+      loader: (service) => service.produceTrackings(
+        filters: const {'per_page': 200, 'sort_by': 'tracking_date'},
+      ),
+      matches: (row, query) {
+        final data = row.toJson();
+        return [
+          stringValue(data, 'tracking_no'),
+          stringValue(data, 'tracking_status'),
+          stringValue(data, 'reference_flow'),
+          stringValue(data, 'reference_document_label'),
+          stringValue(data, 'assigned_to_name'),
+          stringValue(data, 'transporter_name'),
+          stringValue(data, 'current_location'),
+        ].join(' ').toLowerCase().contains(query);
+      },
+      emptyMessage: 'No produce tracking records found.',
+      newRoute: '/inventory/produce-trackings/new',
+      newLabel: 'New Produce Tracking',
+      searchHint: 'Search produce tracking',
+      columns: [
+        PurchaseRegisterColumn<ProduceTrackingModel>(
+          label: 'No',
+          valueBuilder: (row) => stringValue(row.toJson(), 'tracking_no'),
+        ),
+        PurchaseRegisterColumn<ProduceTrackingModel>(
+          label: 'Date',
+          valueBuilder: (row) =>
+              displayDate(nullableStringValue(row.toJson(), 'tracking_date')),
+        ),
+        PurchaseRegisterColumn<ProduceTrackingModel>(
+          label: 'Based On',
+          valueBuilder: (row) =>
+              stringValue(row.toJson(), 'reference_document_label'),
+        ),
+        PurchaseRegisterColumn<ProduceTrackingModel>(
+          label: 'Assigned To',
+          valueBuilder: (row) => stringValue(row.toJson(), 'assigned_to_name'),
+        ),
+        PurchaseRegisterColumn<ProduceTrackingModel>(
+          label: 'Transporter',
+          flex: 2,
+          valueBuilder: (row) => stringValue(row.toJson(), 'transporter_name'),
+        ),
+        PurchaseRegisterColumn<ProduceTrackingModel>(
+          label: 'Status',
+          valueBuilder: (row) => stringValue(row.toJson(), 'tracking_status'),
+        ),
+      ],
+      rowRoute: (row) =>
+          '/inventory/produce-trackings/${intValue(row.toJson(), 'id')}',
+    );
+  }
+}
+
 class StockDamageRegisterPage extends StatelessWidget {
   const StockDamageRegisterPage({super.key, this.embedded = false});
 

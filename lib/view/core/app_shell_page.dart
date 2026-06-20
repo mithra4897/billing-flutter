@@ -331,6 +331,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return PhysicalStockCountPage(key: routeKey, embedded: true);
       case '/inventory/brands':
         return BrandManagementPage(key: routeKey, embedded: true);
+      case '/inventory/transporters':
+        return TransporterManagementPage(key: routeKey, embedded: true);
       case '/inventory/item-alternates':
       case '/inventory/alternate-items':
         return ItemAlternateManagementPage(key: routeKey, embedded: true);
@@ -354,6 +356,8 @@ class _AppShellPageState extends State<AppShellPage> {
         return StockIssueRegisterPage(key: routeKey, embedded: true);
       case '/inventory/internal-stock-receipts':
         return InternalStockReceiptRegisterPage(key: routeKey, embedded: true);
+      case '/inventory/produce-trackings':
+        return ProduceTrackingRegisterPage(key: routeKey, embedded: true);
       case '/inventory/stock-transfers':
         return StockTransferRegisterPage(key: routeKey, embedded: true);
       case '/inventory/stock-damage':
@@ -884,6 +888,13 @@ class _AppShellPageState extends State<AppShellPage> {
           editorOnly: true,
           initialId: id,
           initialItemId: int.tryParse(_currentQueryParameters['item_id'] ?? ''),
+        );
+      case 'produce-trackings':
+        return ProduceTrackingPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
         );
       case 'stock-transfers':
         return StockTransferPage(
@@ -1568,6 +1579,9 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/inventory/internal-stock-receipts/')) {
       return 'Internal Stock Receipt';
+    }
+    if (path.startsWith('/inventory/produce-trackings/')) {
+      return 'Produce Tracking';
     }
     if (path.startsWith('/inventory/stock-transfers/')) {
       return 'Stock Transfer';

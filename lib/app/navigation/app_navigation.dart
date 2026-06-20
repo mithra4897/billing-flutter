@@ -625,6 +625,13 @@ class AppNavigation {
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
+          key: 'inventory-produce-trackings',
+          title: 'Produce Tracking',
+          icon: Icons.alt_route_outlined,
+          path: '/inventory/produce-trackings',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
           key: 'inventory-stock-transfers',
           title: 'Stock Transfers',
           icon: Icons.swap_horiz_outlined,
@@ -685,6 +692,13 @@ class AppNavigation {
           title: 'Brands',
           icon: Icons.sell_outlined,
           path: '/inventory/brands',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
+          key: 'inventory-transporters',
+          title: 'Transporters',
+          icon: Icons.local_shipping_outlined,
+          path: '/inventory/transporters',
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(

@@ -15,7 +15,7 @@ class AppDropdownField<T> extends StatelessWidget {
     super.key,
     required this.labelText,
     required this.items,
-    required this.onChanged,
+    this.onChanged,
     this.initialValue,
     this.validator,
     this.width,
@@ -25,6 +25,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.onNavigateToCreateNew,
     this.allowCreate = false,
     this.createNewLabelBuilder,
+    this.enabled = true,
   }) : records = null,
        mappedItems = null,
        valueKey = null,
@@ -34,7 +35,7 @@ class AppDropdownField<T> extends StatelessWidget {
     super.key,
     required this.labelText,
     required this.mappedItems,
-    required this.onChanged,
+    this.onChanged,
     this.initialValue,
     this.validator,
     this.width,
@@ -44,6 +45,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.onNavigateToCreateNew,
     this.allowCreate = false,
     this.createNewLabelBuilder,
+    this.enabled = true,
   }) : items = null,
        records = null,
        valueKey = null,
@@ -54,7 +56,7 @@ class AppDropdownField<T> extends StatelessWidget {
     required this.labelText,
     required this.records,
     required this.valueKey,
-    required this.onChanged,
+    this.onChanged,
     this.initialValue,
     this.validator,
     this.width,
@@ -65,6 +67,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.onNavigateToCreateNew,
     this.allowCreate = false,
     this.createNewLabelBuilder,
+    this.enabled = true,
   }) : items = null,
        mappedItems = null;
 
@@ -75,7 +78,7 @@ class AppDropdownField<T> extends StatelessWidget {
   final String? valueKey;
   final String? labelKey;
   final T? initialValue;
-  final ValueChanged<T?> onChanged;
+  final ValueChanged<T?>? onChanged;
   final FormFieldValidator<T?>? validator;
   final double? width;
   final String? hintText;
@@ -83,6 +86,7 @@ class AppDropdownField<T> extends StatelessWidget {
   final Future<ErpLinkFieldOption<T>?> Function(String query)? onCreateNew;
   final ValueChanged<String>? onNavigateToCreateNew;
   final bool allowCreate;
+  final bool enabled;
   final String Function(String query, String doctypeLabel)?
   createNewLabelBuilder;
 
@@ -90,6 +94,7 @@ class AppDropdownField<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final options = _buildOptions();
     final selected = _resolveInitialSelection(options);
+    final effectiveEnabled = enabled && onChanged != null;
 
     return ErpLinkField<T>(
       labelText: labelText,
@@ -98,12 +103,13 @@ class AppDropdownField<T> extends StatelessWidget {
       width: width,
       initialSelection: selected,
       options: options,
-      onChanged: onChanged,
+      onChanged: onChanged ?? (_) {},
       validator: validator,
       onCreateNew: onCreateNew,
       onNavigateToCreateNew: onNavigateToCreateNew,
       allowCreate: allowCreate,
       createNewLabelBuilder: createNewLabelBuilder,
+      enabled: effectiveEnabled,
     );
   }
 

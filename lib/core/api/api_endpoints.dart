@@ -71,6 +71,8 @@ class ApiEndpoints {
   static const String itemCategoriesDropdown = '$_inv/item-categories/dropdown';
   static const String brands = '$_inv/brands';
   static const String brandsDropdown = '$_inv/brands/dropdown';
+  static const String transporters = '$_inv/transporters';
+  static const String transportersDropdown = '$_inv/transporters/dropdown';
   static const String uoms = '$_inv/uoms';
   static const String uomsDropdown = '$_inv/uoms/dropdown';
   static const String uomConversions = '$_inv/uom-conversions';
@@ -97,6 +99,7 @@ class ApiEndpoints {
   static const String stockBalancesDropdown = '$_inv/stock-balances/dropdown';
   static const String inventoryAdjustments = '$_inv/inventory-adjustments';
   static const String openingStocks = '$_inv/opening-stocks';
+  static const String produceTrackings = '$_inv/produce-trackings';
   static const String stockTransfers = '$_inv/stock-transfers';
   static const String stockIssues = '$_inv/stock-issues';
   static const String internalStockReceipts = '$_inv/internal-stock-receipts';

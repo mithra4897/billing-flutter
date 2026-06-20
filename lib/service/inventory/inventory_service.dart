@@ -76,6 +76,47 @@ class InventoryService extends ErpModuleService {
   Future<ApiResponse<dynamic>> deleteBrand(int id) =>
       destroy('${ApiEndpoints.brands}/$id');
 
+  Future<PaginatedResponse<TransporterModel>> transporters({
+    Map<String, dynamic>? filters,
+  }) => paginated(
+    ApiEndpoints.transporters,
+    filters: filters,
+    fromJson: TransporterModel.fromJson,
+  );
+
+  Future<ApiResponse<List<TransporterModel>>> transportersDropdown({
+    Map<String, dynamic>? filters,
+  }) => collection(
+    ApiEndpoints.transportersDropdown,
+    filters: filters,
+    fromJson: TransporterModel.fromJson,
+  );
+
+  Future<ApiResponse<TransporterModel>> transporter(int id) => object(
+    '${ApiEndpoints.transporters}/$id',
+    fromJson: TransporterModel.fromJson,
+  );
+
+  Future<ApiResponse<TransporterModel>> createTransporter(
+    TransporterModel body,
+  ) => createModel(
+    ApiEndpoints.transporters,
+    body,
+    fromJson: TransporterModel.fromJson,
+  );
+
+  Future<ApiResponse<TransporterModel>> updateTransporter(
+    int id,
+    TransporterModel body,
+  ) => updateModel(
+    '${ApiEndpoints.transporters}/$id',
+    body,
+    fromJson: TransporterModel.fromJson,
+  );
+
+  Future<ApiResponse<dynamic>> deleteTransporter(int id) =>
+      destroy('${ApiEndpoints.transporters}/$id');
+
   Future<PaginatedResponse<UomModel>> uoms({Map<String, dynamic>? filters}) =>
       paginated(
         ApiEndpoints.uoms,
@@ -592,6 +633,67 @@ class InventoryService extends ErpModuleService {
 
   Future<ApiResponse<dynamic>> deleteOpeningStock(int id) =>
       destroy('${ApiEndpoints.openingStocks}/$id');
+
+  Future<PaginatedResponse<ProduceTrackingModel>> produceTrackings({
+    Map<String, dynamic>? filters,
+  }) => paginated<ProduceTrackingModel>(
+    ApiEndpoints.produceTrackings,
+    filters: filters,
+    fromJson: ProduceTrackingModel.fromJson,
+  );
+
+  Future<ApiResponse<ProduceTrackingModel>> produceTracking(int id) =>
+      object<ProduceTrackingModel>(
+        '${ApiEndpoints.produceTrackings}/$id',
+        fromJson: ProduceTrackingModel.fromJson,
+      );
+
+  Future<ApiResponse<ProduceTrackingModel>> createProduceTracking(
+    dynamic body,
+  ) => createModel<ProduceTrackingModel>(
+    ApiEndpoints.produceTrackings,
+    body,
+    fromJson: ProduceTrackingModel.fromJson,
+  );
+
+  Future<ApiResponse<ProduceTrackingModel>> updateProduceTracking(
+    int id,
+    dynamic body,
+  ) => updateModel<ProduceTrackingModel>(
+    '${ApiEndpoints.produceTrackings}/$id',
+    body,
+    fromJson: ProduceTrackingModel.fromJson,
+  );
+
+  Future<ApiResponse<ProduceTrackingModel>> postProduceTracking(
+    int id,
+    ProduceTrackingModel body,
+  ) => actionModel<ProduceTrackingModel>(
+    '${ApiEndpoints.produceTrackings}/$id/post',
+    body: body,
+    fromJson: ProduceTrackingModel.fromJson,
+  );
+
+  Future<ApiResponse<ProduceTrackingModel>> updateProduceTrackingLocation(
+    int id,
+    dynamic body,
+  ) => actionModel<ProduceTrackingModel>(
+    '${ApiEndpoints.produceTrackings}/$id/location',
+    body: body,
+    fromJson: ProduceTrackingModel.fromJson,
+  );
+
+  Future<ApiResponse<ProduceTrackingModel>> cancelProduceTracking(
+    int id,
+    ProduceTrackingModel body,
+  ) => actionModel<ProduceTrackingModel>(
+    '${ApiEndpoints.produceTrackings}/$id/cancel',
+    body: body,
+    fromJson: ProduceTrackingModel.fromJson,
+  );
+
+  Future<ApiResponse<dynamic>> deleteProduceTracking(int id) =>
+      destroy('${ApiEndpoints.produceTrackings}/$id');
 
   Future<PaginatedResponse<StockTransferModel>> stockTransfers({
     Map<String, dynamic>? filters,
