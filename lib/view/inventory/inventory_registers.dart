@@ -398,9 +398,14 @@ class StockTransferRegisterPage extends StatelessWidget {
 }
 
 class ProduceTrackingRegisterPage extends StatelessWidget {
-  const ProduceTrackingRegisterPage({super.key, this.embedded = false});
+  const ProduceTrackingRegisterPage({
+    super.key,
+    this.embedded = false,
+    this.routePrefix = '/inventory/produce-trackings',
+  });
 
   final bool embedded;
+  final String routePrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -424,7 +429,7 @@ class ProduceTrackingRegisterPage extends StatelessWidget {
         ].join(' ').toLowerCase().contains(query);
       },
       emptyMessage: 'No produce tracking records found.',
-      newRoute: '/inventory/produce-trackings/new',
+      newRoute: '$routePrefix/new',
       newLabel: 'New Produce Tracking',
       searchHint: 'Search produce tracking',
       columns: [
@@ -456,8 +461,7 @@ class ProduceTrackingRegisterPage extends StatelessWidget {
           valueBuilder: (row) => stringValue(row.toJson(), 'tracking_status'),
         ),
       ],
-      rowRoute: (row) =>
-          '/inventory/produce-trackings/${intValue(row.toJson(), 'id')}',
+      rowRoute: (row) => '$routePrefix/${intValue(row.toJson(), 'id')}',
     );
   }
 }

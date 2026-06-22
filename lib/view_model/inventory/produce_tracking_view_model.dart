@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../screen.dart';
 import 'inventory_module_refresh_controller.dart';
 
@@ -5,6 +7,12 @@ const List<AppDropdownItem<String>> produceTrackingFlowItems =
     <AppDropdownItem<String>>[
       AppDropdownItem(value: 'sales_delivery', label: 'Sales Delivery'),
       AppDropdownItem(value: 'purchase_order', label: 'Purchase Order'),
+    ];
+
+const List<AppDropdownItem<String>> produceTrackingAssignedTypeItems =
+    <AppDropdownItem<String>>[
+      AppDropdownItem(value: 'employee', label: 'Employee'),
+      AppDropdownItem(value: 'supplier', label: 'Supplier'),
     ];
 
 const List<AppDropdownItem<String>> produceTrackingStatusItems =
@@ -65,7 +73,12 @@ class ProduceTrackingLineDraft {
        currentLocationController = TextEditingController(
          text: currentLocation ?? '',
        ),
-       remarksController = TextEditingController(text: remarks ?? '');
+       remarksController = TextEditingController(text: remarks ?? '') {
+    trackedQtyController.addListener(_syncBalanceQty);
+    deliveredQtyController.addListener(_syncBalanceQty);
+    receivedQtyController.addListener(_syncBalanceQty);
+    _syncBalanceQty();
+  }
 
   int? id;
   int? salesDeliveryLineId;
@@ -82,6 +95,29 @@ class ProduceTrackingLineDraft {
   final TextEditingController balanceQtyController;
   final TextEditingController currentLocationController;
   final TextEditingController remarksController;
+
+  void _syncBalanceQty() {
+    final trackedQty = double.tryParse(trackedQtyController.text.trim()) ?? 0;
+    final deliveredQty =
+        double.tryParse(deliveredQtyController.text.trim()) ?? 0;
+    final receivedQty =
+        double.tryParse(receivedQtyController.text.trim()) ?? 0;
+    final balanceQty =
+        math.max(trackedQty - math.max(deliveredQty, receivedQty), 0)
+            .toDouble();
+    final nextValue = _formatQty(balanceQty);
+    if (balanceQtyController.text == nextValue) {
+      return;
+    }
+    balanceQtyController.text = nextValue;
+  }
+
+  String _formatQty(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toString();
+  }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (id != null) 'id': id,
@@ -117,16 +153,29 @@ class ProduceTrackingViewModel extends GetxController {
     WorkingContextService.version.addListener(_handleWorkingContextChanged);
   }
 
+  static const List<AppDropdownItem<String>> listStatusFilter =
+      <AppDropdownItem<String>>[
+        AppDropdownItem(value: '', label: 'All'),
+        ...produceTrackingStatusItems,
+      ];
+
   final int? initialId;
   final InventoryService _inventoryService = InventoryService();
   final SalesService _salesService = SalesService();
   final PurchaseService _purchaseService = PurchaseService();
   final MasterService _masterService = MasterService();
   final PartiesService _partiesService = PartiesService();
+  final HrService _hrService = HrService();
   final InventoryModuleRefreshController _refreshController =
       InventoryModuleRefreshController.ensureRegistered();
 
+  final ScrollController pageScrollController = ScrollController();
+  final SettingsWorkspaceController workspaceController =
+      SettingsWorkspaceController();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final TextEditingController trackingNoController = TextEditingController();
   final TextEditingController trackingDateController = TextEditingController();
   final TextEditingController destinationLocationController =
@@ -166,6 +215,7 @@ class ProduceTrackingViewModel extends GetxController {
   List<StockBatchModel> batches = const <StockBatchModel>[];
   List<StockSerialModel> serials = const <StockSerialModel>[];
   List<PartyModel> parties = const <PartyModel>[];
+  List<EmployeeModel> employees = const <EmployeeModel>[];
   List<TransporterModel> transporters = const <TransporterModel>[];
   List<SalesDeliveryModel> salesDeliveries = const <SalesDeliveryModel>[];
   List<PurchaseOrderModel> purchaseOrders = const <PurchaseOrderModel>[];
@@ -180,18 +230,24 @@ class ProduceTrackingViewModel extends GetxController {
   int? salesDeliveryId;
   int? purchaseOrderId;
   int? sourceWarehouseId;
+  int? assignedEmployeeId;
+  int? assignedSupplierPartyId;
   int? destinationPartyId;
   int? destinationWarehouseId;
   int? transporterId;
   String referenceFlow = 'sales_delivery';
+  String assignedToType = 'employee';
   String destinationType = 'customer';
   String trackingStatus = 'draft';
+  String statusFilter = '';
   bool isActive = true;
   List<ProduceTrackingLineDraft> lines = <ProduceTrackingLineDraft>[];
+  bool _initialized = false;
+  int? _lastRequestedSelectId;
 
   void _handleWorkingContextChanged() {
     final id = intValue(selected?.toJson() ?? const <String, dynamic>{}, 'id');
-    load(selectId: id);
+    unawaited(load(selectId: id));
   }
 
   String get status => selected == null
@@ -279,6 +335,34 @@ class ProduceTrackingViewModel extends GetxController {
       )
       .toList(growable: false);
 
+  List<PartyModel> get supplierOptions => parties.where((row) {
+    if (!row.isActive) {
+      return false;
+    }
+    final name = (row.partyName ?? row.displayName ?? '').toLowerCase();
+    return name.isNotEmpty;
+  }).toList(growable: false);
+
+  List<AppDropdownItem<int>> get supplierDropdownItems => supplierOptions
+      .where((row) => row.id != null)
+      .map(
+        (row) => AppDropdownItem<int>(value: row.id!, label: row.toString()),
+      )
+      .toList(growable: false);
+
+  List<AppDropdownItem<int>> get employeeDropdownItems => employees
+      .where(
+        (row) =>
+            row.id != null &&
+            (row.status == null ||
+                row.status!.toLowerCase() == 'active' ||
+                row.status!.toLowerCase() == 'working'),
+      )
+      .map(
+        (row) => AppDropdownItem<int>(value: row.id!, label: row.toString()),
+      )
+      .toList(growable: false);
+
   List<AppDropdownItem<int>> get transporterDropdownItems => transporters
       .where((row) => row.id != null && row.isActive)
       .map(
@@ -290,9 +374,24 @@ class ProduceTrackingViewModel extends GetxController {
       .toList(growable: false);
 
   List<ProduceTrackingModel> get filteredRows {
+    final fromDate = tryParseCalendarDate(dateFromController.text.trim());
+    final toDate = tryParseCalendarDate(dateToController.text.trim());
     final q = searchController.text.trim().toLowerCase();
     return rows.where((row) {
       final data = row.toJson();
+      final rowStatus = stringValue(data, 'tracking_status');
+      if (statusFilter.isNotEmpty && rowStatus != statusFilter) {
+        return false;
+      }
+      final trackingDate = tryParseCalendarDate(
+        nullableStringValue(data, 'tracking_date') ?? '',
+      );
+      if (fromDate != null && (trackingDate == null || trackingDate.isBefore(fromDate))) {
+        return false;
+      }
+      if (toDate != null && (trackingDate == null || trackingDate.isAfter(toDate))) {
+        return false;
+      }
       if (q.isEmpty) {
         return true;
       }
@@ -305,6 +404,29 @@ class ProduceTrackingViewModel extends GetxController {
         stringValue(data, 'destination_location'),
       ].join(' ').toLowerCase().contains(q);
     }).toList(growable: false);
+  }
+
+  List<ProduceTrackingModel> get filteredItems => filteredRows;
+  ProduceTrackingModel? get selectedItem => selected;
+
+  Future<void> initialize({
+    int? initialId,
+    bool editorOnly = false,
+  }) async {
+    if (_initialized) {
+      return;
+    }
+    _initialized = true;
+    _lastRequestedSelectId = initialId ?? this.initialId;
+    await load(selectId: _lastRequestedSelectId);
+  }
+
+  Future<void> reloadLastRequestedPage() {
+    return load(selectId: _lastRequestedSelectId ?? initialId);
+  }
+
+  void applyFilters() {
+    update();
   }
 
   String? consumeActionMessage() {
@@ -335,6 +457,13 @@ class ProduceTrackingViewModel extends GetxController {
       }
     }
     return null;
+  }
+
+  bool get showTransportDetails {
+    final type = transporterById(transporterId)?.transporterType;
+    return type == 'courier' ||
+        type == 'third_party' ||
+        type == 'own_vehicle';
   }
 
   bool itemHasBatch(int? itemId) => itemById(itemId)?.hasBatch ?? false;
@@ -383,6 +512,7 @@ class ProduceTrackingViewModel extends GetxController {
   }
 
   Future<void> load({int? selectId}) async {
+    _lastRequestedSelectId = selectId;
     loading = true;
     pageError = null;
     update();
@@ -407,6 +537,7 @@ class ProduceTrackingViewModel extends GetxController {
         _inventoryService.stockBatches(filters: const {'per_page': 500}),
         _inventoryService.stockSerials(filters: const {'per_page': 500}),
         _partiesService.parties(filters: const {'per_page': 500}),
+        _hrService.employees(filters: const {'per_page': 500}),
         _inventoryService.transporters(
           filters: const {'per_page': 200, 'sort_by': 'name'},
         ),
@@ -477,16 +608,19 @@ class ProduceTrackingViewModel extends GetxController {
                   const <PartyModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
+      employees =
+          (responses[13] as PaginatedResponse<EmployeeModel>).data ??
+          const <EmployeeModel>[];
       transporters =
-          ((responses[13] as PaginatedResponse<TransporterModel>).data ??
+          ((responses[14] as PaginatedResponse<TransporterModel>).data ??
                   const <TransporterModel>[])
               .where((x) => x.isActive)
               .toList(growable: false);
       salesDeliveries =
-          (responses[14] as PaginatedResponse<SalesDeliveryModel>).data ??
+          (responses[15] as PaginatedResponse<SalesDeliveryModel>).data ??
           const <SalesDeliveryModel>[];
       purchaseOrders =
-          (responses[15] as PaginatedResponse<PurchaseOrderModel>).data ??
+          (responses[16] as PaginatedResponse<PurchaseOrderModel>).data ??
           const <PurchaseOrderModel>[];
 
       final contextSelection = await WorkingContextService.instance
@@ -543,6 +677,9 @@ class ProduceTrackingViewModel extends GetxController {
     _ensureContextSelection();
     documentSeriesId = seriesOptions.isNotEmpty ? seriesOptions.first.id : null;
     referenceFlow = 'sales_delivery';
+    assignedToType = 'employee';
+    assignedEmployeeId = null;
+    assignedSupplierPartyId = null;
     destinationType = 'customer';
     trackingStatus = 'draft';
     salesDeliveryId = null;
@@ -598,6 +735,9 @@ class ProduceTrackingViewModel extends GetxController {
       salesDeliveryId = intValue(data, 'sales_delivery_id');
       purchaseOrderId = intValue(data, 'purchase_order_id');
       sourceWarehouseId = intValue(data, 'source_warehouse_id');
+      assignedToType = stringValue(data, 'assigned_to_type', 'employee');
+      assignedEmployeeId = intValue(data, 'assigned_employee_id');
+      assignedSupplierPartyId = intValue(data, 'assigned_supplier_party_id');
       destinationPartyId = intValue(data, 'destination_party_id');
       destinationWarehouseId = intValue(data, 'destination_warehouse_id');
       transporterId = intValue(data, 'transporter_id');
@@ -671,6 +811,10 @@ class ProduceTrackingViewModel extends GetxController {
     }
   }
 
+  Future<void> selectDocument(ProduceTrackingModel row) {
+    return select(row);
+  }
+
   void _replaceLines(List<ProduceTrackingLineDraft> nextLines) {
     replaceDisposableDraftEntries<ProduceTrackingLineDraft>(
       previous: lines,
@@ -692,14 +836,134 @@ class ProduceTrackingViewModel extends GetxController {
     update();
   }
 
-  void onSalesDeliveryChanged(int? value) {
+  Future<void> onSalesDeliveryChanged(int? value) async {
     salesDeliveryId = value;
+    if (value == null) {
+      update();
+      return;
+    }
+    await _applySalesDeliveryReference(value);
     update();
   }
 
-  void onPurchaseOrderChanged(int? value) {
+  Future<void> onPurchaseOrderChanged(int? value) async {
     purchaseOrderId = value;
+    if (value == null) {
+      update();
+      return;
+    }
+    await _applyPurchaseOrderReference(value);
     update();
+  }
+
+  Future<void> _applySalesDeliveryReference(int id) async {
+    try {
+      final response = await _salesService.delivery(id);
+      final delivery = response.data;
+      if (delivery == null) {
+        return;
+      }
+
+      companyId = delivery.companyId ?? companyId;
+      branchId = delivery.branchId ?? branchId;
+      locationId = delivery.locationId ?? locationId;
+      financialYearId = delivery.financialYearId ?? financialYearId;
+      sourceWarehouseId =
+          delivery.lines.firstWhere(
+            (line) => line['warehouse_id'] != null,
+            orElse: () => const <String, dynamic>{},
+          )['warehouse_id'] as int? ??
+          sourceWarehouseId;
+      destinationType = 'customer';
+      destinationPartyId = delivery.customerPartyId ?? destinationPartyId;
+      vehicleNoController.text = delivery.vehicleNo ?? vehicleNoController.text;
+      lrNoController.text = delivery.lrNo ?? lrNoController.text;
+      lrDateController.text = delivery.lrDate ?? lrDateController.text;
+
+      final mappedLines = delivery.lines
+          .map(
+            (line) => ProduceTrackingLineDraft(
+              salesDeliveryLineId: intValue(line, 'id'),
+              itemId: intValue(line, 'item_id'),
+              warehouseId:
+                  intValue(line, 'warehouse_id') ?? sourceWarehouseId,
+              uomId: intValue(line, 'uom_id'),
+              batchId: intValue(line, 'batch_id'),
+              serialId: intValue(line, 'serial_id'),
+              trackedQty: _stringQty(
+                double.tryParse(line['delivered_qty']?.toString() ?? '') ?? 0,
+              ),
+              deliveredQty: _stringQty(
+                double.tryParse(line['delivered_qty']?.toString() ?? '') ?? 0,
+              ),
+              receivedQty: '0',
+              balanceQty: _stringQty(
+                double.tryParse(line['delivered_qty']?.toString() ?? '') ?? 0,
+              ),
+              remarks: stringValue(line, 'remarks'),
+            ),
+          )
+          .toList(growable: true);
+      if (mappedLines.isNotEmpty) {
+        _replaceLines(mappedLines);
+      }
+    } catch (e) {
+      formError = e.toString();
+    }
+  }
+
+  Future<void> _applyPurchaseOrderReference(int id) async {
+    try {
+      final response = await _purchaseService.order(id);
+      final order = response.data;
+      if (order == null) {
+        return;
+      }
+
+      companyId = order.companyId ?? companyId;
+      branchId = order.branchId ?? branchId;
+      locationId = order.locationId ?? locationId;
+      financialYearId = order.financialYearId ?? financialYearId;
+      assignedToType = 'supplier';
+      assignedSupplierPartyId =
+          order.supplierPartyId ?? assignedSupplierPartyId;
+      destinationType = 'warehouse';
+      destinationPartyId = null;
+      sourceWarehouseId =
+          order.lines.firstWhere(
+            (line) => line.warehouseId != null,
+            orElse: () => const PurchaseOrderLineModel(),
+          ).warehouseId ??
+          sourceWarehouseId;
+
+      final mappedLines = order.lines
+          .map(
+            (line) => ProduceTrackingLineDraft(
+              purchaseOrderLineId: line.id,
+              itemId: line.itemId,
+              warehouseId: line.warehouseId ?? sourceWarehouseId,
+              uomId: line.uomId,
+              trackedQty: _stringQty(line.pendingQty ?? line.orderedQty ?? 0),
+              deliveredQty: '0',
+              receivedQty: '0',
+              balanceQty: _stringQty(line.pendingQty ?? line.orderedQty ?? 0),
+              remarks: line.remarks,
+            ),
+          )
+          .toList(growable: true);
+      if (mappedLines.isNotEmpty) {
+        _replaceLines(mappedLines);
+      }
+    } catch (e) {
+      formError = e.toString();
+    }
+  }
+
+  String _stringQty(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toString();
   }
 
   void onSourceWarehouseChanged(int? value) {
@@ -709,6 +973,26 @@ class ProduceTrackingViewModel extends GetxController {
       line.batchId = null;
       line.serialId = null;
     }
+    update();
+  }
+
+  void onAssignedToTypeChanged(String? value) {
+    assignedToType = value ?? 'employee';
+    if (assignedToType == 'employee') {
+      assignedSupplierPartyId = null;
+    } else {
+      assignedEmployeeId = null;
+    }
+    update();
+  }
+
+  void onAssignedEmployeeChanged(int? value) {
+    assignedEmployeeId = value;
+    update();
+  }
+
+  void onAssignedSupplierChanged(int? value) {
+    assignedSupplierPartyId = value;
     update();
   }
 
@@ -729,6 +1013,16 @@ class ProduceTrackingViewModel extends GetxController {
 
   void onTransporterChanged(int? value) {
     transporterId = value;
+    if (!showTransportDetails) {
+      vehicleNoController.clear();
+      driverNameController.clear();
+      driverPhoneController.clear();
+      lrNoController.clear();
+      lrDateController.clear();
+      currentLocationController.clear();
+      currentLatitudeController.clear();
+      currentLongitudeController.clear();
+    }
     update();
   }
 
@@ -820,6 +1114,12 @@ class ProduceTrackingViewModel extends GetxController {
     if (sourceWarehouseId == null) {
       return 'Source warehouse is required.';
     }
+    if (assignedToType == 'employee' && assignedEmployeeId == null) {
+      return 'Assigned employee is required.';
+    }
+    if (assignedToType == 'supplier' && assignedSupplierPartyId == null) {
+      return 'Assigned supplier is required.';
+    }
     if (lines.isEmpty) {
       return 'At least one line is required.';
     }
@@ -892,6 +1192,9 @@ class ProduceTrackingViewModel extends GetxController {
       'sales_delivery_id': salesDeliveryId,
       'purchase_order_id': purchaseOrderId,
       'source_warehouse_id': sourceWarehouseId,
+      'assigned_to_type': assignedToType,
+      'assigned_employee_id': assignedEmployeeId,
+      'assigned_supplier_party_id': assignedSupplierPartyId,
       'destination_type': destinationType,
       'destination_party_id': destinationPartyId,
       'destination_warehouse_id': destinationWarehouseId,
@@ -1038,23 +1341,31 @@ class ProduceTrackingViewModel extends GetxController {
   @override
   void onClose() {
     WorkingContextService.version.removeListener(_handleWorkingContextChanged);
-    searchController.dispose();
-    trackingNoController.dispose();
-    trackingDateController.dispose();
-    destinationLocationController.dispose();
-    destinationAddressController.dispose();
-    vehicleNoController.dispose();
-    driverNameController.dispose();
-    driverPhoneController.dispose();
-    lrNoController.dispose();
-    lrDateController.dispose();
-    currentLocationController.dispose();
-    currentLatitudeController.dispose();
-    currentLongitudeController.dispose();
-    remarksController.dispose();
-    for (final line in lines) {
-      line.dispose();
-    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    pageScrollController.dispose();
+    workspaceController.dispose();
+    disposeChangeNotifiersNextFrame<TextEditingController>([
+      searchController,
+      dateFromController,
+      dateToController,
+      trackingNoController,
+      trackingDateController,
+      destinationLocationController,
+      destinationAddressController,
+      vehicleNoController,
+      driverNameController,
+      driverPhoneController,
+      lrNoController,
+      lrDateController,
+      currentLocationController,
+      currentLatitudeController,
+      currentLongitudeController,
+      remarksController,
+    ]);
+    disposeDraftEntriesNextFrame<ProduceTrackingLineDraft>(
+      List<ProduceTrackingLineDraft>.from(lines),
+      (entry) => entry.dispose(),
+    );
     super.onClose();
   }
 }

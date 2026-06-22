@@ -17,28 +17,35 @@ class ProduceTrackingPage extends StatefulWidget {
 }
 
 class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
-  final ScrollController _pageScrollController = ScrollController();
-  final SettingsWorkspaceController _workspaceController =
-      SettingsWorkspaceController();
   late final String _controllerTag;
-  late final ProduceTrackingViewModel _viewModel;
+
+  ProduceTrackingViewModel get _controller =>
+      Get.find<ProduceTrackingViewModel>(tag: _controllerTag);
 
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('ProduceTrackingViewModel');
-    _viewModel = Get.put(
-      ProduceTrackingViewModel(initialId: widget.initialId)
-        ..load(selectId: widget.initialId),
-      tag: _controllerTag,
-      permanent: true,
+    _controllerTag = persistentControllerTag(
+      'ProduceTrackingViewModel',
+      scope: <String, Object?>{'identity': identityHashCode(this)},
     );
+    Get.put(ProduceTrackingViewModel(initialId: widget.initialId), tag: _controllerTag);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(
+        _controller.initialize(
+          initialId: widget.initialId,
+          editorOnly: widget.editorOnly,
+        ),
+      );
+    });
   }
 
   @override
   void dispose() {
-    _workspaceController.dispose();
-    _pageScrollController.dispose();
+    Get.delete<ProduceTrackingViewModel>(tag: _controllerTag, force: true);
     super.dispose();
   }
 
@@ -46,29 +53,34 @@ class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
   Widget build(BuildContext context) {
     return GetBuilder<ProduceTrackingViewModel>(
       tag: _controllerTag,
-      builder: (_) {
-        final content = _buildContent(context);
+      builder: (controller) {
         final actions = <Widget>[
           AdaptiveShellActionButton(
-            onPressed: _viewModel.loading
+            onPressed: () => _openFilterPanel(context, controller),
+            icon: Icons.filter_alt_outlined,
+            label: 'Filter',
+            filled: false,
+          ),
+          AdaptiveShellActionButton(
+            onPressed: controller.loading
                 ? null
                 : () {
-                    _viewModel.resetDraft();
+                    controller.resetDraft();
                     if (!Responsive.isDesktop(context)) {
-                      _workspaceController.openEditor();
+                      controller.workspaceController.openEditor();
                     }
                   },
             icon: Icons.add_outlined,
             label: 'New Produce Tracking',
           ),
         ];
-
+        final content = _buildContent(context, controller);
         if (widget.embedded) {
           return ShellPageActions(actions: actions, child: content);
         }
         return AppStandaloneShell(
           title: 'Produce Tracking',
-          scrollController: _pageScrollController,
+          scrollController: controller.pageScrollController,
           actions: actions,
           child: content,
         );
@@ -76,8 +88,38 @@ class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
     );
   }
 
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    ProduceTrackingViewModel controller,
+  ) {
+    return openSalesSearchStatusFilterPanel(
+      context: context,
+      title: 'Filter Produce Tracking',
+      searchController: controller.searchController,
+      dateFromController: controller.dateFromController,
+      dateToController: controller.dateToController,
+      searchHint: 'Search by tracking no, location or vehicle',
+      status: controller.statusFilter,
+      statusItems: ProduceTrackingViewModel.listStatusFilter,
+      onApply: (search, status, dateFrom, dateTo) {
+        controller.searchController.text = search;
+        controller.dateFromController.text = dateFrom;
+        controller.dateToController.text = dateTo;
+        controller.statusFilter = status;
+        controller.applyFilters();
+      },
+      onClear: () {
+        controller.searchController.clear();
+        controller.dateFromController.clear();
+        controller.dateToController.clear();
+        controller.statusFilter = '';
+        controller.applyFilters();
+      },
+    );
+  }
+
   void _showActionSnackBar() {
-    final message = _viewModel.consumeActionMessage();
+    final message = _controller.consumeActionMessage();
     if (!mounted || message == null || message.trim().isEmpty) {
       return;
     }
@@ -86,77 +128,114 @@ class _ProduceTrackingPageState extends State<ProduceTrackingPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Widget _buildContent(BuildContext context) {
-    if (_viewModel.loading) {
+  Widget _buildContent(
+    BuildContext context,
+    ProduceTrackingViewModel controller,
+  ) {
+    if (controller.loading) {
       return const AppLoadingView(message: 'Loading produce tracking...');
     }
-    if (_viewModel.pageError != null) {
+    if (controller.pageError != null) {
       return AppErrorStateView(
         title: 'Unable to load produce tracking',
-        message: _viewModel.pageError!,
-        onRetry: () => _viewModel.load(selectId: widget.initialId),
+        message: controller.pageError!,
+        onRetry: controller.reloadLastRequestedPage,
       );
     }
 
     return SettingsWorkspace(
-      controller: _workspaceController,
+      controller: controller.workspaceController,
       title: 'Produce Tracking',
-      editorTitle:
-          _viewModel.selected?.toString() ?? 'New Produce Tracking',
+      editorTitle: controller.selected?.toString() ?? 'New Produce Tracking',
       editorOnly: widget.editorOnly,
-      scrollController: _pageScrollController,
-      list: SettingsListCard<ProduceTrackingModel>(
-        searchController: _viewModel.searchController,
-        searchHint: 'Search produce tracking',
-        items: _viewModel.filteredRows,
-        selectedItem: _viewModel.selected,
+      scrollController: controller.pageScrollController,
+      list: PurchaseListCard<ProduceTrackingModel>(
+        items: controller.filteredItems,
+        selectedItem: controller.selected,
         emptyMessage: 'No produce tracking records found.',
-        itemBuilder: (row, selected) => SettingsListTile(
-          title: stringValue(row.toJson(), 'tracking_no', 'Draft'),
-          subtitle: [
-            displayDate(nullableStringValue(row.toJson(), 'tracking_date')),
-            stringValue(row.toJson(), 'tracking_status'),
-          ].where((v) => v.trim().isNotEmpty).join(' · '),
-          detail: stringValue(
-            row.toJson(),
-            'current_location',
-            stringValue(row.toJson(), 'destination_location'),
-          ),
-          selected: selected,
-          onTap: () async {
-            await _viewModel.select(row);
-            if (!context.mounted) {
-              return;
-            }
-            if (!Responsive.isDesktop(context)) {
-              _workspaceController.openEditor();
-            }
-          },
-        ),
+        searchController: controller.searchController,
+        searchHint: 'Search produce tracking',
+        statusValue: controller.statusFilter,
+        statusItems: ProduceTrackingViewModel.listStatusFilter,
+        onStatusChanged: (value) {
+          controller.statusFilter = value ?? '';
+          controller.applyFilters();
+        },
+        showInlineFilters: false,
+        itemBuilder: (row, selected) {
+          final data = row.toJson();
+          final status = stringValue(data, 'tracking_status');
+          final referenceFlow = stringValue(data, 'reference_flow', 'tracking');
+          return SettingsListTile(
+            title: stringValue(data, 'tracking_no', 'Draft Tracking'),
+            subtitle: [
+              'Date ${displayDate(nullableStringValue(data, 'tracking_date'))}',
+              if (status.isNotEmpty) 'Status ${status.toUpperCase()}',
+            ].where((value) => value.isNotEmpty).join(' · '),
+            detail: JsonModel.combineValues(
+              <String>[
+                stringValue(data, 'current_location'),
+                stringValue(data, 'destination_location'),
+                stringValue(data, 'vehicle_no'),
+              ],
+              defaultValue: referenceFlow.replaceAll('_', ' '),
+            ),
+            trailing: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  referenceFlow.replaceAll('_', ' ').toUpperCase(),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (status.isNotEmpty)
+                  Text(
+                    status.replaceAll('_', ' '),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
+            selected: selected,
+            onTap: () async {
+              await controller.selectDocument(row);
+              if (!context.mounted) {
+                return;
+              }
+              if (!Responsive.isDesktop(context)) {
+                controller.workspaceController.openEditor();
+              }
+            },
+          );
+        },
       ),
       editor: _ProduceTrackingEditor(
-        vm: _viewModel,
+        vm: controller,
         onSave: (formContext) async {
-          if (!Form.of(formContext).validate()) {
+          if (!(controller.formKey.currentState?.validate() ?? false)) {
             return;
           }
-          await _viewModel.save();
+          await controller.save();
           _showActionSnackBar();
         },
         onPost: () async {
-          await _viewModel.post();
+          await controller.post();
           _showActionSnackBar();
         },
         onCancel: () async {
-          await _viewModel.cancel();
+          await controller.cancel();
           _showActionSnackBar();
         },
         onDelete: () async {
-          await _viewModel.delete();
+          await controller.delete();
           _showActionSnackBar();
         },
         onUpdateLocation: () async {
-          await _viewModel.updateLocation();
+          await controller.updateLocation();
           _showActionSnackBar();
         },
       ),
@@ -194,6 +273,7 @@ class _ProduceTrackingEditor extends StatelessWidget {
         : vm.contextLabels.join(' / ');
 
     return Form(
+      key: vm.formKey,
       child: Builder(
         builder: (formContext) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,7 +337,11 @@ class _ProduceTrackingEditor extends StatelessWidget {
                     labelText: 'Reference Document',
                     mappedItems: vm.salesDeliveryDropdownItems,
                     initialValue: vm.salesDeliveryId,
-                    onChanged: canEdit ? vm.onSalesDeliveryChanged : null,
+                    onChanged: canEdit
+                        ? (value) {
+                            unawaited(vm.onSalesDeliveryChanged(value));
+                          }
+                        : null,
                     validator: (_) {
                       if (vm.referenceFlow == 'sales_delivery' &&
                           vm.salesDeliveryId == null) {
@@ -271,7 +355,11 @@ class _ProduceTrackingEditor extends StatelessWidget {
                     labelText: 'Reference Document',
                     mappedItems: vm.purchaseOrderDropdownItems,
                     initialValue: vm.purchaseOrderId,
-                    onChanged: canEdit ? vm.onPurchaseOrderChanged : null,
+                    onChanged: canEdit
+                        ? (value) {
+                            unawaited(vm.onPurchaseOrderChanged(value));
+                          }
+                        : null,
                     validator: (_) {
                       if (vm.referenceFlow == 'purchase_order' &&
                           vm.purchaseOrderId == null) {
@@ -280,12 +368,32 @@ class _ProduceTrackingEditor extends StatelessWidget {
                       return null;
                     },
                   ),
-                AppDropdownField<int>.fromMapped(
-                  labelText: 'Assigned To',
-                  mappedItems: vm.partyDropdownItems,
-                  initialValue: vm.destinationPartyId,
-                  onChanged: canEdit ? vm.onDestinationPartyChanged : null,
+                AppDropdownField<String>.fromMapped(
+                  labelText: 'Assigned To Type',
+                  mappedItems: produceTrackingAssignedTypeItems,
+                  initialValue: vm.assignedToType,
+                  onChanged: canEdit ? vm.onAssignedToTypeChanged : null,
                 ),
+                if (vm.assignedToType == 'employee')
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Assigned To',
+                    mappedItems: vm.employeeDropdownItems,
+                    initialValue: vm.assignedEmployeeId,
+                    onChanged: canEdit ? vm.onAssignedEmployeeChanged : null,
+                    validator: (_) => vm.assignedEmployeeId == null
+                        ? 'Employee is required'
+                        : null,
+                  ),
+                if (vm.assignedToType == 'supplier')
+                  AppDropdownField<int>.fromMapped(
+                    labelText: 'Assigned To',
+                    mappedItems: vm.supplierDropdownItems,
+                    initialValue: vm.assignedSupplierPartyId,
+                    onChanged: canEdit ? vm.onAssignedSupplierChanged : null,
+                    validator: (_) => vm.assignedSupplierPartyId == null
+                        ? 'Supplier is required'
+                        : null,
+                  ),
                 AppDropdownField<int>.fromMapped(
                   labelText: 'Transporter',
                   mappedItems: vm.transporterDropdownItems,
@@ -314,34 +422,6 @@ class _ProduceTrackingEditor extends StatelessWidget {
                   onChanged: canEdit ? vm.onSourceWarehouseChanged : null,
                   validator: Validators.requiredSelection('Source Warehouse'),
                 ),
-                AppFormTextField(
-                  labelText: 'Vehicle No',
-                  controller: vm.vehicleNoController,
-                  enabled: canEdit,
-                ),
-                AppFormTextField(
-                  labelText: 'Driver Name',
-                  controller: vm.driverNameController,
-                  enabled: canEdit,
-                ),
-                AppFormTextField(
-                  labelText: 'Driver Phone',
-                  controller: vm.driverPhoneController,
-                  enabled: canEdit,
-                ),
-                AppFormTextField(
-                  labelText: 'LR No',
-                  controller: vm.lrNoController,
-                  enabled: canEdit,
-                ),
-                AppFormTextField(
-                  labelText: 'LR Date',
-                  controller: vm.lrDateController,
-                  keyboardType: TextInputType.datetime,
-                  inputFormatters: const [DateInputFormatter()],
-                  enabled: canEdit,
-                  validator: Validators.optionalDate('LR Date'),
-                ),
                 AppDropdownField<String>.fromMapped(
                   labelText: 'Tracking Status',
                   mappedItems: produceTrackingStatusItems,
@@ -349,29 +429,65 @@ class _ProduceTrackingEditor extends StatelessWidget {
                   onChanged: vm.onTrackingStatusChanged,
                 ),
                 AppFormTextField(
-                  labelText: 'Current Location',
-                  controller: vm.currentLocationController,
-                ),
-                AppFormTextField(
-                  labelText: 'Current Latitude',
-                  controller: vm.currentLatitudeController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-                AppFormTextField(
-                  labelText: 'Current Longitude',
-                  controller: vm.currentLongitudeController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-                AppFormTextField(
                   labelText: 'Remarks',
                   controller: vm.remarksController,
                   enabled: canEdit,
                   maxLines: 2,
                 ),
+                if (vm.showTransportDetails)
+                  AppFormTextField(
+                    labelText: 'Vehicle No',
+                    controller: vm.vehicleNoController,
+                    enabled: canEdit,
+                  ),
+                if (vm.showTransportDetails)
+                  AppFormTextField(
+                    labelText: 'Driver Name',
+                    controller: vm.driverNameController,
+                    enabled: canEdit,
+                  ),
+                if (vm.showTransportDetails)
+                  AppFormTextField(
+                    labelText: 'Driver Phone',
+                    controller: vm.driverPhoneController,
+                    enabled: canEdit,
+                  ),
+                if (vm.showTransportDetails)
+                  AppFormTextField(
+                    labelText: 'LR No',
+                    controller: vm.lrNoController,
+                    enabled: canEdit,
+                  ),
+                if (vm.showTransportDetails)
+                  AppFormTextField(
+                    labelText: 'LR Date',
+                    controller: vm.lrDateController,
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: const [DateInputFormatter()],
+                    enabled: canEdit,
+                    validator: Validators.optionalDate('LR Date'),
+                  ),
+                if (vm.showTransportDetails)
+                  AppFormTextField(
+                    labelText: 'Current Location',
+                    controller: vm.currentLocationController,
+                  ),
+                if (vm.showTransportDetails)
+                  AppFormTextField(
+                    labelText: 'Current Latitude',
+                    controller: vm.currentLatitudeController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                if (vm.showTransportDetails)
+                  AppFormTextField(
+                    labelText: 'Current Longitude',
+                    controller: vm.currentLongitudeController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
@@ -514,25 +630,14 @@ class _ProduceTrackingEditor extends StatelessWidget {
                                 : null,
                           ),
                         AppFormTextField(
-                          labelText: 'Tracked Qty',
+                          labelText: 'Qty',
                           controller: line.trackedQtyController,
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
                           enabled: canEdit,
                           validator: Validators.requiredPositiveNumber(
-                            'Tracked Qty',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Balance Qty',
-                          controller: line.balanceQtyController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Balance Qty',
+                            'Qty',
                           ),
                         ),
                         AppFormTextField(

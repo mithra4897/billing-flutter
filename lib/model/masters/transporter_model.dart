@@ -20,8 +20,8 @@ class TransporterModel extends JsonModel {
     switch (deliveryMode) {
       case 'direct_delivery':
         return 'Direct Delivery';
-      case 'pickup_by_us':
-        return 'Pickup By Us';
+      case 'pickup':
+        return 'Pickup';
       default:
         return deliveryMode ?? '';
     }
@@ -31,12 +31,14 @@ class TransporterModel extends JsonModel {
     switch (transporterType) {
       case 'courier':
         return 'Courier';
-      case 'local':
-        return 'Local';
-      case 'vehicle':
-        return 'Vehicle';
       case 'third_party':
         return 'Third Party';
+      case 'own_vehicle':
+        return 'Own Vehicle';
+      case 'customer_pickup':
+        return 'Customer Pickup';
+      case 'supplier_delivery':
+        return 'Supplier Delivery';
       default:
         return transporterType ?? '';
     }

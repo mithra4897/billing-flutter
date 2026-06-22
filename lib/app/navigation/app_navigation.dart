@@ -31,6 +31,7 @@ class AppNavigation {
     'crm': 10,
     'sales': 20,
     'purchase': 30,
+    'tracking': 35,
     'inventory': 40,
     'planning': 50,
     'manufacturing': 60,
@@ -625,13 +626,6 @@ class AppNavigation {
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
-          key: 'inventory-produce-trackings',
-          title: 'Produce Tracking',
-          icon: Icons.alt_route_outlined,
-          path: '/inventory/produce-trackings',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
           key: 'inventory-stock-transfers',
           title: 'Stock Transfers',
           icon: Icons.swap_horiz_outlined,
@@ -692,13 +686,6 @@ class AppNavigation {
           title: 'Brands',
           icon: Icons.sell_outlined,
           path: '/inventory/brands',
-          requiredPermissions: ['inventory.view'],
-        ),
-        AppNavigationItem(
-          key: 'inventory-transporters',
-          title: 'Transporters',
-          icon: Icons.local_shipping_outlined,
-          path: '/inventory/transporters',
           requiredPermissions: ['inventory.view'],
         ),
         AppNavigationItem(
@@ -1050,6 +1037,27 @@ class AppNavigation {
           icon: Icons.account_balance_wallet_outlined,
           path: '/purchase/ledgers',
           requiredPermissions: ['purchase.view'],
+        ),
+      ],
+    ),
+    const AppNavigationItem(
+      key: 'tracking',
+      title: 'Tracking',
+      icon: Icons.alt_route_outlined,
+      children: [
+        AppNavigationItem(
+          key: 'tracking-produce-trackings',
+          title: 'Produce Tracking',
+          icon: Icons.alt_route_outlined,
+          path: '/purchase/produce-trackings',
+          requiredPermissions: ['inventory.view'],
+        ),
+        AppNavigationItem(
+          key: 'tracking-transporters',
+          title: 'Transporters',
+          icon: Icons.local_shipping_outlined,
+          path: '/purchase/transporters',
+          requiredPermissions: ['inventory.view'],
         ),
       ],
     ),
@@ -1425,12 +1433,10 @@ class AppNavigation {
     List<AppNavigationItem> items,
     List<ModuleModel> orderedModules,
   ) {
-    final orderMap = <String, int>{};
+    final orderMap = <String, int>{}..addAll(_defaultTopLevelOrder);
     final hiddenModules = <String>{};
 
-    if (orderedModules.isEmpty) {
-      orderMap.addAll(_defaultTopLevelOrder);
-    } else {
+    if (orderedModules.isNotEmpty) {
       for (final module in orderedModules) {
         final code = module.moduleCode?.toLowerCase();
         if (code == null || code.isEmpty) {

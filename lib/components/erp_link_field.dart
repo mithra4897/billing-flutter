@@ -665,7 +665,8 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                 key: _fieldKey,
                 controller: _controller,
                 focusNode: _focusNode,
-                enabled: widget.enabled,
+                enabled: true,
+                readOnly: !widget.enabled,
                 decoration: InputDecoration(
                   labelText: widget.labelText,
                   hintText: widget.hintText ?? 'Search $_doctypeLabel',
@@ -686,6 +687,10 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                       : const Icon(Icons.arrow_drop_down, size: 18),
                 ),
                 onTap: () {
+                  if (!widget.enabled) {
+                    FocusScope.of(context).unfocus();
+                    return;
+                  }
                   if (_selected != null) {
                     _controller.selection = TextSelection(
                       baseOffset: 0,

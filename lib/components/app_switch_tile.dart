@@ -21,6 +21,7 @@ class AppSwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final interactive = onChanged != null;
 
     return Container(
       margin: EdgeInsets.all(AppUiConstants.spacingXxs),
@@ -37,12 +38,15 @@ class AppSwitchTile extends StatelessWidget {
         color: theme.inputDecorationTheme.fillColor,
         borderRadius: BorderRadius.circular(AppUiConstants.fieldRadius),
       ),
-      child: SwitchListTile(
-        contentPadding: contentPadding,
-        title: Text(label, overflow: TextOverflow.ellipsis),
-        subtitle: subtitle == null ? null : Text(subtitle!),
-        value: value,
-        onChanged: onChanged,
+      child: IgnorePointer(
+        ignoring: !interactive,
+        child: SwitchListTile(
+          contentPadding: contentPadding,
+          title: Text(label, overflow: TextOverflow.ellipsis),
+          subtitle: subtitle == null ? null : Text(subtitle!),
+          value: value,
+          onChanged: onChanged ?? (_) {},
+        ),
       ),
     );
   }

@@ -1063,6 +1063,7 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
             final activity = controller.activities[index];
             final expanded = controller.expandedActivityIndex == index;
             return Padding(
+              key: ValueKey<String>('lead-activity-${activity.draftKey}'),
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
               child: SettingsExpandableTile(
                 title: activity.activityTypeLabel,

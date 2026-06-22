@@ -3,15 +3,16 @@ import '../../../screen.dart';
 const List<AppDropdownItem<String>> transporterTypeItems =
     <AppDropdownItem<String>>[
       AppDropdownItem(value: 'courier', label: 'Courier'),
-      AppDropdownItem(value: 'local', label: 'Local'),
-      AppDropdownItem(value: 'vehicle', label: 'Vehicle'),
       AppDropdownItem(value: 'third_party', label: 'Third Party'),
+      AppDropdownItem(value: 'own_vehicle', label: 'Own Vehicle'),
+      AppDropdownItem(value: 'customer_pickup', label: 'Customer Pickup'),
+      AppDropdownItem(value: 'supplier_delivery', label: 'Supplier Delivery'),
     ];
 
 const List<AppDropdownItem<String>> transporterDeliveryModeItems =
     <AppDropdownItem<String>>[
       AppDropdownItem(value: 'direct_delivery', label: 'Direct Delivery'),
-      AppDropdownItem(value: 'pickup_by_us', label: 'Pickup By Us'),
+      AppDropdownItem(value: 'pickup', label: 'Pickup'),
     ];
 
 class TransporterManagementController extends GetxController {

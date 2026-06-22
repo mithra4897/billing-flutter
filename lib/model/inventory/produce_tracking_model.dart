@@ -20,6 +20,9 @@ class ProduceTrackingModel extends JsonModel {
     this.destinationLocation,
     this.destinationAddress,
     this.assignedToName,
+    this.assignedToType,
+    this.assignedEmployeeId,
+    this.assignedSupplierPartyId,
     this.referenceDocumentLabel,
     this.transporterPartyId,
     this.transporterId,
@@ -43,6 +46,7 @@ class ProduceTrackingModel extends JsonModel {
     this.updatedBy,
     this.createdAt,
     this.updatedAt,
+    this.lines = const <ProduceTrackingLineModel>[],
   });
 
   final int? companyId;
@@ -62,6 +66,9 @@ class ProduceTrackingModel extends JsonModel {
   final String? destinationLocation;
   final String? destinationAddress;
   final String? assignedToName;
+  final String? assignedToType;
+  final int? assignedEmployeeId;
+  final int? assignedSupplierPartyId;
   final String? referenceDocumentLabel;
   final int? transporterPartyId;
   final int? transporterId;
@@ -85,6 +92,7 @@ class ProduceTrackingModel extends JsonModel {
   final int? updatedBy;
   final String? createdAt;
   final String? updatedAt;
+  final List<ProduceTrackingLineModel> lines;
 
   factory ProduceTrackingModel.fromJson(Map<String, dynamic> json) {
     return ProduceTrackingModel(
@@ -107,9 +115,12 @@ class ProduceTrackingModel extends JsonModel {
       ),
       destinationLocation: json['destination_location']?.toString(),
       destinationAddress: json['destination_address']?.toString(),
-      assignedToName:
-          (json['destination_party'] as Map<String, dynamic>?)?['party_name']
-              ?.toString(),
+      assignedToName: _assignedToName(json),
+      assignedToType: json['assigned_to_type']?.toString(),
+      assignedEmployeeId: JsonModel.nullableInt(json['assigned_employee_id']),
+      assignedSupplierPartyId: JsonModel.nullableInt(
+        json['assigned_supplier_party_id'],
+      ),
       referenceDocumentLabel: _referenceDocumentLabel(json),
       transporterPartyId: JsonModel.nullableInt(json['transporter_party_id']),
       transporterId: JsonModel.nullableInt(json['transporter_id']),
@@ -139,6 +150,10 @@ class ProduceTrackingModel extends JsonModel {
       updatedBy: JsonModel.nullableInt(json['updated_by']),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      lines: (json['lines'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(ProduceTrackingLineModel.fromJson)
+          .toList(growable: false),
     );
   }
 
@@ -169,6 +184,10 @@ class ProduceTrackingModel extends JsonModel {
     if (destinationLocation != null) 'destination_location': destinationLocation,
     if (destinationAddress != null) 'destination_address': destinationAddress,
     if (assignedToName != null) 'assigned_to_name': assignedToName,
+    if (assignedToType != null) 'assigned_to_type': assignedToType,
+    if (assignedEmployeeId != null) 'assigned_employee_id': assignedEmployeeId,
+    if (assignedSupplierPartyId != null)
+      'assigned_supplier_party_id': assignedSupplierPartyId,
     if (referenceDocumentLabel != null)
       'reference_document_label': referenceDocumentLabel,
     if (transporterPartyId != null) 'transporter_party_id': transporterPartyId,
@@ -195,6 +214,8 @@ class ProduceTrackingModel extends JsonModel {
     if (updatedBy != null) 'updated_by': updatedBy,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (lines.isNotEmpty)
+      'lines': lines.map((line) => line.toJson()).toList(growable: false),
   };
 
   static String? _referenceDocumentLabel(Map<String, dynamic> json) {
@@ -211,6 +232,28 @@ class ProduceTrackingModel extends JsonModel {
       final no = purchaseOrder['order_no']?.toString();
       if (no != null && no.trim().isNotEmpty) {
         return no;
+      }
+    }
+
+    return null;
+  }
+
+  static String? _assignedToName(Map<String, dynamic> json) {
+    final assignedEmployee = json['assigned_employee'] as Map<String, dynamic>?;
+    if (assignedEmployee != null) {
+      final name = assignedEmployee['employee_name']?.toString();
+      if (name != null && name.trim().isNotEmpty) {
+        return name;
+      }
+    }
+
+    final assignedSupplier = json['assigned_supplier'] as Map<String, dynamic>?;
+    if (assignedSupplier != null) {
+      final name =
+          assignedSupplier['display_name']?.toString() ??
+          assignedSupplier['party_name']?.toString();
+      if (name != null && name.trim().isNotEmpty) {
+        return name;
       }
     }
 

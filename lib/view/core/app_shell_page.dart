@@ -548,6 +548,14 @@ class _AppShellPageState extends State<AppShellPage> {
         return PurchaseReturnRegisterPage(key: routeKey, embedded: true);
       case '/purchase/ledgers':
         return PurchaseLedgerRegisterPage(key: routeKey, embedded: true);
+      case '/purchase/produce-trackings':
+        return ProduceTrackingRegisterPage(
+          key: routeKey,
+          embedded: true,
+          routePrefix: '/purchase/produce-trackings',
+        );
+      case '/purchase/transporters':
+        return TransporterManagementPage(key: routeKey, embedded: true);
       case '/planning/stock-reservations':
         return StockReservationPage(key: routeKey, embedded: true);
       case '/planning/item-policies':
@@ -844,6 +852,15 @@ class _AppShellPageState extends State<AppShellPage> {
           editorOnly: true,
           initialId: id,
         );
+      case 'produce-trackings':
+        return ProduceTrackingPage(
+          key: routeKey,
+          embedded: true,
+          editorOnly: true,
+          initialId: id,
+        );
+      case 'transporters':
+        return TransporterManagementPage(key: routeKey, embedded: true);
     }
     return null;
   }
@@ -1546,6 +1563,12 @@ class _AppShellPageState extends State<AppShellPage> {
     }
     if (path.startsWith('/purchase/returns/')) {
       return 'Purchase Return';
+    }
+    if (path.startsWith('/purchase/produce-trackings/')) {
+      return 'Produce Tracking';
+    }
+    if (path.startsWith('/purchase/transporters/')) {
+      return 'Transporters';
     }
     if (path.startsWith('/hr/employee-ledgers/')) {
       return 'Employee Ledger';

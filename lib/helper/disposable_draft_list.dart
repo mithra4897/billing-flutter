@@ -39,6 +39,22 @@ void disposeDraftEntriesNextFrame<T extends Object>(
   });
 }
 
+void disposeChangeNotifiersNextFrame<T extends ChangeNotifier>(
+  Iterable<T> notifiers,
+) {
+  final captured = notifiers.toList(growable: false);
+  if (captured.isEmpty) {
+    return;
+  }
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    for (final notifier in captured) {
+      try {
+        notifier.dispose();
+      } catch (_) {}
+    }
+  });
+}
+
 void replaceDisposableDraftEntries<T extends Object>({
   required List<T> previous,
   required List<T> next,

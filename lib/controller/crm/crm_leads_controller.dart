@@ -112,17 +112,22 @@ class CrmLeadsController extends GetxController {
   @override
   void onClose() {
     _refreshWorker?.dispose();
+    FocusManager.instance.primaryFocus?.unfocus();
     pageScrollController.dispose();
     workspaceController.dispose();
-    searchController
-      ..removeListener(applySearch)
-      ..dispose();
-    leadNameController.dispose();
-    companyNameController.dispose();
-    mobileController.dispose();
-    emailController.dispose();
-    remarksController.dispose();
-    disposeActivities(activities);
+    searchController.removeListener(applySearch);
+    disposeChangeNotifiersNextFrame<TextEditingController>([
+      searchController,
+      leadNameController,
+      companyNameController,
+      mobileController,
+      emailController,
+      remarksController,
+    ]);
+    disposeDraftEntriesNextFrame<LeadActivityDraft>(
+      List<LeadActivityDraft>.from(activities),
+      (entry) => entry.dispose(),
+    );
     super.onClose();
   }
 
@@ -473,17 +478,45 @@ class CrmLeadsController extends GetxController {
     List<LeadActivityDraft> nextActivities, {
     bool notify = true,
   }) {
-    replaceDisposableDraftEntries<LeadActivityDraft>(
-      previous: activities,
-      next: nextActivities,
-      createEmpty: () => LeadActivityDraft(),
-      assign: (entries) => activities = entries,
-      dispose: (entry) => entry.dispose(),
-      notify: notify ? update : null,
+    final previousActivities = activities;
+    activities = List<LeadActivityDraft>.from(nextActivities);
+    if (notify) {
+      update();
+    }
+    final removedActivities = previousActivities
+        .where(
+          (previousActivity) => !activities.any(
+            (nextActivity) => identical(previousActivity, nextActivity),
+          ),
+        )
+        .toList(growable: false);
+    disposeDraftEntriesNextFrame<LeadActivityDraft>(
+      removedActivities,
+      (entry) => entry.dispose(),
     );
   }
 
+  String? _validateLeadForm() {
+    if (companyId == null) {
+      return 'Company is required.';
+    }
+    if (leadNameController.text.trim().isEmpty) {
+      return 'Lead Name is required.';
+    }
+    if (assignedTo == null) {
+      return 'Assigned To is required.';
+    }
+    return null;
+  }
+
   Future<void> save() async {
+    final validationError = _validateLeadForm();
+    if (validationError != null) {
+      formError = validationError;
+      update();
+      return;
+    }
+
     saving = true;
     formError = null;
     update();
@@ -547,6 +580,13 @@ class CrmLeadsController extends GetxController {
   Future<void> markLost() async {
     final id = intValue(selectedItem?.toJson() ?? const {}, 'id');
     if (id == null) return;
+
+    final validationError = _validateLeadForm();
+    if (validationError != null) {
+      formError = validationError;
+      update();
+      return;
+    }
 
     saving = true;
     formError = null;
@@ -671,6 +711,7 @@ class LeadActivityDraft {
     String? activityDateTime,
     String? notes,
     String? nextFollowup,
+    String? draftKey,
   }) : activityDateTimeController = TextEditingController(
          text: displayDateTime(activityDateTime) == ''
              ? currentDateTimeInput()
@@ -679,7 +720,10 @@ class LeadActivityDraft {
        notesController = TextEditingController(text: notes ?? ''),
        nextFollowupController = TextEditingController(
          text: displayDateTime(nextFollowup),
-       );
+       ),
+       draftKey =
+           draftKey ??
+           '${DateTime.now().microsecondsSinceEpoch}-${_draftSequence++}';
 
   factory LeadActivityDraft.fromJson(Map<String, dynamic> json) {
     return LeadActivityDraft(
@@ -694,6 +738,7 @@ class LeadActivityDraft {
   final TextEditingController activityDateTimeController;
   final TextEditingController notesController;
   final TextEditingController nextFollowupController;
+  final String draftKey;
 
   String get activityTypeLabel {
     switch (activityType) {
@@ -727,3 +772,5 @@ class LeadActivityDraft {
     nextFollowupController.dispose();
   }
 }
+
+int _draftSequence = 0;
