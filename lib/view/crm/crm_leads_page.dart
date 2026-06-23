@@ -954,33 +954,35 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       onPressed: () => controller.save(),
                       busy: controller.saving,
                     ),
-                  if (controller.selectedItem != null &&
-                      !controller.isSelectedLeadReadOnly) ...[
+                  if (controller.canCreateOpportunityForSelectedLead) ...[
                     AppActionButton(
                       icon: Icons.forward_outlined,
                       label: 'Create Opportunity',
-                      onPressed: () async {
-                        final existing =
-                            controller.opportunityIdFromSalesChain() ??
-                            controller.enquiryIdFromSalesChain();
-                        if (existing != null) {
-                          _openCrmShellRoute(
-                            context,
-                            '/crm/opportunities/$existing',
-                          );
+                      onPressed: () {
+                        final leadId = intValue(
+                          controller.selectedItem?.toJson() ??
+                              const <String, dynamic>{},
+                          'id',
+                        );
+                        if (leadId == null) {
                           return;
                         }
-                        final created = await controller.convert(
-                          createEnquiry: true,
-                        );
-                        if (created != null && context.mounted) {
-                          _openCrmShellRoute(
-                            context,
-                            '/crm/opportunities/$created',
-                          );
-                        }
+                        final route = Uri(
+                          path: '/crm/opportunities/new',
+                          queryParameters: <String, String>{
+                            'lead_id': leadId.toString(),
+                            if (controller.companyId != null)
+                              'company_id': controller.companyId.toString(),
+                            if (controller.assignedTo != null)
+                              'assigned_to': controller.assignedTo.toString(),
+                          },
+                        ).toString();
+                        _openCrmShellRoute(context, route);
                       },
                     ),
+                  ],
+                  if (controller.selectedItem != null &&
+                      !controller.isSelectedLeadReadOnly) ...[
                     AppActionButton(
                       icon: Icons.cancel_outlined,
                       label: 'Lost',

@@ -21,11 +21,17 @@ class CrmOpportunitiesController extends GetxController {
     required this.instanceTag,
     required this.startInNewMode,
     required this.initialSelectId,
+    required this.initialLeadId,
+    required this.initialCompanyId,
+    required this.initialAssignedTo,
   });
 
   final String instanceTag;
   final bool startInNewMode;
   final int? initialSelectId;
+  final int? initialLeadId;
+  final int? initialCompanyId;
+  final int? initialAssignedTo;
 
   final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
@@ -233,6 +239,7 @@ class CrmOpportunitiesController extends GetxController {
       if (startInNewMode && selectId == null && !appliedInitialNewMode) {
         appliedInitialNewMode = true;
         resetForm(notify: false);
+        applyInitialOpportunityDraft(notify: false);
         update();
         return;
       }
@@ -413,6 +420,26 @@ class CrmOpportunitiesController extends GetxController {
     activeTabIndex = 0;
     salesChain = null;
     if (notify) update();
+  }
+
+  void applyInitialOpportunityDraft({bool notify = true}) {
+    final lead = leads.cast<CrmLeadModel?>().firstWhere(
+      (item) => item?.id == initialLeadId,
+      orElse: () => null,
+    );
+
+    selectedItem = null;
+    companyId =
+        initialCompanyId ??
+        lead?.companyId ??
+        companyId ??
+        contextCompanyId;
+    leadId = initialLeadId ?? leadId;
+    assignedTo = initialAssignedTo ?? lead?.assignedTo ?? assignedTo;
+    formError = null;
+    if (notify) {
+      update();
+    }
   }
 
   void disposeLines(List<OpportunityLineDraft> source) {

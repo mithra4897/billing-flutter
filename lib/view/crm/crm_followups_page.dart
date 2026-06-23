@@ -240,13 +240,71 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       .where((row) {
         final nextFollowup = (nullableStringValue(row, 'next_followup') ?? '')
             .trim();
-        final opportunityStatus = stringValue(
-          row,
-          'opportunity_status',
-        ).trim().toLowerCase();
+        if (_isLeadActivityRow(row)) {
+          final leadStatus = stringValue(row, 'lead_status').trim().toLowerCase();
+          return nextFollowup.isNotEmpty && leadStatus != 'own';
+        }
+        final opportunityStatus =
+            stringValue(row, 'opportunity_status').trim().toLowerCase();
         return nextFollowup.isNotEmpty && opportunityStatus != 'won';
       })
       .toList(growable: false);
+
+  String _sourceType(Map<String, dynamic> row) =>
+      stringValue(row, 'source_type', 'opportunity_followup')
+          .trim()
+          .toLowerCase();
+
+  bool _isLeadActivityRow(Map<String, dynamic> row) =>
+      _sourceType(row) == 'lead_activity';
+
+  String _rowTitle(Map<String, dynamic> row, String fallback) {
+    final values = _isLeadActivityRow(row)
+        ? <String>[stringValue(row, 'lead_name'), stringValue(row, 'customer_name')]
+        : <String>[
+            stringValue(row, 'opportunity_no'),
+            stringValue(row, 'customer_name'),
+          ];
+    final title = values
+        .where((value) => value.trim().isNotEmpty)
+        .join(' • ');
+    return title.isEmpty ? fallback : title;
+  }
+
+  String _pendingSubtitle(Map<String, dynamic> row) {
+    final values = _isLeadActivityRow(row)
+        ? <String>[
+            displayDateTime(nullableStringValue(row, 'followup_date')),
+            stringValue(row, 'activity_type'),
+            _assignedLabel(row),
+          ]
+        : <String>[
+            displayDateTime(nullableStringValue(row, 'followup_date')),
+            stringValue(row, 'lead_name'),
+            _assignedLabel(row),
+          ];
+    return values.where((value) => value.trim().isNotEmpty).join(' • ');
+  }
+
+  String _nextSubtitle(Map<String, dynamic> row) {
+    final values = _isLeadActivityRow(row)
+        ? <String>[stringValue(row, 'activity_type'), _assignedLabel(row)]
+        : <String>[stringValue(row, 'lead_name'), _assignedLabel(row)];
+    return values.where((value) => value.trim().isNotEmpty).join(' • ');
+  }
+
+  String? _openRoute(Map<String, dynamic> row) {
+    final id = _isLeadActivityRow(row)
+        ? intValue(row, 'lead_id')
+        : intValue(row, 'opportunity_id');
+    if (id == null) {
+      return null;
+    }
+
+    return _isLeadActivityRow(row)
+        ? '/crm/leads/$id'
+        : '/crm/opportunities/$id';
+  }
 
   List<Map<String, dynamic>> get _visiblePendingFollowups {
     final rows = _followups.where((row) {
@@ -341,17 +399,10 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       return Column(
         children: _visiblePendingFollowups
             .map((row) {
-              final opportunityId = intValue(row, 'opportunity_id');
               final notes = stringValue(row, 'notes');
-              final title = [
-                stringValue(row, 'opportunity_no'),
-                stringValue(row, 'customer_name'),
-              ].where((value) => value.trim().isNotEmpty).join(' • ');
-              final subtitle = [
-                displayDateTime(nullableStringValue(row, 'followup_date')),
-                stringValue(row, 'lead_name'),
-                _assignedLabel(row),
-              ].where((value) => value.trim().isNotEmpty).join(' • ');
+              final openRoute = _openRoute(row);
+              final title = _rowTitle(row, 'Pending Followup');
+              final subtitle = _pendingSubtitle(row);
 
               return Padding(
                 padding: const EdgeInsets.only(
@@ -371,7 +422,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  title.isEmpty ? 'Pending Followup' : title,
+                                  title,
                                   style: Theme.of(context).textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
@@ -394,14 +445,14 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                               ],
                             ),
                           ),
-                          if (opportunityId != null)
+                          if (openRoute != null)
                             AppActionButton(
                               icon: Icons.open_in_new_outlined,
                               label: 'Open',
                               filled: false,
                               onPressed: () => _openCrmFollowupShellRoute(
                                 context,
-                                '/crm/opportunities/$opportunityId',
+                                openRoute,
                               ),
                             ),
                         ],
@@ -427,17 +478,10 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return Column(
       children: _visiblePendingFollowups
           .map((row) {
-            final opportunityId = intValue(row, 'opportunity_id');
             final notes = stringValue(row, 'notes');
-            final title = [
-              stringValue(row, 'opportunity_no'),
-              stringValue(row, 'customer_name'),
-            ].where((value) => value.trim().isNotEmpty).join(' • ');
-            final subtitle = [
-              displayDateTime(nullableStringValue(row, 'followup_date')),
-              stringValue(row, 'lead_name'),
-              _assignedLabel(row),
-            ].where((value) => value.trim().isNotEmpty).join(' • ');
+            final openRoute = _openRoute(row);
+            final title = _rowTitle(row, 'Pending Followup');
+            final subtitle = _pendingSubtitle(row);
 
             return Padding(
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
@@ -455,7 +499,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                title.isEmpty ? 'Pending Followup' : title,
+                                title,
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
@@ -478,14 +522,14 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                             ],
                           ),
                         ),
-                        if (opportunityId != null)
+                        if (openRoute != null)
                           AppActionButton(
                             icon: Icons.open_in_new_outlined,
                             label: 'Open',
                             filled: false,
                             onPressed: () => _openCrmFollowupShellRoute(
                               context,
-                              '/crm/opportunities/$opportunityId',
+                              openRoute,
                             ),
                           ),
                       ],
@@ -512,22 +556,16 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return Column(
       children: _nextFollowups
           .map((row) {
-            final opportunityId = intValue(row, 'opportunity_id');
             final notes = stringValue(row, 'notes');
-            final title = [
-              stringValue(row, 'opportunity_no'),
-              stringValue(row, 'customer_name'),
-            ].where((value) => value.trim().isNotEmpty).join(' • ');
+            final openRoute = _openRoute(row);
+            final title = _rowTitle(row, 'Next Followup');
             final nextFollowup = displayDateTime(
               nullableStringValue(row, 'next_followup'),
             );
             final followupDate = displayDateTime(
               nullableStringValue(row, 'followup_date'),
             );
-            final subtitle = [
-              stringValue(row, 'lead_name'),
-              _assignedLabel(row),
-            ].where((value) => value.trim().isNotEmpty).join(' • ');
+            final subtitle = _nextSubtitle(row);
 
             return Padding(
               padding: const EdgeInsets.only(bottom: AppUiConstants.spacingSm),
@@ -545,7 +583,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                title.isEmpty ? 'Next Followup' : title,
+                                  title,
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
@@ -564,14 +602,14 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                             ],
                           ),
                         ),
-                        if (opportunityId != null)
+                        if (openRoute != null)
                           AppActionButton(
                             icon: Icons.open_in_new_outlined,
                             label: 'Open',
                             filled: false,
                             onPressed: () => _openCrmFollowupShellRoute(
                               context,
-                              '/crm/opportunities/$opportunityId',
+                              openRoute,
                             ),
                           ),
                       ],
