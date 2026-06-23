@@ -459,18 +459,12 @@ class CrmOpportunitiesPage extends StatefulWidget {
     this.editorOnly = false,
     this.startInNewMode = false,
     this.initialSelectId,
-    this.initialLeadId,
-    this.initialCompanyId,
-    this.initialAssignedTo,
   });
 
   final bool embedded;
   final bool editorOnly;
   final bool startInNewMode;
   final int? initialSelectId;
-  final int? initialLeadId;
-  final int? initialCompanyId;
-  final int? initialAssignedTo;
 
   @override
   State<CrmOpportunitiesPage> createState() => _CrmOpportunitiesPageState();
@@ -509,9 +503,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         instanceTag: _controllerTag,
         startInNewMode: widget.startInNewMode,
         initialSelectId: widget.initialSelectId,
-        initialLeadId: widget.initialLeadId,
-        initialCompanyId: widget.initialCompanyId,
-        initialAssignedTo: widget.initialAssignedTo,
       ),
       tag: _controllerTag,
     );
@@ -555,7 +546,6 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   void _syncRouteState() {
     if (widget.startInNewMode) {
       _controller.resetForm();
-      _controller.applyInitialOpportunityDraft();
       return;
     }
     if (widget.initialSelectId != null) {

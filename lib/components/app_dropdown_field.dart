@@ -1,17 +1,10 @@
 import '../screen.dart';
 
 class AppDropdownItem<T> {
-  const AppDropdownItem({
-    required this.value,
-    required this.label,
-    this.subtitle,
-    this.searchText,
-  });
+  const AppDropdownItem({required this.value, required this.label});
 
   final T value;
   final String label;
-  final String? subtitle;
-  final String? searchText;
 
   @override
   String toString() => label;
@@ -136,17 +129,11 @@ class AppDropdownField<T> extends StatelessWidget {
   List<ErpLinkFieldOption<T>> _buildOptions() {
     if (mappedItems != null) {
       return mappedItems!
-        .map(
-          (item) => ErpLinkFieldOption<T>(
+          .map(
+            (item) => ErpLinkFieldOption<T>(
               value: item.value,
               label: item.label,
-              subtitle: item.subtitle,
-              searchText:
-                  item.searchText ??
-                  [
-                    item.label,
-                    item.subtitle ?? '',
-                  ].where((part) => part.trim().isNotEmpty).join(' '),
+              searchText: item.label,
             ),
           )
           .toList(growable: false);

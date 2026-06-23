@@ -788,36 +788,15 @@ class _ErpDropdownRow<T> extends StatelessWidget {
                   const SizedBox(width: 6),
                 ],
                 Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: textColor,
-                          fontWeight: weight,
-                          height: 1.2,
-                        ),
-                      ),
-                      if ((entry.option?.subtitle ?? '').trim().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            entry.option!.subtitle!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.62,
-                              ),
-                              height: 1.2,
-                            ),
-                          ),
-                        ),
-                    ],
+                  child: Text(
+                    entry.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: textColor,
+                      fontWeight: weight,
+                      height: 1.2,
+                    ),
                   ),
                 ),
               ],

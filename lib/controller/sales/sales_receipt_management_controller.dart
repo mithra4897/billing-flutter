@@ -562,48 +562,6 @@ class SalesReceiptManagementController extends GetxController {
       })
       .toList(growable: false);
 
-  SalesInvoiceModel? invoiceById(int? invoiceId) {
-    if (invoiceId == null) {
-      return null;
-    }
-    return invoices.cast<SalesInvoiceModel?>().firstWhere(
-      (invoice) => invoice?.id == invoiceId,
-      orElse: () => null,
-    );
-  }
-
-  double invoiceOutstandingAmount(SalesInvoiceModel? invoice) {
-    if (invoice == null) {
-      return 0;
-    }
-    return invoice.balanceAmount ?? 0;
-  }
-
-  String formatReceiptAmount(double amount) {
-    final normalized = roundToDouble(amount, 2);
-    return normalized == normalized.roundToDouble()
-        ? normalized.round().toString()
-        : normalized.toStringAsFixed(2);
-  }
-
-  void syncPaidAmountFromAllocations({bool notify = true}) {
-    if (allocations.isEmpty) {
-      if (notify) {
-        update();
-      }
-      return;
-    }
-    final total = allocations.fold<double>(0, (sum, allocation) {
-      return sum +
-          (Validators.parseFlexibleNumber(allocation.amountController.text) ??
-              0);
-    });
-    paidAmountController.text = total <= 0 ? '' : formatReceiptAmount(total);
-    if (notify) {
-      update();
-    }
-  }
-
   void setFinancialYearId(int? value) {
     financialYearId = value;
     final series = seriesOptions();
@@ -647,24 +605,14 @@ class SalesReceiptManagementController extends GetxController {
     final nextAllocations = List<SalesReceiptAllocationDraft>.from(allocations);
     final removed = nextAllocations.removeAt(index);
     allocations = nextAllocations;
-    syncPaidAmountFromAllocations();
+    update();
     disposeDraftEntriesNextFrame<SalesReceiptAllocationDraft>([
       removed,
     ], (entry) => entry.dispose());
   }
 
   void setAllocationSalesInvoiceId(int index, int? value) {
-    final allocation = allocations[index];
-    allocation.salesInvoiceId = value;
-    final invoice = invoiceById(value);
-    final balance = invoiceOutstandingAmount(invoice);
-    allocation.amountController.text =
-        balance <= 0 ? '' : formatReceiptAmount(balance);
-    if ((allocation.remarksController.text).trim().isEmpty && invoice != null) {
-      allocation.remarksController.text =
-          'Against ${invoice.invoiceNo ?? 'invoice #${invoice.id}'}';
-    }
-    syncPaidAmountFromAllocations(notify: false);
+    allocations[index].salesInvoiceId = value;
     unawaited(refreshSalesChain(invoiceId: value));
     update();
   }
@@ -842,7 +790,6 @@ class SalesReceiptManagementController extends GetxController {
   }) {
     final previous = allocations;
     allocations = List<SalesReceiptAllocationDraft>.from(nextAllocations);
-    syncPaidAmountFromAllocations(notify: false);
     if (notify) {
       update();
     }

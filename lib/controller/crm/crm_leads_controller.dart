@@ -74,12 +74,8 @@ class CrmLeadsController extends GetxController {
   bool filtersApplied = false;
   Worker? _refreshWorker;
 
-  bool get hasLinkedOpportunity =>
-      (opportunityIdFromSalesChain() ?? enquiryIdFromSalesChain()) != null;
-
   bool get isSelectedLeadReadOnly =>
-      selectedItem != null &&
-      (isLockedLeadStatus(leadStatus) || hasLinkedOpportunity);
+      selectedItem != null && isLockedLeadStatus(leadStatus);
 
   bool get canDeleteSelectedLead {
     if (selectedItem == null) {
@@ -91,14 +87,6 @@ class CrmLeadsController extends GetxController {
       'new',
       'in_progress',
     }.contains(effectiveLeadStatus());
-  }
-
-  bool get canCreateOpportunityForSelectedLead {
-    if (selectedItem == null || isSelectedLeadReadOnly) {
-      return false;
-    }
-
-    return !hasLinkedOpportunity;
   }
 
   @override

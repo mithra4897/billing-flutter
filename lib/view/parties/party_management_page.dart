@@ -404,16 +404,6 @@ class _PartyManagementPageState extends State<PartyManagementPage>
                               parties.isNotEmpty ? parties.first : null,
                         )));
 
-      if (selected == null && selectId != null) {
-        try {
-          final detail = (await _partiesService.party(selectId)).data;
-          if (detail != null) {
-            await _selectParty(detail);
-            return;
-          }
-        } catch (_) {}
-      }
-
       if (selected != null) {
         await _selectParty(selected);
       } else {

@@ -576,10 +576,7 @@ class SalesReturnManagementController extends GetxController {
           return true;
         }
         final status = (item.invoiceStatus ?? '').trim().toLowerCase();
-        final statusOk =
-            status == 'posted' ||
-            status == 'partially_paid' ||
-            status == 'paid';
+        final statusOk = status == 'partially_paid' || status == 'paid';
         final companyOk = companyId == null || item.companyId == companyId;
         final branchOk = branchId == null || item.branchId == branchId;
         final locationOk = locationId == null || item.locationId == locationId;
