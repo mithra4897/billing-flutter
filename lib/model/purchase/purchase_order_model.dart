@@ -20,8 +20,6 @@ class PurchaseOrderModel extends JsonModel {
     this.supplierReferenceDate,
     this.supplierName,
     this.supplier,
-    this.currencyCode,
-    this.exchangeRate,
     this.subtotal,
     this.discountAmount,
     this.taxableAmount,
@@ -60,8 +58,6 @@ class PurchaseOrderModel extends JsonModel {
   final String? supplierReferenceDate;
   final String? supplierName;
   final Map<String, dynamic>? supplier;
-  final String? currencyCode;
-  final double? exchangeRate;
   final double? subtotal;
   final double? discountAmount;
   final double? taxableAmount;
@@ -105,8 +101,6 @@ class PurchaseOrderModel extends JsonModel {
       supplierReferenceDate: json['supplier_reference_date']?.toString(),
       supplierName: json['supplier_name']?.toString(),
       supplier: JsonModel.mapOf(json['supplier']),
-      currencyCode: json['currency_code']?.toString(),
-      exchangeRate: JsonModel.nullableDouble(json['exchange_rate']),
       subtotal: JsonModel.nullableDouble(json['subtotal']),
       discountAmount: JsonModel.nullableDouble(json['discount_amount']),
       taxableAmount: JsonModel.nullableDouble(json['taxable_amount']),
@@ -138,7 +132,6 @@ class PurchaseOrderModel extends JsonModel {
   String toString() => JsonModel.combineValues([
     orderNo,
     orderDate,
-    currencyCode,
   ], defaultValue: 'Purchase Order');
 
 
@@ -166,8 +159,6 @@ class PurchaseOrderModel extends JsonModel {
       'supplier_reference_date': supplierReferenceDate,
     if (supplierName != null) 'supplier_name': supplierName,
     if (supplier != null) 'supplier': supplier,
-    if (currencyCode != null) 'currency_code': currencyCode,
-    if (exchangeRate != null) 'exchange_rate': exchangeRate,
     if (subtotal != null) 'subtotal': subtotal,
     if (discountAmount != null) 'discount_amount': discountAmount,
     if (taxableAmount != null) 'taxable_amount': taxableAmount,

@@ -74,11 +74,17 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
 
   @override
   void dispose() {
-    Get.delete<SalesQuotationManagementController>(
-      tag: _controllerTag,
-      force: true,
-    );
     super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<SalesQuotationManagementController>(
+        tag: _controllerTag,
+      )) {
+        Get.delete<SalesQuotationManagementController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    });
   }
 
   @override
@@ -232,7 +238,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   bottom: AppUiConstants.spacingSm,
                 ),
                 child: Text(
-                  'Total: $totalStr ${controller.currencyCodeController.text.trim().isEmpty ? 'INR' : controller.currencyCodeController.text.trim()} · Status: ${controller.status.toUpperCase()}',
+                  'Total: $totalStr INR · Status: ${controller.status.toUpperCase()}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -287,11 +293,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                   customerRefNoController: controller.customerRefNoController,
                   customerRefDateController:
                       controller.customerRefDateController,
-                  currencyCodeController: controller.currencyCodeController,
-                  exchangeRateController: controller.exchangeRateController,
                   notesController: controller.notesController,
                   termsController: controller.termsController,
-                  onCurrencyChanged: (_) => controller.refreshComputedState(),
                 ),
                 AppFormTextField(
                   labelText: 'Round off',

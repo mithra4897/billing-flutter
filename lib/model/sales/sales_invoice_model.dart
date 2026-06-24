@@ -19,8 +19,6 @@ class SalesInvoiceModel extends JsonModel {
     this.billingAddressId,
     this.shippingAddressId,
     this.contactId,
-    this.currencyCode,
-    this.exchangeRate,
     this.roundOffMethod,
     this.roundOffPrecision,
     this.roundOffAmount,
@@ -54,8 +52,6 @@ class SalesInvoiceModel extends JsonModel {
   final int? billingAddressId;
   final int? shippingAddressId;
   final int? contactId;
-  final String? currencyCode;
-  final double? exchangeRate;
   final String? roundOffMethod;
   final double? roundOffPrecision;
   final double? roundOffAmount;
@@ -92,8 +88,6 @@ class SalesInvoiceModel extends JsonModel {
       billingAddressId: _nullableInt(json['billing_address_id']),
       shippingAddressId: _nullableInt(json['shipping_address_id']),
       contactId: _nullableInt(json['contact_id']),
-      currencyCode: json['currency_code']?.toString(),
-      exchangeRate: _nullableDouble(json['exchange_rate']),
       roundOffMethod: json['round_off_method']?.toString(),
       roundOffPrecision: _nullableDouble(json['round_off_precision']),
       roundOffAmount: _nullableDouble(json['round_off_amount']),
@@ -137,8 +131,6 @@ class SalesInvoiceModel extends JsonModel {
       if (billingAddressId != null) 'billing_address_id': billingAddressId,
       if (shippingAddressId != null) 'shipping_address_id': shippingAddressId,
       if (contactId != null) 'contact_id': contactId,
-      if (currencyCode != null) 'currency_code': currencyCode,
-      if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (roundOffMethod != null) 'round_off_method': roundOffMethod,
       if (roundOffPrecision != null) 'round_off_precision': roundOffPrecision,
       if (roundOffAmount != null) 'round_off_amount': roundOffAmount,

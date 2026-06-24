@@ -41,11 +41,17 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
 
   @override
   void dispose() {
-    Get.delete<PurchaseInvoiceManagementController>(
-      tag: _controllerTag,
-      force: true,
-    );
     super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<PurchaseInvoiceManagementController>(
+        tag: _controllerTag,
+      )) {
+        Get.delete<PurchaseInvoiceManagementController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    });
   }
 
   @override
@@ -95,9 +101,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     }
     final taxSummary = controller.invoiceTaxSummary();
     final summaryTotal = taxSummary.total;
-    final currency = controller.currencyCodeController.text.trim().isEmpty
-        ? 'INR'
-        : controller.currencyCodeController.text.trim();
+    const currency = 'INR';
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Purchase Invoices',
@@ -303,20 +307,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                         keyboardType: TextInputType.datetime,
                         inputFormatters: const [DateInputFormatter()],
                         validator: Validators.optionalDate('Supplier Ref Date'),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Currency',
-                        controller: controller.currencyCodeController,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Exchange Rate',
-                        controller: controller.exchangeRateController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.optionalNonNegativeNumber(
-                          'Exchange Rate',
-                        ),
                       ),
                       AppFormTextField(
                         labelText: 'Round off',

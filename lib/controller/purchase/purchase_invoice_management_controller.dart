@@ -39,8 +39,6 @@ class PurchaseInvoiceManagementController extends GetxController {
       TextEditingController();
   final TextEditingController supplierReferenceDateController =
       TextEditingController();
-  final TextEditingController currencyCodeController = TextEditingController();
-  final TextEditingController exchangeRateController = TextEditingController();
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController adjustmentAmountController =
       TextEditingController();
@@ -124,8 +122,6 @@ class PurchaseInvoiceManagementController extends GetxController {
     dueDateController.dispose();
     supplierReferenceNoController.dispose();
     supplierReferenceDateController.dispose();
-    currencyCodeController.dispose();
-    exchangeRateController.dispose();
     roundOffController.dispose();
     adjustmentAmountController.dispose();
     adjustmentRemarksController.dispose();
@@ -363,8 +359,6 @@ class PurchaseInvoiceManagementController extends GetxController {
     supplierReferenceDateController.text = displayDate(
       full.supplierReferenceDate,
     );
-    currencyCodeController.text = full.currencyCode ?? 'INR';
-    exchangeRateController.text = full.exchangeRate?.toString() ?? '1';
     roundOffController.text =
         full.roundOffAmount == null || full.roundOffAmount == 0
         ? ''
@@ -417,8 +411,6 @@ class PurchaseInvoiceManagementController extends GetxController {
     dueDateController.clear();
     supplierReferenceNoController.clear();
     supplierReferenceDateController.clear();
-    currencyCodeController.text = 'INR';
-    exchangeRateController.text = '1';
     roundOffController.clear();
     adjustmentAmountController.clear();
     adjustmentRemarksController.clear();
@@ -608,9 +600,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       subtotal: roundedSubtotal,
       taxAmount: roundedTax,
       totalAmount: summary.total,
-      currencyCode: currencyCodeController.text.trim().isEmpty
-          ? 'INR'
-          : currencyCodeController.text.trim(),
+      currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
     );
@@ -1048,16 +1038,6 @@ class PurchaseInvoiceManagementController extends GetxController {
     supplierReferenceDateController.text = displayDate(
       receipt.supplierInvoiceDate,
     );
-    currencyCodeController.text = stringValue(
-      receiptOrderData,
-      'currency_code',
-      'INR',
-    );
-    exchangeRateController.text = stringValue(
-      receiptOrderData,
-      'exchange_rate',
-      '1',
-    );
     roundOffController.clear();
     applyRoundOff = false;
     notesController.text = receipt.notes?.trim().isNotEmpty == true
@@ -1112,8 +1092,6 @@ class PurchaseInvoiceManagementController extends GetxController {
     supplierReferenceDateController.text = displayDate(
       nullableStringValue(data, 'supplier_reference_date'),
     );
-    currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
-    exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
     final roundOffAmount = order.roundOffAmount ?? 0;
     roundOffController.text = roundOffAmount == 0
         ? ''
@@ -1228,10 +1206,6 @@ class PurchaseInvoiceManagementController extends GetxController {
       purchaseReceiptId: purchaseReceiptId,
       invoiceNo: nullIfEmpty(invoiceNoController.text),
       dueDate: nullIfEmpty(dueDateController.text),
-      currencyCode: nullIfEmpty(currencyCodeController.text),
-      exchangeRate: Validators.parseFlexibleNumber(
-        exchangeRateController.text.trim(),
-      ),
       roundOffMethod: _roundOffMethodForSave(),
       roundOffPrecision: _roundOffPrecisionForSave(),
       roundOffAmount: _roundOffAmountForSave(),

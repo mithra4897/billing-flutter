@@ -830,8 +830,7 @@ class SalesReturnManagementController extends GetxController {
   }
 
   String get currencyCodeForTaxSummary {
-    final currency = invoiceForTaxContext?.currencyCode?.trim() ?? '';
-    return currency.isEmpty ? 'INR' : currency;
+    return 'INR';
   }
 
   SalesLineTaxBreakdown taxBreakdownForLine(SalesReturnLineDraft line) {

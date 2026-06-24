@@ -128,8 +128,6 @@ class SalesOrderManagementController extends GetxController {
   final TextEditingController customerRefNoController = TextEditingController();
   final TextEditingController customerRefDateController =
       TextEditingController();
-  final TextEditingController currencyCodeController = TextEditingController();
-  final TextEditingController exchangeRateController = TextEditingController();
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
   final TextEditingController termsController = TextEditingController();
@@ -204,8 +202,6 @@ class SalesOrderManagementController extends GetxController {
     expectedDeliveryController.dispose();
     customerRefNoController.dispose();
     customerRefDateController.dispose();
-    currencyCodeController.dispose();
-    exchangeRateController.dispose();
     roundOffController.dispose();
     notesController.dispose();
     termsController.dispose();
@@ -726,8 +722,6 @@ class SalesOrderManagementController extends GetxController {
       customerRefDateController.text = displayDate(
         nullableStringValue(data, 'customer_reference_date'),
       );
-      currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
-      exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
       roundOffController.clear();
       notesController.text = stringValue(data, 'notes');
       termsController.text = documentTermsDefault('sales_order');
@@ -779,8 +773,6 @@ class SalesOrderManagementController extends GetxController {
     customerRefDateController.text = displayDate(
       nullableStringValue(data, 'customer_reference_date'),
     );
-    currencyCodeController.text = stringValue(data, 'currency_code', 'INR');
-    exchangeRateController.text = stringValue(data, 'exchange_rate', '1');
     roundOffController.text =
         stringValue(data, 'round_off_amount').trim().isEmpty
         ? ''
@@ -822,8 +814,6 @@ class SalesOrderManagementController extends GetxController {
     expectedDeliveryController.clear();
     customerRefNoController.clear();
     customerRefDateController.clear();
-    currencyCodeController.text = 'INR';
-    exchangeRateController.text = '1';
     roundOffController.clear();
     applyRoundOff = false;
     notesController.clear();
@@ -981,8 +971,7 @@ class SalesOrderManagementController extends GetxController {
   }
 
   String get currencyCodeForTaxSummary {
-    final currency = currencyCodeController.text.trim();
-    return currency.isEmpty ? 'INR' : currency;
+    return 'INR';
   }
 
   String? resolveCompanyStateCodeForSummary() {
@@ -1162,9 +1151,7 @@ class SalesOrderManagementController extends GetxController {
       subtotal: roundToDouble(summary.taxable, 2),
       taxAmount: roundToDouble(totalTax, 2),
       totalAmount: roundToDouble(summary.total, 2),
-      currencyCode: currencyCodeController.text.trim().isEmpty
-          ? 'INR'
-          : currencyCodeController.text.trim(),
+      currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
     );
@@ -1323,9 +1310,6 @@ class SalesOrderManagementController extends GetxController {
       'customer_party_id': customerPartyId,
       'customer_reference_no': nullIfEmpty(customerRefNoController.text),
       'customer_reference_date': nullIfEmpty(customerRefDateController.text),
-      'currency_code': nullIfEmpty(currencyCodeController.text) ?? 'INR',
-      'exchange_rate':
-          Validators.parseFlexibleNumber(exchangeRateController.text) ?? 1,
       'round_off_amount': applyRoundOff
           ? (Validators.parseFlexibleNumber(roundOffController.text.trim()) ??
                 0)

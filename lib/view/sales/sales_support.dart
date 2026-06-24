@@ -848,11 +848,8 @@ List<Widget> buildSalesCustomerCommercialFields({
   required ValueChanged<int?> onCustomerChanged,
   required TextEditingController customerRefNoController,
   required TextEditingController customerRefDateController,
-  required TextEditingController currencyCodeController,
-  required TextEditingController exchangeRateController,
   required TextEditingController notesController,
   required TextEditingController termsController,
-  ValueChanged<String>? onCurrencyChanged,
 }) {
   return <Widget>[
     AppDropdownField<int>.fromMapped(
@@ -888,20 +885,6 @@ List<Widget> buildSalesCustomerCommercialFields({
       inputFormatters: const [DateInputFormatter()],
       enabled: canEdit,
       validator: Validators.optionalDate('Customer Ref Date'),
-    ),
-    AppFormTextField(
-      labelText: 'Currency',
-      controller: currencyCodeController,
-      enabled: canEdit,
-      onChanged: onCurrencyChanged,
-      validator: Validators.optionalMaxLength(10, 'Currency'),
-    ),
-    AppFormTextField(
-      labelText: 'Exchange Rate',
-      controller: exchangeRateController,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      enabled: canEdit,
-      validator: Validators.optionalNonNegativeNumber('Exchange Rate'),
     ),
     AppFormTextField(
       labelText: 'Notes (shown to customer)',

@@ -36,8 +36,6 @@ class SalesInvoiceManagementController extends GetxController {
   final TextEditingController customerRefNoController = TextEditingController();
   final TextEditingController customerRefDateController =
       TextEditingController();
-  final TextEditingController currencyCodeController = TextEditingController();
-  final TextEditingController exchangeRateController = TextEditingController();
   final TextEditingController roundOffController = TextEditingController();
   final TextEditingController adjustmentAmountController =
       TextEditingController();
@@ -1029,8 +1027,6 @@ class SalesInvoiceManagementController extends GetxController {
         rawShippingAddressId == null || rawShippingAddressId == 0
         ? null
         : rawShippingAddressId;
-    currencyCodeController.text = stringValue(j, 'currency_code', 'INR');
-    exchangeRateController.text = stringValue(j, 'exchange_rate', '1');
     customerRefNoController.text = stringValue(j, 'customer_reference_no');
     customerRefDateController.text = displayDate(
       nullableStringValue(j, 'customer_reference_date'),
@@ -1066,8 +1062,6 @@ class SalesInvoiceManagementController extends GetxController {
         rawShippingAddressId == null || rawShippingAddressId == 0
         ? null
         : rawShippingAddressId;
-    currencyCodeController.text = stringValue(j, 'currency_code', 'INR');
-    exchangeRateController.text = stringValue(j, 'exchange_rate', '1');
     customerRefNoController.text = stringValue(j, 'customer_reference_no');
     customerRefDateController.text = displayDate(
       nullableStringValue(j, 'customer_reference_date'),
@@ -1349,8 +1343,6 @@ class SalesInvoiceManagementController extends GetxController {
           applyInvoiceHeaderFromOrderJson(orderJson);
         } else if (dJson != null) {
           applyInvoiceHeaderFromDeliveryJson(dJson);
-          currencyCodeController.text = 'INR';
-          exchangeRateController.text = '1';
           termsController.text = documentTermsDefault('sales_invoice');
           customerRefNoController.clear();
           customerRefDateController.clear();
@@ -1653,8 +1645,6 @@ class SalesInvoiceManagementController extends GetxController {
     dueDateController.dispose();
     customerRefNoController.dispose();
     customerRefDateController.dispose();
-    currencyCodeController.dispose();
-    exchangeRateController.dispose();
     roundOffController.dispose();
     adjustmentAmountController.dispose();
     adjustmentRemarksController.dispose();
@@ -2157,8 +2147,6 @@ class SalesInvoiceManagementController extends GetxController {
       dueDateController.text = displayDate(full.dueDate);
       customerRefNoController.text = full.customerReferenceNo ?? '';
       customerRefDateController.text = displayDate(full.customerReferenceDate);
-      currencyCodeController.text = full.currencyCode ?? 'INR';
-      exchangeRateController.text = (full.exchangeRate ?? 1).toString();
       roundOffController.text =
           full.roundOffAmount == null || full.roundOffAmount == 0
           ? ''
@@ -2211,8 +2199,6 @@ class SalesInvoiceManagementController extends GetxController {
       dueDateController.clear();
       customerRefNoController.clear();
       customerRefDateController.clear();
-      currencyCodeController.text = 'INR';
-      exchangeRateController.text = '1';
       roundOffController.clear();
       applyRoundOff = false;
       adjustmentAmountController.clear();
@@ -2465,9 +2451,7 @@ class SalesInvoiceManagementController extends GetxController {
       totalAmount: roundToDouble(summary.total, 2),
       amountInWords: printTemplateAmountInWords(
         roundToDouble(summary.total, 2),
-        currencyCodeController.text.trim().isEmpty
-            ? 'INR'
-            : currencyCodeController.text.trim(),
+        'INR',
       ),
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
@@ -2486,9 +2470,7 @@ class SalesInvoiceManagementController extends GetxController {
 
   Widget buildTaxSummaryCard(BuildContext context) {
     final summary = invoiceTaxSummary();
-    final currency = currencyCodeController.text.trim().isEmpty
-        ? 'INR'
-        : currencyCodeController.text.trim();
+    const currency = 'INR';
     final isInterState = isInterStateForSummary();
     return GstSummaryCard(
       taxable: summary.taxable,
@@ -2642,9 +2624,6 @@ class SalesInvoiceManagementController extends GetxController {
       salesDeliveryId: salesDeliveryId,
       invoiceNo: nullIfEmpty(invoiceNoController.text),
       dueDate: nullIfEmpty(dueDateController.text),
-      currencyCode: nullIfEmpty(currencyCodeController.text) ?? 'INR',
-      exchangeRate:
-          Validators.parseFlexibleNumber(exchangeRateController.text) ?? 1,
       roundOffMethod: 'manual',
       roundOffPrecision: 1.0,
       roundOffAmount: roundOff,

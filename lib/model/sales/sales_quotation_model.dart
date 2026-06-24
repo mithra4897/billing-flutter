@@ -21,8 +21,6 @@ class SalesQuotationModel extends JsonModel {
     this.customerReferenceNo,
     this.customerReferenceDate,
     this.priceType,
-    this.currencyCode,
-    this.exchangeRate,
     this.subtotal,
     this.discountAmount,
     this.taxableAmount,
@@ -62,8 +60,6 @@ class SalesQuotationModel extends JsonModel {
   final String? customerReferenceNo;
   final String? customerReferenceDate;
   final String? priceType;
-  final String? currencyCode;
-  final double? exchangeRate;
   final double? subtotal;
   final double? discountAmount;
   final double? taxableAmount;
@@ -106,8 +102,6 @@ class SalesQuotationModel extends JsonModel {
       customerReferenceNo: json['customer_reference_no']?.toString(),
       customerReferenceDate: json['customer_reference_date']?.toString(),
       priceType: json['price_type']?.toString(),
-      currencyCode: json['currency_code']?.toString(),
-      exchangeRate: JsonModel.nullableDouble(json['exchange_rate']),
       subtotal: JsonModel.nullableDouble(json['subtotal']),
       discountAmount: JsonModel.nullableDouble(json['discount_amount']),
       taxableAmount: JsonModel.nullableDouble(json['taxable_amount']),
@@ -136,7 +130,6 @@ class SalesQuotationModel extends JsonModel {
   String toString() => JsonModel.combineValues([
     quotationNo,
     quotationDate,
-    currencyCode,
   ], defaultValue: 'Sales Quotation');
 
   @override
@@ -162,8 +155,6 @@ class SalesQuotationModel extends JsonModel {
     if (customerReferenceDate != null)
       'customer_reference_date': customerReferenceDate,
     if (priceType != null) 'price_type': priceType,
-    if (currencyCode != null) 'currency_code': currencyCode,
-    if (exchangeRate != null) 'exchange_rate': exchangeRate,
     if (subtotal != null) 'subtotal': subtotal,
     if (discountAmount != null) 'discount_amount': discountAmount,
     if (taxableAmount != null) 'taxable_amount': taxableAmount,

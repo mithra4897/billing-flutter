@@ -59,11 +59,17 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
 
   @override
   void dispose() {
-    Get.delete<SalesInvoiceManagementController>(
-      tag: _controllerTag,
-      force: true,
-    );
     super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<SalesInvoiceManagementController>(
+        tag: _controllerTag,
+      )) {
+        Get.delete<SalesInvoiceManagementController>(
+          tag: _controllerTag,
+          force: true,
+        );
+      }
+    });
   }
 
   @override
@@ -138,9 +144,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     SalesInvoiceManagementController controller,
   ) {
     final summary = controller.invoiceTaxSummary();
-    final currency = controller.currencyCodeController.text.trim().isEmpty
-        ? 'INR'
-        : controller.currencyCodeController.text.trim();
+    const currency = 'INR';
     final isInterState = controller.isInterStateForSummary();
     final roundOff = controller.applyRoundOff
         ? (double.tryParse(controller.roundOffController.text.trim()) ?? 0)
@@ -205,9 +209,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         itemBuilder: (item, selected) {
           final data = controller.rowJson(item);
           final st = item.invoiceStatus ?? '';
-          final currency = (item.currencyCode?.trim().isNotEmpty == true)
-              ? item.currencyCode!.trim()
-              : 'INR';
+          const currency = 'INR';
           final total =
               item.totalAmount ??
               double.tryParse(data['total_amount']?.toString() ?? '') ??
@@ -277,7 +279,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   bottom: AppUiConstants.spacingSm,
                 ),
                 child: Text(
-                  'Total: $totalStr ${controller.currencyCodeController.text.trim().isEmpty ? 'INR' : controller.currencyCodeController.text.trim()} · Status: ${controller.status.toUpperCase()}',
+                  'Total: $totalStr INR · Status: ${controller.status.toUpperCase()}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -295,8 +297,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Outstanding: ${controller.outstandingBalanceForSelectedInvoice().toStringAsFixed(2)} '
-                        '${controller.currencyCodeController.text.trim().isEmpty ? 'INR' : controller.currencyCodeController.text.trim()}',
+                        'Outstanding: ${controller.outstandingBalanceForSelectedInvoice().toStringAsFixed(2)} INR',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).colorScheme.primary,
@@ -477,24 +478,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   inputFormatters: const [DateInputFormatter()],
                   enabled: controller.canEdit,
                   validator: Validators.optionalDate('Customer Ref Date'),
-                ),
-                AppFormTextField(
-                  labelText: 'Currency',
-                  controller: controller.currencyCodeController,
-                  enabled: controller.canEdit,
-                  onChanged: (_) => controller.State(() {}),
-                  validator: Validators.optionalMaxLength(10, 'Currency'),
-                ),
-                AppFormTextField(
-                  labelText: 'Exchange Rate',
-                  controller: controller.exchangeRateController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  enabled: controller.canEdit,
-                  validator: Validators.optionalNonNegativeNumber(
-                    'Exchange Rate',
-                  ),
                 ),
                 AppFormTextField(
                   labelText: 'Round off',
