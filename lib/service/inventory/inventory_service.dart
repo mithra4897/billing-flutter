@@ -546,7 +546,7 @@ class InventoryService extends ErpModuleService {
       );
 
   Future<ApiResponse<InventoryAdjustmentModel>> createInventoryAdjustment(
-    InventoryAdjustmentModel body,
+    dynamic body,
   ) => createModel<InventoryAdjustmentModel>(
     ApiEndpoints.inventoryAdjustments,
     body,
@@ -555,7 +555,7 @@ class InventoryService extends ErpModuleService {
 
   Future<ApiResponse<InventoryAdjustmentModel>> updateInventoryAdjustment(
     int id,
-    InventoryAdjustmentModel body,
+    dynamic body,
   ) => updateModel<InventoryAdjustmentModel>(
     '${ApiEndpoints.inventoryAdjustments}/$id',
     body,

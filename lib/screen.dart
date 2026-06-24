@@ -149,6 +149,7 @@ export 'model/hr/payroll_line_model.dart';
 export 'model/hr/payroll_run_model.dart';
 export 'model/hr/payslip_model.dart';
 export 'model/inventory/internal_stock_receipt_model.dart';
+export 'model/inventory/inventory_adjustment_item_model.dart';
 export 'model/inventory/inventory_adjustment_model.dart';
 export 'model/inventory/item_alternate_model.dart';
 export 'model/inventory/item_price_model.dart';

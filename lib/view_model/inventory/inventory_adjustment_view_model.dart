@@ -726,11 +726,11 @@ class InventoryAdjustmentViewModel extends GetxController {
     try {
       final response = selected == null
           ? await _inventoryService.createInventoryAdjustment(
-              InventoryAdjustmentModel.fromJson(payload),
+              payload,
             )
           : await _inventoryService.updateInventoryAdjustment(
               intValue(selected!.toJson(), 'id')!,
-              InventoryAdjustmentModel.fromJson(payload),
+              payload,
             );
       final id = intValue(
         response.data?.toJson() ?? const <String, dynamic>{},

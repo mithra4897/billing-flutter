@@ -1,13 +1,17 @@
+import '../../../view_model/inventory/inventory_module_refresh_controller.dart';
 import '../../../screen.dart';
 
 class StockBalanceManagementController extends GetxController {
   StockBalanceManagementController();
 
   final InventoryService _inventoryService = InventoryService();
+  final InventoryModuleRefreshController _refreshController =
+      InventoryModuleRefreshController.ensureRegistered();
   final ScrollController pageScrollController = ScrollController();
   final TextEditingController searchController = TextEditingController();
   final SettingsWorkspaceController workspaceController =
       SettingsWorkspaceController();
+  late final Worker _refreshWorker;
 
   bool initialLoading = true;
   String? pageError;
@@ -19,11 +23,16 @@ class StockBalanceManagementController extends GetxController {
   void onInit() {
     super.onInit();
     searchController.addListener(_applySearch);
+    _refreshWorker = ever<InventoryModuleRefreshEvent?>(
+      _refreshController.lastEvent,
+      _handleInventoryRefresh,
+    );
     loadData();
   }
 
   @override
   void onClose() {
+    _refreshWorker.dispose();
     pageScrollController.dispose();
     searchController
       ..removeListener(_applySearch)
@@ -66,6 +75,14 @@ class StockBalanceManagementController extends GetxController {
     }
 
     update();
+  }
+
+  void _handleInventoryRefresh(InventoryModuleRefreshEvent? event) {
+    if (event == null) {
+      return;
+    }
+
+    loadData(selectId: selectedItem?.id);
   }
 
   List<StockBalanceModel> filterItems(

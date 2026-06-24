@@ -22,6 +22,7 @@ class InventoryAdjustmentModel extends JsonModel {
     this.postedAt,
     this.createdAt,
     this.updatedAt,
+    this.items,
   });
   final int? companyId;
   final int? branchId;
@@ -42,6 +43,7 @@ class InventoryAdjustmentModel extends JsonModel {
   final String? postedAt;
   final String? createdAt;
   final String? updatedAt;
+  final List<InventoryAdjustmentItemModel>? items;
 
   factory InventoryAdjustmentModel.fromJson(Map<String, dynamic> json) {
     return InventoryAdjustmentModel(
@@ -67,6 +69,10 @@ class InventoryAdjustmentModel extends JsonModel {
       postedAt: json['posted_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
+      items: (json['items'] as List<dynamic>?)
+          ?.whereType<Map<String, dynamic>>()
+          .map(InventoryAdjustmentItemModel.fromJson)
+          .toList(growable: false),
     );
   }
   @override
@@ -99,5 +105,7 @@ class InventoryAdjustmentModel extends JsonModel {
     if (postedAt != null) 'posted_at': postedAt,
     if (createdAt != null) 'created_at': createdAt,
     if (updatedAt != null) 'updated_at': updatedAt,
+    if (items != null)
+      'items': items!.map((item) => item.toJson()).toList(growable: false),
   };
 }
