@@ -95,6 +95,25 @@ class DocumentDesignerPageInspector extends StatelessWidget {
               ),
             ),
             DocumentDesignerPropertyGridRow(
+              label: 'Font Family',
+              child: _CompactDropdownField<String>(
+                value: template.fontFamily,
+                items: documentPrintFontFamilyOptions
+                    .map(
+                      (value) => DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(documentPrintFontFamilyLabel(value)),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value != null) {
+                    onChanged(template.copyWith(fontFamily: value));
+                  }
+                },
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
               label: 'Show Grid',
               child: Align(
                 alignment: Alignment.centerLeft,

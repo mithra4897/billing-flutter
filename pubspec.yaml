@@ -30,3 +30,64 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+  fonts:
+    - family: PrintSans
+      fonts:
+        - asset: assets/fonts/Arial.ttf
+        - asset: assets/fonts/Arial Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Arial Italic.ttf
+          style: italic
+        - asset: assets/fonts/Arial Bold Italic.ttf
+          weight: 700
+          style: italic
+    - family: PrintSerif
+      fonts:
+        - asset: assets/fonts/Times New Roman.ttf
+        - asset: assets/fonts/Times New Roman Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Times New Roman Italic.ttf
+          style: italic
+        - asset: assets/fonts/Times New Roman Bold Italic.ttf
+          weight: 700
+          style: italic
+    - family: PrintMono
+      fonts:
+        - asset: assets/fonts/Courier New.ttf
+        - asset: assets/fonts/Courier New Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Courier New Italic.ttf
+          style: italic
+        - asset: assets/fonts/Courier New Bold Italic.ttf
+          weight: 700
+          style: italic
+    - family: PrintVerdana
+      fonts:
+        - asset: assets/fonts/Verdana.ttf
+        - asset: assets/fonts/Verdana Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Verdana Italic.ttf
+          style: italic
+        - asset: assets/fonts/Verdana Bold Italic.ttf
+          weight: 700
+          style: italic
+    - family: PrintTrebuchet
+      fonts:
+        - asset: assets/fonts/Trebuchet MS.ttf
+        - asset: assets/fonts/Trebuchet MS Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Trebuchet MS Italic.ttf
+          style: italic
+        - asset: assets/fonts/Trebuchet MS Bold Italic.ttf
+          weight: 700
+          style: italic
+    - family: PrintGeorgia
+      fonts:
+        - asset: assets/fonts/Georgia.ttf
+        - asset: assets/fonts/Georgia Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Georgia Italic.ttf
+          style: italic
+        - asset: assets/fonts/Georgia Bold Italic.ttf
+          weight: 700
+          style: italic
