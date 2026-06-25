@@ -35,6 +35,9 @@ class _DocumentPrintDesignerController extends GetxController {
   DocumentPrintTemplate? template;
   String? selectedShapeId;
   Set<String> selectedShapeIds = <String>{};
+  final List<_DesignerHistoryEntry> undoStack = <_DesignerHistoryEntry>[];
+  final List<_DesignerHistoryEntry> redoStack = <_DesignerHistoryEntry>[];
+  _DesignerHistoryEntry? pendingHistoryEntry;
   double canvasZoom = 1.0;
   bool uploadingImage = false;
   bool uploadingBackground = false;
@@ -52,6 +55,18 @@ class _DocumentPrintDesignerController extends GetxController {
     mutate();
     update();
   }
+}
+
+class _DesignerHistoryEntry {
+  const _DesignerHistoryEntry({
+    required this.template,
+    required this.selectedShapeId,
+    required this.selectedShapeIds,
+  });
+
+  final DocumentPrintTemplate template;
+  final String? selectedShapeId;
+  final Set<String> selectedShapeIds;
 }
 
 class DocumentPrintDesignerPage extends StatefulWidget {
@@ -76,6 +91,7 @@ class DocumentPrintDesignerPage extends StatefulWidget {
 }
 
 class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
+  static const int _historyLimit = 100;
   final PrintTemplateService _service = PrintTemplateService();
   final MediaService _mediaService = MediaService();
   final GlobalKey _previewBoundaryKey = GlobalKey();
@@ -159,6 +175,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       if (response.success && response.data != null) {
         _controller.updateState(() {
           _template = _prepareTemplate(response.data!);
+          _clearHistory();
           _loading = false;
         });
       } else {
@@ -169,6 +186,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               title: widget.title,
             ),
           );
+          _clearHistory();
           _loading = false;
         });
       }
@@ -183,9 +201,136 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             title: widget.title,
           ),
         );
+        _clearHistory();
         _loading = false;
       });
     }
+  }
+
+  DocumentPrintTemplate _cloneTemplate(DocumentPrintTemplate template) {
+    return DocumentPrintTemplate.fromJson(
+      Map<String, dynamic>.from(template.toJson()),
+    );
+  }
+
+  _DesignerHistoryEntry? _captureHistoryEntry() {
+    final template = _template;
+    if (template == null) {
+      return null;
+    }
+    return _DesignerHistoryEntry(
+      template: _cloneTemplate(template),
+      selectedShapeId: _selectedShapeId,
+      selectedShapeIds: Set<String>.from(_selectedShapeIds),
+    );
+  }
+
+  bool _historyEntriesEqual(
+    _DesignerHistoryEntry left,
+    _DesignerHistoryEntry right,
+  ) {
+    return jsonEncode(left.template.toJson()) ==
+            jsonEncode(right.template.toJson()) &&
+        left.selectedShapeId == right.selectedShapeId &&
+        setEquals(left.selectedShapeIds, right.selectedShapeIds);
+  }
+
+  void _clearHistory() {
+    _controller.undoStack.clear();
+    _controller.redoStack.clear();
+    _controller.pendingHistoryEntry = null;
+  }
+
+  void _pushUndoEntry(_DesignerHistoryEntry entry) {
+    final undoStack = _controller.undoStack;
+    if (undoStack.isNotEmpty && _historyEntriesEqual(undoStack.last, entry)) {
+      return;
+    }
+    undoStack.add(entry);
+    if (undoStack.length > _historyLimit) {
+      undoStack.removeAt(0);
+    }
+    _controller.redoStack.clear();
+  }
+
+  void _restoreHistoryEntry(_DesignerHistoryEntry entry) {
+    final template = _cloneTemplate(entry.template);
+    final validShapeIds = template.shapes.map((shape) => shape.id).toSet();
+    final selectedIds = entry.selectedShapeIds
+        .where(validShapeIds.contains)
+        .toSet();
+
+    _template = template;
+    _selectedShapeIds = selectedIds;
+    _selectedShapeId = selectedIds.contains(entry.selectedShapeId)
+        ? entry.selectedShapeId
+        : (selectedIds.isEmpty ? null : selectedIds.last);
+    _operation = _DesignerOperation.select;
+    _drawStart = null;
+    _drawCurrent = null;
+  }
+
+  void _applyTemplateMutation(VoidCallback mutate, {bool trackHistory = true}) {
+    final before = trackHistory ? _captureHistoryEntry() : null;
+    _controller.updateState(() {
+      mutate();
+      if (before != null) {
+        final after = _captureHistoryEntry();
+        if (after != null && !_historyEntriesEqual(before, after)) {
+          _pushUndoEntry(before);
+        }
+      }
+    });
+  }
+
+  void _beginHistoryGesture() {
+    _controller.pendingHistoryEntry ??= _captureHistoryEntry();
+  }
+
+  void _endHistoryGesture() {
+    final before = _controller.pendingHistoryEntry;
+    if (before == null) {
+      return;
+    }
+    _controller.updateState(() {
+      _controller.pendingHistoryEntry = null;
+      final after = _captureHistoryEntry();
+      if (after != null && !_historyEntriesEqual(before, after)) {
+        _pushUndoEntry(before);
+      }
+    });
+  }
+
+  bool get _canUndo => _controller.undoStack.isNotEmpty;
+  bool get _canRedo => _controller.redoStack.isNotEmpty;
+
+  void _undoTemplateChange() {
+    _endHistoryGesture();
+    final current = _captureHistoryEntry();
+    if (current == null || _controller.undoStack.isEmpty) {
+      return;
+    }
+    _controller.updateState(() {
+      final previous = _controller.undoStack.removeLast();
+      _controller.redoStack.add(current);
+      _restoreHistoryEntry(previous);
+    });
+  }
+
+  void _redoTemplateChange() {
+    _endHistoryGesture();
+    final current = _captureHistoryEntry();
+    if (current == null || _controller.redoStack.isEmpty) {
+      return;
+    }
+    _controller.updateState(() {
+      final next = _controller.redoStack.removeLast();
+      _controller.undoStack.add(current);
+      if (_controller.undoStack.length > _historyLimit) {
+        _controller.undoStack.removeAt(0);
+      }
+      _restoreHistoryEntry(next);
+    });
   }
 
   DocumentPrintTemplate _prepareTemplate(DocumentPrintTemplate template) {
@@ -215,7 +360,258 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       return shape;
     }).toList();
 
-    return normalized.copyWith(shapes: shapes);
+    return _normalizeFooterLayout(normalized.copyWith(shapes: shapes));
+  }
+
+  DocumentPrintTemplate _normalizeFooterLayout(DocumentPrintTemplate template) {
+    final linesTableIndex = template.shapes.indexWhere(
+      (shape) => isPrintLinesTableShape(shape),
+    );
+    final amountWordsLabelIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'amount-words-label',
+    );
+    final amountWordsValueIndex = template.shapes.indexWhere(
+      (shape) =>
+          shape.id == 'amount-words-value' || shape.id == 'amount-words-text',
+    );
+    final gstBreakupIndex = template.shapes.indexWhere(
+      (shape) => isPrintGstBreakupTableShape(shape),
+    );
+    final totalAmountLabelIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'total-amount-label',
+    );
+    final totalAmountValueIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'total-amount-value',
+    );
+    final termsTitleIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'terms-title',
+    );
+    final termsTextIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'terms-text',
+    );
+    final bankingLabelIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'banking-label',
+    );
+    final bankingTextIndex = template.shapes.indexWhere(
+      (shape) =>
+          shape.id == 'banking-details' ||
+          shape.id == 'text-31' ||
+          shape.text.toLowerCase().contains('a/c no:'),
+    );
+    final authIndex = template.shapes.indexWhere(
+      (shape) => shape.id == 'auth-signatory',
+    );
+
+    final requiredIndexes = <int>[
+      linesTableIndex,
+      amountWordsLabelIndex,
+      amountWordsValueIndex,
+      gstBreakupIndex,
+      termsTitleIndex,
+      termsTextIndex,
+      bankingLabelIndex,
+      bankingTextIndex,
+      authIndex,
+    ];
+    if (requiredIndexes.any((index) => index < 0)) {
+      return template;
+    }
+
+    final shapes = [...template.shapes];
+    var linesTable = shapes[linesTableIndex];
+    var amountWordsLabel = shapes[amountWordsLabelIndex];
+    var amountWordsValue = shapes[amountWordsValueIndex];
+    var gstBreakup = shapes[gstBreakupIndex];
+    var totalAmountLabel = totalAmountLabelIndex >= 0
+        ? shapes[totalAmountLabelIndex]
+        : null;
+    var totalAmountValue = totalAmountValueIndex >= 0
+        ? shapes[totalAmountValueIndex]
+        : null;
+    var termsTitle = shapes[termsTitleIndex];
+    var termsText = shapes[termsTextIndex];
+    var bankingLabel = shapes[bankingLabelIndex];
+    var bankingText = shapes[bankingTextIndex];
+    var authSignatory = shapes[authIndex];
+
+    final amountWordsHeight = _measureShapeTextHeight(amountWordsValue);
+    final termsHeight = _measureShapeTextHeight(termsText);
+    final bankingTextHeight = _measureShapeTextHeight(bankingText);
+
+    final baseTableBottom = linesTable.y + linesTable.height;
+    final baseFooterStart = amountWordsLabel.y;
+    final tableToFooterGap = baseFooterStart - baseTableBottom;
+    final amountWordsValueDelta = amountWordsValue.y - amountWordsLabel.y;
+    final amountSectionGap =
+        gstBreakup.y -
+        math.max(
+          amountWordsLabel.y + amountWordsLabel.height,
+          amountWordsValue.y + amountWordsValue.height,
+        );
+    final termsTitleGap =
+        termsTitle.y -
+        math.max(
+          gstBreakup.y + gstBreakup.height,
+          math.max(
+                totalAmountLabel?.y ?? gstBreakup.y,
+                totalAmountValue?.y ?? gstBreakup.y,
+              ) +
+              math.max(
+                totalAmountLabel?.height ?? 0,
+                totalAmountValue?.height ?? 0,
+              ),
+        );
+    final termsTextGap = termsText.y - (termsTitle.y + termsTitle.height);
+    final bankingLabelGap = bankingLabel.y - (termsText.y + termsText.height);
+    final bankingTextGap =
+        bankingText.y - (bankingLabel.y + bankingLabel.height);
+    final authBaseY = authSignatory.y;
+    final authGap = authBaseY - (bankingText.y + bankingText.height);
+    final totalAmountLabelDelta = totalAmountLabel != null
+        ? totalAmountLabel.y - gstBreakup.y
+        : 0.0;
+    final totalAmountValueDelta = totalAmountValue != null
+        ? totalAmountValue.y - gstBreakup.y
+        : 0.0;
+    final footerBottomLimit = template.pageHeight - 28;
+
+    double rebuildFooter(double footerStartY, {bool commit = false}) {
+      final nextAmountLabel = amountWordsLabel.copyWith(y: footerStartY);
+      final nextAmountValue = amountWordsValue.copyWith(
+        y: footerStartY + amountWordsValueDelta,
+        height: math.max(amountWordsValue.height, amountWordsHeight),
+      );
+      final amountBottom = math.max(
+        nextAmountLabel.y + nextAmountLabel.height,
+        nextAmountValue.y + nextAmountValue.height,
+      );
+
+      final nextGstBreakup = gstBreakup.copyWith(
+        y: amountBottom + amountSectionGap,
+      );
+      final nextTotalAmountLabel = totalAmountLabel?.copyWith(
+        y: nextGstBreakup.y + totalAmountLabelDelta,
+      );
+      final nextTotalAmountValue = totalAmountValue?.copyWith(
+        y: nextGstBreakup.y + totalAmountValueDelta,
+      );
+      final nextTermsTitleY =
+          math.max(
+            nextGstBreakup.y + nextGstBreakup.height,
+            math.max(
+                  nextTotalAmountLabel?.y ?? nextGstBreakup.y,
+                  nextTotalAmountValue?.y ?? nextGstBreakup.y,
+                ) +
+                math.max(
+                  nextTotalAmountLabel?.height ?? 0,
+                  nextTotalAmountValue?.height ?? 0,
+                ),
+          ) +
+          termsTitleGap;
+      final nextTermsTitle = termsTitle.copyWith(y: nextTermsTitleY);
+      final nextTermsText = termsText.copyWith(
+        y: nextTermsTitle.y + nextTermsTitle.height + termsTextGap,
+        height: math.max(termsText.height, termsHeight),
+      );
+      final nextBankingLabel = bankingLabel.copyWith(
+        y: nextTermsText.y + nextTermsText.height + bankingLabelGap,
+      );
+      final nextBankingText = bankingText.copyWith(
+        y: nextBankingLabel.y + nextBankingLabel.height + bankingTextGap,
+        height: math.max(bankingText.height, bankingTextHeight),
+      );
+      final nextAuthSignatory = authSignatory.copyWith(
+        y: math.max(
+          authBaseY,
+          nextBankingText.y + nextBankingText.height + authGap,
+        ),
+      );
+
+      if (commit) {
+        amountWordsLabel = nextAmountLabel;
+        amountWordsValue = nextAmountValue;
+        gstBreakup = nextGstBreakup;
+        totalAmountLabel = nextTotalAmountLabel;
+        totalAmountValue = nextTotalAmountValue;
+        termsTitle = nextTermsTitle;
+        termsText = nextTermsText;
+        bankingLabel = nextBankingLabel;
+        bankingText = nextBankingText;
+        authSignatory = nextAuthSignatory;
+      }
+
+      return math.max(
+        nextAuthSignatory.y + nextAuthSignatory.height,
+        nextBankingText.y + nextBankingText.height,
+      );
+    }
+
+    final initialFooterBottom = rebuildFooter(baseFooterStart);
+    final overflow = math.max(0.0, initialFooterBottom - footerBottomLimit);
+    if (overflow > 0) {
+      final minimumLinesHeight = math.max(
+        120.0,
+        (linesTable.printHeader ? linesTable.titleHeight : 0) +
+            (linesTable.printTotal ? linesTable.titleHeight : 0) +
+            48.0,
+      );
+      final nextTableHeight = math.max(
+        minimumLinesHeight,
+        linesTable.height - overflow,
+      );
+      linesTable = linesTable.copyWith(height: nextTableHeight);
+    }
+
+    final nextFooterStart = linesTable.y + linesTable.height + tableToFooterGap;
+    rebuildFooter(nextFooterStart, commit: true);
+
+    shapes[linesTableIndex] = linesTable;
+    shapes[amountWordsLabelIndex] = amountWordsLabel;
+    shapes[amountWordsValueIndex] = amountWordsValue;
+    shapes[gstBreakupIndex] = gstBreakup;
+    if (totalAmountLabelIndex >= 0 && totalAmountLabel != null) {
+      shapes[totalAmountLabelIndex] = totalAmountLabel!;
+    }
+    if (totalAmountValueIndex >= 0 && totalAmountValue != null) {
+      shapes[totalAmountValueIndex] = totalAmountValue!;
+    }
+    shapes[termsTitleIndex] = termsTitle;
+    shapes[termsTextIndex] = termsText;
+    shapes[bankingLabelIndex] = bankingLabel;
+    shapes[bankingTextIndex] = bankingText;
+    shapes[authIndex] = authSignatory;
+    return template.copyWith(shapes: shapes);
+  }
+
+  double _measureShapeTextHeight(DocumentPrintShape shape) {
+    final resolvedText = resolvePrintTemplateText(
+      shape.text,
+      _documentDataJson,
+    );
+    if (resolvedText.trim().isEmpty) {
+      return shape.height;
+    }
+    final painter = TextPainter(
+      text: TextSpan(
+        text: resolvedText,
+        style: TextStyle(
+          fontSize: shape.fontSize,
+          fontWeight: shape.bold ? FontWeight.w700 : FontWeight.w400,
+          fontStyle: shape.italic ? FontStyle.italic : FontStyle.normal,
+          decoration: shape.underline
+              ? TextDecoration.underline
+              : TextDecoration.none,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      textAlign: switch (shape.align) {
+        'center' => TextAlign.center,
+        'right' => TextAlign.right,
+        _ => TextAlign.left,
+      },
+      maxLines: shape.multiline ? null : 1,
+    )..layout(maxWidth: shape.width);
+    return math.max(shape.height, painter.height);
   }
 
   List<DocumentPrintColumn> _normalizeGstBreakupColumns(
@@ -626,6 +1022,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                       onSelectShape: (_) {},
                       onMoveShape: (shapeId, delta) {},
                       onResizeShape: (shapeId, delta) {},
+                      onMoveStart: () {},
+                      onMoveEnd: () {},
+                      onResizeStart: () {},
+                      onResizeEnd: () {},
                     ),
                   ),
                 ),
@@ -700,6 +1100,18 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               Icons.qr_code,
               'Barcode',
               () => _insertShapeFromToolbar(_DesignerOperation.drawBarcode),
+            ),
+            const SizedBox(width: AppUiConstants.spacingMd),
+            OutlinedButton.icon(
+              onPressed: _canUndo ? _undoTemplateChange : null,
+              icon: const Icon(Icons.undo_outlined),
+              label: const Text('Undo'),
+            ),
+            const SizedBox(width: AppUiConstants.spacingXs),
+            OutlinedButton.icon(
+              onPressed: _canRedo ? _redoTemplateChange : null,
+              icon: const Icon(Icons.redo_outlined),
+              label: const Text('Redo'),
             ),
             const SizedBox(width: AppUiConstants.spacingMd),
             OutlinedButton.icon(
@@ -780,7 +1192,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         math.max(0.0, template.pageHeight - shape.height - 24),
       ),
     );
-    _controller.updateState(() {
+    _applyTemplateMutation(() {
       _template = template.copyWith(shapes: [...template.shapes, placed]);
       _selectedShapeId = placed.id;
       _selectedShapeIds = <String>{placed.id};
@@ -815,24 +1227,47 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             if (event is! KeyDownEvent) {
               return;
             }
+            final isCommand =
+                HardwareKeyboard.instance.isMetaPressed ||
+                HardwareKeyboard.instance.isControlPressed;
+            final isShift = HardwareKeyboard.instance.isShiftPressed;
+            if (isCommand && event.logicalKey == LogicalKeyboardKey.keyZ) {
+              if (isShift) {
+                _redoTemplateChange();
+              } else {
+                _undoTemplateChange();
+              }
+              return;
+            }
+            if (isCommand && event.logicalKey == LogicalKeyboardKey.keyY) {
+              _redoTemplateChange();
+              return;
+            }
             final selectedIds = _selectedShapeIds;
             final shapeId = _selectedShapeId;
             if (selectedIds.isEmpty || shapeId == null) {
               return;
             }
-            final isShift = HardwareKeyboard.instance.isShiftPressed;
             final delta = isShift ? 10.0 : 1.0;
 
             if (event.logicalKey == LogicalKeyboardKey.delete) {
               _deleteSelectedShape();
             } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              _beginHistoryGesture();
               _moveShape(shapeId, Offset(-delta, 0));
+              _endHistoryGesture();
             } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              _beginHistoryGesture();
               _moveShape(shapeId, Offset(delta, 0));
+              _endHistoryGesture();
             } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              _beginHistoryGesture();
               _moveShape(shapeId, Offset(0, -delta));
+              _endHistoryGesture();
             } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              _beginHistoryGesture();
               _moveShape(shapeId, Offset(0, delta));
+              _endHistoryGesture();
             }
           },
           child: RepaintBoundary(
@@ -852,6 +1287,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               },
               onMoveShape: _moveShape,
               onResizeShape: _resizeShape,
+              onMoveStart: _beginHistoryGesture,
+              onMoveEnd: _endHistoryGesture,
+              onResizeStart: _beginHistoryGesture,
+              onResizeEnd: _endHistoryGesture,
               operation: _operation,
               draftShape: _activeDraftShape(template),
               onDrawStart: _handleDrawStart,
@@ -888,8 +1327,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               : selected == null
               ? DocumentDesignerPageInspector(
                   template: template,
-                  onChanged: (next) =>
-                      _controller.updateState(() => _template = next),
+                  onChanged: _updateTemplate,
                   isUploadingBackground: _uploadingBackground,
                   onUploadBackground: _uploadBackgroundImage,
                 )
@@ -918,7 +1356,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   void _resetTemplate() {
-    _controller.updateState(() {
+    _applyTemplateMutation(() {
       _template = _prepareTemplate(
         DocumentPrintTemplate.defaults(
           widget.documentType,
@@ -955,7 +1393,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       return;
     }
     final draft = _activeDraftShape(template);
-    _controller.updateState(() {
+    _applyTemplateMutation(() {
       if (draft != null) {
         _template = template.copyWith(shapes: [...template.shapes, draft]);
         _selectedShapeId = draft.id;
@@ -980,7 +1418,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       x: point.dx.clamp(0.0, math.max(0.0, template.pageWidth - base.width)),
       y: point.dy.clamp(0.0, math.max(0.0, template.pageHeight - base.height)),
     );
-    _controller.updateState(() {
+    _applyTemplateMutation(() {
       _template = template.copyWith(shapes: [...template.shapes, draft]);
       _selectedShapeId = draft.id;
       _selectedShapeIds = <String>{draft.id};
@@ -1026,7 +1464,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       if (!mounted) {
         return;
       }
-      _controller.updateState(() {
+      _applyTemplateMutation(() {
         _template = next;
         _selectedShapeId = null;
         _selectedShapeIds = <String>{};
@@ -1077,6 +1515,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     );
   }
 
+  void _updateTemplate(DocumentPrintTemplate next) {
+    _applyTemplateMutation(() => _template = next);
+  }
+
   void _updateShape(DocumentPrintShape next) {
     final template = _template;
     if (template == null) {
@@ -1085,9 +1527,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final shapes = template.shapes
         .map((shape) => shape.id == next.id ? next : shape)
         .toList(growable: false);
-    _controller.updateState(
-      () => _template = template.copyWith(shapes: shapes),
-    );
+    _applyTemplateMutation(() => _template = template.copyWith(shapes: shapes));
   }
 
   void _handleShapeSelection(String? shapeId) {
@@ -1171,7 +1611,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         if (!mounted) {
           return;
         }
-        _controller.updateState(() {
+        _applyTemplateMutation(() {
           _template = template.copyWith(backgroundImagePath: filePath);
         });
       },
@@ -1209,8 +1649,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           return shape.copyWith(x: math.max(0, nextX), y: math.max(0, nextY));
         })
         .toList(growable: false);
-    _controller.updateState(
+    _applyTemplateMutation(
       () => _template = template.copyWith(shapes: shapes),
+      trackHistory: false,
     );
   }
 
@@ -1240,8 +1681,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           );
         })
         .toList(growable: false);
-    _controller.updateState(
+    _applyTemplateMutation(
       () => _template = template.copyWith(shapes: shapes),
+      trackHistory: false,
     );
   }
 
@@ -1250,7 +1692,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (template == null || _selectedShapeIds.isEmpty) {
       return;
     }
-    _controller.updateState(() {
+    _applyTemplateMutation(() {
       _template = template.copyWith(
         shapes: template.shapes
             .where((shape) => !_selectedShapeIds.contains(shape.id))
@@ -1276,9 +1718,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         shapes[index + 1] = current;
       }
     }
-    _controller.updateState(
-      () => _template = template.copyWith(shapes: shapes),
-    );
+    _applyTemplateMutation(() => _template = template.copyWith(shapes: shapes));
   }
 
   void _sendSelectedBackward() {
@@ -1296,9 +1736,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         shapes[index - 1] = current;
       }
     }
-    _controller.updateState(
-      () => _template = template.copyWith(shapes: shapes),
-    );
+    _applyTemplateMutation(() => _template = template.copyWith(shapes: shapes));
   }
 
   void _bringSelectedToFront() {
@@ -1312,7 +1750,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final selected = template.shapes
         .where((shape) => _selectedShapeIds.contains(shape.id))
         .toList(growable: false);
-    _controller.updateState(() {
+    _applyTemplateMutation(() {
       _template = template.copyWith(shapes: [...unselected, ...selected]);
     });
   }
@@ -1328,7 +1766,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final unselected = template.shapes
         .where((shape) => !_selectedShapeIds.contains(shape.id))
         .toList(growable: false);
-    _controller.updateState(() {
+    _applyTemplateMutation(() {
       _template = template.copyWith(shapes: [...selected, ...unselected]);
     });
   }
@@ -1348,7 +1786,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           ),
         )
         .toList(growable: false);
-    _controller.updateState(() {
+    _applyTemplateMutation(() {
       _template = template.copyWith(
         shapes: [...template.shapes, ...duplicates],
       );
@@ -2201,6 +2639,10 @@ class _DesignerCanvas extends StatefulWidget {
     required this.onSelectShape,
     required this.onMoveShape,
     required this.onResizeShape,
+    required this.onMoveStart,
+    required this.onMoveEnd,
+    required this.onResizeStart,
+    required this.onResizeEnd,
     required this.operation,
     required this.draftShape,
     required this.onDrawStart,
@@ -2218,6 +2660,10 @@ class _DesignerCanvas extends StatefulWidget {
   final ValueChanged<String?> onSelectShape;
   final void Function(String shapeId, Offset delta) onMoveShape;
   final void Function(String shapeId, Offset delta) onResizeShape;
+  final VoidCallback onMoveStart;
+  final VoidCallback onMoveEnd;
+  final VoidCallback onResizeStart;
+  final VoidCallback onResizeEnd;
   final _DesignerOperation operation;
   final DocumentPrintShape? draftShape;
   final ValueChanged<Offset> onDrawStart;
@@ -2289,6 +2735,10 @@ class _DesignerCanvasState extends State<_DesignerCanvas> {
                         onSelectShape: widget.onSelectShape,
                         onMoveShape: widget.onMoveShape,
                         onResizeShape: widget.onResizeShape,
+                        onMoveStart: widget.onMoveStart,
+                        onMoveEnd: widget.onMoveEnd,
+                        onResizeStart: widget.onResizeStart,
+                        onResizeEnd: widget.onResizeEnd,
                         operation: widget.operation,
                         draftShape: widget.draftShape,
                         onDrawStart: widget.onDrawStart,
@@ -2319,6 +2769,10 @@ class _DocumentPageSurface extends StatelessWidget {
     required this.onSelectShape,
     required this.onMoveShape,
     required this.onResizeShape,
+    required this.onMoveStart,
+    required this.onMoveEnd,
+    required this.onResizeStart,
+    required this.onResizeEnd,
     this.showDecoration = true,
     this.operation = _DesignerOperation.select,
     this.draftShape,
@@ -2337,6 +2791,10 @@ class _DocumentPageSurface extends StatelessWidget {
   final ValueChanged<String?> onSelectShape;
   final void Function(String shapeId, Offset delta) onMoveShape;
   final void Function(String shapeId, Offset delta) onResizeShape;
+  final VoidCallback onMoveStart;
+  final VoidCallback onMoveEnd;
+  final VoidCallback onResizeStart;
+  final VoidCallback onResizeEnd;
   final bool showDecoration;
   final _DesignerOperation operation;
   final DocumentPrintShape? draftShape;
@@ -2455,6 +2913,10 @@ class _DocumentPageSurface extends StatelessWidget {
                     onTap: () => onSelectShape(shape.id),
                     onMove: (delta) => onMoveShape(shape.id, delta),
                     onResize: (delta) => onResizeShape(shape.id, delta),
+                    onMoveStart: onMoveStart,
+                    onMoveEnd: onMoveEnd,
+                    onResizeStart: onResizeStart,
+                    onResizeEnd: onResizeEnd,
                   ),
                 );
               }),
@@ -2479,6 +2941,10 @@ class _ShapeSelectionOverlay extends StatelessWidget {
     required this.onTap,
     required this.onMove,
     required this.onResize,
+    required this.onMoveStart,
+    required this.onMoveEnd,
+    required this.onResizeStart,
+    required this.onResizeEnd,
   });
 
   final bool selected;
@@ -2486,6 +2952,10 @@ class _ShapeSelectionOverlay extends StatelessWidget {
   final VoidCallback onTap;
   final ValueChanged<Offset> onMove;
   final ValueChanged<Offset> onResize;
+  final VoidCallback onMoveStart;
+  final VoidCallback onMoveEnd;
+  final VoidCallback onResizeStart;
+  final VoidCallback onResizeEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -2494,7 +2964,15 @@ class _ShapeSelectionOverlay extends StatelessWidget {
         Positioned.fill(
           child: GestureDetector(
             onTap: onTap,
-            onPanStart: (_) => onTap(),
+            onPanStart: (_) {
+              onTap();
+              if (operation == _DesignerOperation.select ||
+                  operation == _DesignerOperation.move) {
+                onMoveStart();
+              } else if (operation == _DesignerOperation.resize) {
+                onResizeStart();
+              }
+            },
             onPanUpdate: (details) {
               switch (operation) {
                 case _DesignerOperation.select:
@@ -2514,6 +2992,22 @@ class _ShapeSelectionOverlay extends StatelessWidget {
                 case _DesignerOperation.drawImage:
                 case _DesignerOperation.drawBarcode:
                   break;
+              }
+            },
+            onPanEnd: (_) {
+              if (operation == _DesignerOperation.select ||
+                  operation == _DesignerOperation.move) {
+                onMoveEnd();
+              } else if (operation == _DesignerOperation.resize) {
+                onResizeEnd();
+              }
+            },
+            onPanCancel: () {
+              if (operation == _DesignerOperation.select ||
+                  operation == _DesignerOperation.move) {
+                onMoveEnd();
+              } else if (operation == _DesignerOperation.resize) {
+                onResizeEnd();
               }
             },
             child: Container(
@@ -2538,7 +3032,10 @@ class _ShapeSelectionOverlay extends StatelessWidget {
             right: 0,
             bottom: 0,
             child: GestureDetector(
+              onPanStart: (_) => onResizeStart(),
               onPanUpdate: (details) => onResize(details.delta),
+              onPanEnd: (_) => onResizeEnd(),
+              onPanCancel: onResizeEnd,
               child: Container(
                 width: 14,
                 height: 14,

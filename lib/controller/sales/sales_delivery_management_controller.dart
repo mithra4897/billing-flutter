@@ -1263,10 +1263,15 @@ class SalesDeliveryManagementController extends GetxController {
       documentNumber: nullIfEmpty(deliveryNoController.text) ?? 'Draft',
       documentDate: deliveryDateController.text.trim(),
       partyName: customer?.partyName ?? '',
-      partyAddress: formatPartyAddress(preferredAddress),
+      partyAddress: formatPartyAddress(
+        preferredAddress,
+        fallback: formatPartyAddressFromData(customer?.toJson() ?? const {}),
+      ),
       partyContact: resolvePartyContact(customer),
-      partyGstin: resolvePreferredPartyGstin(
-        customerGstDetailsById[customerPartyId] ??
+      partyGstin: resolvePartyPrintGstin(
+        customer,
+        gstDetails:
+            customerGstDetailsById[customerPartyId] ??
             const <PartyGstDetailModel>[],
         sourceData: selected['customer'] is Map<String, dynamic>
             ? Map<String, dynamic>.from(
