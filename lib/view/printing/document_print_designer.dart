@@ -69,6 +69,20 @@ class _DesignerHistoryEntry {
   final Set<String> selectedShapeIds;
 }
 
+class _PdfFontBundle {
+  const _PdfFontBundle({
+    required this.regular,
+    required this.bold,
+    required this.italic,
+    required this.boldItalic,
+  });
+
+  final pw.Font? regular;
+  final pw.Font? bold;
+  final pw.Font? italic;
+  final pw.Font? boldItalic;
+}
+
 class DocumentPrintDesignerPage extends StatefulWidget {
   const DocumentPrintDesignerPage({
     super.key,
@@ -99,6 +113,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final ScrollController _pageScrollController = ScrollController();
   final ScrollController _toolbarScrollController = ScrollController();
   final FocusNode _designerFocusNode = FocusNode();
+  final Map<String, Future<_PdfFontBundle>> _pdfFontBundleCache =
+      <String, Future<_PdfFontBundle>>{};
   late final String _controllerTag;
   late final _DocumentPrintDesignerController _controller;
 
@@ -348,6 +364,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           shape: shape,
           rows: widget.documentData.gstBreakup,
           columns: columns,
+          fontFamily: normalized.fontFamily,
         );
         return shape.copyWith(
           dataPath: 'gst_breakup',
@@ -1867,6 +1884,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final pdf = pw.Document();
     final imageCache = <String, pw.ImageProvider?>{};
     final pageFormat = _pageFormatForTemplate(template);
+    final fontBundle = await _pdfFontBundleForTemplate(template);
 
     pw.ImageProvider? backgroundImage;
     final backgroundPath = resolvePrintTemplateText(
@@ -1893,7 +1911,13 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
 
     for (final shape in template.shapes) {
-      final shapeWidget = await _buildPdfShapeWidget(shape, data, imageCache);
+      final shapeWidget = await _buildPdfShapeWidget(
+        shape,
+        data,
+        imageCache,
+        template: template,
+        fontBundle: fontBundle,
+      );
       if (shapeWidget == null) {
         continue;
       }
@@ -1921,11 +1945,120 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return pdf.save();
   }
 
+  Future<_PdfFontBundle> _pdfFontBundleForTemplate(
+    DocumentPrintTemplate template,
+  ) {
+    final family = normalizeDocumentPrintFontFamily(template.fontFamily);
+    return _pdfFontBundleCache.putIfAbsent(
+      family,
+      () => switch (family) {
+        'times_new_roman' => _loadPdfFontBundle(
+          regular: 'assets/fonts/Times New Roman.ttf',
+          bold: 'assets/fonts/Times New Roman Bold.ttf',
+          italic: 'assets/fonts/Times New Roman Italic.ttf',
+          boldItalic: 'assets/fonts/Times New Roman Bold Italic.ttf',
+        ),
+        'verdana' => _loadPdfFontBundle(
+          regular: 'assets/fonts/Verdana.ttf',
+          bold: 'assets/fonts/Verdana Bold.ttf',
+          italic: 'assets/fonts/Verdana Italic.ttf',
+          boldItalic: 'assets/fonts/Verdana Bold Italic.ttf',
+        ),
+        'trebuchet_ms' => _loadPdfFontBundle(
+          regular: 'assets/fonts/Trebuchet MS.ttf',
+          bold: 'assets/fonts/Trebuchet MS Bold.ttf',
+          italic: 'assets/fonts/Trebuchet MS Italic.ttf',
+          boldItalic: 'assets/fonts/Trebuchet MS Bold Italic.ttf',
+        ),
+        'georgia' => _loadPdfFontBundle(
+          regular: 'assets/fonts/Georgia.ttf',
+          bold: 'assets/fonts/Georgia Bold.ttf',
+          italic: 'assets/fonts/Georgia Italic.ttf',
+          boldItalic: 'assets/fonts/Georgia Bold Italic.ttf',
+        ),
+        'default' => Future.value(
+          const _PdfFontBundle(
+            regular: null,
+            bold: null,
+            italic: null,
+            boldItalic: null,
+          ),
+        ),
+        _ => _loadPdfFontBundle(
+          regular: 'assets/fonts/Arial.ttf',
+          bold: 'assets/fonts/Arial Bold.ttf',
+          italic: 'assets/fonts/Arial Italic.ttf',
+          boldItalic: 'assets/fonts/Arial Bold Italic.ttf',
+        ),
+      },
+    );
+  }
+
+  Future<_PdfFontBundle> _loadPdfFontBundle({
+    required String regular,
+    required String bold,
+    required String italic,
+    required String boldItalic,
+  }) async {
+    final fonts = await Future.wait<pw.Font>([
+      _loadPdfFontAsset(regular),
+      _loadPdfFontAsset(bold),
+      _loadPdfFontAsset(italic),
+      _loadPdfFontAsset(boldItalic),
+    ]);
+    return _PdfFontBundle(
+      regular: fonts[0],
+      bold: fonts[1],
+      italic: fonts[2],
+      boldItalic: fonts[3],
+    );
+  }
+
+  Future<pw.Font> _loadPdfFontAsset(String path) async {
+    final data = await rootBundle.load(path);
+    return pw.Font.ttf(data);
+  }
+
+  pw.Font _pdfFontForTemplate(
+    _PdfFontBundle fontBundle, {
+    bool bold = false,
+    bool italic = false,
+  }) {
+    if (bold && italic) {
+      return fontBundle.boldItalic ?? pw.Font.helveticaBoldOblique();
+    }
+    if (bold) {
+      return fontBundle.bold ?? pw.Font.helveticaBold();
+    }
+    if (italic) {
+      return fontBundle.italic ?? pw.Font.helveticaOblique();
+    }
+    return fontBundle.regular ?? pw.Font.helvetica();
+  }
+
+  pw.TextStyle _pdfTextStyleForTemplate(
+    _PdfFontBundle fontBundle, {
+    required double fontSize,
+    required PdfColor color,
+    bool bold = false,
+    bool italic = false,
+    pw.TextDecoration decoration = pw.TextDecoration.none,
+  }) {
+    return pw.TextStyle(
+      font: _pdfFontForTemplate(fontBundle, bold: bold, italic: italic),
+      fontSize: fontSize,
+      color: color,
+      decoration: decoration,
+    );
+  }
+
   Future<pw.Widget?> _buildPdfShapeWidget(
     DocumentPrintShape shape,
     Map<String, dynamic> data,
-    Map<String, pw.ImageProvider?> imageCache,
-  ) async {
+    Map<String, pw.ImageProvider?> imageCache, {
+    required DocumentPrintTemplate template,
+    required _PdfFontBundle fontBundle,
+  }) async {
     switch (shape.type) {
       case 'rectangle':
         return pw.Container(
@@ -2006,7 +2139,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           },
         );
       case 'table':
-        return _buildPdfTableWidget(shape, data);
+        return _buildPdfTableWidget(
+          shape,
+          data,
+          template: template,
+          fontBundle: fontBundle,
+        );
       case 'image':
         final source = resolvePrintTemplateText(shape.assetPath, data);
         final image = await _pdfImageProviderForSource(source, imageCache);
@@ -2050,7 +2188,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           width: shape.width,
           height: shape.height,
           drawText: shape.barcodeType != 'qr',
-          textStyle: pw.TextStyle(
+          textStyle: _pdfTextStyleForTemplate(
+            fontBundle,
             fontSize: math.max(7, shape.fontSize),
             color: _pdfColor(shape.strokeColor),
           ),
@@ -2071,15 +2210,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             text,
             textAlign: _pdfTextAlign(shape.align),
             maxLines: shape.multiline ? null : 1,
-            style: pw.TextStyle(
+            style: _pdfTextStyleForTemplate(
+              fontBundle,
               color: _pdfColor(shape.strokeColor),
               fontSize: math.max(6, shape.fontSize),
-              fontWeight: shape.bold
-                  ? pw.FontWeight.bold
-                  : pw.FontWeight.normal,
-              fontStyle: shape.italic
-                  ? pw.FontStyle.italic
-                  : pw.FontStyle.normal,
+              bold: shape.bold,
+              italic: shape.italic,
               decoration: shape.underline
                   ? pw.TextDecoration.underline
                   : pw.TextDecoration.none,
@@ -2091,8 +2227,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
 
   pw.Widget _buildPdfTableWidget(
     DocumentPrintShape shape,
-    Map<String, dynamic> data,
-  ) {
+    Map<String, dynamic> data, {
+    required DocumentPrintTemplate template,
+    required _PdfFontBundle fontBundle,
+  }) {
     final rawRows =
         resolvePrintPath(data, shape.dataPath) as List<dynamic>? ??
         const <dynamic>[];
@@ -2125,6 +2263,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         columns,
         shape.width,
         shape,
+        fontFamily: template.fontFamily,
       );
       if (usedHeight + rowHeight > availableBottomLimit + 1.0) {
         break;
@@ -2171,6 +2310,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
       children.add(
         _buildPdfTableRowLayer(
+          template: template,
+          fontBundle: fontBundle,
           top: 0,
           height: headerHeight.toDouble(),
           columns: columns,
@@ -2178,7 +2319,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           values: columns.map((column) => column.label).toList(growable: false),
           textColor: _pdfColor(shape.headerTextColor),
           fontSize: 12,
-          fontWeight: pw.FontWeight.bold,
+          bold: true,
           padding: math.max(2.0, shape.cellGap),
           alignments: columns
               .map((column) => column.titleAlign)
@@ -2202,9 +2343,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         columns,
         shape.width,
         shape,
+        fontFamily: template.fontFamily,
       );
       children.add(
         _buildPdfTableRowLayer(
+          template: template,
+          fontBundle: fontBundle,
           top: currentTop,
           height: rowHeight.toDouble(),
           columns: columns,
@@ -2256,6 +2400,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
       children.add(
         _buildPdfTableRowLayer(
+          template: template,
+          fontBundle: fontBundle,
           top: totalRowTop,
           height: headerHeight.toDouble(),
           columns: columns,
@@ -2274,7 +2420,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           ],
           textColor: _pdfColor(shape.headerTextColor),
           fontSize: 11,
-          fontWeight: pw.FontWeight.bold,
+          bold: true,
           padding: math.max(2.0, shape.cellGap),
           alignments: [
             'left',
@@ -2337,6 +2483,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   pw.Widget _buildPdfTableRowLayer({
+    required DocumentPrintTemplate template,
+    required _PdfFontBundle fontBundle,
     required double top,
     required double height,
     required List<DocumentPrintColumn> columns,
@@ -2346,7 +2494,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     required double fontSize,
     required double padding,
     List<String>? alignments,
-    pw.FontWeight fontWeight = pw.FontWeight.normal,
+    bool bold = false,
   }) {
     var cursorX = 0.0;
     final children = <pw.Widget>[];
@@ -2370,10 +2518,11 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                   textAlign: _pdfTextAlign(
                     alignments == null ? columns[i].align : alignments[i],
                   ),
-                  style: pw.TextStyle(
+                  style: _pdfTextStyleForTemplate(
+                    fontBundle,
                     fontSize: fontSize,
                     color: textColor,
-                    fontWeight: fontWeight,
+                    bold: bold,
                   ),
                 ),
               ),
@@ -3380,14 +3529,17 @@ class DocumentCanvasPainter extends CustomPainter {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(
-          color: Color(shape.strokeColor),
-          fontSize: shape.fontSize * scale,
-          fontWeight: shape.bold ? FontWeight.w700 : FontWeight.w400,
-          fontStyle: shape.italic ? FontStyle.italic : FontStyle.normal,
-          decoration: shape.underline
-              ? TextDecoration.underline
-              : TextDecoration.none,
+        style: applyDocumentPrintFontStyle(
+          TextStyle(
+            color: Color(shape.strokeColor),
+            fontSize: shape.fontSize * scale,
+            fontWeight: shape.bold ? FontWeight.w700 : FontWeight.w400,
+            fontStyle: shape.italic ? FontStyle.italic : FontStyle.normal,
+            decoration: shape.underline
+                ? TextDecoration.underline
+                : TextDecoration.none,
+          ),
+          template.fontFamily,
         ),
       ),
       textAlign: align,
@@ -3451,10 +3603,13 @@ class DocumentCanvasPainter extends CustomPainter {
           headerRect,
           column.label,
           _textAlignForColumn(column.titleAlign),
-          TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 12 * scale,
-            color: Color(shape.headerTextColor),
+          applyDocumentPrintFontStyle(
+            TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 12 * scale,
+              color: Color(shape.headerTextColor),
+            ),
+            template.fontFamily,
           ),
           centerVertically: true,
           cellGap: cellGap,
@@ -3491,6 +3646,7 @@ class DocumentCanvasPainter extends CustomPainter {
         rect.width,
         shape,
         scale: scale,
+        fontFamily: template.fontFamily,
       );
 
       if (currentY + rowHeight > availableBottomLimit + 1.0) {
@@ -3506,7 +3662,10 @@ class DocumentCanvasPainter extends CustomPainter {
           cellRect,
           resolvePrintCellValueForColumn(row, column, column.key),
           _textAlignForColumn(column.align),
-          TextStyle(fontSize: 11 * scale, color: Color(shape.bodyTextColor)),
+          applyDocumentPrintFontStyle(
+            TextStyle(fontSize: 11 * scale, color: Color(shape.bodyTextColor)),
+            template.fontFamily,
+          ),
           centerVertically: true,
           cellGap: cellGap,
         );
@@ -3555,10 +3714,13 @@ class DocumentCanvasPainter extends CustomPainter {
             cellRect,
             value,
             index == 0 ? TextAlign.left : _textAlignForColumn(column.align),
-            TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 11 * scale,
-              color: Color(shape.headerTextColor),
+            applyDocumentPrintFontStyle(
+              TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 11 * scale,
+                color: Color(shape.headerTextColor),
+              ),
+              template.fontFamily,
             ),
             centerVertically: true,
             cellGap: cellGap,
@@ -3674,9 +3836,12 @@ class DocumentCanvasPainter extends CustomPainter {
     final textPainter = TextPainter(
       text: TextSpan(
         text: value,
-        style: TextStyle(
-          color: Color(shape.strokeColor),
-          fontSize: shape.fontSize * scale,
+        style: applyDocumentPrintFontStyle(
+          TextStyle(
+            color: Color(shape.strokeColor),
+            fontSize: shape.fontSize * scale,
+          ),
+          template.fontFamily,
         ),
       ),
       textDirection: TextDirection.ltr,

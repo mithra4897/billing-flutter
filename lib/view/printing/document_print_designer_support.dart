@@ -4,6 +4,90 @@ import '../../screen.dart';
 
 const String defaultPrintLogoAsset = 'assets/sakthi-logo.jpg';
 const String legacyPbsLogoAsset = 'assets/pbs_logo.png';
+const String defaultDocumentPrintFontFamily = 'default';
+const String documentPrintSansAssetFamily = 'PrintSans';
+const String documentPrintSerifAssetFamily = 'PrintSerif';
+const String documentPrintMonoAssetFamily = 'PrintMono';
+const String documentPrintVerdanaAssetFamily = 'PrintVerdana';
+const String documentPrintTrebuchetAssetFamily = 'PrintTrebuchet';
+const String documentPrintGeorgiaAssetFamily = 'PrintGeorgia';
+
+const List<String> documentPrintFontFamilyOptions = <String>[
+  'default',
+  'arial',
+  'verdana',
+  'trebuchet_ms',
+  'georgia',
+  'times_new_roman',
+];
+
+String normalizeDocumentPrintFontFamily(String? value) {
+  switch ((value ?? defaultDocumentPrintFontFamily).trim().toLowerCase()) {
+    case '':
+    case 'default':
+      return defaultDocumentPrintFontFamily;
+    case 'sans':
+    case 'arial':
+      return 'arial';
+    case 'serif':
+    case 'times':
+    case 'times_new_roman':
+      return 'times_new_roman';
+    case 'monospace':
+    case 'courier':
+    case 'courier_new':
+      return 'arial';
+    case 'verdana':
+      return 'verdana';
+    case 'trebuchet':
+    case 'trebuchet_ms':
+      return 'trebuchet_ms';
+    case 'georgia':
+      return 'georgia';
+    default:
+      return 'arial';
+  }
+}
+
+String documentPrintFontFamilyLabel(String value) {
+  switch (normalizeDocumentPrintFontFamily(value)) {
+    case 'default':
+      return 'Default';
+    case 'verdana':
+      return 'Verdana';
+    case 'trebuchet_ms':
+      return 'Trebuchet MS';
+    case 'georgia':
+      return 'Georgia';
+    case 'times_new_roman':
+      return 'Times New Roman';
+    case 'arial':
+    default:
+      return 'Arial';
+  }
+}
+
+String? flutterDocumentPrintFontFamily(String? value) {
+  switch (normalizeDocumentPrintFontFamily(value)) {
+    case 'default':
+      return null;
+    case 'verdana':
+      return documentPrintVerdanaAssetFamily;
+    case 'trebuchet_ms':
+      return documentPrintTrebuchetAssetFamily;
+    case 'georgia':
+      return documentPrintGeorgiaAssetFamily;
+    case 'times_new_roman':
+      return documentPrintSerifAssetFamily;
+    case 'arial':
+    default:
+      return documentPrintSansAssetFamily;
+  }
+}
+
+TextStyle applyDocumentPrintFontStyle(TextStyle style, String? value) {
+  return style.copyWith(fontFamily: flutterDocumentPrintFontFamily(value));
+}
 
 DocumentPrintDataModel buildManagedDocumentPrintData({
   required List<CompanyModel> companies,
@@ -271,6 +355,7 @@ double measurePrintTableRowHeight(
   double tableWidth,
   DocumentPrintShape shape, {
   double scale = 1.0,
+  String? fontFamily,
 }) {
   final totalWeight = columns.fold<double>(
     0,
@@ -285,7 +370,10 @@ double measurePrintTableRowHeight(
     final painter = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(fontSize: 11 * scale, color: Color(shape.strokeColor)),
+        style: applyDocumentPrintFontStyle(
+          TextStyle(fontSize: 11 * scale, color: Color(shape.strokeColor)),
+          fontFamily,
+        ),
       ),
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: math.max(0.0, columnWidth - 12));
@@ -299,6 +387,7 @@ double measurePrintTableHeight({
   required Iterable<dynamic> rows,
   required List<DocumentPrintColumn> columns,
   double scale = 1.0,
+  String? fontFamily,
 }) {
   final headerHeight = shape.printHeader
       ? math.max(8.0, shape.titleHeight * scale)
@@ -324,6 +413,7 @@ double measurePrintTableHeight({
       tableWidth,
       shape,
       scale: scale,
+      fontFamily: fontFamily,
     );
   }
 

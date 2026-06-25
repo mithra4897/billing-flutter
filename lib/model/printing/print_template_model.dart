@@ -7,6 +7,7 @@ class DocumentPrintTemplate {
     required this.pageWidth,
     required this.pageHeight,
     required this.shapes,
+    this.fontFamily = defaultDocumentPrintFontFamily,
     this.backgroundImagePath,
     this.backgroundOpacity = 0.18,
     this.mediaPreset = 'A4',
@@ -18,6 +19,7 @@ class DocumentPrintTemplate {
   final double pageWidth;
   final double pageHeight;
   final List<DocumentPrintShape> shapes;
+  final String fontFamily;
   final String? backgroundImagePath;
   final double backgroundOpacity;
   final String mediaPreset;
@@ -29,6 +31,9 @@ class DocumentPrintTemplate {
     return DocumentPrintTemplate(
       pageWidth: _toDouble(json['pageWidth'], 595),
       pageHeight: _toDouble(json['pageHeight'], 842),
+      fontFamily: normalizeDocumentPrintFontFamily(
+        stringValue(json, 'fontFamily', defaultDocumentPrintFontFamily),
+      ),
       backgroundImagePath: nullableStringValue(json, 'backgroundImagePath'),
       backgroundOpacity: _toDouble(json['backgroundOpacity'], 0.18),
       mediaPreset: stringValue(json, 'mediaPreset', 'A4'),
@@ -586,6 +591,7 @@ class DocumentPrintTemplate {
     double? pageWidth,
     double? pageHeight,
     List<DocumentPrintShape>? shapes,
+    String? fontFamily,
     Object? backgroundImagePath = _documentPrintTemplateUnset,
     double? backgroundOpacity,
     String? mediaPreset,
@@ -597,6 +603,9 @@ class DocumentPrintTemplate {
       pageWidth: pageWidth ?? this.pageWidth,
       pageHeight: pageHeight ?? this.pageHeight,
       shapes: shapes ?? this.shapes,
+      fontFamily: normalizeDocumentPrintFontFamily(
+        fontFamily ?? this.fontFamily,
+      ),
       backgroundImagePath:
           identical(backgroundImagePath, _documentPrintTemplateUnset)
           ? this.backgroundImagePath
@@ -613,6 +622,7 @@ class DocumentPrintTemplate {
     return {
       'pageWidth': pageWidth,
       'pageHeight': pageHeight,
+      'fontFamily': fontFamily,
       'backgroundImagePath': backgroundImagePath,
       'backgroundOpacity': backgroundOpacity,
       'mediaPreset': mediaPreset,
