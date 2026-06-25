@@ -68,7 +68,7 @@ class ItemManagementController extends GetxController {
   bool hasBatch = false;
   bool hasSerial = false;
   bool hasExpiry = false;
-  bool trackInventory = false;
+  bool trackInventory = true;
   bool isSaleable = true;
   bool isPurchaseable = true;
   bool isManufacturable = false;
@@ -291,7 +291,7 @@ class ItemManagementController extends GetxController {
     hasBatch = false;
     hasSerial = false;
     hasExpiry = false;
-    trackInventory = false;
+    trackInventory = true;
     isSaleable = true;
     isPurchaseable = true;
     isManufacturable = false;
@@ -450,6 +450,14 @@ class ItemManagementController extends GetxController {
 
   void setItemType(String? value) {
     itemType = value ?? 'stock';
+    if (itemType == 'service' || itemType == 'non_stock') {
+      trackInventory = false;
+      hasBatch = false;
+      hasSerial = false;
+      hasExpiry = false;
+    } else if (selectedItem == null) {
+      trackInventory = true;
+    }
     update();
   }
 

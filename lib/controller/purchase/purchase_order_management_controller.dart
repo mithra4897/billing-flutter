@@ -904,13 +904,14 @@ class PurchaseOrderManagementController extends GetxController {
   void applyItemAndSupplierDefaults(
     PurchaseOrderLineDraft draft, {
     int? supplierId,
+    bool fillDescription = true,
     String? fallbackDescription,
     String? fallbackRemarks,
   }) {
     final item = itemById(draft.itemId);
     draft.uomId = resolveDefaultUom(draft.itemId, draft.uomId);
     draft.taxCodeId = item?.taxCodeId;
-    if (draft.descriptionController.text.trim().isEmpty) {
+    if (fillDescription && draft.descriptionController.text.trim().isEmpty) {
       draft.descriptionController.text = itemDescription(
         item,
         fallback: fallbackDescription,
@@ -942,7 +943,7 @@ class PurchaseOrderManagementController extends GetxController {
         draft.rateController.text =
             supplierMap.supplierRate?.toString() ?? draft.rateController.text;
         draft.taxCodeId = item?.taxCodeId;
-        if (draft.descriptionController.text.trim().isEmpty) {
+        if (fillDescription && draft.descriptionController.text.trim().isEmpty) {
           draft.descriptionController.text = itemDescription(
             item,
             fallback: supplierMap.supplierItemName ?? supplierMap.itemName,
@@ -1406,6 +1407,7 @@ class PurchaseOrderManagementController extends GetxController {
     applyItemAndSupplierDefaults(
       line,
       supplierId: hasSpecificSupplierSelection ? supplierPartyId : null,
+      fillDescription: false,
     );
     refreshComputedState();
   }

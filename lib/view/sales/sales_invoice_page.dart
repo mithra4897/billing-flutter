@@ -714,7 +714,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                               uoms: controller.uoms,
                               conversions: controller.uomConversions,
                               rateController: line.rateController,
-                              descriptionController: line.descriptionController,
                               qtyController: line.qtyController,
                               setUom: (u) => line.uomId = u,
                               currentUomId: line.uomId,
