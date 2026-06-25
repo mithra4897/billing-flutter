@@ -882,14 +882,16 @@ class SalesQuotationManagementController extends GetxController {
           : quotationCustomerLabel(selected),
       partyAddress: formatPartyAddress(
         preferredAddress,
-        fallback: stringValue(customerData, 'address_line1'),
+        fallback: formatPartyAddressFromData(customerData),
       ),
       partyContact: resolvePartyContact(
         customer,
         fallback: stringValue(customerData, 'mobile_no'),
       ),
-      partyGstin: resolvePreferredPartyGstin(
-        customerGstDetailsById[customerPartyId] ??
+      partyGstin: resolvePartyPrintGstin(
+        customer,
+        gstDetails:
+            customerGstDetailsById[customerPartyId] ??
             const <PartyGstDetailModel>[],
         sourceData: customerData,
         fallback: stringValue(customerData, 'gstin'),

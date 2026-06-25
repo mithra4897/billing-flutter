@@ -354,8 +354,11 @@ class SalesInvoiceManagementController extends GetxController {
   }
 
   String resolveCustomerPrintGstin(Map<String, dynamic> customerData) {
-    return resolvePreferredPartyGstin(
-      customerGstDetailsById[customerPartyId] ?? const <PartyGstDetailModel>[],
+    return resolvePartyPrintGstin(
+      customerForTaxContext(customerPartyId),
+      gstDetails:
+          customerGstDetailsById[customerPartyId] ??
+          const <PartyGstDetailModel>[],
       sourceData: customerData,
       fallback: stringValue(customerData, 'gstin'),
     );
@@ -2437,7 +2440,7 @@ class SalesInvoiceManagementController extends GetxController {
           : stringValue(selected, 'customer_name'),
       partyAddress: formatPartyAddress(
         preferredAddress,
-        fallback: stringValue(customerData, 'address_line1'),
+        fallback: formatPartyAddressFromData(customerData),
       ),
       partyContact: resolvePartyContact(
         customer,

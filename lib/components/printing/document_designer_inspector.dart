@@ -292,8 +292,9 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
               child: DocumentDesignerNumberField(
                 label: '',
                 value: shape.strokeWidth,
+                fractionDigits: 2,
                 onChanged: (value) =>
-                    onChanged(shape.copyWith(strokeWidth: math.max(1, value))),
+                    onChanged(shape.copyWith(strokeWidth: math.max(0, value))),
               ),
             ),
             DocumentDesignerPropertyGridRow(

@@ -516,7 +516,25 @@ String formatPartyAddress(PartyAddressModel? address, {String fallback = ''}) {
     address.district ?? '',
     address.stateName ?? '',
     address.postalCode ?? '',
-    address.countryCode ?? '',
+  ].where((value) => value.trim().isNotEmpty).toList(growable: false);
+  if (values.isEmpty) {
+    return fallback;
+  }
+  return values.join(', ');
+}
+
+String formatPartyAddressFromData(
+  Map<String, dynamic> sourceData, {
+  String fallback = '',
+}) {
+  final values = <String>[
+    sourceData['address_line1']?.toString() ?? '',
+    sourceData['address_line2']?.toString() ?? '',
+    sourceData['area']?.toString() ?? '',
+    sourceData['city']?.toString() ?? '',
+    sourceData['district']?.toString() ?? '',
+    sourceData['state_name']?.toString() ?? '',
+    sourceData['postal_code']?.toString() ?? '',
   ].where((value) => value.trim().isNotEmpty).toList(growable: false);
   if (values.isEmpty) {
     return fallback;
@@ -602,6 +620,23 @@ String resolvePreferredPartyGstin(
   }
 
   return fallback;
+}
+
+String resolvePartyPrintGstin(
+  PartyModel? party, {
+  List<PartyGstDetailModel> gstDetails = const <PartyGstDetailModel>[],
+  Map<String, dynamic> sourceData = const <String, dynamic>{},
+  String fallback = '',
+}) {
+  final mergedSource = <String, dynamic>{
+    if (party != null) ...party.toJson(),
+    ...sourceData,
+  };
+  return resolvePreferredPartyGstin(
+    gstDetails.isNotEmpty ? gstDetails : (party?.gstDetails ?? const []),
+    sourceData: mergedSource,
+    fallback: fallback,
+  );
 }
 
 PartyContactModel? preferredPartyContact(PartyModel? party) {
