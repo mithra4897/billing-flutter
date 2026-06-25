@@ -115,6 +115,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   final FocusNode _designerFocusNode = FocusNode();
   final Map<String, Future<_PdfFontBundle>> _pdfFontBundleCache =
       <String, Future<_PdfFontBundle>>{};
+  Future<pw.Font>? _pdfUnicodeFallbackFont;
   late final String _controllerTag;
   late final _DocumentPrintDesignerController _controller;
 
@@ -1587,6 +1588,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       purpose: 'print_template_image',
       folder: 'print-templates',
       isPublic: true,
+      preferFilePath: true,
       onLoading: (loading) {
         if (mounted) {
           _controller.updateState(() => _uploadingImage = loading);
@@ -1619,6 +1621,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       purpose: 'print_template_background',
       folder: 'print-templates',
       isPublic: true,
+      preferFilePath: true,
       onLoading: (loading) {
         if (mounted) {
           _controller.updateState(() => _uploadingBackground = loading);
@@ -1812,7 +1815,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     });
   }
 
-  Future<Uint8List?> _capturePreviewPng() async {
+  Future<Uint8List?> _capturePreviewPng({double? pixelRatio}) async {
     await SchedulerBinding.instance.endOfFrame;
     await Future<void>.delayed(const Duration(milliseconds: 32));
     await SchedulerBinding.instance.endOfFrame;
@@ -1822,13 +1825,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     if (boundary == null) {
       return null;
     }
-    final pixelRatio = switch (defaultTargetPlatform) {
-      TargetPlatform.macOS => 1.4,
-      TargetPlatform.windows => 1.6,
-      _ => 2.0,
-    };
+    final resolvedPixelRatio =
+        pixelRatio ??
+        switch (defaultTargetPlatform) {
+          // ~300 DPI output for screenshot fallback PDFs.
+          TargetPlatform.macOS => 4.2,
+          TargetPlatform.windows => 4.2,
+          _ => 4.5,
+        };
     final image = await boundary
-        .toImage(pixelRatio: pixelRatio)
+        .toImage(pixelRatio: resolvedPixelRatio)
         .timeout(
           const Duration(seconds: 8),
           onTimeout: () => throw Exception(
@@ -1854,8 +1860,11 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       if (vector != null) {
         return vector;
       }
-    } catch (_) {
-      // Fall back to the captured preview only if vector generation fails.
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Vector PDF generation failed, using high-res fallback: $error',
+      );
+      debugPrintStack(stackTrace: stackTrace);
     }
 
     final png = await _capturePreviewPng();
@@ -2019,6 +2028,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return pw.Font.ttf(data);
   }
 
+  Future<pw.Font> _loadPdfUnicodeFallbackFont() {
+    return _pdfUnicodeFallbackFont ??= _loadPdfFontAsset(
+      'assets/fonts/Arial Unicode.ttf',
+    );
+  }
+
   pw.Font _pdfFontForTemplate(
     _PdfFontBundle fontBundle, {
     bool bold = false,
@@ -2040,6 +2055,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     _PdfFontBundle fontBundle, {
     required double fontSize,
     required PdfColor color,
+    List<pw.Font> fontFallback = const <pw.Font>[],
     bool bold = false,
     bool italic = false,
     pw.TextDecoration decoration = pw.TextDecoration.none,
@@ -2048,6 +2064,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       font: _pdfFontForTemplate(fontBundle, bold: bold, italic: italic),
       fontSize: fontSize,
       color: color,
+      fontFallback: fontFallback,
       decoration: decoration,
     );
   }
@@ -2059,6 +2076,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     required DocumentPrintTemplate template,
     required _PdfFontBundle fontBundle,
   }) async {
+    final unicodeFallbackFont = await _loadPdfUnicodeFallbackFont();
     switch (shape.type) {
       case 'rectangle':
         return pw.Container(
@@ -2192,6 +2210,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             fontBundle,
             fontSize: math.max(7, shape.fontSize),
             color: _pdfColor(shape.strokeColor),
+            fontFallback: <pw.Font>[unicodeFallbackFont],
           ),
         );
       case 'text':
@@ -2214,6 +2233,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               fontBundle,
               color: _pdfColor(shape.strokeColor),
               fontSize: math.max(6, shape.fontSize),
+              fontFallback: <pw.Font>[unicodeFallbackFont],
               bold: shape.bold,
               italic: shape.italic,
               decoration: shape.underline

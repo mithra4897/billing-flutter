@@ -489,6 +489,7 @@ String? resolvePrintImageSource(String? source) {
   if (source == null || source.trim().isEmpty) {
     return null;
   }
+  source = normalizePortablePrintImageSource(source);
   source = normalizeLegacyPrintImageSource(source);
   if (source.startsWith('assets/')) {
     return source;
@@ -497,6 +498,23 @@ String? resolvePrintImageSource(String? source) {
     return source;
   }
   return AppConfig.resolvePublicFileUrl(source) ?? source;
+}
+
+String normalizePortablePrintImageSource(String source) {
+  final trimmed = source.trim();
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null) {
+    return trimmed;
+  }
+  final path = uri.path;
+  if (!path.endsWith('/public/media/file')) {
+    return trimmed;
+  }
+  final filePath = uri.queryParameters['path'];
+  if (filePath == null || filePath.trim().isEmpty) {
+    return trimmed;
+  }
+  return filePath.trim();
 }
 
 String normalizeLegacyPrintImageSource(String source) {
