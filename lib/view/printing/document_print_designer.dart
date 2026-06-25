@@ -1067,105 +1067,111 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       child: SingleChildScrollView(
         controller: _toolbarScrollController,
         scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _modeButton(
-              Icons.ads_click_outlined,
-              'Select',
-              _DesignerOperation.select,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 64),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                _modeButton(
+                  Icons.ads_click_outlined,
+                  'Select',
+                  _DesignerOperation.select,
+                ),
+                const SizedBox(width: AppUiConstants.spacingMd),
+                _toolbarButton(
+                  Icons.text_fields,
+                  'Text',
+                  () => _insertShapeFromToolbar(_DesignerOperation.drawText),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                _toolbarButton(
+                  Icons.crop_square_outlined,
+                  'Box',
+                  () => _insertShapeFromToolbar(_DesignerOperation.drawRect),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                _toolbarButton(
+                  Icons.circle_outlined,
+                  'Oval',
+                  () => _insertShapeFromToolbar(_DesignerOperation.drawEllipse),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                _toolbarButton(
+                  Icons.pentagon_outlined,
+                  'Polygon',
+                  () => _insertShapeFromToolbar(_DesignerOperation.drawPolygon),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                _toolbarButton(
+                  Icons.show_chart_outlined,
+                  'Line',
+                  () => _insertShapeFromToolbar(_DesignerOperation.drawLine),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                _toolbarButton(
+                  Icons.table_chart_outlined,
+                  'Table',
+                  () => _insertShapeFromToolbar(_DesignerOperation.drawTable),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                _toolbarButton(
+                  Icons.image_outlined,
+                  'Image',
+                  () => _insertShapeFromToolbar(_DesignerOperation.drawImage),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                _toolbarButton(
+                  Icons.qr_code,
+                  'Barcode',
+                  () => _insertShapeFromToolbar(_DesignerOperation.drawBarcode),
+                ),
+                const SizedBox(width: AppUiConstants.spacingMd),
+                OutlinedButton.icon(
+                  onPressed: _canUndo ? _undoTemplateChange : null,
+                  icon: const Icon(Icons.undo_outlined),
+                  label: const Text('Undo'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                OutlinedButton.icon(
+                  onPressed: _canRedo ? _redoTemplateChange : null,
+                  icon: const Icon(Icons.redo_outlined),
+                  label: const Text('Redo'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingMd),
+                OutlinedButton.icon(
+                  onPressed: _resetTemplate,
+                  icon: const Icon(Icons.refresh_outlined),
+                  label: const Text('Reset'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                OutlinedButton.icon(
+                  onPressed: _canvasZoom <= 0.7
+                      ? null
+                      : () => _controller.updateState(
+                          () => _canvasZoom = (_canvasZoom - 0.15).clamp(0.55, 2.5),
+                        ),
+                  icon: const Icon(Icons.zoom_out_outlined),
+                  label: const Text('Zoom -'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                OutlinedButton(
+                  onPressed: () => _controller.updateState(() => _canvasZoom = 1.0),
+                  child: const Text('Fit'),
+                ),
+                const SizedBox(width: AppUiConstants.spacingXs),
+                OutlinedButton.icon(
+                  onPressed: _canvasZoom >= 2.5
+                      ? null
+                      : () => _controller.updateState(
+                          () => _canvasZoom = (_canvasZoom + 0.15).clamp(0.55, 2.5),
+                        ),
+                  icon: const Icon(Icons.zoom_in_outlined),
+                  label: const Text('Zoom +'),
+                ),
+              ],
             ),
-            const SizedBox(width: AppUiConstants.spacingMd),
-            _toolbarButton(
-              Icons.text_fields,
-              'Text',
-              () => _insertShapeFromToolbar(_DesignerOperation.drawText),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            _toolbarButton(
-              Icons.crop_square_outlined,
-              'Box',
-              () => _insertShapeFromToolbar(_DesignerOperation.drawRect),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            _toolbarButton(
-              Icons.circle_outlined,
-              'Oval',
-              () => _insertShapeFromToolbar(_DesignerOperation.drawEllipse),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            _toolbarButton(
-              Icons.pentagon_outlined,
-              'Polygon',
-              () => _insertShapeFromToolbar(_DesignerOperation.drawPolygon),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            _toolbarButton(
-              Icons.show_chart_outlined,
-              'Line',
-              () => _insertShapeFromToolbar(_DesignerOperation.drawLine),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            _toolbarButton(
-              Icons.table_chart_outlined,
-              'Table',
-              () => _insertShapeFromToolbar(_DesignerOperation.drawTable),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            _toolbarButton(
-              Icons.image_outlined,
-              'Image',
-              () => _insertShapeFromToolbar(_DesignerOperation.drawImage),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            _toolbarButton(
-              Icons.qr_code,
-              'Barcode',
-              () => _insertShapeFromToolbar(_DesignerOperation.drawBarcode),
-            ),
-            const SizedBox(width: AppUiConstants.spacingMd),
-            OutlinedButton.icon(
-              onPressed: _canUndo ? _undoTemplateChange : null,
-              icon: const Icon(Icons.undo_outlined),
-              label: const Text('Undo'),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            OutlinedButton.icon(
-              onPressed: _canRedo ? _redoTemplateChange : null,
-              icon: const Icon(Icons.redo_outlined),
-              label: const Text('Redo'),
-            ),
-            const SizedBox(width: AppUiConstants.spacingMd),
-            OutlinedButton.icon(
-              onPressed: _resetTemplate,
-              icon: const Icon(Icons.refresh_outlined),
-              label: const Text('Reset'),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            OutlinedButton.icon(
-              onPressed: _canvasZoom <= 0.7
-                  ? null
-                  : () => _controller.updateState(
-                      () => _canvasZoom = (_canvasZoom - 0.15).clamp(0.55, 2.5),
-                    ),
-              icon: const Icon(Icons.zoom_out_outlined),
-              label: const Text('Zoom -'),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            OutlinedButton(
-              onPressed: () => _controller.updateState(() => _canvasZoom = 1.0),
-              child: const Text('Fit'),
-            ),
-            const SizedBox(width: AppUiConstants.spacingXs),
-            OutlinedButton.icon(
-              onPressed: _canvasZoom >= 2.5
-                  ? null
-                  : () => _controller.updateState(
-                      () => _canvasZoom = (_canvasZoom + 0.15).clamp(0.55, 2.5),
-                    ),
-              icon: const Icon(Icons.zoom_in_outlined),
-              label: const Text('Zoom +'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1182,10 +1188,19 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       icon: Icon(icon),
       label: Text(label),
       style: selected
-          ? null
+          ? FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+            )
           : FilledButton.styleFrom(
               backgroundColor: Colors.transparent,
               foregroundColor: Theme.of(context).colorScheme.onSurface,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               side: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -1228,6 +1243,9 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       onPressed: onPressed,
       icon: Icon(icon),
       label: Text(label),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
     );
   }
 
