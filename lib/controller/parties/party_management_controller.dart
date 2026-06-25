@@ -278,6 +278,18 @@ class PartyManagementController extends GetxController {
     syncPageState(partySaving: true, clearPartyFormError: true);
   }
 
+  void upsertParty(PartyModel party) {
+    final existingIndex = parties.indexWhere((item) => item.id == party.id);
+    if (existingIndex >= 0) {
+      final nextParties = List<PartyModel>.from(parties);
+      nextParties[existingIndex] = party;
+      syncPageState(parties: nextParties);
+      return;
+    }
+
+    syncPageState(parties: <PartyModel>[party, ...parties]);
+  }
+
   void failPartySave(String message) {
     syncPageState(partyFormError: message);
   }

@@ -796,10 +796,11 @@ class _PartyManagementPageState extends State<PartyManagementPage>
         return;
       }
 
+      _controller.upsertParty(saved);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-      await _loadPage(selectId: saved.id);
+      await _selectParty(saved);
     } catch (error) {
       _controller.failPartySave(error.toString());
     } finally {

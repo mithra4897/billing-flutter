@@ -236,20 +236,68 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return stringValue(user, 'username');
   }
 
+  String _normalizedStatusValue(String? value) =>
+      (value ?? '').trim().toLowerCase();
+
+  bool _isHiddenLeadRow(Map<String, dynamic> row) {
+    final sourceType = _normalizedStatusValue(nullableStringValue(row, 'source_type'));
+    if (sourceType != 'lead_activity') {
+      return false;
+    }
+
+    return const {'own', 'lost', 'converted'}.contains(
+      _normalizedStatusValue(nullableStringValue(row, 'lead_status')),
+    );
+  }
+
+  bool _isHiddenOpportunityRow(Map<String, dynamic> row) {
+    final sourceType = _normalizedStatusValue(nullableStringValue(row, 'source_type'));
+    if (sourceType == 'lead_activity') {
+      return false;
+    }
+
+    return const {'won', 'lost'}.contains(
+      _normalizedStatusValue(
+        nullableStringValue(row, 'opportunity_status') ??
+            nullableStringValue(row, 'status'),
+      ),
+    );
+  }
+
+  bool _shouldHideRow(Map<String, dynamic> row) {
+    return _isHiddenLeadRow(row) || _isHiddenOpportunityRow(row);
+  }
+
+  String? _detailRouteForRow(Map<String, dynamic> row) {
+    final opportunityId = intValue(row, 'opportunity_id');
+    if (opportunityId != null) {
+      return '/crm/opportunities/$opportunityId';
+    }
+
+    final leadId = intValue(row, 'lead_id');
+    if (leadId != null) {
+      return '/crm/leads/$leadId';
+    }
+
+    return null;
+  }
+
   List<Map<String, dynamic>> get _nextFollowups => _nextFollowupRows
       .where((row) {
+        if (_shouldHideRow(row)) {
+          return false;
+        }
         final nextFollowup = (nullableStringValue(row, 'next_followup') ?? '')
             .trim();
-        final opportunityStatus = stringValue(
-          row,
-          'opportunity_status',
-        ).trim().toLowerCase();
-        return nextFollowup.isNotEmpty && opportunityStatus != 'won';
+        return nextFollowup.isNotEmpty;
       })
       .toList(growable: false);
 
   List<Map<String, dynamic>> get _visiblePendingFollowups {
     final rows = _followups.where((row) {
+      if (_shouldHideRow(row)) {
+        return false;
+      }
       final status = nullableStringValue(row, 'status');
       if (crmIsCompletedFollowupStatus(status)) {
         return false;
@@ -341,7 +389,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
       return Column(
         children: _visiblePendingFollowups
             .map((row) {
-              final opportunityId = intValue(row, 'opportunity_id');
+              final detailRoute = _detailRouteForRow(row);
               final notes = stringValue(row, 'notes');
               final title = [
                 stringValue(row, 'opportunity_no'),
@@ -394,14 +442,14 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                               ],
                             ),
                           ),
-                          if (opportunityId != null)
+                          if (detailRoute != null)
                             AppActionButton(
                               icon: Icons.open_in_new_outlined,
                               label: 'Open',
                               filled: false,
                               onPressed: () => _openCrmFollowupShellRoute(
                                 context,
-                                '/crm/opportunities/$opportunityId',
+                                detailRoute,
                               ),
                             ),
                         ],
@@ -427,7 +475,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return Column(
       children: _visiblePendingFollowups
           .map((row) {
-            final opportunityId = intValue(row, 'opportunity_id');
+            final detailRoute = _detailRouteForRow(row);
             final notes = stringValue(row, 'notes');
             final title = [
               stringValue(row, 'opportunity_no'),
@@ -478,14 +526,14 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                             ],
                           ),
                         ),
-                        if (opportunityId != null)
+                        if (detailRoute != null)
                           AppActionButton(
                             icon: Icons.open_in_new_outlined,
                             label: 'Open',
                             filled: false,
                             onPressed: () => _openCrmFollowupShellRoute(
                               context,
-                              '/crm/opportunities/$opportunityId',
+                              detailRoute,
                             ),
                           ),
                       ],
@@ -512,7 +560,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     return Column(
       children: _nextFollowups
           .map((row) {
-            final opportunityId = intValue(row, 'opportunity_id');
+            final detailRoute = _detailRouteForRow(row);
             final notes = stringValue(row, 'notes');
             final title = [
               stringValue(row, 'opportunity_no'),
@@ -564,14 +612,14 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
                             ],
                           ),
                         ),
-                        if (opportunityId != null)
+                        if (detailRoute != null)
                           AppActionButton(
                             icon: Icons.open_in_new_outlined,
                             label: 'Open',
                             filled: false,
                             onPressed: () => _openCrmFollowupShellRoute(
                               context,
-                              '/crm/opportunities/$opportunityId',
+                              detailRoute,
                             ),
                           ),
                       ],
@@ -655,7 +703,11 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
   }
 
   Widget _buildGapList(BuildContext context) {
-    if (_gaps.isEmpty) {
+    final visibleGaps = _gaps.where((row) => !_shouldHideRow(row)).toList(
+      growable: false,
+    );
+
+    if (visibleGaps.isEmpty) {
       return const SettingsEmptyState(
         icon: Icons.task_alt_outlined,
         title: 'All Open Opportunities Have Followups',
@@ -666,7 +718,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     }
 
     return Column(
-      children: _gaps
+      children: visibleGaps
           .map((row) {
             final opportunityId = intValue(row, 'opportunity_id');
             if (opportunityId == null) {
