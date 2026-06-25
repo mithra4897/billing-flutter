@@ -365,7 +365,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           shape: shape,
           rows: widget.documentData.gstBreakup,
           columns: columns,
-          fontFamily: normalized.fontFamily,
+          fontFamily: effectiveDocumentPrintFontFamily(
+            normalized.fontFamily,
+            shape.fontFamily,
+          ),
         );
         return shape.copyWith(
           dataPath: 'gst_breakup',
@@ -1893,8 +1896,6 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     final pdf = pw.Document();
     final imageCache = <String, pw.ImageProvider?>{};
     final pageFormat = _pageFormatForTemplate(template);
-    final fontBundle = await _pdfFontBundleForTemplate(template);
-
     pw.ImageProvider? backgroundImage;
     final backgroundPath = resolvePrintTemplateText(
       template.backgroundImagePath ?? '',
@@ -1920,12 +1921,14 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     }
 
     for (final shape in template.shapes) {
+      if (!shape.visible) {
+        continue;
+      }
       final shapeWidget = await _buildPdfShapeWidget(
         shape,
         data,
         imageCache,
         template: template,
-        fontBundle: fontBundle,
       );
       if (shapeWidget == null) {
         continue;
@@ -1954,10 +1957,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     return pdf.save();
   }
 
-  Future<_PdfFontBundle> _pdfFontBundleForTemplate(
-    DocumentPrintTemplate template,
-  ) {
-    final family = normalizeDocumentPrintFontFamily(template.fontFamily);
+  Future<_PdfFontBundle> _pdfFontBundleForFamily(String? fontFamily) {
+    final family = normalizeDocumentPrintFontFamily(fontFamily);
     return _pdfFontBundleCache.putIfAbsent(
       family,
       () => switch (family) {
@@ -2058,6 +2059,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     List<pw.Font> fontFallback = const <pw.Font>[],
     bool bold = false,
     bool italic = false,
+    double letterSpacing = 0,
+    double lineHeight = 1.0,
     pw.TextDecoration decoration = pw.TextDecoration.none,
   }) {
     return pw.TextStyle(
@@ -2065,6 +2068,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       fontSize: fontSize,
       color: color,
       fontFallback: fontFallback,
+      letterSpacing: letterSpacing,
+      height: lineHeight,
       decoration: decoration,
     );
   }
@@ -2074,8 +2079,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     Map<String, dynamic> data,
     Map<String, pw.ImageProvider?> imageCache, {
     required DocumentPrintTemplate template,
-    required _PdfFontBundle fontBundle,
   }) async {
+    final fontBundle = await _pdfFontBundleForFamily(
+      _shapeFontFamily(template, shape),
+    );
     final unicodeFallbackFont = await _loadPdfUnicodeFallbackFont();
     switch (shape.type) {
       case 'rectangle':
@@ -2189,7 +2196,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                   ),
                 )
               : null,
-          child: pw.Image(image, fit: pw.BoxFit.contain),
+          child: pw.Image(image, fit: _pdfImageFit(shape.imageFit)),
         );
       case 'barcode':
         final value = resolvePrintTemplateText(shape.text, data).trim();
@@ -2211,6 +2218,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             fontSize: math.max(7, shape.fontSize),
             color: _pdfColor(shape.strokeColor),
             fontFallback: <pw.Font>[unicodeFallbackFont],
+            letterSpacing: shape.letterSpacing,
+            lineHeight: shape.lineHeight,
           ),
         );
       case 'text':
@@ -2236,6 +2245,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               fontFallback: <pw.Font>[unicodeFallbackFont],
               bold: shape.bold,
               italic: shape.italic,
+              letterSpacing: shape.letterSpacing,
+              lineHeight: shape.lineHeight,
               decoration: shape.underline
                   ? pw.TextDecoration.underline
                   : pw.TextDecoration.none,
@@ -2283,7 +2294,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         columns,
         shape.width,
         shape,
-        fontFamily: template.fontFamily,
+        fontFamily: _shapeFontFamily(template, shape),
       );
       if (usedHeight + rowHeight > availableBottomLimit + 1.0) {
         break;
@@ -2330,7 +2341,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
       children.add(
         _buildPdfTableRowLayer(
-          template: template,
+          shape: shape,
           fontBundle: fontBundle,
           top: 0,
           height: headerHeight.toDouble(),
@@ -2338,7 +2349,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           columnWidths: columnWidths,
           values: columns.map((column) => column.label).toList(growable: false),
           textColor: _pdfColor(shape.headerTextColor),
-          fontSize: 12,
+          fontSize: math.max(7, shape.fontSize + 1),
           bold: true,
           padding: math.max(2.0, shape.cellGap),
           alignments: columns
@@ -2363,11 +2374,11 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         columns,
         shape.width,
         shape,
-        fontFamily: template.fontFamily,
+        fontFamily: _shapeFontFamily(template, shape),
       );
       children.add(
         _buildPdfTableRowLayer(
-          template: template,
+          shape: shape,
           fontBundle: fontBundle,
           top: currentTop,
           height: rowHeight.toDouble(),
@@ -2380,7 +2391,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               )
               .toList(growable: false),
           textColor: _pdfColor(shape.bodyTextColor),
-          fontSize: 11,
+          fontSize: math.max(6, shape.fontSize),
           padding: math.max(2.0, shape.cellGap),
           alignments: columns
               .map((column) => column.align)
@@ -2420,7 +2431,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
       children.add(
         _buildPdfTableRowLayer(
-          template: template,
+          shape: shape,
           fontBundle: fontBundle,
           top: totalRowTop,
           height: headerHeight.toDouble(),
@@ -2439,7 +2450,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                           )),
           ],
           textColor: _pdfColor(shape.headerTextColor),
-          fontSize: 11,
+          fontSize: math.max(6, shape.fontSize),
           bold: true,
           padding: math.max(2.0, shape.cellGap),
           alignments: [
@@ -2503,7 +2514,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   }
 
   pw.Widget _buildPdfTableRowLayer({
-    required DocumentPrintTemplate template,
+    required DocumentPrintShape shape,
     required _PdfFontBundle fontBundle,
     required double top,
     required double height,
@@ -2543,6 +2554,8 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                     fontSize: fontSize,
                     color: textColor,
                     bold: bold,
+                    letterSpacing: shape.letterSpacing,
+                    lineHeight: shape.lineHeight,
                   ),
                 ),
               ),
@@ -2666,6 +2679,28 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
         return pw.TextAlign.right;
       default:
         return pw.TextAlign.left;
+    }
+  }
+
+  String _shapeFontFamily(
+    DocumentPrintTemplate template,
+    DocumentPrintShape shape,
+  ) {
+    return effectiveDocumentPrintFontFamily(
+      template.fontFamily,
+      shape.fontFamily,
+    );
+  }
+
+  pw.BoxFit _pdfImageFit(String value) {
+    switch (normalizeDocumentPrintImageFit(value)) {
+      case 'cover':
+        return pw.BoxFit.cover;
+      case 'fill':
+        return pw.BoxFit.fill;
+      case 'contain':
+      default:
+        return pw.BoxFit.contain;
     }
   }
 
@@ -3015,17 +3050,18 @@ class _DocumentPageSurface extends StatelessWidget {
                 child: IgnorePointer(
                   child: Opacity(
                     opacity: template.backgroundOpacity.clamp(0.0, 1.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: _DocumentImageShape(
-                        source: resolvePrintTemplateText(
-                          template.backgroundImagePath ?? '',
-                          documentData,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: _DocumentImageShape(
+                          source: resolvePrintTemplateText(
+                            template.backgroundImagePath ?? '',
+                            documentData,
+                          ),
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),
                   ),
-                ),
               ),
             Positioned.fill(
               child: CustomPaint(
@@ -3034,12 +3070,16 @@ class _DocumentPageSurface extends StatelessWidget {
                   documentData: documentData,
                   scale: scale,
                   showPageChrome: showDecoration,
+                  showHiddenPlaceholders: editMode,
                   draftShape: draftShape,
                 ),
               ),
             ),
             ...template.shapes
-                .where((shape) => shape.type == 'image')
+                .where(
+                  (shape) =>
+                      shape.type == 'image' && (shape.visible || editMode),
+                )
                 .map(
                   (shape) => Positioned(
                     left: shape.x * scale,
@@ -3047,19 +3087,23 @@ class _DocumentPageSurface extends StatelessWidget {
                     width: math.max(24, shape.width * scale),
                     height: math.max(24, shape.height * scale),
                     child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: shape.strokeWidth > 0
-                            ? BoxDecoration(
-                                border: Border.all(
-                                  color: Color(shape.strokeColor),
-                                  width: shape.strokeWidth * scale,
-                                ),
-                              )
-                            : const BoxDecoration(),
-                        child: _DocumentImageShape(
-                          source: resolvePrintTemplateText(
-                            shape.assetPath,
-                            documentData,
+                      child: Opacity(
+                        opacity: shape.visible ? 1.0 : 0.2,
+                        child: DecoratedBox(
+                          decoration: shape.strokeWidth > 0
+                              ? BoxDecoration(
+                                  border: Border.all(
+                                    color: Color(shape.strokeColor),
+                                    width: shape.strokeWidth * scale,
+                                  ),
+                                )
+                              : const BoxDecoration(),
+                          child: _DocumentImageShape(
+                            source: resolvePrintTemplateText(
+                              shape.assetPath,
+                              documentData,
+                            ),
+                            fit: flutterDocumentPrintImageFit(shape.imageFit),
                           ),
                         ),
                       ),
@@ -3346,9 +3390,10 @@ enum _DesignerOperation {
 }
 
 class _DocumentImageShape extends StatelessWidget {
-  const _DocumentImageShape({required this.source});
+  const _DocumentImageShape({required this.source, this.fit = BoxFit.contain});
 
   final String source;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -3359,13 +3404,13 @@ class _DocumentImageShape extends StatelessWidget {
     if (resolved.startsWith('assets/')) {
       return Image.asset(
         resolved,
-        fit: BoxFit.contain,
+        fit: fit,
         errorBuilder: (_, _, _) => _fallback(),
       );
     }
     return Image.network(
       resolved,
-      fit: BoxFit.contain,
+      fit: fit,
       errorBuilder: (_, _, _) => _fallback(),
     );
   }
@@ -3392,6 +3437,7 @@ class DocumentCanvasPainter extends CustomPainter {
     required this.documentData,
     required this.scale,
     this.showPageChrome = true,
+    this.showHiddenPlaceholders = false,
     this.draftShape,
   });
 
@@ -3399,6 +3445,7 @@ class DocumentCanvasPainter extends CustomPainter {
   final Map<String, dynamic> documentData;
   final double scale;
   final bool showPageChrome;
+  final bool showHiddenPlaceholders;
   final DocumentPrintShape? draftShape;
 
   @override
@@ -3434,6 +3481,9 @@ class DocumentCanvasPainter extends CustomPainter {
     }
 
     for (final shape in template.shapes) {
+      if (!shape.visible && !showHiddenPlaceholders) {
+        continue;
+      }
       _paintShape(canvas, shape);
     }
 
@@ -3447,6 +3497,7 @@ class DocumentCanvasPainter extends CustomPainter {
     DocumentPrintShape shape, {
     bool draft = false,
   }) {
+    final hiddenPlaceholder = !shape.visible && showHiddenPlaceholders && !draft;
     final rect = Rect.fromLTWH(
       shape.x * scale,
       shape.y * scale,
@@ -3459,14 +3510,18 @@ class DocumentCanvasPainter extends CustomPainter {
     );
     final stroke = Paint()
       ..style = PaintingStyle.stroke
-      ..color = draft
+      ..color = hiddenPlaceholder
+          ? Color(shape.strokeColor).withValues(alpha: 0.28)
+          : draft
           ? Color(shape.strokeColor).withValues(alpha: 0.75)
           : Color(shape.strokeColor)
       ..strokeWidth = math.max(0, shape.strokeWidth * scale);
     final fill = Paint()
       ..style = PaintingStyle.fill
       ..color = Color(shape.fillColor).withValues(
-        alpha: draft
+        alpha: hiddenPlaceholder
+            ? math.min(0.12, math.max(0.04, shape.fillAlpha))
+            : draft
             ? math.max(0.08, math.min(0.24, shape.fillAlpha + 0.12))
             : shape.fillAlpha,
       );
@@ -3551,15 +3606,22 @@ class DocumentCanvasPainter extends CustomPainter {
         text: text,
         style: applyDocumentPrintFontStyle(
           TextStyle(
-            color: Color(shape.strokeColor),
+            color: !shape.visible
+                ? Color(shape.strokeColor).withValues(alpha: 0.35)
+                : Color(shape.strokeColor),
             fontSize: shape.fontSize * scale,
             fontWeight: shape.bold ? FontWeight.w700 : FontWeight.w400,
             fontStyle: shape.italic ? FontStyle.italic : FontStyle.normal,
             decoration: shape.underline
                 ? TextDecoration.underline
                 : TextDecoration.none,
+            letterSpacing: shape.letterSpacing * scale,
+            height: shape.lineHeight,
           ),
-          template.fontFamily,
+          effectiveDocumentPrintFontFamily(
+            template.fontFamily,
+            shape.fontFamily,
+          ),
         ),
       ),
       textAlign: align,
@@ -3626,10 +3688,15 @@ class DocumentCanvasPainter extends CustomPainter {
           applyDocumentPrintFontStyle(
             TextStyle(
               fontWeight: FontWeight.w700,
-              fontSize: 12 * scale,
+              fontSize: math.max(7, shape.fontSize + 1) * scale,
               color: Color(shape.headerTextColor),
+              letterSpacing: shape.letterSpacing * scale,
+              height: shape.lineHeight,
             ),
-            template.fontFamily,
+            effectiveDocumentPrintFontFamily(
+              template.fontFamily,
+              shape.fontFamily,
+            ),
           ),
           centerVertically: true,
           cellGap: cellGap,
@@ -3666,7 +3733,10 @@ class DocumentCanvasPainter extends CustomPainter {
         rect.width,
         shape,
         scale: scale,
-        fontFamily: template.fontFamily,
+        fontFamily: effectiveDocumentPrintFontFamily(
+          template.fontFamily,
+          shape.fontFamily,
+        ),
       );
 
       if (currentY + rowHeight > availableBottomLimit + 1.0) {
@@ -3683,8 +3753,16 @@ class DocumentCanvasPainter extends CustomPainter {
           resolvePrintCellValueForColumn(row, column, column.key),
           _textAlignForColumn(column.align),
           applyDocumentPrintFontStyle(
-            TextStyle(fontSize: 11 * scale, color: Color(shape.bodyTextColor)),
-            template.fontFamily,
+            TextStyle(
+              fontSize: math.max(6, shape.fontSize) * scale,
+              color: Color(shape.bodyTextColor),
+              letterSpacing: shape.letterSpacing * scale,
+              height: shape.lineHeight,
+            ),
+            effectiveDocumentPrintFontFamily(
+              template.fontFamily,
+              shape.fontFamily,
+            ),
           ),
           centerVertically: true,
           cellGap: cellGap,
@@ -3737,10 +3815,15 @@ class DocumentCanvasPainter extends CustomPainter {
             applyDocumentPrintFontStyle(
               TextStyle(
                 fontWeight: FontWeight.w700,
-                fontSize: 11 * scale,
+                fontSize: math.max(6, shape.fontSize) * scale,
                 color: Color(shape.headerTextColor),
+                letterSpacing: shape.letterSpacing * scale,
+                height: shape.lineHeight,
               ),
-              template.fontFamily,
+              effectiveDocumentPrintFontFamily(
+                template.fontFamily,
+                shape.fontFamily,
+              ),
             ),
             centerVertically: true,
             cellGap: cellGap,
@@ -3860,8 +3943,13 @@ class DocumentCanvasPainter extends CustomPainter {
           TextStyle(
             color: Color(shape.strokeColor),
             fontSize: shape.fontSize * scale,
+            letterSpacing: shape.letterSpacing * scale,
+            height: shape.lineHeight,
           ),
-          template.fontFamily,
+          effectiveDocumentPrintFontFamily(
+            template.fontFamily,
+            shape.fontFamily,
+          ),
         ),
       ),
       textDirection: TextDirection.ltr,

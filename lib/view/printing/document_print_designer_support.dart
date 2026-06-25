@@ -11,6 +11,7 @@ const String documentPrintMonoAssetFamily = 'PrintMono';
 const String documentPrintVerdanaAssetFamily = 'PrintVerdana';
 const String documentPrintTrebuchetAssetFamily = 'PrintTrebuchet';
 const String documentPrintGeorgiaAssetFamily = 'PrintGeorgia';
+const String defaultDocumentPrintShapeFontFamily = 'inherit';
 
 const List<String> documentPrintFontFamilyOptions = <String>[
   'default',
@@ -19,6 +20,17 @@ const List<String> documentPrintFontFamilyOptions = <String>[
   'trebuchet_ms',
   'georgia',
   'times_new_roman',
+];
+
+const List<String> documentPrintShapeFontFamilyOptions = <String>[
+  defaultDocumentPrintShapeFontFamily,
+  ...documentPrintFontFamilyOptions,
+];
+
+const List<String> documentPrintImageFitOptions = <String>[
+  'contain',
+  'cover',
+  'fill',
 ];
 
 String normalizeDocumentPrintFontFamily(String? value) {
@@ -67,6 +79,39 @@ String documentPrintFontFamilyLabel(String value) {
   }
 }
 
+String normalizeDocumentPrintShapeFontFamily(String? value) {
+  final normalized = (value ?? defaultDocumentPrintShapeFontFamily)
+      .trim()
+      .toLowerCase();
+  if (normalized.isEmpty ||
+      normalized == 'inherit' ||
+      normalized == 'global') {
+    return defaultDocumentPrintShapeFontFamily;
+  }
+  return normalizeDocumentPrintFontFamily(normalized);
+}
+
+String documentPrintShapeFontFamilyLabel(String value) {
+  final normalized = normalizeDocumentPrintShapeFontFamily(value);
+  if (normalized == defaultDocumentPrintShapeFontFamily) {
+    return 'Use Global';
+  }
+  return documentPrintFontFamilyLabel(normalized);
+}
+
+String effectiveDocumentPrintFontFamily(
+  String? templateFontFamily,
+  String? shapeFontFamily,
+) {
+  final normalizedShape = normalizeDocumentPrintShapeFontFamily(
+    shapeFontFamily,
+  );
+  if (normalizedShape == defaultDocumentPrintShapeFontFamily) {
+    return normalizeDocumentPrintFontFamily(templateFontFamily);
+  }
+  return normalizedShape;
+}
+
 String? flutterDocumentPrintFontFamily(String? value) {
   switch (normalizeDocumentPrintFontFamily(value)) {
     case 'default':
@@ -87,6 +132,42 @@ String? flutterDocumentPrintFontFamily(String? value) {
 
 TextStyle applyDocumentPrintFontStyle(TextStyle style, String? value) {
   return style.copyWith(fontFamily: flutterDocumentPrintFontFamily(value));
+}
+
+String normalizeDocumentPrintImageFit(String? value) {
+  switch ((value ?? 'contain').trim().toLowerCase()) {
+    case 'cover':
+      return 'cover';
+    case 'fill':
+      return 'fill';
+    case 'contain':
+    default:
+      return 'contain';
+  }
+}
+
+String documentPrintImageFitLabel(String value) {
+  switch (normalizeDocumentPrintImageFit(value)) {
+    case 'cover':
+      return 'Cover';
+    case 'fill':
+      return 'Stretch';
+    case 'contain':
+    default:
+      return 'Contain';
+  }
+}
+
+BoxFit flutterDocumentPrintImageFit(String? value) {
+  switch (normalizeDocumentPrintImageFit(value)) {
+    case 'cover':
+      return BoxFit.cover;
+    case 'fill':
+      return BoxFit.fill;
+    case 'contain':
+    default:
+      return BoxFit.contain;
+  }
 }
 
 DocumentPrintDataModel buildManagedDocumentPrintData({
@@ -371,7 +452,12 @@ double measurePrintTableRowHeight(
       text: TextSpan(
         text: text,
         style: applyDocumentPrintFontStyle(
-          TextStyle(fontSize: 11 * scale, color: Color(shape.strokeColor)),
+          TextStyle(
+            fontSize: math.max(6, shape.fontSize) * scale,
+            color: Color(shape.strokeColor),
+            letterSpacing: shape.letterSpacing * scale,
+            height: shape.lineHeight,
+          ),
           fontFamily,
         ),
       ),
