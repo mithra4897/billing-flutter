@@ -1933,7 +1933,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             color: _pdfFillColor(shape),
             border: pw.Border.all(
               color: _pdfColor(shape.strokeColor),
-              width: math.max(0.4, shape.strokeWidth),
+              width: math.max(0, shape.strokeWidth),
             ),
             borderRadius: pw.BorderRadius.circular(shape.borderRadius),
           ),
@@ -1945,7 +1945,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             painter: (canvas, size) {
               canvas
                 ..saveContext()
-                ..setLineWidth(math.max(0.4, shape.strokeWidth))
+                ..setLineWidth(math.max(0, shape.strokeWidth))
                 ..setStrokeColor(_pdfColor(shape.strokeColor));
               final fill = _pdfFillColor(shape);
               if (fill != null) {
@@ -1973,7 +1973,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             final points = _pdfPolygonPoints(size, shape.sides);
             canvas
               ..saveContext()
-              ..setLineWidth(math.max(0.4, shape.strokeWidth))
+              ..setLineWidth(math.max(0, shape.strokeWidth))
               ..setStrokeColor(_pdfColor(shape.strokeColor));
             final fill = _pdfFillColor(shape);
             if (fill != null) {
@@ -1998,7 +1998,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
           painter: (canvas, size) {
             canvas
               ..saveContext()
-              ..setLineWidth(math.max(0.4, shape.strokeWidth))
+              ..setLineWidth(math.max(0, shape.strokeWidth))
               ..setStrokeColor(_pdfColor(shape.strokeColor))
               ..drawLine(0, 0, size.x, size.y)
               ..strokePath()
@@ -2029,7 +2029,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
               ? pw.BoxDecoration(
                   border: pw.Border.all(
                     color: _pdfColor(shape.strokeColor),
-                    width: math.max(0.4, shape.strokeWidth),
+                    width: math.max(0, shape.strokeWidth),
                   ),
                 )
               : null,
@@ -2133,7 +2133,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       usedHeight += rowHeight;
     }
 
-    final double strokeWidth = math.max(0.4, math.min(1.0, shape.strokeWidth));
+    final double strokeWidth = math.max(0, shape.strokeWidth);
     final columnWidths = <double>[
       for (final column in columns)
         shape.width *
@@ -3293,7 +3293,7 @@ class DocumentCanvasPainter extends CustomPainter {
       ..color = draft
           ? Color(shape.strokeColor).withValues(alpha: 0.75)
           : Color(shape.strokeColor)
-      ..strokeWidth = math.max(1, shape.strokeWidth * scale);
+      ..strokeWidth = math.max(0, shape.strokeWidth * scale);
     final fill = Paint()
       ..style = PaintingStyle.fill
       ..color = Color(shape.fillColor).withValues(
@@ -3418,7 +3418,7 @@ class DocumentCanvasPainter extends CustomPainter {
     final stroke = Paint()
       ..style = PaintingStyle.stroke
       ..color = Color(shape.strokeColor)
-      ..strokeWidth = 1;
+      ..strokeWidth = math.max(0, shape.strokeWidth * scale);
     final bodyFill = Paint()
       ..style = PaintingStyle.fill
       ..color = Color(shape.fillColor).withValues(alpha: shape.fillAlpha);
