@@ -474,6 +474,7 @@ class UserManagementController extends GetxController {
     update();
 
     try {
+      final password = passwordController.text.trim();
       final model = UserModel(
         id: selectedUserId,
         employeeId: selectedEmployeeId,
@@ -481,9 +482,7 @@ class UserManagementController extends GetxController {
             ? null
             : employeeCodeController.text.trim(),
         username: usernameController.text.trim(),
-        password: passwordController.text.trim().isEmpty
-            ? null
-            : passwordController.text.trim(),
+        password: isNewUser && password.isNotEmpty ? password : null,
         firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim().isEmpty
             ? null
@@ -523,6 +522,16 @@ class UserManagementController extends GetxController {
         formError = response.message;
         update();
         return;
+      }
+
+      if (!isNewUser && password.isNotEmpty) {
+        await _authService.resetUserPassword(
+          saved.id!,
+          ResetUserPasswordRequestModel(
+            newPassword: password,
+            mustChangePassword: mustChangePassword,
+          ),
+        );
       }
 
       await AppSessionService.instance.refreshUserAccess();

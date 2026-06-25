@@ -199,7 +199,10 @@ class AuthService extends ErpModuleService {
   Future<ApiResponse<UserModel>> changeUserStatus(int id, UserModel body) =>
       patchModel('/users/$id/status', body, fromJson: UserModel.fromJson);
 
-  Future<ApiResponse<dynamic>> resetUserPassword(int id, UserModel body) =>
+  Future<ApiResponse<dynamic>> resetUserPassword(
+    int id,
+    ResetUserPasswordRequestModel body,
+  ) =>
       actionDynamic('/users/$id/reset-password', body: body);
 
   Future<ApiResponse<UserModel>> userAccessSummary(int id) =>

@@ -106,6 +106,7 @@ export 'model/auth/login_history_model.dart';
 export 'model/auth/login_request_model.dart';
 export 'model/auth/login_response_model.dart';
 export 'model/auth/module_model.dart';
+export 'model/auth/reset_user_password_request_model.dart';
 export 'model/auth/role_permission_model.dart';
 export 'model/auth/role_permission_summary_model.dart';
 export 'model/auth/role_permission_sync_request_model.dart';
