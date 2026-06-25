@@ -454,7 +454,7 @@ class DocumentPrintTemplate {
             width: 190,
             height: 72,
             text:
-                'Subtotal : {{subtotal}}\nTax      : {{tax_amount}}\nTotal    : {{total_amount}}',
+                'Subtotal : {{subtotal}}\nTax      : {{tax_amount}}\nTotal    : \u20B9{{total_amount}}',
             fontSize: 10,
             bold: true,
             multiline: true,
@@ -480,7 +480,7 @@ class DocumentPrintTemplate {
             y: 662,
             width: 128,
             height: 26,
-            text: '{{total_amount}}',
+            text: '\u20B9{{total_amount}}',
             fontSize: 20,
             bold: true,
             align: 'right',
@@ -1536,7 +1536,7 @@ const String _defaultDocumentPrintTemplateJson = r'''{
       "y": 631.171875,
       "width": 111.73828125,
       "height": 16,
-      "text": "{{total_amount}}",
+      "text": "\u20B9{{total_amount}}",
       "align": "right",
       "fontSize": 15,
       "bold": true,
@@ -2156,10 +2156,14 @@ class DocumentPrintShape {
     this.text = '',
     this.align = 'left',
     this.fontSize = 12,
+    this.fontFamily = defaultDocumentPrintShapeFontFamily,
     this.bold = false,
     this.italic = false,
     this.underline = false,
     this.multiline = false,
+    this.visible = true,
+    this.letterSpacing = 0,
+    this.lineHeight = 1.2,
     this.strokeColor = 0xFF111827,
     this.bodyTextColor = 0xFF111827,
     this.fillColor = 0xFFFFFFFF,
@@ -2176,6 +2180,7 @@ class DocumentPrintShape {
     this.printTotal = false,
     this.columns = const <DocumentPrintColumn>[],
     this.assetPath = '{{company_logo_url}}',
+    this.imageFit = 'contain',
     this.sides = 5,
     this.barcodeType = 'code128',
   });
@@ -2189,10 +2194,14 @@ class DocumentPrintShape {
   final String text;
   final String align;
   final double fontSize;
+  final String fontFamily;
   final bool bold;
   final bool italic;
   final bool underline;
   final bool multiline;
+  final bool visible;
+  final double letterSpacing;
+  final double lineHeight;
   final int strokeColor;
   final int bodyTextColor;
   final int fillColor;
@@ -2209,6 +2218,7 @@ class DocumentPrintShape {
   final bool printTotal;
   final List<DocumentPrintColumn> columns;
   final String assetPath;
+  final String imageFit;
   final int sides;
   final String barcodeType;
 
@@ -2223,10 +2233,20 @@ class DocumentPrintShape {
       text: stringValue(json, 'text'),
       align: stringValue(json, 'align', 'left'),
       fontSize: _toDouble(json['fontSize'], 12),
+      fontFamily: normalizeDocumentPrintShapeFontFamily(
+        stringValue(
+          json,
+          'fontFamily',
+          defaultDocumentPrintShapeFontFamily,
+        ),
+      ),
       bold: boolValue(json, 'bold'),
       italic: boolValue(json, 'italic'),
       underline: boolValue(json, 'underline'),
       multiline: boolValue(json, 'multiline'),
+      visible: json.containsKey('visible') ? boolValue(json, 'visible') : true,
+      letterSpacing: _toDouble(json['letterSpacing'], 0),
+      lineHeight: _toDouble(json['lineHeight'], 1.2),
       strokeColor: _toInt(json['strokeColor'], 0xFF111827),
       bodyTextColor: _toInt(
         json['bodyTextColor'],
@@ -2247,6 +2267,9 @@ class DocumentPrintShape {
           : true,
       printTotal: boolValue(json, 'printTotal'),
       assetPath: stringValue(json, 'assetPath', '{{company_logo_url}}'),
+      imageFit: normalizeDocumentPrintImageFit(
+        stringValue(json, 'imageFit', 'contain'),
+      ),
       sides: int.tryParse(json['sides']?.toString() ?? '') ?? 5,
       barcodeType: stringValue(json, 'barcodeType', 'code128'),
       columns: (json['columns'] as List<dynamic>? ?? const <dynamic>[])
@@ -2448,10 +2471,14 @@ class DocumentPrintShape {
     String? text,
     String? align,
     double? fontSize,
+    String? fontFamily,
     bool? bold,
     bool? italic,
     bool? underline,
     bool? multiline,
+    bool? visible,
+    double? letterSpacing,
+    double? lineHeight,
     int? strokeColor,
     int? bodyTextColor,
     int? fillColor,
@@ -2468,6 +2495,7 @@ class DocumentPrintShape {
     bool? printTotal,
     List<DocumentPrintColumn>? columns,
     String? assetPath,
+    String? imageFit,
     int? sides,
     String? barcodeType,
   }) {
@@ -2481,10 +2509,16 @@ class DocumentPrintShape {
       text: text ?? this.text,
       align: align ?? this.align,
       fontSize: fontSize ?? this.fontSize,
+      fontFamily: normalizeDocumentPrintShapeFontFamily(
+        fontFamily ?? this.fontFamily,
+      ),
       bold: bold ?? this.bold,
       italic: italic ?? this.italic,
       underline: underline ?? this.underline,
       multiline: multiline ?? this.multiline,
+      visible: visible ?? this.visible,
+      letterSpacing: letterSpacing ?? this.letterSpacing,
+      lineHeight: lineHeight ?? this.lineHeight,
       strokeColor: strokeColor ?? this.strokeColor,
       bodyTextColor: bodyTextColor ?? this.bodyTextColor,
       fillColor: fillColor ?? this.fillColor,
@@ -2501,6 +2535,7 @@ class DocumentPrintShape {
       printTotal: printTotal ?? this.printTotal,
       columns: columns ?? this.columns,
       assetPath: assetPath ?? this.assetPath,
+      imageFit: normalizeDocumentPrintImageFit(imageFit ?? this.imageFit),
       sides: sides ?? this.sides,
       barcodeType: barcodeType ?? this.barcodeType,
     );
@@ -2517,10 +2552,14 @@ class DocumentPrintShape {
       'text': text,
       'align': align,
       'fontSize': fontSize,
+      'fontFamily': fontFamily,
       'bold': bold,
       'italic': italic,
       'underline': underline,
       'multiline': multiline,
+      'visible': visible,
+      'letterSpacing': letterSpacing,
+      'lineHeight': lineHeight,
       'strokeColor': strokeColor,
       'bodyTextColor': bodyTextColor,
       'fillColor': fillColor,
@@ -2536,6 +2575,7 @@ class DocumentPrintShape {
       'printHeader': printHeader,
       'printTotal': printTotal,
       'assetPath': assetPath,
+      'imageFit': imageFit,
       'sides': sides,
       'barcodeType': barcodeType,
       'columns': columns

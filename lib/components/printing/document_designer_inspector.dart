@@ -206,6 +206,11 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final supportsTypography = shape.type == 'text' ||
+        shape.type == 'table' ||
+        shape.type == 'barcode';
+    final supportsAlignment = shape.type == 'text';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -307,6 +312,17 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
               ),
             ),
             DocumentDesignerPropertyGridRow(
+              label: 'Visible',
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Switch(
+                  value: shape.visible,
+                  onChanged: (value) =>
+                      onChanged(shape.copyWith(visible: value)),
+                ),
+              ),
+            ),
+            DocumentDesignerPropertyGridRow(
               label: 'Stroke Width',
               child: DocumentDesignerNumberField(
                 label: '',
@@ -361,6 +377,91 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
             ),
           ],
         ),
+        if (supportsTypography) ...[
+          const SizedBox(height: _designerInspectorSectionGap),
+          Text('Typography', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: AppUiConstants.spacingXs),
+          DocumentDesignerPropertyGrid(
+            rows: [
+              DocumentDesignerPropertyGridRow(
+                label: 'Font Family',
+                child: _CompactDropdownField<String>(
+                  value: shape.fontFamily,
+                  items: documentPrintShapeFontFamilyOptions
+                      .map(
+                        (value) => DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            documentPrintShapeFontFamilyLabel(value),
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value != null) {
+                      onChanged(shape.copyWith(fontFamily: value));
+                    }
+                  },
+                ),
+              ),
+              DocumentDesignerPropertyGridRow(
+                label: 'Font Size',
+                child: DocumentDesignerNumberField(
+                  label: '',
+                  value: shape.fontSize,
+                  onChanged: (value) =>
+                      onChanged(shape.copyWith(fontSize: math.max(1, value))),
+                ),
+              ),
+              DocumentDesignerPropertyGridRow(
+                label: 'Letter Space',
+                child: DocumentDesignerNumberField(
+                  label: '',
+                  value: shape.letterSpacing,
+                  fractionDigits: 1,
+                  onChanged: (value) => onChanged(
+                    shape.copyWith(
+                      letterSpacing: value.clamp(-2.0, 20.0).toDouble(),
+                    ),
+                  ),
+                ),
+              ),
+              DocumentDesignerPropertyGridRow(
+                label: 'Line Height',
+                child: DocumentDesignerNumberField(
+                  label: '',
+                  value: shape.lineHeight,
+                  fractionDigits: 2,
+                  onChanged: (value) => onChanged(
+                    shape.copyWith(
+                      lineHeight: value.clamp(0.8, 3.0).toDouble(),
+                    ),
+                  ),
+                ),
+              ),
+              if (supportsAlignment)
+                DocumentDesignerPropertyGridRow(
+                  label: 'Align',
+                  child: _CompactDropdownField<String>(
+                    value: shape.align,
+                    items: const [
+                      DropdownMenuItem(value: 'left', child: Text('Left')),
+                      DropdownMenuItem(
+                        value: 'center',
+                        child: Text('Center'),
+                      ),
+                      DropdownMenuItem(value: 'right', child: Text('Right')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        onChanged(shape.copyWith(align: value));
+                      }
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ],
         if (shape.type == 'table') ...[
           const SizedBox(height: _designerInspectorSectionGap),
           DocumentDesignerPropertyGrid(
@@ -414,28 +515,13 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
             value: shape.text,
             maxLines: 4,
             onChanged: (value) =>
-                onChanged(shape.copyWith(text: value, multiline: true)),
+                onChanged(shape.copyWith(text: value)),
           ),
           const SizedBox(height: _designerInspectorSectionGap),
-          DocumentDesignerNumberField(
-            label: 'Font Size',
-            value: shape.fontSize,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(fontSize: math.max(1, value))),
-          ),
-          const SizedBox(height: _designerInspectorSectionGap),
-          _CompactDropdownField<String>(
-            value: shape.align,
-            items: const [
-              DropdownMenuItem(value: 'left', child: Text('Left')),
-              DropdownMenuItem(value: 'center', child: Text('Center')),
-              DropdownMenuItem(value: 'right', child: Text('Right')),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                onChanged(shape.copyWith(align: value));
-              }
-            },
+          AppSwitchTile(
+            label: 'Multiline',
+            value: shape.multiline,
+            onChanged: (value) => onChanged(shape.copyWith(multiline: value)),
           ),
           const SizedBox(height: _designerInspectorSectionGap),
           AppSwitchTile(
@@ -560,6 +646,30 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
             onChanged: (value) => onChanged(shape.copyWith(assetPath: value)),
             onUpload: onUploadImage,
           ),
+          const SizedBox(height: _designerInspectorSectionGap),
+          DocumentDesignerPropertyGrid(
+            rows: [
+              DocumentDesignerPropertyGridRow(
+                label: 'Image Fit',
+                child: _CompactDropdownField<String>(
+                  value: shape.imageFit,
+                  items: documentPrintImageFitOptions
+                      .map(
+                        (value) => DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(documentPrintImageFitLabel(value)),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value != null) {
+                      onChanged(shape.copyWith(imageFit: value));
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
         ],
         if (shape.type == 'barcode') ...[
           const SizedBox(height: _designerInspectorSectionGap),
@@ -580,13 +690,6 @@ class DocumentDesignerShapeInspector extends StatelessWidget {
                 onChanged(shape.copyWith(barcodeType: value));
               }
             },
-          ),
-          const SizedBox(height: _designerInspectorSectionGap),
-          DocumentDesignerNumberField(
-            label: 'Font Size',
-            value: shape.fontSize,
-            onChanged: (value) =>
-                onChanged(shape.copyWith(fontSize: math.max(1, value))),
           ),
         ],
       ],

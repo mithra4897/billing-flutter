@@ -15,6 +15,7 @@ class MediaUploadHelper {
     String? purpose,
     String? folder,
     bool isPublic = true,
+    bool preferFilePath = false,
   }) async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -56,7 +57,11 @@ class MediaUploadHelper {
         return;
       }
 
-      onSuccess(uploaded.publicUrl ?? uploaded.filePath);
+      onSuccess(
+        preferFilePath
+            ? uploaded.filePath
+            : (uploaded.publicUrl ?? uploaded.filePath),
+      );
     } catch (error) {
       onError(error.toString());
     } finally {
