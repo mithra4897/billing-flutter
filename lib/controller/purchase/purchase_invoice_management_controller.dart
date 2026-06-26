@@ -459,6 +459,21 @@ class PurchaseInvoiceManagementController extends GetxController {
   PartyModel? supplierById(int? supplierId) =>
       supplierId == null ? null : supplierLookupById[supplierId];
 
+  bool lineUsesInventory(int? itemId) =>
+      itemById(itemId)?.trackInventory == true;
+
+  bool lineAllowsBlankQty(int itemId) {
+    final item = itemById(itemId);
+    return item != null && !item.trackInventory;
+  }
+
+  double resolvedInvoicedQty(PurchaseInvoiceLineModel line) {
+    if (line.invoicedQty > 0) {
+      return line.invoicedQty;
+    }
+    return lineAllowsBlankQty(line.itemId) ? 1 : line.invoicedQty;
+  }
+
   PartyModel? supplierForPrintContext(int? supplierId) {
     if (supplierId == null) {
       return null;
@@ -1129,8 +1144,15 @@ class PurchaseInvoiceManagementController extends GetxController {
   }
 
   void updateLine(int index, PurchaseInvoiceLineModel line) {
+    final item = itemById(line.itemId);
+    final normalizedLine = item != null && !item.trackInventory
+        ? line.copyWith(
+            warehouseId: null,
+            invoicedQty: line.invoicedQty > 0 ? line.invoicedQty : 1,
+          )
+        : line;
     final next = List<PurchaseInvoiceLineModel>.from(lines);
-    next[index] = line;
+    next[index] = normalizedLine;
     lines = next;
     refreshComputedState();
   }
@@ -1187,7 +1209,8 @@ class PurchaseInvoiceManagementController extends GetxController {
   Future<void> save(BuildContext context) async {
     if (!formKey.currentState!.validate()) return;
     if (lines.any(
-      (line) => line.itemId <= 0 || line.uomId <= 0 || line.invoicedQty <= 0,
+      (line) =>
+          line.itemId <= 0 || line.uomId <= 0 || resolvedInvoicedQty(line) <= 0,
     )) {
       formError = 'Each line needs item, UOM, and invoiced quantity.';
       update();
@@ -1231,7 +1254,16 @@ class PurchaseInvoiceManagementController extends GetxController {
       supplierReferenceNo: nullIfEmpty(supplierReferenceNoController.text),
       supplierReferenceDate: nullIfEmpty(supplierReferenceDateController.text),
       isActive: isActive,
-      lines: lines,
+      lines: lines
+          .map(
+            (line) => line.copyWith(
+              warehouseId: lineUsesInventory(line.itemId)
+                  ? line.warehouseId
+                  : null,
+              invoicedQty: resolvedInvoicedQty(line),
+            ),
+          )
+          .toList(growable: false),
     );
     try {
       final response = selectedItem == null

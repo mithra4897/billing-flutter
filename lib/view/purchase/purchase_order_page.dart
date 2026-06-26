@@ -467,12 +467,21 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
-                              validator: Validators.compose([
-                                Validators.required('Ordered Qty'),
-                                Validators.optionalNonNegativeNumber(
-                                  'Ordered Qty',
-                                ),
-                              ]),
+                              validator: (value) {
+                                final parsed = Validators.parseFlexibleNumber(
+                                  value,
+                                );
+                                if ((parsed == null || parsed <= 0) &&
+                                    controller.lineAllowsBlankQty(line)) {
+                                  return null;
+                                }
+                                return Validators.compose([
+                                  Validators.required('Ordered Qty'),
+                                  Validators.optionalNonNegativeNumber(
+                                    'Ordered Qty',
+                                  ),
+                                ])(value);
+                              },
                             ),
                             AppFormTextField(
                               labelText: 'Rate',

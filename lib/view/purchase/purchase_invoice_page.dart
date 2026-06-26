@@ -525,12 +525,23 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                                       line.invoicedQty,
                                 ),
                               ),
-                              validator: Validators.compose([
-                                Validators.required('Invoiced Qty'),
-                                Validators.optionalNonNegativeNumber(
-                                  'Invoiced Qty',
-                                ),
-                              ]),
+                              validator: (value) {
+                                final parsed = Validators.parseFlexibleNumber(
+                                  value,
+                                );
+                                if ((parsed == null || parsed <= 0) &&
+                                    controller.lineAllowsBlankQty(
+                                      line.itemId,
+                                    )) {
+                                  return null;
+                                }
+                                return Validators.compose([
+                                  Validators.required('Invoiced Qty'),
+                                  Validators.optionalNonNegativeNumber(
+                                    'Invoiced Qty',
+                                  ),
+                                ])(value);
+                              },
                             ),
                             TextFormField(
                               initialValue: line.rate.toString(),
