@@ -363,17 +363,17 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
   TextStyle _tableHeaderStyle(ThemeData theme, AppThemeExtension appTheme) {
     return theme.textTheme.bodyMedium?.copyWith(
       fontWeight: FontWeight.w700,
-      color: appTheme.tableMutedText,
-      fontSize: 14,
+      color: appTheme.tableTitleText,
+      fontSize: 12,
       height: 1.2,
-      letterSpacing: 0.1,
+      letterSpacing: 0.5,
     ) ??
         TextStyle(
           fontWeight: FontWeight.w700,
-          color: appTheme.tableMutedText,
-          fontSize: 14,
+          color: appTheme.tableTitleText,
+          fontSize: 12,
           height: 1.2,
-          letterSpacing: 0.1,
+          letterSpacing: 0.5,
         );
   }
 
@@ -400,7 +400,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     final compactTheme = theme.copyWith(
       inputDecorationTheme: theme.inputDecorationTheme.copyWith(
         filled: true,
-        fillColor: appTheme.cardBackground,
+        fillColor: Colors.transparent,
         isDense: true,
         hintStyle: tableCellStyle.copyWith(
           color: appTheme.mutedText,
@@ -419,15 +419,15 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusXs),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusXs),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppUiConstants.tableRadiusXs),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
         ),
       ),
     );
@@ -450,7 +450,14 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           decoration: BoxDecoration(
             color: appTheme.cardBackground,
             borderRadius: tableCurve,
-            border: Border.all(color: appTheme.tableBorder), // Outer border handles edges
+            border: Border.all(color: appTheme.tableBorder.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: appTheme.cardShadow.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Theme(
             data: compactTheme,
@@ -594,7 +601,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         ? appTheme.tableRowSelected
         : hovered
         ? appTheme.tableRowHover
-        : appTheme.cardBackground;
+        : (index % 2 == 1)
+            ? appTheme.subtleFill.withValues(alpha: 0.3)
+            : appTheme.cardBackground;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredIndex = index),
@@ -602,7 +611,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _selectedIndex = index),
-        child: DecoratedBox(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeInOut,
           key: ObjectKey(row.rowKey),
           decoration: BoxDecoration(
             color: background,
