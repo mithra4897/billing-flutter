@@ -1190,6 +1190,11 @@ class SalesDeliveryManagementController extends GetxController {
   }
 
   DocumentPrintDataModel salesDeliveryPrintData() {
+    final documentStatus = stringValue(
+      selectedItem?.toJson() ?? const <String, dynamic>{},
+      'delivery_status',
+      'draft',
+    ).trim().toLowerCase();
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
@@ -1286,10 +1291,18 @@ class SalesDeliveryManagementController extends GetxController {
       totalAmount: roundToDouble(subtotal, 2),
       currencyCode: 'INR',
       lines: printLines,
+      extraData: documentStatus == 'draft'
+          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
+          : const <String, dynamic>{},
     );
   }
 
-  Future<void> openPrintPreview(BuildContext context) async {
+  Future<void> openPrintPreview(
+    BuildContext context, {
+    bool allowPrint = false,
+    bool allowDownload = false,
+    bool allowTemplateEditing = false,
+  }) async {
     await openManagedDocumentPrintPreview(
       context,
       prepare: () => ensureCustomerPrintContext(customerPartyId),
@@ -1298,6 +1311,9 @@ class SalesDeliveryManagementController extends GetxController {
           ? 'Returnable Delivery Challan'
           : 'Delivery Challan',
       documentDataBuilder: salesDeliveryPrintData,
+      allowPrint: allowPrint,
+      allowDownload: allowDownload,
+      allowTemplateEditing: allowTemplateEditing,
     );
   }
 

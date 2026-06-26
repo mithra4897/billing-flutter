@@ -34,6 +34,15 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     required this.crmChartFill,
     required this.crmChartText,
     required this.crmChartMutedText,
+    required this.tableBorder,
+    required this.tableHeaderBackground,
+    required this.tableTitleText,
+    required this.tableMutedText,
+    required this.tableLinkText,
+    required this.tableRowHover,
+    required this.tableRowSelected,
+    required this.tableCellText,
+    required this.tableInputBorder,
   });
 
   final Color mutedText;
@@ -67,6 +76,15 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   final Color crmChartFill;
   final Color crmChartText;
   final Color crmChartMutedText;
+  final Color tableBorder;
+  final Color tableHeaderBackground;
+  final Color tableTitleText;
+  final Color tableMutedText;
+  final Color tableLinkText;
+  final Color tableRowHover;
+  final Color tableRowSelected;
+  final Color tableCellText;
+  final Color tableInputBorder;
 
   @override
   AppThemeExtension copyWith({
@@ -101,6 +119,15 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
     Color? crmChartFill,
     Color? crmChartText,
     Color? crmChartMutedText,
+    Color? tableBorder,
+    Color? tableHeaderBackground,
+    Color? tableTitleText,
+    Color? tableMutedText,
+    Color? tableLinkText,
+    Color? tableRowHover,
+    Color? tableRowSelected,
+    Color? tableCellText,
+    Color? tableInputBorder,
   }) {
     return AppThemeExtension(
       mutedText: mutedText ?? this.mutedText,
@@ -142,6 +169,16 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       crmChartFill: crmChartFill ?? this.crmChartFill,
       crmChartText: crmChartText ?? this.crmChartText,
       crmChartMutedText: crmChartMutedText ?? this.crmChartMutedText,
+      tableBorder: tableBorder ?? this.tableBorder,
+      tableHeaderBackground:
+          tableHeaderBackground ?? this.tableHeaderBackground,
+      tableTitleText: tableTitleText ?? this.tableTitleText,
+      tableMutedText: tableMutedText ?? this.tableMutedText,
+      tableLinkText: tableLinkText ?? this.tableLinkText,
+      tableRowHover: tableRowHover ?? this.tableRowHover,
+      tableRowSelected: tableRowSelected ?? this.tableRowSelected,
+      tableCellText: tableCellText ?? this.tableCellText,
+      tableInputBorder: tableInputBorder ?? this.tableInputBorder,
     );
   }
 
@@ -244,6 +281,33 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       crmChartMutedText:
           Color.lerp(crmChartMutedText, other.crmChartMutedText, t) ??
           crmChartMutedText,
+      tableBorder:
+          Color.lerp(tableBorder, other.tableBorder, t) ?? tableBorder,
+      tableHeaderBackground:
+          Color.lerp(
+            tableHeaderBackground,
+            other.tableHeaderBackground,
+            t,
+          ) ??
+          tableHeaderBackground,
+      tableTitleText:
+          Color.lerp(tableTitleText, other.tableTitleText, t) ??
+          tableTitleText,
+      tableMutedText:
+          Color.lerp(tableMutedText, other.tableMutedText, t) ??
+          tableMutedText,
+      tableLinkText:
+          Color.lerp(tableLinkText, other.tableLinkText, t) ?? tableLinkText,
+      tableRowHover:
+          Color.lerp(tableRowHover, other.tableRowHover, t) ?? tableRowHover,
+      tableRowSelected:
+          Color.lerp(tableRowSelected, other.tableRowSelected, t) ??
+          tableRowSelected,
+      tableCellText:
+          Color.lerp(tableCellText, other.tableCellText, t) ?? tableCellText,
+      tableInputBorder:
+          Color.lerp(tableInputBorder, other.tableInputBorder, t) ??
+          tableInputBorder,
     );
   }
 }

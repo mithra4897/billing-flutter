@@ -285,234 +285,171 @@ class _StockTransferEditor extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            Row(
-              children: [
-                Text(
-                  'Line Items',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+            ErpLineItemTable(
+              title: 'Line Items',
+              enabled: canEdit,
+              onAddLine: canEdit ? vm.addLine : null,
+              onDeleteLine: canEdit ? (i) => vm.removeLine(i) : null,
+              visibleColumns: const <ErpLineItemTableColumn>{
+                ErpLineItemTableColumn.no,
+                ErpLineItemTableColumn.item,
+                ErpLineItemTableColumn.uom,
+                ErpLineItemTableColumn.action,
+              },
+              customColumns: const <ErpLineItemCustomColumn>[
+                ErpLineItemCustomColumn(
+                  id: 'from_batch',
+                  label: 'From Batch',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
                 ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add line',
-                  filled: false,
-                  onPressed: canEdit ? vm.addLine : null,
+                ErpLineItemCustomColumn(
+                  id: 'from_serial',
+                  label: 'From Serial',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'to_batch',
+                  label: 'To Batch',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'to_serial',
+                  label: 'To Serial',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'transfer_qty',
+                  label: 'Transfer Qty',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'unit_cost',
+                  label: 'Unit Cost',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'total_cost',
+                  label: 'Total Cost',
+                  width: 118,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'remarks',
+                  label: 'Remarks',
+                  width: 200,
+                  insertAfter: ErpLineItemTableColumn.uom,
                 ),
               ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            if (vm.lines.isEmpty)
-              const Text('No line items added.')
-            else
-              ...List<Widget>.generate(vm.lines.length, (index) {
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
                 final line = vm.lines[index];
-                final fromBatches = vm.batchOptionsForWarehouse(
-                  vm.fromWarehouseId,
-                  line.itemId,
-                );
-                final fromSerials = vm.serialOptionsForWarehouse(
-                  vm.fromWarehouseId,
-                  line.itemId,
-                  line.fromBatchId,
-                );
-                final toBatches = vm.batchOptionsForWarehouse(
-                  vm.toWarehouseId,
-                  line.itemId,
-                );
-                final toSerials = vm.serialOptionsForWarehouse(
-                  vm.toWarehouseId,
-                  line.itemId,
-                  line.toBatchId,
-                );
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: PurchaseCompactLineCard(
-                    index: index,
-                    total: vm.lines.length,
-                    removeEnabled: canEdit && vm.lines.length > 1,
-                    onRemove: canEdit ? () => vm.removeLine(index) : null,
-                    child: PurchaseCompactFieldGrid(
-                      children: [
-                        AppSearchPickerField<int>(
-                          labelText: 'Item',
-                          selectedLabel: vm.items
-                              .cast<ItemModel?>()
-                              .firstWhere(
-                                (item) => item?.id == line.itemId,
-                                orElse: () => null,
-                              )
-                              ?.toString(),
-                          options: vm.items
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppSearchPickerOption<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                  subtitle: item.itemCode,
-                                ),
-                              )
-                              .toList(growable: false),
-                          validator: (_) =>
-                              line.itemId == null ? 'Item is required' : null,
-                          onChanged: (value) {
-                            if (!canEdit) return;
-                            vm.onLineItemChanged(index, value);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'UOM',
-                          mappedItems: vm
-                              .uomOptionsForItem(line.itemId)
-                              .where((u) => u.id != null)
-                              .map(
-                                (u) => AppDropdownItem<int>(
-                                  value: u.id!,
-                                  label: u.toString(),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.uomId,
-                          validator: Validators.requiredSelection('UOM'),
-                          onChanged: (value) {
-                            if (!canEdit) return;
-                            vm.onLineUomChanged(index, value);
-                          },
-                        ),
-                        if (vm.itemHasBatch(line.itemId))
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'From batch',
-                            mappedItems: fromBatches
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(
-                                      item,
-                                      'batch_no',
-                                      'Batch',
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.fromBatchId,
-                            onChanged: (value) {
-                              if (!canEdit) return;
-                              vm.onLineFromBatchChanged(index, value);
-                            },
-                          ),
-                        if (vm.itemHasSerial(line.itemId))
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'From serial',
-                            mappedItems: fromSerials
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(
-                                      item,
-                                      'serial_no',
-                                      'Serial',
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.fromSerialId,
-                            onChanged: (value) {
-                              if (!canEdit) return;
-                              vm.onLineFromSerialChanged(index, value);
-                            },
-                          ),
-                        if (vm.itemHasBatch(line.itemId))
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'To batch',
-                            mappedItems: toBatches
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(
-                                      item,
-                                      'batch_no',
-                                      'Batch',
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.toBatchId,
-                            onChanged: (value) {
-                              if (!canEdit) return;
-                              vm.onLineToBatchChanged(index, value);
-                            },
-                          ),
-                        if (vm.itemHasSerial(line.itemId))
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'To serial',
-                            mappedItems: toSerials
-                                .map(
-                                  (item) => AppDropdownItem<int>(
-                                    value: intValue(item, 'id')!,
-                                    label: stringValue(
-                                      item,
-                                      'serial_no',
-                                      'Serial',
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.toSerialId,
-                            onChanged: (value) {
-                              if (!canEdit) return;
-                              vm.onLineToSerialChanged(index, value);
-                            },
-                          ),
-                        AppFormTextField(
-                          labelText: 'Transfer qty',
-                          controller: line.qtyController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: Validators.requiredPositiveNumber(
-                            'Transfer qty',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Unit Cost',
-                          controller: line.unitCostController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Unit Cost',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Total Cost',
-                          controller: line.totalCostController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Total Cost',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: line.remarksController,
-                          enabled: canEdit,
-                          validator: Validators.optionalMaxLength(
-                            500,
-                            'Line Remarks',
-                          ),
-                        ),
-                      ],
+                final fromBatches = vm.batchOptionsForWarehouse(vm.fromWarehouseId, line.itemId);
+                final fromSerials = vm.serialOptionsForWarehouse(vm.fromWarehouseId, line.itemId, line.fromBatchId);
+                final toBatches = vm.batchOptionsForWarehouse(vm.toWarehouseId, line.itemId);
+                final toSerials = vm.serialOptionsForWarehouse(vm.toWarehouseId, line.itemId, line.toBatchId);
+                return ErpLineItemTableRow(
+                  rowKey: line,
+                  itemId: line.itemId,
+                  itemSelection: vm.items
+                      .where((x) => x.id == line.itemId)
+                      .map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode))
+                      .firstOrNull,
+                  itemOptions: vm.items
+                      .where((x) => x.id != null)
+                      .map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode))
+                      .toList(growable: false),
+                  onItemChanged: canEdit ? (v) => vm.onLineItemChanged(index, v) : null,
+                  itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                  uomId: line.uomId,
+                  uomOptions: vm.uomOptionsForItem(line.itemId)
+                      .where((u) => u.id != null)
+                      .map((u) => AppDropdownItem<int>(value: u.id!, label: u.toString()))
+                      .toList(growable: false),
+                  onUomChanged: canEdit ? (v) => vm.onLineUomChanged(index, v) : null,
+                  uomValidator: Validators.requiredSelection('UOM'),
+                  amount: 0,
+                  deleteEnabled: canEdit && vm.lines.length > 1,
+                  customCells: <String, Widget>{
+                    'from_batch': vm.itemHasBatch(line.itemId)
+                        ? ErpLineItemCellFrame(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: '',
+                              hintText: 'From batch',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: fromBatches.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'batch_no', 'Batch'))).toList(growable: false),
+                              initialValue: line.fromBatchId,
+                              onChanged: canEdit ? (v) => vm.onLineFromBatchChanged(index, v) : null,
+                            ),
+                          )
+                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                    'from_serial': vm.itemHasSerial(line.itemId)
+                        ? ErpLineItemCellFrame(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: '',
+                              hintText: 'From serial',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: fromSerials.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'serial_no', 'Serial'))).toList(growable: false),
+                              initialValue: line.fromSerialId,
+                              onChanged: canEdit ? (v) => vm.onLineFromSerialChanged(index, v) : null,
+                            ),
+                          )
+                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                    'to_batch': vm.itemHasBatch(line.itemId)
+                        ? ErpLineItemCellFrame(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: '',
+                              hintText: 'To batch',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: toBatches.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'batch_no', 'Batch'))).toList(growable: false),
+                              initialValue: line.toBatchId,
+                              onChanged: canEdit ? (v) => vm.onLineToBatchChanged(index, v) : null,
+                            ),
+                          )
+                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                    'to_serial': vm.itemHasSerial(line.itemId)
+                        ? ErpLineItemCellFrame(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: '',
+                              hintText: 'To serial',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: toSerials.map((x) => AppDropdownItem<int>(value: intValue(x, 'id')!, label: stringValue(x, 'serial_no', 'Serial'))).toList(growable: false),
+                              initialValue: line.toSerialId,
+                              onChanged: canEdit ? (v) => vm.onLineToSerialChanged(index, v) : null,
+                            ),
+                          )
+                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                    'transfer_qty': ErpLineItemTextCell(
+                      controller: line.qtyController,
+                      enabled: canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.requiredPositiveNumber('Transfer qty'),
                     ),
-                  ),
+                    'unit_cost': ErpLineItemTextCell(
+                      controller: line.unitCostController,
+                      enabled: canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.optionalNonNegativeNumber('Unit Cost'),
+                    ),
+                    'total_cost': ErpLineItemTextCell(
+                      controller: line.totalCostController,
+                      enabled: canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.optionalNonNegativeNumber('Total Cost'),
+                    ),
+                    'remarks': ErpLineItemTextCell(
+                      controller: line.remarksController,
+                      enabled: canEdit,
+                      validator: Validators.optionalMaxLength(500, 'Line Remarks'),
+                    ),
+                  },
                 );
               }),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

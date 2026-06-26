@@ -85,6 +85,247 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
     );
   }
 
+  Widget _buildLineItemTable(PurchaseInvoiceManagementController controller) {
+    final itemOptions = controller.itemsLookup
+        .where((item) => item.id != null)
+        .map(
+          (item) => ErpLinkFieldOption<int>(
+            value: item.id!,
+            label: item.toString(),
+            subtitle: item.itemCode,
+            searchText: '${item.itemCode} ${item.toString()}',
+          ),
+        )
+        .toList(growable: false);
+
+    final warehouseOptions = controller.warehouses
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: item.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final taxOptions = controller.taxCodes
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: item.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final amount = controller.taxBreakdownForLine(line).taxable;
+      final uomOptions = controller
+          .uomOptionsForItem(line.itemId)
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: item.toString(),
+            ),
+          )
+          .toList(growable: false);
+
+      if (uomOptions.length == 1) {
+        final onlyId = uomOptions.first.value;
+        if (line.uomId != onlyId) {
+          controller.updateLine(index, line.copyWith(uomId: onlyId));
+        }
+      }
+
+      final itemSelection = line.itemId == 0
+          ? null
+          : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
+              (item) => item?.value == line.itemId,
+              orElse: () => null,
+            );
+
+      return ErpLineItemTableRow(
+        rowKey: ValueKey<String>(
+          '${line.itemId}_${line.purchaseOrderLineId}_${line.purchaseReceiptLineId}_${line.invoicedQty}_$index',
+        ),
+        itemId: line.itemId == 0 ? null : line.itemId,
+        itemSelection: itemSelection,
+        itemOptions: itemOptions,
+        onItemChanged: controller.isSelectedInvoiceReadOnly
+            ? null
+            : (value) => controller.updateLine(
+                index,
+                line.copyWith(
+                  itemId: value ?? 0,
+                  uomId: controller.resolveDefaultUom(value, line.uomId) ?? line.uomId,
+                ),
+              ),
+        itemValidator: (_) =>
+            Validators.requiredSelectionOrPositiveIdField(line.itemId, 'Item'),
+        warehouseId: line.warehouseId,
+        warehouseOptions: warehouseOptions,
+        onWarehouseChanged: controller.isSelectedInvoiceReadOnly
+            ? null
+            : (value) =>
+                controller.updateLine(index, line.copyWith(warehouseId: value)),
+        uomId: line.uomId == 0 ? null : line.uomId,
+        uomOptions: uomOptions,
+        onUomChanged: controller.isSelectedInvoiceReadOnly
+            ? null
+            : (value) =>
+                controller.updateLine(index, line.copyWith(uomId: value ?? 0)),
+        uomValidator: (_) =>
+            Validators.requiredSelectionOrPositiveIdField(line.uomId, 'UOM'),
+        taxCodeId: line.taxCodeId,
+        taxOptions: taxOptions,
+        onTaxCodeChanged: controller.isSelectedInvoiceReadOnly
+            ? null
+            : (value) =>
+                controller.updateLine(index, line.copyWith(taxCodeId: value)),
+        amount: amount,
+        deleteEnabled:
+            !controller.isSelectedInvoiceReadOnly && controller.lines.length > 1,
+        cellWidgets: <ErpLineItemTableColumn, Widget>{
+          ErpLineItemTableColumn.qty: ErpLineItemTextCell(
+            key: ValueKey('purchase-invoice-qty-$index'),
+            initialValue: line.invoicedQty.toString(),
+            hintText: 'Invoiced Qty',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (value) => controller.updateLine(
+              index,
+              line.copyWith(
+                invoicedQty:
+                    Validators.parseFlexibleNumber(value) ?? line.invoicedQty,
+              ),
+            ),
+            validator: (value) {
+              final parsed = Validators.parseFlexibleNumber(value);
+              if ((parsed == null || parsed <= 0) &&
+                  controller.lineAllowsBlankQty(line.itemId)) {
+                return null;
+              }
+              return Validators.compose([
+                Validators.required('Invoiced Qty'),
+                Validators.optionalNonNegativeNumber('Invoiced Qty'),
+              ])(value);
+            },
+          ),
+          ErpLineItemTableColumn.rate: ErpLineItemTextCell(
+            key: ValueKey('purchase-invoice-rate-$index'),
+            initialValue: line.rate.toString(),
+            hintText: 'Rate',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (value) => controller.updateLine(
+              index,
+              line.copyWith(
+                rate: Validators.parseFlexibleNumber(value) ?? line.rate,
+              ),
+            ),
+            validator: Validators.compose([
+              Validators.required('Rate'),
+              Validators.optionalNonNegativeNumber('Rate'),
+            ]),
+          ),
+          ErpLineItemTableColumn.discount: ErpLineItemTextCell(
+            key: ValueKey('purchase-invoice-discount-$index'),
+            initialValue: (line.discountPercent ?? 0).toString(),
+            hintText: '0',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (value) => controller.updateLine(
+              index,
+              line.copyWith(
+                discountPercent: nullIfEmpty(value) == null
+                    ? null
+                    : Validators.parseFlexibleNumber(value),
+              ),
+            ),
+          ),
+          ErpLineItemTableColumn.description: ErpLineItemTextCell(
+            key: ValueKey('purchase-invoice-description-$index'),
+            initialValue: line.description ?? '',
+            hintText: 'Description',
+            maxLines: 2,
+            onChanged: (value) => controller.updateLine(
+              index,
+              line.copyWith(description: nullIfEmpty(value)),
+            ),
+          ),
+          ErpLineItemTableColumn.remarks: ErpLineItemTextCell(
+            key: ValueKey('purchase-invoice-remarks-$index'),
+            initialValue: line.remarks ?? '',
+            hintText: 'Remarks',
+            maxLines: 2,
+            onChanged: (value) => controller.updateLine(
+              index,
+              line.copyWith(remarks: nullIfEmpty(value)),
+            ),
+          ),
+        },
+      );
+    });
+
+    final taxSummary = controller.invoiceTaxSummary();
+    final summaryTotal = taxSummary.total;
+
+    return ErpLineItemTable(
+      title: 'Lines',
+      lines: rows,
+      onAddLine: controller.isSelectedInvoiceReadOnly ? null : controller.addLine,
+      onDeleteLine: controller.isSelectedInvoiceReadOnly
+          ? null
+          : controller.removeLine,
+      addButtonLabel: 'Add Line',
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.warehouse,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.discount,
+        ErpLineItemTableColumn.taxCode,
+        ErpLineItemTableColumn.description,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.qty: 'Invoiced Qty',
+        ErpLineItemTableColumn.taxCode: 'Tax Code',
+      },
+      enabled: !controller.isSelectedInvoiceReadOnly,
+      footer: GstSummaryCard(
+        taxable: taxSummary.taxable,
+        cgst: taxSummary.cgst,
+        sgst: taxSummary.sgst,
+        igst: taxSummary.igst,
+        cess: 0,
+        total: summaryTotal,
+        currencyCode: 'INR',
+        subtitle: controller.isSelectedInvoiceReadOnly
+            ? 'Saved invoice totals from the posted document.'
+            : controller.applyRoundOff &&
+                    (Validators.parseFlexibleNumber(
+                              controller.roundOffController.text.trim(),
+                            ) ??
+                        0) !=
+                        0
+                ? 'Live totals for the current purchase invoice lines. Includes round off ${((Validators.parseFlexibleNumber(controller.roundOffController.text.trim()) ?? 0)).toStringAsFixed(2)}${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0) != 0) ? ' and adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}' : ''}.'
+                : ((Validators.parseFlexibleNumber(
+                            controller.adjustmentAmountController.text.trim(),
+                          ) ??
+                        0) !=
+                        0)
+                    ? 'Live totals for the current purchase invoice lines. Includes adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}.'
+                    : 'Live totals for the current purchase invoice lines.',
+      ),
+    );
+  }
+
   Widget _buildContent(
     BuildContext context,
     PurchaseInvoiceManagementController controller,
@@ -99,9 +340,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         onRetry: controller.loadPage,
       );
     }
-    final taxSummary = controller.invoiceTaxSummary();
-    final summaryTotal = taxSummary.total;
-    const currency = 'INR';
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Purchase Invoices',
@@ -376,282 +614,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
                     onChanged: controller.setIsActive,
                   ),
                   const SizedBox(height: AppUiConstants.spacingLg),
-                  Row(
-                    children: [
-                      Text(
-                        'Lines',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      AppActionButton(
-                        icon: Icons.add_outlined,
-                        label: 'Add Line',
-                        onPressed: controller.isSelectedInvoiceReadOnly
-                            ? null
-                            : controller.addLine,
-                        filled: false,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  ...List<Widget>.generate(controller.lines.length, (index) {
-                    final line = controller.lines[index];
-                    return Padding(
-                      key: ValueKey<String>(
-                        '${line.itemId}_${line.purchaseOrderLineId}_${line.purchaseReceiptLineId}_${line.invoicedQty}_$index',
-                      ),
-                      padding: const EdgeInsets.only(
-                        bottom: AppUiConstants.spacingSm,
-                      ),
-                      child: PurchaseCompactLineCard(
-                        index: index,
-                        total: controller.lines.length,
-                        removeEnabled: controller.lines.length > 1,
-                        onRemove: () => controller.removeLine(index),
-                        child: PurchaseCompactFieldGrid(
-                          children: [
-                            AppSearchPickerField<int>(
-                              labelText: 'Item',
-                              selectedLabel: controller.itemsLookup
-                                  .cast<ItemModel?>()
-                                  .firstWhere(
-                                    (item) => item?.id == line.itemId,
-                                    orElse: () => null,
-                                  )
-                                  ?.toString(),
-                              options: controller.itemsLookup
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppSearchPickerOption<int>(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                      subtitle: item.itemCode,
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onChanged: (value) => controller.updateLine(
-                                index,
-                                line.copyWith(
-                                  itemId: value ?? 0,
-                                  uomId:
-                                      controller.resolveDefaultUom(
-                                        value,
-                                        line.uomId,
-                                      ) ??
-                                      line.uomId,
-                                ),
-                              ),
-                              validator: (_) =>
-                                  Validators.requiredSelectionOrPositiveIdField(
-                                    line.itemId,
-                                    'Item',
-                                  ),
-                            ),
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Warehouse',
-                              mappedItems: controller.warehouses
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppDropdownItem(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.warehouseId,
-                              onChanged: (value) => controller.updateLine(
-                                index,
-                                line.copyWith(warehouseId: value),
-                              ),
-                            ),
-                            Builder(
-                              builder: (context) {
-                                final options = controller.uomOptionsForItem(
-                                  line.itemId,
-                                );
-                                if (options.length == 1) {
-                                  final onlyId = options.first.id;
-                                  if (line.uomId != onlyId) {
-                                    controller.updateLine(
-                                      index,
-                                      line.copyWith(uomId: onlyId),
-                                    );
-                                  }
-                                }
-                                return AppDropdownField<int>.fromMapped(
-                                  labelText: 'UOM',
-                                  mappedItems: options
-                                      .where((item) => item.id != null)
-                                      .map(
-                                        (item) => AppDropdownItem(
-                                          value: item.id!,
-                                          label: item.toString(),
-                                        ),
-                                      )
-                                      .toList(growable: false),
-                                  initialValue: line.uomId == 0
-                                      ? null
-                                      : line.uomId,
-                                  onChanged: (value) => controller.updateLine(
-                                    index,
-                                    line.copyWith(uomId: value ?? 0),
-                                  ),
-                                  validator: (_) =>
-                                      Validators.requiredSelectionOrPositiveIdField(
-                                        line.uomId,
-                                        'UOM',
-                                      ),
-                                );
-                              },
-                            ),
-                            TextFormField(
-                              initialValue: line.invoicedQty.toString(),
-                              decoration: const InputDecoration(
-                                labelText: 'Invoiced Qty',
-                              ),
-                              inputFormatters: const <TextInputFormatter>[
-                                NumericInputFormatter(),
-                              ],
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              onChanged: (value) => controller.updateLine(
-                                index,
-                                line.copyWith(
-                                  invoicedQty:
-                                      Validators.parseFlexibleNumber(value) ??
-                                      line.invoicedQty,
-                                ),
-                              ),
-                              validator: Validators.compose([
-                                Validators.required('Invoiced Qty'),
-                                Validators.optionalNonNegativeNumber(
-                                  'Invoiced Qty',
-                                ),
-                              ]),
-                            ),
-                            TextFormField(
-                              initialValue: line.rate.toString(),
-                              decoration: const InputDecoration(
-                                labelText: 'Rate',
-                              ),
-                              inputFormatters: const <TextInputFormatter>[
-                                NumericInputFormatter(),
-                              ],
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              onChanged: (value) => controller.updateLine(
-                                index,
-                                line.copyWith(
-                                  rate:
-                                      Validators.parseFlexibleNumber(value) ??
-                                      line.rate,
-                                ),
-                              ),
-                              validator: Validators.compose([
-                                Validators.required('Rate'),
-                                Validators.optionalNonNegativeNumber('Rate'),
-                              ]),
-                            ),
-                            TextFormField(
-                              initialValue: (line.discountPercent ?? 0)
-                                  .toString(),
-                              decoration: const InputDecoration(
-                                labelText: 'Discount %',
-                              ),
-                              inputFormatters: const <TextInputFormatter>[
-                                NumericInputFormatter(),
-                              ],
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              onChanged: (value) => controller.updateLine(
-                                index,
-                                line.copyWith(
-                                  discountPercent: nullIfEmpty(value) == null
-                                      ? null
-                                      : Validators.parseFlexibleNumber(value),
-                                ),
-                              ),
-                            ),
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Tax Code',
-                              mappedItems: controller.taxCodes
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppDropdownItem(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.taxCodeId,
-                              onChanged: (value) => controller.updateLine(
-                                index,
-                                line.copyWith(taxCodeId: value),
-                              ),
-                            ),
-                            TextFormField(
-                              initialValue: line.description ?? '',
-                              decoration: const InputDecoration(
-                                labelText: 'Description',
-                              ),
-                              maxLines: 2,
-                              onChanged: (value) => controller.updateLine(
-                                index,
-                                line.copyWith(description: nullIfEmpty(value)),
-                              ),
-                            ),
-                            TextFormField(
-                              initialValue: line.remarks ?? '',
-                              decoration: const InputDecoration(
-                                labelText: 'Remarks',
-                                alignLabelWithHint: true,
-                              ),
-                              maxLines: 2,
-                              onChanged: (value) => controller.updateLine(
-                                index,
-                                line.copyWith(remarks: nullIfEmpty(value)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: AppUiConstants.spacingMd),
-                  GstSummaryCard(
-                    taxable: taxSummary.taxable,
-                    cgst: taxSummary.cgst,
-                    sgst: taxSummary.sgst,
-                    igst: taxSummary.igst,
-                    cess: 0,
-                    total: summaryTotal,
-                    currencyCode: currency,
-                    subtitle: controller.isSelectedInvoiceReadOnly
-                        ? 'Saved invoice totals from the posted document.'
-                        : controller.applyRoundOff &&
-                              (Validators.parseFlexibleNumber(
-                                        controller.roundOffController.text
-                                            .trim(),
-                                      ) ??
-                                      0) !=
-                                  0
-                        ? 'Live totals for the current purchase invoice lines. Includes round off ${((Validators.parseFlexibleNumber(controller.roundOffController.text.trim()) ?? 0)).toStringAsFixed(2)}${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0) != 0) ? ' and adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}' : ''}.'
-                        : ((Validators.parseFlexibleNumber(
-                                    controller.adjustmentAmountController.text
-                                        .trim(),
-                                  ) ??
-                                  0) !=
-                              0)
-                        ? 'Live totals for the current purchase invoice lines. Includes adjustment ${((Validators.parseFlexibleNumber(controller.adjustmentAmountController.text.trim()) ?? 0)).toStringAsFixed(2)}.'
-                        : 'Live totals for the current purchase invoice lines.',
-                  ),
+                  _buildLineItemTable(controller),
                 ],
               ),
             ),
@@ -661,15 +624,39 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               runSpacing: AppUiConstants.spacingSm,
               children: [
                 if (controller.selectedItem != null &&
-                    !const {'draft', 'cancelled'}.contains(
+                    !const {'cancelled'}.contains(
                       (controller.selectedItem?.invoiceStatus ?? '')
                           .toLowerCase(),
                     ))
                   AppActionButton(
-                    icon: Icons.print_outlined,
-                    label: 'Print',
+                    icon:
+                        (controller.selectedItem?.invoiceStatus ?? '')
+                                .toLowerCase() ==
+                            'draft'
+                        ? Icons.preview_outlined
+                        : Icons.print_outlined,
+                    label:
+                        (controller.selectedItem?.invoiceStatus ?? '')
+                                .toLowerCase() ==
+                            'draft'
+                        ? 'Preview'
+                        : 'Print',
                     filled: false,
-                    onPressed: () => controller.openPrintPreview(context),
+                    onPressed: () => controller.openPrintPreview(
+                      context,
+                      allowPrint:
+                          (controller.selectedItem?.invoiceStatus ?? '')
+                              .toLowerCase() !=
+                          'draft',
+                      allowDownload:
+                          (controller.selectedItem?.invoiceStatus ?? '')
+                              .toLowerCase() !=
+                          'draft',
+                      allowTemplateEditing:
+                          (controller.selectedItem?.invoiceStatus ?? '')
+                              .toLowerCase() !=
+                          'draft',
+                    ),
                   ),
                 if (!controller.isSelectedInvoiceReadOnly)
                   AppActionButton(

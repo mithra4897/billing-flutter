@@ -91,6 +91,135 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     );
   }
 
+  Widget _buildLineItemTable(PurchaseRequisitionManagementController controller) {
+    final itemOptions = controller.itemsLookup
+        .where((item) => item.id != null)
+        .map(
+          (item) => ErpLinkFieldOption<int>(
+            value: item.id!,
+            label: item.toString(),
+            subtitle: item.itemCode,
+            searchText: '${item.itemCode} ${item.toString()}',
+          ),
+        )
+        .toList(growable: false);
+
+    final warehouseOptions = controller.warehouses
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: item.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final uomOptions = controller
+          .uomOptionsForItem(line.itemId)
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: item.toString(),
+            ),
+          )
+          .toList(growable: false);
+
+      if (uomOptions.length == 1) {
+        final onlyId = uomOptions.first.value;
+        if (line.uomId != onlyId) {
+          line.uomId = onlyId;
+        }
+      }
+
+      final itemSelection = line.itemId == null
+          ? null
+          : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
+              (option) => option?.value == line.itemId,
+              orElse: () => null,
+            );
+
+      final qty = Validators.parseFlexibleNumber(
+            line.requestedQtyController.text.trim(),
+          ) ??
+          0;
+      final rate = Validators.parseFlexibleNumber(
+            line.estimatedRateController.text.trim(),
+          ) ??
+          0;
+
+      return ErpLineItemTableRow(
+        rowKey: line,
+        itemId: line.itemId,
+        itemSelection: itemSelection,
+        itemOptions: itemOptions,
+        onItemChanged: controller.isSelectedRequisitionReadOnly
+            ? null
+            : (value) => controller.setLineItemId(line, value),
+        itemValidator: (_) =>
+            Validators.requiredSelectionField(line.itemId, 'Item'),
+        uomId: line.uomId,
+        uomOptions: uomOptions,
+        onUomChanged: controller.isSelectedRequisitionReadOnly
+            ? null
+            : (value) => controller.setLineUomId(line, value),
+        uomValidator: (_) => line.uomId == null ? 'UOM is required' : null,
+        warehouseId: line.warehouseId,
+        warehouseOptions: warehouseOptions,
+        onWarehouseChanged: controller.isSelectedRequisitionReadOnly
+            ? null
+            : (value) => controller.setLineWarehouseId(line, value),
+        qtyController: line.requestedQtyController,
+        qtyValidator: Validators.compose([
+          Validators.required('Requested Qty'),
+          Validators.optionalNonNegativeNumber('Requested Qty'),
+        ]),
+        rateController: line.estimatedRateController,
+        rateValidator: Validators.optionalNonNegativeNumber('Estimated Rate'),
+        descriptionController: line.descriptionController,
+        remarksController: line.remarksController,
+        amount: qty * rate,
+        deleteEnabled:
+            !controller.isSelectedRequisitionReadOnly &&
+            controller.lines.length > 1,
+      );
+    });
+
+    return ErpLineItemTable(
+      title: 'Lines',
+      lines: rows,
+      onChanged: (_) {},
+      onAddLine: controller.isSelectedRequisitionReadOnly
+          ? null
+          : controller.addLine,
+      onDeleteLine: controller.isSelectedRequisitionReadOnly
+          ? null
+          : controller.removeLine,
+      addButtonLabel: 'Add Line',
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.warehouse,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.description,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.qty: 'Requested Qty',
+        ErpLineItemTableColumn.rate: 'Estimated Rate',
+      },
+      enabled: !controller.isSelectedRequisitionReadOnly,
+    );
+  }
+
   Widget _buildContent(
     BuildContext context,
     PurchaseRequisitionManagementController controller,
@@ -260,40 +389,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                     onChanged: controller.setIsActive,
                   ),
                   const SizedBox(height: AppUiConstants.spacingLg),
-                  Row(
-                    children: [
-                      Text(
-                        'Lines',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      AppActionButton(
-                        icon: Icons.add_outlined,
-                        label: 'Add Line',
-                        onPressed: controller.isSelectedRequisitionReadOnly
-                            ? null
-                            : controller.addLine,
-                        filled: false,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  ...List<Widget>.generate(controller.lines.length, (index) {
-                    final line = controller.lines[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: AppUiConstants.spacingSm,
-                      ),
-                      child: PurchaseCompactLineCard(
-                        index: index,
-                        total: controller.lines.length,
-                        removeEnabled: controller.lines.length > 1,
-                        onRemove: () => controller.removeLine(index),
-                        child: _buildLineFields(context, controller, line),
-                      ),
-                    );
-                  }),
+                  _buildLineItemTable(controller),
                 ],
               ),
             ),
@@ -403,104 +499,4 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
     );
   }
 
-  Widget _buildLineFields(
-    BuildContext context,
-    PurchaseRequisitionManagementController controller,
-    PurchaseRequisitionLineDraft line,
-  ) {
-    final itemPicker = AppSearchPickerField<int>(
-      labelText: 'Item',
-      selectedLabel: controller.itemsLookup
-          .cast<ItemModel?>()
-          .firstWhere((item) => item?.id == line.itemId, orElse: () => null)
-          ?.toString(),
-      options: controller.itemsLookup
-          .where((item) => item.id != null)
-          .map(
-            (item) => AppSearchPickerOption<int>(
-              value: item.id!,
-              label: item.toString(),
-              subtitle: item.itemCode,
-            ),
-          )
-          .toList(growable: false),
-      onChanged: (value) => controller.setLineItemId(line, value),
-      validator: (_) => Validators.requiredSelectionField(line.itemId, 'Item'),
-    );
-
-    final uomOptions = controller.uomOptionsForItem(line.itemId);
-    if (uomOptions.length <= 1) {
-      final onlyId = uomOptions.isNotEmpty ? uomOptions.first.id : null;
-      if (line.uomId != onlyId) {
-        line.uomId = onlyId;
-      }
-    }
-
-    final Widget uomField = uomOptions.length <= 1
-        ? AppFormTextField(
-            labelText: 'UOM',
-            initialValue: uomOptions.isNotEmpty
-                ? uomOptions.first.toString()
-                : '',
-            readOnly: true,
-          )
-        : AppDropdownField<int>.fromMapped(
-            labelText: 'UOM',
-            mappedItems: uomOptions
-                .where((item) => item.id != null)
-                .map(
-                  (item) =>
-                      AppDropdownItem(value: item.id!, label: item.toString()),
-                )
-                .toList(growable: false),
-            initialValue: line.uomId,
-            onChanged: (value) => controller.setLineUomId(line, value),
-            validator: Validators.requiredSelection('UOM'),
-          );
-
-    return PurchaseCompactFieldGrid(
-      children: [
-        itemPicker,
-        uomField,
-        AppDropdownField<int>.fromMapped(
-          labelText: 'Warehouse',
-          mappedItems: controller.warehouses
-              .where((item) => item.id != null)
-              .map(
-                (item) =>
-                    AppDropdownItem(value: item.id!, label: item.toString()),
-              )
-              .toList(growable: false),
-          initialValue: line.warehouseId,
-          onChanged: (value) => controller.setLineWarehouseId(line, value),
-        ),
-        AppFormTextField(
-          labelText: 'Requested Qty',
-          controller: line.requestedQtyController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          validator: Validators.compose([
-            Validators.required('Requested Qty'),
-            Validators.optionalNonNegativeNumber('Requested Qty'),
-          ]),
-        ),
-        AppFormTextField(
-          labelText: 'Estimated Rate',
-          controller: line.estimatedRateController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          validator: Validators.optionalNonNegativeNumber('Estimated Rate'),
-        ),
-        AppFormTextField(
-          labelText: 'Description',
-          controller: line.descriptionController,
-          validator: Validators.optionalMaxLength(500, 'Description'),
-        ),
-        AppFormTextField(
-          labelText: 'Remarks',
-          controller: line.remarksController,
-          maxLines: 2,
-          validator: Validators.optionalMaxLength(500, 'Remarks'),
-        ),
-      ],
-    );
-  }
 }

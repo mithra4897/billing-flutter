@@ -205,6 +205,22 @@ class PurchaseOrderManagementController extends GetxController {
   bool get hasSpecificRequisitionSelection =>
       purchaseRequisitionId != null && !isAllRequisitionSelected;
 
+  bool lineUsesInventory(int? itemId) =>
+      itemById(itemId)?.trackInventory == true;
+
+  bool lineAllowsBlankQty(PurchaseOrderLineDraft line) {
+    final item = itemById(line.itemId);
+    return item != null && !item.trackInventory;
+  }
+
+  double resolvedOrderedQty(PurchaseOrderLineDraft line) {
+    final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+    if (qty > 0) {
+      return qty;
+    }
+    return lineAllowsBlankQty(line) ? 1 : qty;
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -694,6 +710,11 @@ class PurchaseOrderManagementController extends GetxController {
   }
 
   DocumentPrintDataModel purchaseOrderPrintData() {
+    final documentStatus = stringValue(
+      selectedItem?.toJson() ?? const <String, dynamic>{},
+      'order_status',
+      'draft',
+    ).trim().toLowerCase();
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
@@ -772,16 +793,27 @@ class PurchaseOrderManagementController extends GetxController {
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+      extraData: documentStatus == 'draft'
+          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
+          : const <String, dynamic>{},
     );
   }
 
-  Future<void> openPrintPreview(BuildContext context) {
+  Future<void> openPrintPreview(
+    BuildContext context, {
+    bool allowPrint = false,
+    bool allowDownload = false,
+    bool allowTemplateEditing = false,
+  }) {
     return openManagedDocumentPrintPreview(
       context,
       prepare: () => ensureSupplierPrintContext(supplierPartyId),
       documentType: 'purchase_order',
       title: 'Purchase Order',
       documentDataBuilder: purchaseOrderPrintData,
+      allowPrint: allowPrint,
+      allowDownload: allowDownload,
+      allowTemplateEditing: allowTemplateEditing,
     );
   }
 
@@ -943,7 +975,8 @@ class PurchaseOrderManagementController extends GetxController {
         draft.rateController.text =
             supplierMap.supplierRate?.toString() ?? draft.rateController.text;
         draft.taxCodeId = item?.taxCodeId;
-        if (fillDescription && draft.descriptionController.text.trim().isEmpty) {
+        if (fillDescription &&
+            draft.descriptionController.text.trim().isEmpty) {
           draft.descriptionController.text = itemDescription(
             item,
             fallback: supplierMap.supplierItemName ?? supplierMap.itemName,
@@ -1403,7 +1436,15 @@ class PurchaseOrderManagementController extends GetxController {
 
   void setLineItemId(PurchaseOrderLineDraft line, int? value) {
     line.itemId = value;
-    line.warehouseId ??= warehouses.isNotEmpty ? warehouses.first.id : null;
+    final item = itemById(value);
+    if (item != null && !item.trackInventory) {
+      line.warehouseId = null;
+      if ((Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) <= 0) {
+        line.qtyController.text = '1';
+      }
+    } else {
+      line.warehouseId ??= warehouses.isNotEmpty ? warehouses.first.id : null;
+    }
     applyItemAndSupplierDefaults(
       line,
       supplierId: hasSpecificSupplierSelection ? supplierPartyId : null,
@@ -1444,7 +1485,7 @@ class PurchaseOrderManagementController extends GetxController {
       (line) =>
           line.itemId == null ||
           line.uomId == null ||
-          (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) <= 0,
+          resolvedOrderedQty(line) <= 0,
     )) {
       formError = 'Each line needs item, UOM, and ordered quantity.';
       update();
@@ -1479,7 +1520,17 @@ class PurchaseOrderManagementController extends GetxController {
       'notes': nullIfEmpty(notesController.text),
       'terms_conditions': nullIfEmpty(termsController.text),
       'is_active': isActive,
-      'lines': lines.map((line) => line.toJson()).toList(growable: false),
+      'lines': lines
+          .map(
+            (line) => <String, dynamic>{
+              ...line.toJson(),
+              'warehouse_id': lineUsesInventory(line.itemId)
+                  ? line.warehouseId
+                  : null,
+              'ordered_qty': resolvedOrderedQty(line),
+            },
+          )
+          .toList(growable: false),
     };
     try {
       final response = selectedItem == null

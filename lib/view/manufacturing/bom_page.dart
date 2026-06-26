@@ -311,104 +311,53 @@ class _BomEditor extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            Row(
-              children: [
-                Text(
-                  'Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add line',
-                  filled: false,
-                  onPressed: vm.canEdit ? vm.addLine : null,
-                ),
+            ErpLineItemTable(
+              title: 'Lines',
+              enabled: vm.canEdit,
+              onAddLine: vm.canEdit ? vm.addLine : null,
+              onDeleteLine: vm.canEdit ? (i) => vm.removeLine(i) : null,
+              visibleColumns: const <ErpLineItemTableColumn>{
+                ErpLineItemTableColumn.no,
+                ErpLineItemTableColumn.item,
+                ErpLineItemTableColumn.uom,
+                ErpLineItemTableColumn.action,
+              },
+              customColumns: const <ErpLineItemCustomColumn>[
+                ErpLineItemCustomColumn(id: 'required_qty', label: 'Required Qty', width: 120, insertAfter: ErpLineItemTableColumn.uom),
+                ErpLineItemCustomColumn(id: 'wastage_pct', label: 'Wastage %', width: 110, insertAfter: ErpLineItemTableColumn.uom),
               ],
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
+                final line = vm.lines[index];
+                return ErpLineItemTableRow(
+                  rowKey: line,
+                  itemId: line.itemId,
+                  itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
+                  itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
+                  onItemChanged: vm.canEdit ? (v) => vm.setLineItemId(index, v) : null,
+                  itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                  uomId: line.uomId,
+                  uomOptions: vm.uomOptionsForItem(line.itemId).where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                  onUomChanged: vm.canEdit ? (v) => vm.setLineUomId(index, v) : null,
+                  uomValidator: Validators.requiredSelection('UOM'),
+                  amount: 0,
+                  deleteEnabled: vm.canEdit && vm.lines.length > 1,
+                  customCells: <String, Widget>{
+                    'required_qty': ErpLineItemTextCell(
+                      controller: line.requiredQtyController,
+                      enabled: vm.canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.requiredPositiveNumber('Required Qty'),
+                    ),
+                    'wastage_pct': ErpLineItemTextCell(
+                      controller: line.wastagePercentController,
+                      enabled: vm.canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.optionalNonNegativeNumber('Wastage %'),
+                    ),
+                  },
+                );
+              }),
             ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(vm.lines.length, (index) {
-              final line = vm.lines[index];
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
-                ),
-                child: PurchaseCompactLineCard(
-                  index: index,
-                  total: vm.lines.length,
-                  removeEnabled: vm.canEdit && vm.lines.length > 1,
-                  onRemove: vm.canEdit ? () => vm.removeLine(index) : null,
-                  child: PurchaseCompactFieldGrid(
-                    children: [
-                      AppSearchPickerField<int>(
-                        labelText: 'Item',
-                        selectedLabel: vm.items
-                            .cast<ItemModel?>()
-                            .firstWhere(
-                              (item) => item?.id == line.itemId,
-                              orElse: () => null,
-                            )
-                            ?.toString(),
-                        options: vm.items
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                                subtitle: item.itemCode,
-                              ),
-                            )
-                            .toList(growable: false),
-                        validator: (_) =>
-                            line.itemId == null ? 'Item is required' : null,
-                        onChanged: (value) => vm.setLineItemId(index, value),
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'UOM',
-                        mappedItems: vm
-                            .uomOptionsForItem(line.itemId)
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.uomId,
-                        onChanged: (value) => vm.setLineUomId(index, value),
-                        validator: Validators.requiredSelection('UOM'),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Required Qty',
-                        controller: line.requiredQtyController,
-                        enabled: vm.canEdit,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.requiredPositiveNumber(
-                          'Required Qty',
-                        ),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Wastage %',
-                        controller: line.wastagePercentController,
-                        enabled: vm.canEdit,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.optionalNonNegativeNumber(
-                          'Wastage %',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

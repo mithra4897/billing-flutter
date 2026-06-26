@@ -2368,6 +2368,9 @@ class SalesInvoiceManagementController extends GetxController {
   DocumentPrintDataModel salesInvoicePrintData() {
     final summary = invoiceTaxSummary();
     final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
+    final invoiceStatus = (selectedItem?.invoiceStatus ?? 'draft')
+        .trim()
+        .toLowerCase();
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
@@ -2458,16 +2461,27 @@ class SalesInvoiceManagementController extends GetxController {
       ),
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+      extraData: invoiceStatus == 'draft'
+          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
+          : const <String, dynamic>{},
     );
   }
 
-  Future<void> openPrintPreview(BuildContext context) {
+  Future<void> openPrintPreview(
+    BuildContext context, {
+    bool allowPrint = false,
+    bool allowDownload = false,
+    bool allowTemplateEditing = false,
+  }) {
     return openManagedDocumentPrintPreview(
       context,
       prepare: () => ensureCustomerTaxContext(customerPartyId),
       documentType: 'sales_invoice',
       title: 'Sales Invoice',
       documentDataBuilder: salesInvoicePrintData,
+      allowPrint: allowPrint,
+      allowDownload: allowDownload,
+      allowTemplateEditing: allowTemplateEditing,
     );
   }
 
