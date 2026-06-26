@@ -652,14 +652,50 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
     List<DocumentPrintColumn> columns,
     List<DocumentPrintTaxBreakupRowModel> rows,
   ) {
-    final hideIgst =
-        rows.isNotEmpty && rows.every((row) => row.igst.abs() < 0.005);
-    if (!hideIgst) {
+    if (rows.isEmpty) {
       return columns;
     }
-    return columns
-        .where((column) => column.key != 'igst')
-        .toList(growable: false);
+    final hideIgst = rows.every((row) => row.igst.abs() < 0.005);
+    final hideCgstSgst = rows.every(
+      (row) => row.cgst.abs() < 0.005 && row.sgst.abs() < 0.005,
+    );
+
+    var normalized = List<DocumentPrintColumn>.from(columns);
+
+    if (!hideIgst && !normalized.any((c) => c.key == 'igst')) {
+      final defaultIgst =
+          defaultGstBreakupTableColumns.firstWhere((c) => c.key == 'igst');
+      normalized.add(defaultIgst);
+    }
+    if (!hideCgstSgst && !normalized.any((c) => c.key == 'cgst')) {
+      final defaultCgst =
+          defaultGstBreakupTableColumns.firstWhere((c) => c.key == 'cgst');
+      final igstIndex = normalized.indexWhere((c) => c.key == 'igst');
+      if (igstIndex >= 0) {
+        normalized.insert(igstIndex, defaultCgst);
+      } else {
+        normalized.add(defaultCgst);
+      }
+    }
+    if (!hideCgstSgst && !normalized.any((c) => c.key == 'sgst')) {
+      final defaultSgst =
+          defaultGstBreakupTableColumns.firstWhere((c) => c.key == 'sgst');
+      final igstIndex = normalized.indexWhere((c) => c.key == 'igst');
+      if (igstIndex >= 0) {
+        normalized.insert(igstIndex, defaultSgst);
+      } else {
+        normalized.add(defaultSgst);
+      }
+    }
+
+    if (hideIgst) {
+      normalized.removeWhere((c) => c.key == 'igst');
+    }
+    if (hideCgstSgst) {
+      normalized.removeWhere((c) => c.key == 'cgst' || c.key == 'sgst');
+    }
+
+    return normalized;
   }
 
   DocumentPrintShape _normalizeLinesTableColumns(DocumentPrintShape shape) {
