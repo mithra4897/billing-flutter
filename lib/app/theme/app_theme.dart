@@ -42,6 +42,15 @@ class AppTheme {
       crmChartFill: Color(0xFF6FB4E9),
       crmChartText: Color(0xFF2A2E35),
       crmChartMutedText: Color(0xFF5A6775),
+      tableBorder: Color(0xFFD7DEE7),
+      tableHeaderBackground: Color(0xFFFAFBFC),
+      tableTitleText: Color(0xFF1F2933),
+      tableMutedText: Color(0xFF627182),
+      tableLinkText: Color(0xFF365E8D),
+      tableRowHover: Color(0xFFFBFCFD),
+      tableRowSelected: Color(0xFFF8FBFE),
+      tableCellText: Color(0xFF102A43),
+      tableInputBorder: Color(0xFFD7DEE7),
     );
 
     return ThemeData(

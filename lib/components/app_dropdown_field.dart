@@ -21,6 +21,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.width,
     this.hintText,
     this.doctypeLabel,
+    this.fieldPadding = const EdgeInsets.symmetric(vertical: 8),
     this.onCreateNew,
     this.onNavigateToCreateNew,
     this.allowCreate = false,
@@ -41,6 +42,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.width,
     this.hintText,
     this.doctypeLabel,
+    this.fieldPadding = const EdgeInsets.symmetric(vertical: 8),
     this.onCreateNew,
     this.onNavigateToCreateNew,
     this.allowCreate = false,
@@ -63,6 +65,7 @@ class AppDropdownField<T> extends StatelessWidget {
     this.hintText,
     this.labelKey,
     this.doctypeLabel,
+    this.fieldPadding = const EdgeInsets.symmetric(vertical: 8),
     this.onCreateNew,
     this.onNavigateToCreateNew,
     this.allowCreate = false,
@@ -83,6 +86,7 @@ class AppDropdownField<T> extends StatelessWidget {
   final double? width;
   final String? hintText;
   final String? doctypeLabel;
+  final EdgeInsetsGeometry fieldPadding;
   final Future<ErpLinkFieldOption<T>?> Function(String query)? onCreateNew;
   final ValueChanged<String>? onNavigateToCreateNew;
   final bool allowCreate;
@@ -101,6 +105,7 @@ class AppDropdownField<T> extends StatelessWidget {
       doctypeLabel: doctypeLabel,
       hintText: hintText,
       width: width,
+      fieldPadding: fieldPadding,
       initialSelection: selected,
       options: options,
       onChanged: onChanged ?? (_) {},

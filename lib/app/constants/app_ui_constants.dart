@@ -25,4 +25,12 @@ class AppUiConstants {
   static const double spacing2xl = 28;
   static const double dashboardSplitBreakpoint = 1060;
   static const double dashboardChartHeight = 220;
+  static const double tableRadiusSm = 16;
+  static const double tableRadiusXs = 10;
+  static const double tableCellPaddingSm = 10;
+  static const double tableCellPaddingXs = 8;
+  static const double tableToolbarPadding = 14;
+  static const double tableToolbarHeight = 10;
+  static const double tableCompactFieldHeight = 38;
+  static const double tableCompactFieldInset = 6;
 }

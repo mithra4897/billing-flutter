@@ -1054,16 +1054,6 @@ class SalesQuotationManagementController extends GetxController {
     if (!formKey.currentState!.validate()) {
       return;
     }
-    if (lines.any(
-      (line) =>
-          line.itemId == null ||
-          line.uomId == null ||
-          (Validators.parseFlexibleNumber(line.qtyController.text) ?? 0) <= 0,
-    )) {
-      formError = 'Each line needs item, UOM, and quantity.';
-      update();
-      return;
-    }
     saving = true;
     formError = null;
     update();

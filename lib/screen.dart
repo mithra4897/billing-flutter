@@ -48,6 +48,7 @@ export 'components/sales_invoice_export_button.dart';
 export 'components/session_context_button.dart';
 export 'components/upload_path_field.dart';
 export 'components/validated_form_text_field.dart';
+export 'widgets/erp_line_item_table.dart';
 export 'core/api/api_cache_store.dart';
 export 'core/api/api_client.dart';
 export 'core/api/api_endpoints.dart';

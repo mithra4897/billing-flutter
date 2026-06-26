@@ -152,6 +152,115 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     );
   }
 
+  Widget _buildLineItemTable(SalesQuotationManagementController controller) {
+    final itemOptions = controller.itemPickerOptions
+        .map(
+          (option) => ErpLinkFieldOption<int>(
+            value: option.value,
+            label: option.label,
+            subtitle: option.subtitle,
+            searchText: option.searchText ?? option.subtitle,
+          ),
+        )
+        .toList(growable: false);
+
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final amount = controller.taxBreakdownForLine(line).taxable;
+      final uomOptions = controller
+          .uomOptionsForItem(line.itemId)
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: item.toString(),
+            ),
+          )
+          .toList(growable: false);
+      if (controller.canEdit && uomOptions.length == 1) {
+        final onlyId = uomOptions.first.value;
+        if (line.uomId != onlyId) {
+          line.uomId = onlyId;
+        }
+      }
+
+      final itemSelection = line.itemId == null
+          ? null
+          : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
+              (option) => option?.value == line.itemId,
+              orElse: () => null,
+            );
+
+      return ErpLineItemTableRow(
+        rowKey: line,
+        itemId: line.itemId,
+        itemSelection: itemSelection,
+        itemOptions: itemOptions,
+        onItemChanged: controller.canEdit
+            ? (value) => controller.setLineItemId(index, value)
+            : null,
+        itemValidator: (_) =>
+            Validators.requiredSelectionField(line.itemId, 'Item'),
+        uomId: line.uomId,
+        uomOptions: uomOptions,
+        onUomChanged: controller.canEdit
+            ? (value) => controller.setLineUomId(index, value)
+            : null,
+        uomValidator: (_) => Validators.dependentSelectionField(
+          prerequisite: line.itemId,
+          prerequisiteName: 'item',
+          value: line.uomId,
+          fieldName: 'UOM',
+        ),
+        qtyController: line.qtyController,
+        onQtyChanged: controller.canEdit
+            ? (_) => controller.refreshComputedState()
+            : null,
+        qtyValidator: Validators.compose([
+          Validators.required('Qty'),
+          Validators.optionalNonNegativeNumber('Qty'),
+        ]),
+        rateController: line.rateController,
+        onRateChanged: controller.canEdit
+            ? (_) => controller.refreshComputedState()
+            : null,
+        rateValidator: Validators.compose([
+          Validators.required('Rate'),
+          Validators.optionalNonNegativeNumber('Rate'),
+        ]),
+        discountController: line.discountController,
+        onDiscountChanged: controller.canEdit
+            ? (_) => controller.refreshComputedState()
+            : null,
+        discountValidator: Validators.optionalNonNegativeNumber('Discount %'),
+        taxCodeId: line.taxCodeId,
+        taxOptions: controller.taxCodeDropdownItems,
+        onTaxCodeChanged: controller.canEdit
+            ? (value) => controller.setLineTaxCodeId(index, value)
+            : null,
+        descriptionController: line.descriptionController,
+        onDescriptionChanged: controller.canEdit ? (_) {} : null,
+        remarksController: line.remarksController,
+        onRemarksChanged: controller.canEdit ? (_) {} : null,
+        amount: amount,
+        deleteEnabled: controller.canEdit && controller.lines.length > 1,
+      );
+    });
+
+    return ErpLineItemTable(
+      lines: rows,
+      onChanged: (_) {},
+      onAddLine: controller.canEdit ? controller.addLine : null,
+      onDeleteLine: controller.canEdit ? controller.removeLine : null,
+      addButtonLabel: 'Add Line',
+      sourceColumnLabel: 'Quotation line / Source line',
+      footer: _buildTaxSummaryCard(controller),
+      enabled: controller.canEdit,
+    );
+  }
+
   Widget _buildContent(
     BuildContext context,
     SalesQuotationManagementController controller,
@@ -330,174 +439,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               builder: (controller) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SalesDocumentLineSection(
-                    title: 'Line items',
-                    addLabel: 'Add line',
-                    onAdd: controller.canEdit ? controller.addLine : null,
-                    footer: _buildTaxSummaryCard(controller),
-                    children: List<Widget>.generate(controller.lines.length, (
-                      index,
-                    ) {
-                      final line = controller.lines[index];
-                      final breakdown = controller.taxBreakdownForLine(line);
-                      return Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: AppUiConstants.spacingSm,
-                        ),
-                        child: PurchaseCompactLineCard(
-                          index: index,
-                          total: controller.lines.length,
-                          removeEnabled:
-                              controller.canEdit && controller.lines.length > 1,
-                          onRemove: controller.canEdit
-                              ? () => controller.removeLine(index)
-                              : null,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              PurchaseCompactFieldGrid(
-                                children: [
-                                  AppSearchPickerField<int>(
-                                    labelText: 'Item',
-                                    selectedLabel: controller.itemLabelById(
-                                      line.itemId,
-                                    ),
-                                    options: controller.itemPickerOptions,
-                                    onChanged: (value) =>
-                                        controller.setLineItemId(index, value),
-                                    validator: (_) =>
-                                        Validators.requiredSelectionField(
-                                          line.itemId,
-                                          'Item',
-                                        ),
-                                  ),
-                                  Builder(
-                                    builder: (context) {
-                                      final options = controller
-                                          .uomOptionsForItem(line.itemId);
-                                      if (controller.canEdit &&
-                                          options.length == 1) {
-                                        final onlyId = options.first.id;
-                                        if (line.uomId != onlyId) {
-                                          line.uomId = onlyId;
-                                        }
-                                      }
-                                      return AppDropdownField<int>.fromMapped(
-                                        labelText: 'UOM',
-                                        mappedItems: options
-                                            .where((item) => item.id != null)
-                                            .map(
-                                              (item) => AppDropdownItem(
-                                                value: item.id!,
-                                                label: item.toString(),
-                                              ),
-                                            )
-                                            .toList(growable: false),
-                                        initialValue: line.uomId,
-                                        onChanged: (value) => controller
-                                            .setLineUomId(index, value),
-                                        validator: (_) =>
-                                            Validators.dependentSelectionField(
-                                              prerequisite: line.itemId,
-                                              prerequisiteName: 'item',
-                                              value: line.uomId,
-                                              fieldName: 'UOM',
-                                            ),
-                                      );
-                                    },
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'Qty',
-                                    controller: line.qtyController,
-                                    enabled: controller.canEdit,
-                                    onChanged: (_) =>
-                                        controller.refreshComputedState(),
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    validator: Validators.compose([
-                                      Validators.required('Qty'),
-                                      Validators.optionalNonNegativeNumber(
-                                        'Qty',
-                                      ),
-                                    ]),
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'Rate',
-                                    controller: line.rateController,
-                                    enabled: controller.canEdit,
-                                    onChanged: (_) =>
-                                        controller.refreshComputedState(),
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    validator: Validators.compose([
-                                      Validators.required('Rate'),
-                                      Validators.optionalNonNegativeNumber(
-                                        'Rate',
-                                      ),
-                                    ]),
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'Discount %',
-                                    controller: line.discountController,
-                                    enabled: controller.canEdit,
-                                    onChanged: (_) =>
-                                        controller.refreshComputedState(),
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    validator:
-                                        Validators.optionalNonNegativeNumber(
-                                          'Discount %',
-                                        ),
-                                  ),
-                                  AppDropdownField<int>.fromMapped(
-                                    labelText: 'Tax code',
-                                    mappedItems:
-                                        controller.taxCodeDropdownItems,
-                                    initialValue: line.taxCodeId,
-                                    onChanged: (value) => controller
-                                        .setLineTaxCodeId(index, value),
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'Description',
-                                    controller: line.descriptionController,
-                                    enabled: controller.canEdit,
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'Remarks',
-                                    controller: line.remarksController,
-                                    enabled: controller.canEdit,
-                                    maxLines: 2,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: AppUiConstants.spacingSm),
-                              GstLineTaxPreview(
-                                gross: breakdown.gross,
-                                taxable: breakdown.taxable,
-                                cgst: breakdown.cgst,
-                                sgst: breakdown.sgst,
-                                igst: breakdown.igst,
-                                cess: breakdown.cess,
-                                total: breakdown.total,
-                                currencyCode:
-                                    controller.currencyCodeForTaxSummary,
-                                taxCodeLabel: salesTaxCodeById(
-                                  controller.taxCodes,
-                                  line.taxCodeId,
-                                )?.toString(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
+                  _buildLineItemTable(controller),
                 ],
               ),
             ),

@@ -32,6 +32,7 @@ class ErpLinkField<T> extends StatefulWidget {
     this.hintText,
     this.doctypeLabel,
     this.width,
+    this.fieldPadding = const EdgeInsets.symmetric(vertical: 8),
     this.enabled = true,
     this.autofocus = false,
     this.loadingMessageBuilder,
@@ -55,6 +56,7 @@ class ErpLinkField<T> extends StatefulWidget {
   final String? hintText;
   final String? doctypeLabel;
   final double? width;
+  final EdgeInsetsGeometry fieldPadding;
   final bool enabled;
   final bool autofocus;
   final String Function(String query, String doctypeLabel)?
@@ -650,8 +652,18 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
 
   @override
   Widget build(BuildContext context) {
+    final compactCellMode = widget.labelText.trim().isEmpty;
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>();
+    final fieldTextStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: compactCellMode ? 14 : null,
+      fontWeight: compactCellMode ? FontWeight.w500 : null,
+      height: compactCellMode ? 1.2 : null,
+      color: compactCellMode ? appTheme?.tableCellText : null,
+    );
     return AppFieldBox(
       width: widget.width,
+      padding: widget.fieldPadding,
       child: FormField<T?>(
         initialValue: widget.initialSelection?.value,
         validator: widget.validator,
@@ -667,13 +679,27 @@ class _ErpLinkFieldState<T> extends State<ErpLinkField<T>> {
                 focusNode: _focusNode,
                 enabled: true,
                 readOnly: !widget.enabled,
+                textAlignVertical: TextAlignVertical.center,
+                style: fieldTextStyle,
                 decoration: InputDecoration(
-                  labelText: widget.labelText,
+                  labelText: compactCellMode ? null : widget.labelText,
+                  floatingLabelBehavior: compactCellMode
+                      ? FloatingLabelBehavior.never
+                      : FloatingLabelBehavior.auto,
+                  isDense: true,
+                  contentPadding: compactCellMode
+                      ? const EdgeInsets.symmetric(
+                          horizontal: AppUiConstants.tableCellPaddingSm,
+                          vertical: AppUiConstants.tableCellPaddingXs,
+                        )
+                      : null,
                   hintText: widget.hintText ?? 'Search $_doctypeLabel',
                   errorText: field.errorText,
-                  suffixIconConstraints: const BoxConstraints(
-                    minWidth: 30,
-                    minHeight: 30,
+                  suffixIconConstraints: BoxConstraints(
+                    minWidth: compactCellMode ? 28 : 30,
+                    minHeight: compactCellMode
+                        ? AppUiConstants.tableCompactFieldHeight - 2
+                        : 30,
                   ),
                   suffixIcon: _loading || _creating
                       ? const Padding(
