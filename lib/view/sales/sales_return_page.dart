@@ -81,6 +81,134 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     );
   }
 
+  Widget _buildLineItemTable(SalesReturnManagementController controller) {
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final breakdown = controller.taxBreakdownForLine(line);
+      return ErpLineItemTableRow(
+        rowKey: line,
+        rateController: line.rateController,
+        onRateChanged: (_) => controller.refreshLineState(),
+        rateValidator: Validators.optionalNonNegativeNumber('Rate'),
+        qtyController: line.returnQtyController,
+        onQtyChanged: (_) => controller.refreshLineState(),
+        qtyValidator: Validators.compose([
+          Validators.required('Return Qty'),
+          Validators.optionalNonNegativeNumber('Return Qty'),
+        ]),
+        remarksController: line.remarksController,
+        amount: breakdown.taxable,
+        deleteEnabled: controller.lines.length > 1,
+        cellWidgets: <ErpLineItemTableColumn, Widget>{
+          ErpLineItemTableColumn.item: ErpLineItemTextCell(
+            controller: line.itemNameController,
+            readOnly: true,
+          ),
+          ErpLineItemTableColumn.warehouse: ErpLineItemTextCell(
+            controller: line.warehouseNameController,
+            readOnly: true,
+          ),
+          ErpLineItemTableColumn.uom: ErpLineItemTextCell(
+            controller: line.uomNameController,
+            readOnly: true,
+          ),
+        },
+        customCells: <String, Widget>{
+          'invoice_line': ErpLineItemCellFrame(
+            child: AppSearchPickerField<int>(
+              labelText: '',
+              selectedLabel: (() {
+                final selected = controller.invoiceLineOptions
+                    .cast<SalesInvoiceLineModel?>()
+                    .firstWhere(
+                      (item) => item?.id == line.salesInvoiceLineId,
+                      orElse: () => null,
+                    );
+                if (selected == null) {
+                  return null;
+                }
+                return '${controller.itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
+              })(),
+              options: controller.invoiceLineOptions
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppSearchPickerOption<int>(
+                      value: item.id!,
+                      label:
+                          '${controller.itemName(item.itemId)} · Qty ${item.invoicedQty}',
+                      subtitle:
+                          '${controller.warehouseName(item.warehouseId)} · ${controller.uomName(item.uomId)}',
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) => controller.handleLineSelected(index, value),
+              validator: (_) => Validators.requiredSelectionField(
+                line.salesInvoiceLineId,
+                'Sales invoice line',
+              ),
+            ),
+          ),
+          'batch': controller.isBatchManagedItem(line.itemId)
+              ? ErpLineItemTextCell(
+                  controller: line.batchNoController,
+                  readOnly: true,
+                )
+              : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+          'serial': controller.isSerialManagedItem(line.itemId)
+              ? ErpLineItemTextCell(
+                  controller: line.serialNoController,
+                  readOnly: true,
+                )
+              : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+        },
+      );
+    });
+
+    return ErpLineItemTable(
+      title: 'Lines',
+      lines: rows,
+      onAddLine: controller.addLine,
+      onDeleteLine: controller.removeLine,
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.warehouse,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.qty: 'Return Qty',
+      },
+      customColumns: const <ErpLineItemCustomColumn>[
+        ErpLineItemCustomColumn(
+          id: 'invoice_line',
+          label: 'Sales Invoice Line',
+          width: 240,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'batch',
+          label: 'Batch',
+          width: 150,
+          insertAfter: ErpLineItemTableColumn.warehouse,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'serial',
+          label: 'Serial Number',
+          width: 170,
+          insertAfter: ErpLineItemTableColumn.warehouse,
+        ),
+      ],
+      footer: _buildTaxSummaryCard(controller),
+    );
+  }
+
   Widget _buildContent(
     BuildContext context,
     SalesReturnManagementController controller,
@@ -248,155 +376,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
               onChanged: controller.setIsActive,
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
-            Row(
-              children: [
-                Text(
-                  'Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add Line',
-                  onPressed: controller.addLine,
-                  filled: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(controller.lines.length, (index) {
-              final line = controller.lines[index];
-              final breakdown = controller.taxBreakdownForLine(line);
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
-                ),
-                child: PurchaseCompactLineCard(
-                  index: index,
-                  total: controller.lines.length,
-                  removeEnabled: controller.lines.length > 1,
-                  onRemove: () => controller.removeLine(index),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      PurchaseCompactFieldGrid(
-                        children: [
-                          AppSearchPickerField<int>(
-                            labelText: 'Sales Invoice Line',
-                            selectedLabel: (() {
-                              final selected = controller.invoiceLineOptions
-                                  .cast<SalesInvoiceLineModel?>()
-                                  .firstWhere(
-                                    (item) =>
-                                        item?.id == line.salesInvoiceLineId,
-                                    orElse: () => null,
-                                  );
-                              if (selected == null) {
-                                return null;
-                              }
-                              return '${controller.itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
-                            })(),
-                            options: controller.invoiceLineOptions
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppSearchPickerOption<int>(
-                                    value: item.id!,
-                                    label:
-                                        '${controller.itemName(item.itemId)} · Qty ${item.invoicedQty}',
-                                    subtitle:
-                                        '${controller.warehouseName(item.warehouseId)} · ${controller.uomName(item.uomId)}',
-                                  ),
-                                )
-                                .toList(growable: false),
-                            onChanged: (value) =>
-                                controller.handleLineSelected(index, value),
-                            validator: (_) => Validators.requiredSelectionField(
-                              line.salesInvoiceLineId,
-                              'Sales invoice line',
-                            ),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Item',
-                            controller: line.itemNameController,
-                            readOnly: true,
-                          ),
-                          AppFormTextField(
-                            labelText: 'Warehouse',
-                            controller: line.warehouseNameController,
-                            readOnly: true,
-                          ),
-                          AppFormTextField(
-                            labelText: 'UOM',
-                            controller: line.uomNameController,
-                            readOnly: true,
-                          ),
-                          if (controller.isBatchManagedItem(line.itemId))
-                            AppFormTextField(
-                              labelText: 'Batch',
-                              controller: line.batchNoController,
-                              readOnly: true,
-                            ),
-                          if (controller.isSerialManagedItem(line.itemId))
-                            AppFormTextField(
-                              labelText: 'Serial Number',
-                              controller: line.serialNoController,
-                              readOnly: true,
-                            ),
-                          AppFormTextField(
-                            labelText: 'Return Qty',
-                            controller: line.returnQtyController,
-                            onChanged: (_) => controller.refreshLineState(),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: Validators.compose([
-                              Validators.required('Return Qty'),
-                              Validators.optionalNonNegativeNumber(
-                                'Return Qty',
-                              ),
-                            ]),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Rate',
-                            controller: line.rateController,
-                            onChanged: (_) => controller.refreshLineState(),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            validator: Validators.optionalNonNegativeNumber(
-                              'Rate',
-                            ),
-                          ),
-                          AppFormTextField(
-                            labelText: 'Remarks',
-                            controller: line.remarksController,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppUiConstants.spacingSm),
-                      GstLineTaxPreview(
-                        gross: breakdown.gross,
-                        taxable: breakdown.taxable,
-                        cgst: breakdown.cgst,
-                        sgst: breakdown.sgst,
-                        igst: breakdown.igst,
-                        cess: breakdown.cess,
-                        total: breakdown.total,
-                        currencyCode: controller.currencyCodeForTaxSummary,
-                        taxCodeLabel: salesTaxCodeById(
-                          controller.taxCodes,
-                          line.taxCodeId,
-                        )?.toString(),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            _buildTaxSummaryCard(controller),
+            _buildLineItemTable(controller),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

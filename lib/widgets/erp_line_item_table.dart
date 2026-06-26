@@ -1,6 +1,118 @@
 import '../screen.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
+enum ErpLineItemTableColumn {
+  no,
+  source,
+  item,
+  uom,
+  warehouse,
+  qty,
+  rate,
+  discount,
+  taxCode,
+  description,
+  remarks,
+  amount,
+  action,
+}
+
+class ErpLineItemCustomColumn {
+  const ErpLineItemCustomColumn({
+    required this.id,
+    required this.label,
+    required this.width,
+    this.insertAfter = ErpLineItemTableColumn.source,
+  });
+
+  final String id;
+  final String label;
+  final double width;
+  final ErpLineItemTableColumn insertAfter;
+}
+
+class ErpLineItemCellFrame extends StatelessWidget {
+  const ErpLineItemCellFrame({
+    super.key,
+    required this.child,
+    this.height = AppUiConstants.tableCompactFieldHeight,
+    this.padding = const EdgeInsets.all(AppUiConstants.tableCompactFieldInset),
+  });
+
+  final Widget child;
+  final double? height;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget current = child;
+    if (height != null) {
+      current = SizedBox(height: height, child: current);
+    }
+    return Padding(padding: padding, child: current);
+  }
+}
+
+class ErpLineItemTextCell extends StatelessWidget {
+  const ErpLineItemTextCell({
+    super.key,
+    this.controller,
+    this.initialValue,
+    this.hintText = '',
+    this.onChanged,
+    this.validator,
+    this.keyboardType,
+    this.maxLines = 1,
+    this.readOnly = false,
+    this.enabled = true,
+    this.height = AppUiConstants.tableCompactFieldHeight,
+  }) : assert(
+         controller != null || initialValue != null || readOnly,
+         'Either a controller, an initialValue, or readOnly mode is required.',
+       );
+
+  final TextEditingController? controller;
+  final String? initialValue;
+  final String hintText;
+  final ValueChanged<String>? onChanged;
+  final FormFieldValidator<String>? validator;
+  final TextInputType? keyboardType;
+  final int maxLines;
+  final bool readOnly;
+  final bool enabled;
+  final double? height;
+
+  @override
+  Widget build(BuildContext context) {
+    return ErpLineItemCellFrame(
+      height: height,
+      child: TextFormField(
+        controller: controller,
+        initialValue: controller == null ? (initialValue ?? '') : null,
+        readOnly: readOnly,
+        enabled: enabled,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
+        onChanged: onChanged,
+        validator: validator,
+        textAlignVertical: TextAlignVertical.center,
+        inputFormatters: keyboardType == null
+            ? null
+            : <TextInputFormatter>[
+                if (NumericFieldFocusBinding.isNumericKeyboard(keyboardType))
+                  const NumericInputFormatter(),
+              ],
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: hintText,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppUiConstants.tableCellPaddingSm,
+            vertical: AppUiConstants.tableCellPaddingXs,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class ErpLineItemTableRow {
   const ErpLineItemTableRow({
@@ -23,20 +135,22 @@ class ErpLineItemTableRow {
     this.taxCodeId,
     this.taxOptions = const <AppDropdownItem<int>>[],
     this.onTaxCodeChanged,
-    required this.qtyController,
+    this.qtyController,
     this.onQtyChanged,
     this.qtyValidator,
-    required this.rateController,
+    this.rateController,
     this.onRateChanged,
     this.rateValidator,
-    required this.discountController,
+    this.discountController,
     this.onDiscountChanged,
     this.discountValidator,
-    required this.descriptionController,
+    this.descriptionController,
     this.onDescriptionChanged,
-    required this.remarksController,
+    this.remarksController,
     this.onRemarksChanged,
     required this.amount,
+    this.cellWidgets = const <ErpLineItemTableColumn, Widget>{},
+    this.customCells = const <String, Widget>{},
     this.deleteEnabled = true,
   });
 
@@ -59,20 +173,22 @@ class ErpLineItemTableRow {
   final int? taxCodeId;
   final List<AppDropdownItem<int>> taxOptions;
   final ValueChanged<int?>? onTaxCodeChanged;
-  final TextEditingController qtyController;
+  final TextEditingController? qtyController;
   final ValueChanged<String>? onQtyChanged;
   final FormFieldValidator<String>? qtyValidator;
-  final TextEditingController rateController;
+  final TextEditingController? rateController;
   final ValueChanged<String>? onRateChanged;
   final FormFieldValidator<String>? rateValidator;
-  final TextEditingController discountController;
+  final TextEditingController? discountController;
   final ValueChanged<String>? onDiscountChanged;
   final FormFieldValidator<String>? discountValidator;
-  final TextEditingController descriptionController;
+  final TextEditingController? descriptionController;
   final ValueChanged<String>? onDescriptionChanged;
-  final TextEditingController remarksController;
+  final TextEditingController? remarksController;
   final ValueChanged<String>? onRemarksChanged;
   final double amount;
+  final Map<ErpLineItemTableColumn, Widget> cellWidgets;
+  final Map<String, Widget> customCells;
   final bool deleteEnabled;
 }
 
@@ -85,7 +201,25 @@ class ErpLineItemTable extends StatefulWidget {
     this.onDeleteLine,
     this.footer,
     this.addButtonLabel = 'Add Line',
+    this.title = 'Line items',
     this.sourceColumnLabel = 'Source line',
+    this.columnLabels = const <ErpLineItemTableColumn, String>{},
+    this.customColumns = const <ErpLineItemCustomColumn>[],
+    this.visibleColumns = const <ErpLineItemTableColumn>{
+      ErpLineItemTableColumn.no,
+      ErpLineItemTableColumn.source,
+      ErpLineItemTableColumn.item,
+      ErpLineItemTableColumn.uom,
+      ErpLineItemTableColumn.warehouse,
+      ErpLineItemTableColumn.qty,
+      ErpLineItemTableColumn.rate,
+      ErpLineItemTableColumn.discount,
+      ErpLineItemTableColumn.taxCode,
+      ErpLineItemTableColumn.description,
+      ErpLineItemTableColumn.remarks,
+      ErpLineItemTableColumn.amount,
+      ErpLineItemTableColumn.action,
+    },
     this.enabled = true,
   });
 
@@ -95,7 +229,11 @@ class ErpLineItemTable extends StatefulWidget {
   final ValueChanged<int>? onDeleteLine;
   final Widget? footer;
   final String addButtonLabel;
+  final String title;
   final String sourceColumnLabel;
+  final Map<ErpLineItemTableColumn, String> columnLabels;
+  final List<ErpLineItemCustomColumn> customColumns;
+  final Set<ErpLineItemTableColumn> visibleColumns;
   final bool enabled;
 
   @override
@@ -116,15 +254,35 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     'description': 240,
     'remarks': 220,
     'amount': 126,
-    'action': 64,
+    'action': 76,
   };
 
   final ScrollController _horizontalController = ScrollController();
   int? _selectedIndex;
   int? _hoveredIndex;
 
-  double get _tableMinWidth =>
-      _columnWidths.values.fold<double>(0, (sum, width) => sum + width);
+  List<Object> get _orderedColumns {
+    final ordered = <Object>[];
+    for (final column in _activeColumns) {
+      ordered.add(column);
+      ordered.addAll(
+        widget.customColumns.where((custom) => custom.insertAfter == column),
+      );
+    }
+    return ordered;
+  }
+
+  List<ErpLineItemTableColumn> get _activeColumns =>
+      ErpLineItemTableColumn.values
+          .where(widget.visibleColumns.contains)
+          .toList(growable: false);
+
+  double get _tableMinWidth => _orderedColumns.fold<double>(0, (sum, column) {
+    if (column is ErpLineItemTableColumn) {
+      return sum + (_columnWidths[_columnKey(column)] ?? 0);
+    }
+    return sum + (column as ErpLineItemCustomColumn).width;
+  });
 
   @override
   void dispose() {
@@ -134,6 +292,72 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
 
   void _notifyChanged() {
     widget.onChanged?.call(widget.lines);
+  }
+
+  String _columnKey(ErpLineItemTableColumn column) {
+    switch (column) {
+      case ErpLineItemTableColumn.no:
+        return 'no';
+      case ErpLineItemTableColumn.source:
+        return 'source';
+      case ErpLineItemTableColumn.item:
+        return 'item';
+      case ErpLineItemTableColumn.uom:
+        return 'uom';
+      case ErpLineItemTableColumn.warehouse:
+        return 'warehouse';
+      case ErpLineItemTableColumn.qty:
+        return 'qty';
+      case ErpLineItemTableColumn.rate:
+        return 'rate';
+      case ErpLineItemTableColumn.discount:
+        return 'discount';
+      case ErpLineItemTableColumn.taxCode:
+        return 'tax';
+      case ErpLineItemTableColumn.description:
+        return 'description';
+      case ErpLineItemTableColumn.remarks:
+        return 'remarks';
+      case ErpLineItemTableColumn.amount:
+        return 'amount';
+      case ErpLineItemTableColumn.action:
+        return 'action';
+    }
+  }
+
+  String _columnLabel(ErpLineItemTableColumn column) {
+    final override = widget.columnLabels[column];
+    if (override != null && override.trim().isNotEmpty) {
+      return override;
+    }
+    switch (column) {
+      case ErpLineItemTableColumn.no:
+        return 'No';
+      case ErpLineItemTableColumn.source:
+        return widget.sourceColumnLabel;
+      case ErpLineItemTableColumn.item:
+        return 'Item';
+      case ErpLineItemTableColumn.uom:
+        return 'UOM';
+      case ErpLineItemTableColumn.warehouse:
+        return 'Warehouse';
+      case ErpLineItemTableColumn.qty:
+        return 'Qty';
+      case ErpLineItemTableColumn.rate:
+        return 'Rate';
+      case ErpLineItemTableColumn.discount:
+        return 'Discount %';
+      case ErpLineItemTableColumn.taxCode:
+        return 'Tax code';
+      case ErpLineItemTableColumn.description:
+        return 'Description';
+      case ErpLineItemTableColumn.remarks:
+        return 'Remarks';
+      case ErpLineItemTableColumn.amount:
+        return 'Amount';
+      case ErpLineItemTableColumn.action:
+        return 'Action';
+    }
   }
 
   TextStyle _tableHeaderStyle(ThemeData theme, AppThemeExtension appTheme) {
@@ -215,7 +439,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Line items',
+          widget.title,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
             color: appTheme.tableTitleText,
@@ -334,24 +558,23 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
 
   Widget _buildHeaderRow(ThemeData theme, AppThemeExtension appTheme) {
     final style = _tableHeaderStyle(theme, appTheme);
+    final columns = _orderedColumns;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        _headerCell('No', _columnWidths['no']!, style, appTheme),
-        _headerCell(widget.sourceColumnLabel, _columnWidths['source']!, style, appTheme),
-        _headerCell('Item', _columnWidths['item']!, style, appTheme),
-        _headerCell('UOM', _columnWidths['uom']!, style, appTheme),
-        _headerCell('Warehouse', _columnWidths['warehouse']!, style, appTheme),
-        _headerCell('Qty', _columnWidths['qty']!, style, appTheme),
-        _headerCell('Rate', _columnWidths['rate']!, style, appTheme),
-        _headerCell('Discount %', _columnWidths['discount']!, style, appTheme),
-        _headerCell('Tax code', _columnWidths['tax']!, style, appTheme),
-        _headerCell('Description', _columnWidths['description']!, style, appTheme),
-        _headerCell('Remarks', _columnWidths['remarks']!, style, appTheme),
-        _headerCell('Amount', _columnWidths['amount']!, style, appTheme),
-        // Hide right border on the last column to prevent double-border overlap
-        _headerCell('Action', _columnWidths['action']!, style, appTheme, showRightBorder: false),
-      ],
+      children: List<Widget>.generate(columns.length, (index) {
+        final column = columns[index];
+        return _headerCell(
+          column is ErpLineItemTableColumn
+              ? _columnLabel(column)
+              : (column as ErpLineItemCustomColumn).label,
+          column is ErpLineItemTableColumn
+              ? _columnWidths[_columnKey(column)]!
+              : (column as ErpLineItemCustomColumn).width,
+          style,
+          appTheme,
+          showRightBorder: index != columns.length - 1,
+        );
+      }),
     );
   }
 
@@ -364,6 +587,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final tableCellStyle = _tableCellStyle(theme, appTheme);
+    final columns = _orderedColumns;
     final selected = _selectedIndex == index;
     final hovered = _hoveredIndex == index;
     final background = selected
@@ -392,104 +616,164 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _dataCell(
-                width: _columnWidths['no']!,
-                borderColor: appTheme.tableBorder,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: selected
-                        ? AppUiConstants.tableCellPaddingSm
-                        : AppUiConstants.spacingSm,
-                    right: AppUiConstants.spacingXs,
-                    top: AppUiConstants.spacingSm,
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: Text(
-                    '${index + 1}',
-                    style: tableCellStyle.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: appTheme.tableLinkText,
-                    ),
-                  ),
-                ),
+            children: List<Widget>.generate(columns.length, (columnIndex) {
+              final column = columns[columnIndex];
+              if (column is ErpLineItemTableColumn) {
+                return _buildDataColumn(
+                  context: context,
+                  index: index,
+                  row: row,
+                  appTheme: appTheme,
+                  tableCellStyle: tableCellStyle,
+                  selected: selected,
+                  column: column,
+                  showRightBorder: columnIndex != columns.length - 1,
+                );
+              }
+              return _buildCustomDataColumn(
+                row: row,
+                appTheme: appTheme,
+                column: column as ErpLineItemCustomColumn,
+                showRightBorder: columnIndex != columns.length - 1,
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataColumn({
+    required BuildContext context,
+    required int index,
+    required ErpLineItemTableRow row,
+    required AppThemeExtension appTheme,
+    required TextStyle tableCellStyle,
+    required bool selected,
+    required ErpLineItemTableColumn column,
+    required bool showRightBorder,
+  }) {
+    final theme = Theme.of(context);
+    final overrideCell = row.cellWidgets[column];
+    if (overrideCell != null) {
+      return _dataCell(
+        width: _columnWidths[_columnKey(column)]!,
+        borderColor: appTheme.tableBorder,
+        showRightBorder: showRightBorder,
+        child: overrideCell,
+      );
+    }
+    switch (column) {
+      case ErpLineItemTableColumn.no:
+        return _dataCell(
+          width: _columnWidths['no']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: selected
+                  ? AppUiConstants.tableCellPaddingSm
+                  : AppUiConstants.spacingSm,
+              right: AppUiConstants.spacingXs,
+              top: AppUiConstants.spacingSm,
+              bottom: AppUiConstants.spacingSm,
+            ),
+            child: Text(
+              '${index + 1}',
+              style: tableCellStyle.copyWith(
+                fontWeight: FontWeight.w600,
+                color: appTheme.tableLinkText,
               ),
-              _dataCell(
-                width: _columnWidths['source']!,
-                borderColor: appTheme.tableBorder,
-                child: _buildSourceCell(row),
-              ),
-              _dataCell(
-                width: _columnWidths['item']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactDropdown<int>(
-                  child: ErpLinkField<int>(
-                    labelText: '',
-                    hintText: 'Select item',
-                    fieldPadding: EdgeInsets.zero,
-                    initialSelection: row.itemSelection,
-                    options: row.itemOptions,
-                    onChanged: widget.enabled
-                        ? (value) {
+            ),
+          ),
+        );
+      case ErpLineItemTableColumn.source:
+        return _dataCell(
+          width: _columnWidths['source']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: _buildSourceCell(row),
+        );
+      case ErpLineItemTableColumn.item:
+        return _dataCell(
+          width: _columnWidths['item']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: _compactDropdown<int>(
+            child: ErpLinkField<int>(
+              labelText: '',
+              hintText: 'Select item',
+              fieldPadding: EdgeInsets.zero,
+              initialSelection: row.itemSelection,
+              options: row.itemOptions,
+              onChanged: widget.enabled
+                  ? (value) {
                       row.onItemChanged?.call(value);
                       _notifyChanged();
                     }
-                        : (_) {},
-                    validator: row.itemValidator == null
-                        ? null
-                        : (_) =>
-                        row.itemValidator!.call(row.itemSelection?.label ?? ''),
-                    enabled: widget.enabled && row.onItemChanged != null,
-                  ),
-                ),
-              ),
-              _dataCell(
-                width: _columnWidths['uom']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactDropdown<int>(
-                  child: AppDropdownField<int>.fromMapped(
-                    labelText: '',
-                    hintText: 'UOM',
-                    fieldPadding: EdgeInsets.zero,
-                    mappedItems: row.uomOptions,
-                    initialValue: row.uomId,
-                    onChanged: widget.enabled
-                        ? (value) {
+                  : (_) {},
+              validator: row.itemValidator == null
+                  ? null
+                  : (_) => row.itemValidator!.call(row.itemSelection?.label ?? ''),
+              enabled: widget.enabled && row.onItemChanged != null,
+            ),
+          ),
+        );
+      case ErpLineItemTableColumn.uom:
+        return _dataCell(
+          width: _columnWidths['uom']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: _compactDropdown<int>(
+            child: AppDropdownField<int>.fromMapped(
+              labelText: '',
+              hintText: 'UOM',
+              fieldPadding: EdgeInsets.zero,
+              mappedItems: row.uomOptions,
+              initialValue: row.uomId,
+              onChanged: widget.enabled
+                  ? (value) {
                       row.onUomChanged?.call(value);
                       _notifyChanged();
                     }
-                        : null,
-                    validator: row.uomValidator,
-                    enabled: widget.enabled && row.onUomChanged != null,
-                  ),
-                ),
-              ),
-              _dataCell(
-                width: _columnWidths['warehouse']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactDropdown<int>(
-                  child: AppDropdownField<int>.fromMapped(
-                    labelText: '',
-                    hintText: 'Warehouse',
-                    fieldPadding: EdgeInsets.zero,
-                    mappedItems: row.warehouseOptions,
-                    initialValue: row.warehouseId,
-                    onChanged: widget.enabled
-                        ? (value) {
+                  : null,
+              validator: row.uomValidator,
+              enabled: widget.enabled && row.onUomChanged != null,
+            ),
+          ),
+        );
+      case ErpLineItemTableColumn.warehouse:
+        return _dataCell(
+          width: _columnWidths['warehouse']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: _compactDropdown<int>(
+            child: AppDropdownField<int>.fromMapped(
+              labelText: '',
+              hintText: 'Warehouse',
+              fieldPadding: EdgeInsets.zero,
+              mappedItems: row.warehouseOptions,
+              initialValue: row.warehouseId,
+              onChanged: widget.enabled
+                  ? (value) {
                       row.onWarehouseChanged?.call(value);
                       _notifyChanged();
                     }
-                        : null,
-                    enabled: widget.enabled && row.onWarehouseChanged != null,
-                  ),
-                ),
-              ),
-              _dataCell(
-                width: _columnWidths['qty']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactTextField(
-                  controller: row.qtyController,
-                  hintText: 'Qty',
+                  : null,
+              enabled: widget.enabled && row.onWarehouseChanged != null,
+            ),
+          ),
+        );
+      case ErpLineItemTableColumn.qty:
+        return _dataCell(
+          width: _columnWidths['qty']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: row.qtyController == null
+              ? const SizedBox.shrink()
+              : _compactTextField(
+                  controller: row.qtyController!,
+                  hintText: _columnLabel(ErpLineItemTableColumn.qty),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   validator: row.qtyValidator,
                   onChanged: (value) {
@@ -497,13 +781,17 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                     _notifyChanged();
                   },
                 ),
-              ),
-              _dataCell(
-                width: _columnWidths['rate']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactTextField(
-                  controller: row.rateController,
-                  hintText: 'Rate',
+        );
+      case ErpLineItemTableColumn.rate:
+        return _dataCell(
+          width: _columnWidths['rate']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: row.rateController == null
+              ? const SizedBox.shrink()
+              : _compactTextField(
+                  controller: row.rateController!,
+                  hintText: _columnLabel(ErpLineItemTableColumn.rate),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   validator: row.rateValidator,
                   onChanged: (value) {
@@ -511,129 +799,157 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                     _notifyChanged();
                   },
                 ),
-              ),
-              _dataCell(
-                width: _columnWidths['discount']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactTextField(
-                  controller: row.discountController,
+        );
+      case ErpLineItemTableColumn.discount:
+        return _dataCell(
+          width: _columnWidths['discount']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: row.discountController == null
+              ? const SizedBox.shrink()
+              : _compactTextField(
+                  controller: row.discountController!,
                   hintText: '0',
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: row.discountValidator,
                   onChanged: (value) {
                     row.onDiscountChanged?.call(value);
                     _notifyChanged();
                   },
                 ),
-              ),
-              _dataCell(
-                width: _columnWidths['tax']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactDropdown<int>(
-                  child: AppDropdownField<int>.fromMapped(
-                    labelText: '',
-                    hintText: 'Tax',
-                    fieldPadding: EdgeInsets.zero,
-                    mappedItems: row.taxOptions,
-                    initialValue: row.taxCodeId,
-                    onChanged: widget.enabled
-                        ? (value) {
+        );
+      case ErpLineItemTableColumn.taxCode:
+        return _dataCell(
+          width: _columnWidths['tax']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: _compactDropdown<int>(
+            child: AppDropdownField<int>.fromMapped(
+              labelText: '',
+              hintText: 'Tax',
+              fieldPadding: EdgeInsets.zero,
+              mappedItems: row.taxOptions,
+              initialValue: row.taxCodeId,
+              onChanged: widget.enabled
+                  ? (value) {
                       row.onTaxCodeChanged?.call(value);
                       _notifyChanged();
                     }
-                        : null,
-                    enabled: widget.enabled && row.onTaxCodeChanged != null,
-                  ),
-                ),
-              ),
-              _dataCell(
-                width: _columnWidths['description']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactTextField(
-                  controller: row.descriptionController,
+                  : null,
+              enabled: widget.enabled && row.onTaxCodeChanged != null,
+            ),
+          ),
+        );
+      case ErpLineItemTableColumn.description:
+        return _dataCell(
+          width: _columnWidths['description']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: row.descriptionController == null
+              ? const SizedBox.shrink()
+              : _compactTextField(
+                  controller: row.descriptionController!,
                   hintText: 'Description',
                   onChanged: (value) {
                     row.onDescriptionChanged?.call(value);
                     _notifyChanged();
                   },
                 ),
-              ),
-              _dataCell(
-                width: _columnWidths['remarks']!,
-                borderColor: appTheme.tableBorder,
-                child: _compactTextField(
-                  controller: row.remarksController,
+        );
+      case ErpLineItemTableColumn.remarks:
+        return _dataCell(
+          width: _columnWidths['remarks']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: row.remarksController == null
+              ? const SizedBox.shrink()
+              : _compactTextField(
+                  controller: row.remarksController!,
                   hintText: 'Remarks',
                   onChanged: (value) {
                     row.onRemarksChanged?.call(value);
                     _notifyChanged();
                   },
                 ),
-              ),
-              _dataCell(
-                width: _columnWidths['amount']!,
-                borderColor: appTheme.tableBorder,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppUiConstants.spacingSm,
-                    AppUiConstants.spacingMd,
-                    AppUiConstants.spacingSm,
-                    AppUiConstants.spacingMd,
-                  ),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      row.amount.toStringAsFixed(2),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: appTheme.tableCellText,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
+        );
+      case ErpLineItemTableColumn.amount:
+        return _dataCell(
+          width: _columnWidths['amount']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppUiConstants.spacingSm,
+              AppUiConstants.spacingMd,
+              AppUiConstants.spacingSm,
+              AppUiConstants.spacingMd,
+            ),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                row.amount.toStringAsFixed(2),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: appTheme.tableCellText,
+                  fontSize: 14,
                 ),
               ),
-              _dataCell(
-                width: _columnWidths['action']!,
-                borderColor: appTheme.tableBorder,
-                showRightBorder: false, // Prevent double right border
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppUiConstants.tableCompactFieldInset,
-                    vertical: AppUiConstants.tableCellPaddingSm,
+            ),
+          ),
+        );
+      case ErpLineItemTableColumn.action:
+        return _dataCell(
+          width: _columnWidths['action']!,
+          borderColor: appTheme.tableBorder,
+          showRightBorder: showRightBorder,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppUiConstants.tableCompactFieldInset,
+              vertical: AppUiConstants.tableCellPaddingSm,
+            ),
+            child: Center(
+              child: IconButton(
+                tooltip: 'Delete row',
+                visualDensity: VisualDensity.compact,
+                style: IconButton.styleFrom(
+                  backgroundColor: appTheme.cardBackground,
+                  foregroundColor: appTheme.mutedText,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.tableRadiusXs,
+                    ),
+                    side: BorderSide(color: appTheme.tableBorder),
                   ),
-                  child: Center(
-                    child: IconButton(
-                      tooltip: 'Delete row',
-                      visualDensity: VisualDensity.compact,
-                      style: IconButton.styleFrom(
-                        backgroundColor: appTheme.cardBackground,
-                        foregroundColor: appTheme.mutedText,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppUiConstants.tableRadiusXs,
-                          ),
-                          side: BorderSide(color: appTheme.tableBorder),
-                        ),
-                      ),
-                      onPressed:
-                      widget.enabled &&
-                          row.deleteEnabled &&
-                          widget.onDeleteLine != null
-                          ? () {
+                ),
+                onPressed: widget.enabled &&
+                        row.deleteEnabled &&
+                        widget.onDeleteLine != null
+                    ? () {
                         widget.onDeleteLine!(index);
                         _notifyChanged();
                       }
-                          : null,
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                    ),
-                  ),
-                ),
+                    : null,
+                icon: const Icon(Icons.delete_outline, size: 18),
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+    }
+  }
+
+  Widget _buildCustomDataColumn({
+    required ErpLineItemTableRow row,
+    required AppThemeExtension appTheme,
+    required ErpLineItemCustomColumn column,
+    required bool showRightBorder,
+  }) {
+    return _dataCell(
+      width: column.width,
+      borderColor: appTheme.tableBorder,
+      showRightBorder: showRightBorder,
+      child: row.customCells[column.id] ?? const SizedBox.shrink(),
     );
   }
 

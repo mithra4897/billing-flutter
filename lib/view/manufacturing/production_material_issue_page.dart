@@ -403,210 +403,92 @@ class _ProductionMaterialIssueEditor extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            Row(
-              children: [
-                Text(
-                  'Lines',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add line',
-                  filled: false,
-                  onPressed: vm.isDraft || vm.selected == null
-                      ? vm.addLine
-                      : null,
-                ),
+            ErpLineItemTable(
+              title: 'Lines',
+              enabled: vm.isDraft || vm.selected == null,
+              onAddLine: (vm.isDraft || vm.selected == null) ? vm.addLine : null,
+              onDeleteLine: (vm.isDraft || vm.selected == null) ? (i) => vm.removeLine(i) : null,
+              visibleColumns: const <ErpLineItemTableColumn>{
+                ErpLineItemTableColumn.no,
+                ErpLineItemTableColumn.item,
+                ErpLineItemTableColumn.warehouse,
+                ErpLineItemTableColumn.uom,
+                ErpLineItemTableColumn.action,
+              },
+              customColumns: const <ErpLineItemCustomColumn>[
+                ErpLineItemCustomColumn(id: 'batch', label: 'Batch', width: 140, insertAfter: ErpLineItemTableColumn.uom),
+                ErpLineItemCustomColumn(id: 'serial', label: 'Serials', width: 240, insertAfter: ErpLineItemTableColumn.uom),
+                ErpLineItemCustomColumn(id: 'issue_qty', label: 'Issue Qty', width: 110, insertAfter: ErpLineItemTableColumn.uom),
               ],
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
+                final line = vm.lines[index];
+                final canEditLine = vm.isDraft || vm.selected == null;
+                final batches = vm.batchOptions(line.itemId, line.warehouseId);
+                final serials = vm.serialOptions(line.itemId, line.warehouseId, line.batchId);
+                return ErpLineItemTableRow(
+                  rowKey: line,
+                  itemId: line.itemId,
+                  itemSelection: vm.lineItemOptions.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
+                  itemOptions: vm.lineItemOptions.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
+                  onItemChanged: canEditLine ? (v) => vm.setLineItemId(index, v) : null,
+                  itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                  warehouseId: line.warehouseId,
+                  warehouseOptions: vm.warehouseOptionsForItem(line.itemId).where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                  onWarehouseChanged: canEditLine ? (v) => vm.setLineWarehouseId(index, v) : null,
+                  uomId: line.uomId,
+                  uomOptions: vm.uomOptionsForItem(line.itemId).where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                  onUomChanged: canEditLine ? (v) => vm.setLineUomId(index, v) : null,
+                  uomValidator: Validators.requiredSelection('UOM'),
+                  amount: 0,
+                  deleteEnabled: canEditLine && vm.lines.length > 1,
+                  customCells: <String, Widget>{
+                    'batch': vm.itemHasBatch(line.itemId)
+                        ? ErpLineItemCellFrame(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: '', hintText: 'Batch', fieldPadding: EdgeInsets.zero,
+                              mappedItems: batches.where((x) => intValue(x.toJson(), 'id') != null).map((x) => AppDropdownItem<int>(value: intValue(x.toJson(), 'id')!, label: stringValue(x.toJson(), 'batch_no', 'Batch'))).toList(growable: false),
+                              initialValue: line.batchId,
+                              onChanged: canEditLine ? (v) => vm.setLineBatchId(index, v) : null,
+                            ),
+                          )
+                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                    'serial': vm.itemHasSerial(line.itemId)
+                        ? ErpLineItemCellFrame(
+                            height: null,
+                            child: AppSerialNumbersField(
+                              values: vm.lineSerialIds(line).map((id) {
+                                final serial = serials.cast<StockSerialModel?>().firstWhere((e) => e != null && intValue(e.toJson(), 'id') == id, orElse: () => null);
+                                return serial == null ? '' : stringValue(serial.toJson(), 'serial_no', serial.toString());
+                              }).where((v) => v.trim().isNotEmpty).toList(growable: false),
+                              labelText: 'Serials',
+                              dialogTitle: 'Select Serials',
+                              enabled: canEditLine,
+                              emptyText: 'No serials selected',
+                              countSummaryBuilder: (count) => '$count serial(s) selected',
+                              validator: (values) {
+                                final byLabel = <String, int>{for (final s in serials) stringValue(s.toJson(), 'serial_no', s.toString()).trim().toLowerCase(): intValue(s.toJson(), 'id') ?? 0};
+                                for (final label in values) {
+                                  if (!byLabel.containsKey(label.toLowerCase())) return 'Serial "$label" is not available for this item/warehouse/batch.';
+                                }
+                                return null;
+                              },
+                              onChanged: (values) {
+                                final byLabel = <String, int>{for (final s in serials) stringValue(s.toJson(), 'serial_no', s.toString()).trim().toLowerCase(): intValue(s.toJson(), 'id') ?? 0};
+                                vm.setLineSerialIds(index, values.map((v) => byLabel[v.toLowerCase()]!).toList(growable: false));
+                              },
+                            ),
+                          )
+                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                    'issue_qty': ErpLineItemTextCell(
+                      controller: line.issueQtyController,
+                      enabled: canEditLine && !vm.itemHasSerial(line.itemId),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.requiredPositiveNumber('Issue Qty'),
+                    ),
+                  },
+                );
+              }),
             ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(vm.lines.length, (index) {
-              final line = vm.lines[index];
-              final batches = vm.batchOptions(line.itemId, line.warehouseId);
-              final serials = vm.serialOptions(
-                line.itemId,
-                line.warehouseId,
-                line.batchId,
-              );
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
-                ),
-                child: PurchaseCompactLineCard(
-                  index: index,
-                  total: vm.lines.length,
-                  removeEnabled:
-                      (vm.isDraft || vm.selected == null) &&
-                      vm.lines.length > 1,
-                  onRemove: (vm.isDraft || vm.selected == null)
-                      ? () => vm.removeLine(index)
-                      : null,
-                  child: PurchaseCompactFieldGrid(
-                    children: [
-                      AppSearchPickerField<int>(
-                        labelText: 'Item',
-                        selectedLabel: vm.lineItemOptions
-                            .cast<ItemModel?>()
-                            .firstWhere(
-                              (x) => x?.id == line.itemId,
-                              orElse: () => null,
-                            )
-                            ?.toString(),
-                        options: vm.lineItemOptions
-                            .where((x) => x.id != null)
-                            .map(
-                              (x) => AppSearchPickerOption<int>(
-                                value: x.id!,
-                                label: x.toString(),
-                                subtitle: x.itemCode,
-                              ),
-                            )
-                            .toList(growable: false),
-                        validator: (_) =>
-                            line.itemId == null ? 'Item is required' : null,
-                        onChanged: (value) => vm.setLineItemId(index, value),
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'UOM',
-                        mappedItems: vm
-                            .uomOptionsForItem(line.itemId)
-                            .where((x) => x.id != null)
-                            .map(
-                              (x) => AppDropdownItem<int>(
-                                value: x.id!,
-                                label: x.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.uomId,
-                        onChanged: (value) => vm.setLineUomId(index, value),
-                        validator: Validators.requiredSelection('UOM'),
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Warehouse',
-                        mappedItems: vm
-                            .warehouseOptionsForItem(line.itemId)
-                            .where((x) => x.id != null)
-                            .map(
-                              (x) => AppDropdownItem<int>(
-                                value: x.id!,
-                                label: x.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.warehouseId,
-                        onChanged: (value) =>
-                            vm.setLineWarehouseId(index, value),
-                        validator: Validators.requiredSelection('Warehouse'),
-                      ),
-                      if (vm.itemHasBatch(line.itemId))
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Batch',
-                          mappedItems: batches
-                              .where((x) => intValue(x.toJson(), 'id') != null)
-                              .map(
-                                (x) => AppDropdownItem<int>(
-                                  value: intValue(x.toJson(), 'id')!,
-                                  label: stringValue(
-                                    x.toJson(),
-                                    'batch_no',
-                                    'Batch',
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.batchId,
-                          onChanged: (value) => vm.setLineBatchId(index, value),
-                        ),
-                      if (vm.itemHasSerial(line.itemId))
-                        AppSerialNumbersField(
-                          values: vm
-                              .lineSerialIds(line)
-                              .map((id) {
-                                final serial = serials
-                                    .cast<StockSerialModel?>()
-                                    .firstWhere(
-                                      (entry) =>
-                                          entry != null &&
-                                          intValue(entry.toJson(), 'id') == id,
-                                      orElse: () => null,
-                                    );
-                                return serial == null
-                                    ? ''
-                                    : stringValue(
-                                        serial.toJson(),
-                                        'serial_no',
-                                        serial.toString(),
-                                      );
-                              })
-                              .where((value) => value.trim().isNotEmpty)
-                              .toList(growable: false),
-                          labelText: 'Serials',
-                          dialogTitle: 'Select Serials',
-                          enabled: vm.isDraft || vm.selected == null,
-                          emptyText: 'No serials selected',
-                          countSummaryBuilder: (count) =>
-                              '$count serial(s) selected',
-                          validator: (values) {
-                            final serialIdByLabel = <String, int>{
-                              for (final serial in serials)
-                                stringValue(
-                                      serial.toJson(),
-                                      'serial_no',
-                                      serial.toString(),
-                                    ).trim().toLowerCase():
-                                    intValue(serial.toJson(), 'id') ?? 0,
-                            };
-                            for (final label in values) {
-                              if (!serialIdByLabel.containsKey(
-                                label.toLowerCase(),
-                              )) {
-                                return 'Serial "$label" is not available for this item/warehouse/batch.';
-                              }
-                            }
-                            return null;
-                          },
-                          onChanged: (values) {
-                            final serialIdByLabel = <String, int>{
-                              for (final serial in serials)
-                                stringValue(
-                                      serial.toJson(),
-                                      'serial_no',
-                                      serial.toString(),
-                                    ).trim().toLowerCase():
-                                    intValue(serial.toJson(), 'id') ?? 0,
-                            };
-                            final resolvedIds = values
-                                .map(
-                                  (value) =>
-                                      serialIdByLabel[value.toLowerCase()]!,
-                                )
-                                .toList(growable: false);
-                            vm.setLineSerialIds(index, resolvedIds);
-                          },
-                        ),
-                      AppFormTextField(
-                        labelText: 'Issue Qty',
-                        controller: line.issueQtyController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        enabled:
-                            (vm.isDraft || vm.selected == null) &&
-                            !vm.itemHasSerial(line.itemId),
-                        validator: Validators.requiredPositiveNumber(
-                          'Issue Qty',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

@@ -81,6 +81,207 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
     );
   }
 
+  Widget _buildLineItemTable(PurchaseReceiptManagementController controller) {
+    final itemOptions = controller.itemsLookup
+        .where((item) => item.id != null)
+        .map(
+          (item) => ErpLinkFieldOption<int>(
+            value: item.id!,
+            label: item.toString(),
+            subtitle: item.itemCode,
+            searchText: '${item.itemCode} ${item.toString()}',
+          ),
+        )
+        .toList(growable: false);
+
+    final warehouseOptions = controller.warehouses
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: item.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final amount = controller.taxBreakdownForLine(line).taxable;
+      final uomOptions = controller
+          .uomOptionsForItem(line.itemId)
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: item.toString(),
+            ),
+          )
+          .toList(growable: false);
+
+      if (uomOptions.length == 1) {
+        final onlyId = uomOptions.first.value;
+        if (line.uomId != onlyId) {
+          line.uomId = onlyId;
+        }
+      }
+
+      final itemSelection = line.itemId == null
+          ? null
+          : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
+              (item) => item?.value == line.itemId,
+              orElse: () => null,
+            );
+
+      return ErpLineItemTableRow(
+        rowKey: line,
+        itemId: line.itemId,
+        itemSelection: itemSelection,
+        itemOptions: itemOptions,
+        onItemChanged: controller.isSelectedReceiptReadOnly
+            ? null
+            : (value) async {
+                await controller.setLineItemId(line, value);
+              },
+        itemValidator: (_) =>
+            Validators.requiredSelectionField(line.itemId, 'Item'),
+        warehouseId: line.warehouseId,
+        warehouseOptions: warehouseOptions,
+        onWarehouseChanged: controller.isSelectedReceiptReadOnly
+            ? null
+            : (value) async {
+                await controller.setLineWarehouseId(line, value);
+              },
+        uomId: line.uomId,
+        uomOptions: uomOptions,
+        onUomChanged: controller.isSelectedReceiptReadOnly
+            ? null
+            : (value) => controller.setLineUomId(line, value),
+        uomValidator: (_) => Validators.dependentSelectionField(
+          prerequisite: line.itemId,
+          prerequisiteName: 'item',
+          value: line.uomId,
+          fieldName: 'UOM',
+        ),
+        rateController: line.rateController,
+        rateValidator: Validators.optionalNonNegativeNumber('Rate'),
+        descriptionController: line.descriptionController,
+        remarksController: line.remarksController,
+        amount: amount,
+        deleteEnabled:
+            !controller.isSelectedReceiptReadOnly && controller.lines.length > 1,
+        cellWidgets: <ErpLineItemTableColumn, Widget>{
+          ErpLineItemTableColumn.qty: ErpLineItemTextCell(
+            key: ValueKey('receipt-qty-$index'),
+            controller: line.receivedQtyController,
+            hintText: 'Received Qty',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: (value) {
+              final parsed = Validators.parseFlexibleNumber(value);
+              if ((parsed == null || parsed <= 0) &&
+                  controller.lineAllowsBlankQty(line)) {
+                return null;
+              }
+              return Validators.compose([
+                Validators.required('Received Qty'),
+                Validators.optionalNonNegativeNumber('Received Qty'),
+              ])(value);
+            },
+          ),
+        },
+        customCells: <String, Widget>{
+          'serial': controller.isSerialManagedItem(line.itemId)
+              ? ErpLineItemCellFrame(
+                  child: AppDropdownField<int>.fromMapped(
+                    labelText: '',
+                    hintText: 'Serial Number',
+                    fieldPadding: EdgeInsets.zero,
+                    mappedItems: controller
+                        .serialOptionsForLine(line)
+                        .where(
+                          (serial) => intValue(serial.toJson(), 'id') != null,
+                        )
+                        .map(
+                          (serial) => AppDropdownItem<int>(
+                            value: intValue(serial.toJson(), 'id')!,
+                            label: stringValue(serial.toJson(), 'serial_no'),
+                          ),
+                        )
+                        .toList(growable: false),
+                    initialValue: line.serialId,
+                    onChanged: controller.isSelectedReceiptReadOnly
+                        ? null
+                        : (value) => controller.setLineSerialId(line, value),
+                    enabled: !controller.isSelectedReceiptReadOnly,
+                  ),
+                )
+              : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+          'accepted_qty': ErpLineItemTextCell(
+            key: ValueKey('accepted-qty-$index'),
+            controller: line.acceptedQtyController,
+            hintText: 'Accepted Qty',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: Validators.optionalNonNegativeNumber('Accepted Qty'),
+          ),
+          'rejected_qty': ErpLineItemTextCell(
+            key: ValueKey('rejected-qty-$index'),
+            controller: line.rejectedQtyController,
+            hintText: 'Rejected Qty',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: Validators.optionalNonNegativeNumber('Rejected Qty'),
+          ),
+        },
+      );
+    });
+
+    return ErpLineItemTable(
+      title: 'Lines',
+      lines: rows,
+      onAddLine: controller.isSelectedReceiptReadOnly ? null : controller.addLine,
+      onDeleteLine: controller.isSelectedReceiptReadOnly
+          ? null
+          : controller.removeLine,
+      addButtonLabel: 'Add Line',
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.warehouse,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.description,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.qty: 'Received Qty',
+      },
+      customColumns: const <ErpLineItemCustomColumn>[
+        ErpLineItemCustomColumn(
+          id: 'serial',
+          label: 'Serial Number',
+          width: 180,
+          insertAfter: ErpLineItemTableColumn.warehouse,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'accepted_qty',
+          label: 'Accepted Qty',
+          width: 130,
+          insertAfter: ErpLineItemTableColumn.qty,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'rejected_qty',
+          label: 'Rejected Qty',
+          width: 130,
+          insertAfter: ErpLineItemTableColumn.qty,
+        ),
+      ],
+      enabled: !controller.isSelectedReceiptReadOnly,
+    );
+  }
+
   Widget _buildContent(
     BuildContext context,
     PurchaseReceiptManagementController controller,
@@ -307,246 +508,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                     onChanged: controller.setIsActive,
                   ),
                   const SizedBox(height: AppUiConstants.spacingLg),
-                  Row(
-                    children: [
-                      Text(
-                        'Lines',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      AppActionButton(
-                        icon: Icons.add_outlined,
-                        label: 'Add Line',
-                        onPressed: controller.isSelectedReceiptReadOnly
-                            ? null
-                            : controller.addLine,
-                        filled: false,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  ...List<Widget>.generate(controller.lines.length, (index) {
-                    final line = controller.lines[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: AppUiConstants.spacingSm,
-                      ),
-                      child: PurchaseCompactLineCard(
-                        index: index,
-                        total: controller.lines.length,
-                        removeEnabled: controller.lines.length > 1,
-                        onRemove: () => controller.removeLine(index),
-                        child: PurchaseCompactFieldGrid(
-                          children: [
-                            AppSearchPickerField<int>(
-                              labelText: 'Item',
-                              selectedLabel: controller.itemsLookup
-                                  .cast<ItemModel?>()
-                                  .firstWhere(
-                                    (item) => item?.id == line.itemId,
-                                    orElse: () => null,
-                                  )
-                                  ?.toString(),
-                              options: controller.itemsLookup
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppSearchPickerOption<int>(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                      subtitle: item.itemCode,
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onChanged: (value) async {
-                                await controller.setLineItemId(line, value);
-                              },
-                              validator: (_) =>
-                                  Validators.requiredSelectionField(
-                                    line.itemId,
-                                    'Item',
-                                  ),
-                            ),
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Warehouse',
-                              mappedItems: controller.warehouses
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppDropdownItem(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.warehouseId,
-                              onChanged: (value) async {
-                                await controller.setLineWarehouseId(
-                                  line,
-                                  value,
-                                );
-                              },
-                              validator: (_) =>
-                                  controller.lineUsesInventory(line.itemId)
-                                  ? Validators.requiredSelectionField(
-                                      line.warehouseId,
-                                      'Warehouse',
-                                    )
-                                  : null,
-                            ),
-                            if (controller.isSerialManagedItem(line.itemId))
-                              Builder(
-                                builder: (context) {
-                                  final serialOptions = controller
-                                      .serialOptionsForLine(line);
-                                  return AppDropdownField<int>.fromMapped(
-                                    labelText: 'Serial Number',
-                                    mappedItems: serialOptions
-                                        .where(
-                                          (serial) =>
-                                              intValue(serial.toJson(), 'id') !=
-                                              null,
-                                        )
-                                        .map(
-                                          (serial) => AppDropdownItem<int>(
-                                            value: intValue(
-                                              serial.toJson(),
-                                              'id',
-                                            )!,
-                                            label: stringValue(
-                                              serial.toJson(),
-                                              'serial_no',
-                                            ),
-                                          ),
-                                        )
-                                        .toList(growable: false),
-                                    initialValue: line.serialId,
-                                    onChanged: (value) =>
-                                        controller.setLineSerialId(line, value),
-                                    validator: (_) {
-                                      final dependencyError =
-                                          Validators.dependentSelectionField(
-                                            prerequisite: line.warehouseId,
-                                            prerequisiteName: 'warehouse',
-                                            value: line.serialId,
-                                            fieldName: 'Serial number',
-                                          );
-                                      if (dependencyError != null &&
-                                          line.warehouseId == null) {
-                                        return dependencyError;
-                                      }
-                                      if (serialOptions.isEmpty) {
-                                        return 'No serial is available for the selected warehouse';
-                                      }
-                                      return dependencyError;
-                                    },
-                                  );
-                                },
-                              ),
-                            Builder(
-                              builder: (context) {
-                                final options = controller.uomOptionsForItem(
-                                  line.itemId,
-                                );
-                                if (options.length == 1) {
-                                  final onlyId = options.first.id;
-                                  if (line.uomId != onlyId) {
-                                    line.uomId = onlyId;
-                                  }
-                                }
-                                return AppDropdownField<int>.fromMapped(
-                                  labelText: 'UOM',
-                                  mappedItems: options
-                                      .where((item) => item.id != null)
-                                      .map(
-                                        (item) => AppDropdownItem(
-                                          value: item.id!,
-                                          label: item.toString(),
-                                        ),
-                                      )
-                                      .toList(growable: false),
-                                  initialValue: line.uomId,
-                                  onChanged: (value) =>
-                                      controller.setLineUomId(line, value),
-                                  validator: (_) =>
-                                      Validators.dependentSelectionField(
-                                        prerequisite: line.itemId,
-                                        prerequisiteName: 'item',
-                                        value: line.uomId,
-                                        fieldName: 'UOM',
-                                      ),
-                                );
-                              },
-                            ),
-                            AppFormTextField(
-                              labelText: 'Received Qty',
-                              controller: line.receivedQtyController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: (value) {
-                                final parsed = Validators.parseFlexibleNumber(
-                                  value,
-                                );
-                                if ((parsed == null || parsed <= 0) &&
-                                    controller.lineAllowsBlankQty(line)) {
-                                  return null;
-                                }
-                                return Validators.compose([
-                                  Validators.required('Received Qty'),
-                                  Validators.optionalNonNegativeNumber(
-                                    'Received Qty',
-                                  ),
-                                ])(value);
-                              },
-                            ),
-                            AppFormTextField(
-                              labelText: 'Accepted Qty',
-                              controller: line.acceptedQtyController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.optionalNonNegativeNumber(
-                                'Accepted Qty',
-                              ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Rejected Qty',
-                              controller: line.rejectedQtyController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.optionalNonNegativeNumber(
-                                'Rejected Qty',
-                              ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Rate',
-                              controller: line.rateController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.optionalNonNegativeNumber(
-                                'Rate',
-                              ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Description',
-                              controller: line.descriptionController,
-                            ),
-                            AppFormTextField(
-                              labelText: 'Remarks',
-                              controller: line.remarksController,
-                              maxLines: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
+                  _buildLineItemTable(controller),
                 ],
               ),
             ),

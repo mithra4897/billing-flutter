@@ -370,221 +370,119 @@ class _JobworkReceiptEditor extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                children: [
-                  Text(
-                    'Lines',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                  AppActionButton(
-                    icon: Icons.add_outlined,
-                    label: 'Add line',
-                    filled: false,
-                    onPressed: editLines ? vm.addLine : null,
-                  ),
+              ErpLineItemTable(
+                title: 'Lines',
+                enabled: editLines,
+                onAddLine: editLines ? vm.addLine : null,
+                onDeleteLine: editLines ? (i) => vm.removeLine(i) : null,
+                visibleColumns: const <ErpLineItemTableColumn>{
+                  ErpLineItemTableColumn.no,
+                  ErpLineItemTableColumn.item,
+                  ErpLineItemTableColumn.warehouse,
+                  ErpLineItemTableColumn.uom,
+                  ErpLineItemTableColumn.action,
+                },
+                customColumns: const <ErpLineItemCustomColumn>[
+                  ErpLineItemCustomColumn(id: 'order_output', label: 'Order Output', width: 180, insertAfter: ErpLineItemTableColumn.no),
+                  ErpLineItemCustomColumn(id: 'batch', label: 'Batch', width: 140, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'serial', label: 'Serial', width: 140, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'output_type', label: 'Output Type', width: 140, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'receipt_qty', label: 'Receipt Qty', width: 110, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'accepted_qty', label: 'Accepted Qty', width: 110, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'rejected_qty', label: 'Rejected Qty', width: 110, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'unit_cost', label: 'Unit Cost', width: 110, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'remarks', label: 'Remarks', width: 160, insertAfter: ErpLineItemTableColumn.uom),
                 ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingSm),
-              ...List<Widget>.generate(vm.lineDrafts.length, (index) {
-                final line = vm.lineDrafts[index];
-                final batchOptions = vm.batchOptions(
-                  line.itemId,
-                  line.warehouseId ?? vm.warehouseId,
-                );
-                final serialOptions = vm.serialOptions(
-                  line.itemId,
-                  line.warehouseId ?? vm.warehouseId,
-                  line.batchId,
-                );
-                final outItems = <AppDropdownItem<int?>>[
-                  const AppDropdownItem<int?>(value: null, label: '-'),
-                  ...vm.orderOutputOptions
-                      .where((o) => o.id != null)
-                      .map(
-                        (o) => AppDropdownItem<int?>(
-                          value: o.id,
-                          label:
-                              'Out line ${o.lineNo} · planned ${o.plannedQty}',
-                        ),
-                      ),
-                ];
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: PurchaseCompactLineCard(
-                    index: index,
-                    total: vm.lineDrafts.length,
-                    removeEnabled: editLines && vm.lineDrafts.length > 1,
-                    onRemove: editLines ? () => vm.removeLine(index) : null,
-                    child: PurchaseCompactFieldGrid(
-                      children: [
-                        AppDropdownField<int?>.fromMapped(
-                          labelText: 'Order output',
+                lines: List<ErpLineItemTableRow>.generate(vm.lineDrafts.length, (index) {
+                  final line = vm.lineDrafts[index];
+                  final batchOptions = vm.batchOptions(line.itemId, line.warehouseId ?? vm.warehouseId);
+                  final serialOptions = vm.serialOptions(line.itemId, line.warehouseId ?? vm.warehouseId, line.batchId);
+                  final outItems = <AppDropdownItem<int?>>[
+                    const AppDropdownItem<int?>(value: null, label: '-'),
+                    ...vm.orderOutputOptions.where((o) => o.id != null).map((o) => AppDropdownItem<int?>(value: o.id, label: 'Out line ${o.lineNo} · planned ${o.plannedQty}')),
+                  ];
+                  return ErpLineItemTableRow(
+                    rowKey: line,
+                    itemId: line.itemId,
+                    itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
+                    itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
+                    onItemChanged: editLines ? (v) => vm.setLineItemId(index, v) : null,
+                    itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                    warehouseId: line.warehouseId ?? vm.warehouseId,
+                    warehouseOptions: vm.warehouseOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                    onWarehouseChanged: editLines ? (v) => vm.setLineWarehouseId(index, v) : null,
+                    uomId: line.uomId,
+                    uomOptions: vm.uomOptionsForItem(line.itemId).where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                    onUomChanged: editLines ? (v) => vm.setLineUomId(index, v) : null,
+                    uomValidator: Validators.requiredSelection('UOM'),
+                    amount: 0,
+                    deleteEnabled: editLines && vm.lineDrafts.length > 1,
+                    customCells: <String, Widget>{
+                      'order_output': ErpLineItemCellFrame(
+                        child: AppDropdownField<int?>.fromMapped(
+                          labelText: '', hintText: 'Order Output', fieldPadding: EdgeInsets.zero,
                           mappedItems: outItems,
                           initialValue: line.jobworkOrderOutputId,
-                          onChanged: (int? v) {
-                            if (editLines) vm.applyOutputLink(index, v);
-                          },
+                          onChanged: editLines ? (v) => vm.applyOutputLink(index, v) : null,
                         ),
-                        AppSearchPickerField<int>(
-                          labelText: 'Item',
-                          selectedLabel: vm.items
-                              .cast<ItemModel?>()
-                              .firstWhere(
-                                (item) => item?.id == line.itemId,
-                                orElse: () => null,
-                              )
-                              ?.toString(),
-                          options: vm.items
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppSearchPickerOption<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                  subtitle: item.itemCode,
-                                ),
-                              )
-                              .toList(growable: false),
-                          validator: (_) =>
-                              line.itemId == null ? 'Item is required' : null,
-                          onChanged: (int? value) {
-                            if (editLines) vm.setLineItemId(index, value);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'UOM',
-                          mappedItems: vm
-                              .uomOptionsForItem(line.itemId)
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppDropdownItem<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.uomId,
-                          onChanged: (int? value) {
-                            if (editLines) vm.setLineUomId(index, value);
-                          },
-                          validator: Validators.requiredSelection('UOM'),
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Line warehouse',
-                          mappedItems: vm.warehouseOptions
-                              .where((x) => x.id != null)
-                              .map(
-                                (x) => AppDropdownItem<int>(
-                                  value: x.id!,
-                                  label: x.toString(),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.warehouseId ?? vm.warehouseId,
-                          onChanged: (int? value) {
-                            if (editLines) vm.setLineWarehouseId(index, value);
-                          },
-                        ),
-                        if (vm.itemHasBatch(line.itemId))
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Batch',
-                            mappedItems: batchOptions
-                                .where((x) => x.id != null)
-                                .map(
-                                  (x) => AppDropdownItem<int>(
-                                    value: x.id!,
-                                    label: (x.batchNo ?? '').trim().isNotEmpty
-                                        ? x.batchNo!
-                                        : x.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.batchId,
-                            onChanged: (int? value) {
-                              if (editLines) vm.setLineBatchId(index, value);
-                            },
-                          ),
-                        if (vm.itemHasSerial(line.itemId))
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Serial',
-                            mappedItems: serialOptions
-                                .where((x) => x.id != null)
-                                .map(
-                                  (x) => AppDropdownItem<int>(
-                                    value: x.id!,
-                                    label: (x.serialNo ?? '').trim().isNotEmpty
-                                        ? x.serialNo!
-                                        : x.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.serialId,
-                            onChanged: (int? value) {
-                              if (editLines) vm.setLineSerialId(index, value);
-                            },
-                          ),
-                        AppDropdownField<String>.fromMapped(
-                          labelText: 'Output type',
+                      ),
+                      'batch': vm.itemHasBatch(line.itemId)
+                          ? ErpLineItemCellFrame(
+                              child: AppDropdownField<int>.fromMapped(
+                                labelText: '', hintText: 'Batch', fieldPadding: EdgeInsets.zero,
+                                mappedItems: batchOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: (x.batchNo ?? '').trim().isNotEmpty ? x.batchNo! : x.toString())).toList(growable: false),
+                                initialValue: line.batchId,
+                                onChanged: editLines ? (v) => vm.setLineBatchId(index, v) : null,
+                              ),
+                            )
+                          : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                      'serial': vm.itemHasSerial(line.itemId)
+                          ? ErpLineItemCellFrame(
+                              child: AppDropdownField<int>.fromMapped(
+                                labelText: '', hintText: 'Serial', fieldPadding: EdgeInsets.zero,
+                                mappedItems: serialOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: (x.serialNo ?? '').trim().isNotEmpty ? x.serialNo! : x.toString())).toList(growable: false),
+                                initialValue: line.serialId,
+                                onChanged: editLines ? (v) => vm.setLineSerialId(index, v) : null,
+                              ),
+                            )
+                          : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                      'output_type': ErpLineItemCellFrame(
+                        child: AppDropdownField<String>.fromMapped(
+                          labelText: '', hintText: 'Output Type', fieldPadding: EdgeInsets.zero,
                           mappedItems: _lineOutputTypeItems,
                           initialValue: line.outputType,
-                          onChanged: (String? v) {
-                            if (editLines) {
-                              vm.setOutputTypeLine(
-                                index,
-                                v ?? 'processed_material',
-                              );
-                            }
-                          },
+                          onChanged: editLines ? (v) => vm.setOutputTypeLine(index, v ?? 'processed_material') : null,
                         ),
-                        AppFormTextField(
-                          labelText: 'Receipt qty',
-                          controller: line.receiptQtyController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.requiredPositiveNumber(
-                            'Receipt qty',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Accepted qty',
-                          controller: line.acceptedQtyController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Rejected qty',
-                          controller: line.rejectedQtyController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Unit cost',
-                          controller: line.unitCostController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: line.remarksController,
-                          enabled: editLines,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+                      ),
+                      'receipt_qty': ErpLineItemTextCell(
+                        controller: line.receiptQtyController,
+                        enabled: editLines,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: Validators.requiredPositiveNumber('Receipt qty'),
+                      ),
+                      'accepted_qty': ErpLineItemTextCell(
+                        controller: line.acceptedQtyController,
+                        enabled: editLines,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      ),
+                      'rejected_qty': ErpLineItemTextCell(
+                        controller: line.rejectedQtyController,
+                        enabled: editLines,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      ),
+                      'unit_cost': ErpLineItemTextCell(
+                        controller: line.unitCostController,
+                        enabled: editLines,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      ),
+                      'remarks': ErpLineItemTextCell(
+                        controller: line.remarksController,
+                        enabled: editLines,
+                      ),
+                    },
+                  );
+                }),
+              ),
               const SizedBox(height: AppUiConstants.spacingMd),
               Wrap(
                 spacing: AppUiConstants.spacingSm,

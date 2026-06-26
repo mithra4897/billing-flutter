@@ -311,151 +311,94 @@ class _JobworkChargeEditor extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingSm),
-              ...List<Widget>.generate(vm.lineDrafts.length, (index) {
-                final line = vm.lineDrafts[index];
-                final breakdown = vm.lineTaxBreakdown(line);
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: PurchaseCompactLineCard(
-                    index: index,
-                    total: vm.lineDrafts.length,
-                    removeEnabled: editLines && vm.lineDrafts.length > 1,
-                    onRemove: editLines ? () => vm.removeLine(index) : null,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        PurchaseCompactFieldGrid(
-                          children: [
-                            AppFormTextField(
-                              labelText: 'Service description',
-                              controller: line.serviceDescriptionController,
-                              enabled: editLines,
-                              validator: Validators.compose([
-                                Validators.required('Service description'),
-                                Validators.optionalMaxLength(
-                                  500,
-                                  'Service description',
-                                ),
-                              ]),
-                            ),
-                            AppSearchPickerField<int>(
-                              labelText: 'Item (optional)',
-                              selectedLabel: vm.items
-                                  .cast<ItemModel?>()
-                                  .firstWhere(
-                                    (item) => item?.id == line.itemId,
-                                    orElse: () => null,
-                                  )
-                                  ?.toString(),
-                              options: vm.items
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppSearchPickerOption<int>(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                      subtitle: item.itemCode,
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onChanged: (int? value) {
-                                if (editLines) vm.setLineItemId(index, value);
-                              },
-                            ),
-                            AppSearchPickerField<int>(
-                              labelText: 'Output item (optional)',
-                              selectedLabel: vm.outputItemOptions
-                                  .cast<ItemModel?>()
-                                  .firstWhere(
-                                    (item) => item?.id == line.outputItemId,
-                                    orElse: () => null,
-                                  )
-                                  ?.toString(),
-                              options: vm.outputItemOptions
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppSearchPickerOption<int>(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                      subtitle: item.itemCode,
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onChanged: (int? value) {
-                                if (editLines) {
-                                  vm.setLineOutputItemId(index, value);
-                                }
-                              },
-                            ),
-                            AppFormTextField(
-                              labelText: 'Qty',
-                              controller: line.qtyController,
-                              enabled: editLines,
-                              onChanged: (_) => vm.update(),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.requiredPositiveNumber(
-                                'Quantity',
-                              ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Rate',
-                              controller: line.rateController,
-                              enabled: editLines,
-                              onChanged: (_) => vm.update(),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Amount',
-                              controller: line.amountController,
-                              enabled: editLines,
-                              onChanged: (_) => vm.update(),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                            ),
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Tax code',
-                              mappedItems: vm.taxCodes
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppDropdownItem<int>(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.taxCodeId,
-                              onChanged: (int? value) {
-                                if (editLines) {
-                                  vm.setLineTaxCodeId(index, value);
-                                }
-                              },
-                            ),
-                            AppFormTextField(
-                              labelText: 'Remarks',
-                              controller: line.remarksController,
-                              enabled: editLines,
-                            ),
-                          ],
+              ErpLineItemTable(
+                title: 'Lines',
+                enabled: editLines,
+                onAddLine: editLines ? vm.addLine : null,
+                onDeleteLine: editLines ? (i) => vm.removeLine(i) : null,
+                visibleColumns: const <ErpLineItemTableColumn>{
+                  ErpLineItemTableColumn.no,
+                  ErpLineItemTableColumn.description,
+                  ErpLineItemTableColumn.item,
+                  ErpLineItemTableColumn.qty,
+                  ErpLineItemTableColumn.rate,
+                  ErpLineItemTableColumn.amount,
+                  ErpLineItemTableColumn.taxCode,
+                  ErpLineItemTableColumn.remarks,
+                  ErpLineItemTableColumn.action,
+                },
+                columnLabels: const <ErpLineItemTableColumn, String>{
+                  ErpLineItemTableColumn.description: 'Service Description',
+                  ErpLineItemTableColumn.item: 'Item (optional)',
+                },
+                customColumns: const <ErpLineItemCustomColumn>[
+                  ErpLineItemCustomColumn(id: 'output_item', label: 'Output Item (optional)', width: 180, insertAfter: ErpLineItemTableColumn.item),
+                  ErpLineItemCustomColumn(id: 'tax_breakdown', label: 'Tax Breakdown', width: 240, insertAfter: ErpLineItemTableColumn.remarks),
+                ],
+                lines: List<ErpLineItemTableRow>.generate(vm.lineDrafts.length, (index) {
+                  final line = vm.lineDrafts[index];
+                  final breakdown = vm.lineTaxBreakdown(line);
+                  final outItems = vm.outputItemOptions.where((x) => x.id != null).map((x) => AppSearchPickerOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false);
+                  return ErpLineItemTableRow(
+                    rowKey: line,
+                    descriptionController: line.serviceDescriptionController,
+                    onDescriptionChanged: null,
+                    itemId: line.itemId,
+                    itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
+                    itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
+                    onItemChanged: editLines ? (v) => vm.setLineItemId(index, v) : null,
+                    itemValidator: (_) => null, // Item is optional
+                    qtyController: line.qtyController,
+                    onQtyChanged: (_) => vm.update(),
+                    qtyValidator: Validators.requiredPositiveNumber('Quantity'),
+                    rateController: line.rateController,
+                    onRateChanged: (_) => vm.update(),
+                    amount: 0,
+                    cellWidgets: <ErpLineItemTableColumn, Widget>{
+                      ErpLineItemTableColumn.amount: ErpLineItemTextCell(
+                        controller: line.amountController,
+                        enabled: editLines,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (_) => vm.update(),
+                      ),
+                      ErpLineItemTableColumn.description: ErpLineItemTextCell(
+                        controller: line.serviceDescriptionController,
+                        enabled: editLines,
+                        validator: Validators.compose([
+                          Validators.required('Service description'),
+                          Validators.optionalMaxLength(500, 'Service description'),
+                        ]),
+                      ),
+                    },
+                    taxCodeId: line.taxCodeId,
+                    taxOptions: vm.taxCodes.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                    onTaxCodeChanged: editLines ? (v) => vm.setLineTaxCodeId(index, v) : null,
+                    remarksController: line.remarksController,
+                    deleteEnabled: editLines && vm.lineDrafts.length > 1,
+                    customCells: <String, Widget>{
+                      'output_item': ErpLineItemCellFrame(
+                        child: AppSearchPickerField<int>(
+                          labelText: '', hintText: 'Output item',
+                          selectedLabel: vm.outputItemOptions.cast<ItemModel?>().firstWhere((x) => x?.id == line.outputItemId, orElse: () => null)?.toString(),
+                          options: outItems,
+                          onChanged: editLines ? (v) => vm.setLineOutputItemId(index, v) : (_) {},
                         ),
-                        const SizedBox(height: AppUiConstants.spacingXs),
-                        Text(
-                          'Taxable ${breakdown.taxable.toStringAsFixed(2)} · CGST ${breakdown.cgst.toStringAsFixed(2)} · SGST ${breakdown.sgst.toStringAsFixed(2)} · IGST ${breakdown.igst.toStringAsFixed(2)} · Total ${breakdown.total.toStringAsFixed(2)}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      'tax_breakdown': ErpLineItemCellFrame(
+                        child: Center(
+                          child: Text(
+                            'Taxable ${breakdown.taxable.toStringAsFixed(2)} · CGST ${breakdown.cgst.toStringAsFixed(2)} · SGST ${breakdown.sgst.toStringAsFixed(2)} · IGST ${breakdown.igst.toStringAsFixed(2)} · Total ${breakdown.total.toStringAsFixed(2)}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+                      ),
+                    },
+                  );
+                }),
+              ),
               const SizedBox(height: AppUiConstants.spacingMd),
               Wrap(
                 spacing: AppUiConstants.spacingSm,

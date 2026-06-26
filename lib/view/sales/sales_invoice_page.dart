@@ -139,6 +139,31 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     );
   }
 
+  Widget _buildGridHintCell(
+    BuildContext context,
+    String text, {
+    bool muted = true,
+  }) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return ErpLineItemCellFrame(
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.2,
+            color: muted ? appTheme.tableMutedText : appTheme.tableCellText,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget buildTaxSummaryCard(
     BuildContext context,
     SalesInvoiceManagementController controller,
@@ -162,6 +187,408 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                 ? 'Live totals for the current invoice lines.'
                 : 'Live totals for the current invoice lines. Includes round off ${roundOff.toStringAsFixed(2)}.')
           : 'Live totals for the current invoice lines. ${isInterState ? 'Inter-state invoice using IGST.' : 'Intra-state invoice using CGST and SGST.'}${roundOff == 0 ? '' : ' Includes round off ${roundOff.toStringAsFixed(2)}.'}',
+    );
+  }
+
+  Widget _buildLineItemTable(SalesInvoiceManagementController controller) {
+    final itemOptions = controller.itemsLookup
+        .where((item) => item.id != null)
+        .map(
+          (item) => ErpLinkFieldOption<int>(
+            value: item.id!,
+            label: item.toString(),
+            subtitle: item.itemCode,
+            searchText: '${item.itemCode} ${item.toString()}',
+          ),
+        )
+        .toList(growable: false);
+
+    final taxOptions = controller.taxCodes
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: item.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final customColumns = <ErpLineItemCustomColumn>[
+      if (controller.salesOrderId != null &&
+          (controller.orderLinesCache?.isNotEmpty ?? false))
+        const ErpLineItemCustomColumn(
+          id: 'order_line',
+          label: 'Order line',
+          width: 190,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+      if (controller.salesDeliveryId != null &&
+          (controller.deliveryLinesCache?.isNotEmpty ?? false))
+        const ErpLineItemCustomColumn(
+          id: 'delivery_line',
+          label: 'Delivery line',
+          width: 190,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+      const ErpLineItemCustomColumn(
+        id: 'batch',
+        label: 'Batch',
+        width: 150,
+        insertAfter: ErpLineItemTableColumn.warehouse,
+      ),
+      const ErpLineItemCustomColumn(
+        id: 'serials',
+        label: 'Serials',
+        width: 220,
+        insertAfter: ErpLineItemTableColumn.warehouse,
+      ),
+    ];
+
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+      final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      final discount =
+          Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
+      final amount = qty <= 0 || rate < 0
+          ? 0.0
+          : (qty * rate * (1 - discount.clamp(0, 100) / 100)).toDouble();
+      final uomOptions = controller
+          .uomOptionsForItem(line.itemId)
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: item.toString(),
+            ),
+          )
+          .toList(growable: false);
+
+      if (controller.canEdit && uomOptions.length == 1) {
+        final onlyId = uomOptions.first.value;
+        if (line.uomId != onlyId) {
+          line.uomId = onlyId;
+        }
+      }
+
+      final itemSelection = line.itemId == null
+          ? null
+          : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
+              (item) => item?.value == line.itemId,
+              orElse: () => null,
+            );
+
+      final warehouseOptions = controller
+          .warehouseOptionsForLine(line)
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: item.toString(),
+            ),
+          )
+          .toList(growable: false);
+
+      return ErpLineItemTableRow(
+        rowKey: line,
+        itemId: line.itemId,
+        itemSelection: itemSelection,
+        itemOptions: itemOptions,
+        onItemChanged: controller.canEdit
+            ? (value) {
+                controller.State(() {
+                  line.itemId = value;
+                  line.salesOrderLineId = null;
+                  line.salesDeliveryLineId = null;
+                  line.warehouseId = null;
+                  line.batchId = null;
+                  line.serialId = null;
+                  line.serialNumbers = <String>[];
+                  line.serialNoController.clear();
+                  final item = controller.itemsLookup
+                      .cast<ItemModel?>()
+                      .firstWhere((e) => e?.id == value, orElse: () => null);
+                  applySalesLineDefaultsFromItemMaster(
+                    item: item,
+                    itemPrices: controller.itemPrices,
+                    uoms: controller.uoms,
+                    conversions: controller.uomConversions,
+                    rateController: line.rateController,
+                    qtyController: line.qtyController,
+                    setUom: (u) => line.uomId = u,
+                    currentUomId: line.uomId,
+                    setTaxCodeId: (t) => line.taxCodeId = t,
+                    setWarehouseId: (w) => line.warehouseId = w,
+                    currentWarehouseId: line.warehouseId,
+                    warehouses: controller.warehouses,
+                  );
+                });
+                unawaited(controller.syncWarehouseOptionsForLine(line));
+                unawaited(controller.syncBatchOptionsForLine(line));
+                unawaited(controller.syncSerialOptionsForLine(line));
+              }
+            : null,
+        itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+        uomId: line.uomId,
+        uomOptions: uomOptions,
+        onUomChanged: controller.canEdit
+            ? (value) {
+                controller.State(() => line.uomId = value);
+              }
+            : null,
+        uomValidator: (_) {
+          if (line.itemId == null) {
+            return 'Select item first';
+          }
+          return line.uomId == null ? 'UOM is required' : null;
+        },
+        warehouseId: line.warehouseId,
+        warehouseOptions: warehouseOptions,
+        onWarehouseChanged: controller.canEdit
+            ? (value) {
+                controller.State(() {
+                  line.warehouseId = value;
+                  line.batchId = null;
+                  line.serialId = null;
+                });
+                unawaited(controller.syncBatchOptionsForLine(line));
+                unawaited(controller.syncSerialOptionsForLine(line));
+              }
+            : null,
+        qtyController: line.qtyController,
+        onQtyChanged: controller.canEdit ? (_) => controller.State(() {}) : null,
+        qtyValidator: (_) {
+          final text = line.qtyController.text.trim();
+          if (text.isEmpty) {
+            return 'Qty is required';
+          }
+          final qtyValue = double.tryParse(text);
+          if (qtyValue == null || qtyValue < 0) {
+            return 'Qty must be a valid non-negative number';
+          }
+          if (qtyValue <= 0) {
+            return 'Qty must be greater than zero';
+          }
+          if (controller.isSerialManagedItem(line.itemId)) {
+            final serialCount = controller.lineSerialNumbers(line).length;
+            if (line.warehouseId == null) {
+              return 'Select warehouse first';
+            }
+            if (serialCount == 0) {
+              return 'Add at least one serial number';
+            }
+            if (qtyValue != serialCount) {
+              return 'Qty must match serial count';
+            }
+          }
+          return null;
+        },
+        rateController: line.rateController,
+        onRateChanged: controller.canEdit ? (_) => controller.State(() {}) : null,
+        rateValidator: Validators.compose([
+          Validators.required('Rate'),
+          Validators.optionalNonNegativeNumber('Rate'),
+        ]),
+        discountController: line.discountController,
+        onDiscountChanged: controller.canEdit
+            ? (_) => controller.State(() {})
+            : null,
+        discountValidator: Validators.optionalNonNegativeNumber('Discount %'),
+        taxCodeId: line.taxCodeId,
+        taxOptions: taxOptions,
+        onTaxCodeChanged: controller.canEdit
+            ? (value) => controller.State(() => line.taxCodeId = value)
+            : null,
+        descriptionController: line.descriptionController,
+        remarksController: line.remarksController,
+        amount: amount,
+        deleteEnabled: controller.canEdit && controller.lines.length > 1,
+        customCells: <String, Widget>{
+          'order_line': ErpLineItemCellFrame(
+            child: AppDropdownField<int?>.fromMapped(
+              labelText: '',
+              hintText: 'Order line',
+              fieldPadding: EdgeInsets.zero,
+              mappedItems: [
+                const AppDropdownItem<int?>(value: null, label: 'None'),
+                ...?controller.orderLinesCache
+                    ?.map((ol) {
+                      final id = intValue(ol, 'id');
+                      return AppDropdownItem<int?>(
+                        value: id,
+                        label: controller.orderLinePickerLabel(ol),
+                      );
+                    })
+                    .where((it) => it.value != null),
+              ],
+              initialValue: line.salesOrderLineId,
+              onChanged: controller.canEdit
+                  ? (value) => controller.applyOrderLinePick(line, value)
+                  : null,
+              enabled: controller.canEdit,
+            ),
+          ),
+          'delivery_line': ErpLineItemCellFrame(
+            child: AppDropdownField<int?>.fromMapped(
+              labelText: '',
+              hintText: 'Delivery line',
+              fieldPadding: EdgeInsets.zero,
+              mappedItems: [
+                const AppDropdownItem<int?>(value: null, label: 'None'),
+                ...?controller.deliveryLinesCache
+                    ?.map((dl) {
+                      final id = intValue(dl, 'id');
+                      return AppDropdownItem<int?>(
+                        value: id,
+                        label: controller.deliveryLinePickerLabel(dl),
+                      );
+                    })
+                    .where((it) => it.value != null),
+              ],
+              initialValue: line.salesDeliveryLineId,
+              onChanged: controller.canEdit
+                  ? (value) => controller.applyDeliveryLinePick(line, value)
+                  : null,
+              enabled: controller.canEdit,
+            ),
+          ),
+          'batch': () {
+            if (line.itemId == null) {
+              return _buildGridHintCell(context, 'Select item');
+            }
+            if (!controller.isBatchManagedItem(line.itemId)) {
+              return _buildGridHintCell(context, 'Not required');
+            }
+            if (line.warehouseId == null) {
+              return _buildGridHintCell(context, 'Select warehouse');
+            }
+            final batchItems = controller
+                .batchOptionsForLine(line)
+                .map(
+                  (batch) => AppDropdownItem<int>(
+                    value:
+                        int.tryParse(batch['batch_id']?.toString() ?? '') ?? 0,
+                    label: stringValue(batch, 'batch_no', 'Batch'),
+                  ),
+                )
+                .where((item) => item.value != 0)
+                .toList(growable: false);
+            if (batchItems.isEmpty) {
+              return _buildGridHintCell(context, 'No batches');
+            }
+            return ErpLineItemCellFrame(
+              child: AppDropdownField<int>.fromMapped(
+                labelText: '',
+                hintText: 'Batch',
+                fieldPadding: EdgeInsets.zero,
+                mappedItems: batchItems,
+                initialValue: line.batchId,
+                onChanged: controller.canEdit
+                    ? (value) {
+                        controller.State(() {
+                          line.batchId = value;
+                          line.serialId = null;
+                        });
+                        unawaited(controller.syncSerialOptionsForLine(line));
+                      }
+                    : null,
+                enabled: controller.canEdit,
+              ),
+            );
+          }(),
+          'serials': () {
+            if (line.itemId == null) {
+              return _buildGridHintCell(context, 'Select item');
+            }
+            if (!controller.isSerialManagedItem(line.itemId)) {
+              return _buildGridHintCell(context, 'Not required');
+            }
+            if (line.warehouseId == null) {
+              return _buildGridHintCell(context, 'Select warehouse');
+            }
+            if (controller.isBatchManagedItem(line.itemId) && line.batchId == null) {
+              return _buildGridHintCell(context, 'Select batch');
+            }
+            return ErpLineItemCellFrame(
+              height: null,
+              child: AppSerialNumbersField(
+                labelText: '',
+                emptyText: 'Add serials',
+                countSummaryBuilder: (count) => '$count serials',
+                values: line.serialNumbers,
+                enabled: controller.canEdit,
+                canOpen:
+                    ((controller.isBatchManagedItem(line.itemId)
+                                ? line.batchId != null
+                                : line.warehouseId != null) ||
+                            line.serialNumbers.isNotEmpty),
+                beforeOpen: controller.canEdit
+                    ? () => controller.syncSerialOptionsForLine(line)
+                    : null,
+                validator: (values) {
+                  final serialOptions = controller.serialOptionsForLine(line);
+                  if (line.warehouseId == null) {
+                    return 'Select warehouse first';
+                  }
+                  if (controller.isBatchManagedItem(line.itemId) &&
+                      line.batchId == null) {
+                    return 'Select batch first';
+                  }
+                  if (serialOptions.isEmpty) {
+                    return 'No serials found in backend for the selected warehouse.';
+                  }
+                  final serialLabelSet = controller.serialLabelSetForLine(line);
+                  for (final value in values) {
+                    if (!serialLabelSet.contains(value.trim().toLowerCase())) {
+                      return 'Serial "$value" is not available for the selected warehouse/batch.';
+                    }
+                  }
+                  return null;
+                },
+                onChanged: (values) {
+                  controller.State(() {
+                    if (controller.isSerialManagedItem(line.itemId)) {
+                      controller.replaceLineWithSerialDrafts(line, values);
+                    } else {
+                      controller.setLineSerialNumbers(line, values);
+                    }
+                  });
+                },
+              ),
+            );
+          }(),
+        },
+      );
+    });
+
+    return ErpLineItemTable(
+      lines: rows,
+      onChanged: (_) {},
+      onAddLine: controller.canEdit ? controller.addLine : null,
+      onDeleteLine: controller.canEdit ? controller.removeLine : null,
+      addButtonLabel: 'Add line',
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.warehouse,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.discount,
+        ErpLineItemTableColumn.taxCode,
+        ErpLineItemTableColumn.description,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.taxCode: 'Tax code',
+      },
+      customColumns: customColumns,
+      footer: buildTaxSummaryCard(context, controller),
+      enabled: controller.canEdit,
     );
   }
 
@@ -577,445 +1004,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                   : null,
             ),
             const SizedBox(height: AppUiConstants.spacingLg),
-            Row(
-              children: [
-                Text(
-                  'Line items',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add line',
-                  onPressed: controller.canEdit ? controller.addLine : null,
-                  filled: false,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            ...List<Widget>.generate(controller.lines.length, (index) {
-              final line = controller.lines[index];
-              return Padding(
-                key: ObjectKey(line),
-                padding: const EdgeInsets.only(
-                  bottom: AppUiConstants.spacingSm,
-                ),
-                child: PurchaseCompactLineCard(
-                  index: index,
-                  total: controller.lines.length,
-                  removeEnabled:
-                      controller.canEdit && controller.lines.length > 1,
-                  onRemove: controller.canEdit
-                      ? () => controller.removeLine(index)
-                      : null,
-                  child: PurchaseCompactFieldGrid(
-                    children: [
-                      if (controller.salesOrderId != null &&
-                          (controller.orderLinesCache != null &&
-                              controller.orderLinesCache!.isNotEmpty))
-                        AppDropdownField<int?>.fromMapped(
-                          labelText: 'Order line',
-                          mappedItems: [
-                            const AppDropdownItem<int?>(
-                              value: null,
-                              label: 'None',
-                            ),
-                            ...controller.orderLinesCache!
-                                .map((ol) {
-                                  final id = intValue(ol, 'id');
-                                  return AppDropdownItem<int?>(
-                                    value: id,
-                                    label: controller.orderLinePickerLabel(ol),
-                                  );
-                                })
-                                .where((it) => it.value != null),
-                          ],
-                          initialValue: line.salesOrderLineId,
-                          onChanged: (value) {
-                            if (!controller.canEdit) {
-                              return;
-                            }
-                            controller.applyOrderLinePick(line, value);
-                          },
-                        ),
-                      if (controller.salesDeliveryId != null &&
-                          (controller.deliveryLinesCache != null &&
-                              controller.deliveryLinesCache!.isNotEmpty))
-                        AppDropdownField<int?>.fromMapped(
-                          labelText: 'Delivery line',
-                          mappedItems: [
-                            const AppDropdownItem<int?>(
-                              value: null,
-                              label: 'None',
-                            ),
-                            ...controller.deliveryLinesCache!
-                                .map((dl) {
-                                  final id = intValue(dl, 'id');
-                                  return AppDropdownItem<int?>(
-                                    value: id,
-                                    label: controller.deliveryLinePickerLabel(
-                                      dl,
-                                    ),
-                                  );
-                                })
-                                .where((it) => it.value != null),
-                          ],
-                          initialValue: line.salesDeliveryLineId,
-                          onChanged: (value) {
-                            if (!controller.canEdit) {
-                              return;
-                            }
-                            controller.applyDeliveryLinePick(line, value);
-                          },
-                        ),
-                      AppSearchPickerField<int>(
-                        labelText: 'Item',
-                        selectedLabel: controller.itemsLookup
-                            .cast<ItemModel?>()
-                            .firstWhere(
-                              (item) => item?.id == line.itemId,
-                              orElse: () => null,
-                            )
-                            ?.toString(),
-                        options: controller.itemsLookup
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppSearchPickerOption<int>(
-                                value: item.id!,
-                                label: item.toString(),
-                                subtitle: item.itemCode,
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) {
-                          if (!controller.canEdit) {
-                            return;
-                          }
-                          controller.State(() {
-                            line.itemId = value;
-                            line.salesOrderLineId = null;
-                            line.salesDeliveryLineId = null;
-                            line.warehouseId = null;
-                            line.batchId = null;
-                            line.serialId = null;
-                            line.serialNumbers = <String>[];
-                            line.serialNoController.clear();
-                            final item = controller.itemsLookup
-                                .cast<ItemModel?>()
-                                .firstWhere(
-                                  (e) => e?.id == value,
-                                  orElse: () => null,
-                                );
-                            applySalesLineDefaultsFromItemMaster(
-                              item: item,
-                              itemPrices: controller.itemPrices,
-                              uoms: controller.uoms,
-                              conversions: controller.uomConversions,
-                              rateController: line.rateController,
-                              qtyController: line.qtyController,
-                              setUom: (u) => line.uomId = u,
-                              currentUomId: line.uomId,
-                              setTaxCodeId: (t) => line.taxCodeId = t,
-                              setWarehouseId: (w) => line.warehouseId = w,
-                              currentWarehouseId: line.warehouseId,
-                              warehouses: controller.warehouses,
-                            );
-                          });
-                          unawaited(
-                            controller.syncWarehouseOptionsForLine(line),
-                          );
-                          unawaited(controller.syncBatchOptionsForLine(line));
-                          unawaited(controller.syncSerialOptionsForLine(line));
-                        },
-                        validator: (_) =>
-                            line.itemId == null ? 'Item is required' : null,
-                      ),
-                      Builder(
-                        builder: (context) {
-                          final options = controller.uomOptionsForItem(
-                            line.itemId,
-                          );
-                          if (controller.canEdit && options.length == 1) {
-                            final onlyId = options.first.id;
-                            if (line.uomId != onlyId) {
-                              line.uomId = onlyId;
-                            }
-                          }
-                          return AppDropdownField<int>.fromMapped(
-                            labelText: 'UOM',
-                            mappedItems: options
-                                .where((item) => item.id != null)
-                                .map(
-                                  (item) => AppDropdownItem(
-                                    value: item.id!,
-                                    label: item.toString(),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.uomId,
-                            onChanged: (value) {
-                              if (!controller.canEdit) {
-                                return;
-                              }
-                              controller.State(() => line.uomId = value);
-                            },
-                            validator: (_) {
-                              if (line.itemId == null) {
-                                return 'Select item first';
-                              }
-                              return line.uomId == null
-                                  ? 'UOM is required'
-                                  : null;
-                            },
-                          );
-                        },
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Warehouse',
-                        mappedItems: controller
-                            .warehouseOptionsForLine(line)
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.warehouseId,
-                        onChanged: (value) {
-                          if (!controller.canEdit) {
-                            return;
-                          }
-                          controller.State(() {
-                            line.warehouseId = value;
-                            line.batchId = null;
-                            line.serialId = null;
-                          });
-                          unawaited(controller.syncBatchOptionsForLine(line));
-                          unawaited(controller.syncSerialOptionsForLine(line));
-                        },
-                        validator: (_) {
-                          if (line.itemId == null) {
-                            return 'Select item first';
-                          }
-                          if (!controller.isStockTrackedItem(line.itemId)) {
-                            return null;
-                          }
-                          if (controller
-                              .warehouseOptionsForLine(line)
-                              .isEmpty) {
-                            return 'No valid warehouse available for this item';
-                          }
-                          return line.warehouseId == null
-                              ? 'Warehouse is required'
-                              : null;
-                        },
-                      ),
-                      if (controller.isBatchManagedItem(line.itemId))
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Batch',
-                          mappedItems: controller
-                              .batchOptionsForLine(line)
-                              .map(
-                                (batch) => AppDropdownItem<int>(
-                                  value:
-                                      int.tryParse(
-                                        batch['batch_id']?.toString() ?? '',
-                                      ) ??
-                                      0,
-                                  label: stringValue(
-                                    batch,
-                                    'batch_no',
-                                    'Batch',
-                                  ),
-                                ),
-                              )
-                              .where((item) => item.value != 0)
-                              .toList(growable: false),
-                          initialValue: line.batchId,
-                          onChanged: (value) {
-                            if (!controller.canEdit) {
-                              return;
-                            }
-                            controller.State(() {
-                              line.batchId = value;
-                              line.serialId = null;
-                            });
-                            unawaited(
-                              controller.syncSerialOptionsForLine(line),
-                            );
-                          },
-                          validator: (_) {
-                            if (!controller.isBatchManagedItem(line.itemId)) {
-                              return null;
-                            }
-                            if (line.warehouseId == null) {
-                              return 'Select warehouse first';
-                            }
-                            final batches = controller.batchOptionsForLine(
-                              line,
-                            );
-                            if (batches.isEmpty) {
-                              return 'No batches found for the selected warehouse';
-                            }
-                            return line.batchId == null
-                                ? 'Batch is required'
-                                : null;
-                          },
-                        ),
-                      if (controller.isSerialManagedItem(line.itemId))
-                        AppSerialNumbersField(
-                          values: line.serialNumbers,
-                          enabled: controller.canEdit,
-                          canOpen:
-                              ((controller.isBatchManagedItem(line.itemId)
-                                  ? line.batchId != null
-                                  : line.warehouseId != null) ||
-                              line.serialNumbers.isNotEmpty),
-                          beforeOpen: controller.canEdit
-                              ? () => controller.syncSerialOptionsForLine(line)
-                              : null,
-                          validator: (values) {
-                            final serialOptions = controller
-                                .serialOptionsForLine(line);
-                            if (line.warehouseId == null) {
-                              return 'Select warehouse first';
-                            }
-                            if (controller.isBatchManagedItem(line.itemId) &&
-                                line.batchId == null) {
-                              return 'Select batch first';
-                            }
-                            if (serialOptions.isEmpty) {
-                              return 'No serials found in backend for the selected warehouse.';
-                            }
-                            final serialLabelSet = controller
-                                .serialLabelSetForLine(line);
-                            for (final value in values) {
-                              if (!serialLabelSet.contains(
-                                value.trim().toLowerCase(),
-                              )) {
-                                return 'Serial "$value" is not available for the selected warehouse/batch.';
-                              }
-                            }
-                            return null;
-                          },
-                          onChanged: (values) {
-                            controller.State(() {
-                              if (controller.isSerialManagedItem(line.itemId)) {
-                                controller.replaceLineWithSerialDrafts(
-                                  line,
-                                  values,
-                                );
-                              } else {
-                                controller.setLineSerialNumbers(line, values);
-                              }
-                            });
-                          },
-                        ),
-                      AppFormTextField(
-                        labelText: 'Qty',
-                        controller: line.qtyController,
-                        enabled:
-                            controller.canEdit &&
-                            !controller.isSerialManagedItem(line.itemId),
-                        onChanged: (_) => controller.State(() {}),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: (_) {
-                          final text = line.qtyController.text.trim();
-                          if (text.isEmpty) {
-                            return 'Qty is required';
-                          }
-                          final qty = double.tryParse(text);
-                          if (qty == null || qty < 0) {
-                            return 'Qty must be a valid non-negative number';
-                          }
-                          if (qty <= 0) {
-                            return 'Qty must be greater than zero';
-                          }
-                          if (controller.isSerialManagedItem(line.itemId)) {
-                            final serialCount = controller
-                                .lineSerialNumbers(line)
-                                .length;
-                            if (line.warehouseId == null) {
-                              return 'Select warehouse first';
-                            }
-                            if (serialCount == 0) {
-                              return 'Add at least one serial number';
-                            }
-                            if (qty != serialCount) {
-                              return 'Qty must match serial count';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
-                      AppFormTextField(
-                        labelText: 'Rate',
-                        controller: line.rateController,
-                        enabled: controller.canEdit,
-                        onChanged: (_) => controller.State(() {}),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.compose([
-                          Validators.required('Rate'),
-                          Validators.optionalNonNegativeNumber('Rate'),
-                        ]),
-                      ),
-                      AppFormTextField(
-                        labelText: 'Discount %',
-                        controller: line.discountController,
-                        enabled: controller.canEdit,
-                        onChanged: (_) => controller.State(() {}),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: Validators.optionalNonNegativeNumber(
-                          'Discount %',
-                        ),
-                      ),
-                      AppDropdownField<int>.fromMapped(
-                        labelText: 'Tax code',
-                        mappedItems: controller.taxCodes
-                            .where((item) => item.id != null)
-                            .map(
-                              (item) => AppDropdownItem(
-                                value: item.id!,
-                                label: item.toString(),
-                              ),
-                            )
-                            .toList(growable: false),
-                        initialValue: line.taxCodeId,
-                        onChanged: (value) {
-                          if (!controller.canEdit) {
-                            return;
-                          }
-                          controller.State(() => line.taxCodeId = value);
-                        },
-                      ),
-                      AppFormTextField(
-                        labelText: 'Description',
-                        controller: line.descriptionController,
-                        enabled: controller.canEdit,
-                      ),
-                      AppFormTextField(
-                        labelText: 'Remarks',
-                        controller: line.remarksController,
-                        enabled: controller.canEdit,
-                        maxLines: 2,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: AppUiConstants.spacingMd),
-            buildTaxSummaryCard(context, controller),
+            _buildLineItemTable(controller),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

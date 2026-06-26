@@ -85,6 +85,195 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     );
   }
 
+  Widget _buildLineItemTable(PurchaseOrderManagementController controller) {
+    final itemOptions = controller.purchasableItemOptions
+        .where((item) => item.id != null)
+        .map(
+          (item) => ErpLinkFieldOption<int>(
+            value: item.id!,
+            label: item.toString(),
+            subtitle: item.itemCode,
+            searchText: '${item.itemCode} ${item.toString()}',
+          ),
+        )
+        .toList(growable: false);
+
+    final warehouseOptions = controller.warehouses
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: item.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final taxOptions = controller.taxCodes
+        .where((item) => item.id != null)
+        .map(
+          (item) => AppDropdownItem<int>(
+            value: item.id!,
+            label: item.toString(),
+          ),
+        )
+        .toList(growable: false);
+
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final amount = controller.taxBreakdownForLine(line).taxable;
+      final uomOptions = controller
+          .uomOptionsForItem(line.itemId)
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: item.toString(),
+            ),
+          )
+          .toList(growable: false);
+
+      if (uomOptions.length == 1) {
+        final onlyId = uomOptions.first.value;
+        if (line.uomId != onlyId) {
+          line.uomId = onlyId;
+        }
+      }
+
+      final itemSelection = line.itemId == null
+          ? null
+          : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
+              (option) => option?.value == line.itemId,
+              orElse: () => null,
+            );
+
+      return ErpLineItemTableRow(
+        rowKey: line,
+        itemId: line.itemId,
+        itemSelection: itemSelection,
+        itemOptions: itemOptions,
+        onItemChanged: controller.isSelectedOrderReadOnly
+            ? null
+            : (value) => controller.setLineItemId(line, value),
+        itemValidator: (_) =>
+            Validators.requiredSelectionField(line.itemId, 'Item'),
+        uomId: line.uomId,
+        uomOptions: uomOptions,
+        onUomChanged: controller.isSelectedOrderReadOnly
+            ? null
+            : (value) => controller.setLineUomId(line, value),
+        uomValidator: (_) => Validators.dependentSelectionField(
+          prerequisite: line.itemId,
+          prerequisiteName: 'item',
+          value: line.uomId,
+          fieldName: 'UOM',
+        ),
+        warehouseId: line.warehouseId,
+        warehouseOptions: warehouseOptions,
+        onWarehouseChanged: controller.isSelectedOrderReadOnly
+            ? null
+            : (value) => controller.setLineWarehouseId(line, value),
+        qtyController: line.qtyController,
+        onQtyChanged: controller.isSelectedOrderReadOnly
+            ? null
+            : (_) => controller.refreshComputedState(),
+        qtyValidator: (value) {
+          final parsed = Validators.parseFlexibleNumber(value);
+          if ((parsed == null || parsed <= 0) &&
+              controller.lineAllowsBlankQty(line)) {
+            return null;
+          }
+          return Validators.compose([
+            Validators.required('Ordered Qty'),
+            Validators.optionalNonNegativeNumber('Ordered Qty'),
+          ])(value);
+        },
+        rateController: line.rateController,
+        onRateChanged: controller.isSelectedOrderReadOnly
+            ? null
+            : (_) => controller.refreshComputedState(),
+        rateValidator: Validators.compose([
+          Validators.required('Rate'),
+          Validators.optionalNonNegativeNumber('Rate'),
+        ]),
+        discountController: line.discountController,
+        onDiscountChanged: controller.isSelectedOrderReadOnly
+            ? null
+            : (_) => controller.refreshComputedState(),
+        discountValidator: Validators.optionalNonNegativeNumber('Discount %'),
+        taxCodeId: line.taxCodeId,
+        taxOptions: taxOptions,
+        onTaxCodeChanged: controller.isSelectedOrderReadOnly
+            ? null
+            : (value) => controller.setLineTaxCodeId(line, value),
+        descriptionController: line.descriptionController,
+        remarksController: line.remarksController,
+        amount: amount,
+        deleteEnabled:
+            !controller.isSelectedOrderReadOnly && controller.lines.length > 1,
+      );
+    });
+
+    return ErpLineItemTable(
+      title: 'Lines',
+      lines: rows,
+      onChanged: (_) {},
+      onAddLine: controller.isSelectedOrderReadOnly ? null : controller.addLine,
+      onDeleteLine: controller.isSelectedOrderReadOnly
+          ? null
+          : controller.removeLine,
+      addButtonLabel: 'Add Line',
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.warehouse,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.discount,
+        ErpLineItemTableColumn.taxCode,
+        ErpLineItemTableColumn.description,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.qty: 'Ordered Qty',
+        ErpLineItemTableColumn.taxCode: 'Tax Code',
+      },
+      enabled: !controller.isSelectedOrderReadOnly,
+      footer: GstSummaryCard(
+        taxable: controller.orderTaxSummary().taxable,
+        cgst: controller.orderTaxSummary().cgst,
+        sgst: controller.orderTaxSummary().sgst,
+        igst: controller.orderTaxSummary().igst,
+        cess: 0,
+        total:
+            controller.orderTaxSummary().total +
+            (controller.applyRoundOff
+                ? (Validators.parseFlexibleNumber(
+                        controller.roundOffController.text.trim(),
+                      ) ??
+                    0)
+                : 0),
+        currencyCode: 'INR',
+        subtitle: (() {
+          final roundOff = controller.applyRoundOff
+              ? (Validators.parseFlexibleNumber(
+                      controller.roundOffController.text.trim(),
+                    ) ??
+                  0)
+              : 0;
+          if (roundOff == 0) {
+            return 'Live totals for the current purchase order lines.';
+          }
+          return 'Live totals for the current purchase order lines · includes round off ${roundOff.toStringAsFixed(2)}';
+        })(),
+      ),
+    );
+  }
+
   Widget _buildContent(
     BuildContext context,
     PurchaseOrderManagementController controller,
@@ -99,8 +288,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         onRetry: controller.loadPage,
       );
     }
-    final taxSummary = controller.orderTaxSummary();
-    const currency = 'INR';
     return SettingsWorkspace(
       controller: controller.workspaceController,
       title: 'Purchase Orders',
@@ -349,225 +536,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     onChanged: controller.setIsActive,
                   ),
                   const SizedBox(height: AppUiConstants.spacingLg),
-                  Row(
-                    children: [
-                      Text(
-                        'Lines',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      AppActionButton(
-                        icon: Icons.add_outlined,
-                        label: 'Add Line',
-                        onPressed: controller.isSelectedOrderReadOnly
-                            ? null
-                            : controller.addLine,
-                        filled: false,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  ...List<Widget>.generate(controller.lines.length, (index) {
-                    final line = controller.lines[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: AppUiConstants.spacingSm,
-                      ),
-                      child: PurchaseCompactLineCard(
-                        index: index,
-                        total: controller.lines.length,
-                        removeEnabled: controller.lines.length > 1,
-                        onRemove: () => controller.removeLine(index),
-                        child: PurchaseCompactFieldGrid(
-                          children: [
-                            AppSearchPickerField<int>(
-                              labelText: 'Item',
-                              selectedLabel: controller.itemsLookup
-                                  .cast<ItemModel?>()
-                                  .firstWhere(
-                                    (item) => item?.id == line.itemId,
-                                    orElse: () => null,
-                                  )
-                                  ?.toString(),
-                              options: controller.purchasableItemOptions
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppSearchPickerOption<int>(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                      subtitle: item.itemCode,
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onChanged: (value) =>
-                                  controller.setLineItemId(line, value),
-                              validator: (_) =>
-                                  Validators.requiredSelectionField(
-                                    line.itemId,
-                                    'Item',
-                                  ),
-                            ),
-                            Builder(
-                              builder: (context) {
-                                final options = controller.uomOptionsForItem(
-                                  line.itemId,
-                                );
-                                if (options.length == 1) {
-                                  final onlyId = options.first.id;
-                                  if (line.uomId != onlyId) {
-                                    line.uomId = onlyId;
-                                  }
-                                }
-                                return AppDropdownField<int>.fromMapped(
-                                  labelText: 'UOM',
-                                  mappedItems: options
-                                      .where((item) => item.id != null)
-                                      .map(
-                                        (item) => AppDropdownItem(
-                                          value: item.id!,
-                                          label: item.toString(),
-                                        ),
-                                      )
-                                      .toList(growable: false),
-                                  initialValue: line.uomId,
-                                  onChanged: (value) =>
-                                      controller.setLineUomId(line, value),
-                                  validator: (_) =>
-                                      Validators.dependentSelectionField(
-                                        prerequisite: line.itemId,
-                                        prerequisiteName: 'item',
-                                        value: line.uomId,
-                                        fieldName: 'UOM',
-                                      ),
-                                );
-                              },
-                            ),
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Warehouse',
-                              mappedItems: controller.warehouses
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppDropdownItem(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.warehouseId,
-                              onChanged: (value) =>
-                                  controller.setLineWarehouseId(line, value),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Ordered Qty',
-                              controller: line.qtyController,
-                              onChanged: (_) =>
-                                  controller.refreshComputedState(),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: (value) {
-                                final parsed = Validators.parseFlexibleNumber(
-                                  value,
-                                );
-                                if ((parsed == null || parsed <= 0) &&
-                                    controller.lineAllowsBlankQty(line)) {
-                                  return null;
-                                }
-                                return Validators.compose([
-                                  Validators.required('Ordered Qty'),
-                                  Validators.optionalNonNegativeNumber(
-                                    'Ordered Qty',
-                                  ),
-                                ])(value);
-                              },
-                            ),
-                            AppFormTextField(
-                              labelText: 'Rate',
-                              controller: line.rateController,
-                              onChanged: (_) =>
-                                  controller.refreshComputedState(),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.compose([
-                                Validators.required('Rate'),
-                                Validators.optionalNonNegativeNumber('Rate'),
-                              ]),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Discount %',
-                              controller: line.discountController,
-                              onChanged: (_) =>
-                                  controller.refreshComputedState(),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.optionalNonNegativeNumber(
-                                'Discount %',
-                              ),
-                            ),
-                            AppDropdownField<int>.fromMapped(
-                              labelText: 'Tax Code',
-                              mappedItems: controller.taxCodes
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppDropdownItem(
-                                      value: item.id!,
-                                      label: item.toString(),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              initialValue: line.taxCodeId,
-                              onChanged: (value) =>
-                                  controller.setLineTaxCodeId(line, value),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Description',
-                              controller: line.descriptionController,
-                            ),
-                            AppFormTextField(
-                              labelText: 'Remarks',
-                              controller: line.remarksController,
-                              maxLines: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: AppUiConstants.spacingMd),
-                  GstSummaryCard(
-                    taxable: taxSummary.taxable,
-                    cgst: taxSummary.cgst,
-                    sgst: taxSummary.sgst,
-                    igst: taxSummary.igst,
-                    cess: 0,
-                    total:
-                        taxSummary.total +
-                        (controller.applyRoundOff
-                            ? (Validators.parseFlexibleNumber(
-                                    controller.roundOffController.text.trim(),
-                                  ) ??
-                                  0)
-                            : 0),
-                    currencyCode: currency,
-                    subtitle: (() {
-                      final roundOff = controller.applyRoundOff
-                          ? (Validators.parseFlexibleNumber(
-                                  controller.roundOffController.text.trim(),
-                                ) ??
-                                0)
-                          : 0;
-                      if (roundOff == 0) {
-                        return 'Live totals for the current purchase order lines.';
-                      }
-                      return 'Live totals for the current purchase order lines · includes round off ${roundOff.toStringAsFixed(2)}';
-                    })(),
-                  ),
+                  _buildLineItemTable(controller),
                 ],
               ),
             ),

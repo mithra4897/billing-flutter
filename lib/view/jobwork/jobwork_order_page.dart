@@ -392,235 +392,115 @@ class _JobworkOrderEditor extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                children: [
-                  Text(
-                    'Materials sent',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                  AppActionButton(
-                    icon: Icons.add_outlined,
-                    label: 'Add line',
-                    filled: false,
-                    onPressed: editLines ? vm.addMaterialLine : null,
-                  ),
+              ErpLineItemTable(
+                title: 'Materials sent',
+                enabled: editLines,
+                onAddLine: editLines ? vm.addMaterialLine : null,
+                onDeleteLine: editLines ? (i) => vm.removeMaterialLine(i) : null,
+                visibleColumns: const <ErpLineItemTableColumn>{
+                  ErpLineItemTableColumn.no,
+                  ErpLineItemTableColumn.item,
+                  ErpLineItemTableColumn.uom,
+                  ErpLineItemTableColumn.action,
+                },
+                customColumns: const <ErpLineItemCustomColumn>[
+                  ErpLineItemCustomColumn(id: 'line_type', label: 'Line Type', width: 160, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'planned_qty', label: 'Planned Qty', width: 120, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'remarks', label: 'Remarks', width: 200, insertAfter: ErpLineItemTableColumn.uom),
                 ],
-              ),
-              const SizedBox(height: AppUiConstants.spacingSm),
-              ...List<Widget>.generate(vm.materialDrafts.length, (index) {
-                final line = vm.materialDrafts[index];
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: PurchaseCompactLineCard(
-                    index: index,
-                    total: vm.materialDrafts.length,
-                    removeEnabled: editLines && vm.materialDrafts.length > 1,
-                    onRemove: editLines
-                        ? () => vm.removeMaterialLine(index)
-                        : null,
-                    child: PurchaseCompactFieldGrid(
-                      children: [
-                        AppSearchPickerField<int>(
-                          labelText: 'Item',
-                          selectedLabel: vm.items
-                              .cast<ItemModel?>()
-                              .firstWhere(
-                                (item) => item?.id == line.itemId,
-                                orElse: () => null,
-                              )
-                              ?.toString(),
-                          options: vm.items
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppSearchPickerOption<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                  subtitle: item.itemCode,
-                                ),
-                              )
-                              .toList(growable: false),
-                          validator: (_) =>
-                              line.itemId == null ? 'Item is required' : null,
-                          onChanged: (int? value) {
-                            if (editLines) {
-                              vm.setMaterialItemId(index, value);
-                            }
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'UOM',
-                          mappedItems: vm
-                              .uomOptionsForItem(line.itemId)
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppDropdownItem<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.uomId,
-                          onChanged: (int? value) {
-                            if (editLines) {
-                              vm.setMaterialUomId(index, value);
-                            }
-                          },
-                          validator: Validators.requiredSelection('UOM'),
-                        ),
-                        AppDropdownField<String>.fromMapped(
-                          labelText: 'Line type',
+                lines: List<ErpLineItemTableRow>.generate(vm.materialDrafts.length, (index) {
+                  final line = vm.materialDrafts[index];
+                  return ErpLineItemTableRow(
+                    rowKey: line,
+                    itemId: line.itemId,
+                    itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
+                    itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
+                    onItemChanged: editLines ? (v) => vm.setMaterialItemId(index, v) : null,
+                    itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                    uomId: line.uomId,
+                    uomOptions: vm.uomOptionsForItem(line.itemId).where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                    onUomChanged: editLines ? (v) => vm.setMaterialUomId(index, v) : null,
+                    uomValidator: Validators.requiredSelection('UOM'),
+                    amount: 0,
+                    deleteEnabled: editLines && vm.materialDrafts.length > 1,
+                    customCells: <String, Widget>{
+                      'line_type': ErpLineItemCellFrame(
+                        child: AppDropdownField<String>.fromMapped(
+                          labelText: '', hintText: 'Line type', fieldPadding: EdgeInsets.zero,
                           mappedItems: materialLineTypes,
                           initialValue: line.lineType,
-                          onChanged: (String? v) {
-                            if (editLines) {
-                              vm.setMaterialLineType(
-                                index,
-                                v ?? 'raw_material',
-                              );
-                            }
-                          },
+                          onChanged: editLines ? (v) => vm.setMaterialLineType(index, v ?? 'raw_material') : null,
                         ),
-                        AppFormTextField(
-                          labelText: 'Planned qty',
-                          controller: line.plannedQtyController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.requiredPositiveNumber(
-                            'Planned qty',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: line.remarksController,
-                          enabled: editLines,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-              const SizedBox(height: AppUiConstants.spacingMd),
-              Row(
-                children: [
-                  Text(
-                    'Outputs expected',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                  AppActionButton(
-                    icon: Icons.add_outlined,
-                    label: 'Add line',
-                    filled: false,
-                    onPressed: editLines ? vm.addOutputLine : null,
-                  ),
-                ],
+                      ),
+                      'planned_qty': ErpLineItemTextCell(
+                        controller: line.plannedQtyController,
+                        enabled: editLines,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: Validators.requiredPositiveNumber('Planned qty'),
+                      ),
+                      'remarks': ErpLineItemTextCell(
+                        controller: line.remarksController,
+                        enabled: editLines,
+                      ),
+                    },
+                  );
+                }),
               ),
-              const SizedBox(height: AppUiConstants.spacingSm),
-              ...List<Widget>.generate(vm.outputDrafts.length, (index) {
-                final line = vm.outputDrafts[index];
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: PurchaseCompactLineCard(
-                    index: index,
-                    total: vm.outputDrafts.length,
-                    removeEnabled: editLines && vm.outputDrafts.length > 1,
-                    onRemove: editLines
-                        ? () => vm.removeOutputLine(index)
-                        : null,
-                    child: PurchaseCompactFieldGrid(
-                      children: [
-                        AppSearchPickerField<int>(
-                          labelText: 'Item',
-                          selectedLabel: vm.items
-                              .cast<ItemModel?>()
-                              .firstWhere(
-                                (item) => item?.id == line.itemId,
-                                orElse: () => null,
-                              )
-                              ?.toString(),
-                          options: vm.items
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppSearchPickerOption<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                  subtitle: item.itemCode,
-                                ),
-                              )
-                              .toList(growable: false),
-                          validator: (_) =>
-                              line.itemId == null ? 'Item is required' : null,
-                          onChanged: (int? value) {
-                            if (editLines) {
-                              vm.setOutputItemId(index, value);
-                            }
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'UOM',
-                          mappedItems: vm
-                              .uomOptionsForItem(line.itemId)
-                              .where((item) => item.id != null)
-                              .map(
-                                (item) => AppDropdownItem<int>(
-                                  value: item.id!,
-                                  label: item.toString(),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.uomId,
-                          onChanged: (int? value) {
-                            if (editLines) {
-                              vm.setOutputUomId(index, value);
-                            }
-                          },
-                          validator: Validators.requiredSelection('UOM'),
-                        ),
-                        AppDropdownField<String>.fromMapped(
-                          labelText: 'Output type',
+              const SizedBox(height: AppUiConstants.spacingMd),
+              ErpLineItemTable(
+                title: 'Outputs expected',
+                enabled: editLines,
+                onAddLine: editLines ? vm.addOutputLine : null,
+                onDeleteLine: editLines ? (i) => vm.removeOutputLine(i) : null,
+                visibleColumns: const <ErpLineItemTableColumn>{
+                  ErpLineItemTableColumn.no,
+                  ErpLineItemTableColumn.item,
+                  ErpLineItemTableColumn.uom,
+                  ErpLineItemTableColumn.action,
+                },
+                customColumns: const <ErpLineItemCustomColumn>[
+                  ErpLineItemCustomColumn(id: 'output_type', label: 'Output Type', width: 160, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'planned_qty', label: 'Planned Qty', width: 120, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(id: 'remarks', label: 'Remarks', width: 200, insertAfter: ErpLineItemTableColumn.uom),
+                ],
+                lines: List<ErpLineItemTableRow>.generate(vm.outputDrafts.length, (index) {
+                  final line = vm.outputDrafts[index];
+                  return ErpLineItemTableRow(
+                    rowKey: line,
+                    itemId: line.itemId,
+                    itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
+                    itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
+                    onItemChanged: editLines ? (v) => vm.setOutputItemId(index, v) : null,
+                    itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                    uomId: line.uomId,
+                    uomOptions: vm.uomOptionsForItem(line.itemId).where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
+                    onUomChanged: editLines ? (v) => vm.setOutputUomId(index, v) : null,
+                    uomValidator: Validators.requiredSelection('UOM'),
+                    amount: 0,
+                    deleteEnabled: editLines && vm.outputDrafts.length > 1,
+                    customCells: <String, Widget>{
+                      'output_type': ErpLineItemCellFrame(
+                        child: AppDropdownField<String>.fromMapped(
+                          labelText: '', hintText: 'Output type', fieldPadding: EdgeInsets.zero,
                           mappedItems: outputTypes,
                           initialValue: line.outputType,
-                          onChanged: (String? v) {
-                            if (editLines) {
-                              vm.setOutputType(
-                                index,
-                                v ?? 'processed_material',
-                              );
-                            }
-                          },
+                          onChanged: editLines ? (v) => vm.setOutputType(index, v ?? 'processed_material') : null,
                         ),
-                        AppFormTextField(
-                          labelText: 'Planned qty',
-                          controller: line.plannedQtyController,
-                          enabled: editLines,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          validator: Validators.requiredPositiveNumber(
-                            'Planned qty',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: line.remarksController,
-                          enabled: editLines,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+                      ),
+                      'planned_qty': ErpLineItemTextCell(
+                        controller: line.plannedQtyController,
+                        enabled: editLines,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: Validators.requiredPositiveNumber('Planned qty'),
+                      ),
+                      'remarks': ErpLineItemTextCell(
+                        controller: line.remarksController,
+                        enabled: editLines,
+                      ),
+                    },
+                  );
+                }),
+              ),
               const SizedBox(height: AppUiConstants.spacingMd),
               Wrap(
                 spacing: AppUiConstants.spacingSm,

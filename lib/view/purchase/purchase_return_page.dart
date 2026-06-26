@@ -81,6 +81,124 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
     );
   }
 
+  Widget _buildLineItemTable(PurchaseReturnManagementController controller) {
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final qty =
+          Validators.parseFlexibleNumber(line.returnQtyController.text) ?? 0;
+      final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      return ErpLineItemTableRow(
+        rowKey: line,
+        qtyController: line.returnQtyController,
+        onQtyChanged: (_) => controller.refreshComputedState(),
+        qtyValidator: Validators.compose([
+          Validators.required('Return Qty'),
+          Validators.optionalNonNegativeNumber('Return Qty'),
+        ]),
+        rateController: line.rateController,
+        onRateChanged: (_) => controller.refreshComputedState(),
+        rateValidator: Validators.optionalNonNegativeNumber('Rate'),
+        remarksController: line.remarksController,
+        amount: qty * rate,
+        deleteEnabled: controller.lines.length > 1,
+        cellWidgets: <ErpLineItemTableColumn, Widget>{
+          ErpLineItemTableColumn.item: ErpLineItemTextCell(
+            controller: line.itemNameController,
+            readOnly: true,
+          ),
+          ErpLineItemTableColumn.warehouse: ErpLineItemTextCell(
+            controller: line.warehouseNameController,
+            readOnly: true,
+          ),
+          ErpLineItemTableColumn.uom: ErpLineItemTextCell(
+            controller: line.uomNameController,
+            readOnly: true,
+          ),
+        },
+        customCells: <String, Widget>{
+          'invoice_line': ErpLineItemCellFrame(
+            child: AppSearchPickerField<int>(
+              labelText: '',
+              selectedLabel: (() {
+                final selected = controller.invoiceLines
+                    .cast<PurchaseInvoiceLineModel?>()
+                    .firstWhere(
+                      (item) => item?.id == line.purchaseInvoiceLineId,
+                      orElse: () => null,
+                    );
+                if (selected == null) {
+                  return null;
+                }
+                return '${controller.itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
+              })(),
+              options: controller.invoiceLines
+                  .where((item) => item.id != null)
+                  .map(
+                    (item) => AppSearchPickerOption<int>(
+                      value: item.id!,
+                      label:
+                          '${controller.itemName(item.itemId)} · Qty ${item.invoicedQty}',
+                      subtitle:
+                          '${controller.warehouseName(item.warehouseId)} · ${controller.uomName(item.uomId)}',
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) => controller.selectInvoiceLine(line, value),
+              validator: (_) => Validators.requiredSelectionField(
+                line.purchaseInvoiceLineId,
+                'Purchase Invoice Line',
+              ),
+            ),
+          ),
+          'reason': ErpLineItemTextCell(
+            controller: line.returnReasonController,
+            hintText: 'Return Reason',
+          ),
+        },
+      );
+    });
+
+    return ErpLineItemTable(
+      title: 'Lines',
+      lines: rows,
+      onAddLine: controller.isSelectedReturnReadOnly ? null : controller.addLine,
+      onDeleteLine: controller.isSelectedReturnReadOnly
+          ? null
+          : controller.removeLine,
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.warehouse,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.qty: 'Return Qty',
+      },
+      customColumns: const <ErpLineItemCustomColumn>[
+        ErpLineItemCustomColumn(
+          id: 'invoice_line',
+          label: 'Purchase Invoice Line',
+          width: 250,
+          insertAfter: ErpLineItemTableColumn.no,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'reason',
+          label: 'Return Reason',
+          width: 180,
+          insertAfter: ErpLineItemTableColumn.rate,
+        ),
+      ],
+      enabled: !controller.isSelectedReturnReadOnly,
+    );
+  }
+
   Widget _buildContent(
     BuildContext context,
     PurchaseReturnManagementController controller,
@@ -255,131 +373,7 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
                     onChanged: controller.setIsActive,
                   ),
                   const SizedBox(height: AppUiConstants.spacingLg),
-                  Row(
-                    children: [
-                      Text(
-                        'Lines',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const Spacer(),
-                      AppActionButton(
-                        icon: Icons.add_outlined,
-                        label: 'Add Line',
-                        onPressed: controller.isSelectedReturnReadOnly
-                            ? null
-                            : controller.addLine,
-                        filled: false,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppUiConstants.spacingSm),
-                  ...List<Widget>.generate(controller.lines.length, (index) {
-                    final line = controller.lines[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: AppUiConstants.spacingSm,
-                      ),
-                      child: PurchaseCompactLineCard(
-                        index: index,
-                        total: controller.lines.length,
-                        removeEnabled: controller.lines.length > 1,
-                        onRemove: () => controller.removeLine(index),
-                        child: PurchaseCompactFieldGrid(
-                          children: [
-                            AppSearchPickerField<int>(
-                              labelText: 'Purchase Invoice Line',
-                              selectedLabel: (() {
-                                final selected = controller.invoiceLines
-                                    .cast<PurchaseInvoiceLineModel?>()
-                                    .firstWhere(
-                                      (item) =>
-                                          item?.id ==
-                                          line.purchaseInvoiceLineId,
-                                      orElse: () => null,
-                                    );
-                                if (selected == null) {
-                                  return null;
-                                }
-                                return '${controller.itemName(selected.itemId)} · Qty ${selected.invoicedQty}';
-                              })(),
-                              options: controller.invoiceLines
-                                  .where((item) => item.id != null)
-                                  .map(
-                                    (item) => AppSearchPickerOption<int>(
-                                      value: item.id!,
-                                      label:
-                                          '${controller.itemName(item.itemId)} · Qty ${item.invoicedQty}',
-                                      subtitle:
-                                          '${controller.warehouseName(item.warehouseId)} · ${controller.uomName(item.uomId)}',
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                              onChanged: (value) =>
-                                  controller.selectInvoiceLine(line, value),
-                              validator: (_) =>
-                                  Validators.requiredSelectionField(
-                                    line.purchaseInvoiceLineId,
-                                    'Purchase Invoice Line',
-                                  ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Item',
-                              controller: line.itemNameController,
-                              readOnly: true,
-                            ),
-                            AppFormTextField(
-                              labelText: 'Warehouse',
-                              controller: line.warehouseNameController,
-                              readOnly: true,
-                            ),
-                            AppFormTextField(
-                              labelText: 'UOM',
-                              controller: line.uomNameController,
-                              readOnly: true,
-                            ),
-                            AppFormTextField(
-                              labelText: 'Return Qty',
-                              controller: line.returnQtyController,
-                              onChanged: (_) =>
-                                  controller.refreshComputedState(),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.compose([
-                                Validators.required('Return Qty'),
-                                Validators.optionalNonNegativeNumber(
-                                  'Return Qty',
-                                ),
-                              ]),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Rate',
-                              controller: line.rateController,
-                              onChanged: (_) =>
-                                  controller.refreshComputedState(),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: Validators.optionalNonNegativeNumber(
-                                'Rate',
-                              ),
-                            ),
-                            AppFormTextField(
-                              labelText: 'Return Reason',
-                              controller: line.returnReasonController,
-                            ),
-                            AppFormTextField(
-                              labelText: 'Remarks',
-                              controller: line.remarksController,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
+                  _buildLineItemTable(controller),
                 ],
               ),
             ),

@@ -263,28 +263,75 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppUiConstants.spacingMd),
-            Row(
-              children: [
-                Text(
-                  'Line Items',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+            ErpLineItemTable(
+              title: 'Line Items',
+              enabled: canEdit,
+              onAddLine: canEdit ? vm.addLine : null,
+              onDeleteLine: canEdit ? (i) => vm.removeLine(i) : null,
+              visibleColumns: const <ErpLineItemTableColumn>{
+                ErpLineItemTableColumn.no,
+                ErpLineItemTableColumn.item,
+                ErpLineItemTableColumn.warehouse,
+                ErpLineItemTableColumn.uom,
+                ErpLineItemTableColumn.action,
+              },
+              customColumns: const <ErpLineItemCustomColumn>[
+                ErpLineItemCustomColumn(
+                  id: 'batch',
+                  label: 'Batch',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
                 ),
-                const Spacer(),
-                AppActionButton(
-                  icon: Icons.add_outlined,
-                  label: 'Add line',
-                  filled: false,
-                  onPressed: canEdit ? vm.addLine : null,
+                ErpLineItemCustomColumn(
+                  id: 'serial',
+                  label: 'Serial',
+                  width: 140,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'direction',
+                  label: 'Direction',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'system_qty',
+                  label: 'System Qty',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'actual_qty',
+                  label: 'Actual Qty',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'adj_qty',
+                  label: 'Adj Qty',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'unit_cost',
+                  label: 'Unit Cost',
+                  width: 110,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'total_cost',
+                  label: 'Total Cost',
+                  width: 118,
+                  insertAfter: ErpLineItemTableColumn.uom,
+                ),
+                ErpLineItemCustomColumn(
+                  id: 'remarks',
+                  label: 'Remarks',
+                  width: 200,
+                  insertAfter: ErpLineItemTableColumn.uom,
                 ),
               ],
-            ),
-            const SizedBox(height: AppUiConstants.spacingSm),
-            if (vm.lines.isEmpty)
-              const Text('No line items added.')
-            else
-              ...List<Widget>.generate(vm.lines.length, (index) {
+              lines: List<ErpLineItemTableRow>.generate(vm.lines.length, (index) {
                 final line = vm.lines[index];
                 final batches = vm.batchOptions(line.warehouseId, line.itemId);
                 final serials = vm.serialOptions(
@@ -292,210 +339,132 @@ class _InventoryAdjustmentEditor extends StatelessWidget {
                   line.itemId,
                   line.batchId,
                 );
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: AppUiConstants.spacingSm,
-                  ),
-                  child: PurchaseCompactLineCard(
-                    index: index,
-                    total: vm.lines.length,
-                    removeEnabled: canEdit && vm.lines.length > 1,
-                    onRemove: canEdit ? () => vm.removeLine(index) : null,
-                    child: PurchaseCompactFieldGrid(
-                      children: [
-                        AppSearchPickerField<int>(
-                          labelText: 'Item',
-                          selectedLabel: vm.items
-                              .cast<ItemModel?>()
-                              .firstWhere(
-                                (item) => item?.id == line.itemId,
-                                orElse: () => null,
-                              )
-                              ?.toString(),
-                          options: vm.items
-                              .where((x) => x.id != null)
-                              .map(
-                                (x) => AppSearchPickerOption<int>(
-                                  value: x.id!,
-                                  label: x.toString(),
-                                  subtitle: x.itemCode,
-                                ),
-                              )
-                              .toList(growable: false),
-                          validator: (_) =>
-                              line.itemId == null ? 'Item is required' : null,
-                          onChanged: (v) {
-                            if (!canEdit) return;
-                            vm.onLineItemChanged(index, v);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'Warehouse',
-                          mappedItems: vm.warehouseOptions
-                              .where((x) => x.id != null)
-                              .map(
-                                (x) => AppDropdownItem<int>(
-                                  value: x.id!,
-                                  label: x.toString(),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.warehouseId,
-                          validator: Validators.requiredSelection('Warehouse'),
-                          onChanged: (v) {
-                            if (!canEdit) return;
-                            vm.onLineWarehouseChanged(index, v);
-                          },
-                        ),
-                        AppDropdownField<int>.fromMapped(
-                          labelText: 'UOM',
-                          mappedItems: vm
-                              .uomOptionsForItem(line.itemId)
-                              .where((x) => x.id != null)
-                              .map(
-                                (x) => AppDropdownItem<int>(
-                                  value: x.id!,
-                                  label: x.toString(),
-                                ),
-                              )
-                              .toList(growable: false),
-                          initialValue: line.uomId,
-                          validator: Validators.requiredSelection('UOM'),
-                          onChanged: (v) {
-                            if (!canEdit) return;
-                            vm.onLineUomChanged(index, v);
-                          },
-                        ),
-                        if (vm.itemHasBatch(line.itemId))
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Batch',
-                            mappedItems: batches
-                                .map(
-                                  (x) => AppDropdownItem<int>(
-                                    value: intValue(x, 'id')!,
-                                    label: stringValue(x, 'batch_no', 'Batch'),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.batchId,
-                            onChanged: (v) {
-                              if (!canEdit) return;
-                              vm.onLineBatchChanged(index, v);
-                            },
-                          ),
-                        if (vm.itemHasSerial(line.itemId))
-                          AppDropdownField<int>.fromMapped(
-                            labelText: 'Serial',
-                            mappedItems: serials
-                                .map(
-                                  (x) => AppDropdownItem<int>(
-                                    value: intValue(x, 'id')!,
-                                    label: stringValue(
-                                      x,
-                                      'serial_no',
-                                      'Serial',
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                            initialValue: line.serialId,
-                            onChanged: (v) {
-                              if (!canEdit) return;
-                              vm.onLineSerialChanged(index, v);
-                            },
-                          ),
-                        AppDropdownField<String>.fromMapped(
-                          labelText: 'Direction',
-                          mappedItems: const <AppDropdownItem<String>>[
-                            AppDropdownItem<String>(value: 'in', label: 'In'),
-                            AppDropdownItem<String>(value: 'out', label: 'Out'),
-                          ],
-                          initialValue: line.adjustmentDirection,
-                          validator: Validators.requiredSelection('Direction'),
-                          onChanged: (v) {
-                            if (!canEdit) return;
-                            vm.onLineDirectionChanged(index, v);
-                          },
-                        ),
-                        AppFormTextField(
-                          labelText: 'System qty',
-                          controller: line.systemQtyController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber(
-                            'System qty',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Actual qty',
-                          controller: line.actualQtyController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Actual qty',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Adjustment qty',
-                          controller: line.adjustmentQtyController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: (value) {
-                            final text = (value ?? '').trim();
-                            if (text.isEmpty) return null;
-                            if (double.tryParse(text) == null) {
-                              return 'Adjustment qty must be a valid number';
-                            }
-                            return null;
-                          },
-                        ),
-                        AppFormTextField(
-                          labelText: 'Unit cost',
-                          controller: line.unitCostController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: Validators.optionalNonNegativeNumber(
-                            'Unit cost',
-                          ),
-                        ),
-                        AppFormTextField(
-                          labelText: 'Total cost',
-                          controller: line.totalCostController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          enabled: canEdit,
-                          validator: (value) {
-                            final text = (value ?? '').trim();
-                            if (text.isEmpty) return null;
-                            if (double.tryParse(text) == null) {
-                              return 'Total cost must be a valid number';
-                            }
-                            return null;
-                          },
-                        ),
-                        AppFormTextField(
-                          labelText: 'Remarks',
-                          controller: line.remarksController,
-                          enabled: canEdit,
-                          validator: Validators.optionalMaxLength(
-                            500,
-                            'Line remarks',
-                          ),
-                        ),
-                      ],
+                return ErpLineItemTableRow(
+                  rowKey: line,
+                  itemId: line.itemId,
+                  itemSelection: vm.items
+                      .where((x) => x.id == line.itemId)
+                      .map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode))
+                      .firstOrNull,
+                  itemOptions: vm.items
+                      .where((x) => x.id != null)
+                      .map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode))
+                      .toList(growable: false),
+                  onItemChanged: canEdit ? (v) => vm.onLineItemChanged(index, v) : null,
+                  itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                  warehouseId: line.warehouseId,
+                  warehouseOptions: vm.warehouseOptions
+                      .where((x) => x.id != null)
+                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .toList(growable: false),
+                  onWarehouseChanged: canEdit ? (v) => vm.onLineWarehouseChanged(index, v) : null,
+                  uomId: line.uomId,
+                  uomOptions: vm.uomOptionsForItem(line.itemId)
+                      .where((x) => x.id != null)
+                      .map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString()))
+                      .toList(growable: false),
+                  onUomChanged: canEdit ? (v) => vm.onLineUomChanged(index, v) : null,
+                  uomValidator: Validators.requiredSelection('UOM'),
+                  amount: 0,
+                  deleteEnabled: canEdit && vm.lines.length > 1,
+                  customCells: <String, Widget>{
+                    'batch': vm.itemHasBatch(line.itemId)
+                        ? ErpLineItemCellFrame(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: '',
+                              hintText: 'Batch',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: batches
+                                  .map((x) => AppDropdownItem<int>(
+                                        value: intValue(x, 'id')!,
+                                        label: stringValue(x, 'batch_no', 'Batch'),
+                                      ))
+                                  .toList(growable: false),
+                              initialValue: line.batchId,
+                              onChanged: canEdit ? (v) => vm.onLineBatchChanged(index, v) : null,
+                            ),
+                          )
+                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                    'serial': vm.itemHasSerial(line.itemId)
+                        ? ErpLineItemCellFrame(
+                            child: AppDropdownField<int>.fromMapped(
+                              labelText: '',
+                              hintText: 'Serial',
+                              fieldPadding: EdgeInsets.zero,
+                              mappedItems: serials
+                                  .map((x) => AppDropdownItem<int>(
+                                        value: intValue(x, 'id')!,
+                                        label: stringValue(x, 'serial_no', 'Serial'),
+                                      ))
+                                  .toList(growable: false),
+                              initialValue: line.serialId,
+                              onChanged: canEdit ? (v) => vm.onLineSerialChanged(index, v) : null,
+                            ),
+                          )
+                        : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                    'direction': ErpLineItemCellFrame(
+                      child: AppDropdownField<String>.fromMapped(
+                        labelText: '',
+                        hintText: 'Direction',
+                        fieldPadding: EdgeInsets.zero,
+                        mappedItems: const <AppDropdownItem<String>>[
+                          AppDropdownItem<String>(value: 'in', label: 'In'),
+                          AppDropdownItem<String>(value: 'out', label: 'Out'),
+                        ],
+                        initialValue: line.adjustmentDirection,
+                        validator: Validators.requiredSelection('Direction'),
+                        onChanged: canEdit ? (v) => vm.onLineDirectionChanged(index, v) : null,
+                      ),
                     ),
-                  ),
+                    'system_qty': ErpLineItemTextCell(
+                      controller: line.systemQtyController,
+                      enabled: canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.optionalNonNegativeNumber('System qty'),
+                    ),
+                    'actual_qty': ErpLineItemTextCell(
+                      controller: line.actualQtyController,
+                      enabled: canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.optionalNonNegativeNumber('Actual qty'),
+                    ),
+                    'adj_qty': ErpLineItemTextCell(
+                      controller: line.adjustmentQtyController,
+                      enabled: canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) {
+                        final text = (value ?? '').trim();
+                        if (text.isEmpty) return null;
+                        if (double.tryParse(text) == null) return 'Adjustment qty must be a valid number';
+                        return null;
+                      },
+                    ),
+                    'unit_cost': ErpLineItemTextCell(
+                      controller: line.unitCostController,
+                      enabled: canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: Validators.optionalNonNegativeNumber('Unit cost'),
+                    ),
+                    'total_cost': ErpLineItemTextCell(
+                      controller: line.totalCostController,
+                      enabled: canEdit,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) {
+                        final text = (value ?? '').trim();
+                        if (text.isEmpty) return null;
+                        if (double.tryParse(text) == null) return 'Total cost must be a valid number';
+                        return null;
+                      },
+                    ),
+                    'remarks': ErpLineItemTextCell(
+                      controller: line.remarksController,
+                      enabled: canEdit,
+                      validator: Validators.optionalMaxLength(500, 'Line remarks'),
+                    ),
+                  },
                 );
               }),
+            ),
             const SizedBox(height: AppUiConstants.spacingMd),
             Wrap(
               spacing: AppUiConstants.spacingSm,

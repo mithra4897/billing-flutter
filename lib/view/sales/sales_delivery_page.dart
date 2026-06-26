@@ -121,6 +121,353 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     );
   }
 
+  Widget _buildGridHintCell(
+    BuildContext context,
+    String text, {
+    bool muted = true,
+  }) {
+    final theme = Theme.of(context);
+    final appTheme = theme.extension<AppThemeExtension>()!;
+    return ErpLineItemCellFrame(
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.2,
+            color: muted ? appTheme.tableMutedText : appTheme.tableCellText,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeliveryLineTable(SalesDeliveryManagementController controller) {
+    final itemOptions = controller.itemPickerOptions
+        .map(
+          (option) => ErpLinkFieldOption<int>(
+            value: option.value,
+            label: option.label,
+            subtitle: option.subtitle,
+            searchText: option.searchText ?? option.subtitle,
+          ),
+        )
+        .toList(growable: false);
+
+    final rows = List<ErpLineItemTableRow>.generate(controller.lines.length, (
+      index,
+    ) {
+      final line = controller.lines[index];
+      final qty =
+          Validators.parseFlexibleNumber(line.deliveredQtyController.text) ?? 0;
+      final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      final amount = qty * rate;
+      final uomOptions = controller
+          .uomOptionsForItem(line.itemId)
+          .where((item) => item.id != null)
+          .map(
+            (item) => AppDropdownItem<int>(
+              value: item.id!,
+              label: item.toString(),
+            ),
+          )
+          .toList(growable: false);
+
+      if (uomOptions.length == 1) {
+        final onlyId = uomOptions.first.value;
+        if (line.uomId != onlyId) {
+          line.uomId = onlyId;
+        }
+      }
+
+      final itemSelection = line.itemId == null
+          ? null
+          : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
+              (item) => item?.value == line.itemId,
+              orElse: () => null,
+            );
+
+      return ErpLineItemTableRow(
+        rowKey: line,
+        itemId: line.itemId,
+        itemSelection: itemSelection,
+        itemOptions: itemOptions,
+        onItemChanged: (value) => controller.setLineItemId(index, value),
+        itemValidator: (_) =>
+            Validators.requiredSelectionField(line.itemId, 'Item'),
+        warehouseId: line.warehouseId,
+        warehouseOptions: controller.warehouseDropdownItems,
+        onWarehouseChanged: (value) =>
+            unawaited(controller.setLineWarehouseId(index, value)),
+        uomId: line.uomId,
+        uomOptions: uomOptions,
+        onUomChanged: (value) => controller.setLineUomId(index, value),
+        uomValidator: (_) => Validators.dependentSelectionField(
+          prerequisite: line.itemId,
+          prerequisiteName: 'item',
+          value: line.uomId,
+          fieldName: 'UOM',
+        ),
+        qtyController: line.deliveredQtyController,
+        qtyValidator: (_) {
+          final quantityError = Validators.requiredPositiveNumberField(
+            line.deliveredQtyController.text,
+            'Delivered Qty',
+          );
+          if (quantityError != null) {
+            return quantityError;
+          }
+          final qtyValue = double.tryParse(line.deliveredQtyController.text.trim());
+          if (controller.isSerialManagedItem(line.itemId)) {
+            final serialCount = controller.lineSerialNumbers(line).length;
+            if (serialCount == 0) {
+              return 'Add at least one serial number';
+            }
+            if (qtyValue != serialCount) {
+              return 'Qty must match serial count';
+            }
+          }
+          return null;
+        },
+        rateController: line.rateController,
+        rateValidator: Validators.optionalNonNegativeNumber('Rate'),
+        descriptionController: line.descriptionController,
+        remarksController: line.remarksController,
+        amount: amount,
+        deleteEnabled: controller.lines.length > 1,
+        customCells: <String, Widget>{
+          'batch': () {
+            if (line.itemId == null) {
+              return _buildGridHintCell(context, 'Select item');
+            }
+            if (!controller.isBatchManagedItem(line.itemId)) {
+              return _buildGridHintCell(context, 'Not required');
+            }
+            if (line.warehouseId == null) {
+              return _buildGridHintCell(context, 'Select warehouse');
+            }
+            final batchItems = controller
+                .batchOptionsForLine(line)
+                .map(
+                  (batch) => AppDropdownItem<int>(
+                    value:
+                        int.tryParse(batch['batch_id']?.toString() ?? '') ?? 0,
+                    label: stringValue(batch, 'batch_no', 'Batch'),
+                  ),
+                )
+                .where((item) => item.value != 0)
+                .toList(growable: false);
+            if (batchItems.isEmpty) {
+              return _buildGridHintCell(context, 'No batches');
+            }
+            return ErpLineItemCellFrame(
+              child: AppDropdownField<int>.fromMapped(
+                labelText: '',
+                hintText: 'Batch',
+                fieldPadding: EdgeInsets.zero,
+                mappedItems: batchItems,
+                initialValue: line.batchId,
+                onChanged: (value) =>
+                    unawaited(controller.setLineBatchId(index, value)),
+              ),
+            );
+          }(),
+          'serials': () {
+            if (line.itemId == null) {
+              return _buildGridHintCell(context, 'Select item');
+            }
+            if (!controller.isSerialManagedItem(line.itemId)) {
+              return _buildGridHintCell(context, 'Not required');
+            }
+            if (line.warehouseId == null) {
+              return _buildGridHintCell(context, 'Select warehouse');
+            }
+            if (controller.isBatchManagedItem(line.itemId) && line.batchId == null) {
+              return _buildGridHintCell(context, 'Select batch');
+            }
+            return ErpLineItemCellFrame(
+              height: null,
+              child: AppSerialNumbersField(
+                labelText: '',
+                emptyText: 'Add serials',
+                countSummaryBuilder: (count) => '$count serials',
+                values: line.serialNumbers,
+                canOpen:
+                    ((controller.isBatchManagedItem(line.itemId)
+                                ? line.batchId != null
+                                : line.warehouseId != null) ||
+                            line.serialNumbers.isNotEmpty),
+                beforeOpen: () => controller.syncSerialOptionsForLine(line),
+                validator: (values) {
+                  if (line.warehouseId == null) {
+                    return 'Select warehouse first';
+                  }
+                  if (controller.isBatchManagedItem(line.itemId) &&
+                      line.batchId == null) {
+                    return 'Select batch first';
+                  }
+                  final serialOptions = controller.serialOptionsForLine(line);
+                  if (serialOptions.isEmpty) {
+                    return 'No serials found in backend for the selected warehouse.';
+                  }
+                  final serialLabelSet = controller.serialLabelSetForLine(line);
+                  for (final value in values) {
+                    if (!serialLabelSet.contains(value.trim().toLowerCase())) {
+                      return 'Serial "$value" is not available for the selected warehouse/batch.';
+                    }
+                  }
+                  return null;
+                },
+                onChanged: (values) {
+                  controller.setLineSerialNumbers(line, values);
+                  controller.refreshState();
+                },
+              ),
+            );
+          }(),
+        },
+      );
+    });
+
+    return ErpLineItemTable(
+      title: 'Delivery Items',
+      lines: rows,
+      onAddLine: controller.addLine,
+      onDeleteLine: controller.removeLine,
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.warehouse,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.description,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.qty: 'Delivered Qty',
+      },
+      customColumns: const <ErpLineItemCustomColumn>[
+        ErpLineItemCustomColumn(
+          id: 'batch',
+          label: 'Batch',
+          width: 150,
+          insertAfter: ErpLineItemTableColumn.warehouse,
+        ),
+        ErpLineItemCustomColumn(
+          id: 'serials',
+          label: 'Serials',
+          width: 220,
+          insertAfter: ErpLineItemTableColumn.warehouse,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReturnableDcTable(SalesDeliveryManagementController controller) {
+    final itemOptions = controller.itemPickerOptions
+        .map(
+          (option) => ErpLinkFieldOption<int>(
+            value: option.value,
+            label: option.label,
+            subtitle: option.subtitle,
+            searchText: option.searchText ?? option.subtitle,
+          ),
+        )
+        .toList(growable: false);
+
+    final rows = List<ErpLineItemTableRow>.generate(
+      controller.returnableDcs.length,
+      (index) {
+        final row = controller.returnableDcs[index];
+        final qty = Validators.parseFlexibleNumber(row.qtyController.text) ?? 0;
+        final uomOptions = controller
+            .uomOptionsForItem(row.itemId)
+            .where((item) => item.id != null)
+            .map(
+              (item) => AppDropdownItem<int>(
+                value: item.id!,
+                label: item.toString(),
+              ),
+            )
+            .toList(growable: false);
+
+        if (uomOptions.length == 1) {
+          final onlyId = uomOptions.first.value;
+          if (row.uomId != onlyId) {
+            row.uomId = onlyId;
+          }
+        }
+
+        final itemSelection = row.itemId == null
+            ? null
+            : itemOptions.cast<ErpLinkFieldOption<int>?>().firstWhere(
+                (item) => item?.value == row.itemId,
+                orElse: () => null,
+              );
+
+        return ErpLineItemTableRow(
+          rowKey: row,
+          itemId: row.itemId,
+          itemSelection: itemSelection,
+          itemOptions: itemOptions,
+          onItemChanged: (value) => controller.setReturnableDcItemId(index, value),
+          uomId: row.uomId,
+          uomOptions: uomOptions,
+          onUomChanged: (value) => controller.setReturnableDcUomId(index, value),
+          uomValidator: (_) => row.uomId == null ? 'UOM is required' : null,
+          qtyController: row.qtyController,
+          qtyValidator: (_) => Validators.requiredPositiveNumberField(
+            row.qtyController.text,
+            'Qty',
+          ),
+          descriptionController: row.descriptionController,
+          remarksController: row.remarksController,
+          amount: qty,
+          deleteEnabled: controller.returnableDcs.length > 1,
+          customCells: <String, Widget>{
+            'item_name': ErpLineItemTextCell(
+              controller: row.itemNameController,
+              hintText: 'Use when item is not in item master',
+            ),
+          },
+        );
+      },
+    );
+
+    return ErpLineItemTable(
+      title: 'Returnable Items',
+      lines: rows,
+      onAddLine: controller.addReturnableDc,
+      onDeleteLine: controller.removeReturnableDc,
+      addButtonLabel: 'Add Returnable Item',
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.description,
+        ErpLineItemTableColumn.remarks,
+        ErpLineItemTableColumn.action,
+      },
+      customColumns: const <ErpLineItemCustomColumn>[
+        ErpLineItemCustomColumn(
+          id: 'item_name',
+          label: 'New Item Name',
+          width: 220,
+          insertAfter: ErpLineItemTableColumn.item,
+        ),
+      ],
+      enabled: true,
+    );
+  }
+
   Widget _buildContent(
     BuildContext context,
     SalesDeliveryManagementController controller,
@@ -298,350 +645,10 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (controller.deliveryKind == 'dc')
-                    SalesDocumentLineSection(
-                      title: 'Delivery Items',
-                      addLabel: 'Add Line',
-                      onAdd: controller.addLine,
-                      children: List<Widget>.generate(controller.lines.length, (
-                        index,
-                      ) {
-                        final line = controller.lines[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: AppUiConstants.spacingSm,
-                          ),
-                          child: PurchaseCompactLineCard(
-                            index: index,
-                            total: controller.lines.length,
-                            removeEnabled: controller.lines.length > 1,
-                            onRemove: () => controller.removeLine(index),
-                            child: PurchaseCompactFieldGrid(
-                              children: [
-                                AppSearchPickerField<int>(
-                                  labelText: 'Item',
-                                  selectedLabel: controller.itemLabelById(
-                                    line.itemId,
-                                  ),
-                                  options: controller.itemPickerOptions,
-                                  onChanged: (value) =>
-                                      controller.setLineItemId(index, value),
-                                  validator: (_) =>
-                                      Validators.requiredSelectionField(
-                                        line.itemId,
-                                        'Item',
-                                      ),
-                                ),
-                                AppDropdownField<int>.fromMapped(
-                                  labelText: 'Warehouse',
-                                  mappedItems:
-                                      controller.warehouseDropdownItems,
-                                  initialValue: line.warehouseId,
-                                  onChanged: (value) => unawaited(
-                                    controller.setLineWarehouseId(index, value),
-                                  ),
-                                  validator: Validators.requiredSelection(
-                                    'Warehouse',
-                                  ),
-                                ),
-                                if (controller.isBatchManagedItem(line.itemId))
-                                  AppDropdownField<int>.fromMapped(
-                                    labelText: 'Batch',
-                                    mappedItems: controller
-                                        .batchOptionsForLine(line)
-                                        .map(
-                                          (batch) => AppDropdownItem<int>(
-                                            value:
-                                                int.tryParse(
-                                                  batch['batch_id']
-                                                          ?.toString() ??
-                                                      '',
-                                                ) ??
-                                                0,
-                                            label: stringValue(
-                                              batch,
-                                              'batch_no',
-                                              'Batch',
-                                            ),
-                                          ),
-                                        )
-                                        .where((item) => item.value != 0)
-                                        .toList(growable: false),
-                                    initialValue: line.batchId,
-                                    onChanged: (value) => unawaited(
-                                      controller.setLineBatchId(index, value),
-                                    ),
-                                    validator: (_) {
-                                      if (!controller.isBatchManagedItem(
-                                        line.itemId,
-                                      )) {
-                                        return null;
-                                      }
-                                      final dependencyError =
-                                          Validators.dependentSelectionField(
-                                            prerequisite: line.warehouseId,
-                                            prerequisiteName: 'warehouse',
-                                            value: line.batchId,
-                                            fieldName: 'Batch',
-                                          );
-                                      if (dependencyError != null &&
-                                          line.warehouseId == null) {
-                                        return dependencyError;
-                                      }
-                                      final batches = controller
-                                          .batchOptionsForLine(line);
-                                      if (batches.isEmpty) {
-                                        return 'No batches found for the selected warehouse';
-                                      }
-                                      return dependencyError;
-                                    },
-                                  ),
-                                Builder(
-                                  builder: (context) {
-                                    final options = controller
-                                        .uomOptionsForItem(line.itemId);
-                                    if (options.length == 1) {
-                                      final onlyId = options.first.id;
-                                      if (line.uomId != onlyId) {
-                                        line.uomId = onlyId;
-                                      }
-                                    }
-                                    return AppDropdownField<int>.fromMapped(
-                                      labelText: 'UOM',
-                                      mappedItems: options
-                                          .where((item) => item.id != null)
-                                          .map(
-                                            (item) => AppDropdownItem(
-                                              value: item.id!,
-                                              label: item.toString(),
-                                            ),
-                                          )
-                                          .toList(growable: false),
-                                      initialValue: line.uomId,
-                                      onChanged: (value) =>
-                                          controller.setLineUomId(index, value),
-                                      validator: (_) =>
-                                          Validators.dependentSelectionField(
-                                            prerequisite: line.itemId,
-                                            prerequisiteName: 'item',
-                                            value: line.uomId,
-                                            fieldName: 'UOM',
-                                          ),
-                                    );
-                                  },
-                                ),
-                                if (controller.isSerialManagedItem(line.itemId))
-                                  AppSerialNumbersField(
-                                    values: line.serialNumbers,
-                                    canOpen:
-                                        ((controller.isBatchManagedItem(
-                                              line.itemId,
-                                            )
-                                            ? line.batchId != null
-                                            : line.warehouseId != null) ||
-                                        line.serialNumbers.isNotEmpty),
-                                    beforeOpen: () => controller
-                                        .syncSerialOptionsForLine(line),
-                                    validator: (values) {
-                                      if (line.warehouseId == null) {
-                                        return 'Select warehouse first';
-                                      }
-                                      if (controller.isBatchManagedItem(
-                                            line.itemId,
-                                          ) &&
-                                          line.batchId == null) {
-                                        return 'Select batch first';
-                                      }
-                                      final serialOptions = controller
-                                          .serialOptionsForLine(line);
-                                      if (serialOptions.isEmpty) {
-                                        return 'No serials found in backend for the selected warehouse.';
-                                      }
-                                      final serialLabelSet = controller
-                                          .serialLabelSetForLine(line);
-                                      for (final value in values) {
-                                        if (!serialLabelSet.contains(
-                                          value.trim().toLowerCase(),
-                                        )) {
-                                          return 'Serial "$value" is not available for the selected warehouse/batch.';
-                                        }
-                                      }
-                                      return null;
-                                    },
-                                    onChanged: (values) {
-                                      controller.setLineSerialNumbers(
-                                        line,
-                                        values,
-                                      );
-                                      controller.refreshState();
-                                    },
-                                  ),
-                                AppFormTextField(
-                                  labelText: 'Delivered Qty',
-                                  controller: line.deliveredQtyController,
-                                  enabled: !controller.isSerialManagedItem(
-                                    line.itemId,
-                                  ),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  validator: (_) {
-                                    final quantityError =
-                                        Validators.requiredPositiveNumberField(
-                                          line.deliveredQtyController.text,
-                                          'Delivered Qty',
-                                        );
-                                    if (quantityError != null) {
-                                      return quantityError;
-                                    }
-                                    final qty = double.tryParse(
-                                      line.deliveredQtyController.text.trim(),
-                                    );
-                                    if (controller.isSerialManagedItem(
-                                      line.itemId,
-                                    )) {
-                                      final serialCount = controller
-                                          .lineSerialNumbers(line)
-                                          .length;
-                                      if (serialCount == 0) {
-                                        return 'Add at least one serial number';
-                                      }
-                                      if (qty != serialCount) {
-                                        return 'Qty must match serial count';
-                                      }
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                AppFormTextField(
-                                  labelText: 'Rate',
-                                  controller: line.rateController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
-                                  validator:
-                                      Validators.optionalNonNegativeNumber(
-                                        'Rate',
-                                      ),
-                                ),
-                                AppFormTextField(
-                                  labelText: 'Description',
-                                  controller: line.descriptionController,
-                                ),
-                                AppFormTextField(
-                                  labelText: 'Remarks',
-                                  controller: line.remarksController,
-                                  maxLines: 2,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
+                    _buildDeliveryLineTable(controller),
                   if (controller.deliveryKind == 'rdc') ...[
                     const SizedBox(height: AppUiConstants.spacingLg),
-                    SalesDocumentLineSection(
-                      title: 'Returnable Items',
-                      addLabel: 'Add Returnable Item',
-                      onAdd: controller.addReturnableDc,
-                      children: List<Widget>.generate(
-                        controller.returnableDcs.length,
-                        (index) {
-                          final row = controller.returnableDcs[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: AppUiConstants.spacingSm,
-                            ),
-                            child: PurchaseCompactLineCard(
-                              index: index,
-                              total: controller.returnableDcs.length,
-                              removeEnabled:
-                                  controller.returnableDcs.length > 1,
-                              onRemove: () =>
-                                  controller.removeReturnableDc(index),
-                              child: PurchaseCompactFieldGrid(
-                                children: [
-                                  AppSearchPickerField<int>(
-                                    labelText: 'Item',
-                                    selectedLabel:
-                                        controller.itemLabelById(row.itemId) ??
-                                        nullIfEmpty(
-                                          row.itemNameController.text.trim(),
-                                        ),
-                                    options: controller.itemPickerOptions,
-                                    onChanged: (value) => controller
-                                        .setReturnableDcItemId(index, value),
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'New Item Name',
-                                    controller: row.itemNameController,
-                                    hintText:
-                                        'Use when the item is not in item master',
-                                  ),
-                                  Builder(
-                                    builder: (context) {
-                                      final options = controller
-                                          .uomOptionsForItem(row.itemId);
-                                      if (options.length == 1) {
-                                        final onlyId = options.first.id;
-                                        if (row.uomId != onlyId) {
-                                          row.uomId = onlyId;
-                                        }
-                                      }
-                                      return AppDropdownField<int>.fromMapped(
-                                        labelText: 'UOM',
-                                        mappedItems: options
-                                            .where((item) => item.id != null)
-                                            .map(
-                                              (item) => AppDropdownItem(
-                                                value: item.id!,
-                                                label: item.toString(),
-                                              ),
-                                            )
-                                            .toList(growable: false),
-                                        initialValue: row.uomId,
-                                        onChanged: (value) => controller
-                                            .setReturnableDcUomId(index, value),
-                                        validator: (_) {
-                                          if (row.uomId == null) {
-                                            return 'UOM is required';
-                                          }
-                                          return null;
-                                        },
-                                      );
-                                    },
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'Qty',
-                                    controller: row.qtyController,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                          decimal: true,
-                                        ),
-                                    validator: (_) =>
-                                        Validators.requiredPositiveNumberField(
-                                          row.qtyController.text,
-                                          'Qty',
-                                        ),
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'Description',
-                                    controller: row.descriptionController,
-                                  ),
-                                  AppFormTextField(
-                                    labelText: 'Remarks',
-                                    controller: row.remarksController,
-                                    maxLines: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                    _buildReturnableDcTable(controller),
                   ],
                 ],
               ),

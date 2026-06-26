@@ -51,9 +51,10 @@ class AppSerialNumbersField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final normalizedLabelText = labelText.trim().isEmpty ? null : labelText;
     return AppFieldBox(
       child: InputDecorator(
-        decoration: InputDecoration(labelText: labelText),
+        decoration: InputDecoration(labelText: normalizedLabelText),
         child: Row(
           children: [
             Expanded(child: Text(_summaryText)),
