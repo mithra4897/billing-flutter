@@ -263,7 +263,10 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                         initialValue: controller.warehouseId,
                         onChanged: controller.setWarehouseId,
                         validator: (_) => controller.hasInventoryTrackedLines
-                            ? Validators.requiredSelection('Warehouse')(null)
+                            ? Validators.requiredSelectionField(
+                                controller.warehouseId,
+                                'Warehouse',
+                              )
                             : null,
                       ),
                       AppFormTextField(
@@ -384,8 +387,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                               },
                               validator: (_) =>
                                   controller.lineUsesInventory(line.itemId)
-                                  ? Validators.requiredSelection('Warehouse')(
-                                      null,
+                                  ? Validators.requiredSelectionField(
+                                      line.warehouseId,
+                                      'Warehouse',
                                     )
                                   : null,
                             ),
