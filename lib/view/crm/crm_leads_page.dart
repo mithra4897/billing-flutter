@@ -959,10 +959,9 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                     AppActionButton(
                       icon: Icons.forward_outlined,
                       label: 'Create Opportunity',
-                      onPressed: () async {
+                      onPressed: () {
                         final existing =
-                            controller.opportunityIdFromSalesChain() ??
-                            controller.enquiryIdFromSalesChain();
+                            controller.opportunityIdFromSalesChain();
                         if (existing != null) {
                           _openCrmShellRoute(
                             context,
@@ -970,15 +969,18 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                           );
                           return;
                         }
-                        final created = await controller.convert(
-                          createEnquiry: true,
+                        final leadId = intValue(
+                          controller.selectedItem?.toJson() ??
+                              const <String, dynamic>{},
+                          'id',
                         );
-                        if (created != null && context.mounted) {
-                          _openCrmShellRoute(
-                            context,
-                            '/crm/opportunities/$created',
-                          );
-                        }
+                        final uri = Uri(
+                          path: '/crm/opportunities/new',
+                          queryParameters: {
+                            if (leadId != null) 'lead_id': '$leadId',
+                          },
+                        );
+                        _openCrmShellRoute(context, uri.toString());
                       },
                     ),
                     AppActionButton(

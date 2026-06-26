@@ -2,9 +2,18 @@ import '../../controller/project/project_resource_usage_management_controller.da
 import '../../screen.dart';
 
 class ProjectResourceUsageManagementPage extends StatefulWidget {
-  const ProjectResourceUsageManagementPage({super.key, this.embedded = false});
+  const ProjectResourceUsageManagementPage({
+    super.key,
+    this.embedded = false,
+    this.constrainedProjectId,
+    this.controllerScope = const <String, Object?>{},
+    this.useShellActions = true,
+  });
 
   final bool embedded;
+  final int? constrainedProjectId;
+  final Map<String, Object?> controllerScope;
+  final bool useShellActions;
 
   @override
   State<ProjectResourceUsageManagementPage> createState() =>
@@ -20,9 +29,32 @@ class _ProjectResourceUsageManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'ProjectResourceUsageManagementController',
+      scope: widget.controllerScope,
     );
-    Get.put(ProjectResourceUsageManagementController(), tag: _controllerTag);
+    if (!Get.isRegistered<ProjectResourceUsageManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.put(
+        ProjectResourceUsageManagementController(
+          constrainedProjectId: widget.constrainedProjectId,
+        ),
+        tag: _controllerTag,
+      );
+    }
   }
+
+  @override
+  void didUpdateWidget(
+    covariant ProjectResourceUsageManagementPage oldWidget,
+  ) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
+      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+    }
+  }
+
+  ProjectResourceUsageManagementController get _controller =>
+      Get.find<ProjectResourceUsageManagementController>(tag: _controllerTag);
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +72,11 @@ class _ProjectResourceUsageManagementPageState
         ];
 
         final content = _buildContent(context, controller);
-        if (widget.embedded) {
+        if (widget.embedded && widget.useShellActions) {
           return ShellPageActions(actions: actions, child: content);
+        }
+        if (widget.embedded) {
+          return content;
         }
         return AppStandaloneShell(
           title: 'Project Resource Usage',
@@ -98,13 +133,14 @@ class _ProjectResourceUsageManagementPageState
           children: [
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
-                ),
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppDropdownField<int>.fromMapped(
                   initialValue: controller.taskId,
                   labelText: 'Task',

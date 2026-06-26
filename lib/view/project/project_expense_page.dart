@@ -2,9 +2,18 @@ import '../../controller/project/project_expense_management_controller.dart';
 import '../../screen.dart';
 
 class ProjectExpenseManagementPage extends StatefulWidget {
-  const ProjectExpenseManagementPage({super.key, this.embedded = false});
+  const ProjectExpenseManagementPage({
+    super.key,
+    this.embedded = false,
+    this.constrainedProjectId,
+    this.controllerScope = const <String, Object?>{},
+    this.useShellActions = true,
+  });
 
   final bool embedded;
+  final int? constrainedProjectId;
+  final Map<String, Object?> controllerScope;
+  final bool useShellActions;
 
   @override
   State<ProjectExpenseManagementPage> createState() =>
@@ -27,9 +36,30 @@ class _ProjectExpenseManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'ProjectExpenseManagementController',
+      scope: widget.controllerScope,
     );
-    Get.put(ProjectExpenseManagementController(), tag: _controllerTag);
+    if (!Get.isRegistered<ProjectExpenseManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.put(
+        ProjectExpenseManagementController(
+          constrainedProjectId: widget.constrainedProjectId,
+        ),
+        tag: _controllerTag,
+      );
+    }
   }
+
+  @override
+  void didUpdateWidget(covariant ProjectExpenseManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
+      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+    }
+  }
+
+  ProjectExpenseManagementController get _controller =>
+      Get.find<ProjectExpenseManagementController>(tag: _controllerTag);
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +77,11 @@ class _ProjectExpenseManagementPageState
         ];
 
         final content = _buildContent(context, controller);
-        if (widget.embedded) {
+        if (widget.embedded && widget.useShellActions) {
           return ShellPageActions(actions: actions, child: content);
+        }
+        if (widget.embedded) {
+          return content;
         }
         return AppStandaloneShell(
           title: 'Project Expenses',
@@ -105,13 +138,14 @@ class _ProjectExpenseManagementPageState
           children: [
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
-                ),
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppDropdownField<int>.fromMapped(
                   initialValue: controller.taskId,
                   labelText: 'Task',

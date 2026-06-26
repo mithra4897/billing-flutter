@@ -2,9 +2,18 @@ import '../../controller/project/project_task_management_controller.dart';
 import '../../screen.dart';
 
 class ProjectTaskManagementPage extends StatefulWidget {
-  const ProjectTaskManagementPage({super.key, this.embedded = false});
+  const ProjectTaskManagementPage({
+    super.key,
+    this.embedded = false,
+    this.constrainedProjectId,
+    this.controllerScope = const <String, Object?>{},
+    this.useShellActions = true,
+  });
 
   final bool embedded;
+  final int? constrainedProjectId;
+  final Map<String, Object?> controllerScope;
+  final bool useShellActions;
 
   @override
   State<ProjectTaskManagementPage> createState() =>
@@ -26,9 +35,30 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
   @override
   void initState() {
     super.initState();
-    _controllerTag = persistentControllerTag('ProjectTaskManagementController');
-    Get.put(ProjectTaskManagementController(), tag: _controllerTag);
+    _controllerTag = persistentControllerTag(
+      'ProjectTaskManagementController',
+      scope: widget.controllerScope,
+    );
+    if (!Get.isRegistered<ProjectTaskManagementController>(tag: _controllerTag)) {
+      Get.put(
+        ProjectTaskManagementController(
+          constrainedProjectId: widget.constrainedProjectId,
+        ),
+        tag: _controllerTag,
+      );
+    }
   }
+
+  @override
+  void didUpdateWidget(covariant ProjectTaskManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
+      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+    }
+  }
+
+  ProjectTaskManagementController get _controller =>
+      Get.find<ProjectTaskManagementController>(tag: _controllerTag);
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +76,11 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
         ];
 
         final content = _buildContent(context, controller);
-        if (widget.embedded) {
+        if (widget.embedded && widget.useShellActions) {
           return ShellPageActions(actions: actions, child: content);
+        }
+        if (widget.embedded) {
+          return content;
         }
         return AppStandaloneShell(
           title: 'Project Tasks',
@@ -106,13 +139,14 @@ class _ProjectTaskManagementPageState extends State<ProjectTaskManagementPage> {
           children: [
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
-                ),
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppFormTextField(
                   controller: controller.taskCodeController,
                   labelText: 'Task Code',

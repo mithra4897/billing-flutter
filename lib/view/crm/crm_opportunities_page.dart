@@ -459,12 +459,14 @@ class CrmOpportunitiesPage extends StatefulWidget {
     this.editorOnly = false,
     this.startInNewMode = false,
     this.initialSelectId,
+    this.initialLeadId,
   });
 
   final bool embedded;
   final bool editorOnly;
   final bool startInNewMode;
   final int? initialSelectId;
+  final int? initialLeadId;
 
   @override
   State<CrmOpportunitiesPage> createState() => _CrmOpportunitiesPageState();
@@ -503,6 +505,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         instanceTag: _controllerTag,
         startInNewMode: widget.startInNewMode,
         initialSelectId: widget.initialSelectId,
+        initialLeadId: widget.initialLeadId,
       ),
       tag: _controllerTag,
     );
@@ -520,7 +523,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
   void didUpdateWidget(covariant CrmOpportunitiesPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialSelectId != widget.initialSelectId ||
-        oldWidget.startInNewMode != widget.startInNewMode) {
+        oldWidget.startInNewMode != widget.startInNewMode ||
+        oldWidget.initialLeadId != widget.initialLeadId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
           return;
@@ -545,7 +549,7 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
 
   void _syncRouteState() {
     if (widget.startInNewMode) {
-      _controller.resetForm();
+      unawaited(_controller.startNewDraft(leadId: widget.initialLeadId));
       return;
     }
     if (widget.initialSelectId != null) {

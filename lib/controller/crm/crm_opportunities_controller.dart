@@ -21,11 +21,13 @@ class CrmOpportunitiesController extends GetxController {
     required this.instanceTag,
     required this.startInNewMode,
     required this.initialSelectId,
+    required this.initialLeadId,
   });
 
   final String instanceTag;
   final bool startInNewMode;
   final int? initialSelectId;
+  final int? initialLeadId;
 
   final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
@@ -232,7 +234,7 @@ class CrmOpportunitiesController extends GetxController {
 
       if (startInNewMode && selectId == null && !appliedInitialNewMode) {
         appliedInitialNewMode = true;
-        resetForm(notify: false);
+        await startNewDraft(notify: false);
         update();
         return;
       }
@@ -413,6 +415,67 @@ class CrmOpportunitiesController extends GetxController {
     activeTabIndex = 0;
     salesChain = null;
     if (notify) update();
+  }
+
+  Future<void> startNewDraft({
+    int? leadId,
+    bool notify = true,
+  }) async {
+    resetForm(notify: false);
+    await applyInitialOpportunityDraft(leadId: leadId, notify: false);
+    if (notify) {
+      update();
+    }
+  }
+
+  Future<void> applyInitialOpportunityDraft({
+    int? leadId,
+    bool notify = true,
+  }) async {
+    final lead = await _resolveInitialLead(leadId: leadId);
+    if (lead == null) {
+      if (notify) {
+        update();
+      }
+      return;
+    }
+
+    final data = lead.toJson();
+    final leadName = stringValue(data, 'lead_name');
+    selectedItem = null;
+    companyId = intValue(data, 'company_id') ?? contextCompanyId;
+    leadId = intValue(data, 'id');
+    assignedTo = intValue(data, 'assigned_to');
+    remarksController.text = stringValue(data, 'remarks');
+    if (leadName.isNotEmpty) {
+      nameController.text = leadName;
+    }
+    formError = null;
+    if (notify) {
+      update();
+    }
+  }
+
+  Future<CrmLeadModel?> _resolveInitialLead({int? leadId}) async {
+    final requestedLeadId = leadId ?? initialLeadId;
+    if (requestedLeadId == null) {
+      return null;
+    }
+
+    final listLead = leads.cast<CrmLeadModel?>().firstWhere(
+      (item) => intValue(item?.toJson() ?? const <String, dynamic>{}, 'id') ==
+          requestedLeadId,
+      orElse: () => null,
+    );
+    if (listLead != null) {
+      return listLead;
+    }
+
+    try {
+      return (await _crmService.lead(requestedLeadId)).data;
+    } catch (_) {
+      return null;
+    }
   }
 
   void disposeLines(List<OpportunityLineDraft> source) {

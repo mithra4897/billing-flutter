@@ -17,7 +17,8 @@ class ProjectManagementPage extends StatefulWidget {
   State<ProjectManagementPage> createState() => _ProjectManagementPageState();
 }
 
-class _ProjectManagementPageState extends State<ProjectManagementPage> {
+class _ProjectManagementPageState extends State<ProjectManagementPage>
+    with SingleTickerProviderStateMixin {
   static const List<AppDropdownItem<String>> _billingMethodItems =
       <AppDropdownItem<String>>[
         AppDropdownItem(value: 'fixed', label: 'Fixed'),
@@ -36,13 +37,87 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
         AppDropdownItem(value: 'cancelled', label: 'Cancelled'),
       ];
 
+  static const List<_ProjectMasterTab> _allTabs = <_ProjectMasterTab>[
+    _ProjectMasterTab(
+      key: 'general',
+      label: 'General',
+      emptyMessage: 'Create or select a project to manage its details.',
+    ),
+    _ProjectMasterTab(
+      key: 'tasks',
+      label: 'Tasks',
+      emptyMessage: 'Save the project first to add and manage tasks.',
+    ),
+    _ProjectMasterTab(
+      key: 'milestones',
+      label: 'Milestones',
+      emptyMessage: 'Save the project first to manage milestones.',
+    ),
+    _ProjectMasterTab(
+      key: 'timesheets',
+      label: 'Timesheets',
+      emptyMessage: 'Save the project first to manage timesheets.',
+    ),
+    _ProjectMasterTab(
+      key: 'expenses',
+      label: 'Expenses',
+      emptyMessage: 'Save the project first to manage project expenses.',
+    ),
+    _ProjectMasterTab(
+      key: 'resources',
+      label: 'Resource Usage',
+      emptyMessage: 'Save the project first to track resource usage.',
+    ),
+    _ProjectMasterTab(
+      key: 'vendor_works',
+      label: 'Vendor Works',
+      emptyMessage: 'Save the project first to manage vendor work.',
+    ),
+    _ProjectMasterTab(
+      key: 'billings',
+      label: 'Billings',
+      emptyMessage: 'Save the project first to manage billings.',
+    ),
+  ];
+
   late final String _controllerTag;
+  late final TabController _tabController;
+
+  List<_ProjectMasterTab> get _visibleTabs {
+    final showOnly = widget.showOnlyTabIndex;
+    if (showOnly != null && showOnly >= 0 && showOnly < _allTabs.length) {
+      return <_ProjectMasterTab>[_allTabs[showOnly]];
+    }
+    return _allTabs;
+  }
 
   @override
   void initState() {
     super.initState();
     _controllerTag = persistentControllerTag('ProjectManagementController');
-    Get.put(ProjectManagementController(), tag: _controllerTag);
+    if (!Get.isRegistered<ProjectManagementController>(tag: _controllerTag)) {
+      Get.put(ProjectManagementController(), tag: _controllerTag);
+    }
+
+    final tabs = _visibleTabs;
+    final initialIndex = widget.showOnlyTabIndex != null
+        ? 0
+        : widget.initialTabIndex.clamp(0, tabs.length - 1);
+    _tabController = TabController(
+      length: tabs.length,
+      vsync: this,
+      initialIndex: initialIndex,
+    )..addListener(() {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -116,7 +191,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
             project.projectCode ?? '',
             controller.companyName(project.companyId),
             project.projectStatus ?? '',
-          ].where((item) => item.isNotEmpty).join(' • '),
+          ].where((item) => item.isNotEmpty).join(' | '),
           selected: selected,
           trailing: SettingsStatusPill(
             label: (project.isActive ?? true) ? 'Active' : 'Inactive',
@@ -130,6 +205,165 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
   }
 
   Widget _buildEditor(
+    BuildContext context,
+    ProjectManagementController controller,
+  ) {
+    final tabs = _visibleTabs;
+    final activeTab = tabs[_tabController.index];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (tabs.length > 1) ...[
+          TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: tabs.map((tab) => Tab(text: tab.label)).toList(growable: false),
+          ),
+          const SizedBox(height: 16),
+        ],
+        _buildTabBody(context, controller, activeTab),
+      ],
+    );
+  }
+
+  Widget _buildTabBody(
+    BuildContext context,
+    ProjectManagementController controller,
+    _ProjectMasterTab tab,
+  ) {
+    switch (tab.key) {
+      case 'general':
+        return _buildGeneralTab(context, controller);
+      case 'tasks':
+        return _buildProjectChildTab(
+          projectId: controller.selectedProject?.id,
+          emptyMessage: tab.emptyMessage,
+          child: ProjectTaskManagementPage(
+            key: const ValueKey<String>('project-master-tasks'),
+            embedded: true,
+            constrainedProjectId: controller.selectedProject?.id,
+            controllerScope: const <String, Object?>{
+              'host': 'project_master',
+              'tab': 'tasks',
+            },
+            useShellActions: false,
+          ),
+        );
+      case 'milestones':
+        return _buildProjectChildTab(
+          projectId: controller.selectedProject?.id,
+          emptyMessage: tab.emptyMessage,
+          child: ProjectMilestoneManagementPage(
+            key: const ValueKey<String>('project-master-milestones'),
+            embedded: true,
+            constrainedProjectId: controller.selectedProject?.id,
+            controllerScope: const <String, Object?>{
+              'host': 'project_master',
+              'tab': 'milestones',
+            },
+            useShellActions: false,
+          ),
+        );
+      case 'timesheets':
+        return _buildProjectChildTab(
+          projectId: controller.selectedProject?.id,
+          emptyMessage: tab.emptyMessage,
+          child: ProjectTimesheetManagementPage(
+            key: const ValueKey<String>('project-master-timesheets'),
+            embedded: true,
+            constrainedProjectId: controller.selectedProject?.id,
+            controllerScope: const <String, Object?>{
+              'host': 'project_master',
+              'tab': 'timesheets',
+            },
+            useShellActions: false,
+          ),
+        );
+      case 'expenses':
+        return _buildProjectChildTab(
+          projectId: controller.selectedProject?.id,
+          emptyMessage: tab.emptyMessage,
+          child: ProjectExpenseManagementPage(
+            key: const ValueKey<String>('project-master-expenses'),
+            embedded: true,
+            constrainedProjectId: controller.selectedProject?.id,
+            controllerScope: const <String, Object?>{
+              'host': 'project_master',
+              'tab': 'expenses',
+            },
+            useShellActions: false,
+          ),
+        );
+      case 'resources':
+        return _buildProjectChildTab(
+          projectId: controller.selectedProject?.id,
+          emptyMessage: tab.emptyMessage,
+          child: ProjectResourceUsageManagementPage(
+            key: const ValueKey<String>('project-master-resources'),
+            embedded: true,
+            constrainedProjectId: controller.selectedProject?.id,
+            controllerScope: const <String, Object?>{
+              'host': 'project_master',
+              'tab': 'resources',
+            },
+            useShellActions: false,
+          ),
+        );
+      case 'vendor_works':
+        return _buildProjectChildTab(
+          projectId: controller.selectedProject?.id,
+          emptyMessage: tab.emptyMessage,
+          child: ProjectVendorWorkManagementPage(
+            key: const ValueKey<String>('project-master-vendor-works'),
+            embedded: true,
+            constrainedProjectId: controller.selectedProject?.id,
+            controllerScope: const <String, Object?>{
+              'host': 'project_master',
+              'tab': 'vendor_works',
+            },
+            useShellActions: false,
+          ),
+        );
+      case 'billings':
+        return _buildProjectChildTab(
+          projectId: controller.selectedProject?.id,
+          emptyMessage: tab.emptyMessage,
+          child: ProjectBillingManagementPage(
+            key: const ValueKey<String>('project-master-billings'),
+            embedded: true,
+            constrainedProjectId: controller.selectedProject?.id,
+            controllerScope: const <String, Object?>{
+              'host': 'project_master',
+              'tab': 'billings',
+            },
+            useShellActions: false,
+          ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildProjectChildTab({
+    required int? projectId,
+    required String emptyMessage,
+    required Widget child,
+  }) {
+    if (projectId == null) {
+      return AppSectionCard(
+        child: Padding(
+          padding: const EdgeInsets.all(AppUiConstants.cardPadding),
+          child: Text(emptyMessage),
+        ),
+      );
+    }
+
+    return SizedBox(height: 900, child: child);
+  }
+
+  Widget _buildGeneralTab(
     BuildContext context,
     ProjectManagementController controller,
   ) {
@@ -338,4 +572,16 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
       ),
     );
   }
+}
+
+class _ProjectMasterTab {
+  const _ProjectMasterTab({
+    required this.key,
+    required this.label,
+    required this.emptyMessage,
+  });
+
+  final String key;
+  final String label;
+  final String emptyMessage;
 }

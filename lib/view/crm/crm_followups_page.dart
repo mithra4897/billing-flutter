@@ -96,16 +96,27 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
               .map((item) => Map<String, dynamic>.from(item))
               .toList(growable: false);
 
-      _syncGapControllers(gaps);
-
       if (!mounted) {
         return;
       }
+
+      _ensureGapControllers(gaps);
+      final activeIds = gaps
+          .map((item) => intValue(item, 'opportunity_id'))
+          .whereType<int>()
+          .toSet();
+
       setState(() {
         _followups = followups;
         _nextFollowupRows = nextFollowups;
         _gaps = gaps;
         _loading = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _disposeInactiveGapControllers(activeIds);
       });
     } catch (error) {
       if (!mounted) {
@@ -118,25 +129,7 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
     }
   }
 
-  void _syncGapControllers(List<Map<String, dynamic>> gaps) {
-    final activeIds = gaps
-        .map((item) => intValue(item, 'opportunity_id'))
-        .whereType<int>()
-        .toSet();
-
-    void disposeMissing(Map<int, TextEditingController> source) {
-      final removable = source.keys
-          .where((id) => !activeIds.contains(id))
-          .toList(growable: false);
-      for (final id in removable) {
-        source.remove(id)?.dispose();
-      }
-    }
-
-    disposeMissing(_followupDateControllers);
-    disposeMissing(_nextFollowupControllers);
-    disposeMissing(_notesControllers);
-
+  void _ensureGapControllers(List<Map<String, dynamic>> gaps) {
     for (final gap in gaps) {
       final opportunityId = intValue(gap, 'opportunity_id');
       if (opportunityId == null) {
@@ -155,6 +148,21 @@ class _CrmFollowupsPageState extends State<CrmFollowupsPage> {
         () => TextEditingController(),
       );
     }
+  }
+
+  void _disposeInactiveGapControllers(Set<int> activeIds) {
+    void disposeMissing(Map<int, TextEditingController> source) {
+      final removable = source.keys
+          .where((id) => !activeIds.contains(id))
+          .toList(growable: false);
+      for (final id in removable) {
+        source.remove(id)?.dispose();
+      }
+    }
+
+    disposeMissing(_followupDateControllers);
+    disposeMissing(_nextFollowupControllers);
+    disposeMissing(_notesControllers);
   }
 
   Future<void> _pickDateTime(

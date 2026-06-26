@@ -2,9 +2,18 @@ import '../../controller/project/project_milestone_management_controller.dart';
 import '../../screen.dart';
 
 class ProjectMilestoneManagementPage extends StatefulWidget {
-  const ProjectMilestoneManagementPage({super.key, this.embedded = false});
+  const ProjectMilestoneManagementPage({
+    super.key,
+    this.embedded = false,
+    this.constrainedProjectId,
+    this.controllerScope = const <String, Object?>{},
+    this.useShellActions = true,
+  });
 
   final bool embedded;
+  final int? constrainedProjectId;
+  final Map<String, Object?> controllerScope;
+  final bool useShellActions;
 
   @override
   State<ProjectMilestoneManagementPage> createState() =>
@@ -27,9 +36,30 @@ class _ProjectMilestoneManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'ProjectMilestoneManagementController',
+      scope: widget.controllerScope,
     );
-    Get.put(ProjectMilestoneManagementController(), tag: _controllerTag);
+    if (!Get.isRegistered<ProjectMilestoneManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.put(
+        ProjectMilestoneManagementController(
+          constrainedProjectId: widget.constrainedProjectId,
+        ),
+        tag: _controllerTag,
+      );
+    }
   }
+
+  @override
+  void didUpdateWidget(covariant ProjectMilestoneManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
+      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+    }
+  }
+
+  ProjectMilestoneManagementController get _controller =>
+      Get.find<ProjectMilestoneManagementController>(tag: _controllerTag);
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +77,11 @@ class _ProjectMilestoneManagementPageState
         ];
 
         final content = _buildContent(context, controller);
-        if (widget.embedded) {
+        if (widget.embedded && widget.useShellActions) {
           return ShellPageActions(actions: actions, child: content);
+        }
+        if (widget.embedded) {
+          return content;
         }
         return AppStandaloneShell(
           title: 'Project Milestones',
@@ -105,13 +138,14 @@ class _ProjectMilestoneManagementPageState
           children: [
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
-                ),
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppFormTextField(
                   controller: controller.nameController,
                   labelText: 'Milestone Name',

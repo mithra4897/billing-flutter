@@ -2,9 +2,18 @@ import '../../controller/project/project_timesheet_management_controller.dart';
 import '../../screen.dart';
 
 class ProjectTimesheetManagementPage extends StatefulWidget {
-  const ProjectTimesheetManagementPage({super.key, this.embedded = false});
+  const ProjectTimesheetManagementPage({
+    super.key,
+    this.embedded = false,
+    this.constrainedProjectId,
+    this.controllerScope = const <String, Object?>{},
+    this.useShellActions = true,
+  });
 
   final bool embedded;
+  final int? constrainedProjectId;
+  final Map<String, Object?> controllerScope;
+  final bool useShellActions;
 
   @override
   State<ProjectTimesheetManagementPage> createState() =>
@@ -27,9 +36,30 @@ class _ProjectTimesheetManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'ProjectTimesheetManagementController',
+      scope: widget.controllerScope,
     );
-    Get.put(ProjectTimesheetManagementController(), tag: _controllerTag);
+    if (!Get.isRegistered<ProjectTimesheetManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.put(
+        ProjectTimesheetManagementController(
+          constrainedProjectId: widget.constrainedProjectId,
+        ),
+        tag: _controllerTag,
+      );
+    }
   }
+
+  @override
+  void didUpdateWidget(covariant ProjectTimesheetManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
+      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+    }
+  }
+
+  ProjectTimesheetManagementController get _controller =>
+      Get.find<ProjectTimesheetManagementController>(tag: _controllerTag);
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +77,11 @@ class _ProjectTimesheetManagementPageState
         ];
 
         final content = _buildContent(context, controller);
-        if (widget.embedded) {
+        if (widget.embedded && widget.useShellActions) {
           return ShellPageActions(actions: actions, child: content);
+        }
+        if (widget.embedded) {
+          return content;
         }
         return AppStandaloneShell(
           title: 'Project Timesheets',
@@ -110,13 +143,14 @@ class _ProjectTimesheetManagementPageState
           children: [
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
-                ),
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppDropdownField<int>.fromMapped(
                   initialValue: controller.taskId,
                   labelText: 'Task',

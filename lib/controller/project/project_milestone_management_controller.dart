@@ -2,7 +2,7 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectMilestoneManagementController extends GetxController {
-  ProjectMilestoneManagementController();
+  ProjectMilestoneManagementController({this.constrainedProjectId});
 
   final ProjectService _projectService = ProjectService();
   final MasterService _masterService = MasterService();
@@ -24,6 +24,7 @@ class ProjectMilestoneManagementController extends GetxController {
   bool saving = false;
   String? pageError;
   String? formError;
+  int? constrainedProjectId;
   int? projectId;
   String status = 'open';
   Worker? _refreshWorker;
@@ -65,6 +66,16 @@ class ProjectMilestoneManagementController extends GetxController {
     super.onClose();
   }
 
+  bool get isProjectConstrained => constrainedProjectId != null;
+
+  Future<void> applyProjectConstraint(int? value) async {
+    if (constrainedProjectId == value) {
+      return;
+    }
+    constrainedProjectId = value;
+    await loadData();
+  }
+
   Future<void> loadData({int? selectId}) async {
     initialLoading = rows.isEmpty;
     pageError = null;
@@ -92,11 +103,16 @@ class ProjectMilestoneManagementController extends GetxController {
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
-      final scopedProjects = contextSelection.companyId == null
+      var scopedProjects = contextSelection.companyId == null
           ? nextProjects
           : nextProjects
                 .where((item) => item.companyId == contextSelection.companyId)
                 .toList(growable: false);
+      if (constrainedProjectId != null) {
+        scopedProjects = scopedProjects
+            .where((item) => item.id == constrainedProjectId)
+            .toList(growable: false);
+      }
       final nextRows = scopedProjects
           .expand(
             (project) => project.milestones.map(
@@ -169,7 +185,7 @@ class ProjectMilestoneManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedRow = null;
-    projectId = projects.isNotEmpty ? projects.first.id : null;
+    projectId = constrainedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
     nameController.clear();
     targetDateController.clear();
     completionDateController.clear();
@@ -238,6 +254,11 @@ class ProjectMilestoneManagementController extends GetxController {
   }
 
   void setProjectId(int? value) {
+    if (isProjectConstrained) {
+      projectId = constrainedProjectId;
+      update();
+      return;
+    }
     projectId = value;
     update();
   }

@@ -2,7 +2,7 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectResourceUsageManagementController extends GetxController {
-  ProjectResourceUsageManagementController();
+  ProjectResourceUsageManagementController({this.constrainedProjectId});
 
   final ProjectService _projectService = ProjectService();
   final AssetsService _assetsService = AssetsService();
@@ -27,6 +27,7 @@ class ProjectResourceUsageManagementController extends GetxController {
   bool saving = false;
   String? pageError;
   String? formError;
+  int? constrainedProjectId;
   int? projectId;
   int? taskId;
   int? assetId;
@@ -80,6 +81,16 @@ class ProjectResourceUsageManagementController extends GetxController {
     super.onClose();
   }
 
+  bool get isProjectConstrained => constrainedProjectId != null;
+
+  Future<void> applyProjectConstraint(int? value) async {
+    if (constrainedProjectId == value) {
+      return;
+    }
+    constrainedProjectId = value;
+    await loadData();
+  }
+
   Future<void> loadData({int? selectId}) async {
     initialLoading = rows.isEmpty;
     pageError = null;
@@ -113,11 +124,16 @@ class ProjectResourceUsageManagementController extends GetxController {
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
-      final scopedProjects = contextSelection.companyId == null
+      var scopedProjects = contextSelection.companyId == null
           ? nextProjects
           : nextProjects
                 .where((item) => item.companyId == contextSelection.companyId)
                 .toList(growable: false);
+      if (constrainedProjectId != null) {
+        scopedProjects = scopedProjects
+            .where((item) => item.id == constrainedProjectId)
+            .toList(growable: false);
+      }
       final nextRows = scopedProjects
           .expand(
             (project) => project.resourceUsages.map(
@@ -194,7 +210,7 @@ class ProjectResourceUsageManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedRow = null;
-    projectId = projects.isNotEmpty ? projects.first.id : null;
+    projectId = constrainedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
     taskId = null;
     assetId = null;
     resourceNameController.clear();
@@ -263,6 +279,12 @@ class ProjectResourceUsageManagementController extends GetxController {
   }
 
   void setProjectId(int? value) {
+    if (isProjectConstrained) {
+      projectId = constrainedProjectId;
+      taskId = null;
+      update();
+      return;
+    }
     projectId = value;
     taskId = null;
     update();

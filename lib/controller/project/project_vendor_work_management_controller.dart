@@ -2,7 +2,7 @@ import '../../screen.dart';
 import 'project_module_refresh_controller.dart';
 
 class ProjectVendorWorkManagementController extends GetxController {
-  ProjectVendorWorkManagementController();
+  ProjectVendorWorkManagementController({this.constrainedProjectId});
 
   final ProjectService _projectService = ProjectService();
   final PartiesService _partiesService = PartiesService();
@@ -24,6 +24,7 @@ class ProjectVendorWorkManagementController extends GetxController {
   bool saving = false;
   String? pageError;
   String? formError;
+  int? constrainedProjectId;
   int? filterProjectId;
   int? filterTaskId;
   int? filterVendorPartyId;
@@ -74,6 +75,18 @@ class ProjectVendorWorkManagementController extends GetxController {
     super.onClose();
   }
 
+  bool get isProjectConstrained => constrainedProjectId != null;
+
+  Future<void> applyProjectConstraint(int? value) async {
+    if (constrainedProjectId == value) {
+      return;
+    }
+    constrainedProjectId = value;
+    filterProjectId = value;
+    filterTaskId = null;
+    await loadData();
+  }
+
   Future<void> loadData({int? selectId}) async {
     initialLoading = rows.isEmpty;
     pageError = null;
@@ -119,11 +132,16 @@ class ProjectVendorWorkManagementController extends GetxController {
             locations: const <BusinessLocationModel>[],
             financialYears: const <FinancialYearModel>[],
           );
-      final scopedProjects = contextSelection.companyId == null
+      var scopedProjects = contextSelection.companyId == null
           ? nextProjects
           : nextProjects
                 .where((item) => item.companyId == contextSelection.companyId)
                 .toList(growable: false);
+      if (constrainedProjectId != null) {
+        scopedProjects = scopedProjects
+            .where((item) => item.id == constrainedProjectId)
+            .toList(growable: false);
+      }
       final nextRows = scopedProjects
           .expand(
             (project) => project.vendorWorks.map(
@@ -133,6 +151,9 @@ class ProjectVendorWorkManagementController extends GetxController {
           .toList(growable: false);
 
       projects = scopedProjects;
+      if (isProjectConstrained) {
+        filterProjectId = constrainedProjectId;
+      }
       parties = nextParties
           .where((item) => item.isActive)
           .toList(growable: false);
@@ -220,7 +241,7 @@ class ProjectVendorWorkManagementController extends GetxController {
 
   void resetForm({bool notify = true}) {
     selectedRow = null;
-    projectId = projects.isNotEmpty ? projects.first.id : null;
+    projectId = constrainedProjectId ?? (projects.isNotEmpty ? projects.first.id : null);
     taskId = null;
     vendorPartyId = null;
     purchaseOrderId = null;
@@ -345,6 +366,11 @@ class ProjectVendorWorkManagementController extends GetxController {
   }
 
   void setFilterProjectId(int? value) {
+    if (isProjectConstrained) {
+      filterProjectId = constrainedProjectId;
+      update();
+      return;
+    }
     filterProjectId = value;
     final taskExists = filterTaskItems.any(
       (item) => item.value == filterTaskId,
@@ -367,13 +393,19 @@ class ProjectVendorWorkManagementController extends GetxController {
 
   void clearFilters() {
     searchController.clear();
-    filterProjectId = null;
+    filterProjectId = constrainedProjectId;
     filterTaskId = null;
     filterVendorPartyId = null;
     _applyFilters();
   }
 
   void setProjectId(int? value) {
+    if (isProjectConstrained) {
+      projectId = constrainedProjectId;
+      taskId = null;
+      update();
+      return;
+    }
     projectId = value;
     taskId = null;
     update();

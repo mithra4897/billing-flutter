@@ -2,9 +2,18 @@ import '../../controller/project/project_vendor_work_management_controller.dart'
 import '../../screen.dart';
 
 class ProjectVendorWorkManagementPage extends StatefulWidget {
-  const ProjectVendorWorkManagementPage({super.key, this.embedded = false});
+  const ProjectVendorWorkManagementPage({
+    super.key,
+    this.embedded = false,
+    this.constrainedProjectId,
+    this.controllerScope = const <String, Object?>{},
+    this.useShellActions = true,
+  });
 
   final bool embedded;
+  final int? constrainedProjectId;
+  final Map<String, Object?> controllerScope;
+  final bool useShellActions;
 
   @override
   State<ProjectVendorWorkManagementPage> createState() =>
@@ -28,9 +37,30 @@ class _ProjectVendorWorkManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'ProjectVendorWorkManagementController',
+      scope: widget.controllerScope,
     );
-    Get.put(ProjectVendorWorkManagementController(), tag: _controllerTag);
+    if (!Get.isRegistered<ProjectVendorWorkManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.put(
+        ProjectVendorWorkManagementController(
+          constrainedProjectId: widget.constrainedProjectId,
+        ),
+        tag: _controllerTag,
+      );
+    }
   }
+
+  @override
+  void didUpdateWidget(covariant ProjectVendorWorkManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
+      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+    }
+  }
+
+  ProjectVendorWorkManagementController get _controller =>
+      Get.find<ProjectVendorWorkManagementController>(tag: _controllerTag);
 
   Future<void> _openFilterPanel(
     BuildContext context,
@@ -180,12 +210,13 @@ class _ProjectVendorWorkManagementPageState
       tag: _controllerTag,
       builder: (controller) {
         final actions = <Widget>[
-          AdaptiveShellActionButton(
-            onPressed: () => _openFilterPanel(context, controller),
-            icon: Icons.filter_alt_outlined,
-            label: 'Filter',
-            filled: false,
-          ),
+          if (!controller.isProjectConstrained)
+            AdaptiveShellActionButton(
+              onPressed: () => _openFilterPanel(context, controller),
+              icon: Icons.filter_alt_outlined,
+              label: 'Filter',
+              filled: false,
+            ),
           AdaptiveShellActionButton(
             onPressed: () => controller.startNewVendorWork(
               isDesktop: Responsive.isDesktop(context),
@@ -196,8 +227,11 @@ class _ProjectVendorWorkManagementPageState
         ];
 
         final content = _buildContent(context, controller);
-        if (widget.embedded) {
+        if (widget.embedded && widget.useShellActions) {
           return ShellPageActions(actions: actions, child: content);
+        }
+        if (widget.embedded) {
+          return content;
         }
         return AppStandaloneShell(
           title: 'Project Vendor Works',
@@ -255,13 +289,14 @@ class _ProjectVendorWorkManagementPageState
           children: [
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
-                ),
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppDropdownField<int>.fromMapped(
                   initialValue: controller.taskId,
                   labelText: 'Task',

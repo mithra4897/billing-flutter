@@ -2,9 +2,18 @@ import '../../controller/project/project_billing_management_controller.dart';
 import '../../screen.dart';
 
 class ProjectBillingManagementPage extends StatefulWidget {
-  const ProjectBillingManagementPage({super.key, this.embedded = false});
+  const ProjectBillingManagementPage({
+    super.key,
+    this.embedded = false,
+    this.constrainedProjectId,
+    this.controllerScope = const <String, Object?>{},
+    this.useShellActions = true,
+  });
 
   final bool embedded;
+  final int? constrainedProjectId;
+  final Map<String, Object?> controllerScope;
+  final bool useShellActions;
 
   @override
   State<ProjectBillingManagementPage> createState() =>
@@ -36,9 +45,30 @@ class _ProjectBillingManagementPageState
     super.initState();
     _controllerTag = persistentControllerTag(
       'ProjectBillingManagementController',
+      scope: widget.controllerScope,
     );
-    Get.put(ProjectBillingManagementController(), tag: _controllerTag);
+    if (!Get.isRegistered<ProjectBillingManagementController>(
+      tag: _controllerTag,
+    )) {
+      Get.put(
+        ProjectBillingManagementController(
+          constrainedProjectId: widget.constrainedProjectId,
+        ),
+        tag: _controllerTag,
+      );
+    }
   }
+
+  @override
+  void didUpdateWidget(covariant ProjectBillingManagementPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.constrainedProjectId != widget.constrainedProjectId) {
+      unawaited(_controller.applyProjectConstraint(widget.constrainedProjectId));
+    }
+  }
+
+  ProjectBillingManagementController get _controller =>
+      Get.find<ProjectBillingManagementController>(tag: _controllerTag);
 
   @override
   Widget build(BuildContext context) {
@@ -56,8 +86,11 @@ class _ProjectBillingManagementPageState
         ];
 
         final content = _buildContent(context, controller);
-        if (widget.embedded) {
+        if (widget.embedded && widget.useShellActions) {
           return ShellPageActions(actions: actions, child: content);
+        }
+        if (widget.embedded) {
+          return content;
         }
         return AppStandaloneShell(
           title: 'Project Billings',
@@ -114,13 +147,14 @@ class _ProjectBillingManagementPageState
           children: [
             SettingsFormWrap(
               children: [
-                AppDropdownField<int>.fromMapped(
-                  initialValue: controller.projectId,
-                  labelText: 'Project',
-                  mappedItems: controller.projectItems,
-                  onChanged: controller.setProjectId,
-                  validator: Validators.requiredSelection('Project'),
-                ),
+                if (!controller.isProjectConstrained)
+                  AppDropdownField<int>.fromMapped(
+                    initialValue: controller.projectId,
+                    labelText: 'Project',
+                    mappedItems: controller.projectItems,
+                    onChanged: controller.setProjectId,
+                    validator: Validators.requiredSelection('Project'),
+                  ),
                 AppDropdownField<int>.fromMapped(
                   initialValue: controller.milestoneId,
                   labelText: 'Milestone',
