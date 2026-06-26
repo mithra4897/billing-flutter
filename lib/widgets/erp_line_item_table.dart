@@ -52,7 +52,7 @@ class ErpLineItemCellFrame extends StatelessWidget {
   }
 }
 
-class ErpLineItemTextCell extends StatelessWidget {
+class ErpLineItemTextCell extends StatefulWidget {
   const ErpLineItemTextCell({
     super.key,
     this.controller,
@@ -82,28 +82,108 @@ class ErpLineItemTextCell extends StatelessWidget {
   final double? height;
 
   @override
+  State<ErpLineItemTextCell> createState() => _ErpLineItemTextCellState();
+}
+
+class _ErpLineItemTextCellState extends State<ErpLineItemTextCell> {
+  final NumericFieldFocusBinding _numericBinding = NumericFieldFocusBinding();
+  TextEditingController? _internalController;
+
+  bool get _isNumericField =>
+      NumericFieldFocusBinding.isNumericKeyboard(widget.keyboardType);
+
+  TextEditingController? get _effectiveController =>
+      widget.controller ?? _internalController;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncInternalController(previousInitialValue: null);
+    _syncNumericBinding();
+  }
+
+  @override
+  void didUpdateWidget(covariant ErpLineItemTextCell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncInternalController(previousInitialValue: oldWidget.initialValue);
+    _syncNumericBinding();
+  }
+
+  void _syncInternalController({required String? previousInitialValue}) {
+    if (widget.controller != null) {
+      _internalController?.dispose();
+      _internalController = null;
+      return;
+    }
+
+    final nextValue = widget.initialValue ?? '';
+    _internalController ??= TextEditingController(text: nextValue);
+    if (previousInitialValue == widget.initialValue) {
+      return;
+    }
+
+    final controller = _internalController!;
+    if (controller.text == nextValue) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _internalController != controller) {
+        return;
+      }
+      if (controller.text == nextValue) {
+        return;
+      }
+      controller.value = controller.value.copyWith(
+        text: nextValue,
+        selection: TextSelection.collapsed(offset: nextValue.length),
+        composing: TextRange.empty,
+      );
+    });
+  }
+
+  void _syncNumericBinding() {
+    final created = _numericBinding.sync(
+      enable: _isNumericField,
+      controller: _effectiveController,
+    );
+    if (created) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          NumericFieldFocusBinding.applyFormattedDisplay(_effectiveController);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _numericBinding.dispose();
+    _internalController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ErpLineItemCellFrame(
-      height: height,
+      height: widget.height,
       child: TextFormField(
-        controller: controller,
-        initialValue: controller == null ? (initialValue ?? '') : null,
-        readOnly: readOnly,
-        enabled: enabled,
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        onChanged: onChanged,
-        validator: validator,
+        controller: _effectiveController,
+        focusNode: _numericBinding.focusNode,
+        readOnly: widget.readOnly,
+        enabled: widget.enabled,
+        maxLines: widget.maxLines,
+        keyboardType: widget.keyboardType,
+        onChanged: widget.onChanged,
+        validator: widget.validator,
         textAlignVertical: TextAlignVertical.center,
-        inputFormatters: keyboardType == null
+        inputFormatters: widget.keyboardType == null
             ? null
             : <TextInputFormatter>[
-                if (NumericFieldFocusBinding.isNumericKeyboard(keyboardType))
-                  const NumericInputFormatter(),
+                if (_isNumericField) const NumericInputFormatter(),
               ],
         decoration: InputDecoration(
           isDense: true,
-          hintText: hintText,
+          hintText: widget.hintText,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppUiConstants.tableCellPaddingSm,
             vertical: AppUiConstants.tableCellPaddingXs,
@@ -272,10 +352,10 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     return ordered;
   }
 
-  List<ErpLineItemTableColumn> get _activeColumns =>
-      ErpLineItemTableColumn.values
-          .where(widget.visibleColumns.contains)
-          .toList(growable: false);
+  List<ErpLineItemTableColumn> get _activeColumns => ErpLineItemTableColumn
+      .values
+      .where(widget.visibleColumns.contains)
+      .toList(growable: false);
 
   double get _tableMinWidth => _orderedColumns.fold<double>(0, (sum, column) {
     if (column is ErpLineItemTableColumn) {
@@ -362,12 +442,12 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
 
   TextStyle _tableHeaderStyle(ThemeData theme, AppThemeExtension appTheme) {
     return theme.textTheme.bodyMedium?.copyWith(
-      fontWeight: FontWeight.w700,
-      color: appTheme.tableTitleText,
-      fontSize: 12,
-      height: 1.2,
-      letterSpacing: 0.5,
-    ) ??
+          fontWeight: FontWeight.w700,
+          color: appTheme.tableTitleText,
+          fontSize: 12,
+          height: 1.2,
+          letterSpacing: 0.5,
+        ) ??
         TextStyle(
           fontWeight: FontWeight.w700,
           color: appTheme.tableTitleText,
@@ -379,11 +459,11 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
 
   TextStyle _tableCellStyle(ThemeData theme, AppThemeExtension appTheme) {
     return theme.textTheme.bodyMedium?.copyWith(
-      fontWeight: FontWeight.w500,
-      color: appTheme.tableCellText,
-      fontSize: 14,
-      height: 1.2,
-    ) ??
+          fontWeight: FontWeight.w500,
+          color: appTheme.tableCellText,
+          fontSize: 14,
+          height: 1.2,
+        ) ??
         TextStyle(
           fontWeight: FontWeight.w500,
           color: appTheme.tableCellText,
@@ -402,9 +482,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         filled: true,
         fillColor: Colors.transparent,
         isDense: true,
-        hintStyle: tableCellStyle.copyWith(
-          color: appTheme.mutedText,
-        ),
+        hintStyle: tableCellStyle.copyWith(color: appTheme.mutedText),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppUiConstants.tableCellPaddingSm,
           vertical: AppUiConstants.tableCellPaddingXs,
@@ -450,7 +528,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           decoration: BoxDecoration(
             color: appTheme.cardBackground,
             borderRadius: tableCurve,
-            border: Border.all(color: appTheme.tableBorder.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: appTheme.tableBorder.withValues(alpha: 0.5),
+            ),
             boxShadow: [
               BoxShadow(
                 color: appTheme.cardShadow.withValues(alpha: 0.08),
@@ -462,7 +542,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           child: Theme(
             data: compactTheme,
             child: ClipRRect(
-              borderRadius: tableCurve, // Clips inner elements to the curved border
+              borderRadius:
+                  tableCurve, // Clips inner elements to the curved border
               child: Column(
                 children: [
                   Container(
@@ -533,12 +614,18 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                               decoration: BoxDecoration(
                                 color: appTheme.tableHeaderBackground,
                                 border: Border(
-                                  bottom: BorderSide(color: appTheme.tableBorder),
+                                  bottom: BorderSide(
+                                    color: appTheme.tableBorder,
+                                  ),
                                 ),
                               ),
                               child: _buildHeaderRow(theme, appTheme),
                             ),
-                            for (var index = 0; index < widget.lines.length; index++)
+                            for (
+                              var index = 0;
+                              index < widget.lines.length;
+                              index++
+                            )
                               _buildDataRow(
                                 context,
                                 index,
@@ -586,11 +673,11 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
   }
 
   Widget _buildDataRow(
-      BuildContext context,
-      int index,
-      ErpLineItemTableRow row,
-      AppThemeExtension appTheme,
-      ) {
+    BuildContext context,
+    int index,
+    ErpLineItemTableRow row,
+    AppThemeExtension appTheme,
+  ) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final tableCellStyle = _tableCellStyle(theme, appTheme);
@@ -602,8 +689,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         : hovered
         ? appTheme.tableRowHover
         : (index % 2 == 1)
-            ? appTheme.subtleFill.withValues(alpha: 0.3)
-            : appTheme.cardBackground;
+        ? appTheme.subtleFill.withValues(alpha: 0.3)
+        : appTheme.cardBackground;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredIndex = index),
@@ -614,13 +701,16 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeInOut,
-          key: ObjectKey(row.rowKey),
+          key: ValueKey<Object>(row.rowKey),
           decoration: BoxDecoration(
             color: background,
             border: Border(
               // Only draw a left border if it is actively selected
               left: selected
-                  ? BorderSide(color: colors.primary.withValues(alpha: 0.8), width: 2)
+                  ? BorderSide(
+                      color: colors.primary.withValues(alpha: 0.8),
+                      width: 2,
+                    )
                   : BorderSide.none,
               bottom: BorderSide(color: appTheme.tableBorder),
             ),
@@ -725,7 +815,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                   : (_) {},
               validator: row.itemValidator == null
                   ? null
-                  : (_) => row.itemValidator!.call(row.itemSelection?.label ?? ''),
+                  : (_) =>
+                        row.itemValidator!.call(row.itemSelection?.label ?? ''),
               enabled: widget.enabled && row.onItemChanged != null,
             ),
           ),
@@ -785,7 +876,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
               : _compactTextField(
                   controller: row.qtyController!,
                   hintText: _columnLabel(ErpLineItemTableColumn.qty),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: row.qtyValidator,
                   onChanged: (value) {
                     row.onQtyChanged?.call(value);
@@ -803,7 +896,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
               : _compactTextField(
                   controller: row.rateController!,
                   hintText: _columnLabel(ErpLineItemTableColumn.rate),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: row.rateValidator,
                   onChanged: (value) {
                     row.onRateChanged?.call(value);
@@ -934,7 +1029,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                     side: BorderSide(color: appTheme.tableBorder),
                   ),
                 ),
-                onPressed: widget.enabled &&
+                onPressed:
+                    widget.enabled &&
                         row.deleteEnabled &&
                         widget.onDeleteLine != null
                     ? () {
@@ -977,10 +1073,10 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         ),
         child: Text(
           '—',
-          style: _tableCellStyle(theme, appTheme).copyWith(
-            color: appTheme.mutedText,
-            fontWeight: FontWeight.w600,
-          ),
+          style: _tableCellStyle(
+            theme,
+            appTheme,
+          ).copyWith(color: appTheme.mutedText, fontWeight: FontWeight.w600),
         ),
       );
     }
@@ -994,9 +1090,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         initialValue: row.sourceLineId,
         onChanged: widget.enabled
             ? (value) {
-          row.onSourceLineChanged?.call(value);
-          _notifyChanged();
-        }
+                row.onSourceLineChanged?.call(value);
+                _notifyChanged();
+              }
             : null,
         enabled: widget.enabled,
       ),
@@ -1019,7 +1115,6 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       child: SizedBox(
         height: AppUiConstants.tableCompactFieldHeight,
         child: TextFormField(
-          key: ObjectKey(controller),
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
@@ -1030,9 +1125,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           inputFormatters: keyboardType == null
               ? null
               : <TextInputFormatter>[
-            if (NumericFieldFocusBinding.isNumericKeyboard(keyboardType))
-              const NumericInputFormatter(),
-          ],
+                  if (NumericFieldFocusBinding.isNumericKeyboard(keyboardType))
+                    const NumericInputFormatter(),
+                ],
           decoration: InputDecoration(
             isDense: true,
             hintText: hintText,
@@ -1057,12 +1152,12 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
   }
 
   Widget _headerCell(
-      String label,
-      double width,
-      TextStyle? style,
-      AppThemeExtension appTheme, {
-        bool showRightBorder = true,
-      }) {
+    String label,
+    double width,
+    TextStyle? style,
+    AppThemeExtension appTheme, {
+    bool showRightBorder = true,
+  }) {
     return Container(
       width: width,
       padding: const EdgeInsets.all(AppUiConstants.spacingSm),
@@ -1089,7 +1184,9 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
       width: width,
       decoration: BoxDecoration(
         border: Border(
-          right: showRightBorder ? BorderSide(color: borderColor) : BorderSide.none,
+          right: showRightBorder
+              ? BorderSide(color: borderColor)
+              : BorderSide.none,
         ),
       ),
       child: child,
