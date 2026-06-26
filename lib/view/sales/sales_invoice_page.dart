@@ -1021,13 +1021,19 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               spacing: AppUiConstants.spacingSm,
               runSpacing: AppUiConstants.spacingSm,
               children: [
-                if (controller.selectedItem != null &&
-                    !const {'draft', 'cancelled'}.contains(controller.status))
+                if (controller.selectedItem != null)
                   AppActionButton(
-                    icon: Icons.print_outlined,
-                    label: 'Print',
+                    icon: controller.status == 'draft'
+                        ? Icons.preview_outlined
+                        : Icons.print_outlined,
+                    label: controller.status == 'draft' ? 'Preview' : 'Print',
                     filled: false,
-                    onPressed: () => controller.openPrintPreview(context),
+                    onPressed: () => controller.openPrintPreview(
+                      context,
+                      allowPrint: controller.status != 'draft',
+                      allowDownload: controller.status != 'draft',
+                      allowTemplateEditing: controller.status != 'draft',
+                    ),
                   ),
                 AppActionButton(
                   icon: Icons.save_outlined,

@@ -1076,6 +1076,7 @@ class SalesOrderManagementController extends GetxController {
   }
 
   DocumentPrintDataModel salesOrderPrintData() {
+    final documentStatus = status.trim().toLowerCase();
     final summary = taxSummary();
     final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
     final company = companies.cast<CompanyModel?>().firstWhere(
@@ -1156,16 +1157,27 @@ class SalesOrderManagementController extends GetxController {
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+      extraData: documentStatus == 'draft'
+          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
+          : const <String, dynamic>{},
     );
   }
 
-  Future<void> openPrintPreview(BuildContext context) async {
+  Future<void> openPrintPreview(
+    BuildContext context, {
+    bool allowPrint = false,
+    bool allowDownload = false,
+    bool allowTemplateEditing = false,
+  }) async {
     await openManagedDocumentPrintPreview(
       context,
       prepare: () => ensureCustomerPrintContext(customerPartyId),
       documentType: 'sales_order',
       title: 'Sales Order',
       documentDataBuilder: salesOrderPrintData,
+      allowPrint: allowPrint,
+      allowDownload: allowDownload,
+      allowTemplateEditing: allowTemplateEditing,
     );
   }
 

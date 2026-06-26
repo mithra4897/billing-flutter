@@ -35,17 +35,20 @@ class AdaptiveShellActionButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.filled = true,
+    this.iconOnly = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
   final bool filled;
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.of(context).size.width < 600;
-    final child = compact
+    final renderIconOnly = iconOnly || compact;
+    final child = renderIconOnly
         ? Icon(icon, size: 20)
         : Row(
             mainAxisSize: MainAxisSize.min,
@@ -58,7 +61,7 @@ class AdaptiveShellActionButton extends StatelessWidget {
 
     final minimumSize = const Size(44, 44);
     final padding = EdgeInsets.symmetric(
-      horizontal: compact ? 0 : 14,
+      horizontal: renderIconOnly ? 0 : 14,
       vertical: 10,
     );
     final tapTargetSize = MaterialTapTargetSize.shrinkWrap;
@@ -117,7 +120,9 @@ class _ShellHistoryButtons extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final useCompact =
-            compact || constraints.maxWidth < 180 || !constraints.hasBoundedWidth;
+            compact ||
+            constraints.maxWidth < 180 ||
+            !constraints.hasBoundedWidth;
 
         if (useCompact) {
           return Column(
@@ -191,7 +196,9 @@ class _ShellHistoryButton extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final useCompact =
-              compact || constraints.maxWidth < 96 || !constraints.hasBoundedWidth;
+              compact ||
+              constraints.maxWidth < 96 ||
+              !constraints.hasBoundedWidth;
 
           if (useCompact) {
             return Tooltip(
@@ -224,9 +231,7 @@ class _ShellHistoryButton extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               alignment: Alignment.centerLeft,
               minimumSize: const Size.fromHeight(42),
-              side: BorderSide(
-                color: foregroundColor.withValues(alpha: 0.18),
-              ),
+              side: BorderSide(color: foregroundColor.withValues(alpha: 0.18)),
               foregroundColor: foregroundColor,
               disabledForegroundColor: foregroundColor,
               disabledBackgroundColor: Colors.transparent,
@@ -237,11 +242,7 @@ class _ShellHistoryButton extends StatelessWidget {
               ),
             ),
             icon: Icon(icon, size: 18),
-            label: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           );
         },
       ),

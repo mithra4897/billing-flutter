@@ -576,16 +576,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       selectedData,
                       'order_status',
                     ).toLowerCase();
-                    final canPrint =
+                    final canPreview =
                         controller.selectedItem != null &&
-                        const {
-                          'confirmed',
-                          'partially_received',
-                          'fully_received',
-                          'partially_invoiced',
-                          'fully_invoiced',
-                          'closed',
-                        }.contains(status);
+                        status != 'cancelled';
                     final canPost =
                         controller.selectedItem != null && status == 'draft';
                     final canClose =
@@ -603,13 +596,19 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       spacing: AppUiConstants.spacingSm,
                       runSpacing: AppUiConstants.spacingSm,
                       children: [
-                        if (canPrint)
+                        if (canPreview)
                           AppActionButton(
-                            icon: Icons.print_outlined,
-                            label: 'Print',
+                            icon: status == 'draft'
+                                ? Icons.preview_outlined
+                                : Icons.print_outlined,
+                            label: status == 'draft' ? 'Preview' : 'Print',
                             filled: false,
-                            onPressed: () =>
-                                controller.openPrintPreview(context),
+                            onPressed: () => controller.openPrintPreview(
+                              context,
+                              allowPrint: status != 'draft',
+                              allowDownload: status != 'draft',
+                              allowTemplateEditing: status != 'draft',
+                            ),
                           ),
                         if (!controller.isSelectedOrderReadOnly)
                           AppActionButton(

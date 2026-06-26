@@ -83,9 +83,7 @@ String normalizeDocumentPrintShapeFontFamily(String? value) {
   final normalized = (value ?? defaultDocumentPrintShapeFontFamily)
       .trim()
       .toLowerCase();
-  if (normalized.isEmpty ||
-      normalized == 'inherit' ||
-      normalized == 'global') {
+  if (normalized.isEmpty || normalized == 'inherit' || normalized == 'global') {
     return defaultDocumentPrintShapeFontFamily;
   }
   return normalizeDocumentPrintFontFamily(normalized);
@@ -190,6 +188,7 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
   required List<DocumentPrintLineModel> lines,
   List<DocumentPrintTaxBreakupRowModel> gstBreakup =
       const <DocumentPrintTaxBreakupRowModel>[],
+  Map<String, dynamic> extraData = const <String, dynamic>{},
 }) {
   return DocumentPrintDataModel(
     companyName: companyNameById(companies, companyId),
@@ -210,6 +209,7 @@ DocumentPrintDataModel buildManagedDocumentPrintData({
     amountInWords: printTemplateAmountInWords(totalAmount, currencyCode),
     lines: lines,
     gstBreakup: gstBreakup,
+    extraData: extraData,
   );
 }
 
@@ -219,6 +219,9 @@ Future<void> openManagedDocumentPrintPreview(
   required String documentType,
   required String title,
   required DocumentPrintDataModel Function() documentDataBuilder,
+  bool allowPrint = true,
+  bool allowDownload = true,
+  bool allowTemplateEditing = true,
 }) async {
   await prepare?.call();
   if (!context.mounted) {
@@ -230,6 +233,9 @@ Future<void> openManagedDocumentPrintPreview(
     documentType: documentType,
     title: title,
     documentData: documentData,
+    allowPrint: allowPrint,
+    allowDownload: allowDownload,
+    allowTemplateEditing: allowTemplateEditing,
   );
 }
 

@@ -605,12 +605,19 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                     },
                   ),
                 if (controller.selectedItem != null &&
-                    !const {'draft', 'cancelled'}.contains(controller.status))
+                    !const {'cancelled'}.contains(controller.status))
                   AppActionButton(
-                    icon: Icons.print_outlined,
-                    label: 'Print',
+                    icon: controller.status == 'draft'
+                        ? Icons.preview_outlined
+                        : Icons.print_outlined,
+                    label: controller.status == 'draft' ? 'Preview' : 'Print',
                     filled: false,
-                    onPressed: () => controller.openPrintPreview(context),
+                    onPressed: () => controller.openPrintPreview(
+                      context,
+                      allowPrint: controller.status != 'draft',
+                      allowDownload: controller.status != 'draft',
+                      allowTemplateEditing: controller.status != 'draft',
+                    ),
                   ),
                 AppActionButton(
                   icon: Icons.save_outlined,

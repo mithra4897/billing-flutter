@@ -14,6 +14,9 @@ Future<void> openDocumentPrintDesigner(
   required String documentType,
   required String title,
   required DocumentPrintDataModel documentData,
+  bool allowPrint = true,
+  bool allowDownload = true,
+  bool allowTemplateEditing = true,
   String? pdfActionLabel,
   Future<void> Function(Uint8List pdfBytes)? onPdfReady,
 }) {
@@ -24,6 +27,9 @@ Future<void> openDocumentPrintDesigner(
         documentType: documentType,
         title: title,
         documentData: documentData,
+        allowPrint: allowPrint,
+        allowDownload: allowDownload,
+        allowTemplateEditing: allowTemplateEditing,
         pdfActionLabel: pdfActionLabel,
         onPdfReady: onPdfReady,
       ),
@@ -89,6 +95,9 @@ class DocumentPrintDesignerPage extends StatefulWidget {
     required this.documentType,
     required this.title,
     required this.documentData,
+    this.allowPrint = true,
+    this.allowDownload = true,
+    this.allowTemplateEditing = true,
     this.pdfActionLabel,
     this.onPdfReady,
   });
@@ -96,6 +105,9 @@ class DocumentPrintDesignerPage extends StatefulWidget {
   final String documentType;
   final String title;
   final DocumentPrintDataModel documentData;
+  final bool allowPrint;
+  final bool allowDownload;
+  final bool allowTemplateEditing;
   final String? pdfActionLabel;
   final Future<void> Function(Uint8List pdfBytes)? onPdfReady;
 
@@ -153,6 +165,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
   set _drawCurrent(Offset? value) => _controller.drawCurrent = value;
 
   Map<String, dynamic> get _documentDataJson => widget.documentData.toJson();
+  String get _watermarkText => widget.documentData.watermarkText.trim();
 
   @override
   void initState() {
@@ -866,22 +879,25 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       return actions;
     }
 
-    actions.add(
-      AdaptiveShellActionButton(
-        onPressed: () => _controller.updateState(() {
-          _editMode = !_editMode;
-          if (!_editMode) {
-            _selectedShapeId = null;
-            _selectedShapeIds = <String>{};
-          }
-          _drawStart = null;
-          _drawCurrent = null;
-        }),
-        icon: _editMode ? Icons.visibility_outlined : Icons.edit_outlined,
-        label: _editMode ? 'Preview Mode' : 'Edit Template',
-        filled: false,
-      ),
-    );
+    if (widget.allowTemplateEditing) {
+      actions.add(
+        AdaptiveShellActionButton(
+          onPressed: () => _controller.updateState(() {
+            _editMode = !_editMode;
+            if (!_editMode) {
+              _selectedShapeId = null;
+              _selectedShapeIds = <String>{};
+            }
+            _drawStart = null;
+            _drawCurrent = null;
+          }),
+          icon: _editMode ? Icons.visibility_outlined : Icons.edit_outlined,
+          label: _editMode ? 'Preview Mode' : 'Edit Template',
+          filled: false,
+          iconOnly: !_editMode,
+        ),
+      );
+    }
 
     if (_editMode) {
       actions.add(
@@ -909,14 +925,16 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
     }
 
-    actions.add(
-      AdaptiveShellActionButton(
-        onPressed: _downloadingPdf ? null : _downloadPdf,
-        icon: Icons.download_outlined,
-        label: _downloadingPdf ? 'Preparing PDF...' : 'Download PDF',
-        filled: false,
-      ),
-    );
+    if (widget.allowDownload) {
+      actions.add(
+        AdaptiveShellActionButton(
+          onPressed: _downloadingPdf ? null : _downloadPdf,
+          icon: Icons.download_outlined,
+          label: _downloadingPdf ? 'Preparing PDF...' : 'Download PDF',
+          filled: false,
+        ),
+      );
+    }
 
     if (widget.onPdfReady != null) {
       actions.add(
@@ -931,13 +949,15 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       );
     }
 
-    actions.add(
-      AdaptiveShellActionButton(
-        onPressed: _printingPdf ? null : _printPdf,
-        icon: Icons.print_outlined,
-        label: _printingPdf ? 'Printing...' : 'Print',
-      ),
-    );
+    if (widget.allowPrint) {
+      actions.add(
+        AdaptiveShellActionButton(
+          onPressed: _printingPdf ? null : _printPdf,
+          icon: Icons.print_outlined,
+          label: _printingPdf ? 'Printing...' : 'Print',
+        ),
+      );
+    }
 
     return actions;
   }
@@ -1035,6 +1055,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                     child: _DocumentPageSurface(
                       template: template,
                       documentData: _documentDataJson,
+                      watermarkText: _watermarkText,
                       scale: 1,
                       editMode: false,
                       selectedShapeId: null,
@@ -1149,14 +1170,18 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                   onPressed: _canvasZoom <= 0.7
                       ? null
                       : () => _controller.updateState(
-                          () => _canvasZoom = (_canvasZoom - 0.15).clamp(0.55, 2.5),
+                          () => _canvasZoom = (_canvasZoom - 0.15).clamp(
+                            0.55,
+                            2.5,
+                          ),
                         ),
                   icon: const Icon(Icons.zoom_out_outlined),
                   label: const Text('Zoom -'),
                 ),
                 const SizedBox(width: AppUiConstants.spacingXs),
                 OutlinedButton(
-                  onPressed: () => _controller.updateState(() => _canvasZoom = 1.0),
+                  onPressed: () =>
+                      _controller.updateState(() => _canvasZoom = 1.0),
                   child: const Text('Fit'),
                 ),
                 const SizedBox(width: AppUiConstants.spacingXs),
@@ -1164,7 +1189,10 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
                   onPressed: _canvasZoom >= 2.5
                       ? null
                       : () => _controller.updateState(
-                          () => _canvasZoom = (_canvasZoom + 0.15).clamp(0.55, 2.5),
+                          () => _canvasZoom = (_canvasZoom + 0.15).clamp(
+                            0.55,
+                            2.5,
+                          ),
                         ),
                   icon: const Icon(Icons.zoom_in_outlined),
                   label: const Text('Zoom +'),
@@ -1189,18 +1217,12 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
       label: Text(label),
       style: selected
           ? FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             )
           : FilledButton.styleFrom(
               backgroundColor: Colors.transparent,
               foregroundColor: Theme.of(context).colorScheme.onSurface,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               side: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -1314,6 +1336,7 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             child: _DesignerCanvas(
               template: template,
               documentData: _documentDataJson,
+              watermarkText: _watermarkText,
               editMode: _editMode,
               selectedShapeId: _selectedShapeId,
               selectedShapeIds: _selectedShapeIds,
@@ -1959,6 +1982,34 @@ class _DocumentPrintDesignerPageState extends State<DocumentPrintDesignerPage> {
             width: math.max(1, shape.width),
             height: math.max(1, shape.height),
             child: shapeWidget,
+          ),
+        ),
+      );
+    }
+
+    final watermarkText = _watermarkText;
+    if (watermarkText.isNotEmpty) {
+      children.add(
+        pw.Positioned.fill(
+          child: pw.Center(
+            child: pw.Transform.rotate(
+              angle: -math.pi / 5,
+              child: pw.Opacity(
+                opacity: 0.18,
+                child: pw.Text(
+                  watermarkText,
+                  style: pw.TextStyle(
+                    fontSize: math.max(
+                      72,
+                      math.min(template.pageWidth, template.pageHeight) * 0.16,
+                    ),
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.red300,
+                    letterSpacing: 8,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -2854,6 +2905,7 @@ class _DesignerCanvas extends StatefulWidget {
   const _DesignerCanvas({
     required this.template,
     required this.documentData,
+    required this.watermarkText,
     required this.editMode,
     required this.selectedShapeId,
     required this.selectedShapeIds,
@@ -2875,6 +2927,7 @@ class _DesignerCanvas extends StatefulWidget {
 
   final DocumentPrintTemplate template;
   final Map<String, dynamic> documentData;
+  final String watermarkText;
   final bool editMode;
   final String? selectedShapeId;
   final Set<String> selectedShapeIds;
@@ -2950,6 +3003,7 @@ class _DesignerCanvasState extends State<_DesignerCanvas> {
                       child: _DocumentPageSurface(
                         template: widget.template,
                         documentData: widget.documentData,
+                        watermarkText: widget.watermarkText,
                         scale: scale,
                         editMode: widget.editMode,
                         selectedShapeId: widget.selectedShapeId,
@@ -2984,6 +3038,7 @@ class _DocumentPageSurface extends StatelessWidget {
   const _DocumentPageSurface({
     required this.template,
     required this.documentData,
+    required this.watermarkText,
     required this.scale,
     required this.editMode,
     required this.selectedShapeId,
@@ -3006,6 +3061,7 @@ class _DocumentPageSurface extends StatelessWidget {
 
   final DocumentPrintTemplate template;
   final Map<String, dynamic> documentData;
+  final String watermarkText;
   final double scale;
   final bool editMode;
   final String? selectedShapeId;
@@ -3068,18 +3124,18 @@ class _DocumentPageSurface extends StatelessWidget {
                 child: IgnorePointer(
                   child: Opacity(
                     opacity: template.backgroundOpacity.clamp(0.0, 1.0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: _DocumentImageShape(
-                          source: resolvePrintTemplateText(
-                            template.backgroundImagePath ?? '',
-                            documentData,
-                          ),
-                          fit: BoxFit.cover,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: _DocumentImageShape(
+                        source: resolvePrintTemplateText(
+                          template.backgroundImagePath ?? '',
+                          documentData,
                         ),
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
+                ),
               ),
             Positioned.fill(
               child: CustomPaint(
@@ -3128,6 +3184,36 @@ class _DocumentPageSurface extends StatelessWidget {
                     ),
                   ),
                 ),
+            if (watermarkText.isNotEmpty)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Center(
+                    child: Transform.rotate(
+                      angle: -math.pi / 5,
+                      child: Opacity(
+                        opacity: 0.18,
+                        child: Text(
+                          watermarkText,
+                          style: TextStyle(
+                            color: const Color(0xFFD32F2F),
+                            fontSize: math.max(
+                              48,
+                              math.min(
+                                    template.pageWidth,
+                                    template.pageHeight,
+                                  ) *
+                                  scale *
+                                  0.16,
+                            ),
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (editMode)
               ...template.shapes.map((shape) {
                 final isSelected =
@@ -3515,7 +3601,8 @@ class DocumentCanvasPainter extends CustomPainter {
     DocumentPrintShape shape, {
     bool draft = false,
   }) {
-    final hiddenPlaceholder = !shape.visible && showHiddenPlaceholders && !draft;
+    final hiddenPlaceholder =
+        !shape.visible && showHiddenPlaceholders && !draft;
     final rect = Rect.fromLTWH(
       shape.x * scale,
       shape.y * scale,

@@ -43,6 +43,8 @@ class DocumentPrintDataModel extends JsonModel {
   final List<DocumentPrintTaxBreakupRowModel> gstBreakup;
   final Map<String, dynamic> extraData;
 
+  String get watermarkText => extraData['watermark_text']?.toString() ?? '';
+
   factory DocumentPrintDataModel.fromJson(Map<String, dynamic> json) {
     const knownKeys = <String>{
       'company_name',

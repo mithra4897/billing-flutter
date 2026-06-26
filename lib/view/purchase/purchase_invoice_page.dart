@@ -661,15 +661,39 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               runSpacing: AppUiConstants.spacingSm,
               children: [
                 if (controller.selectedItem != null &&
-                    !const {'draft', 'cancelled'}.contains(
+                    !const {'cancelled'}.contains(
                       (controller.selectedItem?.invoiceStatus ?? '')
                           .toLowerCase(),
                     ))
                   AppActionButton(
-                    icon: Icons.print_outlined,
-                    label: 'Print',
+                    icon:
+                        (controller.selectedItem?.invoiceStatus ?? '')
+                                .toLowerCase() ==
+                            'draft'
+                        ? Icons.preview_outlined
+                        : Icons.print_outlined,
+                    label:
+                        (controller.selectedItem?.invoiceStatus ?? '')
+                                .toLowerCase() ==
+                            'draft'
+                        ? 'Preview'
+                        : 'Print',
                     filled: false,
-                    onPressed: () => controller.openPrintPreview(context),
+                    onPressed: () => controller.openPrintPreview(
+                      context,
+                      allowPrint:
+                          (controller.selectedItem?.invoiceStatus ?? '')
+                              .toLowerCase() !=
+                          'draft',
+                      allowDownload:
+                          (controller.selectedItem?.invoiceStatus ?? '')
+                              .toLowerCase() !=
+                          'draft',
+                      allowTemplateEditing:
+                          (controller.selectedItem?.invoiceStatus ?? '')
+                              .toLowerCase() !=
+                          'draft',
+                    ),
                   ),
                 if (!controller.isSelectedInvoiceReadOnly)
                   AppActionButton(

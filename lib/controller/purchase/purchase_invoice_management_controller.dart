@@ -504,6 +504,9 @@ class PurchaseInvoiceManagementController extends GetxController {
   }
 
   DocumentPrintDataModel purchaseInvoicePrintData() {
+    final documentStatus = (selectedItem?.invoiceStatus ?? 'draft')
+        .trim()
+        .toLowerCase();
     final summary = invoiceTaxSummary();
     final selected = selectedItem?.toJson() ?? const <String, dynamic>{};
     final company = companies.cast<CompanyModel?>().firstWhere(
@@ -603,16 +606,27 @@ class PurchaseInvoiceManagementController extends GetxController {
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+      extraData: documentStatus == 'draft'
+          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
+          : const <String, dynamic>{},
     );
   }
 
-  Future<void> openPrintPreview(BuildContext context) {
+  Future<void> openPrintPreview(
+    BuildContext context, {
+    bool allowPrint = false,
+    bool allowDownload = false,
+    bool allowTemplateEditing = false,
+  }) {
     return openManagedDocumentPrintPreview(
       context,
       prepare: () => ensureSupplierPrintContext(supplierPartyId),
       documentType: 'purchase_invoice',
       title: 'Purchase Invoice',
       documentDataBuilder: purchaseInvoicePrintData,
+      allowPrint: allowPrint,
+      allowDownload: allowDownload,
+      allowTemplateEditing: allowTemplateEditing,
     );
   }
 

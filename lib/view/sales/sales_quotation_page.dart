@@ -152,13 +152,6 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
     );
   }
 
-  Future<void> _openPrintPreview(
-    BuildContext context,
-    SalesQuotationManagementController controller,
-  ) {
-    return controller.openPrintPreview(context);
-  }
-
   Widget _buildContent(
     BuildContext context,
     SalesQuotationManagementController controller,
@@ -536,12 +529,20 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
                       );
                     },
                   ),
-                if (controller.status == 'posted')
+                if (controller.selectedItem != null &&
+                    controller.status != 'cancelled')
                   AppActionButton(
-                    icon: Icons.print_outlined,
-                    label: 'Print',
+                    icon: controller.status == 'draft'
+                        ? Icons.preview_outlined
+                        : Icons.print_outlined,
+                    label: controller.status == 'draft' ? 'Preview' : 'Print',
                     filled: false,
-                    onPressed: () => _openPrintPreview(context, controller),
+                    onPressed: () => controller.openPrintPreview(
+                      context,
+                      allowPrint: controller.status != 'draft',
+                      allowDownload: controller.status != 'draft',
+                      allowTemplateEditing: controller.status != 'draft',
+                    ),
                   ),
                 AppActionButton(
                   icon: Icons.save_outlined,

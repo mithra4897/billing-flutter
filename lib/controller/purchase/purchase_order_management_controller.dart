@@ -694,6 +694,11 @@ class PurchaseOrderManagementController extends GetxController {
   }
 
   DocumentPrintDataModel purchaseOrderPrintData() {
+    final documentStatus = stringValue(
+      selectedItem?.toJson() ?? const <String, dynamic>{},
+      'order_status',
+      'draft',
+    ).trim().toLowerCase();
     final company = companies.cast<CompanyModel?>().firstWhere(
       (item) => item?.id == companyId,
       orElse: () => null,
@@ -772,16 +777,27 @@ class PurchaseOrderManagementController extends GetxController {
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
+      extraData: documentStatus == 'draft'
+          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
+          : const <String, dynamic>{},
     );
   }
 
-  Future<void> openPrintPreview(BuildContext context) {
+  Future<void> openPrintPreview(
+    BuildContext context, {
+    bool allowPrint = false,
+    bool allowDownload = false,
+    bool allowTemplateEditing = false,
+  }) {
     return openManagedDocumentPrintPreview(
       context,
       prepare: () => ensureSupplierPrintContext(supplierPartyId),
       documentType: 'purchase_order',
       title: 'Purchase Order',
       documentDataBuilder: purchaseOrderPrintData,
+      allowPrint: allowPrint,
+      allowDownload: allowDownload,
+      allowTemplateEditing: allowTemplateEditing,
     );
   }
 
@@ -943,7 +959,8 @@ class PurchaseOrderManagementController extends GetxController {
         draft.rateController.text =
             supplierMap.supplierRate?.toString() ?? draft.rateController.text;
         draft.taxCodeId = item?.taxCodeId;
-        if (fillDescription && draft.descriptionController.text.trim().isEmpty) {
+        if (fillDescription &&
+            draft.descriptionController.text.trim().isEmpty) {
           draft.descriptionController.text = itemDescription(
             item,
             fallback: supplierMap.supplierItemName ?? supplierMap.itemName,

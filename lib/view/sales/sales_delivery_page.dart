@@ -56,13 +56,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
     super.dispose();
   }
 
-  Future<void> _openPrintPreview(
-    BuildContext context,
-    SalesDeliveryManagementController controller,
-  ) {
-    return controller.openPrintPreview(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     return GetBuilder<SalesDeliveryManagementController>(
@@ -676,12 +669,19 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                     },
                   ),
                 if (controller.selectedItem != null &&
-                    !const {'draft', 'cancelled'}.contains(status))
+                    !const {'cancelled'}.contains(status))
                   AppActionButton(
-                    icon: Icons.print_outlined,
-                    label: 'Print',
+                    icon: status == 'draft'
+                        ? Icons.preview_outlined
+                        : Icons.print_outlined,
+                    label: status == 'draft' ? 'Preview' : 'Print',
                     filled: false,
-                    onPressed: () => _openPrintPreview(context, controller),
+                    onPressed: () => controller.openPrintPreview(
+                      context,
+                      allowPrint: status != 'draft',
+                      allowDownload: status != 'draft',
+                      allowTemplateEditing: status != 'draft',
+                    ),
                   ),
                 AppActionButton(
                   icon: Icons.save_outlined,
