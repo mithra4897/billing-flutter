@@ -404,6 +404,10 @@ class _SalesReceiptPageState extends State<SalesReceiptPage> {
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
+                            onChanged: canEdit
+                                ? (_) =>
+                                      controller.syncPaidAmountFromAllocations()
+                                : null,
                             validator: Validators.optionalNonNegativeNumber(
                               'Allocated Amount',
                             ),

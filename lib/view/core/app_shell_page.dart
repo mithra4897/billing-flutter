@@ -1415,6 +1415,12 @@ class _AppShellPageState extends State<AppShellPage> {
           startInNewMode: isNew,
           initialSelectId: id,
           initialLeadId: int.tryParse(_currentQueryParameters['lead_id'] ?? ''),
+          initialCompanyId: int.tryParse(
+            _currentQueryParameters['company_id'] ?? '',
+          ),
+          initialAssignedTo: int.tryParse(
+            _currentQueryParameters['assigned_to'] ?? '',
+          ),
         );
     }
 

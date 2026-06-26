@@ -954,35 +954,35 @@ class _CrmLeadsPageState extends State<CrmLeadsPage>
                       onPressed: () => controller.save(),
                       busy: controller.saving,
                     ),
-                  if (controller.selectedItem != null &&
-                      !controller.isSelectedLeadReadOnly) ...[
+                  if (controller.canCreateOpportunityForSelectedLead) ...[
                     AppActionButton(
                       icon: Icons.forward_outlined,
                       label: 'Create Opportunity',
                       onPressed: () {
-                        final existing =
-                            controller.opportunityIdFromSalesChain();
-                        if (existing != null) {
-                          _openCrmShellRoute(
-                            context,
-                            '/crm/opportunities/$existing',
-                          );
-                          return;
-                        }
                         final leadId = intValue(
                           controller.selectedItem?.toJson() ??
                               const <String, dynamic>{},
                           'id',
                         );
+                        if (leadId == null) {
+                          return;
+                        }
                         final uri = Uri(
                           path: '/crm/opportunities/new',
                           queryParameters: {
-                            if (leadId != null) 'lead_id': '$leadId',
+                            'lead_id': '$leadId',
+                            if (controller.companyId != null)
+                              'company_id': controller.companyId.toString(),
+                            if (controller.assignedTo != null)
+                              'assigned_to': controller.assignedTo.toString(),
                           },
                         );
                         _openCrmShellRoute(context, uri.toString());
                       },
                     ),
+                  ],
+                  if (controller.selectedItem != null &&
+                      !controller.isSelectedLeadReadOnly) ...[
                     AppActionButton(
                       icon: Icons.cancel_outlined,
                       label: 'Lost',

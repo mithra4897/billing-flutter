@@ -22,12 +22,16 @@ class CrmOpportunitiesController extends GetxController {
     required this.startInNewMode,
     required this.initialSelectId,
     required this.initialLeadId,
+    required this.initialCompanyId,
+    required this.initialAssignedTo,
   });
 
   final String instanceTag;
   final bool startInNewMode;
   final int? initialSelectId;
   final int? initialLeadId;
+  final int? initialCompanyId;
+  final int? initialAssignedTo;
 
   final CrmService _crmService = CrmService();
   final MasterService _masterService = MasterService();
@@ -433,22 +437,21 @@ class CrmOpportunitiesController extends GetxController {
     bool notify = true,
   }) async {
     final lead = await _resolveInitialLead(leadId: leadId);
-    if (lead == null) {
-      if (notify) {
-        update();
-      }
-      return;
-    }
-
-    final data = lead.toJson();
-    final leadName = stringValue(data, 'lead_name');
     selectedItem = null;
-    companyId = intValue(data, 'company_id') ?? contextCompanyId;
-    leadId = intValue(data, 'id');
-    assignedTo = intValue(data, 'assigned_to');
-    remarksController.text = stringValue(data, 'remarks');
-    if (leadName.isNotEmpty) {
-      nameController.text = leadName;
+    companyId =
+        initialCompanyId ??
+        lead?.companyId ??
+        companyId ??
+        contextCompanyId;
+    this.leadId = leadId ?? initialLeadId ?? this.leadId;
+    assignedTo = initialAssignedTo ?? lead?.assignedTo ?? assignedTo;
+    if (lead != null) {
+      final data = lead.toJson();
+      final leadName = stringValue(data, 'lead_name');
+      remarksController.text = stringValue(data, 'remarks');
+      if (leadName.isNotEmpty) {
+        nameController.text = leadName;
+      }
     }
     formError = null;
     if (notify) {

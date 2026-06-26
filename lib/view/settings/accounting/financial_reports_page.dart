@@ -263,10 +263,30 @@ class _FinancialReportsPageState extends State<FinancialReportsPage> {
             labelText: 'Account',
             mappedItems: controller.accountOptions
                 .where((item) => item.id != null)
-                .map(
-                  (item) =>
-                      AppDropdownItem(value: item.id!, label: item.toString()),
-                )
+                .map((item) {
+                  final subtitle = <String>[
+                    if ((item.accountCode ?? '').trim().isNotEmpty)
+                      item.accountCode!.trim(),
+                    if ((item.accountType ?? '').trim().isNotEmpty)
+                      item.accountType!.trim(),
+                    if ((item.accountGroupName ?? '').trim().isNotEmpty)
+                      item.accountGroupName!.trim(),
+                  ].join(' | ');
+                  final searchText = <String>[
+                    item.accountName ?? '',
+                    item.accountCode ?? '',
+                    item.accountType ?? '',
+                    item.accountGroupName ?? '',
+                  ].join(' ');
+                  return AppDropdownItem(
+                    value: item.id!,
+                    label: item.accountName?.trim().isNotEmpty == true
+                        ? item.accountName!.trim()
+                        : item.toString(),
+                    subtitle: subtitle.isEmpty ? null : subtitle,
+                    searchText: searchText,
+                  );
+                })
                 .toList(growable: false),
             initialValue: controller.accountId,
             onChanged: controller.setAccountId,

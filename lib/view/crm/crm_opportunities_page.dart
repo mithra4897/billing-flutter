@@ -460,6 +460,8 @@ class CrmOpportunitiesPage extends StatefulWidget {
     this.startInNewMode = false,
     this.initialSelectId,
     this.initialLeadId,
+    this.initialCompanyId,
+    this.initialAssignedTo,
   });
 
   final bool embedded;
@@ -467,6 +469,8 @@ class CrmOpportunitiesPage extends StatefulWidget {
   final bool startInNewMode;
   final int? initialSelectId;
   final int? initialLeadId;
+  final int? initialCompanyId;
+  final int? initialAssignedTo;
 
   @override
   State<CrmOpportunitiesPage> createState() => _CrmOpportunitiesPageState();
@@ -506,6 +510,8 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
         startInNewMode: widget.startInNewMode,
         initialSelectId: widget.initialSelectId,
         initialLeadId: widget.initialLeadId,
+        initialCompanyId: widget.initialCompanyId,
+        initialAssignedTo: widget.initialAssignedTo,
       ),
       tag: _controllerTag,
     );
@@ -524,7 +530,9 @@ class _CrmOpportunitiesPageState extends State<CrmOpportunitiesPage>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialSelectId != widget.initialSelectId ||
         oldWidget.startInNewMode != widget.startInNewMode ||
-        oldWidget.initialLeadId != widget.initialLeadId) {
+        oldWidget.initialLeadId != widget.initialLeadId ||
+        oldWidget.initialCompanyId != widget.initialCompanyId ||
+        oldWidget.initialAssignedTo != widget.initialAssignedTo) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
           return;
