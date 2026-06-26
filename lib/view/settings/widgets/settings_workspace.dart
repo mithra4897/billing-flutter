@@ -656,11 +656,32 @@ class SettingsExpandableTile extends StatelessWidget {
   }
 }
 
-class _SettingsEditorRoutePage extends StatelessWidget {
+class _SettingsEditorRoutePage extends StatefulWidget {
   const _SettingsEditorRoutePage({required this.title, required this.child});
 
   final String title;
   final Widget child;
+
+  @override
+  State<_SettingsEditorRoutePage> createState() =>
+      _SettingsEditorRoutePageState();
+}
+
+class _SettingsEditorRoutePageState extends State<_SettingsEditorRoutePage> {
+  bool _showChild = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _showChild = true;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -668,12 +689,12 @@ class _SettingsEditorRoutePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(title: Text(widget.title)),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppUiConstants.pagePadding),
-          child: child,
+          child: _showChild ? widget.child : const SizedBox.shrink(),
         ),
       ),
     );
