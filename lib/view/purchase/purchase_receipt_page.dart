@@ -262,7 +262,9 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                             .toList(growable: false),
                         initialValue: controller.warehouseId,
                         onChanged: controller.setWarehouseId,
-                        validator: Validators.requiredSelection('Warehouse'),
+                        validator: (_) => controller.hasInventoryTrackedLines
+                            ? Validators.requiredSelection('Warehouse')(null)
+                            : null,
                       ),
                       AppFormTextField(
                         labelText: 'Supplier Invoice No',
@@ -380,9 +382,12 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                                   value,
                                 );
                               },
-                              validator: Validators.requiredSelection(
-                                'Warehouse',
-                              ),
+                              validator: (_) =>
+                                  controller.lineUsesInventory(line.itemId)
+                                  ? Validators.requiredSelection('Warehouse')(
+                                      null,
+                                    )
+                                  : null,
                             ),
                             if (controller.isSerialManagedItem(line.itemId))
                               Builder(
@@ -475,12 +480,21 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
-                              validator: Validators.compose([
-                                Validators.required('Received Qty'),
-                                Validators.optionalNonNegativeNumber(
-                                  'Received Qty',
-                                ),
-                              ]),
+                              validator: (value) {
+                                final parsed = Validators.parseFlexibleNumber(
+                                  value,
+                                );
+                                if ((parsed == null || parsed <= 0) &&
+                                    controller.lineAllowsBlankQty(line)) {
+                                  return null;
+                                }
+                                return Validators.compose([
+                                  Validators.required('Received Qty'),
+                                  Validators.optionalNonNegativeNumber(
+                                    'Received Qty',
+                                  ),
+                                ])(value);
+                              },
                             ),
                             AppFormTextField(
                               labelText: 'Accepted Qty',

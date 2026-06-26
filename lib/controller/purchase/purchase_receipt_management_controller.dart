@@ -457,6 +457,52 @@ class PurchaseReceiptManagementController extends GetxController {
     );
   }
 
+  ItemModel? itemById(int? itemId) {
+    return itemsLookup.cast<ItemModel?>().firstWhere(
+      (entry) => entry?.id == itemId,
+      orElse: () => null,
+    );
+  }
+
+  bool lineUsesInventory(int? itemId) =>
+      itemById(itemId)?.trackInventory == true;
+
+  bool lineAllowsBlankQty(PurchaseReceiptLineDraft line) {
+    final item = itemById(line.itemId);
+    return item != null && !item.trackInventory;
+  }
+
+  double resolvedReceivedQty(PurchaseReceiptLineDraft line) {
+    final qty =
+        Validators.parseFlexibleNumber(
+          line.receivedQtyController.text.trim(),
+        ) ??
+        0;
+    if (qty > 0) {
+      return qty;
+    }
+    return lineAllowsBlankQty(line) ? 1 : qty;
+  }
+
+  double resolvedAcceptedQty(PurchaseReceiptLineDraft line) {
+    final qty =
+        Validators.parseFlexibleNumber(
+          line.acceptedQtyController.text.trim(),
+        ) ??
+        0;
+    if (qty > 0) {
+      return qty;
+    }
+    return lineAllowsBlankQty(line) ? resolvedReceivedQty(line) : qty;
+  }
+
+  double resolvedRejectedQty(PurchaseReceiptLineDraft line) =>
+      Validators.parseFlexibleNumber(line.rejectedQtyController.text.trim()) ??
+      0;
+
+  bool get hasInventoryTrackedLines =>
+      lines.any((line) => lineUsesInventory(line.itemId));
+
   PartyModel? supplierForPrintContext(int? supplierId) {
     if (supplierId == null) {
       return null;
@@ -565,20 +611,12 @@ class PurchaseReceiptManagementController extends GetxController {
   }
 
   List<UomModel> uomOptionsForItem(int? itemId) {
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return allowedUomsForItem(item, uoms, uomConversions);
+    return allowedUomsForItem(itemById(itemId), uoms, uomConversions);
   }
 
   int? resolveDefaultUom(int? itemId, int? currentUomId) {
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
     return defaultUomIdForItem(
-      item,
+      itemById(itemId),
       uoms,
       uomConversions,
       current: currentUomId,
@@ -586,12 +624,7 @@ class PurchaseReceiptManagementController extends GetxController {
   }
 
   bool isSerialManagedItem(int? itemId) {
-    if (itemId == null) return false;
-    final item = itemsLookup.cast<ItemModel?>().firstWhere(
-      (entry) => entry?.id == itemId,
-      orElse: () => null,
-    );
-    return item?.hasSerial ?? false;
+    return itemById(itemId)?.hasSerial ?? false;
   }
 
   String serialCacheKey(int? itemId, int? warehouseId) =>
@@ -811,6 +844,7 @@ class PurchaseReceiptManagementController extends GetxController {
     final data = order.toJson();
     final nextLines = buildReceiptLinesFromOrder(order);
     final defaultWarehouseId = nextLines
+        .where((line) => lineUsesInventory(line.itemId))
         .map((line) => line.warehouseId)
         .whereType<int>()
         .cast<int?>()
@@ -1022,6 +1056,23 @@ class PurchaseReceiptManagementController extends GetxController {
     line.itemId = value;
     line.uomId = resolveDefaultUom(value, line.uomId);
     line.serialId = null;
+    if (!lineUsesInventory(value)) {
+      line.warehouseId = null;
+      if ((Validators.parseFlexibleNumber(
+                line.receivedQtyController.text.trim(),
+              ) ??
+              0) <=
+          0) {
+        line.receivedQtyController.text = '1';
+      }
+      if ((Validators.parseFlexibleNumber(
+                line.acceptedQtyController.text.trim(),
+              ) ??
+              0) <=
+          0) {
+        line.acceptedQtyController.text = '1';
+      }
+    }
     update();
     await syncSerialOptionsForLine(line);
   }
@@ -1095,16 +1146,12 @@ class PurchaseReceiptManagementController extends GetxController {
       (line) =>
           line.itemId == null ||
           line.uomId == null ||
-          line.warehouseId == null ||
+          (lineUsesInventory(line.itemId) && line.warehouseId == null) ||
           (isSerialManagedItem(line.itemId) && line.serialId == null) ||
-          (Validators.parseFlexibleNumber(
-                    line.receivedQtyController.text.trim(),
-                  ) ??
-                  0) <=
-              0,
+          resolvedReceivedQty(line) <= 0,
     )) {
       formError =
-          'Each line needs item, warehouse, UOM, received quantity, and serial for serial-managed items.';
+          'Each line needs item, UOM, received quantity, and serial for serial-managed items. Warehouse is required only for inventory items.';
       update();
       return;
     }
@@ -1142,7 +1189,7 @@ class PurchaseReceiptManagementController extends GetxController {
       'receipt_no': nullIfEmpty(receiptNoController.text),
       'receipt_date': receiptDateController.text.trim(),
       'supplier_party_id': supplierPartyId,
-      'warehouse_id': warehouseId,
+      'warehouse_id': hasInventoryTrackedLines ? warehouseId : null,
       'supplier_invoice_no': nullIfEmpty(supplierInvoiceNoController.text),
       'supplier_invoice_date': nullIfEmpty(supplierInvoiceDateController.text),
       'supplier_dc_no': nullIfEmpty(supplierDcNoController.text),
@@ -1153,7 +1200,19 @@ class PurchaseReceiptManagementController extends GetxController {
           : 0,
       'notes': nullIfEmpty(notesController.text),
       'is_active': isActive,
-      'lines': lines.map((line) => line.toJson()).toList(growable: false),
+      'lines': lines
+          .map(
+            (line) => <String, dynamic>{
+              ...line.toJson(),
+              'warehouse_id': lineUsesInventory(line.itemId)
+                  ? line.warehouseId
+                  : null,
+              'received_qty': resolvedReceivedQty(line),
+              'accepted_qty': resolvedAcceptedQty(line),
+              'rejected_qty': resolvedRejectedQty(line),
+            },
+          )
+          .toList(growable: false),
     };
     try {
       final response = selectedItem == null
