@@ -56,6 +56,62 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
     );
   }
 
+  Widget _buildNotesImagePreview(
+    BuildContext context,
+    SalesOrderManagementController controller,
+  ) {
+    final imageUrls = controller.notesImageUrls;
+    if (imageUrls.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Uploaded note images',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: AppUiConstants.spacingXs),
+        Wrap(
+          spacing: AppUiConstants.spacingSm,
+          runSpacing: AppUiConstants.spacingSm,
+          children: imageUrls
+              .map((url) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    AppUiConstants.fieldRadius,
+                  ),
+                  child: Image.network(
+                    url,
+                    width: 96,
+                    height: 96,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 96,
+                      height: 96,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).extension<AppThemeExtension>()!.subtleFill,
+                        borderRadius: BorderRadius.circular(
+                          AppUiConstants.fieldRadius,
+                        ),
+                      ),
+                      child: const Icon(Icons.broken_image_outlined),
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false),
+        ),
+      ],
+    );
+  }
+
   @override
   void didUpdateWidget(covariant SalesOrderPage oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -447,6 +503,31 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
                       controller.customerRefDateController,
                   notesController: controller.notesController,
                   termsController: controller.termsController,
+                  notesSuffixIcon: controller.canEdit
+                      ? (controller.uploadingNotesImage
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : IconButton(
+                                tooltip: 'Upload image',
+                                onPressed: () => unawaited(
+                                  controller.uploadNotesImage(context),
+                                ),
+                                icon: const Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                ),
+                              ))
+                      : null,
+                  notesExtraFields: <Widget>[
+                    _buildNotesImagePreview(context, controller),
+                  ],
                 ),
                 AppDropdownField<int?>.fromMapped(
                   labelText: 'From quotation (optional)',
