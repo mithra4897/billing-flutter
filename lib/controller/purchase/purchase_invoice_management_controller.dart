@@ -866,6 +866,40 @@ class PurchaseInvoiceManagementController extends GetxController {
     return (orderedQty - invoicedQty).clamp(0, double.infinity).toDouble();
   }
 
+  String? resolveImportedPurchaseTaxType(Map<String, dynamic> line) {
+    final explicit = nullableStringValue(
+      line,
+      'tax_type',
+    )?.trim().toLowerCase();
+    if (explicit != null && explicit.isNotEmpty) {
+      return explicit;
+    }
+    final taxApplication = nullableStringValue(
+      line,
+      'tax_application',
+    )?.trim().toLowerCase();
+    if (taxApplication != null && taxApplication.isNotEmpty) {
+      return switch (taxApplication) {
+        'igst' => 'inter',
+        'cgst_sgst' => 'intra',
+        _ => null,
+      };
+    }
+    final igst =
+        Validators.parseFlexibleNumber(stringValue(line, 'igst_amount')) ?? 0;
+    final cgst =
+        Validators.parseFlexibleNumber(stringValue(line, 'cgst_amount')) ?? 0;
+    final sgst =
+        Validators.parseFlexibleNumber(stringValue(line, 'sgst_amount')) ?? 0;
+    if (igst > 0 && cgst == 0 && sgst == 0) {
+      return 'inter';
+    }
+    if (cgst > 0 || sgst > 0) {
+      return 'intra';
+    }
+    return null;
+  }
+
   List<PurchaseInvoiceLineModel> buildInvoiceLinesFromOrder(
     PurchaseOrderModel order,
   ) {
@@ -890,6 +924,10 @@ class PurchaseInvoiceManagementController extends GetxController {
                 ) ??
                 0,
             taxCodeId: intValue(line, 'tax_code_id'),
+            taxPercent: Validators.parseFlexibleNumber(
+              stringValue(line, 'tax_percent'),
+            ),
+            taxType: resolveImportedPurchaseTaxType(line),
             remarks: nullableStringValue(line, 'remarks'),
           );
         })
@@ -908,14 +946,19 @@ class PurchaseInvoiceManagementController extends GetxController {
   }
 
   List<PurchaseInvoiceLineModel> buildInvoiceLinesFromReceipt(
-    PurchaseReceiptModel receipt,
-  ) {
+    PurchaseReceiptModel receipt, {
+    Map<int, Map<String, dynamic>> orderLineLookup =
+        const <int, Map<String, dynamic>>{},
+  }) {
     final nextLines = receipt.lines
         .map((line) {
-          final pendingQty = line.pendingInvoiceQty ?? 0;
+          final pendingQty = pendingInvoiceQtyForReceiptLine(line);
           if (pendingQty <= 0) {
             return null;
           }
+          final sourceOrderLine = line.purchaseOrderLineId == null
+              ? null
+              : orderLineLookup[line.purchaseOrderLineId!];
           return PurchaseInvoiceLineModel(
             purchaseOrderLineId: line.purchaseOrderLineId,
             purchaseReceiptLineId: line.id,
@@ -927,6 +970,22 @@ class PurchaseInvoiceManagementController extends GetxController {
             invoicedQty: pendingQty,
             rate: line.rate ?? 0,
             description: line.description,
+            discountPercent: sourceOrderLine == null
+                ? null
+                : Validators.parseFlexibleNumber(
+                    stringValue(sourceOrderLine, 'discount_percent'),
+                  ),
+            taxCodeId: sourceOrderLine == null
+                ? null
+                : intValue(sourceOrderLine, 'tax_code_id'),
+            taxPercent: sourceOrderLine == null
+                ? null
+                : Validators.parseFlexibleNumber(
+                    stringValue(sourceOrderLine, 'tax_percent'),
+                  ),
+            taxType: sourceOrderLine == null
+                ? null
+                : resolveImportedPurchaseTaxType(sourceOrderLine),
             remarks: line.remarks,
           );
         })
@@ -942,6 +1001,22 @@ class PurchaseInvoiceManagementController extends GetxController {
             ),
           ]
         : nextLines;
+  }
+
+  double pendingInvoiceQtyForReceiptLine(PurchaseReceiptLineModel line) {
+    final explicitPending = line.pendingInvoiceQty;
+    final baseQty = (line.acceptedQty ?? line.receivedQty ?? 0).toDouble();
+    final invoicedQty = (line.invoicedQty ?? 0).toDouble();
+    final derivedPending = (baseQty - invoicedQty)
+        .clamp(0, double.infinity)
+        .toDouble();
+    if (explicitPending == null) {
+      return derivedPending;
+    }
+    if (explicitPending > 0) {
+      return explicitPending;
+    }
+    return derivedPending > 0 ? derivedPending : explicitPending;
   }
 
   List<PurchaseInvoiceLineModel> mergeInvoiceLinesWithReceiptLines(
@@ -1051,9 +1126,30 @@ class PurchaseInvoiceManagementController extends GetxController {
     final receiptOrder = orderById(receiptPoId);
     final receiptOrderData =
         receiptOrder?.toJson() ?? const <String, dynamic>{};
+    final orderLineLookup = <int, Map<String, dynamic>>{
+      for (final line
+          in (receiptOrderData['lines'] as List<dynamic>? ?? const <dynamic>[])
+              .whereType<Map<String, dynamic>>())
+        if (intValue(line, 'id') != null) intValue(line, 'id')!: line,
+    };
     final nextCompanyId = receipt.companyId;
     final nextFinancialYearId = receipt.financialYearId;
-    final nextLines = buildInvoiceLinesFromReceipt(receipt);
+    final nextLines = buildInvoiceLinesFromReceipt(
+      receipt,
+      orderLineLookup: orderLineLookup,
+    );
+    final receiptLineCount = receipt.lines.where((line) {
+      final sourceQty = (line.acceptedQty ?? line.receivedQty ?? 0).toDouble();
+      return sourceQty > 0;
+    }).length;
+    final pendingLineCount = nextLines.where((line) => line.itemId > 0).length;
+    final partiallyConsumedLineCount = receipt.lines.where((line) {
+      final sourceQty = (line.acceptedQty ?? line.receivedQty ?? 0).toDouble();
+      if (sourceQty <= 0) {
+        return false;
+      }
+      return pendingInvoiceQtyForReceiptLine(line) < sourceQty;
+    }).length;
     purchaseOrderId = receiptPoId;
     companyId = nextCompanyId;
     branchId = receipt.branchId;
@@ -1064,6 +1160,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       financialYearId: nextFinancialYearId,
     );
     supplierPartyId = receipt.supplierPartyId;
+    await ensureSupplierPrintContext(supplierPartyId);
     invoiceNoController.clear();
     dueDateController.text = displayDate(receipt.supplierInvoiceDate);
     supplierReferenceNoController.text = receipt.supplierInvoiceNo ?? '';
@@ -1077,9 +1174,15 @@ class PurchaseInvoiceManagementController extends GetxController {
         : stringValue(receiptOrderData, 'notes');
     termsController.clear();
     lines = nextLines;
-    formError = nextLines.length == 1 && nextLines.first.itemId == 0
-        ? 'Selected purchase receipt has no pending invoice quantity.'
-        : null;
+    if (nextLines.length == 1 && nextLines.first.itemId == 0) {
+      formError = 'Selected purchase receipt has no pending invoice quantity.';
+    } else if (pendingLineCount < receiptLineCount ||
+        partiallyConsumedLineCount > 0) {
+      formError =
+          'Selected purchase receipt already has invoiced quantity on some lines. Only pending lines/quantities were loaded.';
+    } else {
+      formError = null;
+    }
     update();
   }
 
@@ -1113,6 +1216,7 @@ class PurchaseInvoiceManagementController extends GetxController {
       financialYearId: nextFinancialYearId,
     );
     supplierPartyId = intValue(data, 'supplier_party_id');
+    await ensureSupplierPrintContext(supplierPartyId);
     invoiceNoController.clear();
     dueDateController.text = displayDate(
       nullableStringValue(data, 'expected_receipt_date'),

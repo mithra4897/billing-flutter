@@ -97,10 +97,8 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
     final warehouseOptions = controller.warehouses
         .where((item) => item.id != null)
         .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id!,
-            label: item.toString(),
-          ),
+          (item) =>
+              AppDropdownItem<int>(value: item.id!, label: item.toString()),
         )
         .toList(growable: false);
 
@@ -113,10 +111,8 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
 
@@ -170,7 +166,8 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
         remarksController: line.remarksController,
         amount: amount,
         deleteEnabled:
-            !controller.isSelectedReceiptReadOnly && controller.lines.length > 1,
+            !controller.isSelectedReceiptReadOnly &&
+            controller.lines.length > 1,
         cellWidgets: <ErpLineItemTableColumn, Widget>{
           ErpLineItemTableColumn.qty: ErpLineItemTextCell(
             key: ValueKey('receipt-qty-$index'),
@@ -216,7 +213,11 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
                     enabled: !controller.isSelectedReceiptReadOnly,
                   ),
                 )
-              : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+              : const ErpLineItemTextCell(
+                  readOnly: true,
+                  enabled: false,
+                  initialValue: '-',
+                ),
           'accepted_qty': ErpLineItemTextCell(
             key: ValueKey('accepted-qty-$index'),
             controller: line.acceptedQtyController,
@@ -235,49 +236,64 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
       );
     });
 
-    return ErpLineItemTable(
-      title: 'Lines',
-      lines: rows,
-      onAddLine: controller.isSelectedReceiptReadOnly ? null : controller.addLine,
-      onDeleteLine: controller.isSelectedReceiptReadOnly
-          ? null
-          : controller.removeLine,
-      addButtonLabel: 'Add Line',
-      visibleColumns: const <ErpLineItemTableColumn>{
-        ErpLineItemTableColumn.no,
-        ErpLineItemTableColumn.item,
-        ErpLineItemTableColumn.warehouse,
-        ErpLineItemTableColumn.uom,
-        ErpLineItemTableColumn.qty,
-        ErpLineItemTableColumn.rate,
-        ErpLineItemTableColumn.description,
-        ErpLineItemTableColumn.remarks,
-        ErpLineItemTableColumn.amount,
-        ErpLineItemTableColumn.action,
-      },
-      columnLabels: const <ErpLineItemTableColumn, String>{
-        ErpLineItemTableColumn.qty: 'Received Qty',
-      },
-      customColumns: const <ErpLineItemCustomColumn>[
-        ErpLineItemCustomColumn(
+    final visibleColumns = <ErpLineItemTableColumn>{
+      ErpLineItemTableColumn.no,
+      ErpLineItemTableColumn.item,
+      ErpLineItemTableColumn.warehouse,
+      ErpLineItemTableColumn.uom,
+      ErpLineItemTableColumn.qty,
+      ErpLineItemTableColumn.rate,
+      ErpLineItemTableColumn.description,
+      ErpLineItemTableColumn.remarks,
+      ErpLineItemTableColumn.amount,
+      if (!controller.isSelectedReceiptReadOnly) ErpLineItemTableColumn.action,
+    };
+
+    final hasSerialManagedLines = controller.lines.any(
+      (line) => controller.isSerialManagedItem(line.itemId),
+    );
+    final customColumns = <ErpLineItemCustomColumn>[
+      if (hasSerialManagedLines)
+        const ErpLineItemCustomColumn(
           id: 'serial',
           label: 'Serial Number',
           width: 180,
           insertAfter: ErpLineItemTableColumn.warehouse,
         ),
-        ErpLineItemCustomColumn(
-          id: 'accepted_qty',
-          label: 'Accepted Qty',
-          width: 130,
-          insertAfter: ErpLineItemTableColumn.qty,
-        ),
-        ErpLineItemCustomColumn(
-          id: 'rejected_qty',
-          label: 'Rejected Qty',
-          width: 130,
-          insertAfter: ErpLineItemTableColumn.qty,
-        ),
-      ],
+      const ErpLineItemCustomColumn(
+        id: 'accepted_qty',
+        label: 'Accepted Qty',
+        width: 130,
+        insertAfter: ErpLineItemTableColumn.qty,
+      ),
+      const ErpLineItemCustomColumn(
+        id: 'rejected_qty',
+        label: 'Rejected Qty',
+        width: 130,
+        insertAfter: ErpLineItemTableColumn.qty,
+      ),
+    ];
+
+    if (controller.isSelectedReceiptReadOnly) {
+      visibleColumns.remove(ErpLineItemTableColumn.description);
+      visibleColumns.remove(ErpLineItemTableColumn.remarks);
+    }
+
+    return ErpLineItemTable(
+      title: 'Lines',
+      lines: rows,
+      onAddLine: controller.isSelectedReceiptReadOnly
+          ? null
+          : controller.addLine,
+      onDeleteLine: controller.isSelectedReceiptReadOnly
+          ? null
+          : controller.removeLine,
+      addButtonLabel: 'Add Line',
+      visibleColumns: visibleColumns,
+      columnLabels: const <ErpLineItemTableColumn, String>{
+        ErpLineItemTableColumn.qty: 'Received Qty',
+      },
+      customColumns: customColumns,
       enabled: !controller.isSelectedReceiptReadOnly,
     );
   }
