@@ -193,6 +193,9 @@ class _ItemManagementPageState extends State<ItemManagementPage>
                 validator: Validators.optionalMaxLength(255, 'Local name'),
               ),
               DropdownButtonFormField<int?>(
+                key: ValueKey<String>(
+                  'item-category-${controller.categoryId}-${controller.categories.length}',
+                ),
                 initialValue: controller.categoryId,
                 decoration: InputDecoration(
                   labelText: 'Category',

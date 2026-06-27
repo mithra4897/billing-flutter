@@ -56,9 +56,30 @@ class StockSerialViewModel extends GetxController {
           return [
             stringValue(data, 'serial_no'),
             stringValue(data, 'status'),
+            _itemSearchText(row.itemId),
           ].join(' ').toLowerCase().contains(q);
         })
         .toList(growable: false);
+  }
+
+  String _itemSearchText(int? itemId) {
+    if (itemId == null) {
+      return '';
+    }
+    final item = items.cast<ItemModel?>().firstWhere(
+      (candidate) => candidate?.id == itemId,
+      orElse: () => null,
+    );
+    if (item == null) {
+      return '';
+    }
+    return [
+      item.itemCode,
+      item.itemName,
+      item.categoryCode ?? '',
+      item.categoryName ?? '',
+      item.itemType ?? '',
+    ].join(' ');
   }
 
   ItemModel? get selectedItem {

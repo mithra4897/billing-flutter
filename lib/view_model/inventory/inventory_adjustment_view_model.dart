@@ -200,9 +200,28 @@ class InventoryAdjustmentViewModel extends GetxController {
             stringValue(data, 'adjustment_no'),
             stringValue(data, 'adjustment_status'),
             stringValue(data, 'adjustment_type'),
+            _rowItemSearchText(row),
           ].join(' ').toLowerCase().contains(q);
         })
         .toList(growable: false);
+  }
+
+  String _rowItemSearchText(InventoryAdjustmentModel row) {
+    final parts = <String>[];
+    for (final line in row.items ?? const <InventoryAdjustmentItemModel>[]) {
+      final item = itemById(line.itemId);
+      if (item == null) {
+        continue;
+      }
+      parts.addAll(<String>[
+        item.itemCode,
+        item.itemName,
+        item.categoryCode ?? '',
+        item.categoryName ?? '',
+        item.itemType ?? '',
+      ]);
+    }
+    return parts.join(' ');
   }
 
   String? consumeActionMessage() {
@@ -725,9 +744,7 @@ class InventoryAdjustmentViewModel extends GetxController {
     };
     try {
       final response = selected == null
-          ? await _inventoryService.createInventoryAdjustment(
-              payload,
-            )
+          ? await _inventoryService.createInventoryAdjustment(payload)
           : await _inventoryService.updateInventoryAdjustment(
               intValue(selected!.toJson(), 'id')!,
               payload,

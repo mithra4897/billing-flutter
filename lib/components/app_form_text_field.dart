@@ -13,6 +13,8 @@ class AppFormTextField extends StatefulWidget {
     this.obscureText = false,
     this.validator,
     this.onChanged,
+    this.onFieldSubmitted,
+    this.onEditingComplete,
     this.readOnly = false,
     this.suffixIcon,
     this.prefixIcon,
@@ -33,6 +35,8 @@ class AppFormTextField extends StatefulWidget {
   final bool obscureText;
   final String? Function(String?)? validator;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onFieldSubmitted;
+  final VoidCallback? onEditingComplete;
   final bool readOnly;
   final Widget? suffixIcon;
   final Widget? prefixIcon;
@@ -174,6 +178,8 @@ class _AppFormTextFieldState extends State<AppFormTextField> {
         obscureText: widget.obscureText,
         validator: widget.validator,
         onChanged: widget.onChanged,
+        onFieldSubmitted: widget.onFieldSubmitted,
+        onEditingComplete: widget.onEditingComplete,
         readOnly: effectiveReadOnly,
         enabled: true,
         onTap: (!visuallyReadOnly && autoPickerEnabled && !widget.allowType)

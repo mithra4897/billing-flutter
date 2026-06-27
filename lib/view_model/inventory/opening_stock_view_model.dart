@@ -1,4 +1,5 @@
 import '../../../screen.dart';
+import '../../model/inventory/opening_stock_item_model.dart';
 import 'inventory_module_refresh_controller.dart';
 
 /// Mutable line state for the opening stock editor (View binds controllers).
@@ -208,9 +209,40 @@ class OpeningStockViewModel extends GetxController {
             stringValue(data, 'opening_no'),
             stringValue(data, 'opening_status'),
             stringValue(data, 'remarks'),
+            _rowItemSearchText(row),
           ].join(' ').toLowerCase().contains(q);
         })
         .toList(growable: false);
+  }
+
+  String _rowItemSearchText(OpeningStockModel row) {
+    final parts = <String>[];
+    for (final line in row.items ?? const <OpeningStockItemModel>[]) {
+      final item = itemById(line.itemId);
+      if (item == null) {
+        continue;
+      }
+      parts.addAll(<String>[
+        item.itemCode,
+        item.itemName,
+        item.categoryCode ?? '',
+        item.categoryName ?? '',
+        item.itemType ?? '',
+      ]);
+    }
+    return parts.join(' ');
+  }
+
+  ItemModel? itemById(int? itemId) {
+    if (itemId == null) {
+      return null;
+    }
+    for (final item in items) {
+      if (item.id == itemId) {
+        return item;
+      }
+    }
+    return null;
   }
 
   String? consumeActionMessage() {

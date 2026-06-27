@@ -1,9 +1,166 @@
 import '../../screen.dart';
+import '../../model/inventory/opening_stock_item_model.dart';
 import '../../view_model/inventory/inventory_module_refresh_controller.dart';
 
 typedef InventoryRegisterLoader<T> =
     Future<PaginatedResponse<T>> Function(InventoryService service);
 typedef InventoryRegisterMatcher<T> = bool Function(T row, String query);
+typedef InventoryRegisterValueGetter<T> = String? Function(T row);
+typedef InventoryRegisterValuesGetter<T> = List<String> Function(T row);
+typedef InventoryRegisterDropdownLoader =
+    Future<List<AppDropdownItem<String>>> Function(InventoryService service);
+
+String _openingStockProductSummary(OpeningStockModel row) {
+  final seen = <String>{};
+  final values = <String>[];
+  for (final line in row.items ?? const <OpeningStockItemModel>[]) {
+    final label = JsonModel.combineValues(
+      <dynamic>[
+        line.itemName,
+        if ((line.itemCode ?? '').trim().isNotEmpty) '(${line.itemCode})',
+      ],
+      separator: ' ',
+      defaultValue: '',
+    ).trim();
+    final normalized = label.toLowerCase();
+    if (label.isEmpty || !seen.add(normalized)) {
+      continue;
+    }
+    values.add(label);
+  }
+  return values.join(', ');
+}
+
+String _openingStockSearchText(OpeningStockModel row) {
+  final values = <String>[
+    stringValue(row.toJson(), 'opening_no'),
+    stringValue(row.toJson(), 'opening_status'),
+    stringValue(row.toJson(), 'remarks'),
+    _openingStockProductSummary(row),
+  ];
+  for (final line in row.items ?? const <OpeningStockItemModel>[]) {
+    values.addAll(<String>[
+      line.itemCode ?? '',
+      line.itemName ?? '',
+      line.categoryCode ?? '',
+      line.categoryName ?? '',
+    ]);
+  }
+  return values.join(' ').toLowerCase();
+}
+
+List<String> _openingStockCategoryValues(OpeningStockModel row) {
+  final seen = <String>{};
+  final values = <String>[];
+  for (final line in row.items ?? const <OpeningStockItemModel>[]) {
+    final value = (line.categoryName ?? '').trim();
+    final normalized = value.toLowerCase();
+    if (value.isEmpty || !seen.add(normalized)) {
+      continue;
+    }
+    values.add(value);
+  }
+  return values;
+}
+
+Future<PaginatedResponse<OpeningStockModel>> _loadOpeningStocksWithItems(
+  InventoryService service,
+) async {
+  final response = await service.openingStocks(
+    filters: const {'per_page': 200, 'sort_by': 'opening_date'},
+  );
+  final rows = response.data ?? const <OpeningStockModel>[];
+  if (rows.isEmpty) {
+    return response;
+  }
+
+  final itemResponse = await service.items(
+    filters: const {'per_page': 500, 'sort_by': 'item_name'},
+  );
+  final itemById = <int, ItemModel>{
+    for (final item in itemResponse.data ?? const <ItemModel>[])
+      if (item.id != null) item.id!: item,
+  };
+
+  final enriched = await Future.wait<OpeningStockModel>(
+    rows.map((row) async {
+      final id = intValue(row.toJson(), 'id');
+      if (id == null) {
+        return row;
+      }
+      try {
+        final detail = await service.openingStock(id);
+        final detailedRow = detail.data ?? row;
+        return _enrichOpeningStockRowWithItemMaster(detailedRow, itemById);
+      } catch (_) {
+        return row;
+      }
+    }),
+  );
+
+  return PaginatedResponse<OpeningStockModel>(
+    success: response.success,
+    message: response.message,
+    data: enriched,
+    meta: response.meta,
+    errors: response.errors,
+  );
+}
+
+OpeningStockModel _enrichOpeningStockRowWithItemMaster(
+  OpeningStockModel row,
+  Map<int, ItemModel> itemById,
+) {
+  final rawItems = row.toJson()['items'];
+  if (rawItems is! List) {
+    return row;
+  }
+
+  final enrichedItems = rawItems
+      .map((item) {
+        if (item is! Map) {
+          return item;
+        }
+        final map = Map<String, dynamic>.from(item);
+        final itemId = intValue(map, 'item_id');
+        final itemMaster = itemId == null ? null : itemById[itemId];
+        if (itemMaster == null) {
+          return map;
+        }
+        map['item_id'] ??= itemMaster.id;
+        map['item_code'] ??= itemMaster.itemCode;
+        map['item_name'] ??= itemMaster.itemName;
+        map['category_code'] ??= itemMaster.categoryCode;
+        map['category_name'] ??= itemMaster.categoryName;
+        return map;
+      })
+      .toList(growable: false);
+
+  return OpeningStockModel.fromJson(<String, dynamic>{
+    ...row.toJson(),
+    'items': enrichedItems,
+  });
+}
+
+Future<List<AppDropdownItem<String>>> _loadOpeningStockCategoryItems(
+  InventoryService service,
+) async {
+  final response = await service.itemCategories(
+    filters: const {'per_page': 500, 'sort_by': 'category_name'},
+  );
+  final rows = response.data ?? const <ItemCategoryModel>[];
+  return <AppDropdownItem<String>>[
+    const AppDropdownItem<String>(value: '', label: 'All'),
+    ...rows
+        .where((row) => row.isActive && row.categoryName.trim().isNotEmpty)
+        .map(
+          (row) => AppDropdownItem<String>(
+            value: row.categoryName.trim().toLowerCase(),
+            label: row.categoryName.trim(),
+          ),
+        ),
+  ];
+}
 
 void _openInventoryShellRoute(BuildContext context, String route) {
   final navigate = ShellRouteScope.maybeOf(context);
@@ -15,31 +172,137 @@ void _openInventoryShellRoute(BuildContext context, String route) {
 }
 
 class InventoryRegisterController<T> extends GetxController {
-  InventoryRegisterController({required this.loader, required this.matches});
+  InventoryRegisterController({
+    required this.loader,
+    required this.matches,
+    this.statusValue,
+    this.dateValue,
+    this.categoryValues,
+    this.categoryItemsLoader,
+  });
 
   final InventoryRegisterLoader<T> loader;
   final InventoryRegisterMatcher<T> matches;
+  final InventoryRegisterValueGetter<T>? statusValue;
+  final InventoryRegisterValueGetter<T>? dateValue;
+  final InventoryRegisterValuesGetter<T>? categoryValues;
+  final InventoryRegisterDropdownLoader? categoryItemsLoader;
   final InventoryService _service = InventoryService();
   final InventoryModuleRefreshController _refreshController =
       InventoryModuleRefreshController.ensureRegistered();
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController dateFromController = TextEditingController();
+  final TextEditingController dateToController = TextEditingController();
 
   bool loading = true;
   String? error;
   List<T> rows = <T>[];
+  String status = '';
+  String category = '';
+  List<AppDropdownItem<String>> loadedCategoryItems =
+      const <AppDropdownItem<String>>[];
   Worker? _refreshWorker;
 
   List<T> get filteredRows {
     final query = searchController.text.trim().toLowerCase();
     return rows
-        .where((row) => query.isEmpty || matches(row, query))
+        .where((row) {
+          if (query.isNotEmpty && !matches(row, query)) {
+            return false;
+          }
+          if (status.trim().isNotEmpty) {
+            final rowStatus = (statusValue?.call(row) ?? '')
+                .trim()
+                .toLowerCase();
+            if (rowStatus != status.trim().toLowerCase()) {
+              return false;
+            }
+          }
+          if (category.trim().isNotEmpty) {
+            final rowCategories =
+                (categoryValues?.call(row) ?? const <String>[])
+                    .map((value) => value.trim().toLowerCase())
+                    .where((value) => value.isNotEmpty)
+                    .toSet();
+            if (!rowCategories.contains(category.trim().toLowerCase())) {
+              return false;
+            }
+          }
+          if (dateValue != null &&
+              !matchesDateValueRange(
+                dateValue!.call(row),
+                fromValue: dateFromController.text,
+                toValue: dateToController.text,
+              )) {
+            return false;
+          }
+          return true;
+        })
         .toList(growable: false);
   }
+
+  List<AppDropdownItem<String>> get statusItems {
+    if (statusValue == null) {
+      return const <AppDropdownItem<String>>[];
+    }
+    final seen = <String>{};
+    final items = <AppDropdownItem<String>>[
+      const AppDropdownItem<String>(value: '', label: 'All'),
+    ];
+    for (final row in rows) {
+      final value = (statusValue?.call(row) ?? '').trim();
+      if (value.isEmpty) {
+        continue;
+      }
+      final normalized = value.toLowerCase();
+      if (!seen.add(normalized)) {
+        continue;
+      }
+      items.add(
+        AppDropdownItem<String>(
+          value: normalized,
+          label: value.replaceAll('_', ' ').titleCase,
+        ),
+      );
+    }
+    return items;
+  }
+
+  List<AppDropdownItem<String>> get categoryItems {
+    if (loadedCategoryItems.isNotEmpty) {
+      return loadedCategoryItems;
+    }
+    if (categoryValues == null) {
+      return const <AppDropdownItem<String>>[];
+    }
+    final seen = <String>{};
+    final items = <AppDropdownItem<String>>[
+      const AppDropdownItem<String>(value: '', label: 'All'),
+    ];
+    for (final row in rows) {
+      for (final raw in categoryValues?.call(row) ?? const <String>[]) {
+        final value = raw.trim();
+        if (value.isEmpty) {
+          continue;
+        }
+        final normalized = value.toLowerCase();
+        if (!seen.add(normalized)) {
+          continue;
+        }
+        items.add(AppDropdownItem<String>(value: normalized, label: value));
+      }
+    }
+    return items;
+  }
+
+  bool get supportsDateFilter => dateValue != null;
 
   @override
   void onInit() {
     super.onInit();
     searchController.addListener(update);
+    dateFromController.addListener(update);
+    dateToController.addListener(update);
     _refreshWorker = ever<InventoryModuleRefreshEvent?>(
       _refreshController.lastEvent,
       (event) {
@@ -58,7 +321,27 @@ class InventoryRegisterController<T> extends GetxController {
     searchController
       ..removeListener(update)
       ..dispose();
+    dateFromController
+      ..removeListener(update)
+      ..dispose();
+    dateToController
+      ..removeListener(update)
+      ..dispose();
     super.onClose();
+  }
+
+  void setStatus(String value) {
+    status = value.trim().toLowerCase();
+    update();
+  }
+
+  void clearFilters() {
+    searchController.clear();
+    dateFromController.clear();
+    dateToController.clear();
+    status = '';
+    category = '';
+    update();
   }
 
   Future<void> load() async {
@@ -68,6 +351,9 @@ class InventoryRegisterController<T> extends GetxController {
     try {
       final response = await loader(_service);
       rows = response.data ?? <T>[];
+      if (categoryItemsLoader != null) {
+        loadedCategoryItems = await categoryItemsLoader!(_service);
+      }
       loading = false;
       update();
     } catch (err) {
@@ -82,16 +368,30 @@ class _RegisterFilters extends StatelessWidget {
   const _RegisterFilters({
     required this.searchController,
     required this.searchHint,
+    this.dateFromController,
+    this.dateToController,
     required this.status,
     required this.statusItems,
     required this.onStatusChanged,
+    required this.category,
+    required this.categoryItems,
+    required this.onCategoryChanged,
+    this.showAdvancedFilters = true,
+    this.onSearchSubmitted,
   });
 
   final TextEditingController searchController;
   final String searchHint;
+  final TextEditingController? dateFromController;
+  final TextEditingController? dateToController;
   final String status;
   final List<AppDropdownItem<String>> statusItems;
   final ValueChanged<String?> onStatusChanged;
+  final String category;
+  final List<AppDropdownItem<String>> categoryItems;
+  final ValueChanged<String?> onCategoryChanged;
+  final bool showAdvancedFilters;
+  final VoidCallback? onSearchSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -102,14 +402,54 @@ class _RegisterFilters extends StatelessWidget {
           labelText: 'Search',
           controller: searchController,
           hintText: searchHint,
+          textInputAction: TextInputAction.search,
+          onFieldSubmitted: (_) {
+            onSearchSubmitted?.call();
+          },
+          onEditingComplete: onSearchSubmitted,
         ),
-        if (statusItems.isNotEmpty) ...[
+        if (showAdvancedFilters &&
+            (dateFromController != null || dateToController != null)) ...[
+          const SizedBox(height: AppUiConstants.spacingMd),
+          Wrap(
+            spacing: AppUiConstants.spacingMd,
+            runSpacing: AppUiConstants.spacingMd,
+            children: [
+              if (dateFromController != null)
+                SizedBox(
+                  width: 220,
+                  child: AppDateField(
+                    labelText: 'From Date',
+                    controller: dateFromController!,
+                  ),
+                ),
+              if (dateToController != null)
+                SizedBox(
+                  width: 220,
+                  child: AppDateField(
+                    labelText: 'To Date',
+                    controller: dateToController!,
+                  ),
+                ),
+            ],
+          ),
+        ],
+        if (showAdvancedFilters && statusItems.isNotEmpty) ...[
           const SizedBox(height: AppUiConstants.spacingMd),
           AppDropdownField<String>.fromMapped(
             labelText: 'Status',
             mappedItems: statusItems,
             initialValue: status.isEmpty ? null : status,
             onChanged: onStatusChanged,
+          ),
+        ],
+        if (showAdvancedFilters && categoryItems.isNotEmpty) ...[
+          const SizedBox(height: AppUiConstants.spacingMd),
+          AppDropdownField<String>.fromMapped(
+            labelText: 'Category',
+            mappedItems: categoryItems,
+            initialValue: category.isEmpty ? null : category,
+            onChanged: onCategoryChanged,
           ),
         ],
       ],
@@ -130,6 +470,10 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
     required this.searchHint,
     required this.columns,
     required this.rowRoute,
+    this.statusValue,
+    this.dateValue,
+    this.categoryValues,
+    this.categoryItemsLoader,
   });
 
   final String controllerName;
@@ -143,6 +487,10 @@ class _InventoryRegisterShell<T> extends StatefulWidget {
   final String searchHint;
   final List<PurchaseRegisterColumn<T>> columns;
   final String Function(T row) rowRoute;
+  final InventoryRegisterValueGetter<T>? statusValue;
+  final InventoryRegisterValueGetter<T>? dateValue;
+  final InventoryRegisterValuesGetter<T>? categoryValues;
+  final InventoryRegisterDropdownLoader? categoryItemsLoader;
 
   @override
   State<_InventoryRegisterShell<T>> createState() =>
@@ -164,6 +512,10 @@ class _InventoryRegisterShellState<T>
         InventoryRegisterController<T>(
           loader: widget.loader,
           matches: widget.matches,
+          statusValue: widget.statusValue,
+          dateValue: widget.dateValue,
+          categoryValues: widget.categoryValues,
+          categoryItemsLoader: widget.categoryItemsLoader,
         ),
         tag: _controllerTag,
       );
@@ -184,6 +536,12 @@ class _InventoryRegisterShellState<T>
           emptyMessage: widget.emptyMessage,
           actions: [
             AdaptiveShellActionButton(
+              onPressed: () => _openFilterPanel(context, controller),
+              icon: Icons.filter_alt_outlined,
+              label: 'Filter',
+              filled: false,
+            ),
+            AdaptiveShellActionButton(
               onPressed: () =>
                   _openInventoryShellRoute(context, widget.newRoute),
               icon: Icons.add_outlined,
@@ -193,14 +551,170 @@ class _InventoryRegisterShellState<T>
           filters: _RegisterFilters(
             searchController: controller.searchController,
             searchHint: widget.searchHint,
-            status: '',
-            statusItems: const <AppDropdownItem<String>>[],
-            onStatusChanged: (_) {},
+            showAdvancedFilters: false,
+            status: controller.status,
+            statusItems: controller.statusItems,
+            onStatusChanged: (value) => controller.setStatus(value ?? ''),
+            category: controller.category,
+            categoryItems: controller.categoryItems,
+            onCategoryChanged: (value) {
+              controller.category = (value ?? '').trim().toLowerCase();
+              controller.update();
+            },
           ),
           rows: controller.filteredRows,
           columns: widget.columns,
           onRowTap: (row) =>
               _openInventoryShellRoute(context, widget.rowRoute(row)),
+        );
+      },
+    );
+  }
+
+  Future<void> _openFilterPanel(
+    BuildContext context,
+    InventoryRegisterController<T> controller,
+  ) async {
+    final dialogSearchController = TextEditingController(
+      text: controller.searchController.text,
+    );
+    final dialogDateFromController = TextEditingController(
+      text: controller.dateFromController.text,
+    );
+    final dialogDateToController = TextEditingController(
+      text: controller.dateToController.text,
+    );
+    var tempStatus = controller.status;
+    var tempCategory = controller.category;
+
+    void applyDialogFilters(BuildContext dialogContext) {
+      controller.searchController.text = dialogSearchController.text;
+      controller.dateFromController.text = dialogDateFromController.text;
+      controller.dateToController.text = dialogDateToController.text;
+      controller.setStatus(tempStatus);
+      controller.category = tempCategory;
+      controller.update();
+      Navigator.of(dialogContext).pop();
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final appTheme = Theme.of(
+          dialogContext,
+        ).extension<AppThemeExtension>()!;
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return CallbackShortcuts(
+              bindings: <ShortcutActivator, VoidCallback>{
+                const SingleActivator(LogicalKeyboardKey.enter): () {
+                  applyDialogFilters(dialogContext);
+                },
+                const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
+                  applyDialogFilters(dialogContext);
+                },
+              },
+              child: Focus(
+                autofocus: true,
+                child: Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppUiConstants.cardRadius,
+                    ),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 760),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        AppUiConstants.cardPadding,
+                        AppUiConstants.cardPadding,
+                        AppUiConstants.cardPadding,
+                        MediaQuery.of(dialogContext).viewInsets.bottom +
+                            AppUiConstants.cardPadding,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Filter ${widget.title}',
+                                  style: Theme.of(dialogContext)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () =>
+                                    Navigator.of(dialogContext).pop(),
+                                tooltip: 'Close',
+                                icon: const Icon(Icons.close),
+                                color: appTheme.mutedText,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppUiConstants.spacingMd),
+                          _RegisterFilters(
+                            searchController: dialogSearchController,
+                            searchHint: widget.searchHint,
+                            dateFromController: controller.supportsDateFilter
+                                ? dialogDateFromController
+                                : null,
+                            dateToController: controller.supportsDateFilter
+                                ? dialogDateToController
+                                : null,
+                            status: tempStatus,
+                            statusItems: controller.statusItems,
+                            onStatusChanged: (value) {
+                              setDialogState(() {
+                                tempStatus = (value ?? '').trim().toLowerCase();
+                              });
+                            },
+                            category: tempCategory,
+                            categoryItems: controller.categoryItems,
+                            onCategoryChanged: (value) {
+                              setDialogState(() {
+                                tempCategory = (value ?? '')
+                                    .trim()
+                                    .toLowerCase();
+                              });
+                            },
+                            onSearchSubmitted: () =>
+                                applyDialogFilters(dialogContext),
+                          ),
+                          const SizedBox(height: AppUiConstants.spacingMd),
+                          Wrap(
+                            spacing: AppUiConstants.spacingMd,
+                            runSpacing: AppUiConstants.spacingMd,
+                            children: [
+                              FilledButton.icon(
+                                onPressed: () =>
+                                    applyDialogFilters(dialogContext),
+                                icon: const Icon(Icons.search),
+                                label: const Text('Apply Filters'),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  controller.clearFilters();
+                                  Navigator.of(dialogContext).pop();
+                                },
+                                icon: const Icon(Icons.clear),
+                                label: const Text('Clear'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -218,25 +732,27 @@ class OpeningStockRegisterPage extends StatelessWidget {
       controllerName: 'OpeningStockRegisterController',
       title: 'Opening stock',
       embedded: embedded,
-      loader: (service) => service.openingStocks(
-        filters: const {'per_page': 200, 'sort_by': 'opening_date'},
-      ),
+      loader: _loadOpeningStocksWithItems,
       matches: (row, query) {
-        final data = row.toJson();
-        return [
-          stringValue(data, 'opening_no'),
-          stringValue(data, 'opening_status'),
-          stringValue(data, 'remarks'),
-        ].join(' ').toLowerCase().contains(query);
+        return _openingStockSearchText(row).contains(query);
       },
       emptyMessage: 'No opening stock documents found.',
       newRoute: '/inventory/opening-stocks/new',
       newLabel: 'New Opening Stock',
-      searchHint: 'Search opening stock',
+      searchHint: 'Search opening stock, product, category',
+      statusValue: (row) => stringValue(row.toJson(), 'opening_status'),
+      dateValue: (row) => nullableStringValue(row.toJson(), 'opening_date'),
+      categoryValues: _openingStockCategoryValues,
+      categoryItemsLoader: _loadOpeningStockCategoryItems,
       columns: [
         PurchaseRegisterColumn<OpeningStockModel>(
           label: 'No',
           valueBuilder: (row) => stringValue(row.toJson(), 'opening_no'),
+        ),
+        PurchaseRegisterColumn<OpeningStockModel>(
+          label: 'Product',
+          flex: 4,
+          valueBuilder: _openingStockProductSummary,
         ),
         PurchaseRegisterColumn<OpeningStockModel>(
           label: 'Date',
@@ -280,6 +796,8 @@ class StockIssueRegisterPage extends StatelessWidget {
       newRoute: '/inventory/stock-issues/new',
       newLabel: 'New Stock Issue',
       searchHint: 'Search issues',
+      statusValue: (row) => stringValue(row.toJson(), 'issue_status'),
+      dateValue: (row) => nullableStringValue(row.toJson(), 'issue_date'),
       columns: [
         PurchaseRegisterColumn<StockIssueModel>(
           label: 'No',
@@ -330,6 +848,8 @@ class InternalStockReceiptRegisterPage extends StatelessWidget {
       newRoute: '/inventory/internal-stock-receipts/new',
       newLabel: 'New Internal Receipt',
       searchHint: 'Search receipts',
+      statusValue: (row) => stringValue(row.toJson(), 'receipt_status'),
+      dateValue: (row) => nullableStringValue(row.toJson(), 'receipt_date'),
       columns: [
         PurchaseRegisterColumn<InternalStockReceiptModel>(
           label: 'No',
@@ -376,6 +896,8 @@ class StockTransferRegisterPage extends StatelessWidget {
       newRoute: '/inventory/stock-transfers/new',
       newLabel: 'New Stock Transfer',
       searchHint: 'Search transfers',
+      statusValue: (row) => stringValue(row.toJson(), 'transfer_status'),
+      dateValue: (row) => nullableStringValue(row.toJson(), 'transfer_date'),
       columns: [
         PurchaseRegisterColumn<StockTransferModel>(
           label: 'No',
@@ -432,6 +954,8 @@ class ProduceTrackingRegisterPage extends StatelessWidget {
       newRoute: '$routePrefix/new',
       newLabel: 'New Produce Tracking',
       searchHint: 'Search produce tracking',
+      statusValue: (row) => stringValue(row.toJson(), 'tracking_status'),
+      dateValue: (row) => nullableStringValue(row.toJson(), 'tracking_date'),
       columns: [
         PurchaseRegisterColumn<ProduceTrackingModel>(
           label: 'No',
@@ -492,6 +1016,8 @@ class StockDamageRegisterPage extends StatelessWidget {
       newRoute: '/inventory/stock-damage/new',
       newLabel: 'New Stock Damage',
       searchHint: 'Search damage entries',
+      statusValue: (row) => stringValue(row.toJson(), 'damage_status'),
+      dateValue: (row) => nullableStringValue(row.toJson(), 'damage_date'),
       columns: [
         PurchaseRegisterColumn<StockDamageEntryModel>(
           label: 'No',
@@ -543,6 +1069,8 @@ class InventoryAdjustmentRegisterPage extends StatelessWidget {
       newRoute: '/inventory/adjustments/new',
       newLabel: 'New Adjustment',
       searchHint: 'Search adjustments',
+      statusValue: (row) => stringValue(row.toJson(), 'adjustment_status'),
+      dateValue: (row) => nullableStringValue(row.toJson(), 'adjustment_date'),
       columns: [
         PurchaseRegisterColumn<InventoryAdjustmentModel>(
           label: 'No',
@@ -594,6 +1122,7 @@ class StockMovementRegisterPage extends StatelessWidget {
       newRoute: '/inventory/stock-movements/new',
       newLabel: 'New Stock Movement',
       searchHint: 'Search movements',
+      dateValue: (row) => nullableStringValue(row.toJson(), 'movement_date'),
       columns: [
         PurchaseRegisterColumn<StockMovementModel>(
           label: 'Date',
@@ -693,6 +1222,7 @@ class StockSerialRegisterPage extends StatelessWidget {
       newRoute: '/inventory/stock-serials/new',
       newLabel: 'New Stock Serial',
       searchHint: 'Search serials',
+      statusValue: (row) => stringValue(row.toJson(), 'status'),
       columns: [
         PurchaseRegisterColumn<StockSerialModel>(
           label: 'Serial',

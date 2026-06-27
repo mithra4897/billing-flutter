@@ -637,7 +637,14 @@ class ItemManagementController extends GetxController {
     }
 
     await loadData(selectId: selectedItem?.id);
-    categoryId = created.id;
+    categories = categories.toList(growable: true)
+      ..sort(
+        (a, b) =>
+            a.toString().toLowerCase().compareTo(b.toString().toLowerCase()),
+      );
+    categoryId = categories.any((category) => category.id == created.id)
+        ? created.id
+        : categoryId;
     update();
   }
 
