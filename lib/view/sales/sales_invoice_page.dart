@@ -179,7 +179,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       cgst: summary.cgst,
       sgst: summary.sgst,
       igst: summary.igst,
-      cess: 0,
+      cess: summary.cess,
       total: summary.total,
       currencyCode: currency,
       subtitle: isInterState == null
@@ -246,14 +246,7 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
       index,
     ) {
       final line = controller.lines[index];
-      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
-      final rate =
-          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
-      final discount =
-          Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
-      final amount = qty <= 0 || rate < 0
-          ? 0.0
-          : (qty * rate * (1 - discount.clamp(0, 100) / 100)).toDouble();
+      final amount = controller.taxBreakdownForLine(line)?.total ?? 0.0;
       final uomOptions = controller
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)

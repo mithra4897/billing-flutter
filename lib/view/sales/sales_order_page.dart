@@ -203,7 +203,7 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       index,
     ) {
       final line = controller.lines[index];
-      final amount = controller.taxBreakdownForLine(line).taxable;
+      final amount = controller.taxBreakdownForLine(line).total;
       final uomOptions = controller
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)

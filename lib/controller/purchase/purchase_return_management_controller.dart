@@ -612,9 +612,15 @@ class PurchaseReturnManagementController extends GetxController {
 
   void _syncAutoRoundOff() {
     final baseTotal = lines.fold<double>(0, (sum, line) {
-      final qty = Validators.parseControllerNumber(line.returnQtyController);
-      final rate = Validators.parseControllerNumber(line.rateController);
-      return sum + (qty * rate);
+      return sum +
+          computePurchaseLineTaxBreakdown(
+            qty: Validators.parseControllerNumber(line.returnQtyController),
+            rate: Validators.parseControllerNumber(line.rateController),
+            discountPercent: line.discountPercent ?? 0,
+            taxCode: null,
+            taxPercent: line.taxPercent,
+            taxType: line.taxType,
+          ).total;
     });
     Validators.syncAutoRoundOffController(
       roundOffController,

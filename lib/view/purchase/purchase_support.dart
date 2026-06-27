@@ -72,6 +72,7 @@ TaxCodeModel? purchaseTaxCodeById(List<TaxCodeModel> taxCodes, int? taxCodeId) {
 
 class PurchaseLineTaxBreakdown {
   const PurchaseLineTaxBreakdown({
+    required this.gross,
     required this.taxable,
     required this.cgst,
     required this.sgst,
@@ -80,6 +81,7 @@ class PurchaseLineTaxBreakdown {
     required this.total,
   });
 
+  final double gross;
   final double taxable;
   final double cgst;
   final double sgst;
@@ -90,6 +92,7 @@ class PurchaseLineTaxBreakdown {
 
 class PurchaseDocumentTaxSummary {
   const PurchaseDocumentTaxSummary({
+    required this.gross,
     required this.taxable,
     required this.cgst,
     required this.sgst,
@@ -98,6 +101,7 @@ class PurchaseDocumentTaxSummary {
     required this.total,
   });
 
+  final double gross;
   final double taxable;
   final double cgst;
   final double sgst;
@@ -151,9 +155,8 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
       if (useIgst) {
         igst = roundToDouble((taxable * resolvedTaxPercent) / 100, 2);
       } else {
-        final totalGst = roundToDouble((taxable * resolvedTaxPercent) / 100, 2);
-        cgst = roundToDouble(totalGst / 2, 2);
-        sgst = roundToDouble(totalGst - cgst, 2);
+        cgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
+        sgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
       }
       break;
   }
@@ -161,6 +164,7 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
   final cess = roundToDouble((taxable * cessRate) / 100, 2);
 
   return PurchaseLineTaxBreakdown(
+    gross: gross,
     taxable: taxable,
     cgst: cgst,
     sgst: sgst,
@@ -174,6 +178,7 @@ PurchaseDocumentTaxSummary summarizePurchaseLineTaxes(
   Iterable<PurchaseLineTaxBreakdown> lines, {
   double adjustment = 0,
 }) {
+  double gross = 0;
   double taxable = 0;
   double cgst = 0;
   double sgst = 0;
@@ -181,6 +186,7 @@ PurchaseDocumentTaxSummary summarizePurchaseLineTaxes(
   double cess = 0;
 
   for (final line in lines) {
+    gross += line.gross;
     taxable += line.taxable;
     cgst += line.cgst;
     sgst += line.sgst;
@@ -189,6 +195,7 @@ PurchaseDocumentTaxSummary summarizePurchaseLineTaxes(
   }
 
   return PurchaseDocumentTaxSummary(
+    gross: roundToDouble(gross, 2),
     taxable: roundToDouble(taxable, 2),
     cgst: roundToDouble(cgst, 2),
     sgst: roundToDouble(sgst, 2),

@@ -118,7 +118,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       index,
     ) {
       final line = controller.lines[index];
-      final amount = controller.taxBreakdownForLine(line).taxable;
+      final amount = controller.taxBreakdownForLine(line).total;
       final uomOptions = controller
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
@@ -240,7 +240,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         cgst: controller.orderTaxSummary().cgst,
         sgst: controller.orderTaxSummary().sgst,
         igst: controller.orderTaxSummary().igst,
-        cess: 0,
+        cess: controller.orderTaxSummary().cess,
         total:
             controller.orderTaxSummary().total +
             (controller.applyRoundOff

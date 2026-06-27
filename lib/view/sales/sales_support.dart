@@ -1079,6 +1079,7 @@ class SalesLineTaxBreakdown {
 
 class SalesDocumentTaxSummary {
   const SalesDocumentTaxSummary({
+    required this.gross,
     required this.taxable,
     required this.cgst,
     required this.sgst,
@@ -1087,6 +1088,7 @@ class SalesDocumentTaxSummary {
     required this.total,
   });
 
+  final double gross;
   final double taxable;
   final double cgst;
   final double sgst;
@@ -1158,6 +1160,7 @@ SalesDocumentTaxSummary summarizeSalesLineTaxes(
   Iterable<SalesLineTaxBreakdown> lines, {
   double adjustment = 0,
 }) {
+  double gross = 0;
   double taxable = 0;
   double cgst = 0;
   double sgst = 0;
@@ -1165,6 +1168,7 @@ SalesDocumentTaxSummary summarizeSalesLineTaxes(
   double cess = 0;
 
   for (final line in lines) {
+    gross += line.gross;
     taxable += line.taxable;
     cgst += line.cgst;
     sgst += line.sgst;
@@ -1173,6 +1177,7 @@ SalesDocumentTaxSummary summarizeSalesLineTaxes(
   }
 
   return SalesDocumentTaxSummary(
+    gross: gross,
     taxable: taxable,
     cgst: cgst,
     sgst: sgst,

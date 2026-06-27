@@ -2280,49 +2280,28 @@ class SalesInvoiceManagementController extends GetxController {
     return serial?['serial_no']?.toString();
   }
 
-  InvoiceTaxSummary invoiceTaxSummary() {
-    double taxable = 0;
-    double cgst = 0;
-    double sgst = 0;
-    double igst = 0;
-    final isInterState = isInterStateForSummary();
-
-    for (final line in lines) {
-      final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
-      final rate =
-          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
-      final discount =
-          Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
-      if (qty <= 0 || rate < 0) {
-        continue;
-      }
-
-      final gross = qty * rate;
-      final clampedDiscount = discount.clamp(0, 100);
-      final taxableAmount = gross * (1 - (clampedDiscount / 100));
-      taxable += taxableAmount;
-
-      final taxCode = taxCodeById(line.taxCodeId);
-      final taxRate = taxCode?.taxRate ?? 0;
-      if (taxRate <= 0) {
-        continue;
-      }
-
-      final normalizedTaxType =
-          ((taxCode?.taxType ?? taxCode?.toJson()['tax_application'])
-              ?.toString()
-              .trim()
-              .toLowerCase()) ??
-          '';
-      final shouldUseIgst = isInterState ?? normalizedTaxType.contains('igst');
-      if (shouldUseIgst) {
-        igst += taxableAmount * taxRate / 100;
-      } else {
-        final halfTax = taxableAmount * taxRate / 200;
-        cgst += halfTax;
-        sgst += halfTax;
-      }
+  SalesLineTaxBreakdown? taxBreakdownForLine(InvoiceLineDraft line) {
+    final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
+    final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+    final discount =
+        Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
+    if (qty <= 0 || rate < 0) {
+      return null;
     }
+
+    return computeSalesLineTaxBreakdown(
+      qty: qty,
+      rate: rate,
+      discountPercent: discount,
+      taxCode: taxCodeById(line.taxCodeId),
+      isInterState: isInterStateForSummary(),
+    );
+  }
+
+  InvoiceTaxSummary invoiceTaxSummary() {
+    final base = summarizeSalesLineTaxes(
+      lines.map(taxBreakdownForLine).whereType<SalesLineTaxBreakdown>(),
+    );
 
     final roundOff = applyRoundOff
         ? (Validators.parseFlexibleNumber(roundOffController.text) ?? 0.0)
@@ -2330,11 +2309,13 @@ class SalesInvoiceManagementController extends GetxController {
     final adjustment =
         Validators.parseFlexibleNumber(adjustmentAmountController.text) ?? 0;
     return InvoiceTaxSummary(
-      taxable: taxable,
-      cgst: cgst,
-      sgst: sgst,
-      igst: igst,
-      total: taxable + cgst + sgst + igst + roundOff + adjustment,
+      gross: roundToDouble(base.gross, 2),
+      taxable: roundToDouble(base.taxable, 2),
+      cgst: roundToDouble(base.cgst, 2),
+      sgst: roundToDouble(base.sgst, 2),
+      igst: roundToDouble(base.igst, 2),
+      cess: roundToDouble(base.cess, 2),
+      total: roundToDouble(base.total + roundOff + adjustment, 2),
     );
   }
 
@@ -2386,20 +2367,15 @@ class SalesInvoiceManagementController extends GetxController {
     final printLines = lines
         .where((line) => line.itemId != null && line.itemId! > 0)
         .map((line) {
+          final breakdown = taxBreakdownForLine(line);
+          if (breakdown == null) {
+            return null;
+          }
           final qty =
               Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
           final rate =
               Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
-          final discount =
-              Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
           final taxCode = taxCodeById(line.taxCodeId);
-          final breakdown = computeSalesLineTaxBreakdown(
-            qty: qty,
-            rate: rate,
-            discountPercent: discount,
-            taxCode: taxCode,
-            isInterState: isInterStateForSummary(),
-          );
           accumulatePrintTemplateGstBreakup(
             gstBreakupGroups,
             taxCode: taxCode,
@@ -2425,11 +2401,12 @@ class SalesInvoiceManagementController extends GetxController {
             qty: qty,
             rate: rate,
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
-            lineTotal: roundToDouble(breakdown.taxable, 2),
+            lineTotal: roundToDouble(breakdown.total, 2),
           );
         })
+        .whereType<DocumentPrintLineModel>()
         .toList(growable: false);
-    final taxAmount = summary.cgst + summary.sgst + summary.igst;
+    final taxAmount = summary.cgst + summary.sgst + summary.igst + summary.cess;
 
     return DocumentPrintDataModel(
       companyName: companyNameById(companies, companyId),
@@ -2452,7 +2429,7 @@ class SalesInvoiceManagementController extends GetxController {
       partyGstin: resolveCustomerPrintGstin(customerData),
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
-      subtotal: roundToDouble(summary.taxable, 2),
+      subtotal: roundToDouble(summary.gross, 2),
       taxAmount: roundToDouble(taxAmount, 2),
       totalAmount: roundToDouble(summary.total, 2),
       amountInWords: printTemplateAmountInWords(
@@ -2494,7 +2471,7 @@ class SalesInvoiceManagementController extends GetxController {
       cgst: summary.cgst,
       sgst: summary.sgst,
       igst: summary.igst,
-      cess: 0,
+      cess: summary.cess,
       total: summary.total,
       currencyCode: currency,
       subtitle: isInterState == null
@@ -2758,17 +2735,21 @@ class SalesInvoiceManagementController extends GetxController {
 
 class InvoiceTaxSummary {
   const InvoiceTaxSummary({
+    required this.gross,
     required this.taxable,
     required this.cgst,
     required this.sgst,
     required this.igst,
+    required this.cess,
     required this.total,
   });
 
+  final double gross;
   final double taxable;
   final double cgst;
   final double sgst;
   final double igst;
+  final double cess;
   final double total;
 }
 

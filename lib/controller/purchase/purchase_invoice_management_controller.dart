@@ -563,7 +563,7 @@ class PurchaseInvoiceManagementController extends GetxController {
           );
           final taxPercent = (line.taxPercent ?? taxCode?.taxRate ?? 0)
               .toDouble();
-          subtotal += breakdown.taxable;
+          subtotal += breakdown.gross;
           taxAmount += breakdown.total - breakdown.taxable;
           accumulatePrintTemplateGstBreakup(
             gstBreakupGroups,
@@ -573,6 +573,7 @@ class PurchaseInvoiceManagementController extends GetxController {
             cgst: breakdown.cgst,
             sgst: breakdown.sgst,
             igst: breakdown.igst,
+            cess: breakdown.cess,
           );
           final item = itemById(line.itemId);
           return DocumentPrintLineModel(
@@ -586,7 +587,7 @@ class PurchaseInvoiceManagementController extends GetxController {
             taxAmount: double.parse(
               (breakdown.total - breakdown.taxable).toStringAsFixed(2),
             ),
-            lineTotal: double.parse(breakdown.taxable.toStringAsFixed(2)),
+            lineTotal: double.parse(breakdown.total.toStringAsFixed(2)),
           );
         })
         .toList(growable: false);
@@ -624,9 +625,10 @@ class PurchaseInvoiceManagementController extends GetxController {
       currencyCode: 'INR',
       lines: printLines,
       gstBreakup: finalizePrintTemplateGstBreakup(gstBreakupGroups),
-      extraData: documentStatus == 'draft'
-          ? const <String, dynamic>{'watermark_text': 'DRAFT'}
-          : const <String, dynamic>{},
+      extraData: <String, dynamic>{
+        if (documentStatus == 'draft') 'watermark_text': 'DRAFT',
+        'round_off_amount': _roundOffAmountForSave(),
+      },
     );
   }
 
@@ -709,6 +711,7 @@ class PurchaseInvoiceManagementController extends GetxController {
     final base = _baseInvoiceTaxSummary();
     return summarizePurchaseLineTaxes([
       PurchaseLineTaxBreakdown(
+        gross: base.gross,
         taxable: base.taxable,
         cgst: base.cgst,
         sgst: base.sgst,
@@ -743,7 +746,7 @@ class PurchaseInvoiceManagementController extends GetxController {
   }
 
   String _roundOffMethodForSave() {
-    return applyRoundOff ? 'bill' : 'manual';
+    return 'manual';
   }
 
   double _roundOffPrecisionForSave() {

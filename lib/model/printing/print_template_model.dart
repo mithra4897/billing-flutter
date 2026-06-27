@@ -454,7 +454,7 @@ class DocumentPrintTemplate {
             width: 190,
             height: 72,
             text:
-                'Subtotal : {{subtotal}}\nTax      : {{tax_amount}}\nTotal    : \u20B9{{total_amount}}',
+                'Subtotal  : {{subtotal}}\nTax       : {{tax_amount}}\nRound Off : {{round_off_amount}}\nTotal     : \u20B9{{total_amount}}',
             fontSize: 10,
             bold: true,
             multiline: true,

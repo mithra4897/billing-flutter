@@ -744,6 +744,7 @@ class PurchaseOrderManagementController extends GetxController {
             cgst: breakdown.cgst,
             sgst: breakdown.sgst,
             igst: breakdown.igst,
+            cess: breakdown.cess,
           );
           return DocumentPrintLineModel(
             lineNo: lines.indexOf(line) + 1,
@@ -756,7 +757,7 @@ class PurchaseOrderManagementController extends GetxController {
             qty: Validators.parseFlexibleNumber(line.qtyController.text) ?? 0,
             rate: Validators.parseFlexibleNumber(line.rateController.text) ?? 0,
             taxAmount: roundToDouble(breakdown.total - breakdown.taxable, 2),
-            lineTotal: roundToDouble(breakdown.taxable, 2),
+            lineTotal: roundToDouble(breakdown.total, 2),
           );
         })
         .toList(growable: false);
@@ -787,7 +788,7 @@ class PurchaseOrderManagementController extends GetxController {
       ),
       notes: notesController.text.trim(),
       termsConditions: termsController.text.trim(),
-      subtotal: roundToDouble(summary.taxable, 2),
+      subtotal: roundToDouble(summary.gross, 2),
       taxAmount: roundToDouble(totalTax, 2),
       totalAmount: roundToDouble(summary.total, 2),
       currencyCode: 'INR',

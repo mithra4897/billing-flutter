@@ -1010,6 +1010,7 @@ class PurchaseReceiptManagementController extends GetxController {
         : 0;
     final base = summarizePurchaseLineTaxes(lines.map(taxBreakdownForLine));
     return PurchaseDocumentTaxSummary(
+      gross: base.gross,
       taxable: base.taxable,
       cgst: base.cgst,
       sgst: base.sgst,
@@ -1020,7 +1021,7 @@ class PurchaseReceiptManagementController extends GetxController {
   }
 
   double receiptSubTotal() {
-    return receiptTaxSummary().taxable;
+    return receiptTaxSummary().gross;
   }
 
   double receiptRoundOff() {

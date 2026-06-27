@@ -118,7 +118,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
       index,
     ) {
       final line = controller.lines[index];
-      final amount = controller.taxBreakdownForLine(line).taxable;
+      final amount = controller.taxBreakdownForLine(line).total;
       final uomOptions = controller
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
@@ -284,7 +284,7 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         cgst: taxSummary.cgst,
         sgst: taxSummary.sgst,
         igst: taxSummary.igst,
-        cess: 0,
+        cess: taxSummary.cess,
         total: summaryTotal,
         currencyCode: 'INR',
         subtitle: controller.isSelectedInvoiceReadOnly
