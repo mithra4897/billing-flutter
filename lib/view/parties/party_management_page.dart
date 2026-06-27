@@ -156,6 +156,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   bool _partyCodeManuallyEdited = false;
   bool _suppressPartyCodeListener = false;
+  bool _shippingSameAsBilling = false;
 
   @override
   void initState() {
@@ -633,10 +634,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     };
     try {
       final response = await _partiesService.parties(
-        filters: <String, dynamic>{
-          ...sortConfig,
-          'party_type_id': partyTypeId,
-        },
+        filters: <String, dynamic>{...sortConfig, 'party_type_id': partyTypeId},
       );
       final remoteParties = response.data ?? const <PartyModel>[];
       if (remoteParties.isNotEmpty) {
@@ -822,6 +820,7 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   void _resetAddressForm() {
     _controller.resetAddressDraft();
+    _shippingSameAsBilling = false;
     _addressLine1Controller.clear();
     _addressLine2Controller.clear();
     _addressAreaController.clear();
@@ -835,6 +834,14 @@ class _PartyManagementPageState extends State<PartyManagementPage>
 
   void _selectAddress(PartyAddressModel address) {
     _controller.selectAddress(address);
+    final selectedAddressType = (address.addressType ?? '')
+        .trim()
+        .toLowerCase();
+    _shippingSameAsBilling =
+        (selectedAddressType == 'billing' &&
+            _billingAndShippingAddressesMatch(address)) ||
+        (selectedAddressType == 'shipping' &&
+            _shippingAndBillingAddressesMatch(address));
     _addressLine1Controller.text = address.addressLine1 ?? '';
     _addressLine2Controller.text = address.addressLine2 ?? '';
     _addressAreaController.text = address.area ?? '';
@@ -846,6 +853,97 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _addressPostalCodeController.text = address.postalCode ?? '';
   }
 
+  PartyAddressModel _addressDraftModel({
+    required int partyId,
+    String? addressType,
+    int? id,
+  }) {
+    return PartyAddressModel(
+      id: id,
+      partyId: partyId,
+      addressType: addressType ?? _addressType,
+      addressLine1: nullIfEmpty(_addressLine1Controller.text),
+      addressLine2: nullIfEmpty(_addressLine2Controller.text),
+      area: nullIfEmpty(_addressAreaController.text),
+      city: nullIfEmpty(_addressCityController.text),
+      district: nullIfEmpty(_addressDistrictController.text),
+      stateCode: nullIfEmpty(_addressStateCodeController.text),
+      stateName: nullIfEmpty(_addressStateNameController.text),
+      countryCode: nullIfEmpty(_addressCountryCodeController.text),
+      postalCode: nullIfEmpty(_addressPostalCodeController.text),
+      isDefault: _addressDefault,
+      isActive: _addressActive,
+    );
+  }
+
+  PartyAddressModel? _matchingShippingAddress({int? excludeId}) {
+    PartyAddressModel? fallback;
+    for (final address in _addresses) {
+      if ((address.addressType ?? '').trim().toLowerCase() != 'shipping') {
+        continue;
+      }
+      if (excludeId != null && address.id == excludeId) {
+        continue;
+      }
+      if (address.isDefault) {
+        return address;
+      }
+      fallback ??= address;
+    }
+    return fallback;
+  }
+
+  PartyAddressModel? _matchingBillingAddress({int? excludeId}) {
+    PartyAddressModel? fallback;
+    for (final address in _addresses) {
+      if ((address.addressType ?? '').trim().toLowerCase() != 'billing') {
+        continue;
+      }
+      if (excludeId != null && address.id == excludeId) {
+        continue;
+      }
+      if (address.isDefault) {
+        return address;
+      }
+      fallback ??= address;
+    }
+    return fallback;
+  }
+
+  bool _sameAddressFields(PartyAddressModel left, PartyAddressModel right) {
+    String normalize(String? value) => value?.trim() ?? '';
+
+    return normalize(left.addressLine1) == normalize(right.addressLine1) &&
+        normalize(left.addressLine2) == normalize(right.addressLine2) &&
+        normalize(left.area) == normalize(right.area) &&
+        normalize(left.city) == normalize(right.city) &&
+        normalize(left.district) == normalize(right.district) &&
+        normalize(left.stateCode) == normalize(right.stateCode) &&
+        normalize(left.stateName) == normalize(right.stateName) &&
+        normalize(left.countryCode) == normalize(right.countryCode) &&
+        normalize(left.postalCode) == normalize(right.postalCode);
+  }
+
+  bool _billingAndShippingAddressesMatch(PartyAddressModel billingAddress) {
+    final shippingAddress = _matchingShippingAddress(
+      excludeId: billingAddress.id,
+    );
+    if (shippingAddress == null) {
+      return false;
+    }
+    return _sameAddressFields(billingAddress, shippingAddress);
+  }
+
+  bool _shippingAndBillingAddressesMatch(PartyAddressModel shippingAddress) {
+    final billingAddress = _matchingBillingAddress(
+      excludeId: shippingAddress.id,
+    );
+    if (billingAddress == null) {
+      return false;
+    }
+    return _sameAddressFields(shippingAddress, billingAddress);
+  }
+
   Future<void> _saveAddress() async {
     final partyId = _selectedParty?.id;
     if (partyId == null || !_addressFormKey.currentState!.validate()) {
@@ -855,21 +953,9 @@ class _PartyManagementPageState extends State<PartyManagementPage>
     _controller.beginDetailSave();
 
     try {
-      final model = PartyAddressModel(
-        id: _selectedAddress?.id,
+      final model = _addressDraftModel(
         partyId: partyId,
-        addressType: _addressType,
-        addressLine1: nullIfEmpty(_addressLine1Controller.text),
-        addressLine2: nullIfEmpty(_addressLine2Controller.text),
-        area: nullIfEmpty(_addressAreaController.text),
-        city: nullIfEmpty(_addressCityController.text),
-        district: nullIfEmpty(_addressDistrictController.text),
-        stateCode: nullIfEmpty(_addressStateCodeController.text),
-        stateName: nullIfEmpty(_addressStateNameController.text),
-        countryCode: nullIfEmpty(_addressCountryCodeController.text),
-        postalCode: nullIfEmpty(_addressPostalCodeController.text),
-        isDefault: _addressDefault,
-        isActive: _addressActive,
+        id: _selectedAddress?.id,
       );
 
       final response = _selectedAddress == null
@@ -879,6 +965,45 @@ class _PartyManagementPageState extends State<PartyManagementPage>
               _selectedAddress!.id!,
               model,
             );
+
+      final currentAddressType = _addressType.trim().toLowerCase();
+      if (_shippingSameAsBilling && currentAddressType == 'billing') {
+        final shippingAddress = _matchingShippingAddress(
+          excludeId: _selectedAddress?.id,
+        );
+        final shippingModel = _addressDraftModel(
+          partyId: partyId,
+          id: shippingAddress?.id,
+          addressType: 'shipping',
+        );
+        if (shippingAddress == null) {
+          await _partiesService.createPartyAddress(partyId, shippingModel);
+        } else {
+          await _partiesService.updatePartyAddress(
+            partyId,
+            shippingAddress.id!,
+            shippingModel,
+          );
+        }
+      } else if (_shippingSameAsBilling && currentAddressType == 'shipping') {
+        final billingAddress = _matchingBillingAddress(
+          excludeId: _selectedAddress?.id,
+        );
+        final billingModel = _addressDraftModel(
+          partyId: partyId,
+          id: billingAddress?.id,
+          addressType: 'billing',
+        );
+        if (billingAddress == null) {
+          await _partiesService.createPartyAddress(partyId, billingModel);
+        } else {
+          await _partiesService.updatePartyAddress(
+            partyId,
+            billingAddress.id!,
+            billingModel,
+          );
+        }
+      }
 
       if (!mounted) {
         return;
@@ -1930,6 +2055,18 @@ class _PartyManagementPageState extends State<PartyManagementPage>
           ],
         ),
         const SizedBox(height: 16),
+        if (_addressType == 'billing' || _addressType == 'shipping') ...[
+          AppSwitchTile(
+            label: 'Billing and shipping address are same',
+            value: _shippingSameAsBilling,
+            onChanged: (value) {
+              setState(() {
+                _shippingSameAsBilling = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+        ],
         Wrap(
           spacing: 16,
           runSpacing: 12,
