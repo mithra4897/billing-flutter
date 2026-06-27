@@ -335,6 +335,20 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     'amount': 126,
     'action': 76,
   };
+  static const Map<ErpLineItemTableColumn, double> _columnGrowWeights =
+      <ErpLineItemTableColumn, double>{
+        ErpLineItemTableColumn.item: 4.5,
+        ErpLineItemTableColumn.source: 2.2,
+        ErpLineItemTableColumn.warehouse: 1.8,
+        ErpLineItemTableColumn.uom: 1.0,
+        ErpLineItemTableColumn.qty: 1.2,
+        ErpLineItemTableColumn.rate: 1.2,
+        ErpLineItemTableColumn.discount: 1.1,
+        ErpLineItemTableColumn.taxCode: 1.3,
+        ErpLineItemTableColumn.description: 2.4,
+        ErpLineItemTableColumn.remarks: 2.0,
+        ErpLineItemTableColumn.amount: 1.4,
+      };
 
   final ScrollController _horizontalController = ScrollController();
   int? _selectedIndex;
@@ -362,6 +376,32 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     }
     return sum + (column as ErpLineItemCustomColumn).width;
   });
+
+  double _extraWidthPerWeight(double availableWidth) {
+    final extraWidth = availableWidth - _tableMinWidth;
+    if (extraWidth <= 0) {
+      return 0;
+    }
+    final totalWeight = _activeColumns.fold<double>(0, (sum, column) {
+      return sum + (_columnGrowWeights[column] ?? 0);
+    });
+    if (totalWeight <= 0) {
+      return 0;
+    }
+    return extraWidth / totalWeight;
+  }
+
+  double _resolvedColumnWidth(
+    ErpLineItemTableColumn column,
+    double extraWidthPerWeight,
+  ) {
+    final baseWidth = _columnWidths[_columnKey(column)] ?? 0;
+    final growWeight = _columnGrowWeights[column] ?? 0;
+    if (growWeight <= 0 || extraWidthPerWeight <= 0) {
+      return baseWidth;
+    }
+    return baseWidth + (growWeight * extraWidthPerWeight);
+  }
 
   @override
   void dispose() {
@@ -599,42 +639,58 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                       ],
                     ),
                   ),
-                  Scrollbar(
-                    controller: _horizontalController,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      controller: _horizontalController,
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minWidth: _tableMinWidth),
-                        child: Column(
-                          children: [
-                            DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: appTheme.tableHeaderBackground,
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: appTheme.tableBorder,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final extraWidthPerWeight = _extraWidthPerWeight(
+                        constraints.maxWidth,
+                      );
+                      return Scrollbar(
+                        controller: _horizontalController,
+                        thumbVisibility: true,
+                        child: SingleChildScrollView(
+                          controller: _horizontalController,
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth > _tableMinWidth
+                                  ? constraints.maxWidth
+                                  : _tableMinWidth,
+                            ),
+                            child: Column(
+                              children: [
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: appTheme.tableHeaderBackground,
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: appTheme.tableBorder,
+                                      ),
+                                    ),
+                                  ),
+                                  child: _buildHeaderRow(
+                                    theme,
+                                    appTheme,
+                                    extraWidthPerWeight,
                                   ),
                                 ),
-                              ),
-                              child: _buildHeaderRow(theme, appTheme),
+                                for (
+                                  var index = 0;
+                                  index < widget.lines.length;
+                                  index++
+                                )
+                                  _buildDataRow(
+                                    context,
+                                    index,
+                                    widget.lines[index],
+                                    appTheme,
+                                    extraWidthPerWeight,
+                                  ),
+                              ],
                             ),
-                            for (
-                              var index = 0;
-                              index < widget.lines.length;
-                              index++
-                            )
-                              _buildDataRow(
-                                context,
-                                index,
-                                widget.lines[index],
-                                appTheme,
-                              ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -649,7 +705,11 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     );
   }
 
-  Widget _buildHeaderRow(ThemeData theme, AppThemeExtension appTheme) {
+  Widget _buildHeaderRow(
+    ThemeData theme,
+    AppThemeExtension appTheme,
+    double extraWidthPerWeight,
+  ) {
     final style = _tableHeaderStyle(theme, appTheme);
     final columns = _orderedColumns;
     return Row(
@@ -661,7 +721,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
               ? _columnLabel(column)
               : (column as ErpLineItemCustomColumn).label,
           column is ErpLineItemTableColumn
-              ? _columnWidths[_columnKey(column)]!
+              ? _resolvedColumnWidth(column, extraWidthPerWeight)
               : (column as ErpLineItemCustomColumn).width,
           style,
           appTheme,
@@ -676,6 +736,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     int index,
     ErpLineItemTableRow row,
     AppThemeExtension appTheme,
+    double extraWidthPerWeight,
   ) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
@@ -727,6 +788,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
                   tableCellStyle: tableCellStyle,
                   selected: selected,
                   column: column,
+                  extraWidthPerWeight: extraWidthPerWeight,
                   showRightBorder: columnIndex != columns.length - 1,
                 );
               }
@@ -751,13 +813,15 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     required TextStyle tableCellStyle,
     required bool selected,
     required ErpLineItemTableColumn column,
+    required double extraWidthPerWeight,
     required bool showRightBorder,
   }) {
     final theme = Theme.of(context);
+    final columnWidth = _resolvedColumnWidth(column, extraWidthPerWeight);
     final overrideCell = row.cellWidgets[column];
     if (overrideCell != null) {
       return _dataCell(
-        width: _columnWidths[_columnKey(column)]!,
+        width: columnWidth,
         borderColor: appTheme.tableBorder,
         showRightBorder: showRightBorder,
         child: overrideCell,
@@ -766,7 +830,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     switch (column) {
       case ErpLineItemTableColumn.no:
         return _dataCell(
-          width: _columnWidths['no']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: Padding(
@@ -789,14 +853,14 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.source:
         return _dataCell(
-          width: _columnWidths['source']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: _buildSourceCell(row),
         );
       case ErpLineItemTableColumn.item:
         return _dataCell(
-          width: _columnWidths['item']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: _compactDropdown<int>(
@@ -822,7 +886,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.uom:
         return _dataCell(
-          width: _columnWidths['uom']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: _compactDropdown<int>(
@@ -845,7 +909,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.warehouse:
         return _dataCell(
-          width: _columnWidths['warehouse']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: _compactDropdown<int>(
@@ -867,7 +931,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.qty:
         return _dataCell(
-          width: _columnWidths['qty']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: row.qtyController == null
@@ -887,7 +951,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.rate:
         return _dataCell(
-          width: _columnWidths['rate']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: row.rateController == null
@@ -907,7 +971,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.discount:
         return _dataCell(
-          width: _columnWidths['discount']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: row.discountController == null
@@ -927,7 +991,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.taxCode:
         return _dataCell(
-          width: _columnWidths['tax']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: _compactDropdown<int>(
@@ -949,7 +1013,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.description:
         return _dataCell(
-          width: _columnWidths['description']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: row.descriptionController == null
@@ -965,7 +1029,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.remarks:
         return _dataCell(
-          width: _columnWidths['remarks']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: row.remarksController == null
@@ -981,7 +1045,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.amount:
         return _dataCell(
-          width: _columnWidths['amount']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: Padding(
@@ -1006,7 +1070,7 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
         );
       case ErpLineItemTableColumn.action:
         return _dataCell(
-          width: _columnWidths['action']!,
+          width: columnWidth,
           borderColor: appTheme.tableBorder,
           showRightBorder: showRightBorder,
           child: Padding(
@@ -1109,6 +1173,11 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
     final theme = Theme.of(context);
     final appTheme = theme.extension<AppThemeExtension>()!;
     final tableCellStyle = _tableCellStyle(theme, appTheme);
+    final compactErrorStyle = theme.textTheme.bodySmall?.copyWith(
+      fontSize: 0,
+      height: 0.01,
+      color: Colors.transparent,
+    );
     return Padding(
       padding: const EdgeInsets.all(AppUiConstants.tableCompactFieldInset),
       child: SizedBox(
@@ -1130,6 +1199,8 @@ class _ErpLineItemTableState extends State<ErpLineItemTable> {
           decoration: InputDecoration(
             isDense: true,
             hintText: hintText,
+            errorStyle: compactErrorStyle,
+            errorMaxLines: 1,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppUiConstants.tableCellPaddingSm,
               vertical: AppUiConstants.tableCellPaddingXs,
