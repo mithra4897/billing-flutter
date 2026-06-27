@@ -347,7 +347,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
-        ErpLineItemTableColumn.description,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },
@@ -453,7 +452,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         ErpLineItemTableColumn.item,
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,
-        ErpLineItemTableColumn.description,
         ErpLineItemTableColumn.action,
       },
       customColumns: const <ErpLineItemCustomColumn>[

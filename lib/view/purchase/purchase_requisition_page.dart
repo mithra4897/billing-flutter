@@ -207,7 +207,6 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
         ErpLineItemTableColumn.warehouse,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
-        ErpLineItemTableColumn.description,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },

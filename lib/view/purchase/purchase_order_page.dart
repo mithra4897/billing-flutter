@@ -227,7 +227,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ErpLineItemTableColumn.rate,
         ErpLineItemTableColumn.discount,
         ErpLineItemTableColumn.taxCode,
-        ErpLineItemTableColumn.description,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },

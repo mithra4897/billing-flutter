@@ -173,10 +173,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
       if (controller.canEdit && uomOptions.length == 1) {
@@ -256,6 +254,18 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       onDeleteLine: controller.canEdit ? controller.removeLine : null,
       addButtonLabel: 'Add Line',
       sourceColumnLabel: 'Quotation line / Source line',
+      visibleColumns: const <ErpLineItemTableColumn>{
+        ErpLineItemTableColumn.no,
+        ErpLineItemTableColumn.source,
+        ErpLineItemTableColumn.item,
+        ErpLineItemTableColumn.uom,
+        ErpLineItemTableColumn.qty,
+        ErpLineItemTableColumn.rate,
+        ErpLineItemTableColumn.discount,
+        ErpLineItemTableColumn.taxCode,
+        ErpLineItemTableColumn.amount,
+        ErpLineItemTableColumn.action,
+      },
       footer: _buildTaxSummaryCard(controller),
       enabled: controller.canEdit,
     );
@@ -438,9 +448,7 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
               id: SalesQuotationManagementController.lineItemsSectionId,
               builder: (controller) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildLineItemTable(controller),
-                ],
+                children: [_buildLineItemTable(controller)],
               ),
             ),
             const SizedBox(height: AppUiConstants.spacingMd),

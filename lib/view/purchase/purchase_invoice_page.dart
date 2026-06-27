@@ -245,16 +245,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
               ),
             ),
           ),
-          ErpLineItemTableColumn.description: ErpLineItemTextCell(
-            key: ValueKey('purchase-invoice-description-$index'),
-            initialValue: line.description ?? '',
-            hintText: 'Description',
-            maxLines: 2,
-            onChanged: (value) => controller.updateLine(
-              index,
-              line.copyWith(description: nullIfEmpty(value)),
-            ),
-          ),
         },
       );
     });
@@ -281,7 +271,6 @@ class _PurchaseInvoicePageState extends State<PurchaseInvoicePage> {
         ErpLineItemTableColumn.rate,
         ErpLineItemTableColumn.discount,
         ErpLineItemTableColumn.taxCode,
-        ErpLineItemTableColumn.description,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },
