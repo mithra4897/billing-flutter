@@ -514,6 +514,9 @@ class PurchaseInvoiceManagementController extends GetxController {
         supplierGstDetailsById[supplierId] =
             (responses[3] as PaginatedResponse<PartyGstDetailModel>).data ??
             party.gstDetails;
+        if (supplierPartyId == supplierId) {
+          update();
+        }
       }
     } catch (_) {}
   }
