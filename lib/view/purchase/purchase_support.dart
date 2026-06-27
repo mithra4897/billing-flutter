@@ -128,7 +128,13 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
           .trim()
           .toLowerCase();
   final cessRate = (taxCode?.cessRate ?? 0).toDouble();
-  final useIgst = isInterState ?? resolvedTaxType.contains('igst');
+  final explicitUseIgst = switch (resolvedTaxType) {
+    'igst' || 'inter' || 'inter_state' || 'interstate' => true,
+    'cgst_sgst' || 'intra' || 'intra_state' || 'intrastate' => false,
+    _ => null,
+  };
+  final useIgst =
+      explicitUseIgst ?? isInterState ?? resolvedTaxType.contains('igst');
 
   var cgst = 0.0;
   var sgst = 0.0;
@@ -145,8 +151,9 @@ PurchaseLineTaxBreakdown computePurchaseLineTaxBreakdown({
       if (useIgst) {
         igst = roundToDouble((taxable * resolvedTaxPercent) / 100, 2);
       } else {
-        cgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
-        sgst = roundToDouble((taxable * resolvedTaxPercent) / 200, 2);
+        final totalGst = roundToDouble((taxable * resolvedTaxPercent) / 100, 2);
+        cgst = roundToDouble(totalGst / 2, 2);
+        sgst = roundToDouble(totalGst - cgst, 2);
       }
       break;
   }

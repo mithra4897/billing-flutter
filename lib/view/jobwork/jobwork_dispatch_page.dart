@@ -359,80 +359,207 @@ class _JobworkDispatchEditor extends StatelessWidget {
                   ErpLineItemTableColumn.action,
                 },
                 customColumns: const <ErpLineItemCustomColumn>[
-                  ErpLineItemCustomColumn(id: 'order_material', label: 'Order Material', width: 180, insertAfter: ErpLineItemTableColumn.no),
-                  ErpLineItemCustomColumn(id: 'batch', label: 'Batch', width: 140, insertAfter: ErpLineItemTableColumn.uom),
-                  ErpLineItemCustomColumn(id: 'serial', label: 'Serial', width: 140, insertAfter: ErpLineItemTableColumn.uom),
-                  ErpLineItemCustomColumn(id: 'qty', label: 'Qty', width: 110, insertAfter: ErpLineItemTableColumn.uom),
-                  ErpLineItemCustomColumn(id: 'unit_cost', label: 'Unit Cost', width: 110, insertAfter: ErpLineItemTableColumn.uom),
-                  ErpLineItemCustomColumn(id: 'remarks', label: 'Remarks', width: 160, insertAfter: ErpLineItemTableColumn.uom),
+                  ErpLineItemCustomColumn(
+                    id: 'order_material',
+                    label: 'Order Material',
+                    width: 180,
+                    insertAfter: ErpLineItemTableColumn.no,
+                  ),
+                  ErpLineItemCustomColumn(
+                    id: 'batch',
+                    label: 'Batch',
+                    width: 140,
+                    insertAfter: ErpLineItemTableColumn.uom,
+                  ),
+                  ErpLineItemCustomColumn(
+                    id: 'serial',
+                    label: 'Serial',
+                    width: 140,
+                    insertAfter: ErpLineItemTableColumn.uom,
+                  ),
+                  ErpLineItemCustomColumn(
+                    id: 'qty',
+                    label: 'Qty',
+                    width: 110,
+                    insertAfter: ErpLineItemTableColumn.uom,
+                  ),
+                  ErpLineItemCustomColumn(
+                    id: 'unit_cost',
+                    label: 'Unit Cost',
+                    width: 110,
+                    insertAfter: ErpLineItemTableColumn.uom,
+                  ),
                 ],
-                lines: List<ErpLineItemTableRow>.generate(vm.lineDrafts.length, (index) {
+                lines: List<ErpLineItemTableRow>.generate(vm.lineDrafts.length, (
+                  index,
+                ) {
                   final line = vm.lineDrafts[index];
-                  final batchOptions = vm.batchOptions(line.itemId, line.warehouseId ?? vm.warehouseId);
-                  final serialOptions = vm.serialOptions(line.itemId, line.warehouseId ?? vm.warehouseId, line.batchId);
+                  final batchOptions = vm.batchOptions(
+                    line.itemId,
+                    line.warehouseId ?? vm.warehouseId,
+                  );
+                  final serialOptions = vm.serialOptions(
+                    line.itemId,
+                    line.warehouseId ?? vm.warehouseId,
+                    line.batchId,
+                  );
                   final matItems = <AppDropdownItem<int?>>[
                     const AppDropdownItem<int?>(value: null, label: '-'),
-                    ...vm.orderMaterialOptions.where((m) => m.id != null).map((m) => AppDropdownItem<int?>(value: m.id, label: 'Mat line ${m.lineNo} · planned ${m.plannedQty}')),
+                    ...vm.orderMaterialOptions
+                        .where((m) => m.id != null)
+                        .map(
+                          (m) => AppDropdownItem<int?>(
+                            value: m.id,
+                            label:
+                                'Mat line ${m.lineNo} · planned ${m.plannedQty}',
+                          ),
+                        ),
                   ];
                   return ErpLineItemTableRow(
                     rowKey: line,
                     itemId: line.itemId,
-                    itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
-                    itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
-                    onItemChanged: editLines ? (v) => vm.setLineItemId(index, v) : null,
-                    itemValidator: (_) => line.itemId == null ? 'Item is required' : null,
+                    itemSelection: vm.items
+                        .where((x) => x.id == line.itemId)
+                        .map(
+                          (x) => ErpLinkFieldOption<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                            subtitle: x.itemCode,
+                          ),
+                        )
+                        .firstOrNull,
+                    itemOptions: vm.items
+                        .where((x) => x.id != null)
+                        .map(
+                          (x) => ErpLinkFieldOption<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                            subtitle: x.itemCode,
+                          ),
+                        )
+                        .toList(growable: false),
+                    onItemChanged: editLines
+                        ? (v) => vm.setLineItemId(index, v)
+                        : null,
+                    itemValidator: (_) =>
+                        line.itemId == null ? 'Item is required' : null,
                     warehouseId: line.warehouseId ?? vm.warehouseId,
-                    warehouseOptions: vm.warehouseOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
-                    onWarehouseChanged: editLines ? (v) => vm.setLineWarehouseId(index, v) : null,
+                    warehouseOptions: vm.warehouseOptions
+                        .where((x) => x.id != null)
+                        .map(
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onWarehouseChanged: editLines
+                        ? (v) => vm.setLineWarehouseId(index, v)
+                        : null,
                     uomId: line.uomId,
-                    uomOptions: vm.uomOptionsForItem(line.itemId).where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
-                    onUomChanged: editLines ? (v) => vm.setLineUomId(index, v) : null,
+                    uomOptions: vm
+                        .uomOptionsForItem(line.itemId)
+                        .where((x) => x.id != null)
+                        .map(
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onUomChanged: editLines
+                        ? (v) => vm.setLineUomId(index, v)
+                        : null,
                     uomValidator: Validators.requiredSelection('UOM'),
                     amount: 0,
                     deleteEnabled: editLines && vm.lineDrafts.length > 1,
                     customCells: <String, Widget>{
                       'order_material': ErpLineItemCellFrame(
                         child: AppDropdownField<int?>.fromMapped(
-                          labelText: '', hintText: 'Order Material', fieldPadding: EdgeInsets.zero,
+                          labelText: '',
+                          hintText: 'Order Material',
+                          fieldPadding: EdgeInsets.zero,
                           mappedItems: matItems,
                           initialValue: line.jobworkOrderMaterialId,
-                          onChanged: editLines ? (v) => vm.applyMaterialLink(index, v) : null,
+                          onChanged: editLines
+                              ? (v) => vm.applyMaterialLink(index, v)
+                              : null,
                         ),
                       ),
                       'batch': vm.itemHasBatch(line.itemId)
                           ? ErpLineItemCellFrame(
                               child: AppDropdownField<int>.fromMapped(
-                                labelText: '', hintText: 'Batch', fieldPadding: EdgeInsets.zero,
-                                mappedItems: batchOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: (x.batchNo ?? '').trim().isNotEmpty ? x.batchNo! : x.toString())).toList(growable: false),
+                                labelText: '',
+                                hintText: 'Batch',
+                                fieldPadding: EdgeInsets.zero,
+                                mappedItems: batchOptions
+                                    .where((x) => x.id != null)
+                                    .map(
+                                      (x) => AppDropdownItem<int>(
+                                        value: x.id!,
+                                        label:
+                                            (x.batchNo ?? '').trim().isNotEmpty
+                                            ? x.batchNo!
+                                            : x.toString(),
+                                      ),
+                                    )
+                                    .toList(growable: false),
                                 initialValue: line.batchId,
-                                onChanged: editLines ? (v) => vm.setLineBatchId(index, v) : null,
+                                onChanged: editLines
+                                    ? (v) => vm.setLineBatchId(index, v)
+                                    : null,
                               ),
                             )
-                          : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                          : const ErpLineItemTextCell(
+                              readOnly: true,
+                              enabled: false,
+                              initialValue: '-',
+                            ),
                       'serial': vm.itemHasSerial(line.itemId)
                           ? ErpLineItemCellFrame(
                               child: AppDropdownField<int>.fromMapped(
-                                labelText: '', hintText: 'Serial', fieldPadding: EdgeInsets.zero,
-                                mappedItems: serialOptions.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: (x.serialNo ?? '').trim().isNotEmpty ? x.serialNo! : x.toString())).toList(growable: false),
+                                labelText: '',
+                                hintText: 'Serial',
+                                fieldPadding: EdgeInsets.zero,
+                                mappedItems: serialOptions
+                                    .where((x) => x.id != null)
+                                    .map(
+                                      (x) => AppDropdownItem<int>(
+                                        value: x.id!,
+                                        label:
+                                            (x.serialNo ?? '').trim().isNotEmpty
+                                            ? x.serialNo!
+                                            : x.toString(),
+                                      ),
+                                    )
+                                    .toList(growable: false),
                                 initialValue: line.serialId,
-                                onChanged: editLines ? (v) => vm.setLineSerialId(index, v) : null,
+                                onChanged: editLines
+                                    ? (v) => vm.setLineSerialId(index, v)
+                                    : null,
                               ),
                             )
-                          : const ErpLineItemTextCell(readOnly: true, enabled: false, initialValue: '-'),
+                          : const ErpLineItemTextCell(
+                              readOnly: true,
+                              enabled: false,
+                              initialValue: '-',
+                            ),
                       'qty': ErpLineItemTextCell(
                         controller: line.qtyController,
                         enabled: editLines,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        validator: Validators.requiredPositiveNumber('Quantity'),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: Validators.requiredPositiveNumber(
+                          'Quantity',
+                        ),
                       ),
                       'unit_cost': ErpLineItemTextCell(
                         controller: line.unitCostController,
                         enabled: editLines,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      ),
-                      'remarks': ErpLineItemTextCell(
-                        controller: line.remarksController,
-                        enabled: editLines,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                       ),
                     },
                   );

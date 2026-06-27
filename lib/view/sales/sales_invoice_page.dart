@@ -206,10 +206,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     final taxOptions = controller.taxCodes
         .where((item) => item.id != null)
         .map(
-          (item) => AppDropdownItem<int>(
-            value: item.id!,
-            label: item.toString(),
-          ),
+          (item) =>
+              AppDropdownItem<int>(value: item.id!, label: item.toString()),
         )
         .toList(growable: false);
 
@@ -249,7 +247,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
     ) {
       final line = controller.lines[index];
       final qty = Validators.parseFlexibleNumber(line.qtyController.text) ?? 0;
-      final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      final rate =
+          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
       final discount =
           Validators.parseFlexibleNumber(line.discountController.text) ?? 0;
       final amount = qty <= 0 || rate < 0
@@ -259,10 +258,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
 
@@ -284,10 +281,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           .warehouseOptionsForLine(line)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
 
@@ -358,7 +353,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
               }
             : null,
         qtyController: line.qtyController,
-        onQtyChanged: controller.canEdit ? (_) => controller.State(() {}) : null,
+        onQtyChanged: controller.canEdit
+            ? (_) => controller.State(() {})
+            : null,
         qtyValidator: (_) {
           final text = line.qtyController.text.trim();
           if (text.isEmpty) {
@@ -386,7 +383,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
           return null;
         },
         rateController: line.rateController,
-        onRateChanged: controller.canEdit ? (_) => controller.State(() {}) : null,
+        onRateChanged: controller.canEdit
+            ? (_) => controller.State(() {})
+            : null,
         rateValidator: Validators.compose([
           Validators.required('Rate'),
           Validators.optionalNonNegativeNumber('Rate'),
@@ -508,7 +507,8 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
             if (line.warehouseId == null) {
               return _buildGridHintCell(context, 'Select warehouse');
             }
-            if (controller.isBatchManagedItem(line.itemId) && line.batchId == null) {
+            if (controller.isBatchManagedItem(line.itemId) &&
+                line.batchId == null) {
               return _buildGridHintCell(context, 'Select batch');
             }
             return ErpLineItemCellFrame(
@@ -521,9 +521,9 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
                 enabled: controller.canEdit,
                 canOpen:
                     ((controller.isBatchManagedItem(line.itemId)
-                                ? line.batchId != null
-                                : line.warehouseId != null) ||
-                            line.serialNumbers.isNotEmpty),
+                        ? line.batchId != null
+                        : line.warehouseId != null) ||
+                    line.serialNumbers.isNotEmpty),
                 beforeOpen: controller.canEdit
                     ? () => controller.syncSerialOptionsForLine(line)
                     : null,
@@ -579,7 +579,6 @@ class _SalesInvoicePageState extends State<SalesInvoicePage> {
         ErpLineItemTableColumn.discount,
         ErpLineItemTableColumn.taxCode,
         ErpLineItemTableColumn.description,
-        ErpLineItemTableColumn.remarks,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },

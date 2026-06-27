@@ -164,16 +164,15 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
       final line = controller.lines[index];
       final qty =
           Validators.parseFlexibleNumber(line.deliveredQtyController.text) ?? 0;
-      final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      final rate =
+          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
       final amount = qty * rate;
       final uomOptions = controller
           .uomOptionsForItem(line.itemId)
           .where((item) => item.id != null)
           .map(
-            (item) => AppDropdownItem<int>(
-              value: item.id!,
-              label: item.toString(),
-            ),
+            (item) =>
+                AppDropdownItem<int>(value: item.id!, label: item.toString()),
           )
           .toList(growable: false);
 
@@ -221,7 +220,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           if (quantityError != null) {
             return quantityError;
           }
-          final qtyValue = double.tryParse(line.deliveredQtyController.text.trim());
+          final qtyValue = double.tryParse(
+            line.deliveredQtyController.text.trim(),
+          );
           if (controller.isSerialManagedItem(line.itemId)) {
             final serialCount = controller.lineSerialNumbers(line).length;
             if (serialCount == 0) {
@@ -286,7 +287,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             if (line.warehouseId == null) {
               return _buildGridHintCell(context, 'Select warehouse');
             }
-            if (controller.isBatchManagedItem(line.itemId) && line.batchId == null) {
+            if (controller.isBatchManagedItem(line.itemId) &&
+                line.batchId == null) {
               return _buildGridHintCell(context, 'Select batch');
             }
             return ErpLineItemCellFrame(
@@ -298,9 +300,9 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
                 values: line.serialNumbers,
                 canOpen:
                     ((controller.isBatchManagedItem(line.itemId)
-                                ? line.batchId != null
-                                : line.warehouseId != null) ||
-                            line.serialNumbers.isNotEmpty),
+                        ? line.batchId != null
+                        : line.warehouseId != null) ||
+                    line.serialNumbers.isNotEmpty),
                 beforeOpen: () => controller.syncSerialOptionsForLine(line),
                 validator: (values) {
                   if (line.warehouseId == null) {
@@ -346,7 +348,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
         ErpLineItemTableColumn.description,
-        ErpLineItemTableColumn.remarks,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },
@@ -391,10 +392,8 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
             .uomOptionsForItem(row.itemId)
             .where((item) => item.id != null)
             .map(
-              (item) => AppDropdownItem<int>(
-                value: item.id!,
-                label: item.toString(),
-              ),
+              (item) =>
+                  AppDropdownItem<int>(value: item.id!, label: item.toString()),
             )
             .toList(growable: false);
 
@@ -417,10 +416,12 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
           itemId: row.itemId,
           itemSelection: itemSelection,
           itemOptions: itemOptions,
-          onItemChanged: (value) => controller.setReturnableDcItemId(index, value),
+          onItemChanged: (value) =>
+              controller.setReturnableDcItemId(index, value),
           uomId: row.uomId,
           uomOptions: uomOptions,
-          onUomChanged: (value) => controller.setReturnableDcUomId(index, value),
+          onUomChanged: (value) =>
+              controller.setReturnableDcUomId(index, value),
           uomValidator: (_) => row.uomId == null ? 'UOM is required' : null,
           qtyController: row.qtyController,
           qtyValidator: (_) => Validators.requiredPositiveNumberField(
@@ -453,7 +454,6 @@ class _SalesDeliveryPageState extends State<SalesDeliveryPage> {
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.description,
-        ErpLineItemTableColumn.remarks,
         ErpLineItemTableColumn.action,
       },
       customColumns: const <ErpLineItemCustomColumn>[

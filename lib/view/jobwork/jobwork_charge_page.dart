@@ -324,7 +324,6 @@ class _JobworkChargeEditor extends StatelessWidget {
                   ErpLineItemTableColumn.rate,
                   ErpLineItemTableColumn.amount,
                   ErpLineItemTableColumn.taxCode,
-                  ErpLineItemTableColumn.remarks,
                   ErpLineItemTableColumn.action,
                 },
                 columnLabels: const <ErpLineItemTableColumn, String>{
@@ -332,21 +331,62 @@ class _JobworkChargeEditor extends StatelessWidget {
                   ErpLineItemTableColumn.item: 'Item (optional)',
                 },
                 customColumns: const <ErpLineItemCustomColumn>[
-                  ErpLineItemCustomColumn(id: 'output_item', label: 'Output Item (optional)', width: 180, insertAfter: ErpLineItemTableColumn.item),
-                  ErpLineItemCustomColumn(id: 'tax_breakdown', label: 'Tax Breakdown', width: 240, insertAfter: ErpLineItemTableColumn.remarks),
+                  ErpLineItemCustomColumn(
+                    id: 'output_item',
+                    label: 'Output Item (optional)',
+                    width: 180,
+                    insertAfter: ErpLineItemTableColumn.item,
+                  ),
+                  ErpLineItemCustomColumn(
+                    id: 'tax_breakdown',
+                    label: 'Tax Breakdown',
+                    width: 240,
+                    insertAfter: ErpLineItemTableColumn.taxCode,
+                  ),
                 ],
-                lines: List<ErpLineItemTableRow>.generate(vm.lineDrafts.length, (index) {
+                lines: List<ErpLineItemTableRow>.generate(vm.lineDrafts.length, (
+                  index,
+                ) {
                   final line = vm.lineDrafts[index];
                   final breakdown = vm.lineTaxBreakdown(line);
-                  final outItems = vm.outputItemOptions.where((x) => x.id != null).map((x) => AppSearchPickerOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false);
+                  final outItems = vm.outputItemOptions
+                      .where((x) => x.id != null)
+                      .map(
+                        (x) => AppSearchPickerOption<int>(
+                          value: x.id!,
+                          label: x.toString(),
+                          subtitle: x.itemCode,
+                        ),
+                      )
+                      .toList(growable: false);
                   return ErpLineItemTableRow(
                     rowKey: line,
                     descriptionController: line.serviceDescriptionController,
                     onDescriptionChanged: null,
                     itemId: line.itemId,
-                    itemSelection: vm.items.where((x) => x.id == line.itemId).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).firstOrNull,
-                    itemOptions: vm.items.where((x) => x.id != null).map((x) => ErpLinkFieldOption<int>(value: x.id!, label: x.toString(), subtitle: x.itemCode)).toList(growable: false),
-                    onItemChanged: editLines ? (v) => vm.setLineItemId(index, v) : null,
+                    itemSelection: vm.items
+                        .where((x) => x.id == line.itemId)
+                        .map(
+                          (x) => ErpLinkFieldOption<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                            subtitle: x.itemCode,
+                          ),
+                        )
+                        .firstOrNull,
+                    itemOptions: vm.items
+                        .where((x) => x.id != null)
+                        .map(
+                          (x) => ErpLinkFieldOption<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                            subtitle: x.itemCode,
+                          ),
+                        )
+                        .toList(growable: false),
+                    onItemChanged: editLines
+                        ? (v) => vm.setLineItemId(index, v)
+                        : null,
                     itemValidator: (_) => null, // Item is optional
                     qtyController: line.qtyController,
                     onQtyChanged: (_) => vm.update(),
@@ -358,7 +398,9 @@ class _JobworkChargeEditor extends StatelessWidget {
                       ErpLineItemTableColumn.amount: ErpLineItemTextCell(
                         controller: line.amountController,
                         enabled: editLines,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         onChanged: (_) => vm.update(),
                       ),
                       ErpLineItemTableColumn.description: ErpLineItemTextCell(
@@ -366,22 +408,44 @@ class _JobworkChargeEditor extends StatelessWidget {
                         enabled: editLines,
                         validator: Validators.compose([
                           Validators.required('Service description'),
-                          Validators.optionalMaxLength(500, 'Service description'),
+                          Validators.optionalMaxLength(
+                            500,
+                            'Service description',
+                          ),
                         ]),
                       ),
                     },
                     taxCodeId: line.taxCodeId,
-                    taxOptions: vm.taxCodes.where((x) => x.id != null).map((x) => AppDropdownItem<int>(value: x.id!, label: x.toString())).toList(growable: false),
-                    onTaxCodeChanged: editLines ? (v) => vm.setLineTaxCodeId(index, v) : null,
+                    taxOptions: vm.taxCodes
+                        .where((x) => x.id != null)
+                        .map(
+                          (x) => AppDropdownItem<int>(
+                            value: x.id!,
+                            label: x.toString(),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onTaxCodeChanged: editLines
+                        ? (v) => vm.setLineTaxCodeId(index, v)
+                        : null,
                     remarksController: line.remarksController,
                     deleteEnabled: editLines && vm.lineDrafts.length > 1,
                     customCells: <String, Widget>{
                       'output_item': ErpLineItemCellFrame(
                         child: AppSearchPickerField<int>(
-                          labelText: '', hintText: 'Output item',
-                          selectedLabel: vm.outputItemOptions.cast<ItemModel?>().firstWhere((x) => x?.id == line.outputItemId, orElse: () => null)?.toString(),
+                          labelText: '',
+                          hintText: 'Output item',
+                          selectedLabel: vm.outputItemOptions
+                              .cast<ItemModel?>()
+                              .firstWhere(
+                                (x) => x?.id == line.outputItemId,
+                                orElse: () => null,
+                              )
+                              ?.toString(),
                           options: outItems,
-                          onChanged: editLines ? (v) => vm.setLineOutputItemId(index, v) : (_) {},
+                          onChanged: editLines
+                              ? (v) => vm.setLineOutputItemId(index, v)
+                              : (_) {},
                         ),
                       ),
                       'tax_breakdown': ErpLineItemCellFrame(

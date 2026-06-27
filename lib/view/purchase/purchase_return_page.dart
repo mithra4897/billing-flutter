@@ -88,7 +88,8 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
       final line = controller.lines[index];
       final qty =
           Validators.parseFlexibleNumber(line.returnQtyController.text) ?? 0;
-      final rate = Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
+      final rate =
+          Validators.parseFlexibleNumber(line.rateController.text) ?? 0;
       return ErpLineItemTableRow(
         rowKey: line,
         qtyController: line.returnQtyController,
@@ -163,7 +164,9 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
     return ErpLineItemTable(
       title: 'Lines',
       lines: rows,
-      onAddLine: controller.isSelectedReturnReadOnly ? null : controller.addLine,
+      onAddLine: controller.isSelectedReturnReadOnly
+          ? null
+          : controller.addLine,
       onDeleteLine: controller.isSelectedReturnReadOnly
           ? null
           : controller.removeLine,
@@ -174,7 +177,6 @@ class _PurchaseReturnPageState extends State<PurchaseReturnPage> {
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,
         ErpLineItemTableColumn.rate,
-        ErpLineItemTableColumn.remarks,
         ErpLineItemTableColumn.amount,
         ErpLineItemTableColumn.action,
       },
