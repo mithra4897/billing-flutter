@@ -20,6 +20,7 @@ class ProjectBillingManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool showDraftTile = false;
   String? pageError;
   String? formError;
   int? constrainedProjectId;
@@ -143,10 +144,12 @@ class ProjectBillingManagementController extends GetxController {
             );
       if (selected != null) {
         selectRow(selected, notify: false);
-      } else if (filteredRows.isNotEmpty) {
-        selectRow(filteredRows.first, notify: false);
       } else {
-        resetForm(notify: false);
+        if (!isProjectConstrained && filteredRows.isNotEmpty) {
+          selectRow(filteredRows.first, notify: false);
+        } else {
+          resetForm(notify: false);
+        }
       }
     } catch (errorValue) {
       pageError = errorValue.toString();
@@ -175,6 +178,11 @@ class ProjectBillingManagementController extends GetxController {
   }
 
   void selectRow(ProjectBillingRow row, {bool notify = true}) {
+    if (selectedRow?.billing.id == row.billing.id) {
+      resetForm(notify: notify);
+      return;
+    }
+    showDraftTile = false;
     selectedRow = row;
     projectId = row.project.id;
     milestoneId = row.billing.projectMilestoneId;
@@ -376,7 +384,10 @@ class ProjectBillingManagementController extends GetxController {
               selectedRow!.billing.id!,
               model,
             );
-      await loadData(selectId: response.data?.id ?? selectedRow?.billing.id);
+      final savedId = response.data?.id ?? selectedRow?.billing.id;
+      showDraftTile = false;
+      resetForm(notify: false);
+      await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_billing');
       return response.message;
     } catch (errorValue) {
@@ -410,8 +421,15 @@ class ProjectBillingManagementController extends GetxController {
   }
 
   void startNewBilling({required bool isDesktop}) {
+    showDraftTile = true;
     resetForm();
     if (!isDesktop) workspaceController.openEditor();
+  }
+
+  void hideDraftTile() {
+    showDraftTile = false;
+    resetForm();
+    update();
   }
 }
 

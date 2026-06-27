@@ -26,6 +26,7 @@ class ProjectTimesheetManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool showDraftTile = false;
   String? pageError;
   String? formError;
   int? constrainedProjectId;
@@ -161,10 +162,12 @@ class ProjectTimesheetManagementController extends GetxController {
             );
       if (selected != null) {
         selectRow(selected, notify: false);
-      } else if (filteredRows.isNotEmpty) {
-        selectRow(filteredRows.first, notify: false);
       } else {
-        resetForm(notify: false);
+        if (!isProjectConstrained && filteredRows.isNotEmpty) {
+          selectRow(filteredRows.first, notify: false);
+        } else {
+          resetForm(notify: false);
+        }
       }
     } catch (errorValue) {
       pageError = errorValue.toString();
@@ -193,6 +196,11 @@ class ProjectTimesheetManagementController extends GetxController {
   }
 
   void selectRow(ProjectTimesheetRow row, {bool notify = true}) {
+    if (selectedRow?.timesheet.id == row.timesheet.id) {
+      resetForm(notify: notify);
+      return;
+    }
+    showDraftTile = false;
     selectedRow = row;
     projectId = row.project.id;
     taskId = row.timesheet.projectTaskId;
@@ -357,7 +365,10 @@ class ProjectTimesheetManagementController extends GetxController {
               selectedRow!.timesheet.id!,
               model,
             );
-      await loadData(selectId: response.data?.id ?? selectedRow?.timesheet.id);
+      final savedId = response.data?.id ?? selectedRow?.timesheet.id;
+      showDraftTile = false;
+      resetForm(notify: false);
+      await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_timesheet');
       return response.message;
     } catch (errorValue) {
@@ -380,8 +391,15 @@ class ProjectTimesheetManagementController extends GetxController {
   }
 
   void startNewTimesheet({required bool isDesktop}) {
+    showDraftTile = true;
     resetForm();
     if (!isDesktop) workspaceController.openEditor();
+  }
+
+  void hideDraftTile() {
+    showDraftTile = false;
+    resetForm();
+    update();
   }
 }
 

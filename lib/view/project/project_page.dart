@@ -360,7 +360,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage>
       );
     }
 
-    return SizedBox(height: 900, child: child);
+    return child;
   }
 
   Widget _buildGeneralTab(

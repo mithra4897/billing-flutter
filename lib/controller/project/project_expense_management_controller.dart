@@ -24,6 +24,7 @@ class ProjectExpenseManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool showDraftTile = false;
   String? pageError;
   String? formError;
   int? constrainedProjectId;
@@ -160,10 +161,12 @@ class ProjectExpenseManagementController extends GetxController {
             );
       if (selected != null) {
         selectRow(selected, notify: false);
-      } else if (filteredRows.isNotEmpty) {
-        selectRow(filteredRows.first, notify: false);
       } else {
-        resetForm(notify: false);
+        if (!isProjectConstrained && filteredRows.isNotEmpty) {
+          selectRow(filteredRows.first, notify: false);
+        } else {
+          resetForm(notify: false);
+        }
       }
     } catch (errorValue) {
       pageError = errorValue.toString();
@@ -192,6 +195,11 @@ class ProjectExpenseManagementController extends GetxController {
   }
 
   void selectRow(ProjectExpenseRow row, {bool notify = true}) {
+    if (selectedRow?.expense.id == row.expense.id) {
+      resetForm(notify: notify);
+      return;
+    }
+    showDraftTile = false;
     selectedRow = row;
     projectId = row.project.id;
     taskId = row.expense.projectTaskId;
@@ -325,7 +333,10 @@ class ProjectExpenseManagementController extends GetxController {
               selectedRow!.expense.id!,
               model,
             );
-      await loadData(selectId: response.data?.id ?? selectedRow?.expense.id);
+      final savedId = response.data?.id ?? selectedRow?.expense.id;
+      showDraftTile = false;
+      resetForm(notify: false);
+      await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_expense');
       return response.message;
     } catch (errorValue) {
@@ -396,10 +407,17 @@ class ProjectExpenseManagementController extends GetxController {
   }
 
   void startNewExpense({required bool isDesktop}) {
+    showDraftTile = true;
     resetForm();
     if (!isDesktop) {
       workspaceController.openEditor();
     }
+  }
+
+  void hideDraftTile() {
+    showDraftTile = false;
+    resetForm();
+    update();
   }
 
   double? _doubleValue(String text) => double.tryParse(text.trim());

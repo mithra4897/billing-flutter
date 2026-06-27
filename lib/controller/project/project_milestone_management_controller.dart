@@ -22,6 +22,7 @@ class ProjectMilestoneManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool showDraftTile = false;
   String? pageError;
   String? formError;
   int? constrainedProjectId;
@@ -136,10 +137,12 @@ class ProjectMilestoneManagementController extends GetxController {
             );
       if (selected != null) {
         selectRow(selected, notify: false);
-      } else if (filteredRows.isNotEmpty) {
-        selectRow(filteredRows.first, notify: false);
       } else {
-        resetForm(notify: false);
+        if (!isProjectConstrained && filteredRows.isNotEmpty) {
+          selectRow(filteredRows.first, notify: false);
+        } else {
+          resetForm(notify: false);
+        }
       }
     } catch (errorValue) {
       initialLoading = false;
@@ -167,6 +170,11 @@ class ProjectMilestoneManagementController extends GetxController {
   }
 
   void selectRow(ProjectMilestoneRow row, {bool notify = true}) {
+    if (selectedRow?.milestone.id == row.milestone.id) {
+      resetForm(notify: notify);
+      return;
+    }
+    showDraftTile = false;
     selectedRow = row;
     projectId = row.project.id;
     nameController.text = row.milestone.milestoneName ?? '';
@@ -229,7 +237,10 @@ class ProjectMilestoneManagementController extends GetxController {
               selectedRow!.milestone.id!,
               model,
             );
-      await loadData(selectId: response.data?.id ?? selectedRow?.milestone.id);
+      final savedId = response.data?.id ?? selectedRow?.milestone.id;
+      showDraftTile = false;
+      resetForm(notify: false);
+      await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_milestone');
       return response.message;
     } catch (errorValue) {
@@ -279,10 +290,17 @@ class ProjectMilestoneManagementController extends GetxController {
       .toList(growable: false);
 
   void startNewMilestone({required bool isDesktop}) {
+    showDraftTile = true;
     resetForm();
     if (!isDesktop) {
       workspaceController.openEditor();
     }
+  }
+
+  void hideDraftTile() {
+    showDraftTile = false;
+    resetForm();
+    update();
   }
 
   double? _doubleValue(String text) => double.tryParse(text.trim());

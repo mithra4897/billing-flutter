@@ -25,6 +25,7 @@ class ProjectResourceUsageManagementController extends GetxController {
 
   bool initialLoading = true;
   bool saving = false;
+  bool showDraftTile = false;
   String? pageError;
   String? formError;
   int? constrainedProjectId;
@@ -158,10 +159,12 @@ class ProjectResourceUsageManagementController extends GetxController {
             );
       if (selected != null) {
         selectRow(selected, notify: false);
-      } else if (filteredRows.isNotEmpty) {
-        selectRow(filteredRows.first, notify: false);
       } else {
-        resetForm(notify: false);
+        if (!isProjectConstrained && filteredRows.isNotEmpty) {
+          selectRow(filteredRows.first, notify: false);
+        } else {
+          resetForm(notify: false);
+        }
       }
     } catch (errorValue) {
       pageError = errorValue.toString();
@@ -190,6 +193,11 @@ class ProjectResourceUsageManagementController extends GetxController {
   }
 
   void selectRow(ProjectResourceUsageRow row, {bool notify = true}) {
+    if (selectedRow?.usage.id == row.usage.id) {
+      resetForm(notify: notify);
+      return;
+    }
+    showDraftTile = false;
     selectedRow = row;
     projectId = row.project.id;
     taskId = row.usage.projectTaskId;
@@ -366,7 +374,10 @@ class ProjectResourceUsageManagementController extends GetxController {
               selectedRow!.usage.id!,
               model,
             );
-      await loadData(selectId: response.data?.id ?? selectedRow?.usage.id);
+      final savedId = response.data?.id ?? selectedRow?.usage.id;
+      showDraftTile = false;
+      resetForm(notify: false);
+      await loadData(selectId: savedId);
       _refreshController.notifyChanged(source: 'project_resource_usage');
       return response.message;
     } catch (errorValue) {
@@ -404,10 +415,17 @@ class ProjectResourceUsageManagementController extends GetxController {
   }
 
   void startNewUsage({required bool isDesktop}) {
+    showDraftTile = true;
     resetForm();
     if (!isDesktop) {
       workspaceController.openEditor();
     }
+  }
+
+  void hideDraftTile() {
+    showDraftTile = false;
+    resetForm();
+    update();
   }
 }
 
