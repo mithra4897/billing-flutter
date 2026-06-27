@@ -299,10 +299,8 @@ class _SalesOrderPageState extends State<SalesOrderPage> {
       onAddLine: controller.canEdit ? controller.addLine : null,
       onDeleteLine: controller.canEdit ? controller.removeLine : null,
       addButtonLabel: 'Add Line',
-      sourceColumnLabel: 'Quotation line',
       visibleColumns: const <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
-        ErpLineItemTableColumn.source,
         ErpLineItemTableColumn.item,
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,

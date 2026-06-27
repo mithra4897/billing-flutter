@@ -253,10 +253,8 @@ class _SalesQuotationPageState extends State<SalesQuotationPage> {
       onAddLine: controller.canEdit ? controller.addLine : null,
       onDeleteLine: controller.canEdit ? controller.removeLine : null,
       addButtonLabel: 'Add Line',
-      sourceColumnLabel: 'Quotation line / Source line',
       visibleColumns: const <ErpLineItemTableColumn>{
         ErpLineItemTableColumn.no,
-        ErpLineItemTableColumn.source,
         ErpLineItemTableColumn.item,
         ErpLineItemTableColumn.uom,
         ErpLineItemTableColumn.qty,
