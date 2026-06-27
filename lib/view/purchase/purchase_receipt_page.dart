@@ -89,7 +89,7 @@ class _PurchaseReceiptPageState extends State<PurchaseReceiptPage> {
             value: item.id!,
             label: item.toString(),
             subtitle: item.itemCode,
-            searchText: '${item.itemCode} ${item.toString()}',
+            searchText: item.pickerSearchText,
           ),
         )
         .toList(growable: false);

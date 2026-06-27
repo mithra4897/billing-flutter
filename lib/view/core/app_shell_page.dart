@@ -365,11 +365,11 @@ class _AppShellPageState extends State<AppShellPage> {
       case '/inventory/adjustments':
         return InventoryAdjustmentRegisterPage(key: routeKey, embedded: true);
       case '/inventory/stock-movements':
-        return StockMovementPage(key: routeKey, embedded: true);
+        return StockMovementRegisterPage(key: routeKey, embedded: true);
       case '/inventory/stock-batches':
-        return StockBatchPage(key: routeKey, embedded: true);
+        return StockBatchRegisterPage(key: routeKey, embedded: true);
       case '/inventory/stock-serials':
-        return StockSerialPage(key: routeKey, embedded: true);
+        return StockSerialRegisterPage(key: routeKey, embedded: true);
       case '/tax/states':
         return StateManagementPage(key: routeKey, embedded: true);
       case '/tax/gst-tax-rules':

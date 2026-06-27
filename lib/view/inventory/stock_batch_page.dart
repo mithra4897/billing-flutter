@@ -33,7 +33,7 @@ class _StockBatchPageState extends State<StockBatchPage> {
       StockBatchViewModel(initialItemId: widget.initialItemId)
         ..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -172,6 +172,7 @@ class _StockBatchEditor extends StatelessWidget {
                           value: item.id!,
                           label: item.toString(),
                           subtitle: item.itemCode,
+                          searchText: item.pickerSearchText,
                         ),
                       )
                       .toList(growable: false),

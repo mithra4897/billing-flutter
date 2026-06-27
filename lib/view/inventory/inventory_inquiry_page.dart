@@ -70,15 +70,6 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
       );
     }
 
-    final companyItems = controller.companies
-        .map(
-          (CompanyModel company) => AppDropdownItem<int?>(
-            value: company.id,
-            label: company.toString(),
-          ),
-        )
-        .toList(growable: false);
-
     final warehouseItems = <AppDropdownItem<int?>>[
       const AppDropdownItem<int?>(value: null, label: 'All warehouses'),
       ...controller.warehouses.map(
@@ -137,6 +128,7 @@ class _InventoryInquiryPageState extends State<InventoryInquiryPage> {
                               value: item.id!,
                               label: item.toString(),
                               subtitle: item.itemCode,
+                              searchText: item.pickerSearchText,
                             ),
                           )
                           .toList(growable: false),

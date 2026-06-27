@@ -33,7 +33,7 @@ class _StockSerialPageState extends State<StockSerialPage> {
       StockSerialViewModel(initialItemId: widget.initialItemId)
         ..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -188,6 +188,7 @@ class _StockSerialEditor extends StatelessWidget {
                           value: x.id!,
                           label: x.toString(),
                           subtitle: x.itemCode,
+                          searchText: x.pickerSearchText,
                         ),
                       )
                       .toList(growable: false),

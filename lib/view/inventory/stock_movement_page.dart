@@ -33,7 +33,7 @@ class _StockMovementPageState extends State<StockMovementPage> {
       StockMovementViewModel(initialItemId: widget.initialItemId)
         ..load(selectId: widget.initialId),
       tag: _controllerTag,
-    permanent: true,
+      permanent: true,
     );
   }
 
@@ -172,6 +172,7 @@ class _StockMovementEditor extends StatelessWidget {
                           value: x.id!,
                           label: x.toString(),
                           subtitle: x.itemCode,
+                          searchText: x.pickerSearchText,
                         ),
                       )
                       .toList(growable: false),

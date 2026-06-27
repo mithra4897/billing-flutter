@@ -317,6 +317,7 @@ class SalesDeliveryManagementController extends GetxController {
           value: item.id!,
           label: item.toString(),
           subtitle: item.itemCode,
+          searchText: item.pickerSearchText,
         ),
       )
       .toList(growable: false);

@@ -209,7 +209,10 @@ class ItemManagementController extends GetxController {
       return [
         item.itemCode,
         item.itemName,
+        item.itemNameLocal ?? '',
         item.itemType ?? '',
+        item.categoryCode ?? '',
+        item.categoryName ?? '',
         item.sku ?? '',
       ];
     });

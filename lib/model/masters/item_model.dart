@@ -108,6 +108,16 @@ class ItemModel extends JsonModel {
   @override
   String toString() => itemName.isNotEmpty ? itemName : itemCode;
 
+  String get pickerSearchText => <String>[
+    itemCode,
+    itemName,
+    itemNameLocal ?? '',
+    categoryCode ?? '',
+    categoryName ?? '',
+    sku ?? '',
+    barcode ?? '',
+  ].where((value) => value.trim().isNotEmpty).join(' ');
+
   factory ItemModel.fromJson(Map<String, dynamic> json) {
     final company = _asMap(json['company']);
     final category = _asMap(json['category']);

@@ -93,7 +93,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             value: item.id!,
             label: item.toString(),
             subtitle: item.itemCode,
-            searchText: '${item.itemCode} ${item.toString()}',
+            searchText: item.pickerSearchText,
           ),
         )
         .toList(growable: false);
